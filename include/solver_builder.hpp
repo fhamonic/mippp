@@ -107,7 +107,7 @@ namespace SolverBuilder_Utils {
         linear_ineq_constraint_rhs_easy_init(linear_ineq_constraint&& data) 
                 : constraint_data(std::move(data)) {}
         linear_ineq_constraint_rhs_easy_init& operator()(double c) { 
-            constraint_data.linear_expression.add(c);
+            constraint_data.linear_expression.add(-c);
             return *this;
         }
         linear_ineq_constraint_rhs_easy_init& operator()(int id
@@ -123,7 +123,7 @@ namespace SolverBuilder_Utils {
     public:
         linear_ineq_constraint_lhs_easy_init() {}
         linear_ineq_constraint_lhs_easy_init& operator()(double c) { 
-            constraint_data.linear_expression.add(-c);
+            constraint_data.linear_expression.add(c);
             return *this;
         }
         linear_ineq_constraint_lhs_easy_init& operator()(int id
@@ -237,7 +237,7 @@ namespace SolverBuilder_Utils {
                 quadratic_ineq_constraint&& data) 
                 : constraint_data(std::move(data)) {}
         quadratic_ineq_constraint_rhs_easy_init& operator()(double c) {
-            constraint_data.quadratic_expression.add(c);
+            constraint_data.quadratic_expression.add(-c);
             return *this;
         }
         quadratic_ineq_constraint_rhs_easy_init& operator()(int id,
@@ -261,7 +261,7 @@ namespace SolverBuilder_Utils {
     public:
         quadratic_ineq_constraint_lhs_easy_init() {}
         quadratic_ineq_constraint_lhs_easy_init& operator()(double c) {
-            constraint_data.quadratic_expression.add(-c);
+            constraint_data.quadratic_expression.add(c);
             return *this;
         }
         quadratic_ineq_constraint_lhs_easy_init& operator()(int id, double coef=1) { 
