@@ -1,0 +1,8 @@
+[requires]
+fast-cpp-csv-parser/20191004
+tbb/2020.3
+boost/1.75.0
+eigen/3.3.9
+
+[generators]
+cmake
