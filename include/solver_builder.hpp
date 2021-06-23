@@ -186,38 +186,40 @@ namespace SolverBuilder_Utils {
 
     class QuadraticExpression {
     private:
-        LinearExpression linear_expression;
-        std::vector<int> quad_indices_1;
-        std::vector<int> quad_indices_2;
+        LinearExpression _linear_expression;
+        std::vector<int> _quad_indices_1;
+        std::vector<int> _quad_indices_2;
         std::vector<double> quad_coefficients;
     public:
-        void add(double c) { linear_expression.add(c); }
+        void add(double c) { _linear_expression.add(c); }
         void add(int id, double coef=1) {
-            linear_expression.add(id, coef);
+            _linear_expression.add(id, coef);
         }
         void add(int id_1, int id_2, double coef=1) {
-            quad_indices_1.push_back(id_1);
-            quad_indices_2.push_back(id_2);
+            _quad_indices_1.push_back(id_1);
+            _quad_indices_2.push_back(id_2);
             quad_coefficients.push_back(coef);
         }
 
-        const LinearExpression & getLineraExpression() const { return linear_expression; }
+        const LinearExpression & getLineraExpression() const { return _linear_expression; }
 
-        int getNbLinearTerms() { return linear_expression.getNbTerms(); }
-        int * getLinearIndicesData() { return linear_expression.getIndicesData(); }
-        double * getLinearCoefficientsData() { return linear_expression.getCoefficientsData(); }
-        const std::vector<int> & getLinearIndices() const { return linear_expression.getIndices(); }
-        const std::vector<double> & getLinearCoefficients() const { return linear_expression.getCoefficients(); }
+        double getConstant() const { return _linear_expression.getConstant(); }
 
-        int getNbQuadTerms() { return quad_indices_1.size(); }
-        int * getQuadIndices1Data() { return quad_indices_1.data(); }
-        int * getQuadIndices2Data() { return quad_indices_2.data(); }
+        int getNbLinearTerms() { return _linear_expression.getNbTerms(); }
+        int * getLinearIndicesData() { return _linear_expression.getIndicesData(); }
+        double * getLinearCoefficientsData() { return _linear_expression.getCoefficientsData(); }
+        const std::vector<int> & getLinearIndices() const { return _linear_expression.getIndices(); }
+        const std::vector<double> & getLinearCoefficients() const { return _linear_expression.getCoefficients(); }
+
+        int getNbQuadTerms() { return _quad_indices_1.size(); }
+        int * getQuadIndices1Data() { return _quad_indices_1.data(); }
+        int * getQuadIndices2Data() { return _quad_indices_2.data(); }
         double * getQuadCoefficientsData() { return quad_coefficients.data(); }
-        const std::vector<int> & getQuadIndices1() const { return quad_indices_1; }
-        const std::vector<int> & getQuadIndices2() const { return quad_indices_2; }
+        const std::vector<int> & getQuadIndices1() const { return _quad_indices_1; }
+        const std::vector<int> & getQuadIndices2() const { return _quad_indices_2; }
         const std::vector<double> & getQuadCoefficients() const { return quad_coefficients; }
 
-        bool isLinear() { return quad_indices_1.empty(); }
+        bool isLinear() { return _quad_indices_1.empty(); }
     };
 
     struct quadratic_ineq_constraint {
