@@ -21,6 +21,8 @@
 #include <boost/range/combine.hpp>
 #include <boost/range/algorithm.hpp>
 
+#include <range/v3/all.hpp>
+
 namespace SolverBuilder_Utils {
     enum InequalitySense { LESS=-1, EQUAL=0, GREATER=1 };
     enum OptimizationSense { MIN=-1, MAX=1};
@@ -53,42 +55,26 @@ namespace SolverBuilder_Utils {
             return _coefficients;
         }
 
-        void simplify() {
-            std::vector<boost::tuple<std::reference_wrapper<int>,
-                                  std::reference_wrapper<double>>> refs;
-            refs.reserve(_indices.size());
-            std::transform(
-                boost::make_zip_iterator(
-                    boost::make_tuple(_indices.begin(), _coefficients.begin())
-                ),
-                boost::make_zip_iterator(
-                    boost::make_tuple(_indices.end(), _coefficients.end())
-                ),
-                std::back_inserter(refs),
-                [](const auto & t) { return t; }
-            );
-            boost::sort(refs, 
-                [](const boost::tuple<std::reference_wrapper<int>,
-                        std::reference_wrapper<double>> & p1,
-                    const boost::tuple<std::reference_wrapper<int>,
-                        std::reference_wrapper<double>> & p2) {
-                 return p1.get<0>().get() < p2.get<0>().get(); }
-            );
-    
-            const auto begin = refs.begin();
+        LinearExpression & simplify() {
+            auto zip_view = ranges::view::zip(_indices, _coefficients);
+            ranges::sort(zip_view, [](auto p1, auto p2){ return p1.first < p2.first; }); 
+        
+            const auto begin = zip_view.begin();
             auto first = begin;
-            const auto end = refs.end();
-            for(auto next = ++first; next != end; ++next) {
-                if(first->get<0>().get() != next->get<0>().get()) {
-                    ++first;
+            const auto end = zip_view.end();
+            for(auto next = first+1; next != end; ++next) {
+                if((*first).first != (*next).first) {
+                    if((*first).second != 0.0)
+                        ++first;
                     *first = *next;
                     continue;
                 }
-                first->get<1>().get() += next->get<1>().get();               
+                (*first).second += (*next).second;               
             }
             const size_t new_length = std::distance(begin, first+1);
             _indices.resize(new_length);
             _coefficients.resize(new_length);
+            return *this;
         }
     };
 
@@ -220,6 +206,11 @@ namespace SolverBuilder_Utils {
         const std::vector<double> & getQuadCoefficients() const { return quad_coefficients; }
 
         bool isLinear() { return _quad_indices_1.empty(); }
+
+        QuadraticExpression & simplify() {
+            _linear_expression.simplify();
+            return *this;
+        }
     };
 
     struct quadratic_ineq_constraint {

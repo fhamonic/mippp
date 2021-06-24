@@ -37,6 +37,7 @@ target_link_libraries(test CONAN_PKG::fast-cpp-csv-parser)
 target_link_libraries(test CONAN_PKG::tbb)
 target_link_libraries(test CONAN_PKG::boost)
 target_link_libraries(test CONAN_PKG::eigen)
+target_link_libraries(test CONAN_PKG::range-v3)
 
 target_link_libraries(test ${LEMON_LIBRARIES})
 target_link_libraries(test ${COIN_LIBRARIES})
