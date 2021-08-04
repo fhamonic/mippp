@@ -59,8 +59,7 @@ struct LinearExpr {
         auto zip_view = ranges::view::zip(vars, coefs);
         ranges::sort(zip_view, [](auto p1, auto p2){ return p1.first < p2.first; }); 
     
-        const auto begin = zip_view.begin();
-        auto first = begin;
+        auto first = zip_view.begin();
         const auto end = zip_view.end();
         for(auto next = first+1; next != end; ++next) {
             if((*first).first != (*next).first) {
@@ -71,7 +70,7 @@ struct LinearExpr {
             }
             (*first).second += (*next).second;               
         }
-        const size_t new_length = std::distance(begin, first+1);
+        const size_t new_length = std::distance(zip_view.begin(), first+1);
         vars.resize(new_length);
         coefs.resize(new_length);
         return *this;

@@ -53,6 +53,23 @@ struct QuadraticExpr {
         coefs.emplace_back(t.coef);
         return *this;
     }
+    QuadraticExpr& simplify() {
+        linear_expr.simplify();
+        auto zip_view = ranges::view::zip(vars1, vars2, coefs);
+        ranges::sort(zip_view, [](auto t1, auto t2) {
+            const int t1v1 = std::min(std::get<0>(t1),std::get<1>(t1));
+            const int t2v1 = std::min(std::get<0>(t2),std::get<1>(t2));
+            if(t1v1 < t2v1)
+                return true;
+            if(t1v1 == t2v1) {
+                const int t1v2 = std::max(std::get<0>(t1),std::get<1>(t1));
+                const int t2v2 = std::max(std::get<0>(t2),std::get<1>(t2));
+                return t1v2 < t2v2;
+            }
+            return false;
+        }); 
+        // TODO
+    }
 };
 
 inline QuadraticExpr operator+(QuadraticTerm t1, QuadraticTerm t2) {
