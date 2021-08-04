@@ -1,9 +1,12 @@
 #ifndef LINEAR_EXPRESSION_HPP
 #define LINEAR_EXPRESSION_HPP
 
+#include <ostream>
 #include <vector>
 
-#include <range/v3/all.hpp>
+#include <range/v3/view/zip.hpp>
+#include <range/v3/algorithm/sort.hpp>
+#include <range/v3/algorithm/for_each.hpp>
 
 struct LinearTerm;
 struct LinearExpr;
@@ -41,20 +44,29 @@ struct LinearExpr {
     std::vector<int> vars;
     std::vector<double> coefs;
 
-    LinearExpr() {}
+    LinearExpr()
+        : constant(0) {}
     LinearExpr(LinearTerm t)
         : constant(0)
         , vars(1, t.var)
         , coefs(1, t.coef) {}
-    LinearExpr& operator+(double c) {
+    LinearExpr& add(double c) {
         constant += c;
         return *this;
     }
-    LinearExpr& operator+(LinearTerm t) {
+    LinearExpr& add(LinearTerm t) {
         vars.emplace_back(t.var);
         coefs.emplace_back(t.coef);
         return *this;
     }
+    //////////////////
+    LinearExpr& add(int v, double c=1.0) {
+        vars.emplace_back(v);
+        coefs.emplace_back(c);
+        return *this;
+    } ///////////////
+    LinearExpr& operator+(double c) { return add(c); }
+    LinearExpr& operator+(LinearTerm t) { return add(t); }
     LinearExpr& simplify() {
         auto zip_view = ranges::view::zip(vars, coefs);
         ranges::sort(zip_view, [](auto p1, auto p2){ return p1.first < p2.first; }); 
@@ -79,6 +91,13 @@ struct LinearExpr {
 
 inline LinearExpr operator+(LinearTerm t1, LinearTerm t2) {
     return LinearExpr(t1) + t2;
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                const LinearExpr & linear_expr) {
+    ranges::for_each(ranges::view::zip(linear_expr.coefs, linear_expr.vars), 
+        [&os](const auto p){ os << p.first << "*x" << p.second << " + "; });
+    return os << linear_expr.constant;
 }
 
 #endif //LINEAR_EXPRESSION_HPP

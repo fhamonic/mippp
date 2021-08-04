@@ -3,7 +3,9 @@
 
 #include <vector>
 
-#include <range/v3/all.hpp>
+#include <range/v3/view/zip.hpp>
+#include <range/v3/algorithm/sort.hpp>
+#include <range/v3/algorithm/for_each.hpp>
 
 #include "expressions/linear_expression.hpp"
 
@@ -33,26 +35,41 @@ struct QuadraticExpr {
     std::vector<int> vars1;
     std::vector<int> vars2;
     std::vector<double> coefs;
+    QuadraticExpr() {}
     QuadraticExpr(LinearExpr&& e)
         : linear_expr(std::move(e)) {}
     QuadraticExpr(QuadraticTerm t)
         : vars1(1, t.var1)
         , vars2(1, t.var2)
         , coefs(1, t.coef) {}
-    QuadraticExpr& operator+(double c) {
-        linear_expr + c;
+    QuadraticExpr& add(double c) {
+        linear_expr.add(c);
         return *this;
     }
-    QuadraticExpr& operator+(LinearTerm t) {
-        linear_expr + t;
+    QuadraticExpr& add(LinearTerm t) {
+        linear_expr.add(t);
         return *this;
     }
-    QuadraticExpr& operator+(QuadraticTerm t) {
+    QuadraticExpr& add(QuadraticTerm t) {
         vars1.emplace_back(t.var1);
         vars2.emplace_back(t.var2);
         coefs.emplace_back(t.coef);
         return *this;
     }
+    //////////////////
+    QuadraticExpr& add(int v, double c=1.0) {
+        linear_expr.add(v, c);
+        return *this;
+    }
+    QuadraticExpr& add(int v1, int v2, double c=1.0) {
+        vars1.push_back(v1);
+        vars2.push_back(v2);
+        coefs.push_back(c);
+        return *this;
+    } ///////////////
+    QuadraticExpr& operator+(double c) { return add(c); }
+    QuadraticExpr& operator+(LinearTerm t) { return add(t); }
+    QuadraticExpr& operator+(QuadraticTerm t) { return add(t); }
     QuadraticExpr& simplify() {
         linear_expr.simplify();
         auto zip_view = ranges::view::zip(vars1, vars2, coefs);
@@ -69,6 +86,7 @@ struct QuadraticExpr {
             return false;
         }); 
         // TODO
+        return *this;
     }
 };
 
@@ -77,6 +95,16 @@ inline QuadraticExpr operator+(QuadraticTerm t1, QuadraticTerm t2) {
 }
 inline QuadraticExpr operator+(LinearExpr&& t, QuadraticTerm v) {
     return QuadraticExpr(std::move(t)) + v;
+}
+
+inline std::ostream& operator<<(std::ostream& os, 
+                                const QuadraticExpr & quad_expr) {
+    ranges::for_each(
+        ranges::view::zip(quad_expr.coefs, quad_expr.vars1, quad_expr.vars2),
+        [&os](const auto p){ os << std::get<0>(p) << "*x" << std::get<1>(p) 
+                                << "x" << std::get<2>(p) << " + "; }
+    );
+    return os << quad_expr.linear_expr;
 }
 
 #endif //QUADRATIC_EXPRESSION_HPP
