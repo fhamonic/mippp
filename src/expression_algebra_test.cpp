@@ -1,15 +1,13 @@
 #include <iostream>
+#include <iomanip>
 
-#include "solver_builder.hpp"
+#include "expression_algebra.hpp"
 
-
-#include "expressions/linear_expression.hpp"
-
-using namespace SolverBuilder_Utils;
+using namespace Algebra;
 
 int main() {
-    quadratic_ineq_constraint_lhs_easy_init constraint;
-    auto constr = constraint(23.0)(0, 2.0)(1, 3.0)(1, 2, 3.0).less()(0, 2.0)(10.0).take_data();
+    auto constr = 1 + 2 * Var(0) * 2.0 + Var(1) * 3.0 >= Var(0) * 2.0 + 10.0;
+
     std::cout << constr << std::endl;
 
     return EXIT_SUCCESS;

@@ -95,7 +95,7 @@ namespace Builder {
             return *this;
         }
 
-        LinearRangeConstraint take_data()
+        LinearRangeConstraint&& take_data()
             { return std::move(constraint_data); }
     };
 
@@ -124,8 +124,8 @@ namespace Builder {
             return *this;
         }
 
-        QuadraticIneqConstraint take_data()
-            { return constraint_data; }
+        QuadraticIneqConstraint&& take_data()
+            { return std::move(constraint_data); }
     };
 
     class quadratic_ineq_constraint_lhs_easy_init {

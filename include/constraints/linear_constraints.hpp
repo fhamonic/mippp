@@ -13,6 +13,9 @@ struct LinearIneqConstraint {
     InequalitySense sense;
     LinearExpr linear_expression;
     LinearIneqConstraint() = default;
+    LinearIneqConstraint(InequalitySense s, LinearExpr && e)
+        : sense(s)
+        , linear_expression(std::move(e)) {};
 };
 
 struct LinearRangeConstraint {

@@ -93,18 +93,28 @@ struct QuadraticExpr {
 inline QuadraticExpr operator+(QuadraticTerm t1, QuadraticTerm t2) {
     return std::forward<QuadraticExpr&&>(QuadraticExpr(t1) + t2);
 }
-inline QuadraticExpr operator+(LinearExpr&& t, QuadraticTerm v) {
-    return QuadraticExpr(std::move(t)) + v;
+inline QuadraticExpr operator+(LinearExpr&& le, QuadraticTerm t) {
+    QuadraticExpr e(std::move(le));
+    e.add(t);
+    return e;
 }
 
-inline std::ostream& operator<<(std::ostream& os, 
-                                const QuadraticExpr & quad_expr) {
-    ranges::for_each(
-        ranges::view::zip(quad_expr.coefs, quad_expr.vars1, quad_expr.vars2),
-        [&os](const auto p){ os << std::get<0>(p) << "*x" << std::get<1>(p) 
-                                << "x" << std::get<2>(p) << " + "; }
-    );
-    return os << quad_expr.linear_expr;
+inline std::ostream& operator<<(std::ostream& os,
+                                const QuadraticExpr & e) {
+    if(e.vars1.size() > 0) {
+        size_t i = 0;
+        os << (e.coefs[i] < 0 ? "- " : "");
+        if(e.coefs[i]!=1)
+           os << std::abs(e.coefs[i]) << " * ";
+        os << "x" << e.vars1[i] << "x" << e.vars2[i];
+        for(++i; i < e.vars1.size(); ++i) {
+            os << (e.coefs[i] < 0 ? " - " : " + ");
+            if(e.coefs[i]!=1)
+                os << std::abs(e.coefs[i]) << " * ";
+            os << "x" << e.vars1[i] << "x" << e.vars2[i];
+        }
+    }
+    return os << " " << e.linear_expr;
 }
 
 #endif //QUADRATIC_EXPRESSION_HPP
