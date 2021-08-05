@@ -1,14 +1,15 @@
 #include <iostream>
 #include <iomanip>
 
-#include "expression_algebra.hpp"
+#include "expressions_algebra/linear_expression_algebra.hpp"
 
 using namespace Algebra;
 
 int main() {
-    auto constr = 1 + 2 * Var(0) * 2.0 + Var(1) * 3.0 >= Var(0) * 2.0 + 10.0;
+    auto constr = 1 + 2 * Var(0) * 2.0 + Var(1) * 3.0
+            >= 4*Var(1) + Var(0) * 2.0 + 10.0;
 
-    std::cout << constr << std::endl;
+    std::cout << constr.simplify() << std::endl;
 
     return EXIT_SUCCESS;
 }
