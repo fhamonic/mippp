@@ -5,26 +5,6 @@
 #include <numeric>
 #include <vector>
 
-class VarType {
-    protected:
-        int _number;
-        int _offset;
-        double _default_lb;
-        double _default_ub;
-        int _integer;
-        VarType(int number, double lb=0, double ub=INFTY, bool integer=false) : _number(number), _offset(0), _default_lb(lb), _default_ub(ub), _integer(integer) {}
-        VarType() : VarType(0) {}
-    public:
-        void setOffset(int offset) { _offset = offset; }
-        int getOffset() { return _offset; }
-        int getNumber() const { return _number; }
-        double getDefaultLB() { return _default_lb; }
-        double getDefaultUB() { return _default_ub; }
-        bool isInteger() { return _integer; }
-};
-
-
-
 template<typename... Args>
 struct pack {};
 
@@ -34,16 +14,17 @@ struct function_traits
 {};
 template <typename ClassType, typename ReturnType, typename... Args>
 struct function_traits<ReturnType(ClassType::*)(Args...) const> {
-    using result_type = ReturnType;
+    using result_type = Return;
     using arg_types = pack<Args...>;
 };
 
 class LP_Builder {
-    using INFINITY = std::numeric_limits<double>::max();
-    using CONTINUOUS = 0;
-    using INTEGRAL = 1;
-
-    std::vector<double> objective;
+public:
+    static constexpr double INFINITY = std::numeric_limits<double>::max();
+    static constexpr int CONTINUOUS = 0;
+    static constexpr int INTEGRAL = 1;
+private:
+    std::vector<double> col_coef;
     std::vector<double> col_lb;
     std::vector<double> col_ub;
     std::vector<int> col_type;
@@ -53,31 +34,60 @@ class LP_Builder {
     std::vector<double> row_ub;
     std::vector<int> vars;
     std::vector<double> coefs;
+public:
+    LP_Builder() {}
 
-    void addVar(double lb=0, double ub=INFINITY, int type=CONTINUOUS) {
-        // objective.push
+    int addVar(double coef=0.0, double lb=0.0, double ub=INFINITY,
+               int type=CONTINUOUS) {
+        col_coef.push_back(coef);
+        col_lb.push_back(lb);
+        col_ub.push_back(ub);
+        col_type.push_back(type);
+        return col_coef.size()-1;
     }
-    
-
-
+private:
     template <typename T, typename ... Args>
-    auto addVars(pack<Args...>, int count, T id_lambda) {
-        const int offset = objective.size();
+    auto addVars(pack<Args...>, int count, T id_lambda, 
+                                double coef=0.0, double lb=0.0,
+                                double ub=INFINITY, int type=CONTINUOUS) {
+        const int offset = col_coef.size();
         const int new_size = offset + count;
-
-        objective.resize(new_size, 0);
+        col_coef.resize(new_size, 0);
         col_lb.resize(new_size, 0);
         col_ub.resize(new_size, INFINITY);
         col_type.resize(new_size, CONTINUOUS);
-
         return [offset, id_lambda] (Args... args) {
             return offset + id_lambda(args...);
         };
     }
+public:
     template <typename T>
-    auto addVars(int count, T id_lambda) {
-        return test(typename function_traits<T>::arg_types(), count, id_lambda);
+    auto addVars(int count, T id_lambda, double coef=0.0, 
+                 double lb=0.0, double ub=INFINITY, int type=CONTINUOUS) {
+        return test(typename function_traits<T>::arg_types(),
+                    count, id_lambda);
     }
-}
+
+    LP_Builder & setObjective(int var_id, double coef) {
+        col_coef[var_id] = coef;
+        return *this;
+    }
+    LP_Builder & setBounds(int var_id, double lb, double ub) {
+        col_lb[var_id] = lb;
+        col_ub[var_id] = ub;
+        return *this;
+    }
+    LP_Builder & setType(int var_id, int type) {
+        col_type[var_id] = type;
+        return *this;
+    }
+
+    void addIneqConstr() {
+        // return handler(*this);
+    };
+    void addRangeConstr(double lb, double ub) {
+        //
+    }
+};
 
 #endif //LP_BUILDER_HPP
