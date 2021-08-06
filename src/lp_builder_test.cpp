@@ -3,7 +3,7 @@
 #include "lp_builder.hpp"
 
 int main() {
-    LP_Builder builder;
+    LP_Builder builder(LP_Builder::MAXIMIZE);
 
     auto x_var = builder.addVars(11, [](int a, int b){ return a + b; });
     auto y_var = builder.addVars(10, [](int i){ return i; });
