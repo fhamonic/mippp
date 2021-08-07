@@ -16,6 +16,9 @@
 #include <ostream>
 #include <vector>
 
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/zip.hpp>
+
 template<typename... Args>
 struct pack {};
 
@@ -81,6 +84,7 @@ public:
 
 class LP_Builder {
 public:
+    static constexpr double MINUS_INFINITY = std::numeric_limits<double>::min();
     static constexpr double INFINITY = std::numeric_limits<double>::max();
     enum OptSense { MINIMIZE=-1, MAXIMIZE=1 };
     enum ColType { CONTINUOUS = 0, INTEGRAL = 1 };
@@ -162,7 +166,7 @@ public:
 
     IneqConstraintHandler addIneqConstr() {
         row_begins.push_back(vars.size());
-        row_lb.push_back(-INFINITY);
+        row_lb.push_back(MINUS_INFINITY);
         row_ub.push_back(0);
 
         IneqConstraintHandler handler(vars, coefs, row_ub.back());
@@ -175,23 +179,91 @@ public:
         RangeConstraintHandler handler(vars, coefs);
         return handler;
     }
+
+    size_t nbConstrs() const { return row_begins.size(); }
+    double getConstrLB(int constr_id) const { return row_lb[constr_id]; }
+    double getConstrUB(int constr_id) const { return row_ub[constr_id]; }
+
+
+    auto variables() const {
+        auto v = ranges::iota_view<int,int>(0, nbVars());
+        return v;
+    }
+    auto constraints() const {
+        auto v = ranges::iota_view<int,int>(0, nbConstrs());
+        return v;
+    }
+    auto objective() const {
+        auto z = ranges::view::zip(
+            ranges::iota_view<int,int>(0, nbVars()), 
+            col_coef);
+        return z;
+    }
+    const auto entries() const {
+        auto z = ranges::view::zip(vars, coefs);
+        return z;
+    }
+    const auto entries(int constr_id) const {
+        const int offset = row_begins[constr_id];
+        const int end = (constr_id+1 < static_cast<int>(nbConstrs())
+                        ? row_begins[constr_id+1] : vars.size());
+        auto sub_vars = ranges::subrange(vars.begin()+offset, 
+                                         vars.begin()+end);
+        auto sub_coefs = ranges::subrange(coefs.begin()+offset,
+                                          coefs.begin()+end);
+        auto z = ranges::view::zip(sub_vars, sub_coefs);
+        return z;
+    }
 };
 
-
+template <typename T>
+std::ostream & print_entries(std::ostream & os, const T & e) {
+    auto it = e.begin();
+    const auto end = e.end();
+    if(it == end)
+        return os;
+    
+    int var_id = (*it).first;
+    double coef = (*it).second;
+    if(coef != 0.0) {
+        const double abs_coef = std::abs(coef);
+        os << (coef < 0 ? "-" : "");
+        if(abs_coef != 1)
+            os << abs_coef << " ";
+        os << "x" << var_id;
+    }
+    for(++it; it != end; ++it) {
+        var_id = (*it).first;
+        coef = (*it).second;
+        if(coef == 0.0) continue;
+        const double abs_coef = std::abs(coef);
+        os << (coef < 0 ? " - " : " + ");
+        if(abs_coef != 1)
+            os << abs_coef << " ";
+        os << "x" << var_id;
+    }
+    return os;
+}
 
 std::ostream& operator<<(std::ostream& os, const LP_Builder& lp) {
     os << (lp.getOptSense()==LP_Builder::MINIMIZE ? "Minimize" : "Maximize") << std::endl;
     os << "OBJROW:";
-    for(int i=0; i<lp.nbVars(); ++i) {
-        const double coef = lp.getObjCoef(i);
-        if(coef == 0.0) continue;
-        const double abs_coef = std::abs(coef);
-        os << (coef < 0 ? " - " : " ");
-        if(abs_coef != 1)
-            os << abs_coef << " ";
-        os << i << " ";
+    print_entries(os, lp.objective());
+    os << std::endl << "Subject To" << std::endl;
+    for(int constr_id : lp.constraints()) {
+        const double lb = lp.getConstrLB(constr_id);
+        const double ub = lp.getConstrUB(constr_id);
+        if(lb != LP_Builder::MINUS_INFINITY) {
+            os << "R" << constr_id << "LB: ";        
+            print_entries(os, lp.entries(constr_id));
+            os << " >= " << lb << std::endl;
+        }
+        if(ub != LP_Builder::INFINITY) {
+            os << "R" << constr_id << "UB: ";        
+            print_entries(os, lp.entries(constr_id));
+            os << " <= " << ub << std::endl;
+        }
     }
-    os << "Subject To" << std::endl;
     return os;
 }
 
