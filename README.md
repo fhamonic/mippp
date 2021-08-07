@@ -1,4 +1,4 @@
-# Solver_Builder
+# MILP_Builder
 
 Library attempting to provide an elegant and efficient way for instanciating Mixed Integer Linear Programs.
 
