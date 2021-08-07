@@ -24,9 +24,9 @@ conan_basic_setup(TARGETS)
 
 
 ################### EXEC target ####################
-add_executable(lp_builder_test src/lp_builder_test.cpp)
-target_include_directories(lp_builder_test PUBLIC include)
-target_link_libraries(lp_builder_test CONAN_PKG::range-v3)
-target_compile_options_if_exists(lp_builder_test PRIVATE ${WARNINGS} -Wall)
-target_compile_options_if_exists(lp_builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
-target_compile_options_if_exists(lp_builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)
+add_executable(milp_builder_test src/milp_builder_test.cpp)
+target_include_directories(milp_builder_test PUBLIC include)
+target_link_libraries(milp_builder_test CONAN_PKG::range-v3)
+target_compile_options_if_exists(milp_builder_test PRIVATE ${WARNINGS} -Wall)
+target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
+target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)

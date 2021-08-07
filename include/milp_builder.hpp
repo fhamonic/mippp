@@ -1,5 +1,5 @@
 /**
- * @file lp_builder.hpp
+ * @file MILP_Builder.hpp
  * @author François Hamonic (francois.hamonic@gmail.com)
  * @brief 
  * @version 0.1
@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2021
  * 
  */
-#ifndef LP_BUILDER_HPP
-#define LP_BUILDER_HPP
+#ifndef MILP_BUILDER_HPP
+#define MILP_BUILDER_HPP
 
 #include <cassert>
 #include <limits>
@@ -103,7 +103,7 @@ public:
 };
 
 
-class LP_Builder {
+class MILP_Builder {
 public:
     static constexpr double MINUS_INFINITY = std::numeric_limits<double>::min();
     static constexpr double INFINITY = std::numeric_limits<double>::max();
@@ -124,11 +124,11 @@ private:
 
     OptSense sense;
 public:
-    LP_Builder(OptSense sense)
+    MILP_Builder(OptSense sense)
         : sense(sense) {}
 
     OptSense getOptSense() const { return sense; }
-    LP_Builder & setOptSense(OptSense s) {
+    MILP_Builder & setOptSense(OptSense s) {
         sense = s;
         return *this;
     }
@@ -169,19 +169,19 @@ public:
 
     size_t nbVars() const { return col_coef.size(); }
     double getObjCoef(Var v) const { return col_coef[v.id()]; }
-    LP_Builder & setObjCoef(Var v, double coef) {
+    MILP_Builder & setObjCoef(Var v, double coef) {
         col_coef[v.id()] = coef;
         return *this;
     }
     double getVarLB(Var v) const { return col_lb[v.id()]; }
     double getVarUB(Var v) const { return col_ub[v.id()]; }
-    LP_Builder & setBounds(Var v, double lb, double ub) {
+    MILP_Builder & setBounds(Var v, double lb, double ub) {
         col_lb[v.id()] = lb;
         col_ub[v.id()] = ub;
         return *this;
     }
     ColType getVarType(Var v) const { return col_type[v.id()]; }
-    LP_Builder & setType(Var v, ColType type) {
+    MILP_Builder & setType(Var v, ColType type) {
         col_type[v.id()] = type;
         return *this;
     }
@@ -276,19 +276,19 @@ std::ostream & print_entries(std::ostream & os, const T & e) {
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const LP_Builder& lp) {
-    os << (lp.getOptSense()==LP_Builder::MINIMIZE ? "Minimize" : "Maximize") << std::endl;
+std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
+    os << (lp.getOptSense()==MILP_Builder::MINIMIZE ? "Minimize" : "Maximize") << std::endl;
     print_entries(os, lp.objective());
     os << std::endl << "Subject To" << std::endl;
     for(int constr_id : lp.constraints()) {
         const double lb = lp.getConstrLB(constr_id);
         const double ub = lp.getConstrUB(constr_id);
-        if(ub != LP_Builder::INFINITY) {
+        if(ub != MILP_Builder::INFINITY) {
             os << "R" << constr_id << ": ";        
             print_entries(os, lp.entries(constr_id));
             os << " <= " << ub << std::endl;
         }
-        if(lb != LP_Builder::MINUS_INFINITY) {
+        if(lb != MILP_Builder::MINUS_INFINITY) {
             os << "R" << constr_id << "_low: ";        
             print_entries(os, lp.entries(constr_id));
             os << " >= " << lb << std::endl;
@@ -296,7 +296,7 @@ std::ostream& operator<<(std::ostream& os, const LP_Builder& lp) {
     }
     auto no_trivial_bound_vars = ranges::filter_view(lp.variables(),
         [&lp](Var v){ return lp.getVarLB(v)!=0.0 
-                    || lp.getVarUB(v)!=LP_Builder::INFINITY; }
+                    || lp.getVarUB(v)!=MILP_Builder::INFINITY; }
     );
     if(ranges::distance(no_trivial_bound_vars) > 0) {
         os << "Bounds" << std::endl;
@@ -306,11 +306,11 @@ std::ostream& operator<<(std::ostream& os, const LP_Builder& lp) {
                 continue;
             }
             if(lp.getVarLB(v) != 0.0) {
-                if(lp.getVarLB(v) == LP_Builder::MINUS_INFINITY) os << "-Inf <= ";
+                if(lp.getVarLB(v) == MILP_Builder::MINUS_INFINITY) os << "-Inf <= ";
                 else os << lp.getVarLB(v) << " <= ";
             }
             os << "x" << v.id();
-            if(lp.getVarUB(v) != LP_Builder::INFINITY)
+            if(lp.getVarUB(v) != MILP_Builder::INFINITY)
                 os << " <= " << lp.getVarUB(v);
             os << std::endl;
         }
@@ -318,4 +318,4 @@ std::ostream& operator<<(std::ostream& os, const LP_Builder& lp) {
     return os << "End" << std::endl;
 }
 
-#endif //LP_BUILDER_HPP
+#endif //MILP_BUILDER_HPP

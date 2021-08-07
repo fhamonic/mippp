@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include "lp_builder.hpp"
+#include "milp_builder.hpp"
 
 int main() {
-    LP_Builder builder(LP_Builder::MAXIMIZE);
+    MILP_Builder builder(MILP_Builder::MAXIMIZE);
 
     auto x_var = builder.addVars(11, [](int a, int b){ return a + b; }, 1);
     auto y_var = builder.addVars(10, [](int i){ return i; });
