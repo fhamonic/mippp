@@ -16,11 +16,26 @@
 #include <ostream>
 #include <vector>
 
+#include <range/v3/view/filter.hpp>
 #include <range/v3/view/iota.hpp>
+#include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
+
+#include <range/v3/functional/pipeable.hpp>
 
 #include "function_traits.hpp"
 #include "expressions_algebra/linear_expression_algebra.hpp"
+
+
+class Constr {
+private:
+    int _id;
+public:
+    constexpr Constr(const Constr & c) noexcept : _id(c.id()) {}
+    explicit constexpr Constr(const int & i) noexcept : _id(i) {}
+    constexpr const int & id() const noexcept { return _id; }
+    constexpr int & id() noexcept { return _id; }
+};
 
 
 class IneqConstraintHandler {
@@ -35,33 +50,32 @@ public:
         : vars(vars)
         , coefs(coefs)
         , bound(b) {}
-
-    IneqConstraintHandler & lhs(double c) {
+private:
+    void lhs_impl(double c) {
         bound -= c;
-        return *this;
     }
-    IneqConstraintHandler & lhs(const Algebra::LinearTerm & t) {
+    void lhs_impl(const LinearTerm & t) {
         vars.push_back(t.var);
         coefs.push_back(t.coef);
-        return *this;
     }
+public:
     template<typename... Terms>
     IneqConstraintHandler & lhs(Terms&&... terms) {
-        (lhs(terms), ...);
+        (lhs_impl(terms), ...);
         return *this;
     }
-    IneqConstraintHandler & rhs(double c) {
+private:
+    void rhs_impl(double c) {
         bound += c;
-        return *this;
     }
-    IneqConstraintHandler & rhs(const Algebra::LinearTerm & t) {
+    void rhs_impl(const LinearTerm & t) {
         vars.push_back(t.var);
         coefs.push_back(-t.coef);
-        return *this;
     }
+public:
     template<typename... Terms>
     IneqConstraintHandler & rhs(Terms&&... terms) {
-        (rhs(terms), ...);
+        (rhs_impl(terms), ...);
         return *this;
     }
 };
@@ -75,10 +89,15 @@ public:
                         std::vector<double> & coefs)
         : vars(vars)
         , coefs(coefs) {}
-
-    RangeConstraintHandler & operator()(int v, double c=1.0) {
-        vars.push_back(v);
-        coefs.push_back(c);
+private:
+    void op_impl(const LinearTerm & t) {
+        vars.push_back(t.var);
+        coefs.push_back(t.coef);
+    }
+public:
+    template<typename... Terms>
+    RangeConstraintHandler & operator()(Terms&&... terms) {
+        (op_impl(terms), ...);
         return *this;
     }
 };
@@ -124,7 +143,7 @@ public:
     }
 private:
     template <typename T, typename ... Args>
-    auto addVars(pack<Args...>, int count, T id_lambda, 
+    auto addVars(pack<Args...>, int count, T&& id_lambda, 
                                 double coef, double lb,
                                 double ub, ColType type) {
         const int offset = nbVars();
@@ -133,36 +152,37 @@ private:
         col_lb.resize(new_size, lb);
         col_ub.resize(new_size, ub);
         col_type.resize(new_size, type);
-        return [offset, count, id_lambda] (Args... args) {
+        return [offset, count, id_lambda = std::forward<T>(id_lambda)]
+        (Args... args) {
             const int id = id_lambda(args...);
             assert(0 <= id && id < count);
-            return Algebra::Var(offset + id);
+            return Var(offset + id);
         };
     }
 public:
     template <typename T>
-    auto addVars(int count, T id_lambda, double coef=0.0, 
+    auto addVars(int count, T&& id_lambda, double coef=0.0, 
                  double lb=0.0, double ub=INFINITY, ColType type=CONTINUOUS) {
         return addVars(typename function_traits<T>::arg_types(),
-                    count, id_lambda, coef, lb, ub, type);
+                    count, std::forward<T>(id_lambda), coef, lb, ub, type);
     }
 
     size_t nbVars() const { return col_coef.size(); }
-    double getObjCoef(int var_id) const { return col_coef[var_id]; }
-    LP_Builder & setObjCoef(int var_id, double coef) {
-        col_coef[var_id] = coef;
+    double getObjCoef(Var v) const { return col_coef[v.id()]; }
+    LP_Builder & setObjCoef(Var v, double coef) {
+        col_coef[v.id()] = coef;
         return *this;
     }
-    double getVarLB(int var_id) const { return col_lb[var_id]; }
-    double getVarUB(int var_id) const { return col_ub[var_id]; }
-    LP_Builder & setBounds(int var_id, double lb, double ub) {
-        col_lb[var_id] = lb;
-        col_ub[var_id] = ub;
+    double getVarLB(Var v) const { return col_lb[v.id()]; }
+    double getVarUB(Var v) const { return col_ub[v.id()]; }
+    LP_Builder & setBounds(Var v, double lb, double ub) {
+        col_lb[v.id()] = lb;
+        col_ub[v.id()] = ub;
         return *this;
     }
-    ColType getVarType(int var_id) const { return col_type[var_id]; }
-    LP_Builder & setType(int var_id, ColType type) {
-        col_type[var_id] = type;
+    ColType getVarType(Var v) const { return col_type[v.id()]; }
+    LP_Builder & setType(Var v, ColType type) {
+        col_type[v.id()] = type;
         return *this;
     }
 
@@ -194,7 +214,9 @@ public:
 
 
     auto variables() const {
-        auto v = ranges::iota_view<int,int>(0, nbVars());
+        auto v = ranges::views::transform(
+                    ranges::iota_view<int,int>(0, nbVars()),
+                    [](int v) { return Var(v); });
         return v;
     }
     auto constraints() const {
@@ -203,7 +225,7 @@ public:
     }
     auto objective() const {
         auto z = ranges::view::zip(
-            ranges::iota_view<int,int>(0, nbVars()), 
+            variables(), 
             col_coef);
         return z;
     }
@@ -215,8 +237,9 @@ public:
         const int offset = row_begins[constr_id];
         const int end = (constr_id+1 < static_cast<int>(nbConstrs())
                         ? row_begins[constr_id+1] : vars.size());
-        auto sub_vars = ranges::subrange(vars.begin()+offset, 
-                                         vars.begin()+end);
+        auto sub_vars = ranges::views::transform(
+            ranges::subrange(vars.begin()+offset,vars.begin()+end),
+            [](int v) { return Var(v); });
         auto sub_coefs = ranges::subrange(coefs.begin()+offset,
                                           coefs.begin()+end);
         auto z = ranges::view::zip(sub_vars, sub_coefs);
@@ -231,48 +254,68 @@ std::ostream & print_entries(std::ostream & os, const T & e) {
     if(it == end)
         return os;
     
-    int var_id = (*it).first;
+    Var v = (*it).first;
     double coef = (*it).second;
     if(coef != 0.0) {
         const double abs_coef = std::abs(coef);
         os << (coef < 0 ? "-" : "");
         if(abs_coef != 1)
             os << abs_coef << " ";
-        os << "x" << var_id;
+        os << "x" << v.id();
     }
     for(++it; it != end; ++it) {
-        var_id = (*it).first;
+        v = (*it).first;
         coef = (*it).second;
         if(coef == 0.0) continue;
         const double abs_coef = std::abs(coef);
         os << (coef < 0 ? " - " : " + ");
         if(abs_coef != 1)
             os << abs_coef << " ";
-        os << "x" << var_id;
+        os << "x" << v.id();
     }
     return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const LP_Builder& lp) {
     os << (lp.getOptSense()==LP_Builder::MINIMIZE ? "Minimize" : "Maximize") << std::endl;
-    os << "OBJROW:";
     print_entries(os, lp.objective());
     os << std::endl << "Subject To" << std::endl;
     for(int constr_id : lp.constraints()) {
         const double lb = lp.getConstrLB(constr_id);
         const double ub = lp.getConstrUB(constr_id);
-        if(lb != LP_Builder::MINUS_INFINITY) {
-            os << "R" << constr_id << "LB: ";        
-            print_entries(os, lp.entries(constr_id));
-            os << " >= " << lb << std::endl;
-        }
         if(ub != LP_Builder::INFINITY) {
-            os << "R" << constr_id << "UB: ";        
+            os << "R" << constr_id << ": ";        
             print_entries(os, lp.entries(constr_id));
             os << " <= " << ub << std::endl;
         }
+        if(lb != LP_Builder::MINUS_INFINITY) {
+            os << "R" << constr_id << "_low: ";        
+            print_entries(os, lp.entries(constr_id));
+            os << " >= " << lb << std::endl;
+        }
     }
-    return os;
+    auto no_trivial_bound_vars = ranges::filter_view(lp.variables(),
+        [&lp](Var v){ return lp.getVarLB(v)!=0.0 
+                    || lp.getVarUB(v)!=LP_Builder::INFINITY; }
+    );
+    if(ranges::distance(no_trivial_bound_vars) > 0) {
+        os << "Bounds" << std::endl;
+        for(Var v : no_trivial_bound_vars) {
+            if(lp.getVarLB(v) == lp.getVarUB(v)) {
+                os << "x" << v.id() << " = " << lp.getVarUB(v) << std::endl;
+                continue;
+            }
+            if(lp.getVarLB(v) != 0.0) {
+                if(lp.getVarLB(v) == LP_Builder::MINUS_INFINITY) os << "-Inf <= ";
+                else os << lp.getVarLB(v) << " <= ";
+            }
+            os << "x" << v.id();
+            if(lp.getVarUB(v) != LP_Builder::INFINITY)
+                os << " <= " << lp.getVarUB(v);
+            os << std::endl;
+        }
+    } 
+    return os << "End" << std::endl;
 }
 
 #endif //LP_BUILDER_HPP
