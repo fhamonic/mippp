@@ -8,10 +8,10 @@ int main() {
     auto x_var = builder.addVars(11, [](int a, int b){ return a + b; }, 1);
     auto y_var = builder.addVars(10, [](int i){ return i; });
     
-    std::cout << x_var(3, 4) << " " << y_var(4) << std::endl;
+    std::cout << x_var(3, 4).id << " " << y_var(4).id << std::endl;
 
-    auto lhs = builder.addIneqConstr();
-    lhs( 6 )( x_var(3, 4), 2 )( y_var(3) ).less()(x_var(10, 0), 1)(5.0);
+    auto c = builder.addLessThanConstr();
+    c.lhs( 6 , x_var(3, 4) * 2 , y_var(3) ).rhs(x_var(10, 0) * 1 , 5.0);
 
 
 

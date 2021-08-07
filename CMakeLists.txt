@@ -24,21 +24,6 @@ conan_basic_setup(TARGETS)
 
 
 ################### EXEC target ####################
-add_executable(builder_test src/expression_builder_test.cpp)
-target_include_directories(builder_test PUBLIC include)
-target_link_libraries(builder_test CONAN_PKG::range-v3)
-target_compile_options_if_exists(builder_test PRIVATE ${WARNINGS} -Wall)
-target_compile_options_if_exists(builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
-target_compile_options_if_exists(builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)
-
-add_executable(algebra_test src/expression_algebra_test.cpp)
-target_include_directories(algebra_test PUBLIC include)
-target_link_libraries(algebra_test CONAN_PKG::range-v3)
-target_compile_options_if_exists(algebra_test PRIVATE ${WARNINGS} -Wall)
-target_compile_options_if_exists(algebra_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
-target_compile_options_if_exists(algebra_test PRIVATE ${COMPILE_WITH_LTO} -flto)
-
-
 add_executable(lp_builder_test src/lp_builder_test.cpp)
 target_include_directories(lp_builder_test PUBLIC include)
 target_link_libraries(lp_builder_test CONAN_PKG::range-v3)

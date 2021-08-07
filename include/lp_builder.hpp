@@ -19,47 +19,49 @@
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/zip.hpp>
 
-template<typename... Args>
-struct pack {};
-
-template <typename T>
-struct function_traits
-    : public function_traits<decltype(&T::operator())>
-{};
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType(ClassType::*)(Args...) const> {
-    using result_type = ReturnType;
-    using arg_types = pack<Args...>;
-};
+#include "function_traits.hpp"
+#include "expressions_algebra/linear_expression_algebra.hpp"
 
 
 class IneqConstraintHandler {
 private:
     std::vector<int> & vars;
     std::vector<double> & coefs;
-    double & upper_bound;
-    int hs_coef;
+    double & bound;
 public:
     IneqConstraintHandler(std::vector<int> & vars, 
                         std::vector<double> & coefs,
-                        double & ub)
+                        double & b)
         : vars(vars)
         , coefs(coefs)
-        , upper_bound(ub)
-        , hs_coef(1) {}
+        , bound(b) {}
 
-    IneqConstraintHandler & operator()(double c) {
-        upper_bound -= hs_coef * c;
+    IneqConstraintHandler & lhs(double c) {
+        bound -= c;
         return *this;
     }
-    IneqConstraintHandler & operator()(int v, double c=1.0) {
-        vars.push_back(v);
-        coefs.push_back(hs_coef * c);
+    IneqConstraintHandler & lhs(const Algebra::LinearTerm & t) {
+        vars.push_back(t.var);
+        coefs.push_back(t.coef);
         return *this;
     }
-    IneqConstraintHandler & less() {
-        assert(hs_coef != -1);
-        hs_coef = -1;
+    template<typename... Terms>
+    IneqConstraintHandler & lhs(Terms&&... terms) {
+        (lhs(terms), ...);
+        return *this;
+    }
+    IneqConstraintHandler & rhs(double c) {
+        bound += c;
+        return *this;
+    }
+    IneqConstraintHandler & rhs(const Algebra::LinearTerm & t) {
+        vars.push_back(t.var);
+        coefs.push_back(-t.coef);
+        return *this;
+    }
+    template<typename... Terms>
+    IneqConstraintHandler & rhs(Terms&&... terms) {
+        (rhs(terms), ...);
         return *this;
     }
 };
@@ -134,7 +136,7 @@ private:
         return [offset, count, id_lambda] (Args... args) {
             const int id = id_lambda(args...);
             assert(0 <= id && id < count);
-            return offset + id;
+            return Algebra::Var(offset + id);
         };
     }
 public:
@@ -164,12 +166,18 @@ public:
         return *this;
     }
 
-    IneqConstraintHandler addIneqConstr() {
+    IneqConstraintHandler addLessThanConstr() {
         row_begins.push_back(vars.size());
         row_lb.push_back(MINUS_INFINITY);
         row_ub.push_back(0);
-
         IneqConstraintHandler handler(vars, coefs, row_ub.back());
+        return handler;
+    }
+    IneqConstraintHandler addGreaterThanConstr() {
+        row_begins.push_back(vars.size());
+        row_lb.push_back(0);
+        row_ub.push_back(INFINITY);
+        IneqConstraintHandler handler(vars, coefs, row_lb.back());
         return handler;
     }
     RangeConstraintHandler addRangeConstr(double lb, double ub) {
