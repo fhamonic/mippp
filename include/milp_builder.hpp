@@ -21,8 +21,6 @@
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include <range/v3/functional/pipeable.hpp>
-
 #include "function_traits.hpp"
 #include "expressions_algebra/linear_expression_algebra.hpp"
 

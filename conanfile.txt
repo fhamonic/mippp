@@ -1,5 +1,4 @@
 [requires]
-boost/1.76.0
 range-v3/0.11.0
 
 [generators]
