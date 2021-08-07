@@ -14,7 +14,6 @@ Range-v3 (https://ericniebler.github.io/range-v3/)
 The build process requires CMake 3.12 (https://cmake.org/) or more and the Conan C++ package manager (https://conan.io/).
 
 ## How to Compile
-Just
 
     make
     
