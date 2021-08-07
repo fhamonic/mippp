@@ -133,13 +133,13 @@ public:
         return *this;
     }
 
-    int addVar(double coef=0.0, double lb=0.0, double ub=INFINITY,
+    Var addVar(double coef=0.0, double lb=0.0, double ub=INFINITY,
                ColType type=CONTINUOUS) {
         col_coef.push_back(coef);
         col_lb.push_back(lb);
         col_ub.push_back(ub);
         col_type.push_back(type);
-        return nbVars()-1;
+        return Var(nbVars()-1);
     }
 private:
     template <typename T, typename ... Args>
@@ -209,8 +209,8 @@ public:
     }
 
     size_t nbConstrs() const { return row_begins.size(); }
-    double getConstrLB(int constr_id) const { return row_lb[constr_id]; }
-    double getConstrUB(int constr_id) const { return row_ub[constr_id]; }
+    double getConstrLB(Constr constr) const { return row_lb[constr.id()]; }
+    double getConstrUB(Constr constr) const { return row_ub[constr.id()]; }
 
 
     auto variables() const {
@@ -220,7 +220,9 @@ public:
         return v;
     }
     auto constraints() const {
-        auto v = ranges::iota_view<int,int>(0, nbConstrs());
+        auto v = ranges::views::transform(
+                    ranges::iota_view<int,int>(0, nbConstrs()),
+                    [](int v) { return Constr(v); });
         return v;
     }
     auto objective() const {
@@ -233,10 +235,10 @@ public:
         auto z = ranges::view::zip(vars, coefs);
         return z;
     }
-    const auto entries(int constr_id) const {
-        const int offset = row_begins[constr_id];
-        const int end = (constr_id+1 < static_cast<int>(nbConstrs())
-                        ? row_begins[constr_id+1] : vars.size());
+    const auto entries(Constr constr) const {
+        const int offset = row_begins[constr.id()];
+        const int end = (constr.id()+1 < static_cast<int>(nbConstrs())
+                        ? row_begins[constr.id()+1] : vars.size());
         auto sub_vars = ranges::views::transform(
             ranges::subrange(vars.begin()+offset,vars.begin()+end),
             [](int v) { return Var(v); });
@@ -280,17 +282,17 @@ std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
     os << (lp.getOptSense()==MILP_Builder::MINIMIZE ? "Minimize" : "Maximize") << std::endl;
     print_entries(os, lp.objective());
     os << std::endl << "Subject To" << std::endl;
-    for(int constr_id : lp.constraints()) {
-        const double lb = lp.getConstrLB(constr_id);
-        const double ub = lp.getConstrUB(constr_id);
+    for(Constr constr : lp.constraints()) {
+        const double lb = lp.getConstrLB(constr);
+        const double ub = lp.getConstrUB(constr);
         if(ub != MILP_Builder::INFINITY) {
-            os << "R" << constr_id << ": ";        
-            print_entries(os, lp.entries(constr_id));
+            os << "R" << constr.id() << ": ";        
+            print_entries(os, lp.entries(constr));
             os << " <= " << ub << std::endl;
         }
         if(lb != MILP_Builder::MINUS_INFINITY) {
-            os << "R" << constr_id << "_low: ";        
-            print_entries(os, lp.entries(constr_id));
+            os << "R" << constr.id() << "_low: ";        
+            print_entries(os, lp.entries(constr));
             os << " >= " << lb << std::endl;
         }
     }
