@@ -16,21 +16,9 @@
 #include <range/v3/view/zip.hpp>
 #include <range/v3/algorithm/for_each.hpp>
 
-#include "expressions/linear_expression.hpp"
-#include "expressions/quadratic_expression.hpp"
-
-#include "constraints/linear_constraints.hpp"
-#include "constraints/quadratic_constraints.hpp"
-
-class Var {
-private:
-    int _id;
-public:
-    constexpr Var(const Var & v) noexcept : _id(v.id()) {}
-    explicit constexpr Var(const int & i) noexcept : _id(i) {}
-    constexpr const int & id() const noexcept { return _id; }
-    constexpr int & id() noexcept { return _id; }
-};
+#include "milp_builder/strong_types.hpp"
+#include "milp_builder/linear_expression.hpp"
+#include "milp_builder/linear_constraints.hpp"
 
 struct LinearTerm {
     double coef;

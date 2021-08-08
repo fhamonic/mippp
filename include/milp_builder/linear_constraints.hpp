@@ -6,8 +6,9 @@
 
 #include <range/v3/algorithm/for_each.hpp>
 
-#include "constraints/constants.hpp"
-#include "expressions/linear_expression.hpp"
+#include "milp_builder/linear_expression.hpp"
+
+enum InequalitySense { LESS=-1, EQUAL=0, GREATER=1 };
 
 struct LinearIneqConstraint {
     InequalitySense sense;

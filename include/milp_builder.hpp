@@ -21,19 +21,10 @@
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "function_traits.hpp"
-#include "expressions_algebra/linear_expression_algebra.hpp"
+#include "milp_builder/function_traits.hpp"
+#include "milp_builder/strong_types.hpp"
 
-
-class Constr {
-private:
-    int _id;
-public:
-    constexpr Constr(const Constr & c) noexcept : _id(c.id()) {}
-    explicit constexpr Constr(const int & i) noexcept : _id(i) {}
-    constexpr const int & id() const noexcept { return _id; }
-    constexpr int & id() noexcept { return _id; }
-};
+#include "milp_builder/linear_expression_algebra.hpp"
 
 
 class IneqConstraintHandler {
@@ -106,7 +97,7 @@ public:
     static constexpr double MINUS_INFINITY = std::numeric_limits<double>::min();
     static constexpr double INFINITY = std::numeric_limits<double>::max();
     enum OptSense { MINIMIZE=-1, MAXIMIZE=1 };
-    enum ColType { CONTINUOUS = 0, INTEGRAL = 1 };
+    enum ColType { CONTINUOUS = 0, INTEGRAL = 1, BINARY = 2 };
 private:
     std::vector<double> col_coef;
     std::vector<double> col_lb;
@@ -293,6 +284,16 @@ std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
             print_entries(os, lp.entries(constr));
             os << " >= " << lb << std::endl;
         }
+    }
+    auto binary_vars = ranges::filter_view(lp.variables(),
+        [&lp](Var v){ return lp.getVarType(v)==MILP_Builder::BINARY; }
+    );
+    if(ranges::distance(binary_vars) > 0) {
+        os << "Binary" << std::endl;
+        for(Var v : binary_vars) {
+            os << " x" << v.id();
+        }
+        os << std::endl;
     }
     auto no_trivial_bound_vars = ranges::filter_view(lp.variables(),
         [&lp](Var v){ return lp.getVarLB(v)!=0.0 

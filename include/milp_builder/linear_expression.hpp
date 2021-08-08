@@ -1,5 +1,5 @@
-#ifndef LINEAR_EXPRESSION_HPP
-#define LINEAR_EXPRESSION_HPP
+#ifndef MILP_BUILDER_LINEAR_EXPRESSION_HPP
+#define MILP_BUILDER_LINEAR_EXPRESSION_HPP
 
 #include <iostream>
 #include <ostream>
@@ -80,4 +80,4 @@ inline std::ostream& operator<<(std::ostream& os,
     return os << (e.constant < 0 ? " - " : " + ") << std::abs(e.constant);
 }
 
-#endif //LINEAR_EXPRESSION_HPP
+#endif //MILP_BUILDER_LINEAR_EXPRESSION_HPP
