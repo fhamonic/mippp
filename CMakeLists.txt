@@ -33,17 +33,8 @@ target_include_directories(milppp INTERFACE
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(milppp INTERFACE CONAN_PKG::range-v3)
-# 
-#     
-# 
 
 ################### EXEC target ####################
-# add_executable(milp_builder_test src/milp_builder_test.cpp)
-# target_link_libraries(milp_builder_test milppp)
-# target_compile_options_if_exists(milp_builder_test PRIVATE ${WARNINGS} -Wall)
-# target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
-# target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)
-
 if(${GUROBI_FOUND})
     add_executable(grb_milp_builder_test src/grb_milp_builder_test.cpp)
     target_link_libraries(grb_milp_builder_test milppp)
