@@ -1,5 +1,5 @@
-#ifndef MILP_BUILDER_STRONG_TYPES
-#define MILP_BUILDER_STRONG_TYPES
+#ifndef MILPPP_STRONG_TYPES
+#define MILPPP_STRONG_TYPES
 
 class Var {
 private:

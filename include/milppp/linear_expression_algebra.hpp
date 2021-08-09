@@ -7,8 +7,8 @@
  * 
  * @copyright Copyright (c) 2020
  */
-#ifndef EXPRESSION_ALGEBRA_HPP
-#define EXPRESSION_ALGEBRA_HPP
+#ifndef MILPPP_EXPRESSION_ALGEBRA_HPP
+#define MILPPP_EXPRESSION_ALGEBRA_HPP
 
 #include <numeric>
 #include <vector>
@@ -16,9 +16,9 @@
 #include <range/v3/view/zip.hpp>
 #include <range/v3/algorithm/for_each.hpp>
 
-#include "milp_builder/strong_types.hpp"
-#include "milp_builder/linear_expression.hpp"
-#include "milp_builder/linear_constraints.hpp"
+#include "milppp/strong_types.hpp"
+#include "milppp/linear_expression.hpp"
+#include "milppp/linear_constraints.hpp"
 
 struct LinearTerm {
     double coef;
@@ -101,4 +101,4 @@ inline LinearIneqConstraint operator>=(LinearExpr & e1, const LinearExpr & e2) {
     return std::move(e1) >= e2;
 }
 
-#endif //EXPRESSION_ALGEBRA_HPP
+#endif //MILPPP_EXPRESSION_ALGEBRA_HPP

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(MILP_Builder VERSION 1.0
+project(milppp VERSION 1.0
     DESCRIPTION "Library attempting to provide an elegant and efficient way for instantiating Mixed Integer Linear Programs."
     LANGUAGES CXX)
 
@@ -24,9 +24,9 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 #################### Packages ####################
-add_library(milp_builder INTERFACE)
-target_compile_features(milp_builder INTERFACE cxx_std_17)
-target_include_directories(milp_builder INTERFACE
+add_library(milppp INTERFACE)
+target_compile_features(milppp INTERFACE cxx_std_17)
+target_include_directories(milppp INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )

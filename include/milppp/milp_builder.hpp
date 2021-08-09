@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2021
  * 
  */
-#ifndef MILP_BUILDER_HPP
-#define MILP_BUILDER_HPP
+#ifndef MILPP_MILP_BUILDER_HPP
+#define MILPP_MILP_BUILDER_HPP
 
 #include <cassert>
 #include <limits>
@@ -21,10 +21,10 @@
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "milp_builder/function_traits.hpp"
-#include "milp_builder/strong_types.hpp"
+#include "milppp/function_traits.hpp"
+#include "milppp/strong_types.hpp"
 
-#include "milp_builder/linear_expression_algebra.hpp"
+#include "milppp/linear_expression_algebra.hpp"
 
 
 class IneqConstraintHandler {
@@ -97,7 +97,7 @@ public:
     static constexpr double MINUS_INFINITY = std::numeric_limits<double>::min();
     static constexpr double INFINITY = std::numeric_limits<double>::max();
     enum OptSense { MINIMIZE=-1, MAXIMIZE=1 };
-    enum ColType { CONTINUOUS = 0, INTEGRAL = 1, BINARY = 2 };
+    enum ColType { CONTINUOUS = 0, INTEGER = 1, BINARY = 2 };
 private:
     std::vector<double> col_coef;
     std::vector<double> col_lb;
@@ -285,6 +285,16 @@ std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
             os << " >= " << lb << std::endl;
         }
     }
+    auto interger_vars = ranges::filter_view(lp.variables(),
+        [&lp](Var v){ return lp.getVarType(v)==MILP_Builder::INTEGER; }
+    );
+    if(ranges::distance(interger_vars) > 0) {
+        os << "General" << std::endl;
+        for(Var v : interger_vars) {
+            os << " x" << v.id();
+        }
+        os << std::endl;
+    }
     auto binary_vars = ranges::filter_view(lp.variables(),
         [&lp](Var v){ return lp.getVarType(v)==MILP_Builder::BINARY; }
     );
@@ -319,4 +329,4 @@ std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
     return os << "End" << std::endl;
 }
 
-#endif //MILP_BUILDER_HPP
+#endif //MILPP_MILP_BUILDER_HPP

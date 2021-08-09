@@ -1,12 +1,12 @@
-#ifndef LINEAR_CONSTRAINTS_HPP
-#define LINEAR_CONSTRAINTS_HPP
+#ifndef MILPPP_LINEAR_CONSTRAINTS_HPP
+#define MILPPP_LINEAR_CONSTRAINTS_HPP
 
 #include <numeric>
 #include <ostream>
 
 #include <range/v3/algorithm/for_each.hpp>
 
-#include "milp_builder/linear_expression.hpp"
+#include "milppp/linear_expression.hpp"
 
 enum InequalitySense { LESS=-1, EQUAL=0, GREATER=1 };
 
@@ -44,4 +44,4 @@ inline std::ostream& operator<<(std::ostream& os,
               << " <= " << constraint.upper_bound;
 }
 
-#endif //LINEAR_CONSTRAINTS_HPP
+#endif //MILPPP_LINEAR_CONSTRAINTS_HPP

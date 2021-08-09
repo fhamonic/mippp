@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "milp_builder.hpp"
+#include "milppp.hpp"
 
 int main() {
     MILP_Builder builder(MILP_Builder::MAXIMIZE);
