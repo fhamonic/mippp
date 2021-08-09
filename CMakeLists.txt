@@ -23,18 +23,43 @@ include(CMakeBuildTypeUtils)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
+find_package(COIN REQUIRED)
+find_package(GUROBI REQUIRED)
+
 #################### Library ####################
 add_library(milppp INTERFACE)
-target_compile_features(milppp INTERFACE cxx_std_17)
 target_include_directories(milppp INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(milppp INTERFACE CONAN_PKG::range-v3)
+# 
+#     
+# 
 
 ################### EXEC target ####################
-add_executable(milp_builder_test src/milp_builder_test.cpp)
-target_link_libraries(milp_builder_test milppp)
-target_compile_options_if_exists(milp_builder_test PRIVATE ${WARNINGS} -Wall)
-target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
-target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)
+# add_executable(milp_builder_test src/milp_builder_test.cpp)
+# target_link_libraries(milp_builder_test milppp)
+# target_compile_options_if_exists(milp_builder_test PRIVATE ${WARNINGS} -Wall)
+# target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
+# target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)
+
+if(${GUROBI_FOUND})
+    add_executable(grb_milp_builder_test src/grb_milp_builder_test.cpp)
+    target_link_libraries(grb_milp_builder_test milppp)
+    target_include_directories(grb_milp_builder_test PUBLIC ${GUROBI_INCLUDE_DIR})
+    target_link_libraries(grb_milp_builder_test ${GUROBI_LIBRARIES})
+    target_compile_options_if_exists(grb_milp_builder_test PRIVATE ${WARNINGS} -Wall)
+    target_compile_options_if_exists(grb_milp_builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
+    target_compile_options_if_exists(grb_milp_builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)
+endif()
+
+if(${COIN_FOUND})
+    add_executable(cbc_milp_builder_test src/cbc_milp_builder_test.cpp)
+    target_link_libraries(cbc_milp_builder_test milppp)
+    target_include_directories(cbc_milp_builder_test PUBLIC ${COIN_INCLUDE_DIR})
+    target_link_libraries(cbc_milp_builder_test ${COIN_LIBRARIES})
+    target_compile_options_if_exists(cbc_milp_builder_test PRIVATE ${WARNINGS} -Wall)
+    target_compile_options_if_exists(cbc_milp_builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
+    target_compile_options_if_exists(cbc_milp_builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)
+endif()

@@ -92,12 +92,14 @@ public:
 };
 
 
+template <typename SolverTraits>
 class MILP_Builder {
 public:
     static constexpr double MINUS_INFINITY = std::numeric_limits<double>::min();
     static constexpr double INFINITY = std::numeric_limits<double>::max();
-    enum OptSense { MINIMIZE=-1, MAXIMIZE=1 };
-    enum ColType { CONTINUOUS = 0, INTEGER = 1, BINARY = 2 };
+    using OptSense = typename SolverTraits::OptSense;
+    using ColType = typename SolverTraits::ColType;
+    using ModelType = typename SolverTraits::ModelType;
 private:
     std::vector<double> col_coef;
     std::vector<double> col_lb;
@@ -123,7 +125,7 @@ public:
     }
 
     Var addVar(double coef=0.0, double lb=0.0, double ub=INFINITY,
-               ColType type=CONTINUOUS) {
+               ColType type=ColType::CONTINUOUS) {
         col_coef.push_back(coef);
         col_lb.push_back(lb);
         col_ub.push_back(ub);
@@ -151,7 +153,7 @@ private:
 public:
     template <typename T>
     auto addVars(int count, T&& id_lambda, double coef=0.0, 
-                 double lb=0.0, double ub=INFINITY, ColType type=CONTINUOUS) {
+                 double lb=0.0, double ub=INFINITY, ColType type=ColType::CONTINUOUS) {
         return addVars(typename function_traits<T>::arg_types(),
                     count, std::forward<T>(id_lambda), coef, lb, ub, type);
     }
@@ -200,6 +202,7 @@ public:
     size_t nbConstrs() const { return row_begins.size(); }
     double getConstrLB(Constr constr) const { return row_lb[constr.id()]; }
     double getConstrUB(Constr constr) const { return row_ub[constr.id()]; }
+    size_t nbEntries() const { return vars.size(); }
 
 
     auto variables() const {
@@ -236,6 +239,23 @@ public:
         auto z = ranges::view::zip(sub_vars, sub_coefs);
         return z;
     }
+
+    ModelType build() {
+        ModelType model = SolverTraits::build(sense,
+                              nbVars(), 
+                              col_coef.data(),
+                              col_lb.data(),
+                              col_ub.data(),
+                              col_type.data(),
+                              nbConstrs(),
+                              nbEntries(),
+                              row_begins.data(),
+                              vars.data(),
+                              coefs.data(),
+                              row_lb.data(),
+                              row_ub.data());
+        return model;
+    }
 };
 
 template <typename T>
@@ -244,19 +264,22 @@ std::ostream & print_entries(std::ostream & os, const T & e) {
     const auto end = e.end();
     if(it == end)
         return os;
-    
-    Var v = (*it).first;
-    double coef = (*it).second;
-    if(coef != 0.0) {
+    for(; it != end; ++it) {
+        Var v = (*it).first;
+        double coef = (*it).second;
+        if(coef == 0.0)
+            continue;
+            
         const double abs_coef = std::abs(coef);
         os << (coef < 0 ? "-" : "");
         if(abs_coef != 1)
             os << abs_coef << " ";
         os << "x" << v.id();
+        break;
     }
     for(++it; it != end; ++it) {
-        v = (*it).first;
-        coef = (*it).second;
+        Var v = (*it).first;
+        double coef = (*it).second;
         if(coef == 0.0) continue;
         const double abs_coef = std::abs(coef);
         os << (coef < 0 ? " - " : " + ");
@@ -267,26 +290,28 @@ std::ostream & print_entries(std::ostream & os, const T & e) {
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
-    os << (lp.getOptSense()==MILP_Builder::MINIMIZE ? "Minimize" : "Maximize") << std::endl;
+template <typename SolverTraits>
+std::ostream& operator<<(std::ostream& os, const MILP_Builder<SolverTraits>& lp) {
+    using MILP = MILP_Builder<SolverTraits>;
+    os << (lp.getOptSense()==MILP::OptSense::MINIMIZE ? "Minimize" : "Maximize") << std::endl;
     print_entries(os, lp.objective());
     os << std::endl << "Subject To" << std::endl;
     for(Constr constr : lp.constraints()) {
         const double lb = lp.getConstrLB(constr);
         const double ub = lp.getConstrUB(constr);
-        if(ub != MILP_Builder::INFINITY) {
+        if(ub != MILP::INFINITY) {
             os << "R" << constr.id() << ": ";        
             print_entries(os, lp.entries(constr));
             os << " <= " << ub << std::endl;
         }
-        if(lb != MILP_Builder::MINUS_INFINITY) {
+        if(lb != MILP::MINUS_INFINITY) {
             os << "R" << constr.id() << "_low: ";        
             print_entries(os, lp.entries(constr));
             os << " >= " << lb << std::endl;
         }
     }
     auto interger_vars = ranges::filter_view(lp.variables(),
-        [&lp](Var v){ return lp.getVarType(v)==MILP_Builder::INTEGER; }
+        [&lp](Var v){ return lp.getVarType(v)==MILP::ColType::INTEGER; }
     );
     if(ranges::distance(interger_vars) > 0) {
         os << "General" << std::endl;
@@ -296,7 +321,7 @@ std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
         os << std::endl;
     }
     auto binary_vars = ranges::filter_view(lp.variables(),
-        [&lp](Var v){ return lp.getVarType(v)==MILP_Builder::BINARY; }
+        [&lp](Var v){ return lp.getVarType(v)==MILP::ColType::BINARY; }
     );
     if(ranges::distance(binary_vars) > 0) {
         os << "Binary" << std::endl;
@@ -307,7 +332,7 @@ std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
     }
     auto no_trivial_bound_vars = ranges::filter_view(lp.variables(),
         [&lp](Var v){ return lp.getVarLB(v)!=0.0 
-                    || lp.getVarUB(v)!=MILP_Builder::INFINITY; }
+                    || lp.getVarUB(v)!=MILP::INFINITY; }
     );
     if(ranges::distance(no_trivial_bound_vars) > 0) {
         os << "Bounds" << std::endl;
@@ -317,11 +342,11 @@ std::ostream& operator<<(std::ostream& os, const MILP_Builder& lp) {
                 continue;
             }
             if(lp.getVarLB(v) != 0.0) {
-                if(lp.getVarLB(v) == MILP_Builder::MINUS_INFINITY) os << "-Inf <= ";
+                if(lp.getVarLB(v) == MILP::MINUS_INFINITY) os << "-Inf <= ";
                 else os << lp.getVarLB(v) << " <= ";
             }
             os << "x" << v.id();
-            if(lp.getVarUB(v) != MILP_Builder::INFINITY)
+            if(lp.getVarUB(v) != MILP::INFINITY)
                 os << " <= " << lp.getVarUB(v);
             os << std::endl;
         }

@@ -39,10 +39,18 @@ struct LinearTerm {
         coef *= c;
         return *this;
     }
+    constexpr LinearTerm& operator-() {
+        coef = -coef;
+        return *this;
+    }
 };
 
 constexpr LinearTerm operator*(Var v, double c) {
     LinearTerm t(v, c);
+    return t;
+}
+constexpr LinearTerm operator-(Var v) {
+    LinearTerm t(v, -1);
     return t;
 }
 constexpr LinearTerm operator*(double c, Var v) {

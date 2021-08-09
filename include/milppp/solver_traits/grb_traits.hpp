@@ -14,7 +14,7 @@ struct GRBModelWrap {
     }
 };
 
-struct CbcTraits {
+struct GrbTraits {
     enum OptSense : int { MINIMIZE=GRB_MINIMIZE, MAXIMIZE=GRB_MAXIMIZE };
     enum ColType : char { CONTINUOUS=GRB_CONTINUOUS, INTEGER=GRB_INTEGER, BINARY=GRB_BINARY };
     using ModelType = GRBModelWrap;
@@ -35,7 +35,10 @@ struct CbcTraits {
         GRBModelWrap grb;
         GRBemptyenv(&grb.env);
         GRBstartenv(grb.env);
-        GRBnewmodel(grb.env, &grb.model, "PL", nb_vars, obj, col_lb, col_ub, vtype, NULL);
+
+        GRBsetintparam(grb.env, GRB_INT_PAR_LOGTOCONSOLE, 0);
+
+        GRBnewmodel(grb.env, &grb.model, "PL", nb_vars, obj, col_lb, col_ub, reinterpret_cast<char*>(vtype), NULL);
         GRBaddrangeconstrs(grb.model, nb_rows, nb_elems, row_begins, indices, coefs, row_lb, row_ub, NULL);
         GRBsetintattr(grb.model, GRB_INT_ATTR_MODELSENSE, opt_sense);
 
