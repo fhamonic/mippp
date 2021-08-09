@@ -23,18 +23,18 @@ include(CMakeBuildTypeUtils)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
-#################### Packages ####################
+#################### Library ####################
 add_library(milppp INTERFACE)
 target_compile_features(milppp INTERFACE cxx_std_17)
 target_include_directories(milppp INTERFACE
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+target_link_libraries(milppp INTERFACE CONAN_PKG::range-v3)
 
 ################### EXEC target ####################
 add_executable(milp_builder_test src/milp_builder_test.cpp)
-target_link_libraries(milp_builder_test CONAN_PKG::range-v3)
-target_include_directories(milp_builder_test PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(milp_builder_test milppp)
 target_compile_options_if_exists(milp_builder_test PRIVATE ${WARNINGS} -Wall)
 target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_FOR_NATIVE} -march=native)
 target_compile_options_if_exists(milp_builder_test PRIVATE ${COMPILE_WITH_LTO} -flto)
