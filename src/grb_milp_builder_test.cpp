@@ -9,12 +9,12 @@ int main() {
 
     auto x = builder.addVar();
     auto y = builder.addVar();
-    
+
     builder.setObjCoef(y, 1);
 
-    builder.addLessThanConstr().lhs( -x , y ).rhs( 1 );
-    builder.addLessThanConstr().lhs( 3*x , 2*y ).rhs( 12 );
-    builder.addLessThanConstr().lhs( 2*x , 3*y ).rhs( 12 );
+    builder.addLessThanConstr().lhs(-x, y).rhs(1);
+    builder.addLessThanConstr().lhs(3 * x, 2 * y).rhs(12);
+    builder.addLessThanConstr().lhs(2 * x, 3 * y).rhs(12);
 
     std::cout << builder << std::endl;
 
@@ -27,10 +27,10 @@ int main() {
     std::cout << obj << std::endl;
 
     double * solution = new double[builder.nbVars()];
-    GRBgetdblattrarray(model.model, GRB_DBL_ATTR_X, 0, builder.nbVars(), solution);
+    GRBgetdblattrarray(model.model, GRB_DBL_ATTR_X, 0, static_cast<int>(builder.nbVars()),
+                       solution);
 
-    for(Var v : builder.variables())
-        std::cout << solution[v.id()] << std::endl;
+    for(Var v : builder.variables()) std::cout << solution[v.id()] << std::endl;
 
     return EXIT_SUCCESS;
 }

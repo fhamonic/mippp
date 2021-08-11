@@ -5,7 +5,9 @@ if(NOT DEFINED CMAKE_BUILD_TYPE)
 else()
     string(TOUPPER ${CMAKE_BUILD_TYPE} UPPERCASE_CMAKE_BUILD_TYPE)
     if(NOT ${UPPERCASE_CMAKE_BUILD_TYPE} IN_LIST UPPERCASE_CMAKE_BUILD_TYPES)
-        message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+        message(
+            FATAL_ERROR
+                "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
     endif()
 endif()
 
@@ -16,7 +18,10 @@ function(target_compile_options_if_exists _target _scope _is_activated)
         return()
     endif()
     if(NOT uppercase_is_activated STREQUAL "ON")
-        message(FATAL_ERROR "Invalid value of target_compile_options_if_exists parameter _is_activated: ${_is_activated}")
+        message(
+            FATAL_ERROR
+                "Invalid value of target_compile_options_if_exists parameter _is_activated: ${_is_activated}"
+        )
     endif()
     foreach(option ${ARGN})
         string(TOUPPER ${option} uppercase_option)

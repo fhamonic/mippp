@@ -60,7 +60,7 @@ struct QuadraticExpr {
 inline std::ostream& operator<<(std::ostream& os,
                                 const QuadraticExpr & e) {
     if(e.vars1.size() > 0) {
-        size_t i = 0;
+        std::size_t i = 0;
         os << (e.coefs[i] < 0 ? "- " : "");
         if(e.coefs[i]!=1)
            os << std::abs(e.coefs[i]) << " * ";

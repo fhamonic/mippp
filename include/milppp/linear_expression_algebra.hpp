@@ -4,7 +4,7 @@
  * @brief OSI_Builder class declaration
  * @version 0.1
  * @date 2021-08-4
- * 
+ *
  * @copyright Copyright (c) 2020
  */
 #ifndef MILPPP_EXPRESSION_ALGEBRA_HPP
@@ -13,33 +13,36 @@
 #include <numeric>
 #include <vector>
 
-#include <range/v3/view/zip.hpp>
 #include <range/v3/algorithm/for_each.hpp>
+#include <range/v3/view/zip.hpp>
 
-#include "milppp/strong_types.hpp"
-#include "milppp/linear_expression.hpp"
 #include "milppp/linear_constraints.hpp"
+#include "milppp/linear_expression.hpp"
+#include "milppp/strong_types.hpp"
 
 struct LinearTerm {
     double coef;
     int var;
 
-    constexpr LinearTerm(LinearTerm&& t)
+    constexpr LinearTerm(LinearTerm && t)
         : coef(t.coef)
-        , var(t.var) { /*std::cout << "move ctor LinearTerm" << std::endl;*/ }
+        , var(t.var) { /*std::cout << "move ctor LinearTerm" << std::endl;*/
+    }
     constexpr LinearTerm(const LinearTerm & t)
         : coef(t.coef)
-        , var(t.var) { /*std::cout << "copy ctor LinearTerm" << std::endl;*/ }
+        , var(t.var) { /*std::cout << "copy ctor LinearTerm" << std::endl;*/
+    }
 
-    constexpr LinearTerm(Var v, double c=1.0)
+    constexpr LinearTerm(Var v, double c = 1.0)
         : coef(c)
-        , var(v.id()) { /*std::cout << "custom ctor LinearTerm" << std::endl;*/ }
-    
-    constexpr LinearTerm& operator*(double c) {
+        , var(v.id()) { /*std::cout << "custom ctor LinearTerm" << std::endl;*/
+    }
+
+    constexpr LinearTerm & operator*(double c) {
         coef *= c;
         return *this;
     }
-    constexpr LinearTerm& operator-() {
+    constexpr LinearTerm & operator-() {
         coef = -coef;
         return *this;
     }
@@ -58,16 +61,12 @@ constexpr LinearTerm operator*(double c, Var v) {
     return t;
 }
 
-inline LinearExpr& operator+(LinearExpr & e, double c) { 
-    return e.add(c);
-}
-inline LinearExpr& operator+(LinearExpr&& e, double c) { 
-    return e.add(c);
-}
-inline LinearExpr& operator+(LinearExpr & e, const LinearTerm & t) { 
+inline LinearExpr & operator+(LinearExpr & e, double c) { return e.add(c); }
+inline LinearExpr & operator+(LinearExpr && e, double c) { return e.add(c); }
+inline LinearExpr & operator+(LinearExpr & e, const LinearTerm & t) {
     return e.add(t.var, t.coef);
 }
-inline LinearExpr& operator+(LinearExpr&& e, const LinearTerm & t) { 
+inline LinearExpr & operator+(LinearExpr && e, const LinearTerm & t) {
     return e.add(t.var, t.coef);
 }
 
@@ -89,16 +88,18 @@ inline LinearExpr operator+(double c, const LinearTerm & t) {
 
 inline LinearExpr & operator-(LinearExpr & e1, const LinearExpr & e2) {
     e1.constant -= e2.constant;
-    ranges::for_each(ranges::view::zip(e2.vars, e2.coefs), 
-        [&e1](const auto p){ e1.add(p.first, -p.second); });
+    ranges::for_each(ranges::view::zip(e2.vars, e2.coefs),
+                     [&e1](const auto p) { e1.add(p.first, -p.second); });
     return e1;
 }
 
-inline LinearIneqConstraint operator<=(LinearExpr && e1, const LinearExpr & e2) {
+inline LinearIneqConstraint operator<=(LinearExpr && e1,
+                                       const LinearExpr & e2) {
     e1 - e2;
     return LinearIneqConstraint(LESS, std::move(e1));
 }
-inline LinearIneqConstraint operator>=(LinearExpr && e1, const LinearExpr & e2) {
+inline LinearIneqConstraint operator>=(LinearExpr && e1,
+                                       const LinearExpr & e2) {
     e1 - e2;
     return LinearIneqConstraint(GREATER, std::move(e1));
 }
@@ -109,4 +110,4 @@ inline LinearIneqConstraint operator>=(LinearExpr & e1, const LinearExpr & e2) {
     return std::move(e1) >= e2;
 }
 
-#endif //MILPPP_EXPRESSION_ALGEBRA_HPP
+#endif  // MILPPP_EXPRESSION_ALGEBRA_HPP
