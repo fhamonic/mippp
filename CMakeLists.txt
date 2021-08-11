@@ -66,7 +66,10 @@ if(${COIN_FOUND})
     target_include_directories(cbc_milp_builder_test PUBLIC ${COIN_INCLUDE_DIR})
     target_link_libraries(cbc_milp_builder_test ${COIN_LIBRARIES})
     target_compile_options_if_exists(cbc_milp_builder_test PRIVATE ${WARNINGS}
-                                     -Wall)
+                                     ${WARNINGS_LIST})
+    target_compile_options_if_exists(
+        cbc_milp_builder_test PRIVATE ${HARDCORE_WARNINGS}
+        ${HARDCORE_WARNINGS_LIST})
     target_compile_options_if_exists(cbc_milp_builder_test PRIVATE
                                      ${COMPILE_FOR_NATIVE} -march=native)
     target_compile_options_if_exists(cbc_milp_builder_test PRIVATE
