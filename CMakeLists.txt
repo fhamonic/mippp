@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(WARNINGS "" OFF)
+option(HARDCORE_WARNINGS "" OFF)
 option(COMPILE_FOR_NATIVE "" OFF)
 option(COMPILE_WITH_LTO "" OFF)
 
@@ -43,10 +44,12 @@ if(${GUROBI_FOUND})
     target_include_directories(grb_milp_builder_test
                                PUBLIC ${GUROBI_INCLUDE_DIR})
     target_link_libraries(grb_milp_builder_test ${GUROBI_LIBRARIES})
+    target_compile_options_if_exists(grb_milp_builder_test PRIVATE ${WARNINGS}
+                                     -Wall -Wextra)
     target_compile_options_if_exists(
         grb_milp_builder_test
         PRIVATE
-        ${WARNINGS}
+        ${HARDCORE_WARNINGS}
         -Wall
         -Wextra
         -Wshadow
