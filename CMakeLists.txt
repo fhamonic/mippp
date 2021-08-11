@@ -18,6 +18,11 @@ option(HARDCORE_WARNINGS "" OFF)
 option(COMPILE_FOR_NATIVE "" OFF)
 option(COMPILE_WITH_LTO "" OFF)
 
+set(WARNINGS_LIST "-Wall;-Wextra;")
+set(HARDCORE_WARNINGS_LIST
+    "-Wall;-Wextra;-Wshadow;-Wpedantic;-Wnon-virtual-dtor;-Wold-style-cast;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wpedantic;-Wconversion;-Wsign-conversion;-Wmisleading-indentation;-Wduplicated-cond;-Wduplicated-branches;-Wlogical-op;-Wnull-dereference;-Wuseless-cast;-Wdouble-promotion;-Wformat=2;-Wlifetime"
+)
+
 # ################### Modules ####################
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 include(GNUInstallDirs)
@@ -45,32 +50,10 @@ if(${GUROBI_FOUND})
                                PUBLIC ${GUROBI_INCLUDE_DIR})
     target_link_libraries(grb_milp_builder_test ${GUROBI_LIBRARIES})
     target_compile_options_if_exists(grb_milp_builder_test PRIVATE ${WARNINGS}
-                                     -Wall -Wextra)
+                                     ${WARNINGS_LIST})
     target_compile_options_if_exists(
-        grb_milp_builder_test
-        PRIVATE
-        ${HARDCORE_WARNINGS}
-        -Wall
-        -Wextra
-        -Wshadow
-        -Wpedantic
-        -Wnon-virtual-dtor
-        -Wold-style-cast
-        -Wcast-align
-        -Wunused
-        -Woverloaded-virtual
-        -Wpedantic
-        -Wconversion
-        -Wsign-conversion
-        -Wmisleading-indentation
-        -Wduplicated-cond
-        -Wduplicated-branches
-        -Wlogical-op
-        -Wnull-dereference
-        -Wuseless-cast
-        -Wdouble-promotion
-        -Wformat=2
-        -Wlifetime)
+        grb_milp_builder_test PRIVATE ${HARDCORE_WARNINGS}
+        ${HARDCORE_WARNINGS_LIST})
     target_compile_options_if_exists(grb_milp_builder_test PRIVATE
                                      ${COMPILE_FOR_NATIVE} -march=native)
     target_compile_options_if_exists(grb_milp_builder_test PRIVATE
