@@ -4,7 +4,7 @@ CPUS?=$(shell getconf _NPROCESSORS_ONLN || echo 1)
 
 BUILD_DIR = build
 
-.PHONY: all clean doc
+.PHONY: all clean single-header doc
 
 all: $(BUILD_DIR)
 	@cd $(BUILD_DIR) && \
@@ -18,6 +18,17 @@ $(BUILD_DIR):
 
 clean:
 	@rm -rf $(BUILD_DIR)
+
+single-header: single-header/milppp.hpp
+
+single-header/milppp.hpp:
+	@python3 -m quom --include_directory include include/milppp.hpp milppp.hpp.tmp && \
+	mkdir -p single-header && \
+	echo "/*" > single-header/milppp.hpp && \
+	cat LICENSE >> single-header/milppp.hpp && \
+	echo "*/" >> single-header/milppp.hpp && \
+	cat milppp.hpp.tmp >> single-header/milppp.hpp && \
+	rm milppp.hpp.tmp
 
 doc:
 	doxywizard $$PWD/doc/Doxyfile
