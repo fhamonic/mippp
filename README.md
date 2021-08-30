@@ -1,4 +1,4 @@
-# MiLPpp
+# MILPpp
 
 Library attempting to provide an elegant and efficient way for instanciating Mixed Integer Linear Programs.
 
