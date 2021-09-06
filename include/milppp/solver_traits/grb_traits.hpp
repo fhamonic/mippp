@@ -1,7 +1,7 @@
 #ifndef MILPP_GUROBI_TRAITS_HPP
 #define MILPP_GUROBI_TRAITS_HPP
 
-#include "gurobi_c.h"
+#include <gurobi_c.h>
 
 struct GRBModelWrap {
     GRBenv * env;

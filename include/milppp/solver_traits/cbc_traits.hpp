@@ -1,9 +1,9 @@
 #ifndef MILPP_CBC_TRAITS_HPP
 #define MILPP_CBC_TRAITS_HPP
 
-#include "coin/CbcModel.hpp"  // deprecated interface, use CbcMain0 and CbcMain1
-#include "coin/CbcSolver.hpp"
-#include "coin/OsiClpSolverInterface.hpp"
+#include <coin/CbcModel.hpp>  // deprecated interface, use CbcMain0 and CbcMain1
+#include <coin/CbcSolver.hpp>
+#include <coin/OsiClpSolverInterface.hpp>
 
 struct CbcTraits {
     enum OptSense : int { MINIMIZE = 1, MAXIMIZE = -1 };
