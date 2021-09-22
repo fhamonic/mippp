@@ -1,5 +1,8 @@
-#ifndef MILPP_FUCTION_TRAITS_HPP
-#define MILPP_FUCTION_TRAITS_HPP
+#ifndef MILPPP_FUCTION_TRAITS_HPP
+#define MILPPP_FUCTION_TRAITS_HPP
+
+namespace fhamonic {
+namespace milppp {
 
 template <typename... Args>
 struct pack {};
@@ -12,4 +15,7 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
     using arg_types = pack<Args...>;
 };
 
-#endif  // MILPP_FUCTION_TRAITS_HPP
+}  // namespace milppp
+}  // namespace fhamonic
+
+#endif  // MILPPP_FUCTION_TRAITS_HPP

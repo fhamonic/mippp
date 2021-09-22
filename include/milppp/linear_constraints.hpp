@@ -7,6 +7,9 @@
 
 #include "milppp/linear_expression.hpp"
 
+namespace fhamonic {
+namespace milppp {
+
 enum InequalitySense { LESS = -1, EQUAL = 0, GREATER = 1 };
 
 struct LinearIneqConstraint {
@@ -40,5 +43,8 @@ inline std::ostream & operator<<(std::ostream & os,
               << " <= " << constraint.linear_expression
               << " <= " << constraint.upper_bound;
 }
+
+}  // namespace milppp
+}  // namespace fhamonic
 
 #endif  // MILPPP_LINEAR_CONSTRAINTS_HPP

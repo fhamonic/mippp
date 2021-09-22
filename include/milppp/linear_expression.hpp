@@ -9,6 +9,9 @@
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/view/zip.hpp>
 
+namespace fhamonic {
+namespace milppp {
+
 struct LinearExpr {
     double constant;
     std::vector<int> vars;
@@ -75,5 +78,8 @@ inline std::ostream & operator<<(std::ostream & os, const LinearExpr & e) {
     }
     return os << (e.constant < 0 ? " - " : " + ") << std::abs(e.constant);
 }
+
+}  // namespace milppp
+}  // namespace fhamonic
 
 #endif  // MILPPP_LINEAR_EXPRESSION_HPP

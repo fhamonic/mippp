@@ -1,9 +1,12 @@
-#ifndef MILPP_CBC_TRAITS_HPP
-#define MILPP_CBC_TRAITS_HPP
+#ifndef MILPPP_CBC_TRAITS_HPP
+#define MILPPP_CBC_TRAITS_HPP
 
 #include <coin/CbcModel.hpp>  // deprecated interface, use CbcMain0 and CbcMain1
 #include <coin/CbcSolver.hpp>
 #include <coin/OsiClpSolverInterface.hpp>
+
+namespace fhamonic {
+namespace milppp {
 
 struct CbcTraits {
     enum OptSense : int { MINIMIZE = 1, MAXIMIZE = -1 };
@@ -51,10 +54,13 @@ struct CbcTraits {
     }
 };
 
+}  // namespace milppp
+}  // namespace fhamonic
+
 // assignMatrix (const bool colordered, const int minor, const int major, const
 // CoinBigIndex numels, double *&elem, int *&ind, CoinBigIndex *&start, int
 // *&len, const int maxmajor=-1, const CoinBigIndex maxsize=-1) assignProblem
 // (CoinPackedMatrix *&matrix, double *&collb, double *&colub, double *&obj,
 // char *&rowsen, double *&rowrhs, double *&rowrng)=0
 
-#endif  // MILPP_CBC_TRAITS_HPP
+#endif  // MILPPP_CBC_TRAITS_HPP

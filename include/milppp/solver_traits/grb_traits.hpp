@@ -1,7 +1,10 @@
-#ifndef MILPP_GUROBI_TRAITS_HPP
-#define MILPP_GUROBI_TRAITS_HPP
+#ifndef MILPPP_GUROBI_TRAITS_HPP
+#define MILPPP_GUROBI_TRAITS_HPP
 
 #include <gurobi_c.h>
+
+namespace fhamonic {
+namespace milppp {
 
 struct GRBModelWrap {
     GRBenv * env;
@@ -44,4 +47,7 @@ struct GrbTraits {
     }
 };
 
-#endif  // MILPP_GUROBI_TRAITS_HPP
+}  // namespace milppp
+}  // namespace fhamonic
+
+#endif  // MILPPP_GUROBI_TRAITS_HPP

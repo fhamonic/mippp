@@ -1,7 +1,8 @@
 #include <iostream>
 
-#include "milppp.hpp"
-#include "milppp/solver_traits/cbc_traits.hpp"
+#include "milppp_cbc.hpp"
+
+using namespace fhamonic::milppp;
 
 int main() {
     using MILP = MILP_Builder<CbcTraits>;

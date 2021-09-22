@@ -45,8 +45,8 @@ DEALINGS IN THE SOFTWARE.*/
  * @copyright Copyright (c) 2021
  *
  */
-#ifndef MILPP_MILP_BUILDER_HPP
-#define MILPP_MILP_BUILDER_HPP
+#ifndef MILPPP_MILP_BUILDER_HPP
+#define MILPPP_MILP_BUILDER_HPP
 
 #include <cassert>
 #include <limits>
@@ -57,8 +57,8 @@ DEALINGS IN THE SOFTWARE.*/
 #include <range/v3/view/zip.hpp>
 #include <vector>
 
-#ifndef MILPP_FUCTION_TRAITS_HPP
-#define MILPP_FUCTION_TRAITS_HPP
+#ifndef MILPPP_FUCTION_TRAITS_HPP
+#define MILPPP_FUCTION_TRAITS_HPP
 
 template <typename... Args>
 struct pack {};
@@ -71,7 +71,7 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
     using arg_types = pack<Args...>;
 };
 
-#endif  // MILPP_FUCTION_TRAITS_HPP
+#endif  // MILPPP_FUCTION_TRAITS_HPP
 /**
  * @file solver_builder.hpp
  * @author François Hamonic (francois.hamonic@gmail.com)
@@ -666,10 +666,10 @@ std::ostream & operator<<(std::ostream & os,
     return os << "End" << std::endl;
 }
 
-#endif  // MILPP_MILP_BUILDER_HPP
+#endif  // MILPPP_MILP_BUILDER_HPP
 
-#ifndef MILPP_GUROBI_TRAITS_HPP
-#define MILPP_GUROBI_TRAITS_HPP
+#ifndef MILPPP_GUROBI_TRAITS_HPP
+#define MILPPP_GUROBI_TRAITS_HPP
 
 #include <gurobi_c.h>
 
@@ -714,6 +714,6 @@ struct GrbTraits {
     }
 };
 
-#endif  // MILPP_GUROBI_TRAITS_HPP
+#endif  // MILPPP_GUROBI_TRAITS_HPP
 
 #endif //MILPPP_HPP

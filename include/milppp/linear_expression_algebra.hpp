@@ -20,6 +20,9 @@
 #include "milppp/linear_expression.hpp"
 #include "milppp/strong_types.hpp"
 
+namespace fhamonic {
+namespace milppp {
+
 struct LinearTerm {
     double coef;
     int var;
@@ -109,5 +112,8 @@ inline LinearIneqConstraint operator<=(LinearExpr & e1, const LinearExpr & e2) {
 inline LinearIneqConstraint operator>=(LinearExpr & e1, const LinearExpr & e2) {
     return std::move(e1) >= e2;
 }
+
+}  // namespace milppp
+}  // namespace fhamonic
 
 #endif  // MILPPP_EXPRESSION_ALGEBRA_HPP
