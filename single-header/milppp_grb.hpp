@@ -60,6 +60,9 @@ DEALINGS IN THE SOFTWARE.*/
 #ifndef MILPPP_FUCTION_TRAITS_HPP
 #define MILPPP_FUCTION_TRAITS_HPP
 
+namespace fhamonic {
+namespace milppp {
+
 template <typename... Args>
 struct pack {};
 
@@ -70,6 +73,9 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
     using result_type = ReturnType;
     using arg_types = pack<Args...>;
 };
+
+}  // namespace milppp
+}  // namespace fhamonic
 
 #endif  // MILPPP_FUCTION_TRAITS_HPP
 /**
@@ -107,6 +113,9 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
 #include <range/v3/algorithm/for_each.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/view/zip.hpp>
+
+namespace fhamonic {
+namespace milppp {
 
 struct LinearExpr {
     double constant;
@@ -175,7 +184,13 @@ inline std::ostream & operator<<(std::ostream & os, const LinearExpr & e) {
     return os << (e.constant < 0 ? " - " : " + ") << std::abs(e.constant);
 }
 
+}  // namespace milppp
+}  // namespace fhamonic
+
 #endif  // MILPPP_LINEAR_EXPRESSION_HPP
+
+namespace fhamonic {
+namespace milppp {
 
 enum InequalitySense { LESS = -1, EQUAL = 0, GREATER = 1 };
 
@@ -211,10 +226,16 @@ inline std::ostream & operator<<(std::ostream & os,
               << " <= " << constraint.upper_bound;
 }
 
+}  // namespace milppp
+}  // namespace fhamonic
+
 #endif  // MILPPP_LINEAR_CONSTRAINTS_HPP
 
 #ifndef MILPPP_STRONG_TYPES
 #define MILPPP_STRONG_TYPES
+
+namespace fhamonic {
+namespace milppp {
 
 class Var {
 private:
@@ -236,7 +257,13 @@ public:
     [[nodiscard]] constexpr int id() const noexcept { return _id; }
 };
 
+}  // namespace milppp
+}  // namespace fhamonic
+
 #endif  // MILP_BUILDER_STRONG_TYPES
+
+namespace fhamonic {
+namespace milppp {
 
 struct LinearTerm {
     double coef;
@@ -328,7 +355,13 @@ inline LinearIneqConstraint operator>=(LinearExpr & e1, const LinearExpr & e2) {
     return std::move(e1) >= e2;
 }
 
+}  // namespace milppp
+}  // namespace fhamonic
+
 #endif  // MILPPP_EXPRESSION_ALGEBRA_HPP
+
+namespace fhamonic {
+namespace milppp {
 
 class IneqConstraintHandler {
 private:
@@ -666,12 +699,18 @@ std::ostream & operator<<(std::ostream & os,
     return os << "End" << std::endl;
 }
 
+}  // namespace milppp
+}  // namespace fhamonic
+
 #endif  // MILPPP_MILP_BUILDER_HPP
 
 #ifndef MILPPP_GUROBI_TRAITS_HPP
 #define MILPPP_GUROBI_TRAITS_HPP
 
 #include <gurobi_c.h>
+
+namespace fhamonic {
+namespace milppp {
 
 struct GRBModelWrap {
     GRBenv * env;
@@ -713,6 +752,9 @@ struct GrbTraits {
         return grb;
     }
 };
+
+}  // namespace milppp
+}  // namespace fhamonic
 
 #endif  // MILPPP_GUROBI_TRAITS_HPP
 
