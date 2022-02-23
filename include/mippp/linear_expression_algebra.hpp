@@ -7,8 +7,8 @@
  *
  * @copyright Copyright (c) 2020
  */
-#ifndef MILPPP_EXPRESSION_ALGEBRA_HPP
-#define MILPPP_EXPRESSION_ALGEBRA_HPP
+#ifndef MIPPP_EXPRESSION_ALGEBRA_HPP
+#define MIPPP_EXPRESSION_ALGEBRA_HPP
 
 #include <numeric>
 #include <vector>
@@ -16,12 +16,12 @@
 #include <range/v3/algorithm/for_each.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "milppp/linear_constraints.hpp"
-#include "milppp/linear_expression.hpp"
-#include "milppp/strong_types.hpp"
+#include "mippp/linear_constraints.hpp"
+#include "mippp/linear_expression.hpp"
+#include "mippp/strong_types.hpp"
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 struct LinearTerm {
     double coef;
@@ -113,7 +113,7 @@ inline LinearIneqConstraint operator>=(LinearExpr & e1, const LinearExpr & e2) {
     return std::move(e1) >= e2;
 }
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_EXPRESSION_ALGEBRA_HPP
+#endif  // MIPPP_EXPRESSION_ALGEBRA_HPP

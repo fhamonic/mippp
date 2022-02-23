@@ -1,10 +1,10 @@
-#ifndef MILPPP_GUROBI_TRAITS_HPP
-#define MILPPP_GUROBI_TRAITS_HPP
+#ifndef MIPPP_GUROBI_TRAITS_HPP
+#define MIPPP_GUROBI_TRAITS_HPP
 
 #include "scip/scip.h"
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 struct ScipTraits {
     enum OptSense : int {
@@ -27,7 +27,7 @@ struct ScipTraits {
     }
 };
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_GUROBI_TRAITS_HPP
+#endif  // MIPPP_GUROBI_TRAITS_HPP

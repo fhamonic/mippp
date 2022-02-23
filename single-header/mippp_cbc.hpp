@@ -23,7 +23,7 @@ FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.*/
 /**
- * @file milppp.hpp
+ * @file mippp.hpp
  * @author François Hamonic (francois.hamonic@gmail.com)
  * @brief 
  * @version 0.1
@@ -32,8 +32,8 @@ DEALINGS IN THE SOFTWARE.*/
  * @copyright Copyright (c) 2021
  * 
  */
-#ifndef MILPPP_HPP
-#define MILPPP_HPP
+#ifndef MIPPP_HPP
+#define MIPPP_HPP
 
 /**
  * @file MILP_Builder.hpp
@@ -45,8 +45,8 @@ DEALINGS IN THE SOFTWARE.*/
  * @copyright Copyright (c) 2021
  *
  */
-#ifndef MILPPP_MILP_BUILDER_HPP
-#define MILPPP_MILP_BUILDER_HPP
+#ifndef MIPPP_MILP_BUILDER_HPP
+#define MIPPP_MILP_BUILDER_HPP
 
 #include <cassert>
 #include <limits>
@@ -57,11 +57,11 @@ DEALINGS IN THE SOFTWARE.*/
 #include <range/v3/view/zip.hpp>
 #include <vector>
 
-#ifndef MILPPP_FUCTION_TRAITS_HPP
-#define MILPPP_FUCTION_TRAITS_HPP
+#ifndef MIPPP_FUCTION_TRAITS_HPP
+#define MIPPP_FUCTION_TRAITS_HPP
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 template <typename... Args>
 struct pack {};
@@ -74,10 +74,10 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
     using arg_types = pack<Args...>;
 };
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_FUCTION_TRAITS_HPP
+#endif  // MIPPP_FUCTION_TRAITS_HPP
 /**
  * @file solver_builder.hpp
  * @author François Hamonic (francois.hamonic@gmail.com)
@@ -87,8 +87,8 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
  *
  * @copyright Copyright (c) 2020
  */
-#ifndef MILPPP_EXPRESSION_ALGEBRA_HPP
-#define MILPPP_EXPRESSION_ALGEBRA_HPP
+#ifndef MIPPP_EXPRESSION_ALGEBRA_HPP
+#define MIPPP_EXPRESSION_ALGEBRA_HPP
 
 #include <numeric>
 #include <vector>
@@ -96,15 +96,15 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
 #include <range/v3/algorithm/for_each.hpp>
 #include <range/v3/view/zip.hpp>
 
-#ifndef MILPPP_LINEAR_CONSTRAINTS_HPP
-#define MILPPP_LINEAR_CONSTRAINTS_HPP
+#ifndef MIPPP_LINEAR_CONSTRAINTS_HPP
+#define MIPPP_LINEAR_CONSTRAINTS_HPP
 
 #include <numeric>
 #include <ostream>
 #include <range/v3/algorithm/for_each.hpp>
 
-#ifndef MILPPP_LINEAR_EXPRESSION_HPP
-#define MILPPP_LINEAR_EXPRESSION_HPP
+#ifndef MIPPP_LINEAR_EXPRESSION_HPP
+#define MIPPP_LINEAR_EXPRESSION_HPP
 
 #include <iostream>
 #include <ostream>
@@ -115,7 +115,7 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
 #include <range/v3/view/zip.hpp>
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 struct LinearExpr {
     double constant;
@@ -184,13 +184,13 @@ inline std::ostream & operator<<(std::ostream & os, const LinearExpr & e) {
     return os << (e.constant < 0 ? " - " : " + ") << std::abs(e.constant);
 }
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_LINEAR_EXPRESSION_HPP
+#endif  // MIPPP_LINEAR_EXPRESSION_HPP
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 enum InequalitySense { LESS = -1, EQUAL = 0, GREATER = 1 };
 
@@ -226,16 +226,16 @@ inline std::ostream & operator<<(std::ostream & os,
               << " <= " << constraint.upper_bound;
 }
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_LINEAR_CONSTRAINTS_HPP
+#endif  // MIPPP_LINEAR_CONSTRAINTS_HPP
 
-#ifndef MILPPP_STRONG_TYPES
-#define MILPPP_STRONG_TYPES
+#ifndef MIPPP_STRONG_TYPES
+#define MIPPP_STRONG_TYPES
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 class Var {
 private:
@@ -257,13 +257,13 @@ public:
     [[nodiscard]] constexpr int id() const noexcept { return _id; }
 };
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
 #endif  // MILP_BUILDER_STRONG_TYPES
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 struct LinearTerm {
     double coef;
@@ -355,13 +355,13 @@ inline LinearIneqConstraint operator>=(LinearExpr & e1, const LinearExpr & e2) {
     return std::move(e1) >= e2;
 }
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_EXPRESSION_ALGEBRA_HPP
+#endif  // MIPPP_EXPRESSION_ALGEBRA_HPP
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 class IneqConstraintHandler {
 private:
@@ -699,20 +699,20 @@ std::ostream & operator<<(std::ostream & os,
     return os << "End" << std::endl;
 }
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_MILP_BUILDER_HPP
+#endif  // MIPPP_MILP_BUILDER_HPP
 
-#ifndef MILPPP_CBC_TRAITS_HPP
-#define MILPPP_CBC_TRAITS_HPP
+#ifndef MIPPP_CBC_TRAITS_HPP
+#define MIPPP_CBC_TRAITS_HPP
 
 #include <coin/CbcModel.hpp>  // deprecated interface, use CbcMain0 and CbcMain1
 #include <coin/CbcSolver.hpp>
 #include <coin/OsiClpSolverInterface.hpp>
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 struct CbcTraits {
     enum OptSense : int { MINIMIZE = 1, MAXIMIZE = -1 };
@@ -760,7 +760,7 @@ struct CbcTraits {
     }
 };
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
 // assignMatrix (const bool colordered, const int minor, const int major, const
@@ -769,6 +769,6 @@ struct CbcTraits {
 // (CoinPackedMatrix *&matrix, double *&collb, double *&colub, double *&obj,
 // char *&rowsen, double *&rowrhs, double *&rowrng)=0
 
-#endif  // MILPPP_CBC_TRAITS_HPP
+#endif  // MIPPP_CBC_TRAITS_HPP
 
-#endif //MILPPP_HPP
+#endif //MIPPP_HPP

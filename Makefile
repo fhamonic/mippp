@@ -19,22 +19,22 @@ $(BUILD_DIR):
 clean:
 	@rm -rf $(BUILD_DIR)
 
-single-header: single-header/milppp_cbc.hpp single-header/milppp_grb.hpp
+single-header: single-header/mippp_cbc.hpp single-header/mippp_grb.hpp
 
-single-header/milppp_cbc.hpp:
-	@python3 -m quom --include_directory include include/milppp_cbc.hpp milppp_cbc.hpp.tmp && \
+single-header/mippp_cbc.hpp:
+	@python3 -m quom --include_directory include include/mippp_cbc.hpp mippp_cbc.hpp.tmp && \
 	mkdir -p single-header && \
-	echo "/*" > single-header/milppp_cbc.hpp && \
-	cat LICENSE >> single-header/milppp_cbc.hpp && \
-	echo "*/" >> single-header/milppp_cbc.hpp && \
-	cat milppp_cbc.hpp.tmp >> single-header/milppp_cbc.hpp && \
-	rm milppp_cbc.hpp.tmp
+	echo "/*" > single-header/mippp_cbc.hpp && \
+	cat LICENSE >> single-header/mippp_cbc.hpp && \
+	echo "*/" >> single-header/mippp_cbc.hpp && \
+	cat mippp_cbc.hpp.tmp >> single-header/mippp_cbc.hpp && \
+	rm mippp_cbc.hpp.tmp
 
-single-header/milppp_grb.hpp:
-	@python3 -m quom --include_directory include include/milppp_grb.hpp milppp_grb.hpp.tmp && \
+single-header/mippp_grb.hpp:
+	@python3 -m quom --include_directory include include/mippp_grb.hpp mippp_grb.hpp.tmp && \
 	mkdir -p single-header && \
-	echo "/*" > single-header/milppp_grb.hpp && \
-	cat LICENSE >> single-header/milppp_grb.hpp && \
-	echo "*/" >> single-header/milppp_grb.hpp && \
-	cat milppp_grb.hpp.tmp >> single-header/milppp_grb.hpp && \
-	rm milppp_grb.hpp.tmp
+	echo "/*" > single-header/mippp_grb.hpp && \
+	cat LICENSE >> single-header/mippp_grb.hpp && \
+	echo "*/" >> single-header/mippp_grb.hpp && \
+	cat mippp_grb.hpp.tmp >> single-header/mippp_grb.hpp && \
+	rm mippp_grb.hpp.tmp

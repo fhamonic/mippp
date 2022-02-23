@@ -1,14 +1,14 @@
-#ifndef MILPPP_LINEAR_CONSTRAINTS_HPP
-#define MILPPP_LINEAR_CONSTRAINTS_HPP
+#ifndef MIPPP_LINEAR_CONSTRAINTS_HPP
+#define MIPPP_LINEAR_CONSTRAINTS_HPP
 
 #include <numeric>
 #include <ostream>
 #include <range/v3/algorithm/for_each.hpp>
 
-#include "milppp/linear_expression.hpp"
+#include "mippp/linear_expression.hpp"
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 enum InequalitySense { LESS = -1, EQUAL = 0, GREATER = 1 };
 
@@ -44,7 +44,7 @@ inline std::ostream & operator<<(std::ostream & os,
               << " <= " << constraint.upper_bound;
 }
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_LINEAR_CONSTRAINTS_HPP
+#endif  // MIPPP_LINEAR_CONSTRAINTS_HPP

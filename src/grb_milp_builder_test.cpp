@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "milppp_grb.hpp"
+#include "mippp_grb.hpp"
 
-using namespace fhamonic::milppp;
+using namespace fhamonic::mippp;
 
 int main() {
     using MILP = MILP_Builder<GrbTraits>;

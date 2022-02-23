@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2021
  *
  */
-#ifndef MILPPP_MILP_BUILDER_HPP
-#define MILPPP_MILP_BUILDER_HPP
+#ifndef MIPPP_MILP_BUILDER_HPP
+#define MIPPP_MILP_BUILDER_HPP
 
 #include <cassert>
 #include <limits>
@@ -20,12 +20,12 @@
 #include <range/v3/view/zip.hpp>
 #include <vector>
 
-#include "milppp/function_traits.hpp"
-#include "milppp/linear_expression_algebra.hpp"
-#include "milppp/strong_types.hpp"
+#include "mippp/function_traits.hpp"
+#include "mippp/linear_expression_algebra.hpp"
+#include "mippp/strong_types.hpp"
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 class IneqConstraintHandler {
 private:
@@ -363,7 +363,7 @@ std::ostream & operator<<(std::ostream & os,
     return os << "End" << std::endl;
 }
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_MILP_BUILDER_HPP
+#endif  // MIPPP_MILP_BUILDER_HPP

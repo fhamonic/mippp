@@ -1,5 +1,5 @@
-#ifndef MILPPP_LINEAR_EXPRESSION_HPP
-#define MILPPP_LINEAR_EXPRESSION_HPP
+#ifndef MIPPP_LINEAR_EXPRESSION_HPP
+#define MIPPP_LINEAR_EXPRESSION_HPP
 
 #include <iostream>
 #include <ostream>
@@ -10,7 +10,7 @@
 #include <range/v3/view/zip.hpp>
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 struct LinearExpr {
     double constant;
@@ -79,7 +79,7 @@ inline std::ostream & operator<<(std::ostream & os, const LinearExpr & e) {
     return os << (e.constant < 0 ? " - " : " + ") << std::abs(e.constant);
 }
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MILPPP_LINEAR_EXPRESSION_HPP
+#endif  // MIPPP_LINEAR_EXPRESSION_HPP

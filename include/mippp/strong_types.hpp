@@ -1,8 +1,8 @@
-#ifndef MILPPP_STRONG_TYPES
-#define MILPPP_STRONG_TYPES
+#ifndef MIPPP_STRONG_TYPES
+#define MIPPP_STRONG_TYPES
 
 namespace fhamonic {
-namespace milppp {
+namespace mippp {
 
 class Var {
 private:
@@ -24,7 +24,7 @@ public:
     [[nodiscard]] constexpr int id() const noexcept { return _id; }
 };
 
-}  // namespace milppp
+}  // namespace mippp
 }  // namespace fhamonic
 
 #endif  // MILP_BUILDER_STRONG_TYPES
