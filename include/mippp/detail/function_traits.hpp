@@ -1,8 +1,9 @@
-#ifndef MIPPP_FUCTION_TRAITS_HPP
-#define MIPPP_FUCTION_TRAITS_HPP
+#ifndef MIPPP_DETAIL_FUCTION_TRAITS_HPP
+#define MIPPP_DETAIL_FUCTION_TRAITS_HPP
 
 namespace fhamonic {
 namespace mippp {
+namespace detail {
 
 template <typename... Args>
 struct pack {};
@@ -15,7 +16,8 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
     using arg_types = pack<Args...>;
 };
 
+}  // namespace detail
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_FUCTION_TRAITS_HPP
+#endif  // MIPPP_DETAIL_FUCTION_TRAITS_HPP

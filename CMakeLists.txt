@@ -26,22 +26,13 @@ run_conan()
 # ################### Packages ###################
 find_package(range-v3)
 
-find_package(GUROBI REQUIRED)
-find_package(CPLEX REQUIRED)
-find_package(SCIP REQUIRED)
-find_package(COIN REQUIRED)
+find_package(GUROBI)
+# find_package(CPLEX)
+# find_package(SCIP)
+find_package(COIN)
 
 # ############### Select Backend #################
-set(IS_SOLVER_PREFERENCE
-    (${USE_GUROBI}
-    OR
-    ${USE_CPLEX}
-    OR
-    ${USE_SCIP}
-    OR
-    ${USE_COIN})
-
-if(NOT IS_SOLVER_PREFERENCE)
+if(NOT (${USE_GUROBI} OR ${USE_CPLEX} OR ${USE_SCIP} OR ${USE_CBC}))
     if(${GUROBI_FOUND})
         set(${USE_GUROBI} ON)
     elseif(${CPLEX_FOUND})
@@ -49,42 +40,57 @@ if(NOT IS_SOLVER_PREFERENCE)
     elseif(${SCIP_FOUND})
         set(${USE_SCIP} ON)
     elseif(${COIN_FOUND})
-        set(${USE_COIN} ON)
+        set(${USE_CBC} ON)
     else()
         message(FATAL_ERROR "No solver backend available")
     endif()
 endif()
 
-if(${USE_GUROBI})
-    add_library(solver_backend PUBLIC mippp_gurobi_impl.cpp)
-    target_include_directories(solver_backend PUBLIC ${GUROBI_INCLUDE_DIR})
-    target_link_libraries(solver_backend PUBLIC ${GUROBI_LIBRARIES})
-elseif(${USE_CPLEX})
-    add_library(solver_backend PUBLIC mippp_cplex_impl.cpp)
-    target_include_directories(solver_backend PUBLIC ${CPLEX_INCLUDE_DIR})
-    target_link_libraries(solver_backend PUBLIC ${CPLEX_LIBRARIES})
-elseif(${USE_SCIP})
-    add_library(solver_backend PUBLIC mippp_scip_impl.cpp)
-    target_include_directories(solver_backend PUBLIC ${SCIP_INCLUDE_DIR})
-    target_link_libraries(solver_backend PUBLIC ${SCIP_LIBRARIES})
-elseif(${USE_COIN})
-    add_library(solver_backend PUBLIC mippp_coinor_impl.cpp)
-    target_include_directories(solver_backend PUBLIC ${COIN_INCLUDE_DIR})
-    target_link_libraries(solver_backend PUBLIC ${COIN_LIBRARIES})
+if(${GUROBI_FOUND})
+    add_library(gurobi_backend INTERFACE backends/mippp_gurobi_impl.cpp)
+    target_include_directories(gurobi_backend INTERFACE ${GUROBI_INCLUDE_DIR})
+    target_link_libraries(gurobi_backend INTERFACE ${GUROBI_LIBRARIES})
+endif()
+if(${CPLEX_FOUND})
+    add_library(cplex_backend INTERFACE backends/mippp_cplex_impl.cpp)
+    target_include_directories(cplex_backend INTERFACE ${CPLEX_INCLUDE_DIR})
+    target_link_libraries(cplex_backend INTERFACE ${CPLEX_LIBRARIES})
+endif()
+if(${SCIP_FOUND})
+    add_library(scip_backend INTERFACE backends/mippp_scip_impl.cpp)
+    target_include_directories(scip_backend INTERFACE ${SCIP_INCLUDE_DIR})
+    target_link_libraries(scip_backend INTERFACE ${SCIP_LIBRARIES})
+endif()
+if(${COIN_FOUND})
+    add_library(cbc_backend INTERFACE backends/mippp_cbc_impl.cpp)
+    target_include_directories(cbc_backend INTERFACE ${COIN_INCLUDE_DIR})
+    target_link_libraries(cbc_backend INTERFACE ${COIN_LIBRARIES})
 endif()
 
-# ################### Library ####################
-add_library(mippp INTERFACE)
+# ############## Interface target ################
+add_library(mippp_interface INTERFACE)
 target_include_directories(
-    mippp INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_link_libraries(mippp INTERFACE range-v3::range-v3)
-target_link_libraries(mippp INTERFACE solver_backend)
+    mippp_interface INTERFACE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(mippp_interface INTERFACE range-v3::range-v3)
+
+# ############### Exported target ################
+add_library(mippp INTERFACE)
+target_link_libraries(mippp INTERFACE mippp_interface)
+
+if(${USE_GUROBI})
+target_link_libraries(mippp INTERFACE gurobi_backend)
+elseif(${USE_CPLEX})
+target_link_libraries(mippp INTERFACE cplex_backend)
+elseif(${USE_SCIP})
+target_link_libraries(mippp INTERFACE scip_backend)
+elseif(${USE_CBC})
+target_link_libraries(mippp INTERFACE cbc_backend)
+endif()
 
 # ################### TESTS ######################
 if(ENABLE_TESTING)
     enable_testing()
     message("Building Tests.")
-    set_project_warnings(melon)
+    set_project_warnings(mippp_interface)
     add_subdirectory(test)
 endif()

@@ -20,7 +20,7 @@
 #include <range/v3/view/zip.hpp>
 #include <vector>
 
-#include "mippp/function_traits.hpp"
+#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_expression_algebra.hpp"
 #include "mippp/strong_types.hpp"
 
