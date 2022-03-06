@@ -13,65 +13,78 @@ project(
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(WARNINGS "" OFF)
-option(HARDCORE_WARNINGS "" OFF)
-option(COMPILE_FOR_NATIVE "" OFF)
-option(COMPILE_WITH_LTO "" OFF)
-
-set(WARNINGS_LIST "-Wall;-Wextra;")
-set(HARDCORE_WARNINGS_LIST
-    "-Wall;-Wextra;-Wshadow;-Wpedantic;-Wnon-virtual-dtor;-Wold-style-cast;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wpedantic;-Wconversion;-Wsign-conversion;-Wmisleading-indentation;-Wduplicated-cond;-Wduplicated-branches;-Wlogical-op;-Wnull-dereference;-Wuseless-cast;-Wdouble-promotion;-Wformat=2;-Wlifetime"
-)
+option(ENABLE_TESTING "Enable Test Builds" OFF)
 
 # ################### Modules ####################
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_BINARY_DIR}" ${CMAKE_MODULE_PATH})
 include(GNUInstallDirs)
-include(CMakeBuildTypeUtils)
+include(CompilerWarnings)
+include(Conan)
+run_conan()
 
-# ################### Packages ####################
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
+# ################### Packages ###################
+find_package(range-v3)
 
-find_package(COIN REQUIRED)
 find_package(GUROBI REQUIRED)
+find_package(CPLEX REQUIRED)
+find_package(SCIP REQUIRED)
+find_package(COIN REQUIRED)
+
+# ############### Select Backend #################
+set(IS_SOLVER_PREFERENCE
+    (${USE_GUROBI}
+    OR
+    ${USE_CPLEX}
+    OR
+    ${USE_SCIP}
+    OR
+    ${USE_COIN})
+
+if(NOT IS_SOLVER_PREFERENCE)
+    if(${GUROBI_FOUND})
+        set(${USE_GUROBI} ON)
+    elseif(${CPLEX_FOUND})
+        set(${USE_CPLEX} ON)
+    elseif(${SCIP_FOUND})
+        set(${USE_SCIP} ON)
+    elseif(${COIN_FOUND})
+        set(${USE_COIN} ON)
+    else()
+        message(FATAL_ERROR "No solver backend available")
+    endif()
+endif()
+
+if(${USE_GUROBI})
+    add_library(solver_backend PUBLIC mippp_gurobi_impl.cpp)
+    target_include_directories(solver_backend PUBLIC ${GUROBI_INCLUDE_DIR})
+    target_link_libraries(solver_backend PUBLIC ${GUROBI_LIBRARIES})
+elseif(${USE_CPLEX})
+    add_library(solver_backend PUBLIC mippp_cplex_impl.cpp)
+    target_include_directories(solver_backend PUBLIC ${CPLEX_INCLUDE_DIR})
+    target_link_libraries(solver_backend PUBLIC ${CPLEX_LIBRARIES})
+elseif(${USE_SCIP})
+    add_library(solver_backend PUBLIC mippp_scip_impl.cpp)
+    target_include_directories(solver_backend PUBLIC ${SCIP_INCLUDE_DIR})
+    target_link_libraries(solver_backend PUBLIC ${SCIP_LIBRARIES})
+elseif(${USE_COIN})
+    add_library(solver_backend PUBLIC mippp_coinor_impl.cpp)
+    target_include_directories(solver_backend PUBLIC ${COIN_INCLUDE_DIR})
+    target_link_libraries(solver_backend PUBLIC ${COIN_LIBRARIES})
+endif()
 
 # ################### Library ####################
 add_library(mippp INTERFACE)
 target_include_directories(
     mippp INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_link_libraries(mippp INTERFACE CONAN_PKG::range-v3)
+                    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_link_libraries(mippp INTERFACE range-v3::range-v3)
+target_link_libraries(mippp INTERFACE solver_backend)
 
-# ################## EXEC target ####################
-if(${GUROBI_FOUND})
-    add_executable(grb_milp_builder_test src/grb_milp_builder_test.cpp)
-    target_link_libraries(grb_milp_builder_test mippp)
-    target_include_directories(grb_milp_builder_test
-                               PUBLIC ${GUROBI_INCLUDE_DIR})
-    target_link_libraries(grb_milp_builder_test ${GUROBI_LIBRARIES})
-    target_compile_options_if_exists(grb_milp_builder_test PRIVATE ${WARNINGS}
-                                     ${WARNINGS_LIST})
-    target_compile_options_if_exists(
-        grb_milp_builder_test PRIVATE ${HARDCORE_WARNINGS}
-        ${HARDCORE_WARNINGS_LIST})
-    target_compile_options_if_exists(grb_milp_builder_test PRIVATE
-                                     ${COMPILE_FOR_NATIVE} -march=native)
-    target_compile_options_if_exists(grb_milp_builder_test PRIVATE
-                                     ${COMPILE_WITH_LTO} -flto)
-endif()
-
-if(${COIN_FOUND})
-    add_executable(cbc_milp_builder_test src/cbc_milp_builder_test.cpp)
-    target_link_libraries(cbc_milp_builder_test mippp)
-    target_include_directories(cbc_milp_builder_test PUBLIC ${COIN_INCLUDE_DIR})
-    target_link_libraries(cbc_milp_builder_test ${COIN_LIBRARIES})
-    target_compile_options_if_exists(cbc_milp_builder_test PRIVATE ${WARNINGS}
-                                     ${WARNINGS_LIST})
-    target_compile_options_if_exists(
-        cbc_milp_builder_test PRIVATE ${HARDCORE_WARNINGS}
-        ${HARDCORE_WARNINGS_LIST})
-    target_compile_options_if_exists(cbc_milp_builder_test PRIVATE
-                                     ${COMPILE_FOR_NATIVE} -march=native)
-    target_compile_options_if_exists(cbc_milp_builder_test PRIVATE
-                                     ${COMPILE_WITH_LTO} -flto)
+# ################### TESTS ######################
+if(ENABLE_TESTING)
+    enable_testing()
+    message("Building Tests.")
+    set_project_warnings(melon)
+    add_subdirectory(test)
 endif()
