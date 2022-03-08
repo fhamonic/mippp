@@ -1,8 +1,7 @@
-#ifndef MIPPP_LINEAR_EXPRESSION_ALGEBRA_HPP
-#define MIPPP_LINEAR_EXPRESSION_ALGEBRA_HPP
+#ifndef MIPPP_LINEAR_EXPRESSION_OPERATORS_HPP
+#define MIPPP_LINEAR_EXPRESSION_OPERATORS_HPP
 
 #include "mippp/expressions/linear_expression_operations.hpp"
-#include "mippp/expressions/linear_term.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -53,7 +52,7 @@ constexpr auto operator*(typename E::scalar_t c, E && e) {
 };
 template <linear_expression_c E>
 constexpr auto operator/(E && e, typename E::scalar_t c) {
-    return e * (scalar_t{1} / c);
+    return e * (typename E::scalar_t{1} / c);
 };
 template <linear_expression_c E>
 constexpr auto operator/(typename E::scalar_t c, E && e) {
@@ -63,4 +62,4 @@ constexpr auto operator/(typename E::scalar_t c, E && e) {
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_LINEAR_EXPRESSION_ALGEBRA_HPP
+#endif  // MIPPP_LINEAR_EXPRESSION_OPERATORS_HPP

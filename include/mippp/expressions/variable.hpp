@@ -19,7 +19,7 @@ public:
     explicit constexpr variable(var_id_t id) : _id(id){};
 
     constexpr auto variables() const noexcept {
-        return ranges::views::single(_var);
+        return ranges::views::single(_id);
     }
     constexpr auto coefficients() const noexcept {
         return ranges::views::single(scalar_t{1});
