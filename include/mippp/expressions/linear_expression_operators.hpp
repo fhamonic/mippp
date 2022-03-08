@@ -1,61 +1,85 @@
 #ifndef MIPPP_LINEAR_EXPRESSION_OPERATORS_HPP
 #define MIPPP_LINEAR_EXPRESSION_OPERATORS_HPP
 
+#include <type_traits>
+
 #include "mippp/expressions/linear_expression_operations.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
 template <linear_expression_c E1, linear_expression_c E2>
-requires std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&
-    std::same_as<typename E1::scalar_t, typename E2::scalar_t>
-constexpr auto operator+(E1 && e1, E2 && e2) {
-    return linear_expression_add(std::forward<E1>(e1), std::forward<E2>(e2));
+requires linear_expression_c<typename std::remove_reference<E1>::type> &&
+    linear_expression_c<typename std::remove_reference<E2>::type> &&
+        std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&
+            std::same_as<typename E1::scalar_t,
+                         typename E2::scalar_t> constexpr auto
+            operator+(E1 e1, E2 e2) {
+    return linear_expression_add(e1, e2);
 };
 
-template <linear_expression_c E>
-constexpr auto operator-(E && e) {
-    return linear_expression_negate(std::forward<E>(e));
+template <typename E>
+requires linear_expression_c<
+    typename std::remove_reference<E>::type> constexpr auto
+operator-(E e) {
+    return linear_expression_negate(e);
 };
 
 template <linear_expression_c E1, linear_expression_c E2>
 requires std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&
-    std::same_as<typename E1::scalar_t, typename E2::scalar_t>
-constexpr auto operator-(E1 && e1, E2 && e2) { return e1 + (-e2); };
-
-template <linear_expression_c E>
-constexpr auto operator+(E && e, typename E::scalar_t c) {
-    return linear_expression_scalar_add(std::forward<E>(e), c);
+    std::same_as<typename E1::scalar_t, typename E2::scalar_t> constexpr auto
+    operator-(E1 e1, E2 e2) {
+    // return e1 + (-e2);
+    return linear_expression_add(e1, linear_expression_negate(e2));
 };
 
-template <linear_expression_c E>
-constexpr auto operator+(typename E::scalar_t c, E && e) {
-    return std::forward<E>(e) + c;
+template <typename E>
+requires linear_expression_c<
+    typename std::remove_reference<E>::type> constexpr auto
+operator+(E e, typename E::scalar_t c) {
+    return linear_expression_scalar_add(e, c);
 };
 
-template <linear_expression_c E>
-constexpr auto operator-(E && e, typename E::scalar_t c) {
-    return std::forward<E>(e) + (-c);
+template <typename E>
+requires linear_expression_c<
+    typename std::remove_reference<E>::type> constexpr auto
+operator+(typename E::scalar_t c, E e) {
+    return e + c;
 };
 
-template <linear_expression_c E>
-constexpr auto operator-(typename E::scalar_t c, E && e) {
-    return -std::forward<E>(e) + c;
+template <typename E>
+requires linear_expression_c<
+    typename std::remove_reference<E>::type> constexpr auto
+operator-(E e, typename E::scalar_t c) {
+    return e + (-c);
 };
 
-template <linear_expression_c E>
-constexpr auto operator*(E && e, typename E::scalar_t c) {
-    return linear_expression_scalar_mul(std::forward<E>(e), c);
+template <typename E>
+requires linear_expression_c<
+    typename std::remove_reference<E>::type> constexpr auto
+operator-(typename E::scalar_t c, E e) {
+    return -e + c;
 };
 
-template <linear_expression_c E>
-constexpr auto operator*(typename E::scalar_t c, E && e) {
-    return std::forward<E>(e) * c;
+template <typename E>
+requires linear_expression_c<
+    typename std::remove_reference<E>::type> constexpr auto
+operator*(E e, typename E::scalar_t c) {
+    return linear_expression_scalar_mul(e, c);
 };
 
-template <linear_expression_c E>
-constexpr auto operator/(E && e, typename E::scalar_t c) {
-    return std::forward<E>(e) * (typename E::scalar_t{1} / c);
+template <typename E>
+requires linear_expression_c<
+    typename std::remove_reference<E>::type> constexpr auto
+operator*(typename E::scalar_t c, E e) {
+    return e * c;
+};
+
+template <typename E>
+requires linear_expression_c<
+    typename std::remove_reference<E>::type> constexpr auto
+operator/(E && e, typename E::scalar_t c) {
+    return e * (typename E::scalar_t{1} / c);
 };
 
 }  // namespace mippp

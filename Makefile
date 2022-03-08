@@ -13,7 +13,7 @@ all: $(BUILD_DIR)
 $(BUILD_DIR):
 	@mkdir $(BUILD_DIR) && \
 	cd $(BUILD_DIR) && \
-	cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTING=ON ..
+	cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTING=ON ..
 
 test: all
 	@cd $(BUILD_DIR) && \

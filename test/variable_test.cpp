@@ -3,7 +3,7 @@
 #include "mippp/expressions/linear_expression_operations.hpp"
 #include "mippp/expressions/variable.hpp"
 
-#include "ranges_test_helper.hpp"
+#include "assert_eq_ranges.hpp"
 
 using namespace fhamonic::mippp;
 

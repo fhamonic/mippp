@@ -3,7 +3,7 @@
 #include "mippp/expressions/linear_expression_operators.hpp"
 #include "mippp/expressions/variable.hpp"
 
-#include "ranges_test_helper.hpp"
+#include "assert_eq_ranges.hpp"
 
 using namespace fhamonic::mippp;
 
@@ -53,4 +53,10 @@ GTEST_TEST(variable_operators, add_negative_var_other_way) {
     ASSERT_EQ_RANGES((-Var(12) + Var(3)).variables(), {12, 3});
     ASSERT_EQ_RANGES((-Var(12) + Var(3)).coefficients(), {-1.0, 1.0});
     ASSERT_EQ((-Var(12) + Var(3)).constant(), 0);
+}
+
+GTEST_TEST(variable_operators, substract_var) {
+    ASSERT_EQ_RANGES((Var(3) - Var(12)).variables(), {3, 12});
+    ASSERT_EQ_RANGES((Var(3) - Var(12)).coefficients(), {1.0, -1.0});
+    ASSERT_EQ((Var(3) - Var(12)).constant(), 0);
 }
