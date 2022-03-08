@@ -1,6 +1,8 @@
 #ifndef MIPPP_VARIABLE_HPP
 #define MIPPP_VARIABLE_HPP
 
+#include <iostream>
+
 #include <range/v3/view/single.hpp>
 
 namespace fhamonic {
@@ -17,6 +19,10 @@ private:
 
 public:
     explicit constexpr variable(var_id_t id) : _id(id){};
+    
+    constexpr variable(const variable & v) : _id(v._id){
+        std::cout << "variable copy : " << _id << std::endl;
+    };
 
     constexpr auto variables() const noexcept {
         return ranges::views::single(_id);

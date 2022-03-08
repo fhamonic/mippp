@@ -37,34 +37,14 @@ GTEST_TEST(linear_terms_operators, scalar_mul_other_way) {
     ASSERT_EQ((-2 * (Var(11) * 3.2)).constant(), 0);
 }
 
-// GTEST_TEST(linear_terms_operators, add_terms) {
-//     ASSERT_EQ_RANGES(
-//         linear_expression_add(linear_term(1, 3.2), linear_term(2, 1.5))
-//             .variables(),
-//         {1, 2});
-//     ASSERT_EQ_RANGES(
-//         linear_expression_add(linear_term(1, 3.2), linear_term(2, 1.5))
-//             .coefficients(),
-//         {3.2, 1.5});
-//     ASSERT_EQ(linear_expression_add(linear_term(1, 3.2), linear_term(2, 1.5))
-//                   .constant(),
-//               0);
-// }
+GTEST_TEST(linear_terms_operators, add_terms) {
+    ASSERT_EQ_RANGES((Var(1) * 3.2 + Var(2) * 1.5).variables(), {1, 2});
+    ASSERT_EQ_RANGES((Var(1) * 3.2 + Var(2) * 1.5).coefficients(), {3.2, 1.5});
+    ASSERT_EQ((Var(1) * 3.2 + Var(2) * 1.5).constant(), 0);
+}
 
-// GTEST_TEST(linear_terms_operators, substract_terms) {
-//     ASSERT_EQ_RANGES(
-//         linear_expression_add(linear_term(1, 3.2),
-//                               linear_expression_negate(linear_term(12, 1.5)))
-//             .variables(),
-//         {1, 12});
-//     ASSERT_EQ_RANGES(
-//         linear_expression_add(linear_term(1, 3.2),
-//                               linear_expression_negate(linear_term(12, 1.5)))
-//             .coefficients(),
-//         {3.2, -1.5});
-//     ASSERT_EQ(
-//         linear_expression_add(linear_term(1, 3.2),
-//                               linear_expression_negate(linear_term(12, 1.5)))
-//             .constant(),
-//         0);
-// }
+GTEST_TEST(linear_terms_operators, substract_terms) {
+    ASSERT_EQ_RANGES((Var(1) * 3.2 - Var(2) * 1.5).variables(), {1, 2});
+    ASSERT_EQ_RANGES((Var(1) * 3.2 - Var(2) * 1.5).coefficients(), {3.2, -1.5});
+    ASSERT_EQ((Var(1) * 3.2 + Var(2) * 1.5).constant(), 0);
+}

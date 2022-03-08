@@ -26,6 +26,18 @@ GTEST_TEST(variable_operators, var_scalar_add_other_way) {
     ASSERT_EQ((5 + Var(11)).constant(), 5);
 }
 
+GTEST_TEST(variable_operators, var_scalar_sub) {
+    ASSERT_EQ_RANGES((Var(11) - 5).variables(), {11});
+    ASSERT_EQ_RANGES((Var(11) - 5).coefficients(), {1.0});
+    ASSERT_EQ((Var(11) - 5).constant(), -5);
+}
+
+GTEST_TEST(variable_operators, var_scalar_sub_other_way) {
+    ASSERT_EQ_RANGES((5 - Var(11)).variables(), {11});
+    ASSERT_EQ_RANGES((5 - Var(11)).coefficients(), {-1.0});
+    ASSERT_EQ((5 - Var(11)).constant(), 5);
+}
+
 GTEST_TEST(variable_operators, scalar_mul) {
     ASSERT_EQ_RANGES((Var(11) * -2.5).variables(), {11});
     ASSERT_EQ_RANGES((Var(11) * -2.5).coefficients(), {-2.5});
