@@ -20,6 +20,7 @@ GTEST_TEST(linear_terms_operators, scalar_add) {
     ASSERT_EQ_RANGES((Var(11) * 3.2 + 5).coefficients(), {3.2});
     ASSERT_EQ((Var(11) * 3.2 + 5).constant(), 5);
 }
+
 GTEST_TEST(linear_terms_operators, scalar_add_other_way) {
     ASSERT_EQ_RANGES((5 + Var(11) * 3.2).variables(), {11});
     ASSERT_EQ_RANGES((5 + Var(11) * 3.2).coefficients(), {3.2});
@@ -31,6 +32,7 @@ GTEST_TEST(linear_terms_operators, scalar_mul) {
     ASSERT_EQ_RANGES(((Var(11) * 3.2) * -2).coefficients(), {-6.4});
     ASSERT_EQ(((Var(11) * 3.2) * -2).constant(), 0);
 }
+
 GTEST_TEST(linear_terms_operators, scalar_mul_other_way) {
     ASSERT_EQ_RANGES((-2 * (Var(11) * 3.2)).variables(), {11});
     ASSERT_EQ_RANGES((-2 * (Var(11) * 3.2)).coefficients(), {-6.4});

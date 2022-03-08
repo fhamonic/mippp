@@ -8,7 +8,7 @@
 namespace fhamonic {
 namespace mippp {
 
-template <linear_expression_c E1, linear_expression_c E2>
+template <typename E1, typename E2>
 requires linear_expression_c<typename std::remove_reference<E1>::type> &&
     linear_expression_c<typename std::remove_reference<E2>::type> &&
     std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&

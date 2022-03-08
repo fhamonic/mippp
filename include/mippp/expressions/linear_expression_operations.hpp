@@ -13,12 +13,7 @@
 namespace fhamonic {
 namespace mippp {
 
-template <typename T>
-void print_type(void) {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-}
-
-template <linear_expression_c E1, linear_expression_c E2>
+template <typename E1, typename E2>
 requires linear_expression_c<typename std::remove_reference<E1>::type> &&
     linear_expression_c<typename std::remove_reference<E2>::type> &&
     std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&
@@ -34,10 +29,7 @@ private:
 
 public:
     constexpr linear_expression_add(const E1 && e1, const E2 && e2)
-        : _lhs(std::forward<const E1>(e1)), _rhs(std::forward<const E2>(e2)) {
-        print_type<const E1 &&>();
-        print_type<const E2 &&>();
-    };
+        : _lhs(std::forward<const E1>(e1)), _rhs(std::forward<const E2>(e2)){};
 
     constexpr auto variables() const noexcept {
         return ranges::views::concat(_lhs.variables(), _rhs.variables());
@@ -50,7 +42,7 @@ public:
     }
 };
 
-template <linear_expression_c E1, linear_expression_c E2>
+template <typename E1, typename E2>
 requires linear_expression_c<typename std::remove_reference<E1>::type> &&
     linear_expression_c<typename std::remove_reference<E2>::type> &&
     std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&
@@ -66,10 +58,7 @@ private:
 
 public:
     constexpr linear_expression_sub(const E1 && e1, const E2 && e2)
-        : _lhs(std::forward<const E1>(e1)), _rhs(std::forward<const E2>(e2)) {
-        print_type<const E1 &&>();
-        print_type<const E2 &&>();
-    };
+        : _lhs(std::forward<const E1>(e1)), _rhs(std::forward<const E2>(e2)){};
 
     constexpr auto variables() const noexcept {
         return ranges::views::concat(_lhs.variables(), _rhs.variables());
@@ -143,7 +132,8 @@ private:
     const scalar_t _scalar;
 
 public:
-    constexpr linear_expression_scalar_sub_other_way(const E && e, const scalar_t c)
+    constexpr linear_expression_scalar_sub_other_way(const E && e,
+                                                     const scalar_t c)
         : _expr(std::forward<const E>(e)), _scalar(c){};
 
     constexpr auto variables() const noexcept { return _expr.variables(); }
