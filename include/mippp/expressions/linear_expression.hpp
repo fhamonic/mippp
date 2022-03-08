@@ -16,18 +16,18 @@ public:
 
 private:
     std::vector<var_id_t> _variables;
-    std::vector<var_id_t> _coeficients;
+    std::vector<var_id_t> _coefficients;
     scalar_t _constant;
 
 public:
     constexpr linear_expression(E && e)
         : _variables(e.variables())
-        , _coeficients(e.coeficients())
+        , _coefficients(e.coefficients())
         , _constant(e.constant()){};
 
     constexpr auto variables() const noexcept { return _variables; }
-    constexpr auto coeficients() const noexcept { return _coeficients; }
-    constexpr scalar_type constant() const noexcept { return _constant; }
+    constexpr auto coefficients() const noexcept { return _coefficients; }
+    constexpr scalar_t constant() const noexcept { return _constant; }
 };
 
 }  // namespace mippp

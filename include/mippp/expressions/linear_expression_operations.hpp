@@ -2,9 +2,9 @@
 #define MIPPP_LINEAR_EXPRESSION_OPERATIONS_HPP
 
 #include <functional>
-#include <ranges>
 
 #include <range/v3/view/concat.hpp>
+#include <range/v3/view/transform.hpp>
 
 #include "mippp/concepts/linear_expression.hpp"
 
@@ -30,42 +30,34 @@ public:
     constexpr auto variables() const noexcept {
         return ranges::views::concat(_lhs.variables(), _rhs.variables());
     }
-    constexpr auto coeficients() const noexcept {
-        return ranges::views::concat(_lhs.coeficients(), _rhs.coeficients());
+    constexpr auto coefficients() const noexcept {
+        return ranges::views::concat(_lhs.coefficients(), _rhs.coefficients());
     }
     constexpr scalar_t constant() const noexcept {
         return _lhs.constant() + _rhs.constant();
     }
 };
 
-template <linear_expression_c E1, linear_expression_c E2>
-requires std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&
-    std::same_as<typename E1::scalar_t, typename E2::scalar_t>
-class linear_expression_sub {
+
+template <linear_expression_c E>
+class linear_expression_negate {
 public:
-    using var_id_t = typename E1::var_id_t;
-    using scalar_t = typename E1::scalar_t;
+    using var_id_t = typename E::var_id_t;
+    using scalar_t = typename E::scalar_t;
 
 private:
-    E1 && _lhs;
-    E2 && _rhs;
+    E && _expr;
 
 public:
-    constexpr linear_expression_sub(E1 && e1, E2 && e2)
-        : _lhs(std::forward<E1>(e1)), _rhs(std::forward<E2>(e2)){};
+    explicit constexpr linear_expression_negate(E && e)
+        : _expr(std::forward<E>(e)){};
 
-    constexpr auto variables() const noexcept {
-        return ranges::views::concat(_lhs.variables(), _rhs.variables());
+    constexpr auto variables() const noexcept { return _expr.variables(); }
+    constexpr auto coefficients() const noexcept {
+        return ranges::views::transform(_expr.coefficients(),
+                                        std::negate<scalar_t>());
     }
-    constexpr auto coeficients() const noexcept {
-        return ranges::views::concat(
-            _lhs.coeficients(),
-            std::ranges::views::transform(_rhs.coeficients(),
-                                          std::negate<scalar_t>()));
-    }
-    constexpr scalar_t constant() const noexcept {
-        return _lhs.constant() - _rhs.constant();
-    }
+    constexpr scalar_t constant() const noexcept { return -_expr.constant(); }
 };
 
 template <linear_expression_c E>
@@ -83,7 +75,9 @@ public:
         : _expr(std::forward<E>(e)), _scalar(c){};
 
     constexpr auto variables() const noexcept { return _expr.variables(); }
-    constexpr auto coeficients() const noexcept { return _expr.coeficients(); }
+    constexpr auto coefficients() const noexcept {
+        return _expr.coefficients();
+    }
     constexpr scalar_t constant() const noexcept {
         return _expr.constant() + _scalar;
     }
@@ -104,9 +98,9 @@ public:
         : _expr(std::forward<E>(e)), _scalar(c){};
 
     constexpr auto variables() const noexcept { return _expr.variables(); }
-    constexpr auto coeficients() const noexcept {
-        return std::ranges::views::transform(
-            _expr.coeficients(), [scalar = _scalar](auto && coef) -> scalar_t {
+    constexpr auto coefficients() const noexcept {
+        return ranges::views::transform(
+            _expr.coefficients(), [scalar = _scalar](auto && coef) -> scalar_t {
                 return scalar * coef;
             });
     }

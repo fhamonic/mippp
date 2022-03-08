@@ -15,7 +15,7 @@ include(GoogleTest)
 # cbc_backend) target_link_libraries(cbc_test GTest::gtest)
 # gtest_discover_tests(cbc_test) endif()
 
-add_executable(mippp_interface_test main_test.cpp mippp_interface_test.cpp)
+add_executable(mippp_interface_test main_test.cpp linear_term_test.cpp)
 target_link_libraries(mippp_interface_test mippp_interface)
 target_link_libraries(mippp_interface_test GTest::gtest)
 gtest_discover_tests(mippp_interface_test)

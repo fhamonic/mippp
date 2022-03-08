@@ -14,7 +14,7 @@ template <typename E>
 concept linear_expression_c = requires(E e, typename E::var_id_t,
                                             typename E::scalar_t) {
     { e.variables() } -> detail::range_of<typename E::var_id_t>;
-    { e.coeficients() } -> detail::range_of<typename E::scalar_t>;
+    { e.coefficients() } -> detail::range_of<typename E::scalar_t>;
     { e.constant() } -> std::same_as<typename E::scalar_t>;
 };
 // clang-format on
