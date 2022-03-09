@@ -50,3 +50,14 @@ GTEST_TEST(linear_terms_operators, substract_terms) {
     ASSERT_EQ_RANGES((Var(1) * 3.2 - Var(2) * 1.5).coefficients(), {3.2, -1.5});
     ASSERT_EQ((Var(1) * 3.2 + Var(2) * 1.5).constant(), 0);
 }
+
+
+// GTEST_TEST(linear_terms_operators, lvalues_tests) {
+//     Var x = Var(27);
+//     Var y = Var(11);
+//     auto s = x + y;
+    
+//     ASSERT_EQ_RANGES((3 * s).variables(), {27, 11});
+//     ASSERT_EQ_RANGES((3 * s).coefficients(), {3, 3});
+//     ASSERT_EQ((3 * s).constant(), 0);
+// }

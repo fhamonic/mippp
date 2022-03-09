@@ -13,22 +13,20 @@
 namespace fhamonic {
 namespace mippp {
 
-template <typename E1, typename E2>
-requires linear_expression_c<typename std::remove_reference<E1>::type> &&
-    linear_expression_c<typename std::remove_reference<E2>::type> &&
-    std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&
-    std::same_as<typename E1::scalar_t, typename E2::scalar_t>
+template <linear_expression_c E1, linear_expression_c E2>
+requires std::same_as<expression_var_id_t<E1>, expression_var_id_t<E2>> &&
+    std::same_as<expression_scalar_t<E1>, expression_scalar_t<E2>>
 class linear_expression_add {
 public:
-    using var_id_t = typename E1::var_id_t;
-    using scalar_t = typename E1::scalar_t;
+    using var_id_t = typename std::remove_reference<E2>::type::var_id_t;
+    using scalar_t = typename std::remove_reference<E2>::type::scalar_t;
 
 private:
     const E1 && _lhs;
     const E2 && _rhs;
 
 public:
-    constexpr linear_expression_add(const E1 && e1, const E2 && e2)
+    constexpr linear_expression_add(E1 && e1, E2 && e2)
         : _lhs(std::forward<const E1>(e1)), _rhs(std::forward<const E2>(e2)){};
 
     constexpr auto variables() const noexcept {
@@ -42,11 +40,9 @@ public:
     }
 };
 
-template <typename E1, typename E2>
-requires linear_expression_c<typename std::remove_reference<E1>::type> &&
-    linear_expression_c<typename std::remove_reference<E2>::type> &&
-    std::same_as<typename E1::var_id_t, typename E2::var_id_t> &&
-    std::same_as<typename E1::scalar_t, typename E2::scalar_t>
+template <linear_expression_c E1, linear_expression_c E2>
+requires std::same_as<expression_var_id_t<E1>, expression_var_id_t<E2>> &&
+    std::same_as<expression_scalar_t<E1>, expression_scalar_t<E2>>
 class linear_expression_sub {
 public:
     using var_id_t = typename E1::var_id_t;
@@ -74,8 +70,7 @@ public:
     }
 };
 
-template <typename E>
-requires linear_expression_c<typename std::remove_reference<E>::type>
+template <linear_expression_c E>
 class linear_expression_negate {
 public:
     using var_id_t = typename E::var_id_t;
@@ -96,8 +91,7 @@ public:
     constexpr scalar_t constant() const noexcept { return -_expr.constant(); }
 };
 
-template <typename E>
-requires linear_expression_c<typename std::remove_reference<E>::type>
+template <linear_expression_c E>
 class linear_expression_scalar_add {
 public:
     using var_id_t = typename E::var_id_t;
@@ -120,8 +114,7 @@ public:
     }
 };
 
-template <typename E>
-requires linear_expression_c<typename std::remove_reference<E>::type>
+template <linear_expression_c E>
 class linear_expression_scalar_sub_other_way {
 public:
     using var_id_t = typename E::var_id_t;
@@ -146,8 +139,7 @@ public:
     }
 };
 
-template <typename E>
-requires linear_expression_c<typename std::remove_reference<E>::type>
+template <linear_expression_c E>
 class linear_expression_scalar_mul {
 public:
     using var_id_t = typename E::var_id_t;

@@ -11,11 +11,18 @@ namespace mippp {
 
 // clang-format off
 template <typename E>
-concept linear_expression_c = requires(E e, typename E::var_id_t,
-                                            typename E::scalar_t) {
-    { e.variables() } -> detail::range_of<typename E::var_id_t>;
-    { e.coefficients() } -> detail::range_of<typename E::scalar_t>;
-    { e.constant() } -> std::same_as<typename E::scalar_t>;
+using expression_var_id_t = typename std::remove_reference<E>::type::var_id_t;
+
+template <typename E>
+using expression_scalar_t = typename std::remove_reference<E>::type::scalar_t;
+
+template <typename E>
+concept linear_expression_c =
+    requires(typename std::remove_reference<E>::type e, expression_var_id_t<E>,
+             expression_scalar_t<E>) {
+    { e.variables() } -> detail::range_of<expression_var_id_t<E>>;
+    { e.coefficients() } -> detail::range_of<expression_scalar_t<E>>;
+    { e.constant() } -> std::same_as<expression_scalar_t<E>>;
 };
 // clang-format on
 
