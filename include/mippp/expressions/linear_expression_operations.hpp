@@ -18,16 +18,16 @@ requires std::same_as<expression_var_id_t<E1>, expression_var_id_t<E2>> &&
     std::same_as<expression_scalar_t<E1>, expression_scalar_t<E2>>
 class linear_expression_add {
 public:
-    using var_id_t = typename std::remove_reference<E2>::type::var_id_t;
-    using scalar_t = typename std::remove_reference<E2>::type::scalar_t;
+    using var_id_t = expression_var_id_t<E1>;
+    using scalar_t = expression_scalar_t<E1>;
 
 private:
-    const E1 && _lhs;
-    const E2 && _rhs;
+    E1 && _lhs;
+    E2 && _rhs;
 
 public:
     constexpr linear_expression_add(E1 && e1, E2 && e2)
-        : _lhs(std::forward<const E1>(e1)), _rhs(std::forward<const E2>(e2)){};
+        : _lhs(std::forward<E1>(e1)), _rhs(std::forward<E2>(e2)){};
 
     constexpr auto variables() const noexcept {
         return ranges::views::concat(_lhs.variables(), _rhs.variables());
@@ -45,16 +45,16 @@ requires std::same_as<expression_var_id_t<E1>, expression_var_id_t<E2>> &&
     std::same_as<expression_scalar_t<E1>, expression_scalar_t<E2>>
 class linear_expression_sub {
 public:
-    using var_id_t = typename E1::var_id_t;
-    using scalar_t = typename E1::scalar_t;
+    using var_id_t = expression_var_id_t<E1>;
+    using scalar_t = expression_scalar_t<E1>;
 
 private:
-    const E1 && _lhs;
-    const E2 && _rhs;
+    E1 && _lhs;
+    E2 && _rhs;
 
 public:
-    constexpr linear_expression_sub(const E1 && e1, const E2 && e2)
-        : _lhs(std::forward<const E1>(e1)), _rhs(std::forward<const E2>(e2)){};
+    constexpr linear_expression_sub(E1 && e1, E2 && e2)
+        : _lhs(std::forward<E1>(e1)), _rhs(std::forward<E2>(e2)){};
 
     constexpr auto variables() const noexcept {
         return ranges::views::concat(_lhs.variables(), _rhs.variables());
@@ -73,15 +73,15 @@ public:
 template <linear_expression_c E>
 class linear_expression_negate {
 public:
-    using var_id_t = typename E::var_id_t;
-    using scalar_t = typename E::scalar_t;
+    using var_id_t = expression_var_id_t<E>;
+    using scalar_t = expression_scalar_t<E>;
 
 private:
-    const E && _expr;
+    E && _expr;
 
 public:
-    explicit constexpr linear_expression_negate(const E && e)
-        : _expr(std::forward<const E>(e)){};
+    explicit constexpr linear_expression_negate(E && e)
+        : _expr(std::forward<E>(e)){};
 
     constexpr auto variables() const noexcept { return _expr.variables(); }
     constexpr auto coefficients() const noexcept {
@@ -94,16 +94,16 @@ public:
 template <linear_expression_c E>
 class linear_expression_scalar_add {
 public:
-    using var_id_t = typename E::var_id_t;
-    using scalar_t = typename E::scalar_t;
+    using var_id_t = expression_var_id_t<E>;
+    using scalar_t = expression_scalar_t<E>;
 
 private:
-    const E && _expr;
+    E && _expr;
     const scalar_t _scalar;
 
 public:
-    constexpr linear_expression_scalar_add(const E && e, const scalar_t c)
-        : _expr(std::forward<const E>(e)), _scalar(c){};
+    constexpr linear_expression_scalar_add(E && e, const scalar_t c)
+        : _expr(std::forward<E>(e)), _scalar(c){};
 
     constexpr auto variables() const noexcept { return _expr.variables(); }
     constexpr auto coefficients() const noexcept {
@@ -117,17 +117,17 @@ public:
 template <linear_expression_c E>
 class linear_expression_scalar_sub_other_way {
 public:
-    using var_id_t = typename E::var_id_t;
-    using scalar_t = typename E::scalar_t;
+    using var_id_t = expression_var_id_t<E>;
+    using scalar_t = expression_scalar_t<E>;
 
 private:
-    const E && _expr;
+    E && _expr;
     const scalar_t _scalar;
 
 public:
-    constexpr linear_expression_scalar_sub_other_way(const E && e,
+    constexpr linear_expression_scalar_sub_other_way(E && e,
                                                      const scalar_t c)
-        : _expr(std::forward<const E>(e)), _scalar(c){};
+        : _expr(std::forward<E>(e)), _scalar(c){};
 
     constexpr auto variables() const noexcept { return _expr.variables(); }
     constexpr auto coefficients() const noexcept {
@@ -142,16 +142,16 @@ public:
 template <linear_expression_c E>
 class linear_expression_scalar_mul {
 public:
-    using var_id_t = typename E::var_id_t;
-    using scalar_t = typename E::scalar_t;
+    using var_id_t = expression_var_id_t<E>;
+    using scalar_t = expression_scalar_t<E>;
 
 private:
-    const E && _expr;
+    E && _expr;
     const scalar_t _scalar;
 
 public:
-    constexpr linear_expression_scalar_mul(const E && e, const scalar_t c)
-        : _expr(std::forward<const E>(e)), _scalar(c){};
+    constexpr linear_expression_scalar_mul(E && e, const scalar_t c)
+        : _expr(std::forward<E>(e)), _scalar(c){};
 
     constexpr auto variables() const noexcept { return _expr.variables(); }
     constexpr auto coefficients() const noexcept {
