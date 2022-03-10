@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "mippp/expressions/linear_expression_operations.hpp"
-#include "mippp/expressions/variable.hpp"
+#include "mippp/variable.hpp"
 
 #include "assert_eq_ranges.hpp"
 

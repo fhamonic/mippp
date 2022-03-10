@@ -125,8 +125,7 @@ private:
     const scalar_t _scalar;
 
 public:
-    constexpr linear_expression_scalar_sub_other_way(E && e,
-                                                     const scalar_t c)
+    constexpr linear_expression_scalar_sub_other_way(E && e, const scalar_t c)
         : _expr(std::forward<E>(e)), _scalar(c){};
 
     constexpr auto variables() const noexcept { return _expr.variables(); }
