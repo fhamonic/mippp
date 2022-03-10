@@ -19,8 +19,10 @@ private:
 
 public:
     explicit constexpr variable(var_id_t id) : _id(id){};
-    
-    constexpr variable(const variable & v) : _id(v._id){
+
+    var_id_t id() const noexcept { return _id; }
+
+    constexpr variable(const variable & v) : _id(v._id) {
         std::cout << "variable copy : " << _id << std::endl;
     };
 
