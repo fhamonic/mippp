@@ -1,5 +1,5 @@
-#ifndef MIPPP_VARIABLE_HPP
-#define MIPPP_VARIABLE_HPP
+#ifndef MIPPP_ALGORITHM_EVALUATE_HPP
+#define MIPPP_ALGORITHM_EVALUATE_HPP
 
 #include <range/v3/numeric/inner_product.hpp>
 #include <range/v3/view/transform.hpp>
@@ -11,8 +11,8 @@ namespace fhamonic {
 namespace mippp {
 
 template <linear_expression_c E, typename M>
-requires id_value_map<M, typename E::var_id_t, typename E::scalar_t>
-constexpr typename E::scalar_t evaluate(E && e, M && m) {
+requires id_value_map<M, expression_var_id_t<E>, expression_scalar_t<E>>
+constexpr expression_scalar_t<E> evaluate(E && e, M && m) {
     return e.constant() +
            ranges::inner_product(
                ranges::views::transform(
@@ -23,4 +23,4 @@ constexpr typename E::scalar_t evaluate(E && e, M && m) {
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_VARIABLE_HPP
+#endif  // MIPPP_ALGORITHM_EVALUATE_HPP

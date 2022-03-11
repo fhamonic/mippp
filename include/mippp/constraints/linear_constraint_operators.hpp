@@ -3,7 +3,7 @@
 
 #include <type_traits>
 
-#include "mippp/expressions/linear_constraint_operations.hpp"
+#include "mippp/constraints/linear_constraint_operations.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -39,6 +39,32 @@ constexpr auto operator<=(E && e, expression_scalar_t<E> c) {
 template <linear_expression_c E>
 constexpr auto operator>=(expression_scalar_t<E> c, E && e) {
     return linear_constraint_upper_bound<E &&>(std::forward<E>(e), c);
+};
+
+template <linear_expression_c E>
+constexpr auto operator<=(linear_constraint_lower_bound<E> && c,
+                          expression_scalar_t<E> ub) {
+    return linear_constraint_bounds<E &&>(
+        std::forward<linear_constraint_lower_bound<E>>(c), ub);
+};
+template <linear_expression_c E>
+constexpr auto operator>=(expression_scalar_t<E> ub,
+                          linear_constraint_lower_bound<E> && c) {
+    return linear_constraint_bounds<E &&>(
+        std::forward<linear_constraint_lower_bound<E>>(c), ub);
+};
+
+template <linear_expression_c E>
+constexpr auto operator<=(expression_scalar_t<E> lb,
+                          linear_constraint_upper_bound<E> && c) {
+    return linear_constraint_bounds<E &&>(
+        std::forward<linear_constraint_upper_bound<E>>(c), lb);
+};
+template <linear_expression_c E>
+constexpr auto operator>=(linear_constraint_upper_bound<E> && c,
+                          expression_scalar_t<E> lb) {
+    return linear_constraint_bounds<E &&>(
+        std::forward<linear_constraint_upper_bound<E>>(c), lb);
 };
 
 }  // namespace mippp

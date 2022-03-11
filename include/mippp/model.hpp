@@ -19,7 +19,7 @@
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/single.hpp>
 
-#include "mippp/expressions/linear_constraint.hpp"
+#include "mippp/constraints/linear_constraint.hpp"
 #include "mippp/expressions/linear_expression.hpp"
 #include "mippp/variable.hpp"
 
