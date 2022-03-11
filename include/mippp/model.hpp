@@ -19,8 +19,8 @@
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/single.hpp>
 
-#include "mippp/expressions/linear_expression_view.hpp"
-#include "mippp/expressions/linear_constraint_view.hpp"
+#include "mippp/expressions/linear_constraint.hpp"
+#include "mippp/expressions/linear_expression.hpp"
 #include "mippp/variable.hpp"
 
 namespace fhamonic {
@@ -31,6 +31,7 @@ class Model {
 public:
     static constexpr double MINUS_INFINITY = std::numeric_limits<double>::min();
     static constexpr double INFINITY = std::numeric_limits<double>::max();
+
     using OptSense = typename SolverTraits::OptSense;
     using ColType = typename SolverTraits::ColType;
     using ModelType = typename SolverTraits::ModelType;
@@ -38,20 +39,20 @@ public:
     using var_id_t = int;
     using scalar_t = double;
 
-    using Var = variables<var_id_t, scalar_t>;
+    using Var = variable<var_id_t, scalar_t>;
 
 private:
-    std::vector<double> _col_coef;
-    std::vector<double> _col_lb;
-    std::vector<double> _col_ub;
+    std::vector<scalar_t> _col_coef;
+    std::vector<scalar_t> _col_lb;
+    std::vector<scalar_t> _col_ub;
     std::vector<ColType> _col_type;
 
-    std::vector<int> _vars;
-    std::vector<double> _coefs;
+    std::vector<var_id_t> _vars;
+    std::vector<scalar_t> _coefs;
 
     std::vector<std::size_t> _row_begins;
-    std::vector<double> _row_lb;
-    std::vector<double> _row_ub;
+    std::vector<scalar_t> _row_lb;
+    std::vector<scalar_t> _row_ub;
 
     OptSense _sense;
 
@@ -65,9 +66,9 @@ public:
     }
 
     struct var_options {
-        double obj_coef = 0.0;
-        double lower_bound = 0.0;
-        double upper_bound = INFINITY;
+        scalar_t obj_coef = scalar_t{0};
+        scalar_t lower_bound = scalar_t{0};
+        scalar_t upper_bound = INFINITY;
         ColType type = ColType::CONTINUOUS;
     };
 
@@ -76,14 +77,14 @@ public:
         _col_lb.push_back(options.lower_bound);
         _col_ub.push_back(options.upper_bound);
         _col_type.push_back(options.type);
-        return Var(static_cast<int>(nb_variables() - 1));
+        return Var(static_cast<var_id_t>(nb_variables() - 1));
     }
 
 private:
     template <typename T, typename... Args>
     auto add_vars(pack<Args...>, std::size_t count, T && id_lambda,
                   var_options options = {}) {
-        const std::size_t offset = nb_vars();
+        const std::size_t offset = nb_variables();
         const std::size_t new_size = offset + count;
         _col_coef.resize(new_size, options.obj_coef);
         _col_lb.resize(new_size, options.lower_bound);
@@ -91,9 +92,9 @@ private:
         _col_type.resize(new_size, options.type);
         return [offset, count,
                 id_lambda = std::forward<T>(id_lambda)](Args... args) {
-            const int id = id_lambda(args...);
+            const var_id_t id = id_lambda(args...);
             assert(0 <= id && id < count);
-            return Var(offset + id);
+            return Var(var_id_t{offset} + id);
         };
     }
 
@@ -127,58 +128,28 @@ public:
         return _col_type[static_cast<std::size_t>(v.id())];
     }
 
-    // Objective
+    // Views
+    auto variables() const {
+        return ranges::iota_view<var_id_t, var_id_t>(
+            var_id_t{0}, static_cast<var_id_t>(nb_variables()));
+    }
     auto objective() const noexcept {
         return linear_expression_view(variables(), std::cref(obj_coef));
     }
-    auto constraints(std::size_t constraint_id) const {
+    auto constraint(std::size_t constraint_id) const {
         assert(0 <= constraint_id && constraint_id < nb_constraints());
         const std::size_t row_begin = _row_begins[constraint_id];
         const std::size_t row_end = (constraint_id < nb_constraints() - 1)
                                         ? _row_begins[constraint_id + 1]
                                         : nb_entries();
-        return linear_constraint_view(
-            linear_expression_view(
+        return linear_constraint(
+            linear_expression(
                 ranges::subrange(_vars + row_begin, _vars + row_end),
                 ranges::subrange(_coefs + row_end, _coefs + row_end)),
             _row_lb[constraint_id], _row_ub[constraint_id]);
     }
 
     // Constraints
-
-    auto variables() const {
-        return ranges::iota_view<int, int>(0, static_cast<int>(nb_variables()));
-    }
-    auto constraints() const {
-        // auto view = ranges::views::transform(
-        //     ranges::iota_view<int, int>(0, static_cast<int>(nbConstrs())),
-        //     [](int constr_id) { return Constr(constr_id); });
-        // return view;
-    }
-    const auto entries() const {
-        // auto view = ranges::view::zip(_vars, _coefs);
-        // return view;
-    }
-    const auto entries(Constr constr) const {
-        // const std::size_t offset = static_cast<std::size_t>(
-        //     _row_begins[static_cast<std::size_t>(constr.id())]);
-        // const std::size_t end =
-        //     (constr.id() + 1 < static_cast<int>(nbConstrs())
-        //          ? static_cast<std::size_t>(
-        //                _row_begins[static_cast<std::size_t>(constr.id()) +
-        //                1])
-        //          : nbEntries());
-        // auto sub_vars = ranges::views::transform(
-        //     ranges::subrange(
-        //         _vars.begin() + static_cast<std::ptrdiff_t>(offset),
-        //         _vars.begin() + static_cast<std::ptrdiff_t>(end)),
-        //     [](int var_id) { return Var(var_id); });
-        // auto sub_coefs = ranges::subrange(
-        //     _coefs.begin() + static_cast<std::ptrdiff_t>(offset),
-        //     _coefs.begin() + static_cast<std::ptrdiff_t>(end));
-        // auto view = ranges::view::zip(sub_vars, sub_coefs);
-        // return view;
-    }
 
     ModelType build() {
         // ModelType model = SolverTraits::build(

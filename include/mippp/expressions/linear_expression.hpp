@@ -1,29 +1,34 @@
 #ifndef MIPPP_LINEAR_EXPRESSION_HPP
 #define MIPPP_LINEAR_EXPRESSION_HPP
 
-#include <vector>
+#include <cassert>
+#include <ranges>
+#include <type_traits>
 
 #include "mippp/concepts/linear_expression.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-template <linear_expression_c E>
+template <std::ranges::range V, std::ranges::range C, typename S>
+requires std::same_as<std::remove_reference_t<S>,
+                      std::remove_reference_t<std::ranges::range_value_t<C>>>
 class linear_expression {
 public:
-    using var_id_t = typename E::var_id_t;
-    using scalar_t = typename E::scalar_t;
+    using var_id_t = std::ranges::range_value_t<V>;
+    using scalar_t = std::ranges::range_value_t<C>;
 
 private:
-    std::vector<var_id_t> _variables;
-    std::vector<var_id_t> _coefficients;
-    scalar_t _constant;
+    V _variables;
+    C _coefficients;
+    S _constant;
 
 public:
-    constexpr linear_expression(E && e)
-        : _variables(e.variables())
-        , _coefficients(e.coefficients())
-        , _constant(e.constant()){};
+    constexpr linear_expression(V && variables, C && coefficients,
+                                S constant = scalar_t{0})
+        : _variables(std::forward<V>(variables))
+        , _coefficients(std::forward<C>(coefficients))
+        , _constant(constant){};
 
     constexpr auto variables() const noexcept { return _variables; }
     constexpr auto coefficients() const noexcept { return _coefficients; }

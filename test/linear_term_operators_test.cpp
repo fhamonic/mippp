@@ -55,7 +55,7 @@ GTEST_TEST(linear_terms_operators, substract_terms) {
 GTEST_TEST(linear_terms_operators, lvalues_tests) {
     Var x = Var(27);
     Var y = Var(11);
-    auto s = x + y;
+    auto && s = x + y;
     
     ASSERT_EQ_RANGES((3 * s).variables(), {27, 11});
     ASSERT_EQ_RANGES((3 * s).coefficients(), {3.0, 3.0});
