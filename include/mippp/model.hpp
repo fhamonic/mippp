@@ -14,11 +14,14 @@
 #include <cassert>
 #include <limits>
 #include <ostream>
-#include <range/v3/view/filter.hpp>
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/transform.hpp>
-#include <range/v3/view/zip.hpp>
 #include <vector>
+
+#include <range/v3/view/iota.hpp>
+#include <range/v3/view/single.hpp>
+
+#include "mippp/expressions/linear_expression_view.hpp"
+#include "mippp/expressions/linear_constraint_view.hpp"
+#include "mippp/variable.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -32,6 +35,11 @@ public:
     using ColType = typename SolverTraits::ColType;
     using ModelType = typename SolverTraits::ModelType;
 
+    using var_id_t = int;
+    using scalar_t = double;
+
+    using Var = variables<var_id_t, scalar_t>;
+
 private:
     std::vector<double> _col_coef;
     std::vector<double> _col_lb;
@@ -41,7 +49,7 @@ private:
     std::vector<int> _vars;
     std::vector<double> _coefs;
 
-    std::vector<int> _row_begins;
+    std::vector<std::size_t> _row_begins;
     std::vector<double> _row_lb;
     std::vector<double> _row_ub;
 
@@ -63,7 +71,7 @@ public:
         ColType type = ColType::CONTINUOUS;
     };
 
-    Var add_var(var_options options={}) {
+    Var add_var(var_options options = {}) {
         _col_coef.push_back(options.obj_coef);
         _col_lb.push_back(options.lower_bound);
         _col_ub.push_back(options.upper_bound);
@@ -73,7 +81,8 @@ public:
 
 private:
     template <typename T, typename... Args>
-    auto add_vars(pack<Args...>, std::size_t count, T && id_lambda, var_options options={}) {
+    auto add_vars(pack<Args...>, std::size_t count, T && id_lambda,
+                  var_options options = {}) {
         const std::size_t offset = nb_vars();
         const std::size_t new_size = offset + count;
         _col_coef.resize(new_size, options.obj_coef);
@@ -90,13 +99,16 @@ private:
 
 public:
     template <typename T>
-    auto add_vars(int count, T && id_lambda, var_options options={}) {
+    auto add_vars(int count, T && id_lambda, var_options options = {}) {
         return add_vars(typename function_traits<T>::arg_types(), count,
-                       std::forward<T>(id_lambda), options);
+                        std::forward<T>(id_lambda), options);
     }
 
     std::size_t nb_variables() const { return _col_coef.size(); }
+    std::size_t nb_constraints() const { return _row_begins.size(); }
+    std::size_t nb_entries() const { return _vars.size(); }
 
+    // Variables
     double & obj_coef(Var v) const {
         return _col_coef[static_cast<std::size_t>(v.id())];
     }
@@ -115,23 +127,32 @@ public:
         return _col_type[static_cast<std::size_t>(v.id())];
     }
 
-    std::size_t nb_constraints() const { return _row_begins.size(); }
-    std::size_t nb_entries() const { return _vars.size(); }
+    // Objective
+    auto objective() const noexcept {
+        return linear_expression_view(variables(), std::cref(obj_coef));
+    }
+    auto constraints(std::size_t constraint_id) const {
+        assert(0 <= constraint_id && constraint_id < nb_constraints());
+        const std::size_t row_begin = _row_begins[constraint_id];
+        const std::size_t row_end = (constraint_id < nb_constraints() - 1)
+                                        ? _row_begins[constraint_id + 1]
+                                        : nb_entries();
+        return linear_constraint_view(
+            linear_expression_view(
+                ranges::subrange(_vars + row_begin, _vars + row_end),
+                ranges::subrange(_coefs + row_end, _coefs + row_end)),
+            _row_lb[constraint_id], _row_ub[constraint_id]);
+    }
+
+    // Constraints
 
     auto variables() const {
-        // auto view = ranges::views::transform(
-        //     ranges::iota_view<int, int>(0, static_cast<int>(nbVars())),
-        //     [](int var_id) { return Var(var_id); });
-        // return view;
+        return ranges::iota_view<int, int>(0, static_cast<int>(nb_variables()));
     }
     auto constraints() const {
         // auto view = ranges::views::transform(
         //     ranges::iota_view<int, int>(0, static_cast<int>(nbConstrs())),
         //     [](int constr_id) { return Constr(constr_id); });
-        // return view;
-    }
-    auto objective() const {
-        // auto view = ranges::view::zip(variables(), _col_coef);
         // return view;
     }
     const auto entries() const {
@@ -144,7 +165,8 @@ public:
         // const std::size_t end =
         //     (constr.id() + 1 < static_cast<int>(nbConstrs())
         //          ? static_cast<std::size_t>(
-        //                _row_begins[static_cast<std::size_t>(constr.id()) + 1])
+        //                _row_begins[static_cast<std::size_t>(constr.id()) +
+        //                1])
         //          : nbEntries());
         // auto sub_vars = ranges::views::transform(
         //     ranges::subrange(
@@ -197,73 +219,73 @@ std::ostream & print_entries(std::ostream & os, const T & e) {
     // return os;
 }
 
-template <typename SolverTraits>
-std::ostream & operator<<(std::ostream & os,
-                          const MILP_Builder<SolverTraits> & lp) {
-    using MILP = MILP_Builder<SolverTraits>;
-    os << (lp.getOptSense() == MILP::OptSense::MINIMIZE ? "Minimize"
-                                                        : "Maximize")
-       << std::endl;
-    print_entries(os, lp.objective());
-    os << std::endl << "Subject To" << std::endl;
-    for(Constr constr : lp.constraints()) {
-        const double lb = lp.getConstrLB(constr);
-        const double ub = lp.getConstrUB(constr);
-        if(ub != MILP::INFINITY) {
-            os << "R" << constr.id() << ": ";
-            print_entries(os, lp.entries(constr));
-            os << " <= " << ub << std::endl;
-        }
-        if(lb != MILP::MINUS_INFINITY) {
-            os << "R" << constr.id() << "_low: ";
-            print_entries(os, lp.entries(constr));
-            os << " >= " << lb << std::endl;
-        }
-    }
-    auto interger_vars = ranges::filter_view(lp.variables(), [&lp](Var v) {
-        return lp.getVarType(v) == MILP::ColType::INTEGER;
-    });
-    if(ranges::distance(interger_vars) > 0) {
-        os << "General" << std::endl;
-        for(Var v : interger_vars) {
-            os << " x" << v.id();
-        }
-        os << std::endl;
-    }
-    auto binary_vars = ranges::filter_view(lp.variables(), [&lp](Var v) {
-        return lp.getVarType(v) == MILP::ColType::BINARY;
-    });
-    if(ranges::distance(binary_vars) > 0) {
-        os << "Binary" << std::endl;
-        for(Var v : binary_vars) {
-            os << " x" << v.id();
-        }
-        os << std::endl;
-    }
-    auto no_trivial_bound_vars =
-        ranges::filter_view(lp.variables(), [&lp](Var v) {
-            return lp.getVarLB(v) != 0.0 || lp.getVarUB(v) != MILP::INFINITY;
-        });
-    if(ranges::distance(no_trivial_bound_vars) > 0) {
-        os << "Bounds" << std::endl;
-        for(Var v : no_trivial_bound_vars) {
-            if(lp.getVarLB(v) == lp.getVarUB(v)) {
-                os << "x" << v.id() << " = " << lp.getVarUB(v) << std::endl;
-                continue;
-            }
-            if(lp.getVarLB(v) != 0.0) {
-                if(lp.getVarLB(v) == MILP::MINUS_INFINITY)
-                    os << "-Inf <= ";
-                else
-                    os << lp.getVarLB(v) << " <= ";
-            }
-            os << "x" << v.id();
-            if(lp.getVarUB(v) != MILP::INFINITY) os << " <= " << lp.getVarUB(v);
-            os << std::endl;
-        }
-    }
-    return os << "End" << std::endl;
-}
+// template <typename SolverTraits>
+// std::ostream & operator<<(std::ostream & os,
+//                           const MILP_Builder<SolverTraits> & lp) {
+//     using MILP = MILP_Builder<SolverTraits>;
+//     os << (lp.getOptSense() == MILP::OptSense::MINIMIZE ? "Minimize"
+//                                                         : "Maximize")
+//        << std::endl;
+//     print_entries(os, lp.objective());
+//     os << std::endl << "Subject To" << std::endl;
+//     for(Constr constr : lp.constraints()) {
+//         const double lb = lp.getConstrLB(constr);
+//         const double ub = lp.getConstrUB(constr);
+//         if(ub != MILP::INFINITY) {
+//             os << "R" << constr.id() << ": ";
+//             print_entries(os, lp.entries(constr));
+//             os << " <= " << ub << std::endl;
+//         }
+//         if(lb != MILP::MINUS_INFINITY) {
+//             os << "R" << constr.id() << "_low: ";
+//             print_entries(os, lp.entries(constr));
+//             os << " >= " << lb << std::endl;
+//         }
+//     }
+//     auto interger_vars = ranges::filter_view(lp.variables(), [&lp](Var v) {
+//         return lp.getVarType(v) == MILP::ColType::INTEGER;
+//     });
+//     if(ranges::distance(interger_vars) > 0) {
+//         os << "General" << std::endl;
+//         for(Var v : interger_vars) {
+//             os << " x" << v.id();
+//         }
+//         os << std::endl;
+//     }
+//     auto binary_vars = ranges::filter_view(lp.variables(), [&lp](Var v) {
+//         return lp.getVarType(v) == MILP::ColType::BINARY;
+//     });
+//     if(ranges::distance(binary_vars) > 0) {
+//         os << "Binary" << std::endl;
+//         for(Var v : binary_vars) {
+//             os << " x" << v.id();
+//         }
+//         os << std::endl;
+//     }
+//     auto no_trivial_bound_vars =
+//         ranges::filter_view(lp.variables(), [&lp](Var v) {
+//             return lp.getVarLB(v) != 0.0 || lp.getVarUB(v) != MILP::INFINITY;
+//         });
+//     if(ranges::distance(no_trivial_bound_vars) > 0) {
+//         os << "Bounds" << std::endl;
+//         for(Var v : no_trivial_bound_vars) {
+//             if(lp.getVarLB(v) == lp.getVarUB(v)) {
+//                 os << "x" << v.id() << " = " << lp.getVarUB(v) << std::endl;
+//                 continue;
+//             }
+//             if(lp.getVarLB(v) != 0.0) {
+//                 if(lp.getVarLB(v) == MILP::MINUS_INFINITY)
+//                     os << "-Inf <= ";
+//                 else
+//                     os << lp.getVarLB(v) << " <= ";
+//             }
+//             os << "x" << v.id();
+//             if(lp.getVarUB(v) != MILP::INFINITY) os << " <= " <<
+//             lp.getVarUB(v); os << std::endl;
+//         }
+//     }
+//     return os << "End" << std::endl;
+// }
 
 }  // namespace mippp
 }  // namespace fhamonic
