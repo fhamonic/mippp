@@ -34,15 +34,15 @@ public:
     }
     constexpr auto coefficients() const noexcept {
         return ranges::views::concat(
-            ranges::views::transform(_lhs.coefficients(),
-                                     std::negate<scalar_t>()),
-            _rhs.coefficients());
+            _lhs.coefficients(),
+            ranges::views::transform(_rhs.coefficients(),
+                                     std::negate<scalar_t>()));
     }
     constexpr scalar_t lower_bound() const noexcept {
-        return _lhs.constant() - _rhs.constant();
+        return std::numeric_limits<scalar_t>::lowest();
     }
     constexpr scalar_t upper_bound() const noexcept {
-        return std::numeric_limits<scalar_t>::max();
+        return _rhs.constant() - _lhs.constant();
     }
 };
 
