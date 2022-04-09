@@ -28,8 +28,7 @@ private:
 
 public:
     constexpr linear_constraint(V && variables, C && coefficients,
-                                                S lb = scalar_t{0},
-                                                S ub = scalar_t{0})
+                                S lb = scalar_t{0}, S ub = scalar_t{0})
         : _variables(std::forward<V>(variables))
         , _coefficients(std::forward<C>(coefficients))
         , _lb(lb)

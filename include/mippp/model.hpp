@@ -18,9 +18,15 @@
 
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/single.hpp>
+#include <range/v3/view/transform.hpp>
+
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/zip.hpp>
 
 #include "mippp/constraints/linear_constraint.hpp"
+#include "mippp/detail/function_traits.hpp"
 #include "mippp/expressions/linear_expression.hpp"
+#include "mippp/solver_traits/all.hpp"
 #include "mippp/variable.hpp"
 
 namespace fhamonic {
@@ -29,8 +35,9 @@ namespace mippp {
 template <typename SolverTraits>
 class Model {
 public:
-    static constexpr double MINUS_INFINITY = std::numeric_limits<double>::min();
-    static constexpr double INFINITY = std::numeric_limits<double>::max();
+    static constexpr double MINUS_INFTY =
+        std::numeric_limits<double>::lowest();
+    static constexpr double INFTY = std::numeric_limits<double>::max();
 
     using OptSense = typename SolverTraits::OptSense;
     using ColType = typename SolverTraits::ColType;
@@ -38,6 +45,7 @@ public:
 
     using var_id_t = int;
     using scalar_t = double;
+    using constraint_id_t = std::size_t;
 
     using Var = variable<var_id_t, scalar_t>;
 
@@ -57,7 +65,7 @@ private:
     OptSense _sense;
 
 public:
-    Model(OptSense sense) : _sense(sense) {}
+    Model(OptSense sense = OptSense::MAXIMIZE) : _sense(sense) {}
 
     OptSense opt_sense() const noexcept { return _sense; }
     Model & opt_sense(OptSense s) noexcept {
@@ -68,11 +76,11 @@ public:
     struct var_options {
         scalar_t obj_coef = scalar_t{0};
         scalar_t lower_bound = scalar_t{0};
-        scalar_t upper_bound = INFINITY;
+        scalar_t upper_bound = INFTY;
         ColType type = ColType::CONTINUOUS;
     };
 
-    Var add_var(var_options options = {}) {
+    Var add_var(var_options options = {}) noexcept {
         _col_coef.push_back(options.obj_coef);
         _col_lb.push_back(options.lower_bound);
         _col_ub.push_back(options.upper_bound);
@@ -82,8 +90,8 @@ public:
 
 private:
     template <typename T, typename... Args>
-    auto add_vars(pack<Args...>, std::size_t count, T && id_lambda,
-                  var_options options = {}) {
+    auto add_vars(detail::pack<Args...>, std::size_t count, T && id_lambda,
+                  var_options options = {}) noexcept {
         const std::size_t offset = nb_variables();
         const std::size_t new_size = offset + count;
         _col_coef.resize(new_size, options.obj_coef);
@@ -100,9 +108,23 @@ private:
 
 public:
     template <typename T>
-    auto add_vars(int count, T && id_lambda, var_options options = {}) {
-        return add_vars(typename function_traits<T>::arg_types(), count,
+    auto add_vars(int count, T && id_lambda,
+                  var_options options = {}) noexcept {
+        return add_vars(typename detail::function_traits<T>::arg_types(), count,
                         std::forward<T>(id_lambda), options);
+    }
+
+    template <typename R, typename M>
+    auto add_vars(R && values, M && id_map, var_options options = {}) noexcept {
+        using value_t = std::ranges::range_value_t<R>;
+        var_id_t count = 0;
+        for(auto && v : values) id_map[v] = count++;
+        return add_vars(
+            detail::pack<value_t>(), count,
+            [id_map = std::forward<M>(id_map)](value_t v) {
+                return id_map.at(v);
+            },
+            options);
     }
 
     std::size_t nb_variables() const { return _col_coef.size(); }
@@ -110,153 +132,171 @@ public:
     std::size_t nb_entries() const { return _vars.size(); }
 
     // Variables
-    double & obj_coef(Var v) const {
+    double & obj_coef(Var v) noexcept {
         return _col_coef[static_cast<std::size_t>(v.id())];
     }
-    double & lower_bound(Var v) const {
+    double & lower_bound(Var v) noexcept {
         return _col_lb[static_cast<std::size_t>(v.id())];
     }
-    double upper_bound(Var v) const {
+    double upper_bound(Var v) noexcept {
         return _col_ub[static_cast<std::size_t>(v.id())];
     }
-    Model & set_bounds(Var v, double lb, double ub) {
+    Model & set_bounds(Var v, double lb, double ub) noexcept {
         _col_lb[static_cast<std::size_t>(v.id())] = lb;
         _col_ub[static_cast<std::size_t>(v.id())] = ub;
         return *this;
     }
-    ColType & type(Var v) const {
+    ColType & type(Var v) const noexcept {
         return _col_type[static_cast<std::size_t>(v.id())];
     }
 
     // Views
-    auto variables() const {
+    auto variables() const noexcept {
         return ranges::iota_view<var_id_t, var_id_t>(
             var_id_t{0}, static_cast<var_id_t>(nb_variables()));
     }
     auto objective() const noexcept {
         return linear_expression_view(variables(), std::cref(obj_coef));
     }
-    auto constraint(std::size_t constraint_id) const {
-        assert(0 <= constraint_id && constraint_id < nb_constraints());
+    auto constraint(constraint_id_t constraint_id) const noexcept {
+        assert(constraint_id < nb_constraints());
         const std::size_t row_begin = _row_begins[constraint_id];
         const std::size_t row_end = (constraint_id < nb_constraints() - 1)
                                         ? _row_begins[constraint_id + 1]
                                         : nb_entries();
         return linear_constraint(
-            linear_expression(
-                ranges::subrange(_vars + row_begin, _vars + row_end),
-                ranges::subrange(_coefs + row_end, _coefs + row_end)),
+            linear_expression(ranges::subrange(_vars.data() + row_begin,
+                                               _vars.data() + row_end),
+                              ranges::subrange(_coefs.data() + row_end,
+                                               _coefs.data() + row_end)),
             _row_lb[constraint_id], _row_ub[constraint_id]);
     }
+    auto constraint_ids() const noexcept {
+        return ranges::iota_view<constraint_id_t, constraint_id_t>(
+            constraint_id_t{0}, static_cast<constraint_id_t>(nb_constraints()));
+    }
+    auto constraints() const noexcept {
+        return ranges::views::transform(
+            constraint_ids(), [this](auto && id) { return constraint(id); });
+    }
 
-    // Constraints
-
-    ModelType build() {
-        // ModelType model = SolverTraits::build(
-        //     _sense, static_cast<int>(nbVars()), _col_coef.data(),
-        //     _col_lb.data(), _col_ub.data(), _col_type.data(),
-        //     static_cast<int>(nbConstrs()), static_cast<int>(nbEntries()),
-        //     _row_begins.data(), _vars.data(), _coefs.data(), _row_lb.data(),
-        //     _row_ub.data());
-        // return model;
+    ModelType build() noexcept {
+        ModelType model = SolverTraits::build(
+            _sense, static_cast<int>(nb_variables()), _col_coef.data(),
+            _col_lb.data(), _col_ub.data(), _col_type.data(),
+            static_cast<int>(nb_constraints()), static_cast<int>(nb_entries()),
+            _row_begins.data(), _vars.data(), _coefs.data(), _row_lb.data(),
+            _row_ub.data());
+        return model;
     }
 };
 
 template <typename T>
 std::ostream & print_entries(std::ostream & os, const T & e) {
-    // auto it = e.begin();
-    // const auto end = e.end();
-    // if(it == end) return os;
-    // for(; it != end; ++it) {
-    //     Var v = (*it).first;
-    //     double coef = (*it).second;
-    //     if(coef == 0.0) continue;
+    using var_id_t = typename T::var_id_t;
+    using scalar_t = typename T::scalar_t;
+    auto && entries_range = ranges::views::zip(e.variables(), e.coefficients());
+    auto it = entries_range.begin();
+    const auto end = entries_range.end();
+    if(it == end) return os;
+    for(; it != end; ++it) {
+        var_id_t v = (*it).first;
+        scalar_t coef = (*it).second;
+        if(coef == 0.0) continue;
 
-    //     const double abs_coef = std::abs(coef);
-    //     os << (coef < 0 ? "-" : "");
-    //     if(abs_coef != 1) os << abs_coef << " ";
-    //     os << "x" << v.id();
-    //     break;
-    // }
-    // for(++it; it != end; ++it) {
-    //     Var v = (*it).first;
-    //     double coef = (*it).second;
-    //     if(coef == 0.0) continue;
-    //     const double abs_coef = std::abs(coef);
-    //     os << (coef < 0 ? " - " : " + ");
-    //     if(abs_coef != 1) os << abs_coef << " ";
-    //     os << "x" << v.id();
-    // }
-    // return os;
+        const scalar_t abs_coef = std::abs(coef);
+        os << (coef < 0 ? "-" : "");
+        if(abs_coef != 1) os << abs_coef << " ";
+        os << "x" << v;
+        break;
+    }
+    for(++it; it != end; ++it) {
+        var_id_t v = (*it).first;
+        scalar_t coef = (*it).second;
+        if(coef == 0.0) continue;
+        const scalar_t abs_coef = std::abs(coef);
+        os << (coef < 0 ? " - " : " + ");
+        if(abs_coef != 1) os << abs_coef << " ";
+        os << "x" << v;
+    }
+    return os;
 }
 
-// template <typename SolverTraits>
-// std::ostream & operator<<(std::ostream & os,
-//                           const MILP_Builder<SolverTraits> & lp) {
-//     using MILP = MILP_Builder<SolverTraits>;
-//     os << (lp.getOptSense() == MILP::OptSense::MINIMIZE ? "Minimize"
-//                                                         : "Maximize")
-//        << std::endl;
-//     print_entries(os, lp.objective());
-//     os << std::endl << "Subject To" << std::endl;
-//     for(Constr constr : lp.constraints()) {
-//         const double lb = lp.getConstrLB(constr);
-//         const double ub = lp.getConstrUB(constr);
-//         if(ub != MILP::INFINITY) {
-//             os << "R" << constr.id() << ": ";
-//             print_entries(os, lp.entries(constr));
-//             os << " <= " << ub << std::endl;
-//         }
-//         if(lb != MILP::MINUS_INFINITY) {
-//             os << "R" << constr.id() << "_low: ";
-//             print_entries(os, lp.entries(constr));
-//             os << " >= " << lb << std::endl;
-//         }
-//     }
-//     auto interger_vars = ranges::filter_view(lp.variables(), [&lp](Var v) {
-//         return lp.getVarType(v) == MILP::ColType::INTEGER;
-//     });
-//     if(ranges::distance(interger_vars) > 0) {
-//         os << "General" << std::endl;
-//         for(Var v : interger_vars) {
-//             os << " x" << v.id();
-//         }
-//         os << std::endl;
-//     }
-//     auto binary_vars = ranges::filter_view(lp.variables(), [&lp](Var v) {
-//         return lp.getVarType(v) == MILP::ColType::BINARY;
-//     });
-//     if(ranges::distance(binary_vars) > 0) {
-//         os << "Binary" << std::endl;
-//         for(Var v : binary_vars) {
-//             os << " x" << v.id();
-//         }
-//         os << std::endl;
-//     }
-//     auto no_trivial_bound_vars =
-//         ranges::filter_view(lp.variables(), [&lp](Var v) {
-//             return lp.getVarLB(v) != 0.0 || lp.getVarUB(v) != MILP::INFINITY;
-//         });
-//     if(ranges::distance(no_trivial_bound_vars) > 0) {
-//         os << "Bounds" << std::endl;
-//         for(Var v : no_trivial_bound_vars) {
-//             if(lp.getVarLB(v) == lp.getVarUB(v)) {
-//                 os << "x" << v.id() << " = " << lp.getVarUB(v) << std::endl;
-//                 continue;
-//             }
-//             if(lp.getVarLB(v) != 0.0) {
-//                 if(lp.getVarLB(v) == MILP::MINUS_INFINITY)
-//                     os << "-Inf <= ";
-//                 else
-//                     os << lp.getVarLB(v) << " <= ";
-//             }
-//             os << "x" << v.id();
-//             if(lp.getVarUB(v) != MILP::INFINITY) os << " <= " <<
-//             lp.getVarUB(v); os << std::endl;
-//         }
-//     }
-//     return os << "End" << std::endl;
-// }
+template <typename SolverTraits>
+std::ostream & operator<<(std::ostream & os,
+                          const Model<SolverTraits> & model) {
+    using var_id_t = Model<SolverTraits>::var_id_t;
+    // using scalar_t = Model<SolverTraits>::scalar_t;
+    os << (model.opt_sense() == Model<SolverTraits>::OptSense::MINIMIZE
+               ? "Minimize"
+               : "Maximize")
+       << '\n';
+    print_entries(os, model.objective());
+    os << "\nSubject To\n";
+    for(auto && constr_id : model.constraint_ids()) {
+        auto && constr = model.constraint(constr_id);
+        const double lb = constr.lower_bound();
+        const double ub = constr.upper_bound();
+        if(ub < Model<SolverTraits>::INFTY) {
+            os << "R" << constr_id << ": ";
+            print_entries(os, constr);
+            os << " <= " << ub << '\n';
+        }
+        if(lb > Model<SolverTraits>::MINUS_INFTY) {
+            os << "R" << constr_id << "_low: ";
+            print_entries(os, constr);
+            os << " >= " << lb << '\n';
+        }
+    }
+    auto interger_vars =
+        ranges::views::filter(model.variables(), [&model](var_id_t v) {
+            return model.type(v) == Model<SolverTraits>::ColType::INTEGER;
+        });
+    if(ranges::distance(interger_vars) > 0) {
+        os << "General\n";
+        for(auto && v : interger_vars) {
+            os << " x" << v;
+        }
+        os << '\n';
+    }
+    auto binary_vars =
+        ranges::filter_view(model.variables(), [&model](var_id_t v) {
+            return model.type(v) == Model<SolverTraits>::ColType::BINARY;
+        });
+    if(ranges::distance(binary_vars) > 0) {
+        os << "Binary\n";
+        for(auto && v : binary_vars) {
+            os << " x" << v;
+        }
+        os << '\n';
+    }
+    auto no_trivial_bound_vars =
+        ranges::views::filter(model.variables(), [&model](var_id_t v) {
+            return model.lower_bound(v) != 0.0 ||
+                   model.upper_bound(v) != Model<SolverTraits>::INFTY;
+        });
+    if(ranges::distance(no_trivial_bound_vars) > 0) {
+        os << "Bounds\n";
+        for(auto && v : no_trivial_bound_vars) {
+            if(model.lower_bound(v) == model.upper_bound(v)) {
+                os << "x" << v << " = " << model.upper_bound(v) << '\n';
+                continue;
+            }
+            if(model.lower_bound(v) != 0.0) {
+                if(model.lower_bound(v) ==
+                   Model<SolverTraits>::MINUS_INFTY)
+                    os << "-Inf <= ";
+                else
+                    os << model.lower_bound(v) << " <= ";
+            }
+            os << "x" << v;
+            if(model.upper_bound(v) != Model<SolverTraits>::INFTY)
+                os << " <= " << model.upper_bound(v);
+            os << '\n';
+        }
+    }
+    return os << "End" << '\n';
+}
 
 }  // namespace mippp
 }  // namespace fhamonic
