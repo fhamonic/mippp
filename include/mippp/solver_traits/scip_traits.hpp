@@ -23,7 +23,7 @@ struct ScipTraits {
                       int nb_rows, int nb_elems, int * row_begins,
                       int * indices, double * coefs, double * row_lb,
                       double * row_ub) {
-            return;
+        return;
     }
 };
 

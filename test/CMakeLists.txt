@@ -29,4 +29,3 @@ if(${COIN_FOUND})
     target_link_libraries(cbc_test GTest::gtest)
     gtest_discover_tests(cbc_test)
 endif()
-

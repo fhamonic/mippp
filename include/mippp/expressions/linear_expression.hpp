@@ -30,8 +30,8 @@ public:
         , _coefficients(std::forward<C>(coefficients))
         , _constant(constant){};
 
-    constexpr auto variables() const noexcept { return _variables; }
-    constexpr auto coefficients() const noexcept { return _coefficients; }
+    constexpr const V & variables() const noexcept { return _variables; }
+    constexpr const C & coefficients() const noexcept { return _coefficients; }
     constexpr scalar_t constant() const noexcept { return _constant; }
 };
 

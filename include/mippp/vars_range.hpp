@@ -12,8 +12,11 @@ private:
     const F _id_lambda;
 
 public:
-    constexpr vars_range(std::size_t offset, std::size_t count, F && id_lambda) noexcept
-        : _offset(offset), _count(count), _id_lambda(std::forward<F>(id_lambda)) {}
+    constexpr vars_range(std::size_t offset, std::size_t count,
+                         F && id_lambda) noexcept
+        : _offset(offset)
+        , _count(count)
+        , _id_lambda(std::forward<F>(id_lambda)) {}
 
     Var operator()(Args... args) const {
         const int id = _id_lambda(args...);

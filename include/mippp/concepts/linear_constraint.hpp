@@ -4,7 +4,6 @@
 #include <concepts>
 #include <ranges>
 
-#include "mippp/concepts/linear_expression.hpp"
 #include "mippp/detail/range_of.hpp"
 
 namespace fhamonic {
@@ -12,10 +11,10 @@ namespace mippp {
 
 // clang-format off
 template <typename C>
-using constraint_var_id_t = expression_var_id_t<constraint_expression_t<C>>;
+using constraint_var_id_t = typename std::remove_reference<C>::type::var_id_t;
 
 template <typename C>
-using constraint_scalar_t = expression_scalar_t<constraint_expression_t<C>>;
+using constraint_scalar_t = typename std::remove_reference<C>::type::scalar_t;
 
 template <typename C>
 concept linear_constraint_c =

@@ -8,7 +8,9 @@ using namespace fhamonic::mippp;
 
 using Var = variable<int, double>;
 
-GTEST_TEST(model, ctor) {
+GTEST_TEST(grb_model, ctor) {
     Model<GrbTraits> model;
+
+    std::cout << model << std::endl;
     
 }

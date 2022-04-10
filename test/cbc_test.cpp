@@ -8,7 +8,7 @@ using namespace fhamonic::mippp;
 
 using Var = variable<int, double>;
 
-GTEST_TEST(model, ctor) {
+GTEST_TEST(cbc_model, ctor) {
     Model<CbcTraits> model;
     
 }

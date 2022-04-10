@@ -14,4 +14,4 @@
 #include "cbc_traits.hpp"
 #endif
 
-#endif // MIPPP_SOLVER_TRAITS_HPP
+#endif  // MIPPP_SOLVER_TRAITS_HPP

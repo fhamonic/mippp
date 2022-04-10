@@ -34,8 +34,8 @@ public:
         , _lb(lb)
         , _ub(ub){};
 
-    constexpr auto variables() const noexcept { return _variables; }
-    constexpr auto coefficients() const noexcept { return _coefficients; }
+    constexpr const V & variables() const noexcept { return _variables; }
+    constexpr const C & coefficients() const noexcept { return _coefficients; }
     constexpr scalar_t lower_bound() const noexcept { return _lb; }
     constexpr scalar_t upper_bound() const noexcept { return _ub; }
 };

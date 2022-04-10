@@ -46,7 +46,6 @@ public:
     }
 };
 
-
 template <linear_expression_c E>
 class linear_constraint_bounds;
 
