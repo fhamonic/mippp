@@ -100,24 +100,27 @@ private:
         return [offset, count,
                 id_lambda = std::forward<T>(id_lambda)](Args... args) {
             const var_id_t id = id_lambda(args...);
-            assert(0 <= id && id < count);
-            return Var(var_id_t{offset} + id);
+            assert(static_cast<std::size_t>(id) < count);
+            return Var(static_cast<var_id_t>(offset) + id);
         };
     }
 
 public:
     template <typename T>
-    auto add_vars(int count, T && id_lambda,
+    auto add_vars(std::size_t count, T && id_lambda,
                   var_options options = {}) noexcept {
         return add_vars(typename detail::function_traits<T>::arg_types(), count,
                         std::forward<T>(id_lambda), options);
     }
 
-    template <typename R, typename M>
+    template <std::ranges::range R, typename M>
     auto add_vars(R && values, M && id_map, var_options options = {}) noexcept {
         using value_t = std::ranges::range_value_t<R>;
-        var_id_t count = 0;
-        for(auto && v : values) id_map[v] = count++;
+        std::size_t count = 0;
+        for(auto && v : values) {
+            id_map[v] = static_cast<var_id_t>(count);
+            ++count;
+        }
         return add_vars(
             detail::pack<value_t>(), count,
             [id_map = std::forward<M>(id_map)](value_t v) {
