@@ -58,7 +58,7 @@ private:
     std::vector<var_id_t> _vars;
     std::vector<scalar_t> _coefs;
 
-    std::vector<std::size_t> _row_begins;
+    std::vector<int> _row_begins;
     std::vector<scalar_t> _row_lb;
     std::vector<scalar_t> _row_ub;
 
@@ -109,9 +109,9 @@ private:
 public:
     template <typename T>
     requires std::convertible_to<
-        typename detail::function_traits<T>::result_type, var_id_t> auto
-    add_vars(std::size_t count, T && id_lambda,
-             var_options options = {}) noexcept {
+        typename detail::function_traits<T>::result_type, var_id_t>
+    auto add_vars(std::size_t count, T && id_lambda,
+                  var_options options = {}) noexcept {
         return add_vars(typename detail::function_traits<T>::arg_types(), count,
                         std::forward<T>(id_lambda), options);
     }
@@ -138,7 +138,7 @@ public:
         auto entries_range =
             ranges::views::zip(le.variables(), le.coefficients());
         for(auto && [v, c] : entries_range) {
-            _col_coef[v] += c;
+            _col_coef[static_cast<std::size_t>(v)] += c;
         }
         return *this;
     }
@@ -188,13 +188,16 @@ public:
     }
     auto constraint(constraint_id_t constraint_id) const noexcept {
         assert(constraint_id < nb_constraints());
-        const std::size_t row_begin = _row_begins[constraint_id];
-        const std::size_t row_end = (constraint_id < nb_constraints() - 1)
-                                        ? _row_begins[constraint_id + 1]
-                                        : nb_entries();
+        const std::size_t row_begin =
+            static_cast<std::size_t>(_row_begins[constraint_id]);
+        const std::size_t row_end =
+            (constraint_id < nb_constraints() - 1)
+                ? static_cast<std::size_t>(_row_begins[constraint_id + 1])
+                : nb_entries();
         return linear_constraint(
             ranges::subrange(_vars.data() + row_begin, _vars.data() + row_end),
-            ranges::subrange(_coefs.data() + row_end, _coefs.data() + row_end),
+            ranges::subrange(_coefs.data() + row_begin,
+                             _coefs.data() + row_end),
             _row_lb[constraint_id], _row_ub[constraint_id]);
     }
     auto constraint_ids() const noexcept {
