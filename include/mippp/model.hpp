@@ -108,17 +108,16 @@ private:
 
 public:
     template <typename T>
-    requires std::convertible_to<typename detail::function_traits<T>::result_type,
-                                 var_id_t> auto
+    requires std::convertible_to<
+        typename detail::function_traits<T>::result_type, var_id_t> auto
     add_vars(std::size_t count, T && id_lambda,
              var_options options = {}) noexcept {
         return add_vars(typename detail::function_traits<T>::arg_types(), count,
                         std::forward<T>(id_lambda), options);
     }
 
-    template <
-        std::ranges::range R,
-        id_convertible_value_map<std::ranges::range_value_t<R>, var_id_t> M>
+    template <std::ranges::range R,
+              id_value_map<std::ranges::range_value_t<R>, var_id_t> M>
     auto add_vars(R && values, M && id_map, var_options options = {}) noexcept {
         using value_t = std::ranges::range_value_t<R>;
         std::size_t count = 0;
