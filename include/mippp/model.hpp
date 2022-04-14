@@ -29,6 +29,7 @@
 #include "mippp/expressions/linear_expression.hpp"
 #include "mippp/solver_traits/all.hpp"
 #include "mippp/variable.hpp"
+#include "mippp/vars_range.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -89,8 +90,8 @@ public:
     }
 
 private:
-    template <typename T, typename... Args>
-    auto add_vars(detail::pack<Args...>, std::size_t count, T && id_lambda,
+    template <typename F, typename... Args>
+    auto add_vars(detail::pack<Args...>, std::size_t count, F && id_lambda,
                   var_options options = {}) noexcept {
         const std::size_t offset = nb_variables();
         const std::size_t new_size = offset + count;
@@ -98,22 +99,18 @@ private:
         _col_lb.resize(new_size, options.lower_bound);
         _col_ub.resize(new_size, options.upper_bound);
         _col_type.resize(new_size, options.type);
-        return [offset, count,
-                id_lambda = std::forward<T>(id_lambda)](Args... args) {
-            const var_id_t id = id_lambda(args...);
-            assert(static_cast<std::size_t>(id) < count);
-            return Var(static_cast<var_id_t>(offset) + id);
-        };
+        return vars_range<Var, F, Args...>(offset, count,
+                                           std::forward<F>(id_lambda));
     }
 
 public:
-    template <typename T>
+    template <typename F>
     requires std::convertible_to<
-        typename detail::function_traits<T>::result_type, var_id_t>
-    auto add_vars(std::size_t count, T && id_lambda,
+        typename detail::function_traits<F>::result_type, var_id_t>
+    auto add_vars(std::size_t count, F && id_lambda,
                   var_options options = {}) noexcept {
-        return add_vars(typename detail::function_traits<T>::arg_types(), count,
-                        std::forward<T>(id_lambda), options);
+        return add_vars(typename detail::function_traits<F>::arg_types(), count,
+                        std::forward<F>(id_lambda), options);
     }
 
     template <std::ranges::range R,
@@ -128,7 +125,7 @@ public:
         return add_vars(
             detail::pack<value_t>(), count,
             [id_map = std::forward<M>(id_map)](value_t v) {
-                return id_map.at(Var(v));
+                return Var(id_map.at(v));
             },
             options);
     }
