@@ -15,6 +15,16 @@ struct GRBModelWrap {
         if(model != nullptr) GRBfreemodel(model);
         if(env != nullptr) GRBfreeenv(env);
     }
+
+    int optimize() noexcept { return GRBoptimize(model); }
+
+    std::vector<double> get_solution() noexcept {
+        int nb_vars;
+        GRBgetintattr(model, GRB_INT_ATTR_NUMVARS, &nb_vars);
+        std::vector<double> solution(static_cast<std::size_t>(nb_vars));
+        GRBgetdblattrarray(model, GRB_DBL_ATTR_X, 0, nb_vars, solution.data());
+        return solution;
+    }
 };
 
 struct GrbTraits {
@@ -34,15 +44,12 @@ struct GrbTraits {
         GRBModelWrap grb;
         GRBemptyenv(&grb.env);
         GRBstartenv(grb.env);
-
         GRBsetintparam(grb.env, GRB_INT_PAR_LOGTOCONSOLE, 0);
-
         GRBnewmodel(grb.env, &grb.model, "PL", nb_vars, obj, col_lb, col_ub,
                     reinterpret_cast<char *>(vtype), NULL);
         GRBaddrangeconstrs(grb.model, nb_rows, nb_elems, row_begins, indices,
                            coefs, row_lb, row_ub, NULL);
         GRBsetintattr(grb.model, GRB_INT_ATTR_MODELSENSE, opt_sense);
-
         return grb;
     }
 };

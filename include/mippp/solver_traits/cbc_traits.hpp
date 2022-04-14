@@ -8,17 +8,40 @@
 namespace fhamonic {
 namespace mippp {
 
+struct CBCModelWrap {
+    CbcModel model;
+    CBCModelWrap() {}
+    CBCModelWrap(OsiSolverInterface * solver) {
+        // ownership of solver is transfered to model
+        model.assignSolver(solver);
+    }
+    ~CBCModelWrap() {}
+
+    int optimize() noexcept {
+        model.branchAndBound();
+        return model.status();
+    }
+
+    std::vector<double> get_solution() noexcept {
+        std::size_t nb_vars = static_cast<std::size_t>(model.getNumCols());
+        std::vector<double> solution(nb_vars);
+        const double * solution_arr = model.getColSolution();
+        solution.assign(solution_arr, solution_arr + nb_vars);
+        return solution;
+    }
+};
+
 struct CbcTraits {
     enum OptSense : int { MINIMIZE = 1, MAXIMIZE = -1 };
     enum ColType : char { CONTINUOUS = 0, INTEGER = 1, BINARY = 2 };
-    using ModelType = CbcModel;
+    using ModelType = CBCModelWrap;
 
-    static CbcModel build(OptSense opt_sense, int nb_vars, double const * obj,
-                          double const * col_lb, double const * col_ub,
-                          ColType const * vtype, int nb_rows, int nb_elems,
-                          int const * row_begins, int const * indices,
-                          double const * coefs, double const * row_lb,
-                          double const * row_ub) {
+    static CBCModelWrap build(OptSense opt_sense, int nb_vars,
+                              double const * obj, double const * col_lb,
+                              double const * col_ub, ColType const * vtype,
+                              int nb_rows, int nb_elems, int const * row_begins,
+                              int const * indices, double const * coefs,
+                              double const * row_lb, double const * row_ub) {
         double * col_lb_copy = new double[nb_vars];
         std::copy(col_lb, col_lb + nb_vars, col_lb_copy);
         double * col_ub_copy = new double[nb_vars];
@@ -47,10 +70,8 @@ struct CbcTraits {
         for(int i = 0; i < nb_vars; ++i) {
             if(vtype[i] == INTEGER || vtype[i] == BINARY) solver->setInteger(i);
         }
-        CbcModel model;
-        // ownership of solver is transfered to model
-        model.assignSolver(solver);
-        return model;
+
+        return CBCModelWrap(solver);
     }
 };
 

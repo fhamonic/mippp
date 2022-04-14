@@ -97,13 +97,13 @@ GTEST_TEST(cbc_model, build) {
     auto x = model.add_var({.lower_bound=0, .upper_bound=20});
     auto y = model.add_var({.upper_bound=12});
     model.add_obj(2*x + 3*y);
-    model.add_constraint(x+ y <= 30);
+    model.add_constraint(x + y <= 30);
 
     auto solver_model = model.build();
 
-    solver_model.branchAndBound();
-    const double * solution = solver_model.getColSolution();
+    solver_model.optimize();
+    std::vector<double> solution = solver_model.get_solution();
 
-    ASSERT_EQ(solution[x.id()], 18);
-    ASSERT_EQ(solution[y.id()], 12);
+    ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
+    ASSERT_EQ(solution[static_cast<std::size_t>(y.id())], 12);
 }

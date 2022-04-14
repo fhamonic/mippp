@@ -22,9 +22,7 @@ public:
 
     var_id_t id() const noexcept { return _id; }
 
-    constexpr variable(const variable & v) : _id(v._id) {
-        std::cout << "variable copy : " << _id << std::endl;
-    };
+    constexpr variable(const variable & v) : _id(v._id){};
 
     constexpr auto variables() const noexcept {
         return ranges::views::single(_id);
