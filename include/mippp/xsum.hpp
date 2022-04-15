@@ -13,11 +13,10 @@ namespace fhamonic {
 namespace mippp {
 
 template <std::ranges::range R, typename V, typename C>
-// requires requires(std::ranges::range_value_t<R> v, V vars, C coefs) {
-//     vars(v).id();
-//     { coefs(v) }
-//     -> std::convertible_to<typename decltype(vars(v))::scalar_t>;
-// }
+requires requires(std::ranges::range_value_t<R> v, V vars, C coefs) {
+    vars(v).id();
+    { coefs(v) } -> std::convertible_to<typename decltype(vars(v))::scalar_t>;
+}
 constexpr auto xsum(R && values, V && vars_map, C && coefs_map) noexcept {
     using variable_t =
         decltype(vars_map(std::declval<std::ranges::range_value_t<R>>()));
@@ -25,7 +24,30 @@ constexpr auto xsum(R && values, V && vars_map, C && coefs_map) noexcept {
     return linear_expression(
         ranges::views::transform(ranges::views::transform(values, vars_map),
                                  &variable_t::id),
-        ranges::views::transform(values, coefs_map), scalar_t{0});
+        ranges::views::transform(values,
+                                 [&coefs_map](auto && v) {
+                                     return static_cast<scalar_t>(coefs_map(v));
+                                 }),
+        scalar_t{0});
+}
+
+template <std::ranges::range R, typename V, typename C>
+requires requires(std::ranges::range_value_t<R> v, V vars, C coefs) {
+    vars(v).id();
+    { coefs[v] } -> std::convertible_to<typename decltype(vars(v))::scalar_t>;
+}
+constexpr auto xsum(R && values, V && vars_map, C && coefs_map) noexcept {
+    using variable_t =
+        decltype(vars_map(std::declval<std::ranges::range_value_t<R>>()));
+    using scalar_t = typename variable_t::scalar_t;
+    return linear_expression(
+        ranges::views::transform(ranges::views::transform(values, vars_map),
+                                 &variable_t::id),
+        ranges::views::transform(values,
+                                 [&coefs_map](auto && v) {
+                                     return static_cast<scalar_t>(coefs_map[v]);
+                                 }),
+        scalar_t{0});
 }
 
 template <std::ranges::range R, typename V>
