@@ -20,7 +20,7 @@ private:
 public:
     explicit constexpr variable(var_id_t id) : _id(id){};
 
-    var_id_t id() const noexcept { return _id; }
+    constexpr var_id_t id() const noexcept { return _id; }
 
     constexpr variable(const variable & v) : _id(v._id){};
 
