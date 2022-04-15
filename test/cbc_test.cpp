@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "mippp/expressions/linear_expression_operators.hpp"
 #include "mippp/constraints/linear_constraint_operators.hpp"
+#include "mippp/expressions/linear_expression_operators.hpp"
 #include "mippp/model.hpp"
+#include "mippp/xsum.hpp"
 
 #include "assert_eq_ranges.hpp"
 
@@ -73,14 +74,24 @@ GTEST_TEST(cbc_model, add_obj) {
     ASSERT_EQ(model.obj_coef(y), -2);
     ASSERT_EQ(model.obj_coef(z), -1);
 }
+GTEST_TEST(cbc_model, get_objective) {
+    Model<CbcTraits> model;
+    auto x = model.add_var();
+    auto y = model.add_var();
+    auto z = model.add_var();
+    model.add_obj(x - 3 * y - z + y);
+    auto obj = model.objective();
+    ASSERT_EQ_RANGES(obj.variables(), {0, 1, 2});
+    ASSERT_EQ_RANGES(obj.coefficients(), {1.0, -2.0, -1.0});
+}
 
-GTEST_TEST(cbc_model, add_constraint) {
+GTEST_TEST(cbc_model, add_get_constraint) {
     Model<CbcTraits> model;
     auto x = model.add_var();
     auto y = model.add_var();
     auto z = model.add_var();
 
-    auto constr_id = model.add_constraint(1 <= -z + y + 3*x <= 8);
+    auto constr_id = model.add_constraint(1 <= -z + y + 3 * x <= 8);
     ASSERT_EQ(constr_id, 0);
     ASSERT_EQ(model.nb_constraints(), 1);
     ASSERT_EQ(model.nb_entries(), 3);
@@ -92,11 +103,11 @@ GTEST_TEST(cbc_model, add_constraint) {
     ASSERT_EQ_RANGES(constr.coefficients(), {-1.0, 1.0, 3.0});
 }
 
-GTEST_TEST(cbc_model, build) {
+GTEST_TEST(cbc_model, build_optimize) {
     Model<CbcTraits> model;
-    auto x = model.add_var({.lower_bound=0, .upper_bound=20});
-    auto y = model.add_var({.upper_bound=12});
-    model.add_obj(2*x + 3*y);
+    auto x = model.add_var({.lower_bound = 0, .upper_bound = 20});
+    auto y = model.add_var({.upper_bound = 12});
+    model.add_obj(2 * x + 3 * y);
     model.add_constraint(x + y <= 30);
 
     auto solver_model = model.build();
@@ -106,4 +117,14 @@ GTEST_TEST(cbc_model, build) {
 
     ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
     ASSERT_EQ(solution[static_cast<std::size_t>(y.id())], 12);
+}
+
+GTEST_TEST(cbc_model, xsum) {
+    Model<CbcTraits> model;
+    auto x_vars = model.add_vars(5, [](int i) { return 4 - i; });
+
+    model.add_obj(
+        xsum(ranges::views::iota(0, 4), x_vars, [](auto && i) { return 2.0 * i; }));
+    model.add_obj(
+        xsum(ranges::views::iota(0, 4), x_vars));
 }

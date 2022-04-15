@@ -43,14 +43,6 @@ public:
     constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
 };
 
-
-    // template <typename R, typename V, typename C>
-    // constexpr auto xsum(R && values, V && vars_map, C && coefs_map) const noexcept { 
-    //     return linear_expression(
-    //         ranges::views::transform(values, vars_map), 
-    //         ranges::views::transform(values, coefs_map));
-    // }
-
 }  // namespace mippp
 }  // namespace fhamonic
 

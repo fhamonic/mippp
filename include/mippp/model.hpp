@@ -202,8 +202,7 @@ public:
             constraint_id_t{0}, static_cast<constraint_id_t>(nb_constraints()));
     }
     auto constraints() const noexcept {
-        return ranges::views::transform(
-            constraint_ids(), [this](auto && id) { return constraint(id); });
+        return ranges::views::transform(constraint_ids(), &Model::constraint);
     }
 
     ModelType build() noexcept {
