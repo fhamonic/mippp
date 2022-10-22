@@ -24,7 +24,9 @@ The build process requires CMake 3.12 (https://cmake.org/) or more and the Conan
 #include "mippp/expressions/linear_expression_operators.hpp"
 #include "mippp/constraints/linear_constraint_operators.hpp"
 using namespace fhamonic::mippp;
+
 ...
+
 Model<CbcTraits> model;
 auto x1 = model.add_var({.lower_bound=0, .upper_bound=4});
 auto x2 = model.add_var({.upper_bound=3});
