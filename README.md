@@ -20,11 +20,17 @@ The build process requires CMake 3.12 (https://cmake.org/) or more and the Conan
 ## Example
 
 ```cpp
+#include "mippp/model.hpp"
+#include "mippp/expressions/linear_expression_operators.hpp"
+#include "mippp/constraints/linear_constraint_operators.hpp"
+using namespace fhamonic::mippp;
+...
 Model<CbcTraits> model;
-auto x = model.add_var({.lower_bound = 0, .upper_bound = 20});
-auto y = model.add_var({.upper_bound = 12});
-model.add_obj(2 * x + 3 * y);
-model.add_constraint(x + y <= 30);
+auto x1 = model.add_var({.lower_bound=0, .upper_bound=4});
+auto x2 = model.add_var({.upper_bound=3});
+// default option is {.obj_coef=0, .lower_bound=0, .lower_bound=INFTY, type=ColType::CONTINUOUS}
+model.add_obj(4 * x1 + 5 * x2);
+model.add_constraint(2*x1 + x2 <= 9);
 
 auto solver_model = model.build();
 
