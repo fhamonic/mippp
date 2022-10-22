@@ -17,7 +17,7 @@ The build process requires CMake 3.12 (https://cmake.org/) or more and the Conan
 
     make
     
-## Use example
+## Example
 
 ```cpp
 #include "mippp/model.hpp"
