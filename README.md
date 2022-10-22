@@ -17,7 +17,7 @@ The build process requires CMake 3.12 (https://cmake.org/) or more and the Conan
 
     make
     
-## Example
+## Use example
 
 ```cpp
 #include "mippp/model.hpp"
@@ -30,7 +30,7 @@ using namespace fhamonic::mippp;
 Model<CbcTraits> model;
 auto x1 = model.add_var({.lower_bound=0, .upper_bound=4});
 auto x2 = model.add_var({.upper_bound=3});
-// default option is {.obj_coef=0, .lower_bound=0, .lower_bound=INFTY, type=ColType::CONTINUOUS}
+// default option is {.obj_coef=0, .lower_bound=0, .upper_bound=INFTY, type=ColType::CONTINUOUS}
 model.add_obj(4 * x1 + 5 * x2);
 model.add_constraint(2*x1 + x2 <= 9);
 
