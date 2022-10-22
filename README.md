@@ -13,13 +13,27 @@ Range-v3 (https://ericniebler.github.io/range-v3/) until C++23
 ### Build process
 The build process requires CMake 3.12 or above (https://cmake.org/) and the Conan C++ package manager (https://conan.io/).
 
-## Produce single header
+## How to use
+
+This library is intended to be added as a git submodule with
+
+```properties
+[submodule "dependencies/mippp"]
+	path = dependencies/mippp
+	url = https://github.com/fhamonic/mippp
+```
+and imported in cmake with
+
+```cmake
+add_subdirectory(dependencies/mippp)
+...
+target_link_libraries(<some_target> INTERFACE mippp)
+```
+
+but it is also possible to import it as a single header by generating it with
 
     make single-header
     
-## Run tests
-
-    make test
     
 ## Code example
 
