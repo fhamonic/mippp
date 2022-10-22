@@ -19,13 +19,16 @@ The build process requires CMake 3.12 (https://cmake.org/) or more and the Conan
     
 ## Example
 
-    Model<CbcTraits> model;
-    auto x = model.add_var({.lower_bound = 0, .upper_bound = 20});
-    auto y = model.add_var({.upper_bound = 12});
-    model.add_obj(2 * x + 3 * y);
-    model.add_constraint(x + y <= 30);
+```cpp
+Model<CbcTraits> model;
+auto x = model.add_var({.lower_bound = 0, .upper_bound = 20});
+auto y = model.add_var({.upper_bound = 12});
+model.add_obj(2 * x + 3 * y);
+model.add_constraint(x + y <= 30);
 
-    auto solver_model = model.build();
+auto solver_model = model.build();
 
-    solver_model.optimize();
-    std::vector<double> solution = solver_model.get_solution();
+solver_model.optimize();
+std::vector<double> solution = solver_model.get_solution();
+```
+    
