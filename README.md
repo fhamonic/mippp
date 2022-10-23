@@ -72,7 +72,7 @@ Graph::vertex_t t = ...;
 
 Model<CbcTraits> model;
 auto X_vars = model.add_vars(graph.nb_arcs(),
-    [](Graph::arc_t a) { return a; });
+    [](Graph::arc_t a) -> std::size_t { return a; });
 
 model.add_obj(xsum(graph.arcs(), X_vars, lengths));
 
