@@ -67,6 +67,8 @@ Used conjonctly with MELON (https://github.com/fhamonic/melon) we can easily exp
 using Graph = melon::static_graph;
 Graph graph = ...;
 Graph::arcs_map<double> lengths = ...;
+Graph::vertex_t s = ...;
+Graph::vertex_t t = ...;
 
 Model<CbcTraits> model;
 auto X_vars = model.add_vars(graph.nb_arcs(),
@@ -76,7 +78,8 @@ auto X_vars = model.add_vars(graph.nb_arcs(),
 model.add_obj(xsum(graph.arcs(), X_vars, lengths));
 
 for(auto && u : graph.vertices()) {
+    const double extra_flow = (u == s ? 1 : (u == t ? -1 : 0));
     model.add_constraint(
-        xsum(graph.out_arcs(u), X_var) - xsum(graph.in_arcs(u), X_var) <= 0);
+        xsum(graph.out_arcs(u), X_var) - xsum(graph.in_arcs(u), X_var) <= extra_flow);
 }
 ```
