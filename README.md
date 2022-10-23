@@ -42,11 +42,8 @@ then manage to #include it where needed with the range-v3 library.
 ```cpp
 #include "mippp/model.hpp"
 #include "mippp/operators.hpp"
-#include "mippp/xsum.hpp"
 using namespace fhamonic::mippp;
-```
-
-```cpp
+...
 Model<CbcTraits> model;
 auto x1 = model.add_var();
 auto x2 = model.add_var({.upper_bound=3});
@@ -56,23 +53,56 @@ model.add_constraint(x1 <= 4);
 model.add_constraint(2*x1 + x2 <= 9);
 
 auto solver_model = model.build();
-
 solver_model.optimize();
 std::vector<double> solution = solver_model.get_solution();
 ```
 
-Used conjonctly with MELON (https://github.com/fhamonic/melon) we can express the Shortest Path problem as
+Using the MELON library (https://github.com/fhamonic/melon), we can express the Maximum Flow problem as
 
 ```cpp
-using Graph = melon::static_graph;
-Graph graph = ...;
-Graph::arc_map<double> lengths = ...;
-Graph::vertex_t s = ...;
-Graph::vertex_t t = ...;
+#include "melon/static_digraph.hpp"
+using namespace fhamonic::melon;
+
+#include "mippp/model.hpp"
+#include "mippp/operators.hpp"
+#include "mippp/xsum.hpp"
+using namespace fhamonic::mippp;
+...
+static_graph graph = ...;
+static_graph::arc_map<double> capacity = ...;
+static_graph::vertex_t s = ...;
+static_graph::vertex_t t = ...;
+
+Model<CbcTraits> model;
+auto F = model.add_var();
+auto X_vars = model.add_vars(graph.nb_arcs(),
+    [](static_graph::arc_t a) -> std::size_t { return a; });
+
+model.add_obj(F);
+
+for(auto && u : graph.vertices()) {
+    if(u == s || u == t) continue;
+    model.add_constraint(xsum(graph.out_arcs(u), X_vars) == xsum(graph.in_arcs(u), X_vars));
+}
+model.add_constraint(xsum(graph.out_arcs(s), X_vars) == xsum(graph.in_arcs(s), X_vars) + F);
+model.add_constraint(xsum(graph.out_arcs(t), X_vars) == xsum(graph.in_arcs(t), X_vars) - F);
+
+for(auto && a : graph.arcs()) {
+    model.add_constraint(X_vars(a) <= capacity[a]);
+}
+```
+
+or the Shortest Path problem as
+
+```cpp
+static_graph graph = ...;
+static_graph::arc_map<double> lengths = ...;
+static_graph::vertex_t s = ...;
+static_graph::vertex_t t = ...;
 
 Model<CbcTraits> model;
 auto X_vars = model.add_vars(graph.nb_arcs(),
-    [](Graph::arc_t a) -> std::size_t { return a; });
+    [](static_graph::arc_t a) -> std::size_t { return a; });
 
 model.add_obj(xsum(graph.arcs(), X_vars, lengths));
 
