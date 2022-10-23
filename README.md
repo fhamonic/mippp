@@ -1,6 +1,9 @@
 # MIPpp
 
-Library attempting to provide an elegant and efficient way for instanciating Mixed Integer Linear Programs for multiple MILP solver (currently CBC and GUROBI).
+MIPpp is a attempt to provide a way for efficiently instanciate Mixed Integer Linear Programs in C++ in a python-mip fashion. Like python-mip (https://www.python-mip.com/), the aim is to support several MILP solvers as backends (currently CBC and GUROBI).
+The use of template metaprogramming allows to retain most of the syntactical sugars available in python while generating near optimal code at compile time.
+
+Still work in progress.
 
 [![Generic badge](https://img.shields.io/badge/C++-20-blue.svg?style=flat&logo=c%2B%2B)](https://en.cppreference.com/w/cpp/17)
 [![Generic badge](https://img.shields.io/badge/CMake-3.12+-blue.svg?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDguOTkyIiBoZWlnaHQ9IjU1OC42NTYiIGZpbGw9IiNmZmZmZmYiIHhtbG5zOnY9Imh0dHBzOi8vdmVjdGEuaW8vbmFubyI+PHBhdGggZD0iTTYuMzU3IDQ2My4yOTZDNi43OCA0NjIuMDMyIDIzOS4wMTEtLjE0MiAyMzkuMTUzIDBjLjA2OS4wNjggNC45MzUgNTUuNzAzIDEwLjgxNSAxMjMuNjMybDkuMzg4IDEyNC43MzZjLS43MTYuNjc2LTUzLjc1MiA0NS44NjItMTE3Ljg1OCAxMDAuNDE0TDE1LjUxMyA0NTYuMDQzYy01LjE4NyA0LjQ0MS05LjMwNiA3LjcwNi05LjE1NSA3LjI1NHptNDAxLjAyOC0xMC4wNDlsLTEwMS42NjktNDEuODNjLS4zMzgtLjMzOC0zMy45MTItMzg3Ljk0OS0zMy42MjktMzg4LjIzNy4wOTgtLjA5OSA1My40OTYgMTA1Ljg1OSAxMTguNjYzIDIzNS40NjJsMTE4LjI0MiAyMzUuODg2Yy0uMTM0LjEzNC00NS44NTctMTguNDQzLTEwMS42MDgtNDEuMjgyek0wIDUwOS4zNzRjMy44NTgtMy43MSAxNTAuOTc2LTEyOC40ODQgMTUxLjI3Ni0xMjguMzAxLjIzOS4xNDUgNzAuNDczIDI5LjAwMyAxNTYuMDc1IDY0LjEyOWwxNTUuOTM2IDY0LjE1OWMuMTYyLjE2Mi0xMDQuMDc3LjI5NS0yMzEuNjQzLjI5NVMtLjE2MiA1MDkuNTI5IDAgNTA5LjM3NHoiLz48L3N2Zz4=)](https://cmake.org/cmake/help/latest/release/3.12.html)
@@ -15,13 +18,13 @@ The build process requires CMake 3.12 or above (https://cmake.org/) and the Cona
 
 ## How to use
 
-This library is intended to be added as a git submodule with
+This library is intended to be added as git and cmake submodules with
 ```properties
 [submodule "dependencies/mippp"]
 	path = dependencies/mippp
 	url = https://github.com/fhamonic/mippp
 ```
-and imported in cmake with
+and
 ```cmake
 add_subdirectory(dependencies/mippp)
 ...
