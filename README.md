@@ -60,10 +60,3 @@ auto solver_model = model.build();
 solver_model.optimize();
 std::vector<double> solution = solver_model.get_solution();
 ```
-   
-### Run tests
-The build process requires CMake 3.12 or above (https://cmake.org/) and the Conan C++ package manager (https://conan.io/).
-Then simply run
-```
-make test
-```
