@@ -66,7 +66,7 @@ Used conjonctly with MELON (https://github.com/fhamonic/melon) we can easily exp
 ```cpp
 using Graph = melon::static_graph;
 Graph graph = ...;
-Graph::arcs_map<double> lengths = ...;
+Graph::arc_map<double> lengths = ...;
 Graph::vertex_t s = ...;
 Graph::vertex_t t = ...;
 
