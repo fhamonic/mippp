@@ -44,10 +44,11 @@ then manage to #include it where needed with the range-v3 library.
 #include "mippp/operators.hpp"
 using namespace fhamonic::mippp;
 ...
-Model<CbcTraits> model;
+using MIP = Model<CbcTraits>;
+MIP model;
 auto x1 = model.add_var();
-auto x2 = model.add_var({.upper_bound=3});
-// default option is {.obj_coef=0, .lower_bound=0, .upper_bound=INFTY, type=ColType::CONTINUOUS}
+auto x2 = model.add_var({.upper_bound=3}); // default option is
+// {.obj_coef=0, .lower_bound=0, .upper_bound=INFTY, type=MIP::ColType::CONTINUOUS}
 model.add_obj(4 * x1 + 5 * x2);
 model.add_constraint(x1 <= 4);
 model.add_constraint(2*x1 + x2 <= 9);
@@ -98,7 +99,8 @@ static_graph::arc_map<double> length_map = ...;
 static_graph::vertex_t s = ...;
 static_graph::vertex_t t = ...;
 
-Model<CbcTraits> model;
+using MIP = Model<CbcTraits>;
+MIP model(MIP::OptSense::MINIMIZE);
 auto X_vars = model.add_vars(graph.nb_arcs(),
     [](static_graph::arc_t a) -> std::size_t { return a; });
 
