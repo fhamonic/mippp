@@ -61,7 +61,7 @@ solver_model.optimize();
 std::vector<double> solution = solver_model.get_solution();
 ```
 
-Used conjonctly with MELON (https://github.com/fhamonic/melon) we can easily express the Shortest Path problem
+Used conjonctly with MELON (https://github.com/fhamonic/melon) we can express the Shortest Path problem as
 
 ```cpp
 using Graph = melon::static_graph;
