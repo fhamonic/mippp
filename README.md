@@ -106,6 +106,6 @@ model.add_obj(xsum(graph.arcs(), X_vars, length_map));
 for(auto && u : graph.vertices()) {
     const double extra_flow = (u == s ? 1 : (u == t ? -1 : 0));
     model.add_constraint(
-        xsum(graph.out_arcs(u), X_vars) - xsum(graph.in_arcs(u), X_vars) == extra_flow);
+        xsum(graph.out_arcs(u), X_vars) == xsum(graph.in_arcs(u), X_vars) + extra_flow);
 }
 ```
