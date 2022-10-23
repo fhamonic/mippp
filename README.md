@@ -37,16 +37,16 @@ make single-header
 ```
 then manage to #include it where needed with the range-v3 library.
     
-## Code example
+## Code examples
 
 ```cpp
 #include "mippp/model.hpp"
-#include "mippp/expressions/linear_expression_operators.hpp"
-#include "mippp/constraints/linear_constraint_operators.hpp"
+#include "mippp/operators.hpp"
+#include "mippp/xsum.hpp"
 using namespace fhamonic::mippp;
+```
 
-...
-
+```cpp
 Model<CbcTraits> model;
 auto x1 = model.add_var();
 auto x2 = model.add_var({.upper_bound=3});
@@ -59,4 +59,24 @@ auto solver_model = model.build();
 
 solver_model.optimize();
 std::vector<double> solution = solver_model.get_solution();
+```
+
+Used conjonctly with MELON (https://github.com/fhamonic/melon) we can easily express the Shortest Path problem
+
+```cpp
+using Graph = melon::static_graph;
+Graph graph = ...;
+Graph::arcs_map<double> lengths = ...;
+
+Model<CbcTraits> model;
+auto X_vars = model.add_vars(graph.nb_arcs(),
+    [](Graph::arc_t a) { return a; },
+    {.lower_bound = 0});
+
+model.add_obj(xsum(graph.arcs(), X_vars, lengths));
+
+for(auto && u : graph.vertices()) {
+    model.add_constraint(
+        xsum(graph.out_arcs(u), X_var) - xsum(graph.in_arcs(u), X_var) <= 0);
+}
 ```
