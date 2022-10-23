@@ -1,6 +1,6 @@
 # MIPpp
 
-MIPpp is a attempt to provide a way for efficiently instanciate Mixed Integer Linear Programs in C++ in a python-mip fashion. Like python-mip (https://www.python-mip.com/), the aim is to support several MILP solvers as backends (currently CBC and GUROBI).
+MIPpp is a attempt to provide a way for efficiently instanciate Mixed Integer Linear Programs in C++ in a [Python-MIP](https://www.python-mip.com/) fashion. Like Python-MIP, the aim is to support several MILP solvers as backends (currently CBC and GUROBI).
 The use of template metaprogramming allows to retain most of the syntactical sugars available in python while generating near optimal code at compile time.
 
 Work in progress.
@@ -26,8 +26,8 @@ add_subdirectory(dependencies/mippp)
 ...
 target_link_libraries(<some_target> INTERFACE mippp)
 ```
-Until C++23, the Range-v3 library (https://ericniebler.github.io/range-v3/) is mandatory for some ranges functionnalities.
-The Conan C++ package manager (https://conan.io/) is used to automatically resolve this dependency.
+Until C++23, the [Range-v3 library](https://ericniebler.github.io/range-v3/) is mandatory for some ranges functionnalities.
+This project use the [Conan C++ package manager](https://conan.io/) is used to automatically resolve this dependency.
 
 
 ### As a single-header
@@ -58,7 +58,7 @@ solver_model.optimize();
 std::vector<double> solution = solver_model.get_solution();
 ```
 
-Using the MELON library (https://github.com/fhamonic/melon), we can express the Maximum Flow problem as
+Using the [MELON library](https://github.com/fhamonic/melon), we can express the Maximum Flow problem as
 
 ```cpp
 #include "melon/static_digraph.hpp"
