@@ -17,8 +17,8 @@ Still work in progress.
 This library is intended to be added as git and cmake submodules with
 ```properties
 [submodule "dependencies/mippp"]
-	path = dependencies/mippp
-	url = https://github.com/fhamonic/mippp
+    path = dependencies/mippp
+    url = https://github.com/fhamonic/mippp
 ```
 and
 ```cmake
