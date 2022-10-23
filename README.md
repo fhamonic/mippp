@@ -79,14 +79,12 @@ auto X_vars = model.add_vars(graph.nb_arcs(),
     [](static_graph::arc_t a) -> std::size_t { return a; });
 
 model.add_obj(F);
-
 for(auto && u : graph.vertices()) {
     if(u == s || u == t) continue;
     model.add_constraint(xsum(graph.out_arcs(u), X_vars) == xsum(graph.in_arcs(u), X_vars));
 }
 model.add_constraint(xsum(graph.out_arcs(s), X_vars) == xsum(graph.in_arcs(s), X_vars) + F);
 model.add_constraint(xsum(graph.out_arcs(t), X_vars) == xsum(graph.in_arcs(t), X_vars) - F);
-
 for(auto && a : graph.arcs()) {
     model.add_constraint(X_vars(a) <= capacity[a]);
 }
@@ -105,7 +103,6 @@ auto X_vars = model.add_vars(graph.nb_arcs(),
     [](static_graph::arc_t a) -> std::size_t { return a; });
 
 model.add_obj(xsum(graph.arcs(), X_vars, lengths));
-
 for(auto && u : graph.vertices()) {
     const double extra_flow = (u == s ? 1 : (u == t ? -1 : 0));
     model.add_constraint(
