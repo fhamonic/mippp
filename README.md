@@ -69,7 +69,7 @@ using namespace fhamonic::melon;
 using namespace fhamonic::mippp;
 ...
 static_graph graph = ...;
-static_graph::arc_map<double> capacity = ...;
+static_graph::arc_map<double> capacity_map = ...;
 static_graph::vertex_t s = ...;
 static_graph::vertex_t t = ...;
 
@@ -86,7 +86,7 @@ for(auto && u : graph.vertices()) {
 model.add_constraint(xsum(graph.out_arcs(s), X_vars) == xsum(graph.in_arcs(s), X_vars) + F);
 model.add_constraint(xsum(graph.out_arcs(t), X_vars) == xsum(graph.in_arcs(t), X_vars) - F);
 for(auto && a : graph.arcs()) {
-    model.add_constraint(X_vars(a) <= capacity[a]);
+    model.add_constraint(X_vars(a) <= capacity_map[a]);
 }
 ```
 
@@ -94,7 +94,7 @@ or the Shortest Path problem as
 
 ```cpp
 static_graph graph = ...;
-static_graph::arc_map<double> lengths = ...;
+static_graph::arc_map<double> length_map = ...;
 static_graph::vertex_t s = ...;
 static_graph::vertex_t t = ...;
 
@@ -102,7 +102,7 @@ Model<CbcTraits> model;
 auto X_vars = model.add_vars(graph.nb_arcs(),
     [](static_graph::arc_t a) -> std::size_t { return a; });
 
-model.add_obj(xsum(graph.arcs(), X_vars, lengths));
+model.add_obj(xsum(graph.arcs(), X_vars, length_map));
 for(auto && u : graph.vertices()) {
     const double extra_flow = (u == s ? 1 : (u == t ? -1 : 0));
     model.add_constraint(
