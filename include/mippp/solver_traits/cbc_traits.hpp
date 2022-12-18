@@ -31,14 +31,14 @@ struct CBCModelWrap {
     }
 };
 
-struct CbcTraits {
-    enum OptSense : int { MINIMIZE = 1, MAXIMIZE = -1 };
-    enum ColType : char { CONTINUOUS = 0, INTEGER = 1, BINARY = 2 };
-    using ModelType = CBCModelWrap;
+struct cbc_traits {
+    enum opt_sense : int { min = 1, max = -1 };
+    enum var_category : char { continuous = 0, integer = 1, binary = 2 };
+    using model_wrapper = CBCModelWrap;
 
-    static CBCModelWrap build(OptSense opt_sense, int nb_vars,
+    static CBCModelWrap build(opt_sense opt_sense, int nb_vars,
                               double const * obj, double const * col_lb,
-                              double const * col_ub, ColType const * vtype,
+                              double const * col_ub, var_category const * vtype,
                               int nb_rows, int nb_elems, int const * row_begins,
                               int const * indices, double const * coefs,
                               double const * row_lb, double const * row_ub) {
@@ -68,7 +68,7 @@ struct CbcTraits {
                               row_lb_copy, row_ub_copy);
         solver->setObjSense(opt_sense);
         for(int i = 0; i < nb_vars; ++i) {
-            if(vtype[i] == INTEGER || vtype[i] == BINARY) solver->setInteger(i);
+            if(vtype[i] == integer || vtype[i] == binary) solver->setInteger(i);
         }
 
         return CBCModelWrap(solver);

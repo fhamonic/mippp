@@ -7,19 +7,19 @@ namespace fhamonic {
 namespace mippp {
 
 struct ScipTraits {
-    enum OptSense : int {
-        MINIMIZE = SCIP_OBJSENSE_MINIMIZE,
-        MAXIMIZE = SCIP_OBJSENSE_MAXIMIZE
+    enum opt_sense : int {
+        min = SCIP_OBJSENSE_min,
+        max = SCIP_OBJSENSE_max
     };
-    enum ColType : char {
-        CONTINUOUS = SCIP_VARTYPE_CONTINUOUS,
-        INTEGER = SCIP_VARTYPE_INTEGER,
-        BINARY = SCIP_VARTYPE_BINARY
+    enum var_category : char {
+        continuous = SCIP_VARTYPE_continuous,
+        integer = SCIP_VARTYPE_integer,
+        binary = SCIP_VARTYPE_binary
     };
-    using ModelType = void;
+    using model_wrapper = void;
 
-    static void build(OptSense opt_sense, int nb_vars, double * obj,
-                      double * col_lb, double * col_ub, ColType * vtype,
+    static void build(opt_sense opt_sense, int nb_vars, double * obj,
+                      double * col_lb, double * col_ub, var_category * vtype,
                       int nb_rows, int nb_elems, int * row_begins,
                       int * indices, double * coefs, double * row_lb,
                       double * row_ub) {

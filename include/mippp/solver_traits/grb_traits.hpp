@@ -27,17 +27,17 @@ struct GRBModelWrap {
     }
 };
 
-struct GrbTraits {
-    enum OptSense : int { MINIMIZE = GRB_MINIMIZE, MAXIMIZE = GRB_MAXIMIZE };
-    enum ColType : char {
-        CONTINUOUS = GRB_CONTINUOUS,
-        INTEGER = GRB_INTEGER,
-        BINARY = GRB_BINARY
+struct grb_traits {
+    enum opt_sense : int { min = GRB_min, max = GRB_max };
+    enum var_category : char {
+        continuous = GRB_continuous,
+        integer = GRB_integer,
+        binary = GRB_binary
     };
-    using ModelType = GRBModelWrap;
+    using model_wrapper = GRBModelWrap;
 
-    static GRBModelWrap build(OptSense opt_sense, int nb_vars, double * obj,
-                              double * col_lb, double * col_ub, ColType * vtype,
+    static GRBModelWrap build(opt_sense opt_sense, int nb_vars, double * obj,
+                              double * col_lb, double * col_ub, var_category * vtype,
                               int nb_rows, int nb_elems, int * row_begins,
                               int * indices, double * coefs, double * row_lb,
                               double * row_ub) {

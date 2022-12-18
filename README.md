@@ -44,11 +44,11 @@ then manage to #include it where needed with the range-v3 library.
 #include "mippp/operators.hpp"
 using namespace fhamonic::mippp;
 ...
-using MIP = Model<CbcTraits>;
+using MIP = mip_model<cbc_traits>;
 MIP model;
 auto x1 = model.add_var();
 auto x2 = model.add_var({.upper_bound=3}); // default option is
-// {.obj_coef=0, .lower_bound=0, .upper_bound=INFTY, type=MIP::ColType::CONTINUOUS}
+// {.obj_coef=0, .lower_bound=0, .upper_bound=infinity, type=MIP::var_category::continuous}
 model.add_obj(4 * x1 + 5 * x2);
 model.add_constraint(x1 <= 4);
 model.add_constraint(2*x1 + x2 <= 9);
@@ -70,14 +70,14 @@ using namespace fhamonic::melon;
 using namespace fhamonic::mippp;
 ...
 static_graph graph = ...;
-static_graph::arc_map<double> capacity_map = ...;
-static_graph::vertex_t s = ...;
-static_graph::vertex_t t = ...;
+arc_map_t<static_graph, double> capacity_map = ...;
+vertex_t<static_graph> s = ...;
+vertex_t<static_graph> t = ...;
 
-Model<CbcTraits> model;
+mip_model<cbc_traits> model;
 auto F = model.add_var();
 auto X_vars = model.add_vars(graph.nb_arcs(),
-    [](static_graph::arc_t a) -> std::size_t { return a; });
+    [](arc_t<static_graph> a) -> std::size_t { return a; });
 
 model.add_obj(F);
 for(auto && u : graph.vertices()) {
@@ -95,14 +95,14 @@ or the Shortest Path problem as
 
 ```cpp
 static_graph graph = ...;
-static_graph::arc_map<double> length_map = ...;
-static_graph::vertex_t s = ...;
-static_graph::vertex_t t = ...;
+arc_map_t<static_graph, double> length_map = ...;
+vertex_t<static_graph> s = ...;
+vertex_t<static_graph> t = ...;
 
-using MIP = Model<CbcTraits>;
-MIP model(MIP::OptSense::MINIMIZE);
+using MIP = mip_model<cbc_traits>;
+MIP model(MIP::opt_sense::min);
 auto X_vars = model.add_vars(graph.nb_arcs(),
-    [](static_graph::arc_t a) -> std::size_t { return a; });
+    [](arc_t<static_graph> a) -> std::size_t { return a; });
 
 model.add_obj(xsum(graph.arcs(), X_vars, length_map));
 for(auto && u : graph.vertices()) {

@@ -5,8 +5,8 @@
 using namespace fhamonic::mippp;
 
 int main() {
-    using MILP = MILP_Builder<CbcTraits>;
-    MILP builder(MILP::OptSense::MAXIMIZE);
+    using MILP = MILP_Builder<cbc_traits>;
+    MILP builder(MILP::opt_sense::max);
 
     auto x = builder.addVar();
     auto y = builder.addVar();

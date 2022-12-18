@@ -26,16 +26,16 @@ private:
     E2 _rhs;
 
 public:
-    constexpr linear_expression_add(E1 && e1, E2 && e2)
+    [[nodiscard]] constexpr linear_expression_add(E1 && e1, E2 && e2)
         : _lhs(std::forward<E1>(e1)), _rhs(std::forward<E2>(e2)){};
 
-    constexpr auto variables() const noexcept {
+    [[nodiscard]] constexpr auto variables() const noexcept {
         return ranges::views::concat(_lhs.variables(), _rhs.variables());
     }
-    constexpr auto coefficients() const noexcept {
+    [[nodiscard]] constexpr auto coefficients() const noexcept {
         return ranges::views::concat(_lhs.coefficients(), _rhs.coefficients());
     }
-    constexpr scalar_t constant() const noexcept {
+    [[nodiscard]] constexpr scalar_t constant() const noexcept {
         return _lhs.constant() + _rhs.constant();
     }
 };
@@ -50,15 +50,19 @@ private:
     E _expr;
 
 public:
-    explicit constexpr linear_expression_negate(E && e)
+    [[nodiscard]] constexpr explicit linear_expression_negate(E && e)
         : _expr(std::forward<E>(e)){};
 
-    constexpr auto variables() const noexcept { return _expr.variables(); }
-    constexpr auto coefficients() const noexcept {
+    [[nodiscard]] constexpr auto variables() const noexcept {
+        return _expr.variables();
+    }
+    [[nodiscard]] constexpr auto coefficients() const noexcept {
         return ranges::views::transform(_expr.coefficients(),
                                         std::negate<scalar_t>());
     }
-    constexpr scalar_t constant() const noexcept { return -_expr.constant(); }
+    [[nodiscard]] constexpr scalar_t constant() const noexcept {
+        return -_expr.constant();
+    }
 };
 
 template <linear_expression_c E>
@@ -72,14 +76,17 @@ private:
     const scalar_t _scalar;
 
 public:
-    constexpr linear_expression_scalar_add(E && e, const scalar_t c)
+    [[nodiscard]] constexpr linear_expression_scalar_add(E && e,
+                                                         const scalar_t c)
         : _expr(std::forward<E>(e)), _scalar(c){};
 
-    constexpr auto variables() const noexcept { return _expr.variables(); }
-    constexpr auto coefficients() const noexcept {
+    [[nodiscard]] constexpr auto variables() const noexcept {
+        return _expr.variables();
+    }
+    [[nodiscard]] constexpr auto coefficients() const noexcept {
         return _expr.coefficients();
     }
-    constexpr scalar_t constant() const noexcept {
+    [[nodiscard]] constexpr scalar_t constant() const noexcept {
         return _expr.constant() + _scalar;
     }
 };
@@ -95,17 +102,20 @@ private:
     const scalar_t _scalar;
 
 public:
-    constexpr linear_expression_scalar_mul(E && e, const scalar_t c)
+    [[nodiscard]] constexpr linear_expression_scalar_mul(E && e,
+                                                         const scalar_t c)
         : _expr(std::forward<E>(e)), _scalar(c){};
 
-    constexpr auto variables() const noexcept { return _expr.variables(); }
-    constexpr auto coefficients() const noexcept {
+    [[nodiscard]] constexpr auto variables() const noexcept {
+        return _expr.variables();
+    }
+    [[nodiscard]] constexpr auto coefficients() const noexcept {
         return ranges::views::transform(
             _expr.coefficients(), [scalar = _scalar](auto && coef) -> scalar_t {
                 return scalar * coef;
             });
     }
-    constexpr scalar_t constant() const noexcept {
+    [[nodiscard]] constexpr scalar_t constant() const noexcept {
         return _scalar * _expr.constant();
     }
 };

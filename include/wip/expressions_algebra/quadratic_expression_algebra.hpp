@@ -26,7 +26,7 @@
 
 namespace Algebra {
     enum OptimizationSense { MIN=-1, MAX=1 };
-    constexpr double INFTY = std::numeric_limits<double>::max();
+    constexpr double infinity = std::numeric_limits<double>::max();
 
     // LINEAR
     struct QuadraticTerm {

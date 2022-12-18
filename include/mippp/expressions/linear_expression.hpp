@@ -24,15 +24,21 @@ private:
     S _constant;
 
 public:
-    constexpr linear_expression(V && variables, C && coefficients,
-                                S constant = scalar_t{0})
+    [[nodiscard]] constexpr linear_expression(V && variables, C && coefficients,
+                                              S constant = scalar_t{0})
         : _variables(std::forward<V>(variables))
         , _coefficients(std::forward<C>(coefficients))
         , _constant(constant){};
 
-    constexpr const V & variables() const noexcept { return _variables; }
-    constexpr const C & coefficients() const noexcept { return _coefficients; }
-    constexpr scalar_t constant() const noexcept { return _constant; }
+    [[nodiscard]] constexpr const V & variables() const noexcept {
+        return _variables;
+    }
+    [[nodiscard]] constexpr const C & coefficients() const noexcept {
+        return _coefficients;
+    }
+    [[nodiscard]] constexpr scalar_t constant() const noexcept {
+        return _constant;
+    }
 };
 
 }  // namespace mippp
