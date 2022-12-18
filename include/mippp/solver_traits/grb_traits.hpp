@@ -6,12 +6,12 @@
 namespace fhamonic {
 namespace mippp {
 
-struct GRBModelWrap {
+struct grb_solver_wrapper {
     GRBenv * env;
     GRBmodel * model;
-    GRBModelWrap() : env(nullptr), model(nullptr) {}
-    GRBModelWrap(GRBenv * e, GRBmodel * m) : env(e), model(m) {}
-    ~GRBModelWrap() {
+    grb_solver_wrapper() : env(nullptr), model(nullptr) {}
+    grb_solver_wrapper(GRBenv * e, GRBmodel * m) : env(e), model(m) {}
+    ~grb_solver_wrapper() {
         if(model != nullptr) GRBfreemodel(model);
         if(env != nullptr) GRBfreeenv(env);
     }
@@ -30,18 +30,19 @@ struct GRBModelWrap {
 struct grb_traits {
     enum opt_sense : int { min = GRB_min, max = GRB_max };
     enum var_category : char {
-        continuous = GRB_continuous,
-        integer = GRB_integer,
-        binary = GRB_binary
+        continuous = GRB_CONTINUOUS,
+        integer = GRB_INTEGER,
+        binary = GRB_BINARY
     };
-    using model_wrapper = GRBModelWrap;
+    using model_wrapper = grb_solver_wrapper;
 
-    static GRBModelWrap build(opt_sense opt_sense, int nb_vars, double * obj,
-                              double * col_lb, double * col_ub, var_category * vtype,
-                              int nb_rows, int nb_elems, int * row_begins,
-                              int * indices, double * coefs, double * row_lb,
-                              double * row_ub) {
-        GRBModelWrap grb;
+    static grb_solver_wrapper build(opt_sense opt_sense, int nb_vars,
+                                    double * obj, double * col_lb,
+                                    double * col_ub, var_category * vtype,
+                                    int nb_rows, int nb_elems, int * row_begins,
+                                    int * indices, double * coefs,
+                                    double * row_lb, double * row_ub) {
+        grb_solver_wrapper grb;
         GRBemptyenv(&grb.env);
         GRBstartenv(grb.env);
         GRBsetintparam(grb.env, GRB_INT_PAR_LOGTOCONSOLE, 0);

@@ -8,14 +8,14 @@
 namespace fhamonic {
 namespace mippp {
 
-struct CBCModelWrap {
+struct cbc_solver_wrapper {
     CbcModel model;
-    CBCModelWrap() {}
-    CBCModelWrap(OsiSolverInterface * solver) {
+    cbc_solver_wrapper() {}
+    explicit cbc_solver_wrapper(OsiSolverInterface * solver) {
         // ownership of solver is transfered to model
         model.assignSolver(solver);
     }
-    ~CBCModelWrap() {}
+    ~cbc_solver_wrapper() {}
 
     int optimize() noexcept {
         model.branchAndBound();
@@ -34,9 +34,9 @@ struct CBCModelWrap {
 struct cbc_traits {
     enum opt_sense : int { min = 1, max = -1 };
     enum var_category : char { continuous = 0, integer = 1, binary = 2 };
-    using model_wrapper = CBCModelWrap;
+    using model_wrapper = cbc_solver_wrapper;
 
-    static CBCModelWrap build(opt_sense opt_sense, int nb_vars,
+    static cbc_solver_wrapper build(opt_sense opt_sense, int nb_vars,
                               double const * obj, double const * col_lb,
                               double const * col_ub, var_category const * vtype,
                               int nb_rows, int nb_elems, int const * row_begins,
@@ -71,7 +71,7 @@ struct cbc_traits {
             if(vtype[i] == integer || vtype[i] == binary) solver->setInteger(i);
         }
 
-        return CBCModelWrap(solver);
+        return cbc_solver_wrapper(solver);
     }
 };
 
