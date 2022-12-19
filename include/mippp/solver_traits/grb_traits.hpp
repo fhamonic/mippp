@@ -9,8 +9,10 @@ namespace mippp {
 struct grb_solver_wrapper {
     GRBenv * env;
     GRBmodel * model;
-    grb_solver_wrapper() : env(nullptr), model(nullptr) {}
-    grb_solver_wrapper(GRBenv * e, GRBmodel * m) : env(e), model(m) {}
+
+    [[nodiscard]] grb_solver_wrapper() : env(nullptr), model(nullptr) {}
+    [[nodiscard]] grb_solver_wrapper(GRBenv * e, GRBmodel * m)
+        : env(e), model(m) {}
     ~grb_solver_wrapper() {
         if(model != nullptr) GRBfreemodel(model);
         if(env != nullptr) GRBfreeenv(env);
@@ -18,17 +20,19 @@ struct grb_solver_wrapper {
 
     int optimize() noexcept { return GRBoptimize(model); }
 
-    std::vector<double> get_solution() noexcept {
+    [[nodiscard]] std::vector<double> get_solution() const noexcept {
         int nb_vars;
-        GRBgetintattr(model, GRB_INT_ATTR_NUMVARS, &nb_vars);
+        GRBgetintattr(const_cast<GRBmodel *>(model), GRB_INT_ATTR_NUMVARS,
+                      &nb_vars);
         std::vector<double> solution(static_cast<std::size_t>(nb_vars));
-        GRBgetdblattrarray(model, GRB_DBL_ATTR_X, 0, nb_vars, solution.data());
+        GRBgetdblattrarray(const_cast<GRBmodel *>(model), GRB_DBL_ATTR_X, 0,
+                           nb_vars, solution.data());
         return solution;
     }
 };
 
 struct grb_traits {
-    enum opt_sense : int { min = GRB_min, max = GRB_max };
+    enum opt_sense : int { min = GRB_MIN, max = GRB_MAX };
     enum var_category : char {
         continuous = GRB_CONTINUOUS,
         integer = GRB_INTEGER,
@@ -36,12 +40,11 @@ struct grb_traits {
     };
     using model_wrapper = grb_solver_wrapper;
 
-    static grb_solver_wrapper build(opt_sense opt_sense, int nb_vars,
-                                    double * obj, double * col_lb,
-                                    double * col_ub, var_category * vtype,
-                                    int nb_rows, int nb_elems, int * row_begins,
-                                    int * indices, double * coefs,
-                                    double * row_lb, double * row_ub) {
+    [[nodiscard]] static grb_solver_wrapper build(
+        opt_sense opt_sense, int nb_vars, double * obj, double * col_lb,
+        double * col_ub, var_category * vtype, int nb_rows, int nb_elems,
+        int * row_begins, int * indices, double * coefs, double * row_lb,
+        double * row_ub) {
         grb_solver_wrapper grb;
         GRBemptyenv(&grb.env);
         GRBstartenv(grb.env);

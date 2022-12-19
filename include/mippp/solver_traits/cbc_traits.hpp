@@ -1,6 +1,9 @@
 #ifndef MIPPP_CBC_TRAITS_HPP
 #define MIPPP_CBC_TRAITS_HPP
 
+#include <string>
+#include <vector>
+
 #include <coin/CbcModel.hpp>  // deprecated interface, use CbcMain0 and CbcMain1
 #include <coin/CbcSolver.hpp>
 #include <coin/OsiClpSolverInterface.hpp>
@@ -10,19 +13,29 @@ namespace mippp {
 
 struct cbc_solver_wrapper {
     CbcModel model;
-    cbc_solver_wrapper() {}
-    explicit cbc_solver_wrapper(OsiSolverInterface * solver) {
+
+    [[nodiscard]] cbc_solver_wrapper() {}
+    [[nodiscard]] explicit cbc_solver_wrapper(OsiSolverInterface * solver) {
         // ownership of solver is transfered to model
         model.assignSolver(solver);
     }
     ~cbc_solver_wrapper() {}
 
     int optimize() noexcept {
-        model.branchAndBound();
+        std::vector<std::string> args = {"cbc", "-log=0", "-sec=3600"};
+
+        std::array<const char *, 64> argv;
+        std::ranges::transform(args, argv.begin(), &std::string::c_str);
+        argv[args.size()] = "-solv";
+
+        CbcSolverUsefulData solverData;
+        CbcMain0(model, solverData);
+        CbcMain1(static_cast<int>(args.size() + 1), argv.data(), model, nullptr,
+                 solverData);
         return model.status();
     }
 
-    std::vector<double> get_solution() noexcept {
+    [[nodiscard]] std::vector<double> get_solution() const noexcept {
         std::size_t nb_vars = static_cast<std::size_t>(model.getNumCols());
         std::vector<double> solution(nb_vars);
         const double * solution_arr = model.getColSolution();
@@ -33,15 +46,17 @@ struct cbc_solver_wrapper {
 
 struct cbc_traits {
     enum opt_sense : int { min = 1, max = -1 };
-    enum var_category : char { continuous = 0, integer = 1, binary = 2 };
+    enum var_category : char { continuous = 0, binary = 1, integer = 2 };
     using model_wrapper = cbc_solver_wrapper;
 
     static cbc_solver_wrapper build(opt_sense opt_sense, int nb_vars,
-                              double const * obj, double const * col_lb,
-                              double const * col_ub, var_category const * vtype,
-                              int nb_rows, int nb_elems, int const * row_begins,
-                              int const * indices, double const * coefs,
-                              double const * row_lb, double const * row_ub) {
+                                    double const * obj, double const * col_lb,
+                                    double const * col_ub,
+                                    var_category const * vtype, int nb_rows,
+                                    int nb_elems, int const * row_begins,
+                                    int const * indices, double const * coefs,
+                                    double const * row_lb,
+                                    double const * row_ub) {
         double * col_lb_copy = new double[nb_vars];
         std::copy(col_lb, col_lb + nb_vars, col_lb_copy);
         double * col_ub_copy = new double[nb_vars];
