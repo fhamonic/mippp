@@ -169,10 +169,18 @@ public:
         return _col_type[static_cast<std::size_t>(v.id())];
     }
 
-    scalar_t obj_coef(var v) const noexcept { return obj_coef(v); }
-    scalar_t lower_bound(var v) const noexcept { return lower_bound(v); }
-    scalar_t upper_bound(var v) const noexcept { return upper_bound(v); }
-    var_category type(var v) const noexcept { return type(v); }
+    scalar_t obj_coef(var v) const noexcept {
+        return _col_coef[static_cast<std::size_t>(v.id())];
+    }
+    scalar_t lower_bound(var v) const noexcept {
+        return _col_lb[static_cast<std::size_t>(v.id())];
+    }
+    scalar_t upper_bound(var v) const noexcept {
+        return _col_ub[static_cast<std::size_t>(v.id())];
+    }
+    var_category type(var v) const noexcept {
+        return _col_type[static_cast<std::size_t>(v.id())];
+    }
 
     // Views
     auto variables() const noexcept {
@@ -253,8 +261,9 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
     using var_id_t = mip_model<Traits>::var_id_t;
     using scalar_t = mip_model<Traits>::scalar_t;
     using var = variable<var_id_t, scalar_t>;
-    os << (model.opt_sense() == mip_model<Traits>::opt_sense::min ? "Minimize"
-                                                                  : "Maximize")
+    os << (model.get_opt_sense() == mip_model<Traits>::opt_sense::min
+               ? "Minimize"
+               : "Maximize")
        << '\n';
     print_entries(os, model.objective());
     os << "\nSubject To\n";

@@ -18,6 +18,16 @@ struct grb_solver_wrapper {
         if(env != nullptr) GRBfreeenv(env);
     }
 
+    void set_loglevel(int loglevel) noexcept {
+        GRBsetintparam(env, GRB_INT_PAR_LOGTOCONSOLE, loglevel);
+    }
+    void set_timeout(int timeout_s) noexcept {
+        GRBsetdblparam(env, GRB_DBL_PAR_TIMELIMIT, timeout_s);
+    }
+
+    // GRBsetdblparam(env, GRB_DBL_PAR_MIPGAP, 1e-8);
+    // GRBsetintparam(env, GRB_INT_PAR_THREADS, 8);
+
     int optimize() noexcept { return GRBoptimize(model); }
 
     [[nodiscard]] std::vector<double> get_solution() const noexcept {
@@ -48,7 +58,6 @@ struct grb_traits {
         grb_solver_wrapper grb;
         GRBemptyenv(&grb.env);
         GRBstartenv(grb.env);
-        GRBsetintparam(grb.env, GRB_INT_PAR_LOGTOCONSOLE, 0);
         GRBnewmodel(grb.env, &grb.model, "PL", nb_vars, obj, col_lb, col_ub,
                     reinterpret_cast<char *>(vtype), NULL);
         GRBaddrangeconstrs(grb.model, nb_rows, nb_elems, row_begins, indices,

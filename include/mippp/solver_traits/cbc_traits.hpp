@@ -1,6 +1,7 @@
 #ifndef MIPPP_CBC_TRAITS_HPP
 #define MIPPP_CBC_TRAITS_HPP
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,9 @@ namespace mippp {
 
 struct cbc_solver_wrapper {
     CbcModel model;
+    std::vector<std::string> parameters = {"cbc"};
+    std::optional<std::size_t> loglevel_index;
+    std::optional<std::size_t> timeout_index;
 
     [[nodiscard]] cbc_solver_wrapper() {}
     [[nodiscard]] explicit cbc_solver_wrapper(OsiSolverInterface * solver) {
@@ -21,17 +25,34 @@ struct cbc_solver_wrapper {
     }
     ~cbc_solver_wrapper() {}
 
-    int optimize() noexcept {
-        std::vector<std::string> args = {"cbc", "-log=0", "-sec=3600"};
+    void set_loglevel(int loglevel) noexcept {
+        if(!loglevel_index.has_value()) {
+            loglevel_index.emplace(parameters.size());
+            parameters.emplace_back();
+        }
+        parameters[loglevel_index.value()] = "-log=" + std::to_string(loglevel);
+    }
+    void set_timeout(int timeout_s) noexcept {
+        if(!timeout_index.has_value()) {
+            timeout_index.emplace(parameters.size());
+            parameters.emplace_back();
+        }
+        parameters[timeout_index.value()] = "-sec=" + std::to_string(timeout_s);
+    }
+    void add_param(const std::string & param) {
+        parameters.emplace_back(param);
+    }
 
+    int optimize() noexcept {
         std::array<const char *, 64> argv;
-        std::ranges::transform(args, argv.begin(), &std::string::c_str);
-        argv[args.size()] = "-solv";
+        std::ranges::transform(parameters, argv.begin(), &std::string::c_str);
+        argv[parameters.size()] = "-solve";
 
         CbcSolverUsefulData solverData;
         CbcMain0(model, solverData);
-        CbcMain1(static_cast<int>(args.size() + 1), argv.data(), model, nullptr,
-                 solverData);
+        CbcMain1(static_cast<int>(parameters.size() + 1), argv.data(), model,
+                 nullptr, solverData);
+        // model.branchAndBound();
         return model.status();
     }
 
@@ -46,7 +67,7 @@ struct cbc_solver_wrapper {
 
 struct cbc_traits {
     enum opt_sense : int { min = 1, max = -1 };
-    enum var_category : char { continuous = 0, binary = 1, integer = 2 };
+    enum var_category : char { continuous = 0, integer = 1, binary = 2 };
     using model_wrapper = cbc_solver_wrapper;
 
     static cbc_solver_wrapper build(opt_sense opt_sense, int nb_vars,
