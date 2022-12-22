@@ -51,6 +51,7 @@ struct grb_traits {
         integer = GRB_INTEGER,
         binary = GRB_BINARY
     };
+    enum ret_code : int { success = GRB_BASIC, infeasible = GRB_INFEASIBLE, timeout = GRB_TIME_LIMIT };
     using model_wrapper = grb_solver_wrapper;
 
     [[nodiscard]] static grb_solver_wrapper build(

@@ -48,6 +48,7 @@ public:
 
     using opt_sense = typename Traits::opt_sense;
     using var_category = typename Traits::var_category;
+    using ret_code = typename Traits::ret_code;
     using model_wrapper = typename Traits::model_wrapper;
 
 private:

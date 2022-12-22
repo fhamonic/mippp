@@ -43,6 +43,10 @@ struct cbc_solver_wrapper {
         parameters.emplace_back(param);
     }
 
+    static int cbc_callback(CbcModel * currentSolver, int whereFrom) {
+        return 0;
+    }
+
     int optimize() noexcept {
         std::array<const char *, 64> argv;
         std::ranges::transform(parameters, argv.begin(), &std::string::c_str);
@@ -51,7 +55,7 @@ struct cbc_solver_wrapper {
         CbcSolverUsefulData solverData;
         CbcMain0(model, solverData);
         CbcMain1(static_cast<int>(parameters.size() + 1), argv.data(), model,
-                 nullptr, solverData);
+                 &cbc_callback, solverData);
         // model.branchAndBound();
         return model.status();
     }
@@ -68,6 +72,8 @@ struct cbc_solver_wrapper {
 struct cbc_traits {
     enum opt_sense : int { min = 1, max = -1 };
     enum var_category : char { continuous = 0, integer = 1, binary = 2 };
+    enum ret_code : int { success = 0, infeasible = 1, timeout = 4 };
+
     using model_wrapper = cbc_solver_wrapper;
 
     static cbc_solver_wrapper build(opt_sense opt_sense, int nb_vars,

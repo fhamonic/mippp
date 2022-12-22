@@ -54,7 +54,8 @@ GTEST_TEST(grb_model, add_vars) {
         ASSERT_EQ(x_vars(i).id(), 4 - i);
         ASSERT_EQ(model.obj_coef(x_vars(i)), 0);
         ASSERT_EQ(model.lower_bound(x_vars(i)), 0);
-        ASSERT_EQ(model.upper_bound(x_vars(i)), mip_model<grb_traits>::infinity);
+        ASSERT_EQ(model.upper_bound(x_vars(i)),
+                  mip_model<grb_traits>::infinity);
         ASSERT_EQ(model.type(x_vars(i)),
                   mip_model<grb_traits>::var_category::continuous);
     }
@@ -114,7 +115,8 @@ GTEST_TEST(grb_model, build_optimize) {
 
     auto solver_model = model.build();
 
-    ASSERT_EQ(solver_model.optimize(), 0);
+    ASSERT_EQ(solver_model.optimize(),
+              mip_model<grb_traits>::ret_code::success);
     std::vector<double> solution = solver_model.get_solution();
 
     ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
