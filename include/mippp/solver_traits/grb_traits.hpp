@@ -34,6 +34,9 @@ struct grb_solver_wrapper {
         int nb_vars;
         GRBgetintattr(const_cast<GRBmodel *>(model), GRB_INT_ATTR_NUMVARS,
                       &nb_vars);
+
+        std::cout << nb_vars << std::endl;
+
         std::vector<double> solution(static_cast<std::size_t>(nb_vars));
         GRBgetdblattrarray(const_cast<GRBmodel *>(model), GRB_DBL_ATTR_X, 0,
                            nb_vars, solution.data());
@@ -42,7 +45,7 @@ struct grb_solver_wrapper {
 };
 
 struct grb_traits {
-    enum opt_sense : int { min = GRB_MIN, max = GRB_MAX };
+    enum opt_sense : int { min = GRB_MINIMIZE, max = GRB_MAXIMIZE };
     enum var_category : char {
         continuous = GRB_CONTINUOUS,
         integer = GRB_INTEGER,

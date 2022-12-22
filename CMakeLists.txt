@@ -36,6 +36,9 @@ target_include_directories(mippp_interface
                            INTERFACE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(mippp_interface INTERFACE range-v3::range-v3)
 
+# silence false positive warinings from range-v3 invoke.hpp
+target_compile_options(mippp_interface INTERFACE -Warray-bounds=0)
+
 # ############### Exported target ################
 add_library(mippp INTERFACE)
 target_link_libraries(mippp INTERFACE mippp_interface)
