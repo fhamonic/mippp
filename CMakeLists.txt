@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.12)
 
 project(
-    mippp
-    VERSION 1.0
-    DESCRIPTION
-        "Library attempting to provide an elegant and efficient way for instantiating Mixed Integer Linear Programs."
-    LANGUAGES CXX)
+  mippp
+  VERSION 1.0
+  DESCRIPTION
+    "Library attempting to provide an elegant and efficient way for instantiating Mixed Integer Linear Programs."
+  LANGUAGES CXX)
 
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -43,43 +43,45 @@ target_compile_options(mippp_interface INTERFACE -Warray-bounds=0)
 add_library(mippp INTERFACE)
 target_link_libraries(mippp INTERFACE mippp_interface)
 
-if(${GUROBI_FOUND})
-    add_library(gurobi_backend INTERFACE)
-    target_include_directories(gurobi_backend INTERFACE ${GUROBI_INCLUDE_DIR})
-    target_link_libraries(gurobi_backend INTERFACE ${GUROBI_LIBRARIES})
+# target_compile_definitions(mippp INTERFACE MIPPP_PREFERED_SOLVER=MIPPP_COIN)
 
-    target_link_libraries(mippp INTERFACE gurobi_backend)
-    target_compile_definitions(mippp INTERFACE GUROBI_FOUND)
+if(${GUROBI_FOUND})
+  add_library(gurobi_backend INTERFACE)
+  target_include_directories(gurobi_backend INTERFACE ${GUROBI_INCLUDE_DIR})
+  target_link_libraries(gurobi_backend INTERFACE ${GUROBI_LIBRARIES})
+
+  target_link_libraries(mippp INTERFACE gurobi_backend)
+  target_compile_definitions(mippp INTERFACE MIPPP_GUROBI_FOUND)
 endif()
 if(${CPLEX_FOUND})
-    add_library(cplex_backend INTERFACE)
-    target_include_directories(cplex_backend INTERFACE ${CPLEX_INCLUDE_DIR})
-    target_link_libraries(cplex_backend INTERFACE ${CPLEX_LIBRARIES})
+  add_library(cplex_backend INTERFACE)
+  target_include_directories(cplex_backend INTERFACE ${CPLEX_INCLUDE_DIR})
+  target_link_libraries(cplex_backend INTERFACE ${CPLEX_LIBRARIES})
 
-    target_link_libraries(mippp INTERFACE cplex_backend)
-    target_compile_definitions(mippp INTERFACE CPLEX_FOUND)
+  target_link_libraries(mippp INTERFACE cplex_backend)
+  target_compile_definitions(mippp INTERFACE MIPPP_CPLEX_FOUND)
 endif()
 if(${SCIP_FOUND})
-    add_library(scip_backend INTERFACE)
-    target_include_directories(scip_backend INTERFACE ${SCIP_INCLUDE_DIR})
-    target_link_libraries(scip_backend INTERFACE ${SCIP_LIBRARIES})
+  add_library(scip_backend INTERFACE)
+  target_include_directories(scip_backend INTERFACE ${SCIP_INCLUDE_DIR})
+  target_link_libraries(scip_backend INTERFACE ${SCIP_LIBRARIES})
 
-    target_link_libraries(mippp INTERFACE scip_backend)
-    target_compile_definitions(mippp INTERFACE SCIP_FOUND)
+  target_link_libraries(mippp INTERFACE scip_backend)
+  target_compile_definitions(mippp INTERFACE MIPPP_SCIP_FOUND)
 endif()
 if(${COIN_FOUND})
-    add_library(cbc_backend INTERFACE)
-    target_include_directories(cbc_backend INTERFACE ${COIN_INCLUDE_DIR})
-    target_link_libraries(cbc_backend INTERFACE ${COIN_LIBRARIES})
+  add_library(cbc_backend INTERFACE)
+  target_include_directories(cbc_backend INTERFACE ${COIN_INCLUDE_DIR})
+  target_link_libraries(cbc_backend INTERFACE ${COIN_LIBRARIES})
 
-    target_link_libraries(mippp INTERFACE cbc_backend)
-    target_compile_definitions(mippp INTERFACE COIN_FOUND)
+  target_link_libraries(mippp INTERFACE cbc_backend)
+  target_compile_definitions(mippp INTERFACE MIPPP_COIN_FOUND)
 endif()
 
 # ################### TESTS ######################
 if(ENABLE_TESTING)
-    enable_testing()
-    message("Building Tests.")
-    set_project_warnings(mippp_interface)
-    add_subdirectory(test)
+  enable_testing()
+  message("Building Tests.")
+  set_project_warnings(mippp_interface)
+  add_subdirectory(test)
 endif()
