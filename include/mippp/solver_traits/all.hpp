@@ -32,6 +32,8 @@ using default_solver_traits = scip_traits;
 #elif defined(MIPPP_COIN_FOUND) && \
     (!defined(MIPPP_PREFERED_SOLVER) || MIPPP_PREFERED_SOLVER == MIPPP_COIN)
 using default_solver_traits = cbc_traits;
+#elif defined(MIPPP_PREFERED_SOLVER)
+static_assert(false, "The prefered MIP solver has not been found.");
 #else
 static_assert(false, "No thirdparty MIP solver has been found.");
 #endif

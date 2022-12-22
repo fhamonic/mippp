@@ -112,7 +112,7 @@ GTEST_TEST(cbc_model, build_optimize) {
 
     auto solver_model = model.build();
 
-    solver_model.optimize();
+    ASSERT_EQ(solver_model.optimize(), 0);
     std::vector<double> solution = solver_model.get_solution();
 
     ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
