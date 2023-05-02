@@ -39,6 +39,9 @@ struct cbc_solver_wrapper {
         }
         parameters[timeout_index.value()] = "-sec=" + std::to_string(timeout_s);
     }
+    void set_mip_gap(double precision) noexcept {
+        parameters[timeout_index.value()] = "-mipgap=" + std::to_string(precision);
+    }
     void add_param(const std::string & param) {
         parameters.emplace_back(param);
     }
