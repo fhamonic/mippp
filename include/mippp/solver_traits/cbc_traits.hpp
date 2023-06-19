@@ -70,6 +70,9 @@ struct cbc_solver_wrapper {
         solution.assign(solution_arr, solution_arr + nb_vars);
         return solution;
     }
+    [[nodiscard]] double get_objective_value() const noexcept {
+        return model.getObjValue();
+    }
 };
 
 struct cbc_traits {

@@ -45,6 +45,11 @@ struct grb_solver_wrapper {
                            nb_vars, solution.data());
         return solution;
     }
+    [[nodiscard]] double get_objective_value() const noexcept {
+        double obj;
+        GRBgetdblattr(const_cast<GRBmodel *>(model), GRB_DBL_ATTR_OBJVAL, &obj);
+        return obj;
+    }
 };
 
 struct grb_traits {

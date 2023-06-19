@@ -121,6 +121,8 @@ GTEST_TEST(cbc_model, build_optimize) {
 
     ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
     ASSERT_EQ(solution[static_cast<std::size_t>(y.id())], 12);
+
+    ASSERT_EQ(solver_model.get_objective_value(), 72.0);
 }
 
 GTEST_TEST(cbc_model, xsum) {
