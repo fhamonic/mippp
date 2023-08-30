@@ -4,7 +4,7 @@ project(
   mippp
   VERSION 1.0
   DESCRIPTION
-    "Library attempting to provide an elegant and efficient way for instantiating Mixed Integer Linear Programs."
+    "A modern interface for linear programming solvers using C++20 ranges and concepts."
   LANGUAGES CXX)
 
 # set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -20,15 +20,13 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_BINARY_DIR}" ${CMAKE_MODULE_PATH})
 include(GNUInstallDirs)
 include(CompilerWarnings)
-include(Conan)
-run_conan()
 
 # ################### Packages ###################
 find_package(range-v3)
 
 find_package(GUROBI)
 # find_package(CPLEX) find_package(SCIP)
-find_package(COIN)
+find_package(COINOR)
 
 # ############## Interface target ################
 add_library(mippp_interface INTERFACE)
@@ -69,13 +67,13 @@ if(${SCIP_FOUND})
   target_link_libraries(mippp INTERFACE scip_backend)
   target_compile_definitions(mippp INTERFACE MIPPP_SCIP_FOUND)
 endif()
-if(${COIN_FOUND})
+if(${COINOR_FOUND})
   add_library(cbc_backend INTERFACE)
-  target_include_directories(cbc_backend INTERFACE ${COIN_INCLUDE_DIR})
-  target_link_libraries(cbc_backend INTERFACE ${COIN_LIBRARIES})
+  target_include_directories(cbc_backend INTERFACE ${COINOR_INCLUDE_DIR})
+  target_link_libraries(cbc_backend INTERFACE ${COINOR_LIBRARIES})
 
   target_link_libraries(mippp INTERFACE cbc_backend)
-  target_compile_definitions(mippp INTERFACE MIPPP_COIN_FOUND)
+  target_compile_definitions(mippp INTERFACE MIPPP_COINOR_FOUND)
 endif()
 
 # ################### TESTS ######################
