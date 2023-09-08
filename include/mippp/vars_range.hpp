@@ -43,7 +43,7 @@ public:
     constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
 };
 
-}  // namespace mippp
+d }  // namespace mippp
 }  // namespace fhamonic
 
 #endif  // MIPPP_VARS_RANGE_HPP
