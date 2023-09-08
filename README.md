@@ -40,7 +40,7 @@ then manage to #include it where needed with the range-v3 library.
 ## Code examples
 
 ```cpp
-#include "mippp/model.hpp"
+#include "mippp/mip_model.hpp"
 #include "mippp/operators.hpp"
 using namespace fhamonic::mippp;
 ...
@@ -64,7 +64,7 @@ Using the [MELON library](https://github.com/fhamonic/melon), we can express the
 #include "melon/static_digraph.hpp"
 using namespace fhamonic::melon;
 
-#include "mippp/model.hpp"
+#include "mippp/mip_model.hpp"
 #include "mippp/operators.hpp"
 #include "mippp/xsum.hpp"
 using namespace fhamonic::mippp;

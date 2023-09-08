@@ -13,9 +13,9 @@
 #include "scip_traits.hpp"
 #define MIPPP_SCIP 3
 #endif
-#ifdef MIPPP_COIN_FOUND
+#ifdef MIPPP_COINOR_FOUND
 #include "cbc_traits.hpp"
-#define MIPPP_COIN 4
+#define MIPPP_COINOR 4
 #endif
 
 namespace fhamonic {
@@ -29,8 +29,8 @@ using default_solver_traits = cplex_traits;
 #elif defined(MIPPP_SCIP_FOUND) && \
     (!defined(MIPPP_PREFERED_SOLVER) || MIPPP_PREFERED_SOLVER == MIPPP_SCIP)
 using default_solver_traits = scip_traits;
-#elif defined(MIPPP_COIN_FOUND) && \
-    (!defined(MIPPP_PREFERED_SOLVER) || MIPPP_PREFERED_SOLVER == MIPPP_COIN)
+#elif defined(MIPPP_COINOR_FOUND) && \
+    (!defined(MIPPP_PREFERED_SOLVER) || MIPPP_PREFERED_SOLVER == MIPPP_COINOR)
 using default_solver_traits = cbc_traits;
 #elif defined(MIPPP_PREFERED_SOLVER)
 static_assert(false, "The prefered MIP solver has not been found.");

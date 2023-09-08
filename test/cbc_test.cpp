@@ -2,7 +2,7 @@
 
 #include "mippp/constraints/linear_constraint_operators.hpp"
 #include "mippp/expressions/linear_expression_operators.hpp"
-#include "mippp/model.hpp"
+#include "mippp/mip_model.hpp"
 #include "mippp/xsum.hpp"
 
 #include "assert_eq_ranges.hpp"
@@ -121,6 +121,8 @@ GTEST_TEST(cbc_model, build_optimize) {
 
     ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
     ASSERT_EQ(solution[static_cast<std::size_t>(y.id())], 12);
+
+    ASSERT_EQ(solver_model.get_objective_value(), 72.0);
 }
 
 GTEST_TEST(cbc_model, xsum) {

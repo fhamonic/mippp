@@ -39,6 +39,9 @@ struct cbc_solver_wrapper {
         }
         parameters[timeout_index.value()] = "-sec=" + std::to_string(timeout_s);
     }
+    void set_mip_gap(double precision) noexcept {
+        parameters[timeout_index.value()] = "-mipgap=" + std::to_string(precision);
+    }
     void add_param(const std::string & param) {
         parameters.emplace_back(param);
     }
@@ -66,6 +69,9 @@ struct cbc_solver_wrapper {
         const double * solution_arr = model.getColSolution();
         solution.assign(solution_arr, solution_arr + nb_vars);
         return solution;
+    }
+    [[nodiscard]] double get_objective_value() const noexcept {
+        return model.getObjValue();
     }
 };
 
