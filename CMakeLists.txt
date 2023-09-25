@@ -25,7 +25,8 @@ include(CompilerWarnings)
 find_package(range-v3)
 
 find_package(GUROBI)
-# find_package(CPLEX) find_package(SCIP)
+# find_package(CPLEX)
+find_package(SCIP REQUIRED)
 find_package(COINOR)
 
 # ############## Interface target ################
