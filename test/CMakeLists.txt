@@ -24,7 +24,7 @@ if(${SCIP_FOUND})
     gtest_discover_tests(scip_test)
 endif()
 # if(${CPLEX_FOUND}) ...
-if(${COIN_FOUND})
+if(${COINOR_FOUND})
     add_executable(cbc_test main_test.cpp cbc_test.cpp)
     target_link_libraries(cbc_test mippp)
     target_link_libraries(cbc_test GTest::gtest)
