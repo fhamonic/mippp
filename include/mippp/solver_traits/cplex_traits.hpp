@@ -1,5 +1,5 @@
-#ifndef MIPPP_SCIP_TRAITS_HPP
-#define MIPPP_SCIP_TRAITS_HPP
+#ifndef MIPPP_CPLEX_TRAITS_HPP
+#define MIPPP_CPLEX_TRAITS_HPP
 
 #include <scip/scipdefplugins.h>
 #include "scip/cons_linear.h"
@@ -133,4 +133,4 @@ struct scip_traits {
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_SCIP_TRAITS_HPP
+#endif  // MIPPP_CPLEX_TRAITS_HPP

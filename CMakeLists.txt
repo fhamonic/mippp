@@ -25,22 +25,18 @@ include(CompilerWarnings)
 find_package(range-v3)
 
 find_package(GUROBI)
-# find_package(CPLEX)
+find_package(CPLEX)
 find_package(SCIP REQUIRED)
 find_package(COINOR)
 
-# ############## Interface target ################
-add_library(mippp_interface INTERFACE)
-target_include_directories(mippp_interface
-                           INTERFACE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(mippp_interface INTERFACE range-v3::range-v3)
-
-# silence false positive warinings from range-v3 invoke.hpp
-target_compile_options(mippp_interface INTERFACE -Warray-bounds=0)
-
 # ############### Exported target ################
 add_library(mippp INTERFACE)
-target_link_libraries(mippp INTERFACE mippp_interface)
+target_include_directories(mippp
+                           INTERFACE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(mippp INTERFACE range-v3::range-v3)
+
+# silence false positive warinings from range-v3 invoke.hpp
+target_compile_options(mippp INTERFACE -Warray-bounds=0)
 
 # target_compile_definitions(mippp INTERFACE MIPPP_PREFERED_SOLVER=MIPPP_COIN)
 
@@ -52,14 +48,14 @@ if(${GUROBI_FOUND})
   target_link_libraries(mippp INTERFACE gurobi_backend)
   target_compile_definitions(mippp INTERFACE MIPPP_GUROBI_FOUND)
 endif()
-if(${CPLEX_FOUND})
-  add_library(cplex_backend INTERFACE)
-  target_include_directories(cplex_backend INTERFACE ${CPLEX_INCLUDE_DIR})
-  target_link_libraries(cplex_backend INTERFACE ${CPLEX_LIBRARIES})
+# if(${CPLEX_FOUND})
+#   add_library(cplex_backend INTERFACE)
+#   target_include_directories(cplex_backend INTERFACE ${CPLEX_INCLUDE_DIR})
+#   target_link_libraries(cplex_backend INTERFACE ${CPLEX_LIBRARIES})
 
-  target_link_libraries(mippp INTERFACE cplex_backend)
-  target_compile_definitions(mippp INTERFACE MIPPP_CPLEX_FOUND)
-endif()
+#   target_link_libraries(mippp INTERFACE cplex_backend)
+#   target_compile_definitions(mippp INTERFACE MIPPP_CPLEX_FOUND)
+# endif()
 if(${SCIP_FOUND})
   add_library(scip_backend INTERFACE)
   target_include_directories(scip_backend INTERFACE ${SCIP_INCLUDE_DIR})
@@ -81,6 +77,10 @@ endif()
 if(ENABLE_TESTING)
   enable_testing()
   message("Building Tests.")
-  set_project_warnings(mippp_interface)
+  set_project_warnings(mippp)
   add_subdirectory(test)
 endif()
+
+
+add_executable(butadrum_notes src/main.cpp)
+target_link_libraries(butadrum_notes mippp)
