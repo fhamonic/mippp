@@ -56,6 +56,7 @@ private:
     std::vector<scalar_t> _col_lb;
     std::vector<scalar_t> _col_ub;
     std::vector<var_category> _col_type;
+    std::vector<std::optional<std::string>> _col_name;
 
     std::vector<var_id_t> _vars;
     std::vector<scalar_t> _coefs;
@@ -83,10 +84,11 @@ public:
         var_category type = var_category::continuous;
     };
 
-    var add_var(var_options options = {}) noexcept {
+    var add_var(var_options options = {}, ) noexcept {
         _col_coef.push_back(options.obj_coef);
         _col_lb.push_back(options.lower_bound);
         _col_ub.push_back(options.upper_bound);
+        _col_type.push_back(options.type);
         _col_type.push_back(options.type);
         return var(static_cast<var_id_t>(nb_variables() - 1));
     }
