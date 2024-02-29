@@ -2,19 +2,19 @@
 #define MIPPP_SOLVER_TRAITS_HPP
 
 #ifdef MIPPP_GUROBI_FOUND
-#include "grb_traits.hpp"
+#include "mippp/solver_traits/grb_traits.hpp"
 #define MIPPP_GUROBI 1
 #endif
 #ifdef MIPPP_CPLEX_FOUND
-#include "cplex_traits.hpp"
+#include "mippp/solver_traits/cplex_traits.hpp"
 #define MIPPP_CPLEX 2
 #endif
 #ifdef MIPPP_SCIP_FOUND
-#include "scip_traits.hpp"
+#include "mippp/solver_traits/scip_traits.hpp"
 #define MIPPP_SCIP 3
 #endif
 #ifdef MIPPP_COINOR_FOUND
-#include "cbc_traits.hpp"
+#include "mippp/solver_traits/cbc_traits.hpp"
 #define MIPPP_COINOR 4
 #endif
 
