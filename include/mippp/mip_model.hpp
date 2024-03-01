@@ -14,10 +14,12 @@
 #include <cassert>
 #include <limits>
 #include <ostream>
+#include <sstream>
 #include <vector>
 
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/iota.hpp>
+#include <range/v3/view/repeat_n.hpp>
 #include <range/v3/view/single.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
@@ -29,7 +31,6 @@
 #include "mippp/expressions/linear_expression.hpp"
 #include "mippp/solver_traits/all.hpp"
 #include "mippp/variable.hpp"
-#include "mippp/vars_range.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -84,54 +85,119 @@ public:
         var_category type = var_category::continuous;
     };
 
-    var add_var(var_options options = {}, ) noexcept {
+    var add_var(var_options options = {},
+                std::optional<std::string> name = {}) noexcept {
         _col_coef.push_back(options.obj_coef);
         _col_lb.push_back(options.lower_bound);
         _col_ub.push_back(options.upper_bound);
         _col_type.push_back(options.type);
         _col_type.push_back(options.type);
+        _col_name.emplace_back(std::move(name));
         return var(static_cast<var_id_t>(nb_variables() - 1));
     }
 
+    template <typename IL, typename NL, typename... Args>
+    class vars_range {
+    public:
+        using var_id_t = mip_model::var_id_t;
+        using scalar_t = mip_model::scalar_t;
+        using var = mip_model::var;
+
+    private:
+        const std::size_t _offset;
+        const std::size_t _count;
+        const IL _id_lambda;
+        NL _name_lambda;
+
+    public:
+        constexpr vars_range(detail::pack<Args...>, std::size_t offset,
+                             std::size_t count, IL && id_lambda,
+                             NL && name_lambda) noexcept
+            : _offset(offset)
+            , _count(count)
+            , _id_lambda(std::forward<IL>(id_lambda))
+            , _name_lambda(std::forward<NL>(name_lambda)) {}
+
+        constexpr var operator()(Args... args) const noexcept {
+            const var_id_t id = static_cast<var_id_t>(_id_lambda(args...));
+            assert(static_cast<std::size_t>(id) < _count);
+            return var(static_cast<var_id_t>(_offset) + id);
+        }
+
+        constexpr auto variables() const noexcept {
+            return ranges::iota_view<var_id_t, var_id_t>(
+                static_cast<var_id_t>(_offset),
+                static_cast<var_id_t>(_offset + _count));
+        }
+        constexpr auto coefficients() const noexcept {
+            return ranges::views::repeat_n(scalar_t{1}, _count);
+        }
+        constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
+    };
+
 private:
-    template <typename F, typename... Args>
-    auto add_vars(detail::pack<Args...>, std::size_t count, F && id_lambda,
-                  var_options options = {}) noexcept {
-        const std::size_t offset = nb_variables();
-        const std::size_t new_size = offset + count;
+    void _add_cols(std::size_t count, var_options options = {}) {
+        const std::size_t new_size = nb_variables() + count;
         _col_coef.resize(new_size, options.obj_coef);
         _col_lb.resize(new_size, options.lower_bound);
         _col_ub.resize(new_size, options.upper_bound);
         _col_type.resize(new_size, options.type);
-        return vars_range<var, F, Args...>(offset, count,
-                                           std::forward<F>(id_lambda));
+        _col_name.resize(new_size);
+    }
+
+    template <typename IL, typename... Args>
+        requires std::convertible_to<
+            typename detail::function_traits<IL>::result_type, var_id_t>
+    auto _add_vars(detail::pack<Args...>, std::size_t count, IL && id_lambda,
+                   var_options options = {}) noexcept {
+        const std::size_t offset = nb_variables();
+        _add_cols(count, options);
+        return vars_range(
+            typename detail::function_traits<IL>::arg_types(), offset, count,
+            std::forward<IL>(id_lambda),
+            [this](const var_id_t var_num, Args... args) mutable {
+                if(_col_name[static_cast<std::size_t>(var_num)].has_value())
+                    return;
+                _col_name[static_cast<std::size_t>(var_num)].emplace(
+                    (std::ostringstream{} << "x" << var_num).str());
+            });
+    }
+    template <typename IL, typename NL, typename... Args>
+        requires std::convertible_to<
+            typename detail::function_traits<IL>::result_type, var_id_t>
+    auto _add_vars(detail::pack<Args...>, std::size_t count, IL && id_lambda,
+                   NL && name_lambda, var_options options = {}) noexcept {
+        const std::size_t offset = nb_variables();
+        _add_cols(count, options);
+        return vars_range(
+            typename detail::function_traits<IL>::arg_types(), offset, count,
+            std::forward<IL>(id_lambda),
+            [this, name_lambda = std::forward<NL>(name_lambda)](
+                const var_id_t var_num, Args... args) mutable {
+                if(_col_name[static_cast<std::size_t>(var_num)].has_value())
+                    return;
+                _col_name[static_cast<std::size_t>(var_num)].emplace(
+                    name_lambda(args...));
+            });
     }
 
 public:
-    template <typename F>
-    requires std::convertible_to<
-        typename detail::function_traits<F>::result_type, var_id_t>
-    auto add_vars(std::size_t count, F && id_lambda,
+    template <typename IL>
+        requires std::convertible_to<
+            typename detail::function_traits<IL>::result_type, var_id_t>
+    auto add_vars(std::size_t count, IL && id_lambda,
                   var_options options = {}) noexcept {
-        return add_vars(typename detail::function_traits<F>::arg_types(), count,
-                        std::forward<F>(id_lambda), options);
+        return _add_vars(typename detail::function_traits<IL>::arg_types(),
+                         count, std::forward<IL>(id_lambda), options);
     }
-
-    template <std::ranges::range R,
-              id_value_map<std::ranges::range_value_t<R>, var_id_t> M>
-    auto add_vars(R && values, M && id_map, var_options options = {}) noexcept {
-        using value_t = std::ranges::range_value_t<R>;
-        std::size_t count = 0;
-        for(auto && v : values) {
-            id_map[v] = static_cast<var_id_t>(count);
-            ++count;
-        }
-        return add_vars(
-            detail::pack<value_t>(), count,
-            [id_map = std::forward<M>(id_map)](value_t v) {
-                return var(id_map.at(v));
-            },
-            options);
+    template <typename IL, typename NL>
+        requires std::convertible_to<
+            typename detail::function_traits<IL>::result_type, var_id_t>
+    auto add_vars(std::size_t count, IL && id_lambda, NL && name_lambda,
+                  var_options options = {}) noexcept {
+        return _add_vars(typename detail::function_traits<IL>::arg_types(),
+                         count, std::forward<IL>(id_lambda), options,
+                         std::forward<NL>(name_lambda));
     }
 
     template <linear_expression_c E>
@@ -171,6 +237,9 @@ public:
     var_category & type(var v) noexcept {
         return _col_type[static_cast<std::size_t>(v.id())];
     }
+    std::optional<std::string> & name(var v) noexcept {
+        return _col_name[static_cast<std::size_t>(v.id())];
+    }
 
     scalar_t obj_coef(var v) const noexcept {
         return _col_coef[static_cast<std::size_t>(v.id())];
@@ -183,6 +252,9 @@ public:
     }
     var_category type(var v) const noexcept {
         return _col_type[static_cast<std::size_t>(v.id())];
+    }
+    const std::optional<std::string> & name(var v) const noexcept {
+        return _col_name[static_cast<std::size_t>(v.id())];
     }
 
     // Views
@@ -229,8 +301,9 @@ public:
     }
 };
 
-template <typename T>
-std::ostream & print_entries(std::ostream & os, const T & e) {
+template <typename T, typename NL>
+std::ostream & print_entries(std::ostream & os, const T & e,
+                             const NL & name_lambda) {
     using var_id_t = typename T::var_id_t;
     using scalar_t = typename T::scalar_t;
     auto entries_range = ranges::views::zip(e.variables(), e.coefficients());
@@ -244,7 +317,7 @@ std::ostream & print_entries(std::ostream & os, const T & e) {
         const scalar_t abs_coef = std::abs(coef);
         os << (coef < 0 ? "-" : "");
         if(abs_coef != 1) os << abs_coef << " ";
-        os << "x" << v;
+        os << name_lambda(v);
         break;
     }
     for(++it; it != end; ++it) {
@@ -254,7 +327,7 @@ std::ostream & print_entries(std::ostream & os, const T & e) {
         const scalar_t abs_coef = std::abs(coef);
         os << (coef < 0 ? " - " : " + ");
         if(abs_coef != 1) os << abs_coef << " ";
-        os << "x" << v;
+        os << name_lambda(v);
     }
     return os;
 }
@@ -264,11 +337,16 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
     using var_id_t = mip_model<Traits>::var_id_t;
     using scalar_t = mip_model<Traits>::scalar_t;
     using var = variable<var_id_t, scalar_t>;
+    auto name_lambda = [&](var_id_t id) {
+        auto opt_name = model.name(var(id));
+        if(opt_name.has_value()) return opt_name.value();
+        return (std::ostringstream{} << "x" << id).str();
+    };
     os << (model.get_opt_sense() == mip_model<Traits>::opt_sense::min
                ? "Minimize"
                : "Maximize")
        << '\n';
-    print_entries(os, model.objective());
+    print_entries(os, model.objective(), name_lambda);
     os << "\nSubject To\n";
     for(auto && constr_id : model.constraint_ids()) {
         auto && constr = model.constraint(constr_id);
@@ -276,12 +354,12 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
         const scalar_t ub = constr.upper_bound();
         if(ub < mip_model<Traits>::infinity) {
             os << "R" << constr_id << ": ";
-            print_entries(os, constr);
+            print_entries(os, constr, name_lambda);
             os << " <= " << ub << '\n';
         }
         if(lb > mip_model<Traits>::minus_infinity) {
             os << "R" << constr_id << "_low: ";
-            print_entries(os, constr);
+            print_entries(os, constr, name_lambda);
             os << " >= " << lb << '\n';
         }
     }
@@ -293,7 +371,7 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
     if(ranges::distance(interger_vars) > 0) {
         os << "General\n";
         for(auto && v : interger_vars) {
-            os << " x" << v;
+            os << ' ' << name_lambda(v);
         }
         os << '\n';
     }
@@ -305,7 +383,7 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
     if(ranges::distance(binary_vars) > 0) {
         os << "Binary\n";
         for(auto && v : binary_vars) {
-            os << " x" << v;
+            os << ' ' << name_lambda(v);
         }
         os << '\n';
     }
@@ -318,7 +396,8 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
         os << "Bounds\n";
         for(auto && v : no_trivial_bound_vars) {
             if(model.lower_bound(var(v)) == model.upper_bound(var(v))) {
-                os << "x" << v << " = " << model.upper_bound(var(v)) << '\n';
+                os << name_lambda(v) << " = " << model.upper_bound(var(v))
+                   << '\n';
                 continue;
             }
             if(model.lower_bound(var(v)) != scalar_t(0)) {
@@ -328,7 +407,7 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
                 else
                     os << model.lower_bound(var(v)) << " <= ";
             }
-            os << "x" << v;
+            os << name_lambda(v);
             if(model.upper_bound(var(v)) != mip_model<Traits>::infinity)
                 os << " <= " << model.upper_bound(var(v));
             os << '\n';

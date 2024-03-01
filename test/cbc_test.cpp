@@ -171,7 +171,8 @@ GTEST_TEST(cbc_model, cli_test) {
                << log_path;
 
     auto cmd = solver_cmd.str();
-    std::system(cmd.c_str());
+    auto ret = std::system(cmd.c_str());
+    std::cout << "ret= " << ret << std::endl;
 
     std::ifstream sol_file(sol_path);
     if(sol_file.is_open()) {

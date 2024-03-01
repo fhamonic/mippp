@@ -86,14 +86,14 @@ struct scip_traits {
         for(int i = 0; i < nb_vars; ++i) {
             SCIPcreateVarBasic(
                 scip.model,     // SCIP environment
-                &scip.vars[i],  // reference to the variable
+                &scip.vars[static_cast<std::size_t>(i)],  // reference to the variable
                 nullptr,        // name of the variable
-                col_lb[i],      // Lower bound of the variable
-                col_ub[i],      // upper bound of the variable
-                obj[i],         // Obj. coefficient.
-                static_cast<SCIP_VARTYPE>(vtype[i])  // Binary variable
+                col_lb[static_cast<std::size_t>(i)],      // Lower bound of the variable
+                col_ub[static_cast<std::size_t>(i)],      // upper bound of the variable
+                obj[static_cast<std::size_t>(i)],         // Obj. coefficient.
+                static_cast<SCIP_VARTYPE>(vtype[static_cast<std::size_t>(i)])  // Binary variable
             );
-            if(SCIPaddVar(scip.model, scip.vars[i]) != SCIP_OKAY) {
+            if(SCIPaddVar(scip.model, scip.vars[static_cast<std::size_t>(i)]) != SCIP_OKAY) {
                 std::cerr << "SCIPaddVar not okay" << std::endl;
             }
         }
@@ -103,27 +103,27 @@ struct scip_traits {
         scip.constrs = std::vector<SCIP_CONS *>(
             static_cast<std::size_t>(nb_rows), nullptr);
         for(int i = 0; i < nb_rows; ++i) {
-            int begin_elems = row_begins[i];
+            int begin_elems = row_begins[static_cast<std::size_t>(i)];
             int end_elems =
                 (i == nb_rows - 1) ? (nb_elems) : (row_begins[i + 1]);
 
             name = "ROW_" + std::to_string(i);
 
             if(SCIP_RETCODE code = SCIPcreateConsBasicLinear(
-                   scip.model, &scip.constrs[i], name.c_str(), 0, nullptr,
-                   nullptr, row_lb[i], row_ub[i]);
+                   scip.model, &scip.constrs[static_cast<std::size_t>(i)], name.c_str(), 0, nullptr,
+                   nullptr, row_lb[static_cast<std::size_t>(i)], row_ub[static_cast<std::size_t>(i)]);
                code != SCIP_OKAY) {
                 std::cerr << "SCIPcreateConsBasicLinear not okay" << std::endl;
                 SCIPerrorMessage("Error <%d> in function call\n", code);
             }
 
             for(int elem_num = begin_elems; elem_num != end_elems; ++elem_num) {
-                SCIPaddCoefLinear(scip.model, scip.constrs[i],
-                                  scip.vars[indices[elem_num]],
+                SCIPaddCoefLinear(scip.model, scip.constrs[static_cast<std::size_t>(i)],
+                                  scip.vars[static_cast<std::size_t>(indices[elem_num])],
                                   coefs[elem_num]);
             }
 
-            SCIPaddCons(scip.model, scip.constrs[i]);
+            SCIPaddCons(scip.model, scip.constrs[static_cast<std::size_t>(i)]);
         }
 
         return scip;

@@ -172,8 +172,8 @@ GTEST_TEST(scip_model, cli_test) {
                << "\" -c quit > " << log_path;
 
     auto cmd = solver_cmd.str();
-    std::cout << cmd << std::endl;
-    std::system(cmd.c_str());
+    auto ret = std::system(cmd.c_str());
+    std::cout << "ret= " << ret << std::endl;
 
     std::ifstream sol_file(sol_path);
     if(sol_file.is_open()) {

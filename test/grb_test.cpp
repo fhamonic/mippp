@@ -133,3 +133,71 @@ GTEST_TEST(grb_model, xsum) {
     // model.add_obj(xsum(ranges::views::iota(0,4), x_vars, [](int i) -> double
     // {return 2.0*i;})); model.add_constraint()
 }
+
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <thread>
+
+bool skip(std::ifstream & myfile, int count = 1) {
+    std::string s;
+    for(int i = 0; i < count; ++i)
+        if(!(myfile >> s)) return false;
+    return true;
+}
+
+GTEST_TEST(grb_model, cli_test) {
+    mip_model<cbc_traits> model;
+    // auto x = model.add_var({.lower_bound = 0, .upper_bound = 20});
+    // auto y = model.add_var({.upper_bound = 12});
+    // model.add_obj(2 * x + 3 * y);
+    // model.add_constraint(x + y <= 30);
+
+    auto x = model.add_var({.lower_bound = 0});
+    auto y = model.add_var({.upper_bound = 12});
+    model.add_obj(2 * x + 3 * y);
+    model.add_constraint(x + y >= 30);
+
+    std::ostringstream ss;
+    ss << std::this_thread::get_id();
+    auto tmp_dir = std::filesystem::temp_directory_path() / "mippp" / ss.str();
+    std::filesystem::create_directories(tmp_dir);
+    auto lp_path = tmp_dir / "model.lp";
+    auto sol_path = tmp_dir / "solution.sol";
+    auto log_path = tmp_dir / "log.txt";
+    {
+        std::ofstream lp_file(lp_path);
+        lp_file << model << std::endl;
+    }
+
+    std::ostringstream solver_cmd;
+    solver_cmd << "gurobi_cl ResultFile=" << sol_path << " " << lp_path << " > "
+               << log_path;
+
+    auto cmd = solver_cmd.str();
+    auto ret = std::system(cmd.c_str());
+
+    std::cout << "ret= " << ret << std::endl;
+
+    std::ifstream sol_file(sol_path);
+    if(sol_file.is_open()) {
+        if(!sol_file) {
+            skip(sol_file, 4);
+            double obj;
+            if(!(sol_file >> obj)) std::cout << "nique" << std::endl;
+            std::cout << "Objective= " << obj << std::endl;
+
+            std::string var;
+            double value;
+
+            while(sol_file >> var >> value) {
+                std::cout << var << " " << value << std::endl;
+            }
+        } else {
+            std::cout << "Failed" << std::endl;
+        }
+    } else
+        std::cout << "Unable to open solution file at " +
+                         sol_path.generic_string();
+}
