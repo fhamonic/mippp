@@ -12,43 +12,43 @@ using namespace fhamonic::mippp;
 
 using Var = variable<int, double>;
 
-GTEST_TEST(cplex_model, ctor) { mip_model<cplex_traits> model; }
+GTEST_TEST(shared_cplex_model, ctor) { mip_model<shared_cplex_traits> model; }
 
-GTEST_TEST(cplex_model, add_var) {
-    mip_model<cplex_traits> model;
+GTEST_TEST(shared_cplex_model, add_var) {
+    mip_model<shared_cplex_traits> model;
     auto x = model.add_var();
     ASSERT_EQ(x.id(), 0);
     ASSERT_EQ(model.nb_variables(), 1);
 }
 
-// GTEST_TEST(cplex_model, add_var_default_options) {
-//     mip_model<cplex_traits> model;
+// GTEST_TEST(shared_cplex_model, add_var_default_options) {
+//     mip_model<shared_cplex_traits> model;
 //     auto x = model.add_var();
 //     ASSERT_EQ(x.id(), 0);
 //     ASSERT_EQ(model.nb_variables(), 1);
 //     ASSERT_EQ(model.obj_coef(x), 0);
 //     ASSERT_EQ(model.lower_bound(x), 0);
-//     ASSERT_EQ(model.upper_bound(x), mip_model<cplex_traits>::infinity);
-//     ASSERT_EQ(model.type(x), mip_model<cplex_traits>::var_category::continuous);
+//     ASSERT_EQ(model.upper_bound(x), mip_model<shared_cplex_traits>::infinity);
+//     ASSERT_EQ(model.type(x), mip_model<shared_cplex_traits>::var_category::continuous);
 // }
 
-// GTEST_TEST(cplex_model, add_var_custom_options) {
-//     mip_model<cplex_traits> model;
+// GTEST_TEST(shared_cplex_model, add_var_custom_options) {
+//     mip_model<shared_cplex_traits> model;
 //     auto x =
 //         model.add_var({.obj_coef = 6.14,
 //                        .lower_bound = 3.2,
 //                        .upper_bound = 9,
-//                        .type = mip_model<cplex_traits>::var_category::binary});
+//                        .type = mip_model<shared_cplex_traits>::var_category::binary});
 //     ASSERT_EQ(x.id(), 0);
 //     ASSERT_EQ(model.nb_variables(), 1);
 //     ASSERT_EQ(model.obj_coef(x), 6.14);
 //     ASSERT_EQ(model.lower_bound(x), 3.2);
 //     ASSERT_EQ(model.upper_bound(x), 9);
-//     ASSERT_EQ(model.type(x), mip_model<cplex_traits>::var_category::binary);
+//     ASSERT_EQ(model.type(x), mip_model<shared_cplex_traits>::var_category::binary);
 // }
 
-// GTEST_TEST(cplex_model, add_vars) {
-//     mip_model<cplex_traits> model;
+// GTEST_TEST(shared_cplex_model, add_vars) {
+//     mip_model<shared_cplex_traits> model;
 //     auto x_vars = model.add_vars(5, [](int i) { return 4 - i; });
 //     ASSERT_EQ(model.nb_variables(), 5);
 //     for(int i = 0; i < 5; ++i) {
@@ -56,14 +56,14 @@ GTEST_TEST(cplex_model, add_var) {
 //         ASSERT_EQ(model.obj_coef(x_vars(i)), 0);
 //         ASSERT_EQ(model.lower_bound(x_vars(i)), 0);
 //         ASSERT_EQ(model.upper_bound(x_vars(i)),
-//                   mip_model<cplex_traits>::infinity);
+//                   mip_model<shared_cplex_traits>::infinity);
 //         ASSERT_EQ(model.type(x_vars(i)),
-//                   mip_model<cplex_traits>::var_category::continuous);
+//                   mip_model<shared_cplex_traits>::var_category::continuous);
 //     }
 // }
 
-// GTEST_TEST(cplex_model, add_obj) {
-//     mip_model<cplex_traits> model;
+// GTEST_TEST(shared_cplex_model, add_obj) {
+//     mip_model<shared_cplex_traits> model;
 //     auto x = model.add_var();
 //     auto y = model.add_var();
 //     model.add_obj(x - 3 * y);
@@ -78,8 +78,8 @@ GTEST_TEST(cplex_model, add_var) {
 //     ASSERT_EQ(model.obj_coef(y), -2);
 //     ASSERT_EQ(model.obj_coef(z), -1);
 // }
-// GTEST_TEST(cplex_model, objective) {
-//     mip_model<cplex_traits> model;
+// GTEST_TEST(shared_cplex_model, objective) {
+//     mip_model<shared_cplex_traits> model;
 //     auto x = model.add_var();
 //     auto y = model.add_var();
 //     auto z = model.add_var();
@@ -89,8 +89,8 @@ GTEST_TEST(cplex_model, add_var) {
 //     ASSERT_EQ_RANGES(obj.coefficients(), {1.0, -2.0, -1.0});
 // }
 
-// GTEST_TEST(cplex_model, add_constraint) {
-//     mip_model<cplex_traits> model;
+// GTEST_TEST(shared_cplex_model, add_constraint) {
+//     mip_model<shared_cplex_traits> model;
 //     auto x = model.add_var();
 //     auto y = model.add_var();
 //     auto z = model.add_var();
@@ -107,8 +107,8 @@ GTEST_TEST(cplex_model, add_var) {
 //     ASSERT_EQ_RANGES(constr.coefficients(), {-1.0, 1.0, 3.0});
 // }
 
-// GTEST_TEST(cplex_model, build_optimize) {
-//     mip_model<cplex_traits> model;
+// GTEST_TEST(shared_cplex_model, build_optimize) {
+//     mip_model<shared_cplex_traits> model;
 //     auto x = model.add_var({.lower_bound = 0, .upper_bound = 20});
 //     auto y = model.add_var({.upper_bound = 12});
 //     model.add_obj(2 * x + 3 * y);
@@ -117,7 +117,7 @@ GTEST_TEST(cplex_model, add_var) {
 //     auto solver_model = model.build();
 
 //     ASSERT_EQ(solver_model.optimize(),
-//               mip_model<cplex_traits>::ret_code::success);
+//               mip_model<shared_cplex_traits>::ret_code::success);
 //     std::vector<double> solution = solver_model.get_solution();
 
 //     ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
@@ -126,8 +126,8 @@ GTEST_TEST(cplex_model, add_var) {
 //     ASSERT_EQ(solver_model.get_objective_value(), 72.0);
 // }
 
-// GTEST_TEST(cplex_model, xsum) {
-//     mip_model<cplex_traits> model;
+// GTEST_TEST(shared_cplex_model, xsum) {
+//     mip_model<shared_cplex_traits> model;
 //     auto x_vars = model.add_vars(5, [](int i) { return 4 - i; });
 
 //     // model.add_obj(xsum(ranges::views::iota(0,4), x_vars, [](int i) -> double

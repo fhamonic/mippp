@@ -44,7 +44,7 @@ then manage to #include it where needed with the range-v3 library.
 #include "mippp/operators.hpp"
 using namespace fhamonic::mippp;
 ...
-using MIP = mip_model<cbc_traits>;
+using MIP = mip_model<shared_cbc_traits>;
 MIP model;
 auto x1 = model.add_var();
 auto x2 = model.add_var({.upper_bound=3}); // default option is
@@ -74,7 +74,7 @@ arc_map_t<static_graph, double> capacity_map = ...;
 vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 
-mip_model<cbc_traits> model;
+mip_model<shared_cbc_traits> model;
 auto F = model.add_var();
 auto X_vars = model.add_vars(graph.nb_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
@@ -99,7 +99,7 @@ arc_map_t<static_graph, double> length_map = ...;
 vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 
-using MIP = mip_model<cbc_traits>;
+using MIP = mip_model<shared_cbc_traits>;
 MIP model(MIP::opt_sense::min);
 auto X_vars = model.add_vars(graph.nb_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });

@@ -92,7 +92,12 @@ public:
         _col_ub.push_back(options.upper_bound);
         _col_type.push_back(options.type);
         _col_type.push_back(options.type);
-        _col_name.emplace_back(std::move(name));
+        if(name.has_value()) {
+            _col_name.emplace_back(std::move(name));
+        } else {
+            _col_name.emplace_back(
+                (std::ostringstream{} << "x" << (nb_variables() - 1)).str());
+        }
         return var(static_cast<var_id_t>(nb_variables() - 1));
     }
 
@@ -290,13 +295,20 @@ public:
                                         &mip_model::constraint);
     }
 
+    auto optimization_sense() const noexcept { return _sense; }
+    auto column_coefs() const noexcept { return _col_coef.data(); }
+    auto column_lower_bounds() const noexcept { return _col_lb.data(); }
+    auto column_upper_bounds() const noexcept { return _col_ub.data(); }
+    auto column_types() const noexcept { return _col_type.data(); }
+    auto column_name() const noexcept { return _col_name.data(); }
+    auto row_begins() const noexcept { return _row_begins.data(); }
+    auto var_entries() const noexcept { return _vars.data(); }
+    auto coef_entries() const noexcept { return _coefs.data(); }
+    auto row_lower_bounds() const noexcept { return _row_lb.data(); }
+    auto row_upper_bounds() const noexcept { return _row_ub.data(); }
+
     model_wrapper build() noexcept {
-        model_wrapper wrapper = Traits::build(
-            _sense, static_cast<int>(nb_variables()), _col_coef.data(),
-            _col_lb.data(), _col_ub.data(), _col_type.data(),
-            static_cast<int>(nb_constraints()), static_cast<int>(nb_entries()),
-            _row_begins.data(), _vars.data(), _coefs.data(), _row_lb.data(),
-            _row_ub.data());
+        model_wrapper wrapper = Traits::build(*this);
         return wrapper;
     }
 };

@@ -1,5 +1,5 @@
-#ifndef MIPPP_CBC_TRAITS_HPP
-#define MIPPP_CBC_TRAITS_HPP
+#ifndef MIPPP_SHARED_CBC_TRAITS_HPP
+#define MIPPP_SHARED_CBC_TRAITS_HPP
 
 #include <optional>
 #include <string>
@@ -12,18 +12,19 @@
 namespace fhamonic {
 namespace mippp {
 
-struct cbc_solver_wrapper {
+struct shared_cbc_solver_wrapper {
     CbcModel model;
     std::vector<std::string> parameters = {"cbc"};
     std::optional<std::size_t> loglevel_index;
     std::optional<std::size_t> timeout_index;
 
-    [[nodiscard]] cbc_solver_wrapper() {}
-    [[nodiscard]] explicit cbc_solver_wrapper(OsiSolverInterface * solver) {
+    [[nodiscard]] shared_cbc_solver_wrapper() {}
+    [[nodiscard]] explicit shared_cbc_solver_wrapper(
+        OsiSolverInterface * solver) {
         // ownership of solver is transfered to model
         model.assignSolver(solver);
     }
-    ~cbc_solver_wrapper() {}
+    ~shared_cbc_solver_wrapper() {}
 
     void set_loglevel(int loglevel) noexcept {
         if(!loglevel_index.has_value()) {
@@ -40,7 +41,8 @@ struct cbc_solver_wrapper {
         parameters[timeout_index.value()] = "-sec=" + std::to_string(timeout_s);
     }
     void set_mip_gap(double precision) noexcept {
-        parameters[timeout_index.value()] = "-mipgap=" + std::to_string(precision);
+        parameters[timeout_index.value()] =
+            "-mipgap=" + std::to_string(precision);
     }
     void add_param(const std::string & param) {
         parameters.emplace_back(param);
@@ -75,21 +77,28 @@ struct cbc_solver_wrapper {
     }
 };
 
-struct cbc_traits {
+struct shared_cbc_traits {
     enum opt_sense : int { min = 1, max = -1 };
     enum var_category : char { continuous = 0, integer = 1, binary = 2 };
     enum ret_code : int { success = 0, infeasible = 1, timeout = 4 };
 
-    using model_wrapper = cbc_solver_wrapper;
+    using model_wrapper = shared_cbc_solver_wrapper;
 
-    static cbc_solver_wrapper build(opt_sense opt_sense, int nb_vars,
-                                    double const * obj, double const * col_lb,
-                                    double const * col_ub,
-                                    var_category const * vtype, int nb_rows,
-                                    int nb_elems, int const * row_begins,
-                                    int const * indices, double const * coefs,
-                                    double const * row_lb,
-                                    double const * row_ub) {
+    static shared_cbc_solver_wrapper build(const auto & model) {
+        opt_sense sense = model.optimization_sense();
+        int nb_vars = static_cast<int>(model.nb_variables());
+        double const * obj = model.column_coefs();
+        double const * col_lb = model.column_lower_bounds();
+        double const * col_ub = model.column_upper_bounds();
+        var_category const * vtype = model.column_types();
+        int nb_rows = static_cast<int>(model.nb_constraints());
+        int nb_elems = static_cast<int>(model.nb_entries());
+        int const * row_begins = model.row_begins();
+        int const * indices = model.var_entries();
+        double const * coefs = model.coef_entries();
+        double const * row_lb = model.row_lower_bounds();
+        double const * row_ub = model.row_upper_bounds();
+
         double * col_lb_copy = new double[nb_vars];
         std::copy(col_lb, col_lb + nb_vars, col_lb_copy);
         double * col_ub_copy = new double[nb_vars];
@@ -114,12 +123,12 @@ struct cbc_traits {
         // ownership of copies and matrix is transfered to solver
         solver->assignProblem(matrix, col_lb_copy, col_ub_copy, obj_copy,
                               row_lb_copy, row_ub_copy);
-        solver->setObjSense(opt_sense);
+        solver->setObjSense(sense);
         for(int i = 0; i < nb_vars; ++i) {
             if(vtype[i] == integer || vtype[i] == binary) solver->setInteger(i);
         }
 
-        return cbc_solver_wrapper(solver);
+        return shared_cbc_solver_wrapper(solver);
     }
 };
 
@@ -132,4 +141,4 @@ struct cbc_traits {
 // (CoinPackedMatrix *&matrix, double *&collb, double *&colub, double *&obj,
 // char *&rowsen, double *&rowrhs, double *&rowrng)=0
 
-#endif  // MIPPP_CBC_TRAITS_HPP
+#endif  // MIPPP_SHARED_CBC_TRAITS_HPP
