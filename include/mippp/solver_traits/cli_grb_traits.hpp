@@ -42,8 +42,8 @@ struct cli_grb_solver_wrapper {
             (std::ostringstream{} << std::this_thread::get_id()).str();
         std::filesystem::create_directories(tmp_dir);
         lp_path = tmp_dir / "model.lp";
-        sol_path = tmp_dir / "sol.txt";
-        log_path = tmp_dir / "log.txt";
+        sol_path = tmp_dir / "solution.sol";
+        log_path = tmp_dir / "output.log";
 
         std::ofstream lp_file(lp_path);
         lp_file << model << std::endl;
@@ -57,7 +57,7 @@ struct cli_grb_solver_wrapper {
             parameters.emplace_back();
         }
         parameters[loglevel_index.value()] =
-            "-logLevel=" + std::to_string(loglevel);
+            (std::ostringstream{} << "LogToConsole=" << loglevel).str();
     }
     void set_timeout(int timeout_s) noexcept {
         if(!timeout_index.has_value()) {
@@ -65,11 +65,11 @@ struct cli_grb_solver_wrapper {
             parameters.emplace_back();
         }
         parameters[timeout_index.value()] =
-            "-seconds=" + std::to_string(timeout_s);
+            (std::ostringstream{} << "TimeLimit=" << timeout_s).str();
     }
     void set_mip_gap(double precision) noexcept {
         parameters[timeout_index.value()] =
-            "-allowableGap=" + std::to_string(precision);
+            (std::ostringstream{} << "MIPGap=" << precision).str();
     }
     void add_param(const std::string & param) {
         parameters.emplace_back(param);
@@ -86,36 +86,30 @@ private:
 public:
     int optimize() noexcept {
         std::ostringstream solver_cmd;
-        solver_cmd << "gurobi_cl " << lp_path;
+        solver_cmd << "gurobi_cl";
         for(auto && param : parameters) {
             solver_cmd << ' ' << param;
         }
-        solver_cmd << "ResultFile=" << sol_path << " " << lp_path << " > "
+        solver_cmd << " ResultFile=" << sol_path << " " << lp_path << " > "
                    << log_path;
         auto cmd = solver_cmd.str();
         auto ret = std::system(cmd.c_str());
-
         solution.clear();
         solution.resize(nb_variables, 0);
 
         std::ifstream sol_file(sol_path);
         if(sol_file.is_open()) {
-            if(!sol_file) {
-                skip(sol_file, 4);
-                double obj;
-                sol_file >> objective_value;
-
-                std::string var;
-                double value;
-                while(sol_file >> var >> value) {
-                    solution[var_name_to_id.at(var)] = value;
-                }
-            } else {
-                std::cout << "Failed" << std::endl;
+            skip(sol_file, 4);
+            sol_file >> objective_value;
+            std::string var;
+            double value;
+            while(sol_file >> var >> value) {
+                solution[var_name_to_id.at(var)] = value;
             }
         } else
             std::cout << "Unable to open solution file at " +
-                             sol_path.generic_string();
+                             sol_path.generic_string()
+                      << std::endl;
 
         return ret;
     }

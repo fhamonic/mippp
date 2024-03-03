@@ -45,3 +45,8 @@ add_executable(cli_grb_test main_test.cpp cli_grb_test.cpp)
 target_link_libraries(cli_grb_test mippp)
 target_link_libraries(cli_grb_test GTest::gtest)
 gtest_discover_tests(cli_grb_test)
+
+add_executable(cli_scip_test main_test.cpp cli_scip_test.cpp)
+target_link_libraries(cli_scip_test mippp)
+target_link_libraries(cli_scip_test GTest::gtest)
+gtest_discover_tests(cli_scip_test)

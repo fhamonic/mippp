@@ -20,6 +20,7 @@
 
 #include "mippp/solver_traits/cli_cbc_traits.hpp"
 #include "mippp/solver_traits/cli_grb_traits.hpp"
+#include "mippp/solver_traits/cli_scip_traits.hpp"
 
 namespace fhamonic {
 namespace mippp {

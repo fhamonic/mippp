@@ -28,16 +28,17 @@ GTEST_TEST(cli_cbc_model, add_var_default_options) {
     ASSERT_EQ(model.obj_coef(x), 0);
     ASSERT_EQ(model.lower_bound(x), 0);
     ASSERT_EQ(model.upper_bound(x), mip_model<cli_cbc_traits>::infinity);
-    ASSERT_EQ(model.type(x), mip_model<cli_cbc_traits>::var_category::continuous);
+    ASSERT_EQ(model.type(x),
+              mip_model<cli_cbc_traits>::var_category::continuous);
 }
 
 GTEST_TEST(cli_cbc_model, add_var_custom_options) {
     mip_model<cli_cbc_traits> model;
-    auto x =
-        model.add_var({.obj_coef = 6.14,
-                       .lower_bound = 3.2,
-                       .upper_bound = 9,
-                       .type = mip_model<cli_cbc_traits>::var_category::binary});
+    auto x = model.add_var(
+        {.obj_coef = 6.14,
+         .lower_bound = 3.2,
+         .upper_bound = 9,
+         .type = mip_model<cli_cbc_traits>::var_category::binary});
     ASSERT_EQ(x.id(), 0);
     ASSERT_EQ(model.nb_variables(), 1);
     ASSERT_EQ(model.obj_coef(x), 6.14);
