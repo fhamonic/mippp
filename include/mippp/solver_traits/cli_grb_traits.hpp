@@ -127,7 +127,7 @@ struct cli_grb_traits {
     enum var_category : char { continuous = 0, integer = 1, binary = 2 };
     enum ret_code : int { success = 0, infeasible = 1, timeout = 2 };
 
-    using model_wrapper = cli_grb_solver_wrapper;
+    using solver_wrapper = cli_grb_solver_wrapper;
 
     static cli_grb_solver_wrapper build(const auto & model) {
         cli_grb_solver_wrapper grb(model);

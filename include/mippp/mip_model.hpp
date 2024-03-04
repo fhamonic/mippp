@@ -50,7 +50,7 @@ public:
     using opt_sense = typename Traits::opt_sense;
     using var_category = typename Traits::var_category;
     using ret_code = typename Traits::ret_code;
-    using model_wrapper = typename Traits::model_wrapper;
+    using solver_wrapper = typename Traits::solver_wrapper;
 
 private:
     std::vector<scalar_t> _col_coef;
@@ -85,12 +85,11 @@ public:
         var_category type = var_category::continuous;
     };
 
-    var add_var(var_options options = {},
+    var add_variable(var_options options = {},
                 std::optional<std::string> name = {}) noexcept {
         _col_coef.push_back(options.obj_coef);
         _col_lb.push_back(options.lower_bound);
         _col_ub.push_back(options.upper_bound);
-        _col_type.push_back(options.type);
         _col_type.push_back(options.type);
         if(name.has_value()) {
             _col_name.emplace_back(std::move(name));
@@ -112,7 +111,7 @@ public:
         const std::size_t _offset;
         const std::size_t _count;
         const IL _id_lambda;
-        NL _name_lambda;
+        mutable NL _name_lambda;
 
     public:
         constexpr vars_range(detail::pack<Args...>, std::size_t offset,
@@ -126,7 +125,9 @@ public:
         constexpr var operator()(Args... args) const noexcept {
             const var_id_t id = static_cast<var_id_t>(_id_lambda(args...));
             assert(static_cast<std::size_t>(id) < _count);
-            return var(static_cast<var_id_t>(_offset) + id);
+            const var_id_t var_num = static_cast<var_id_t>(_offset) + id;
+            _name_lambda(var_num, args...);
+            return var(var_num);
         }
 
         constexpr auto variables() const noexcept {
@@ -153,7 +154,7 @@ private:
     template <typename IL, typename... Args>
         requires std::convertible_to<
             typename detail::function_traits<IL>::result_type, var_id_t>
-    auto _add_vars(detail::pack<Args...>, std::size_t count, IL && id_lambda,
+    auto _add_variables(detail::pack<Args...>, std::size_t count, IL && id_lambda,
                    var_options options = {}) noexcept {
         const std::size_t offset = nb_variables();
         _add_cols(count, options);
@@ -170,7 +171,7 @@ private:
     template <typename IL, typename NL, typename... Args>
         requires std::convertible_to<
             typename detail::function_traits<IL>::result_type, var_id_t>
-    auto _add_vars(detail::pack<Args...>, std::size_t count, IL && id_lambda,
+    auto _add_variables(detail::pack<Args...>, std::size_t count, IL && id_lambda,
                    NL && name_lambda, var_options options = {}) noexcept {
         const std::size_t offset = nb_variables();
         _add_cols(count, options);
@@ -190,23 +191,23 @@ public:
     template <typename IL>
         requires std::convertible_to<
             typename detail::function_traits<IL>::result_type, var_id_t>
-    auto add_vars(std::size_t count, IL && id_lambda,
+    auto add_variables(std::size_t count, IL && id_lambda,
                   var_options options = {}) noexcept {
-        return _add_vars(typename detail::function_traits<IL>::arg_types(),
+        return _add_variables(typename detail::function_traits<IL>::arg_types(),
                          count, std::forward<IL>(id_lambda), options);
     }
     template <typename IL, typename NL>
         requires std::convertible_to<
             typename detail::function_traits<IL>::result_type, var_id_t>
-    auto add_vars(std::size_t count, IL && id_lambda, NL && name_lambda,
+    auto add_variables(std::size_t count, IL && id_lambda, NL && name_lambda,
                   var_options options = {}) noexcept {
-        return _add_vars(typename detail::function_traits<IL>::arg_types(),
-                         count, std::forward<IL>(id_lambda), options,
-                         std::forward<NL>(name_lambda));
+        return _add_variables(typename detail::function_traits<IL>::arg_types(),
+                         count, std::forward<IL>(id_lambda),
+                         std::forward<NL>(name_lambda), options);
     }
 
     template <linear_expression_c E>
-    mip_model & add_obj(E && le) noexcept {
+    mip_model & add_to_objective(E && le) noexcept {
         auto entries_range =
             ranges::views::zip(le.variables(), le.coefficients());
         for(auto && [v, c] : entries_range) {
@@ -307,8 +308,8 @@ public:
     auto row_lower_bounds() const noexcept { return _row_lb.data(); }
     auto row_upper_bounds() const noexcept { return _row_ub.data(); }
 
-    model_wrapper build() noexcept {
-        model_wrapper wrapper = Traits::build(*this);
+    solver_wrapper build() noexcept {
+        solver_wrapper wrapper = Traits::build(*this);
         return wrapper;
     }
 };

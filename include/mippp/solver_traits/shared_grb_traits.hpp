@@ -64,7 +64,7 @@ struct shared_grb_traits {
         infeasible = GRB_INFEASIBLE,
         timeout = GRB_TIME_LIMIT
     };
-    using model_wrapper = shared_grb_solver_wrapper;
+    using solver_wrapper = shared_grb_solver_wrapper;
 
     [[nodiscard]] static shared_grb_solver_wrapper build(const auto & model) {
         opt_sense sense = model.optimization_sense();

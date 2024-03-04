@@ -28,7 +28,7 @@ GTEST_TEST(variable, scalar_mul) {
                       0);
 }
 
-GTEST_TEST(variable, add_vars) {
+GTEST_TEST(variable, add_variables) {
     ASSERT_EXPRESSION(linear_expression_add(Var(11), Var(2)), {11, 2},
                       {1.0, 1.0}, 0);
 }

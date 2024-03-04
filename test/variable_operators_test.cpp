@@ -38,7 +38,7 @@ GTEST_TEST(variable_operators, scalar_mul_other_way) {
     ASSERT_EXPRESSION(-2.5 * Var(11), {11}, {-2.5}, 0);
 }
 
-GTEST_TEST(variable_operators, add_vars) {
+GTEST_TEST(variable_operators, add_variables) {
     ASSERT_EXPRESSION(Var(11) + Var(2), {11, 2}, {1.0, 1.0}, 0);
 }
 

@@ -82,7 +82,7 @@ struct shared_cbc_traits {
     enum var_category : char { continuous = 0, integer = 1, binary = 2 };
     enum ret_code : int { success = 0, infeasible = 1, timeout = 4 };
 
-    using model_wrapper = shared_cbc_solver_wrapper;
+    using solver_wrapper = shared_cbc_solver_wrapper;
 
     static shared_cbc_solver_wrapper build(const auto & model) {
         opt_sense sense = model.optimization_sense();

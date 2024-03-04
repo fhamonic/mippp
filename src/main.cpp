@@ -66,7 +66,7 @@ int main() {
         return 0.0;
     };
 
-    auto note_position_vars = builder.add_vars(
+    auto note_position_vars = builder.add_variables(
         notes.size() * notes.size(),
         [n = notes.size()](const Note & note, const int position) {
             return note.id * n + position;
@@ -84,7 +84,7 @@ int main() {
                                }) == 1);
     }
 
-    auto z_vars = builder.add_vars(
+    auto z_vars = builder.add_variables(
         notes.size() * notes.size() * notes.size() * notes.size(),
         [n = notes.size()](const Note & note1, const int pos1,
                            const Note & note2, const int pos2) {
@@ -107,7 +107,7 @@ int main() {
                                            note_position_vars(note1, pos1) +
                                                note_position_vars(note2, pos2) -
                                                1);
-                    builder.add_obj(
+                    builder.add_to_objective(
                         note_dist(note1, note2) /
                         (pos_dist(pos1, pos2) * pos_dist(pos1, pos2)) *
                         z_vars(note1, pos1, note2, pos2));

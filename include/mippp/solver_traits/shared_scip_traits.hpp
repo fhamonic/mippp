@@ -71,7 +71,7 @@ struct shared_scip_traits {
         binary = SCIP_VARTYPE_BINARY
     };
     enum ret_code : int { success = SCIP_OKAY, infeasible = 1, timeout = 2 };
-    using model_wrapper = shared_scip_solver_wrapper;
+    using solver_wrapper = shared_scip_solver_wrapper;
 
     [[nodiscard]] static shared_scip_solver_wrapper build(const auto & model) {
         opt_sense sense = model.optimization_sense();

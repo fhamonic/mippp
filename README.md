@@ -46,10 +46,10 @@ using namespace fhamonic::mippp;
 ...
 using MIP = mip_model<shared_cbc_traits>;
 MIP model;
-auto x1 = model.add_var();
-auto x2 = model.add_var({.upper_bound=3}); // default option is
+auto x1 = model.add_variable();
+auto x2 = model.add_variable({.upper_bound=3}); // default option is
 // {.obj_coef=0, .lower_bound=0, .upper_bound=infinity, type=MIP::var_category::continuous}
-model.add_obj(4 * x1 + 5 * x2);
+model.add_to_objective(4 * x1 + 5 * x2);
 model.add_constraint(x1 <= 4);
 model.add_constraint(2*x1 + x2 <= 9);
 
@@ -75,11 +75,11 @@ vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 
 mip_model<shared_cbc_traits> model;
-auto F = model.add_var();
-auto X_vars = model.add_vars(graph.nb_arcs(),
+auto F = model.add_variable();
+auto X_vars = model.add_variables(graph.nb_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
 
-model.add_obj(F);
+model.add_to_objective(F);
 for(auto && u : graph.vertices()) {
     if(u == s || u == t) continue;
     model.add_constraint(xsum(graph.out_arcs(u), X_vars) == xsum(graph.in_arcs(u), X_vars));
@@ -101,10 +101,10 @@ vertex_t<static_graph> t = ...;
 
 using MIP = mip_model<shared_cbc_traits>;
 MIP model(MIP::opt_sense::min);
-auto X_vars = model.add_vars(graph.nb_arcs(),
+auto X_vars = model.add_variables(graph.nb_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
 
-model.add_obj(xsum(graph.arcs(), X_vars, length_map));
+model.add_to_objective(xsum(graph.arcs(), X_vars, length_map));
 for(auto && u : graph.vertices()) {
     const double extra_flow = (u == s ? 1 : (u == t ? -1 : 0));
     model.add_constraint(
