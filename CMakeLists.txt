@@ -46,7 +46,7 @@ if(${GUROBI_FOUND})
   target_link_libraries(gurobi_backend INTERFACE ${GUROBI_LIBRARIES})
 
   target_link_libraries(mippp INTERFACE gurobi_backend)
-  target_compile_definitions(mippp INTERFACE MIPPP_GUROBI_FOUND=1)
+  target_compile_definitions(mippp INTERFACE MIPPP_USE_GUROBI=1)
 endif()
 # if(${CPLEX_FOUND})
 #   add_library(cplex_backend INTERFACE)
@@ -54,13 +54,11 @@ endif()
 #   target_link_libraries(cplex_backend INTERFACE ${CPLEX_LIBRARIES})
 
 #   target_link_libraries(mippp INTERFACE cplex_backend)
-#   target_compile_definitions(mippp INTERFACE MIPPP_CPLEX_FOUND)
+#   target_compile_definitions(mippp INTERFACE MIPPP_USE_CPLEX)
 # endif()
 if(${SCIP_FOUND})
-  add_definitions(-DMIPPP_SCIP_FOUND=1)
-
   add_library(scip_backend INTERFACE)
-  target_compile_definitions(scip_backend INTERFACE MIPPP_SCIP_FOUND=1)
+  target_compile_definitions(scip_backend INTERFACE MIPPP_USE_SCIP=1)
   target_include_directories(scip_backend INTERFACE ${SCIP_INCLUDE_DIR})
   target_link_libraries(scip_backend INTERFACE ${SCIP_LIBRARIES})
 
@@ -72,7 +70,7 @@ if(${COINOR_FOUND})
   target_link_libraries(cbc_backend INTERFACE ${COINOR_LIBRARIES})
 
   target_link_libraries(mippp INTERFACE cbc_backend)
-  target_compile_definitions(mippp INTERFACE MIPPP_COINOR_FOUND)
+  target_compile_definitions(mippp INTERFACE MIPPP_USE_COINOR)
 endif()
 
 # ################### TESTS ######################
@@ -82,7 +80,3 @@ if(ENABLE_TESTING)
   set_project_warnings(mippp)
   add_subdirectory(test)
 endif()
-
-
-add_executable(butadrum_notes src/main.cpp)
-target_link_libraries(butadrum_notes mippp)
