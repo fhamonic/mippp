@@ -376,30 +376,6 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
             os << " >= " << lb << '\n';
         }
     }
-    auto interger_vars =
-        ranges::views::filter(model.variables(), [&model](var_id_t v) {
-            return model.type(var(v)) ==
-                   mip_model<Traits>::var_category::integer;
-        });
-    if(ranges::distance(interger_vars) > 0) {
-        os << "General\n";
-        for(auto && v : interger_vars) {
-            os << ' ' << name_lambda(v);
-        }
-        os << '\n';
-    }
-    auto binary_vars =
-        ranges::filter_view(model.variables(), [&model](var_id_t v) {
-            return model.type(var(v)) ==
-                   mip_model<Traits>::var_category::binary;
-        });
-    if(ranges::distance(binary_vars) > 0) {
-        os << "Binary\n";
-        for(auto && v : binary_vars) {
-            os << ' ' << name_lambda(v);
-        }
-        os << '\n';
-    }
     auto no_trivial_bound_vars =
         ranges::views::filter(model.variables(), [&model](var_id_t v) {
             return model.lower_bound(var(v)) != scalar_t(0) ||
@@ -425,6 +401,30 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
                 os << " <= " << model.upper_bound(var(v));
             os << '\n';
         }
+    }
+    auto binary_vars =
+        ranges::filter_view(model.variables(), [&model](var_id_t v) {
+            return model.type(var(v)) ==
+                   mip_model<Traits>::var_category::binary;
+        });
+    if(ranges::distance(binary_vars) > 0) {
+        os << "Binary\n";
+        for(auto && v : binary_vars) {
+            os << ' ' << name_lambda(v);
+        }
+        os << '\n';
+    }
+    auto interger_vars =
+        ranges::views::filter(model.variables(), [&model](var_id_t v) {
+            return model.type(var(v)) ==
+                   mip_model<Traits>::var_category::integer;
+        });
+    if(ranges::distance(interger_vars) > 0) {
+        os << "General\n";
+        for(auto && v : interger_vars) {
+            os << ' ' << name_lambda(v);
+        }
+        os << '\n';
     }
     return os << "End" << '\n';
 }
