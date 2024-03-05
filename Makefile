@@ -12,7 +12,7 @@ test: $(BUILD_DIR)
 	ctest --output-on-failure
 	
 package:
-	conan create . -u
+	conan create . -u -b=missing
 	
 clean:
 	@rm -rf CMakeUserPresets.json

@@ -66,8 +66,8 @@ public:
     }
     static void add_variable_custom_name_default_options() {
         M model;
-        auto x = model.add_variable({}, "x");
-        auto y = model.add_variable({}, "y");
+        auto x = model.add_variable("x");
+        auto y = model.add_variable("y");
         ASSERT_EQ(model.nb_variables(), 2);
         ASSERT_EQ(x.id(), 0);
         ASSERT_EQ(model.obj_coef(x), 0);
@@ -84,16 +84,14 @@ public:
     }
     static void add_variable_custom_name_custom_options() {
         M model;
-        auto x = model.add_variable({.obj_coef = 6.14,
-                                     .lower_bound = 3.2,
-                                     .upper_bound = 9,
-                                     .type = M::var_category::binary},
-                                    "x");
-        auto y = model.add_variable({.lower_bound = -2.5}, "y");
-        auto z = model.add_variable({.obj_coef = 3.6,
-                                     .upper_bound = 10,
-                                     .type = M::var_category::integer},
-                                    "z");
+        auto x = model.add_variable("x", {.obj_coef = 6.14,
+                                          .lower_bound = 3.2,
+                                          .upper_bound = 9,
+                                          .type = M::var_category::binary});
+        auto y = model.add_variable("y", {.lower_bound = -2.5});
+        auto z = model.add_variable("z", {.obj_coef = 3.6,
+                                          .upper_bound = 10,
+                                          .type = M::var_category::integer});
         ASSERT_EQ(model.nb_variables(), 3);
         ASSERT_EQ(x.id(), 0);
         ASSERT_EQ(model.obj_coef(x), 6.14);
@@ -152,6 +150,7 @@ public:
                                           {.obj_coef = 3.6,
                                            .upper_bound = 10,
                                            .type = M::var_category::integer});
+
         ASSERT_EQ(model.nb_variables(), 11);
         for(int i = 0; i < 5; ++i) {
             auto x = x_vars(i);

@@ -32,9 +32,7 @@ struct cli_scip_solver_wrapper {
         using var = typename std::decay_t<decltype(model)>::var;
         nb_variables = model.nb_variables();
         for(auto var_id : model.variables()) {
-            auto optional_name = model.name(var(var_id));
-            if(!optional_name.has_value()) continue;
-            var_name_to_id[optional_name.value()] =
+            var_name_to_id[model.name(var(var_id))] =
                 static_cast<std::size_t>(var_id);
         }
         auto tmp_dir =
@@ -65,11 +63,11 @@ struct cli_scip_solver_wrapper {
             parameters.emplace_back();
         }
         parameters[timeout_index.value()] =
-            (std::ostringstream{} << "-c \"set limits time " << timeout_s << '\"').str();
+            "-c \"set limits time " + std::to_string(timeout_s) + '\"';
     }
     void set_mip_gap(double precision) noexcept {
         parameters[timeout_index.value()] =
-            (std::ostringstream{} << "-c \"set limits gap " << precision << '\"').str();
+            "-c \"set limits gap " + std::to_string(precision) + '\"';
     }
     void add_param(const std::string & param) {
         parameters.emplace_back(param);
