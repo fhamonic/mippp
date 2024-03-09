@@ -14,6 +14,9 @@ test: $(BUILD_DIR)
 package:
 	conan create . -u -b=missing
 	
+cross_w64:
+	conan build . -of=build_mingw -b=missing -pr:b=default -pr:h=linux_to_win64 -v
+
 clean:
 	@rm -rf CMakeUserPresets.json
 	@rm -rf $(BUILD_DIR)
