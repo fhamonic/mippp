@@ -4,6 +4,7 @@
         "conan": {}
     },
     "include": [
-        "/home/plaiseek/Projects/mippp/build/CMakePresets.json"
+        "/home/plaiseek/Projects/mippp/build/CMakePresets.json",
+        "/home/plaiseek/Projects/mippp/build_mingw/CMakePresets.json"
     ]
 }

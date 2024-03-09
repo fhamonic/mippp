@@ -35,7 +35,7 @@
 namespace fhamonic {
 namespace mippp {
 
-template <typename Traits = default_solver_traits>
+template <typename Traits>
 class mip_model {
 public:
     using var_id_t = int;

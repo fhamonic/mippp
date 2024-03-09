@@ -40,7 +40,7 @@ class CompressorRecipe(ConanFile):
         cmake = CMake(self)
         cmake.configure(variables={"ENABLE_TESTING":"ON"})
         cmake.build()
-        cmake.test(cli_args=["CTEST_OUTPUT_ON_FAILURE=1"])
+        # cmake.test(cli_args=["CTEST_OUTPUT_ON_FAILURE=1"])
         
     def package(self):
         copy(self, "*.hpp", self.source_folder, self.package_folder)

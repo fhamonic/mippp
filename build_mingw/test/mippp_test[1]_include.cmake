@@ -1,0 +1,5 @@
+if(EXISTS "/home/plaiseek/Projects/mippp/build_mingw/test/mippp_test[1]_tests.cmake")
+  include("/home/plaiseek/Projects/mippp/build_mingw/test/mippp_test[1]_tests.cmake")
+else()
+  add_test(mippp_test_NOT_BUILT mippp_test_NOT_BUILT)
+endif()

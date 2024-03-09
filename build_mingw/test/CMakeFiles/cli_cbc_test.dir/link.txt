@@ -1,0 +1,3 @@
+/home/plaiseek/.conan2/p/cmakecf6b18ccaa9f5/p/bin/cmake -E rm -f CMakeFiles/cli_cbc_test.dir/objects.a
+/home/plaiseek/Softwares/xpack-mingw-w64-gcc-12.2.0-1/bin/x86_64-w64-mingw32-ar qc CMakeFiles/cli_cbc_test.dir/objects.a @CMakeFiles/cli_cbc_test.dir/objects1.rsp
+/home/plaiseek/Softwares/xpack-mingw-w64-gcc-12.2.0-1/bin/x86_64-w64-mingw32-g++ -m64 -O3 -DNDEBUG -m64 -Wl,--whole-archive CMakeFiles/cli_cbc_test.dir/objects.a -Wl,--no-whole-archive -o cli_cbc_test.exe -Wl,--out-implib,libcli_cbc_test.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles/cli_cbc_test.dir/linkLibs.rsp
