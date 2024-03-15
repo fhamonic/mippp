@@ -21,7 +21,6 @@ class CompressorRecipe(ConanFile):
         self.requires("range-v3/[>=0.11.0]")
         
     def build_requirements(self):
-        self.tool_requires("cmake/[>=3.19.0]")
         self.test_requires("gtest/[>=1.10.0 <cci]")
 
     def generate(self):
