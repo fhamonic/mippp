@@ -3,3 +3,4 @@
 /build_mingw
 *.log
 *.lp
+CMakeUserPresets.json
