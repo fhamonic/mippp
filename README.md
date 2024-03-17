@@ -1,6 +1,6 @@
 # MIPpp
 
-MIPpp is a attempt to provide a way for efficiently instanciate Mixed Integer Linear Programs in C++ in a [Python-MIP](https://www.python-mip.com/) fashion. Like Python-MIP, the aim is to support several MILP solvers as backends (currently CBC and GUROBI).
+MIPpp is a attempt to provide a way for efficiently instanciate Mixed Integer Linear Programs in C++ in a [Python-MIP](https://www.python-mip.com/) fashion. Like Python-MIP, the aim is to support several MILP solvers as backends (currently CBC, SCIP and GUROBI).
 The use of template metaprogramming allows to retain most of the syntactical sugars available in python while generating near optimal code at compile time.
 
 Work in progress.
