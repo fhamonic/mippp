@@ -15,41 +15,27 @@
 namespace fhamonic {
 namespace mippp {
 
-struct shared_cbc_solver_wrapper;
-
-struct shared_cbc_traits {
-    enum opt_sense : int { min = 1, max = -1 };
-    enum var_category : char { continuous = 0, integer = 1, binary = 2 };
-    enum ret_code : int { success = 0, infeasible = 1, timeout = 4 };
-
-    using solver_wrapper = shared_cbc_solver_wrapper;
-
-    static shared_cbc_solver_wrapper build(const auto & model) {
-        return shared_cbc_solver_wrapper(model);
-    }
-};
-
 struct shared_cbc_solver_wrapper : public abstract_solver_wrapper {
     CbcModel model;
     std::vector<std::string> parameters = {"cbc"};
     std::optional<std::size_t> loglevel_index;
     std::optional<std::size_t> timeout_index;
 
-    [[nodiscard]] explicit shared_cbc_solver_wrapper(const auto & model)
-         {
-        shared_cbc_traits::opt_sense sense = model.optimization_sense();
-        int nb_vars = static_cast<int>(model.nb_variables());
-        double const * obj = model.column_coefs();
-        double const * col_lb = model.column_lower_bounds();
-        double const * col_ub = model.column_upper_bounds();
-        shared_cbc_traits::var_category const * vtype = model.column_types();
-        int nb_rows = static_cast<int>(model.nb_constraints());
-        int nb_elems = static_cast<int>(model.nb_entries());
-        int const * row_begins = model.row_begins();
-        int const * indices = model.var_entries();
-        double const * coefs = model.coef_entries();
-        double const * row_lb = model.row_lower_bounds();
-        double const * row_ub = model.row_upper_bounds();
+    [[nodiscard]] explicit shared_cbc_solver_wrapper(const auto & m_model) {
+        using traits = typename std::decay_t<decltype(m_model)>::solver_traits;
+        typename traits::opt_sense sense = m_model.optimization_sense();
+        int nb_vars = static_cast<int>(m_model.nb_variables());
+        double const * obj = m_model.column_coefs();
+        double const * col_lb = m_model.column_lower_bounds();
+        double const * col_ub = m_model.column_upper_bounds();
+        typename traits::var_category const * vtype = m_model.column_types();
+        int nb_rows = static_cast<int>(m_model.nb_constraints());
+        int nb_elems = static_cast<int>(m_model.nb_entries());
+        int const * row_begins = m_model.row_begins();
+        int const * indices = m_model.var_entries();
+        double const * coefs = m_model.coef_entries();
+        double const * row_lb = m_model.row_lower_bounds();
+        double const * row_ub = m_model.row_upper_bounds();
 
         double * col_lb_copy = new double[nb_vars];
         std::copy(col_lb, col_lb + nb_vars, col_lb_copy);
@@ -77,8 +63,8 @@ struct shared_cbc_solver_wrapper : public abstract_solver_wrapper {
                               row_lb_copy, row_ub_copy);
         solver->setObjSense(sense);
         for(int i = 0; i < nb_vars; ++i) {
-            if(vtype[i] == shared_cbc_traits::var_category::integer ||
-               vtype[i] == shared_cbc_traits::var_category::binary)
+            if(vtype[i] == traits::var_category::integer ||
+               vtype[i] == traits::var_category::binary)
                 solver->setInteger(i);
         }
         model.assignSolver(solver);
@@ -133,6 +119,18 @@ struct shared_cbc_solver_wrapper : public abstract_solver_wrapper {
     }
     [[nodiscard]] double get_objective_value() const noexcept {
         return model.getObjValue();
+    }
+};
+
+struct shared_cbc_traits {
+    enum opt_sense : int { min = 1, max = -1 };
+    enum var_category : char { continuous = 0, integer = 1, binary = 2 };
+    enum ret_code : int { success = 0, infeasible = 1, timeout = 4 };
+
+    using solver_wrapper = shared_cbc_solver_wrapper;
+
+    static shared_cbc_solver_wrapper build(const auto & model) {
+        return shared_cbc_solver_wrapper(model);
     }
 };
 

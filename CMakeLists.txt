@@ -24,10 +24,10 @@ include(CompilerWarnings)
 # ################### Packages ###################
 find_package(range-v3)
 
-# find_package(GUROBI)
+find_package(GUROBI)
 # find_package(CPLEX)
-# find_package(SCIP)
-# find_package(COINOR)
+find_package(SCIP)
+find_package(COINOR)
 
 # ############### Exported target ################
 add_library(mippp INTERFACE)

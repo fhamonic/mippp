@@ -47,6 +47,7 @@ public:
         std::numeric_limits<scalar_t>::lowest();
     static constexpr scalar_t infinity = std::numeric_limits<scalar_t>::max();
 
+    using solver_traits = Traits;
     using opt_sense = typename Traits::opt_sense;
     using var_category = typename Traits::var_category;
     using ret_code = typename Traits::ret_code;

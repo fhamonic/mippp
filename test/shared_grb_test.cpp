@@ -12,7 +12,7 @@
 using namespace fhamonic::mippp;
 
 using Var = variable<int, double>;
-using T = shared_grb_traits
+using T = shared_grb_traits;
 using M = mip_model<T>;
 
 GTEST_TEST(shared_grb_model, default_constructor) {
