@@ -1,6 +1,7 @@
 #ifndef MIPPP_SHARED_CBC_TRAITS_HPP
 #define MIPPP_SHARED_CBC_TRAITS_HPP
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <vector>
@@ -9,19 +10,77 @@
 #include <coin/CbcSolver.hpp>
 #include <coin/OsiClpSolverInterface.hpp>
 
+#include "mippp/solver_traits/abstract_solver_wrapper.hpp"
+
 namespace fhamonic {
 namespace mippp {
 
-struct shared_cbc_solver_wrapper {
+struct shared_cbc_solver_wrapper;
+
+struct shared_cbc_traits {
+    enum opt_sense : int { min = 1, max = -1 };
+    enum var_category : char { continuous = 0, integer = 1, binary = 2 };
+    enum ret_code : int { success = 0, infeasible = 1, timeout = 4 };
+
+    using solver_wrapper = shared_cbc_solver_wrapper;
+
+    static shared_cbc_solver_wrapper build(const auto & model) {
+        return shared_cbc_solver_wrapper(model);
+    }
+};
+
+struct shared_cbc_solver_wrapper : public abstract_solver_wrapper {
     CbcModel model;
     std::vector<std::string> parameters = {"cbc"};
     std::optional<std::size_t> loglevel_index;
     std::optional<std::size_t> timeout_index;
 
-    [[nodiscard]] shared_cbc_solver_wrapper() {}
-    [[nodiscard]] explicit shared_cbc_solver_wrapper(
-        OsiSolverInterface * solver) {
-        // ownership of solver is transfered to model
+    [[nodiscard]] explicit shared_cbc_solver_wrapper(const auto & model)
+         {
+        shared_cbc_traits::opt_sense sense = model.optimization_sense();
+        int nb_vars = static_cast<int>(model.nb_variables());
+        double const * obj = model.column_coefs();
+        double const * col_lb = model.column_lower_bounds();
+        double const * col_ub = model.column_upper_bounds();
+        shared_cbc_traits::var_category const * vtype = model.column_types();
+        int nb_rows = static_cast<int>(model.nb_constraints());
+        int nb_elems = static_cast<int>(model.nb_entries());
+        int const * row_begins = model.row_begins();
+        int const * indices = model.var_entries();
+        double const * coefs = model.coef_entries();
+        double const * row_lb = model.row_lower_bounds();
+        double const * row_ub = model.row_upper_bounds();
+
+        double * col_lb_copy = new double[nb_vars];
+        std::copy(col_lb, col_lb + nb_vars, col_lb_copy);
+        double * col_ub_copy = new double[nb_vars];
+        std::copy(col_ub, col_ub + nb_vars, col_ub_copy);
+        double * obj_copy = new double[nb_vars];
+        std::copy(obj, obj + nb_vars, obj_copy);
+
+        double * row_lb_copy = new double[nb_rows];
+        std::copy(row_lb, row_lb + nb_rows, row_lb_copy);
+        double * row_ub_copy = new double[nb_rows];
+        std::copy(row_ub, row_ub + nb_rows, row_ub_copy);
+
+        OsiSolverInterface * solver = new OsiClpSolverInterface;
+
+        int * row_begins_copy = new int[nb_rows + 1];
+        std::copy(row_begins, row_begins + nb_rows, row_begins_copy);
+        row_begins_copy[nb_rows] = nb_elems;  // thats dumb
+        CoinPackedMatrix * matrix =
+            new CoinPackedMatrix(false, nb_vars, nb_rows, nb_elems, coefs,
+                                 indices, row_begins_copy, nullptr);
+        delete[] row_begins_copy;
+        // ownership of copies and matrix is transfered to solver
+        solver->assignProblem(matrix, col_lb_copy, col_ub_copy, obj_copy,
+                              row_lb_copy, row_ub_copy);
+        solver->setObjSense(sense);
+        for(int i = 0; i < nb_vars; ++i) {
+            if(vtype[i] == shared_cbc_traits::var_category::integer ||
+               vtype[i] == shared_cbc_traits::var_category::binary)
+                solver->setInteger(i);
+        }
         model.assignSolver(solver);
     }
     ~shared_cbc_solver_wrapper() {}
@@ -74,61 +133,6 @@ struct shared_cbc_solver_wrapper {
     }
     [[nodiscard]] double get_objective_value() const noexcept {
         return model.getObjValue();
-    }
-};
-
-struct shared_cbc_traits {
-    enum opt_sense : int { min = 1, max = -1 };
-    enum var_category : char { continuous = 0, integer = 1, binary = 2 };
-    enum ret_code : int { success = 0, infeasible = 1, timeout = 4 };
-
-    using solver_wrapper = shared_cbc_solver_wrapper;
-
-    static shared_cbc_solver_wrapper build(const auto & model) {
-        opt_sense sense = model.optimization_sense();
-        int nb_vars = static_cast<int>(model.nb_variables());
-        double const * obj = model.column_coefs();
-        double const * col_lb = model.column_lower_bounds();
-        double const * col_ub = model.column_upper_bounds();
-        var_category const * vtype = model.column_types();
-        int nb_rows = static_cast<int>(model.nb_constraints());
-        int nb_elems = static_cast<int>(model.nb_entries());
-        int const * row_begins = model.row_begins();
-        int const * indices = model.var_entries();
-        double const * coefs = model.coef_entries();
-        double const * row_lb = model.row_lower_bounds();
-        double const * row_ub = model.row_upper_bounds();
-
-        double * col_lb_copy = new double[nb_vars];
-        std::copy(col_lb, col_lb + nb_vars, col_lb_copy);
-        double * col_ub_copy = new double[nb_vars];
-        std::copy(col_ub, col_ub + nb_vars, col_ub_copy);
-        double * obj_copy = new double[nb_vars];
-        std::copy(obj, obj + nb_vars, obj_copy);
-
-        double * row_lb_copy = new double[nb_rows];
-        std::copy(row_lb, row_lb + nb_rows, row_lb_copy);
-        double * row_ub_copy = new double[nb_rows];
-        std::copy(row_ub, row_ub + nb_rows, row_ub_copy);
-
-        OsiSolverInterface * solver = new OsiClpSolverInterface;
-
-        int * row_begins_copy = new int[nb_rows + 1];
-        std::copy(row_begins, row_begins + nb_rows, row_begins_copy);
-        row_begins_copy[nb_rows] = nb_elems;  // thats dumb
-        CoinPackedMatrix * matrix =
-            new CoinPackedMatrix(false, nb_vars, nb_rows, nb_elems, coefs,
-                                 indices, row_begins_copy, nullptr);
-        delete[] row_begins_copy;
-        // ownership of copies and matrix is transfered to solver
-        solver->assignProblem(matrix, col_lb_copy, col_ub_copy, obj_copy,
-                              row_lb_copy, row_ub_copy);
-        solver->setObjSense(sense);
-        for(int i = 0; i < nb_vars; ++i) {
-            if(vtype[i] == integer || vtype[i] == binary) solver->setInteger(i);
-        }
-
-        return shared_cbc_solver_wrapper(solver);
     }
 };
 

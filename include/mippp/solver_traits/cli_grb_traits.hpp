@@ -1,6 +1,7 @@
 #ifndef MIPPP_CLI_GRB_TRAITS_HPP
 #define MIPPP_CLI_GRB_TRAITS_HPP
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -11,10 +12,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include "mippp/solver_traits/abstract_solver_wrapper.hpp"
+
 namespace fhamonic {
 namespace mippp {
 
-struct cli_grb_solver_wrapper {
+struct cli_grb_solver_wrapper : public abstract_solver_wrapper {
     std::size_t nb_variables;
     std::unordered_map<std::string, std::size_t> var_name_to_id;
     double objective_value;
@@ -28,7 +31,8 @@ struct cli_grb_solver_wrapper {
     std::optional<std::size_t> loglevel_index;
     std::optional<std::size_t> timeout_index;
 
-    [[nodiscard]] cli_grb_solver_wrapper(const auto & model) {
+    [[nodiscard]] cli_grb_solver_wrapper(const auto & model)
+         {
         using var = typename std::decay_t<decltype(model)>::var;
         nb_variables = model.nb_variables();
         for(auto var_id : model.variables()) {
@@ -127,6 +131,7 @@ struct cli_grb_traits {
 
     using solver_wrapper = cli_grb_solver_wrapper;
 
+    static bool is_available() { return std::system("gurobi_cl") == 0; }
     static cli_grb_solver_wrapper build(const auto & model) {
         cli_grb_solver_wrapper grb(model);
         return grb;
