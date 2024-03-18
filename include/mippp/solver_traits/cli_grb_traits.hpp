@@ -131,7 +131,11 @@ struct cli_grb_traits {
 
     using solver_wrapper = cli_grb_solver_wrapper;
 
-    static bool is_available() { return std::system("gurobi_cl") == 0; }
+    static inline std::filesystem::path exec_path = "gurobi_cl";
+    static auto call(const std::string & params) {
+        return std::system((exec_path.string() + ' ' + params).c_str());
+    }
+    static bool is_available() { return  call("") == 0; }
     static cli_grb_solver_wrapper build(const auto & model) {
         cli_grb_solver_wrapper grb(model);
         return grb;

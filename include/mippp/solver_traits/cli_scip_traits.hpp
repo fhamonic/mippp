@@ -31,8 +31,7 @@ struct cli_scip_solver_wrapper : public abstract_solver_wrapper {
     std::optional<std::size_t> loglevel_index;
     std::optional<std::size_t> timeout_index;
 
-    [[nodiscard]] cli_scip_solver_wrapper(const auto & model)
-         {
+    [[nodiscard]] cli_scip_solver_wrapper(const auto & model) {
         using var = typename std::decay_t<decltype(model)>::var;
         nb_variables = model.nb_variables();
         for(auto var_id : model.variables()) {
@@ -132,7 +131,11 @@ struct cli_scip_traits {
 
     using solver_wrapper = cli_scip_solver_wrapper;
 
-    static bool is_available() { return std::system("scip -c quit") == 0; }
+    static inline std::filesystem::path exec_path = "scip";
+    static auto call(const std::string & params) {
+        return std::system((exec_path.string() + ' ' + params).c_str());
+    }
+    static bool is_available() { return call("-c quit") == 0; }
     static cli_scip_solver_wrapper build(const auto & model) {
         cli_scip_solver_wrapper scip(model);
         return scip;
