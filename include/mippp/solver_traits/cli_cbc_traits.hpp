@@ -136,7 +136,13 @@ struct cli_cbc_traits {
     static auto call(const std::string & params) {
         return std::system((exec_path.string() + ' ' + params).c_str());
     }
-    static bool is_available() { return  call("quit") == 0; }
+    static bool is_available() {
+#ifdef WIN32
+        return call("quit 2> NUL") == 0;
+#else
+        return call("quit > /dev/null") == 0;
+#endif
+    }
     static cli_cbc_solver_wrapper build(const auto & model) {
         cli_cbc_solver_wrapper cbc(model);
         return cbc;

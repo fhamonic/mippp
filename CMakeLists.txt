@@ -24,10 +24,11 @@ include(CompilerWarnings)
 # ################### Packages ###################
 find_package(range-v3)
 
-# find_package(GUROBI)
-# find_package(CPLEX)
-# find_package(SCIP)
-
+if(NOT WIN32)
+  find_package(GUROBI)
+  find_package(CPLEX)
+  find_package(SCIP)
+endif()
 
 set(CBC_DIR "C:/Users/Plaiseek/Documents/Softwares/Cbc-releases.2.10.11-x86_64-w64-mingw64")
 set(CBC_INCLUDE_DIR "C:/Users/Plaiseek/Documents/Softwares/Cbc-releases.2.10.11-x86_64-w64-mingw64/include")

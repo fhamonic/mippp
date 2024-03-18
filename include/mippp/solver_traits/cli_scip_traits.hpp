@@ -135,7 +135,13 @@ struct cli_scip_traits {
     static auto call(const std::string & params) {
         return std::system((exec_path.string() + ' ' + params).c_str());
     }
-    static bool is_available() { return call("-c quit") == 0; }
+    static bool is_available() {
+#ifdef WIN32
+        return call("-c quit 2> NUL") == 0;
+#else
+        return call("-c quit > /dev/null") == 0;
+#endif
+    }
     static cli_scip_solver_wrapper build(const auto & model) {
         cli_scip_solver_wrapper scip(model);
         return scip;

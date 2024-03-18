@@ -135,7 +135,13 @@ struct cli_grb_traits {
     static auto call(const std::string & params) {
         return std::system((exec_path.string() + ' ' + params).c_str());
     }
-    static bool is_available() { return  call("") == 0; }
+    static bool is_available() {
+#ifdef WIN32
+        return call("2> NUL") == 0;
+#else
+        return call("> /dev/null") == 0;
+#endif
+    }
     static cli_grb_solver_wrapper build(const auto & model) {
         cli_grb_solver_wrapper grb(model);
         return grb;
