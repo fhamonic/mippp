@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-#include <coin/CbcModel.hpp>  // deprecated interface, use CbcMain0 and CbcMain1
-#include <coin/CbcSolver.hpp>
-#include <coin/OsiClpSolverInterface.hpp>
+#include "coin/CbcModel.hpp"  // deprecated interface, use CbcMain0 and CbcMain1
+#include "coin/CbcSolver.hpp"
+#include "coin/OsiClpSolverInterface.hpp"
 
 #include "mippp/solver_traits/abstract_solver_wrapper.hpp"
 

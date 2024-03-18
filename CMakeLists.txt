@@ -24,10 +24,14 @@ include(CompilerWarnings)
 # ################### Packages ###################
 find_package(range-v3)
 
-find_package(GUROBI)
+# find_package(GUROBI)
 # find_package(CPLEX)
-find_package(SCIP)
-find_package(COINOR)
+# find_package(SCIP)
+
+
+set(CBC_DIR "C:/Users/Plaiseek/Documents/Softwares/Cbc-releases.2.10.11-x86_64-w64-mingw64")
+set(CBC_INCLUDE_DIR "C:/Users/Plaiseek/Documents/Softwares/Cbc-releases.2.10.11-x86_64-w64-mingw64/include")
+find_package(CBC REQUIRED)
 
 # ############### Exported target ################
 add_library(mippp INTERFACE)
@@ -64,11 +68,11 @@ if(${SCIP_FOUND})
 
   target_link_libraries(mippp INTERFACE scip_backend)
 endif()
-if(${COINOR_FOUND})
+if(${CBC_FOUND})
   add_library(cbc_backend INTERFACE)
   target_compile_definitions(cbc_backend INTERFACE MIPPP_FOUND_SHARED_COINOR)
-  target_include_directories(cbc_backend INTERFACE ${COINOR_INCLUDE_DIR})
-  target_link_libraries(cbc_backend INTERFACE ${COINOR_LIBRARIES})
+  target_include_directories(cbc_backend INTERFACE ${CBC_INCLUDE_DIR})
+  target_link_libraries(cbc_backend INTERFACE ${CBC_LIBRARIES})
 
   target_link_libraries(mippp INTERFACE cbc_backend)
 endif()

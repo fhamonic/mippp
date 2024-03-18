@@ -132,7 +132,11 @@ struct cli_cbc_traits {
 
     using solver_wrapper = cli_cbc_solver_wrapper;
 
-    static bool is_available() { return std::system("cbc quit") == 0; }
+    static inline std::filesystem::path exec_path = "cbc";
+    static auto call(const std::string & params) {
+        return std::system((exec_path.string() + ' ' + params).c_str());
+    }
+    static bool is_available() { return  call("quit") == 0; }
     static cli_cbc_solver_wrapper build(const auto & model) {
         cli_cbc_solver_wrapper cbc(model);
         return cbc;
