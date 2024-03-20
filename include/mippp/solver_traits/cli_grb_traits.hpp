@@ -109,8 +109,7 @@ struct cli_grb_traits {
             }
             solver_cmd << " ResultFile=" << sol_path << " " << lp_path << " > "
                        << log_path;
-            auto cmd = solver_cmd.str();
-            auto ret = call(cmd.c_str());
+            auto ret = call(solver_cmd.str().c_str());
             solution.clear();
             solution.resize(nb_variables, 0);
 

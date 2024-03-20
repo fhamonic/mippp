@@ -109,8 +109,7 @@ struct cli_cbc_traits {
                 solver_cmd << ' ' << param;
             }
             solver_cmd << " solve solution " << sol_path << " > " << log_path;
-            auto cmd = solver_cmd.str();
-            auto ret = call(cmd.c_str());
+            auto ret = call(solver_cmd.str().c_str());
             solution.clear();
             solution.resize(nb_variables, 0);
 

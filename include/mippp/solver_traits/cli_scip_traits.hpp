@@ -110,9 +110,7 @@ struct cli_scip_traits {
             }
             solver_cmd << " -c optimize -c \"write solution " << sol_path
                        << "\" -c quit > " << log_path;
-            auto cmd = solver_cmd.str();
-            std::cout << cmd << std::endl;
-            auto ret = call(cmd.c_str());
+            auto ret = call(solver_cmd.str().c_str());
             solution.clear();
             solution.resize(nb_variables, 0);
 
