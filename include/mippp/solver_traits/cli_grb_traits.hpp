@@ -24,7 +24,12 @@ struct cli_grb_traits {
 
     static inline std::filesystem::path exec_path = "gurobi_cl";
     static auto call(const std::string & params) {
-        return std::system((exec_path.string() + ' ' + params).c_str());
+#ifdef WIN32
+        auto cmd = (std::ostringstream{} << '"' << exec_path << " " << params << '"').str(); // in extra quotes because cmd sucks
+#else
+        auto cmd = (std::ostringstream{} << exec_path << " " << params).str(); // in extra quotes because cmd sucks
+#endif
+        return std::system(cmd.c_str()); 
     }
     static bool is_available() {
 #ifdef WIN32
