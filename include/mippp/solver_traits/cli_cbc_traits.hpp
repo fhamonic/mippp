@@ -25,10 +25,10 @@ struct cli_cbc_traits {
     static inline std::filesystem::path exec_path = "cbc";
     static auto call(const std::string & params) {
 #ifdef WIN32
-        auto cmd = (std::ostringstream{} << '"' << exec_path << " " << params << '"').str(); // in extra quotes because cmd sucks
+        auto cmd = (std::ostringstream{} << "call " << exec_path << " " << params).str();
 #else
-        auto cmd = (std::ostringstream{} << exec_path << " " << params).str(); // in extra quotes because cmd sucks
-#endif
+        auto cmd = (std::ostringstream{} << exec_path << " " << params).str();
+#endif 
         return std::system(cmd.c_str());      
     }
     static bool is_available() {
@@ -132,8 +132,8 @@ struct cli_cbc_traits {
                     solution[var_name_to_id.at(var)] = value;
                 }
             } else
-                std::cout << "Unable to open solution file at " +
-                                 sol_path.generic_string();
+                std::cerr << "Unable to open solution file at " +
+                                 sol_path.generic_string() << std::endl;
 
             return ret;
         }

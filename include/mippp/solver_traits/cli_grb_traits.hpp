@@ -25,9 +25,9 @@ struct cli_grb_traits {
     static inline std::filesystem::path exec_path = "gurobi_cl";
     static auto call(const std::string & params) {
 #ifdef WIN32
-        auto cmd = (std::ostringstream{} << '"' << exec_path << " " << params << '"').str(); // in extra quotes because cmd sucks
+        auto cmd = (std::ostringstream{} << "call " << exec_path << " " << params).str();
 #else
-        auto cmd = (std::ostringstream{} << exec_path << " " << params).str(); // in extra quotes because cmd sucks
+        auto cmd = (std::ostringstream{} << exec_path << " " << params).str();
 #endif
         return std::system(cmd.c_str()); 
     }
@@ -128,9 +128,8 @@ struct cli_grb_traits {
                     solution[var_name_to_id.at(var)] = value;
                 }
             } else
-                std::cout << "Unable to open solution file at " +
-                                 sol_path.generic_string()
-                          << std::endl;
+                std::cerr << "Unable to open solution file at " +
+                                 sol_path.generic_string() << std::endl;
 
             return ret;
         }
