@@ -25,11 +25,13 @@ struct cli_scip_traits {
     static inline std::filesystem::path exec_path = "scip";
     static auto call(const std::string & params) {
 #ifdef WIN32
-        auto cmd = (std::ostringstream{} << "call " << exec_path << " " << params).str();
+        auto cmd =
+            (std::ostringstream{} << "call " << exec_path << " " << params)
+                .str();
 #else
         auto cmd = (std::ostringstream{} << exec_path << " " << params).str();
 #endif
-        return std::system(cmd.c_str());  
+        return std::system(cmd.c_str());
     }
     static bool is_available() {
 #ifdef WIN32
@@ -116,22 +118,25 @@ struct cli_scip_traits {
             solver_cmd << " -c optimize -c \"write solution " << sol_path
                        << "\" -c quit > " << log_path;
             auto ret = call(solver_cmd.str().c_str());
+            if(ret != 0) return ret;
+
             solution.clear();
             solution.resize(nb_variables, 0);
 
-            std::ifstream sol_file(sol_path);
-            if(sol_file.is_open()) {
-                skip(sol_file, 7);
-                sol_file >> objective_value;
-                std::string var;
-                double value;
-                while(sol_file >> var >> value) {
-                    solution[var_name_to_id.at(var)] = value;
-                    skip(sol_file, 1);
-                }
-            } else
-                std::cerr << "Unable to open solution file at " +
-                                 sol_path.generic_string() << std::endl;
+            std::ifstream sol_file;
+            auto flags = sol_file.exceptions();
+            sol_file.exceptions(sol_file.exceptions() | std::ios::failbit);
+            sol_file.open(sol_path);
+            sol_file.exceptions(flags);
+
+            skip(sol_file, 7);
+            sol_file >> objective_value;
+            std::string var;
+            double value;
+            while(sol_file >> var >> value) {
+                solution[var_name_to_id.at(var)] = value;
+                skip(sol_file, 1);
+            }
 
             return ret;
         }

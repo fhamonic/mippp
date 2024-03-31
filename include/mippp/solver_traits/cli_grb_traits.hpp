@@ -25,11 +25,13 @@ struct cli_grb_traits {
     static inline std::filesystem::path exec_path = "gurobi_cl";
     static auto call(const std::string & params) {
 #ifdef WIN32
-        auto cmd = (std::ostringstream{} << "call " << exec_path << " " << params).str();
+        auto cmd =
+            (std::ostringstream{} << "call " << exec_path << " " << params)
+                .str();
 #else
         auto cmd = (std::ostringstream{} << exec_path << " " << params).str();
 #endif
-        return std::system(cmd.c_str()); 
+        return std::system(cmd.c_str());
     }
     static bool is_available() {
 #ifdef WIN32
@@ -115,21 +117,24 @@ struct cli_grb_traits {
             solver_cmd << " ResultFile=" << sol_path << " " << lp_path << " > "
                        << log_path;
             auto ret = call(solver_cmd.str().c_str());
+            if(ret != 0) return ret;
+
             solution.clear();
             solution.resize(nb_variables, 0);
 
-            std::ifstream sol_file(sol_path);
-            if(sol_file.is_open()) {
-                skip(sol_file, 4);
-                sol_file >> objective_value;
-                std::string var;
-                double value;
-                while(sol_file >> var >> value) {
-                    solution[var_name_to_id.at(var)] = value;
-                }
-            } else
-                std::cerr << "Unable to open solution file at " +
-                                 sol_path.generic_string() << std::endl;
+            std::ifstream sol_file;
+            auto flags = sol_file.exceptions();
+            sol_file.exceptions(sol_file.exceptions() | std::ios::failbit);
+            sol_file.open(sol_path);
+            sol_file.exceptions(flags);
+
+            skip(sol_file, 4);
+            sol_file >> objective_value;
+            std::string var;
+            double value;
+            while(sol_file >> var >> value) {
+                solution[var_name_to_id.at(var)] = value;
+            }
 
             return ret;
         }
