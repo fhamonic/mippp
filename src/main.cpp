@@ -22,7 +22,7 @@ struct Harmonic {
 };
 
 int main() {
-    using model = mip_model<shared_scip_traits>;
+    using model = mip_model<linked_scip_traits>;
     model builder(model::opt_sense::max);
 
     std::vector<Note> notes = {{0, "C4", 261.63},  {1, "D4", 293.66},

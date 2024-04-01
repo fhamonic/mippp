@@ -12,7 +12,7 @@
 
 using namespace fhamonic::mippp;
 
-template <typename M>
+template <typename M, typename S>
 class model_tests {
 public:
     static void default_constructor() { M model; }
@@ -292,23 +292,6 @@ public:
         ASSERT_EQ_RANGES(constr.variables(), {2, 1, 0});
         ASSERT_EQ_RANGES(constr.coefficients(), {-1.0, 1.0, 3.0});
     }
-    static void build_optimize() {
-        M model;
-        auto x = model.add_variable({.lower_bound = 0, .upper_bound = 20});
-        auto y = model.add_variable({.upper_bound = 12});
-        model.add_to_objective(2 * x + 3 * y);
-        model.add_constraint(x + y <= 30);
-
-        auto solver_model = model.build();
-
-        ASSERT_EQ(solver_model.optimize(), M::ret_code::success);
-        std::vector<double> solution = solver_model.get_solution();
-
-        ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
-        ASSERT_EQ(solution[static_cast<std::size_t>(y.id())], 12);
-
-        ASSERT_EQ(solver_model.get_objective_value(), 72.0);
-    }
     static void add_to_objective_xsum() {
         M model;
         auto x_vars = model.add_variables(5, [](int i) { return 4 - i; });
@@ -316,6 +299,24 @@ public:
         model.add_to_objective(xsum(ranges::views::iota(0, 4), x_vars,
                                     [](auto && i) { return 2.0 * i; }));
         model.add_to_objective(xsum(ranges::views::iota(0, 4), x_vars));
+    }
+
+    static void build_optimize() {
+        M model;
+        auto x = model.add_variable({.lower_bound = 0, .upper_bound = 20});
+        auto y = model.add_variable({.upper_bound = 12});
+        model.add_to_objective(2 * x + 3 * y);
+        model.add_constraint(x + y <= 30);
+
+        S solver(model);
+
+        ASSERT_EQ(solver.optimize(), S::ret_code::success);
+        std::vector<double> solution = solver.get_solution();
+
+        ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
+        ASSERT_EQ(solution[static_cast<std::size_t>(y.id())], 12);
+
+        ASSERT_EQ(solver.get_objective_value(), 72.0);
     }
 };
 #endif  // MODEL_TESTS_HELPER_HPP

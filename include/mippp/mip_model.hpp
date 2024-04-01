@@ -29,29 +29,25 @@
 #include "mippp/constraints/linear_constraint.hpp"
 #include "mippp/detail/function_traits.hpp"
 #include "mippp/expressions/linear_expression.hpp"
-#include "mippp/solver_traits/all.hpp"
+#include "mippp/solvers/all.hpp"
 #include "mippp/variable.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-template <typename Traits = default_solver_traits>
+template <typename Traits = default_model_traits>
 class mip_model {
 public:
-    using var_id_t = int;
-    using scalar_t = double;
-    using var = variable<var_id_t, scalar_t>;
-    using constraint_id_t = std::size_t;
-
-    static constexpr scalar_t minus_infinity =
-        std::numeric_limits<scalar_t>::lowest();
-    static constexpr scalar_t infinity = std::numeric_limits<scalar_t>::max();
-
     using solver_traits = Traits;
+    using var_id_t = typename Traits::var_id_t;
+    using constraint_id_t = typename Traits::constraint_id_t;
+    using scalar_t = typename Traits::scalar_t;
+    using var = variable<var_id_t, scalar_t>;
     using opt_sense = typename Traits::opt_sense;
     using var_category = typename Traits::var_category;
-    using ret_code = typename Traits::ret_code;
-    using solver_wrapper = typename Traits::solver_wrapper;
+
+    static constexpr scalar_t minus_infinity = Traits::minus_infinity;
+    static constexpr scalar_t infinity = Traits::infinity;
 
 private:
     std::vector<scalar_t> _col_coef;
@@ -312,11 +308,6 @@ public:
     auto coef_entries() const noexcept { return _coefs.data(); }
     auto row_lower_bounds() const noexcept { return _row_lb.data(); }
     auto row_upper_bounds() const noexcept { return _row_ub.data(); }
-
-    solver_wrapper build() noexcept {
-        solver_wrapper wrapper = Traits::build(*this);
-        return wrapper;
-    }
 };
 
 template <typename T, typename NL>

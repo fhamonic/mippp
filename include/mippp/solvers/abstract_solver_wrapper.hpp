@@ -7,7 +7,8 @@
 namespace fhamonic {
 namespace mippp {
 
-struct abstract_solver_wrapper {
+class abstract_solver_wrapper {
+public:
     [[nodiscard]] abstract_solver_wrapper(){};
     [[nodiscard]] abstract_solver_wrapper(const auto & model){};
 

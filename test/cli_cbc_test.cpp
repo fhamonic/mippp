@@ -12,63 +12,64 @@
 using namespace fhamonic::mippp;
 
 using Var = variable<int, double>;
-using T = cli_cbc_traits;
+using T = cli_solver_model_traits;
 using M = mip_model<T>;
+using S = cli_cbc_solver;
 
 GTEST_TEST(cli_cbc_model, default_constructor) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::default_constructor();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::default_constructor();
 }
 GTEST_TEST(cli_cbc_model, add_variable_default_name_default_options) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_variable_default_name_default_options();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_variable_default_name_default_options();
 }
 GTEST_TEST(cli_cbc_model, add_variable_default_name_custom_options) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_variable_default_name_custom_options();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_variable_default_name_custom_options();
 }
 GTEST_TEST(cli_cbc_model, add_variable_custom_name_default_options) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_variable_custom_name_default_options();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_variable_custom_name_default_options();
 }
 GTEST_TEST(cli_cbc_model, add_variable_custom_name_custom_options) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_variable_custom_name_custom_options();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_variable_custom_name_custom_options();
 }
 GTEST_TEST(cli_cbc_model, add_variables_default_name_default_options) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_variables_default_name_default_options();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_variables_default_name_default_options();
 }
 GTEST_TEST(cli_cbc_model, add_variables_default_name_custom_options) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_variables_default_name_custom_options();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_variables_default_name_custom_options();
 }
 GTEST_TEST(cli_cbc_model, add_variables_custom_name_default_options) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_variables_custom_name_default_options();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_variables_custom_name_default_options();
 }
 GTEST_TEST(cli_cbc_model, add_variables_custom_name_custom_options) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_variables_custom_name_custom_options();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_variables_custom_name_custom_options();
 }
 GTEST_TEST(cli_cbc_model, add_to_objective) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_to_objective();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_to_objective();
 }
 GTEST_TEST(cli_cbc_model, get_objective) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::get_objective();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::get_objective();
 }
 
 GTEST_TEST(cli_cbc_model, add_and_get_constraint) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_and_get_constraint();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_and_get_constraint();
 }
 GTEST_TEST(cli_cbc_model, build_optimize) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::build_optimize();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::build_optimize();
 }
 GTEST_TEST(cli_cbc_model, add_to_objective_xsum) {
-    if(!T::is_available()) GTEST_SKIP();
-    model_tests<M>::add_to_objective_xsum();
+    if(!S::is_available()) GTEST_SKIP();
+    model_tests<M, S>::add_to_objective_xsum();
 }
