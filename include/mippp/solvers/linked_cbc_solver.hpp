@@ -40,45 +40,45 @@ struct linked_cbc_solver : public abstract_solver_wrapper {
     [[nodiscard]] explicit linked_cbc_solver(const auto & m_model) {
         using traits = typename std::decay_t<decltype(m_model)>::solver_traits;
         typename traits::opt_sense sense = m_model.optimization_sense();
-        int nb_vars = static_cast<int>(m_model.nb_variables());
+        int num_vars = static_cast<int>(m_model.num_variables());
         double const * obj = m_model.column_coefs();
         double const * col_lb = m_model.column_lower_bounds();
         double const * col_ub = m_model.column_upper_bounds();
         typename traits::var_category const * vtype = m_model.column_types();
-        int nb_rows = static_cast<int>(m_model.nb_constraints());
-        int nb_elems = static_cast<int>(m_model.nb_entries());
+        int num_rows = static_cast<int>(m_model.num_constraints());
+        int num_elems = static_cast<int>(m_model.num_entries());
         int const * row_begins = m_model.row_begins();
         int const * indices = m_model.var_entries();
         double const * coefs = m_model.coef_entries();
         double const * row_lb = m_model.row_lower_bounds();
         double const * row_ub = m_model.row_upper_bounds();
 
-        double * col_lb_copy = new double[nb_vars];
-        std::copy(col_lb, col_lb + nb_vars, col_lb_copy);
-        double * col_ub_copy = new double[nb_vars];
-        std::copy(col_ub, col_ub + nb_vars, col_ub_copy);
-        double * obj_copy = new double[nb_vars];
-        std::copy(obj, obj + nb_vars, obj_copy);
+        double * col_lb_copy = new double[num_vars];
+        std::copy(col_lb, col_lb + num_vars, col_lb_copy);
+        double * col_ub_copy = new double[num_vars];
+        std::copy(col_ub, col_ub + num_vars, col_ub_copy);
+        double * obj_copy = new double[num_vars];
+        std::copy(obj, obj + num_vars, obj_copy);
 
-        double * row_lb_copy = new double[nb_rows];
-        std::copy(row_lb, row_lb + nb_rows, row_lb_copy);
-        double * row_ub_copy = new double[nb_rows];
-        std::copy(row_ub, row_ub + nb_rows, row_ub_copy);
+        double * row_lb_copy = new double[num_rows];
+        std::copy(row_lb, row_lb + num_rows, row_lb_copy);
+        double * row_ub_copy = new double[num_rows];
+        std::copy(row_ub, row_ub + num_rows, row_ub_copy);
 
         OsiSolverInterface * solver = new OsiClpSolverInterface;
 
-        int * row_begins_copy = new int[nb_rows + 1];
-        std::copy(row_begins, row_begins + nb_rows, row_begins_copy);
-        row_begins_copy[nb_rows] = nb_elems;  // thats dumb
+        int * row_begins_copy = new int[num_rows + 1];
+        std::copy(row_begins, row_begins + num_rows, row_begins_copy);
+        row_begins_copy[num_rows] = num_elems;  // thats dumb
         CoinPackedMatrix * matrix =
-            new CoinPackedMatrix(false, nb_vars, nb_rows, nb_elems, coefs,
+            new CoinPackedMatrix(false, num_vars, num_rows, num_elems, coefs,
                                  indices, row_begins_copy, nullptr);
         delete[] row_begins_copy;
         // ownership of copies and matrix is transfered to solver
         solver->assignProblem(matrix, col_lb_copy, col_ub_copy, obj_copy,
                               row_lb_copy, row_ub_copy);
         solver->setObjSense(sense);
-        for(int i = 0; i < nb_vars; ++i) {
+        for(int i = 0; i < num_vars; ++i) {
             if(vtype[i] == traits::var_category::integer ||
                vtype[i] == traits::var_category::binary)
                 solver->setInteger(i);
@@ -127,10 +127,10 @@ struct linked_cbc_solver : public abstract_solver_wrapper {
     }
 
     [[nodiscard]] std::vector<double> get_solution() const noexcept {
-        std::size_t nb_vars = static_cast<std::size_t>(model.getNumCols());
-        std::vector<double> solution(nb_vars);
+        std::size_t num_vars = static_cast<std::size_t>(model.getNumCols());
+        std::vector<double> solution(num_vars);
         const double * solution_arr = model.getColSolution();
-        solution.assign(solution_arr, solution_arr + nb_vars);
+        solution.assign(solution_arr, solution_arr + num_vars);
         return solution;
     }
     [[nodiscard]] double get_objective_value() const noexcept {

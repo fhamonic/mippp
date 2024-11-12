@@ -41,14 +41,14 @@ struct linked_grb_solver : public abstract_solver_wrapper {
         : env(nullptr), model(nullptr) {
         using traits = typename std::decay_t<decltype(m_model)>::solver_traits;
         typename traits::opt_sense sense = m_model.optimization_sense();
-        int nb_vars = static_cast<int>(m_model.nb_variables());
+        int num_vars = static_cast<int>(m_model.num_variables());
         double * obj = const_cast<double *>(m_model.column_coefs());
         double * col_lb = const_cast<double *>(m_model.column_lower_bounds());
         double * col_ub = const_cast<double *>(m_model.column_upper_bounds());
         typename traits::var_category * vtype =
             const_cast<typename traits::var_category *>(m_model.column_types());
-        int nb_rows = static_cast<int>(m_model.nb_constraints());
-        int nb_elems = static_cast<int>(m_model.nb_entries());
+        int num_rows = static_cast<int>(m_model.num_constraints());
+        int num_elems = static_cast<int>(m_model.num_entries());
         int * row_begins = const_cast<int *>(m_model.row_begins());
         int * indices = const_cast<int *>(m_model.var_entries());
         double * coefs = const_cast<double *>(m_model.coef_entries());
@@ -65,21 +65,21 @@ struct linked_grb_solver : public abstract_solver_wrapper {
         if(error)
             std::cerr << "GRBstartenv" << error << ": "
                       << GRBgeterrormsg(this->env) << std::endl;
-        error = GRBnewmodel(this->env, &this->model, "PL", nb_vars, obj, col_lb,
+        error = GRBnewmodel(this->env, &this->model, "PL", num_vars, obj, col_lb,
                             col_ub, reinterpret_cast<char *>(vtype), NULL);
         if(error)
             std::cerr << "GRBnewmodel" << error << ": "
                       << GRBgeterrormsg(this->env) << std::endl;
-        error = GRBaddrangeconstrs(this->model, nb_rows, nb_elems, row_begins,
+        error = GRBaddrangeconstrs(this->model, num_rows, num_elems, row_begins,
                                    indices, coefs, row_lb, row_ub, NULL);
         if(error)
             std::cerr << "GRBaddrangeconstrs" << error << ": "
                       << GRBgeterrormsg(this->env) << std::endl;
 
-        // for(int row = 0; row < nb_rows; ++row) {
+        // for(int row = 0; row < num_rows; ++row) {
         //     int offset = row_begins[row];
         //     int numnz =
-        //         ((row + 1 < nb_rows) ? row_begins[row + 1] : nb_elems) -
+        //         ((row + 1 < num_rows) ? row_begins[row + 1] : num_elems) -
         //         offset;
         //     error = GRBaddrangeconstr(this->model, numnz, indices +
         //     offset,
@@ -93,14 +93,14 @@ struct linked_grb_solver : public abstract_solver_wrapper {
         // }
 
         //
-        // int _nb_vars;
-        // GRBgetintattr(this->model, GRB_INT_ATTR_NUMVARS, &_nb_vars);
-        // int _nb_rows;
-        // GRBgetintattr(this->model, GRB_INT_ATTR_NUMCONSTRS, &_nb_rows);
-        // std::cout << "given : vars: " << nb_vars << " rows: " << nb_rows
+        // int _num_vars;
+        // GRBgetintattr(this->model, GRB_INT_ATTR_NUMVARS, &_num_vars);
+        // int _num_rows;
+        // GRBgetintattr(this->model, GRB_INT_ATTR_NUMCONSTRS, &_num_rows);
+        // std::cout << "given : vars: " << num_vars << " rows: " << num_rows
         //           << std::endl;
-        // std::cout << "actual : vars: " << _nb_vars << " rows: " <<
-        // _nb_rows
+        // std::cout << "actual : vars: " << _num_vars << " rows: " <<
+        // _num_rows
         //           << std::endl;
         //
 
@@ -129,15 +129,15 @@ struct linked_grb_solver : public abstract_solver_wrapper {
     int optimize() noexcept { return GRBoptimize(model); }
 
     [[nodiscard]] std::vector<double> get_solution() const noexcept {
-        int nb_vars;
+        int num_vars;
         GRBgetintattr(const_cast<GRBmodel *>(model), GRB_INT_ATTR_NUMVARS,
-                      &nb_vars);
+                      &num_vars);
 
-        std::cout << nb_vars << std::endl;
+        std::cout << num_vars << std::endl;
 
-        std::vector<double> solution(static_cast<std::size_t>(nb_vars));
+        std::vector<double> solution(static_cast<std::size_t>(num_vars));
         GRBgetdblattrarray(const_cast<GRBmodel *>(model), GRB_DBL_ATTR_X, 0,
-                           nb_vars, solution.data());
+                           num_vars, solution.data());
         return solution;
     }
     [[nodiscard]] double get_objective_value() const noexcept {

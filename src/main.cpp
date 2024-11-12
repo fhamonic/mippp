@@ -13,7 +13,7 @@ struct Note {
     double freq;
 };
 
-constexpr int nb_harmonics = 7;
+constexpr int num_harmonics = 7;
 
 struct Harmonic {
     int num;
@@ -35,7 +35,7 @@ int main() {
     auto positions = std::ranges::iota_view(0, static_cast<int>(notes.size()));
 
     for(auto && note : notes) {
-        for(int i = 0; i < nb_harmonics; ++i)
+        for(int i = 0; i < num_harmonics; ++i)
             notes_harmonics[note.id].emplace_back(
                 Harmonic{i + 1, note.name + "_" + std::to_string(i + 1),
                          note.freq / (2 * i + 1)});

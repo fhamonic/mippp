@@ -20,7 +20,7 @@ public:
         M model;
         auto x = model.add_variable();
         auto y = model.add_variable();
-        ASSERT_EQ(model.nb_variables(), 2);
+        ASSERT_EQ(model.num_variables(), 2);
         ASSERT_EQ(x.id(), 0);
         ASSERT_EQ(model.obj_coef(x), 0);
         ASSERT_EQ(model.lower_bound(x), 0);
@@ -44,7 +44,7 @@ public:
         auto z = model.add_variable({.obj_coef = 3.6,
                                      .upper_bound = 10,
                                      .type = M::var_category::integer});
-        ASSERT_EQ(model.nb_variables(), 3);
+        ASSERT_EQ(model.num_variables(), 3);
         ASSERT_EQ(x.id(), 0);
         ASSERT_EQ(model.obj_coef(x), 6.14);
         ASSERT_EQ(model.lower_bound(x), 3.2);
@@ -68,7 +68,7 @@ public:
         M model;
         auto x = model.add_variable("x");
         auto y = model.add_variable("y");
-        ASSERT_EQ(model.nb_variables(), 2);
+        ASSERT_EQ(model.num_variables(), 2);
         ASSERT_EQ(x.id(), 0);
         ASSERT_EQ(model.obj_coef(x), 0);
         ASSERT_EQ(model.lower_bound(x), 0);
@@ -92,7 +92,7 @@ public:
         auto z = model.add_variable("z", {.obj_coef = 3.6,
                                           .upper_bound = 10,
                                           .type = M::var_category::integer});
-        ASSERT_EQ(model.nb_variables(), 3);
+        ASSERT_EQ(model.num_variables(), 3);
         ASSERT_EQ(x.id(), 0);
         ASSERT_EQ(model.obj_coef(x), 6.14);
         ASSERT_EQ(model.lower_bound(x), 3.2);
@@ -117,7 +117,7 @@ public:
         auto x_vars = model.add_variables(5, [](int i) { return 4 - i; });
         auto y_vars =
             model.add_variables(4, [](int i, int j) { return i * 2 + j; });
-        ASSERT_EQ(model.nb_variables(), 9);
+        ASSERT_EQ(model.num_variables(), 9);
         for(int i = 0; i < 5; ++i) {
             auto x = x_vars(i);
             ASSERT_EQ(x.id(), 4 - i);
@@ -151,7 +151,7 @@ public:
                                            .upper_bound = 10,
                                            .type = M::var_category::integer});
 
-        ASSERT_EQ(model.nb_variables(), 11);
+        ASSERT_EQ(model.num_variables(), 11);
         for(int i = 0; i < 5; ++i) {
             auto x = x_vars(i);
             ASSERT_EQ(x.id(), 4 - i);
@@ -190,7 +190,7 @@ public:
             [](int i, int j) {
                 return "y(" + std::to_string(i) + ',' + std::to_string(j) + ')';
             });
-        ASSERT_EQ(model.nb_variables(), 9);
+        ASSERT_EQ(model.num_variables(), 9);
         for(int i = 0; i < 5; ++i) {
             auto x = x_vars(i);
             ASSERT_EQ(x.id(), 4 - i);
@@ -228,7 +228,7 @@ public:
             {.obj_coef = 3.6,
              .upper_bound = 10,
              .type = M::var_category::integer});
-        ASSERT_EQ(model.nb_variables(), 9);
+        ASSERT_EQ(model.num_variables(), 9);
         for(int i = 0; i < 5; ++i) {
             auto x = x_vars(i);
             ASSERT_EQ(x.id(), 4 - i);
@@ -254,12 +254,12 @@ public:
         auto x = model.add_variable();
         auto y = model.add_variable();
         model.add_to_objective(x - 3 * y);
-        ASSERT_EQ(model.nb_variables(), 2);
+        ASSERT_EQ(model.num_variables(), 2);
         ASSERT_EQ(model.obj_coef(x), 1);
         ASSERT_EQ(model.obj_coef(y), -3);
 
         auto z = model.add_variable();
-        ASSERT_EQ(model.nb_variables(), 3);
+        ASSERT_EQ(model.num_variables(), 3);
         model.add_to_objective(-z + y);
         ASSERT_EQ(model.obj_coef(x), 1);
         ASSERT_EQ(model.obj_coef(y), -2);
@@ -283,8 +283,8 @@ public:
 
         auto constr_id = model.add_constraint(1 <= -z + y + 3 * x <= 8);
         ASSERT_EQ(constr_id, 0);
-        ASSERT_EQ(model.nb_constraints(), 1);
-        ASSERT_EQ(model.nb_entries(), 3);
+        ASSERT_EQ(model.num_constraints(), 1);
+        ASSERT_EQ(model.num_entries(), 3);
 
         auto constr = model.constraint(constr_id);
         ASSERT_EQ(constr.lower_bound(), 1);

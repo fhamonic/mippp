@@ -90,10 +90,10 @@ public:
         _col_ub.push_back(options.upper_bound);
         _col_type.push_back(options.type);
         _col_name.emplace_back(std::forward<S>(name));
-        return var(static_cast<var_id_t>(nb_variables() - 1));
+        return var(static_cast<var_id_t>(num_variables() - 1));
     }
     var add_variable(var_options options = {}) noexcept {
-        return add_variable("x" + std::to_string(nb_variables()), options);
+        return add_variable("x" + std::to_string(num_variables()), options);
     }
 
     template <typename IL, typename NL, typename... Args>
@@ -139,7 +139,7 @@ public:
 
 private:
     void _add_cols(std::size_t count, var_options options = {}) {
-        const std::size_t new_size = nb_variables() + count;
+        const std::size_t new_size = num_variables() + count;
         _col_coef.resize(new_size, options.obj_coef);
         _col_lb.resize(new_size, options.lower_bound);
         _col_ub.resize(new_size, options.upper_bound);
@@ -152,7 +152,7 @@ private:
             typename detail::function_traits<IL>::result_type, var_id_t>
     auto _add_variables(detail::pack<Args...>, std::size_t count,
                         IL && id_lambda, var_options options = {}) noexcept {
-        const std::size_t offset = nb_variables();
+        const std::size_t offset = num_variables();
         _add_cols(count, options);
         return vars_range(
             typename detail::function_traits<IL>::arg_types(), offset, count,
@@ -170,7 +170,7 @@ private:
     auto _add_variables(detail::pack<Args...>, std::size_t count,
                         IL && id_lambda, NL && name_lambda,
                         var_options options = {}) noexcept {
-        const std::size_t offset = nb_variables();
+        const std::size_t offset = num_variables();
         _add_cols(count, options);
         return vars_range(
             typename detail::function_traits<IL>::arg_types(), offset, count,
@@ -215,17 +215,17 @@ public:
 
     template <linear_constraint_c C>
     constraint_id_t add_constraint(C && lc) noexcept {
-        _row_begins.emplace_back(nb_entries());
+        _row_begins.emplace_back(num_entries());
         _row_lb.emplace_back(lc.lower_bound());
         _row_ub.emplace_back(lc.upper_bound());
         std::ranges::copy(lc.variables(), std::back_inserter(_vars));
         std::ranges::copy(lc.coefficients(), std::back_inserter(_coefs));
-        return constraint_id_t(nb_constraints() - 1);
+        return constraint_id_t(num_constraints() - 1);
     }
 
-    std::size_t nb_variables() const { return _col_coef.size(); }
-    std::size_t nb_constraints() const { return _row_begins.size(); }
-    std::size_t nb_entries() const { return _vars.size(); }
+    std::size_t num_variables() const { return _col_coef.size(); }
+    std::size_t num_constraints() const { return _row_begins.size(); }
+    std::size_t num_entries() const { return _vars.size(); }
 
     // Variables
     scalar_t & obj_coef(var v) noexcept {
@@ -267,7 +267,7 @@ public:
     // Views
     auto variables() const noexcept {
         return ranges::iota_view<var_id_t, var_id_t>(
-            var_id_t{0}, static_cast<var_id_t>(nb_variables()));
+            var_id_t{0}, static_cast<var_id_t>(num_variables()));
     }
     auto objective() const noexcept {
         return linear_expression<decltype(variables()),
@@ -275,13 +275,13 @@ public:
             variables(), _col_coef, scalar_t(0));
     }
     auto constraint(constraint_id_t constraint_id) const noexcept {
-        assert(constraint_id < nb_constraints());
+        assert(constraint_id < num_constraints());
         const std::size_t row_begin =
             static_cast<std::size_t>(_row_begins[constraint_id]);
         const std::size_t row_end =
-            (constraint_id < nb_constraints() - 1)
+            (constraint_id < num_constraints() - 1)
                 ? static_cast<std::size_t>(_row_begins[constraint_id + 1])
-                : nb_entries();
+                : num_entries();
         return linear_constraint(
             ranges::subrange(_vars.data() + row_begin, _vars.data() + row_end),
             ranges::subrange(_coefs.data() + row_begin,
@@ -290,7 +290,7 @@ public:
     }
     auto constraint_ids() const noexcept {
         return ranges::iota_view<constraint_id_t, constraint_id_t>(
-            constraint_id_t{0}, static_cast<constraint_id_t>(nb_constraints()));
+            constraint_id_t{0}, static_cast<constraint_id_t>(num_constraints()));
     }
     auto constraints() const noexcept {
         return ranges::views::transform(constraint_ids(),

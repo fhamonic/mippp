@@ -50,13 +50,13 @@ struct linked_scip_solver : public abstract_solver_wrapper {
         SCIPcreateProbBasic(model, "linked_scip_solver");
 
         typename traits::opt_sense sense = m_model.optimization_sense();
-        int nb_vars = static_cast<int>(m_model.nb_variables());
+        int num_vars = static_cast<int>(m_model.num_variables());
         double const * obj = m_model.column_coefs();
         double const * col_lb = m_model.column_lower_bounds();
         double const * col_ub = m_model.column_upper_bounds();
         typename traits::var_category const * vtype = m_model.column_types();
-        int nb_rows = static_cast<int>(m_model.nb_constraints());
-        int nb_elems = static_cast<int>(m_model.nb_entries());
+        int num_rows = static_cast<int>(m_model.num_constraints());
+        int num_elems = static_cast<int>(m_model.num_entries());
         int const * row_begins = m_model.row_begins();
         int const * indices = m_model.var_entries();
         double const * coefs = m_model.coef_entries();
@@ -66,8 +66,8 @@ struct linked_scip_solver : public abstract_solver_wrapper {
         SCIPsetObjsense(model, static_cast<SCIP_OBJSENSE>(sense));
 
         vars =
-            std::vector<SCIP_VAR *>(static_cast<std::size_t>(nb_vars), nullptr);
-        for(int i = 0; i < nb_vars; ++i) {
+            std::vector<SCIP_VAR *>(static_cast<std::size_t>(num_vars), nullptr);
+        for(int i = 0; i < num_vars; ++i) {
             SCIPcreateVarBasic(
                 model,  // SCIP environment
                 &vars[static_cast<std::size_t>(
@@ -89,12 +89,12 @@ struct linked_scip_solver : public abstract_solver_wrapper {
 
         std::string name;
 
-        constrs = std::vector<SCIP_CONS *>(static_cast<std::size_t>(nb_rows),
+        constrs = std::vector<SCIP_CONS *>(static_cast<std::size_t>(num_rows),
                                            nullptr);
-        for(int i = 0; i < nb_rows; ++i) {
+        for(int i = 0; i < num_rows; ++i) {
             int begin_elems = row_begins[static_cast<std::size_t>(i)];
             int end_elems =
-                (i == nb_rows - 1) ? (nb_elems) : (row_begins[i + 1]);
+                (i == num_rows - 1) ? (num_elems) : (row_begins[i + 1]);
 
             name = "ROW_" + std::to_string(i);
 

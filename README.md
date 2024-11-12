@@ -76,7 +76,7 @@ vertex_t<static_graph> t = ...;
 
 mip_model<linked_cbc_traits> model;
 auto F = model.add_variable();
-auto X_vars = model.add_variables(graph.nb_arcs(),
+auto X_vars = model.add_variables(graph.num_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
 
 model.add_to_objective(F);
@@ -101,7 +101,7 @@ vertex_t<static_graph> t = ...;
 
 using MIP = mip_model<linked_cbc_traits>;
 MIP model(MIP::opt_sense::min);
-auto X_vars = model.add_variables(graph.nb_arcs(),
+auto X_vars = model.add_variables(graph.num_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
 
 model.add_to_objective(xsum(graph.arcs(), X_vars, length_map));

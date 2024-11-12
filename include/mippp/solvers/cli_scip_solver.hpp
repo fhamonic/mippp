@@ -87,7 +87,7 @@ public:
         if(ret != 0) return ret;
 
         solution.clear();
-        solution.resize(nb_variables, 0);
+        solution.resize(num_variables, 0);
 
         std::ifstream sol_file;
         auto flags = sol_file.exceptions();

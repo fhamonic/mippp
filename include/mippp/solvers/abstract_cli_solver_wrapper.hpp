@@ -32,7 +32,7 @@ class abstract_cli_solver_wrapper : public abstract_solver_wrapper {
 public:
     enum ret_code : int { success = 0, infeasible = 1, timeout = 2 };
 protected:
-    std::size_t nb_variables;
+    std::size_t num_variables;
     std::unordered_map<std::string, std::size_t> var_name_to_id;
     double objective_value;
     std::vector<double> solution;
@@ -47,7 +47,7 @@ protected:
 
     [[nodiscard]] abstract_cli_solver_wrapper(const auto & model) {
         using var = typename std::decay_t<decltype(model)>::var;
-        nb_variables = model.nb_variables();
+        num_variables = model.num_variables();
         for(auto var_id : model.variables()) {
             var_name_to_id[model.name(var(var_id))] =
                 static_cast<std::size_t>(var_id);

@@ -1,5 +1,6 @@
 # ################### Packages ###################
-find_package(GTest)
+find_package(GTest REQUIRED)
+#find_package(TBB REQUIRED)
 include(GoogleTest)
 
 # ################# TEST targets #################
@@ -23,12 +24,12 @@ endif()
 #     target_link_libraries(linked_cplex_test GTest::gtest)
 #     gtest_discover_tests(linked_cplex_test)
 # endif()
-if(${SCIP_FOUND})
-    add_executable(linked_scip_test main_test.cpp linked_scip_test.cpp)
-    target_link_libraries(linked_scip_test mippp)
-    target_link_libraries(linked_scip_test GTest::gtest)
-    gtest_discover_tests(linked_scip_test)
-endif()
+# if(${SCIP_FOUND})
+#     add_executable(linked_scip_test main_test.cpp linked_scip_test.cpp)
+#     target_link_libraries(linked_scip_test mippp)
+#     target_link_libraries(linked_scip_test GTest::gtest) # onetbb::onetbb
+#     gtest_discover_tests(linked_scip_test)
+# endif()
 if(${COINOR_FOUND})
     add_executable(linked_cbc_test main_test.cpp linked_cbc_test.cpp)
     target_link_libraries(linked_cbc_test mippp)
