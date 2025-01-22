@@ -5,28 +5,28 @@
 #include "mippp/solvers/cli_grb_solver.hpp"
 #include "mippp/solvers/cli_scip_solver.hpp"
 
-#ifdef MIPPP_FOUND_LINKED_COINOR
+#ifdef MIPPP_LINK_COINOR
 #include "mippp/solvers/linked_cbc_solver.hpp"
 #ifndef MIPPP_DEFAULT_SOLVER
 #define MIPPP_DEFAULT_SOLVER linked_cbc_solver
 #define MIPPP_DEFAULT_MODEL_TRAITS linked_cbc_model_traits
 #endif
 #endif
-#ifdef MIPPP_FOUND_LINKED_CPLEX
+#ifdef MIPPP_LINK_CPLEX
 #include "mippp/solvers/linked_cplex_solver.hpp"
 #ifndef MIPPP_DEFAULT_SOLVER
 #define MIPPP_DEFAULT_SOLVER linked_cplex_solver
 #define MIPPP_DEFAULT_MODEL_TRAITS linked_cplex_model_traits
 #endif
 #endif
-#ifdef MIPPP_FOUND_LINKED_GUROBI
+#ifdef MIPPP_LINK_GUROBI
 #include "mippp/solvers/linked_grb_solver.hpp"
 #ifndef MIPPP_DEFAULT_SOLVER
 #define MIPPP_DEFAULT_SOLVER linked_grb_solver
 #define MIPPP_DEFAULT_MODEL_TRAITS linked_grb_model_traits
 #endif
 #endif
-#ifdef MIPPP_FOUND_LINKED_SCIP
+#ifdef MIPPP_LINK_SCIP
 #include "mippp/solvers/linked_scip_solver.hpp"
 #ifndef MIPPP_DEFAULT_SOLVER
 #define MIPPP_DEFAULT_SOLVER linked_scip_solver
