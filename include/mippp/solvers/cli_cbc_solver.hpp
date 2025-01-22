@@ -29,9 +29,9 @@ struct cli_cbc_solver : public abstract_cli_solver_wrapper {
     }
     static bool is_available() {
 #ifdef WIN32
-        return call("quit 2> NUL") == 0;
+        return call("quit 1> NUL 2> NUL") == 0;
 #else
-        return call("quit > /dev/null") == 0;
+        return call("quit 1> /dev/null 2> /dev/null") == 0;
 #endif
     }
 
