@@ -270,9 +270,7 @@ public:
             var_id_t{0}, static_cast<var_id_t>(num_variables()));
     }
     auto objective() const noexcept {
-        return linear_expression<decltype(variables()),
-                                 const std::vector<scalar_t> &, scalar_t>(
-            variables(), _col_coef, scalar_t(0));
+        return linear_expression(variables(), _col_coef);
     }
     auto constraint(constraint_id_t constraint_id) const noexcept {
         assert(constraint_id < num_constraints());
@@ -290,7 +288,8 @@ public:
     }
     auto constraint_ids() const noexcept {
         return ranges::iota_view<constraint_id_t, constraint_id_t>(
-            constraint_id_t{0}, static_cast<constraint_id_t>(num_constraints()));
+            constraint_id_t{0},
+            static_cast<constraint_id_t>(num_constraints()));
     }
     auto constraints() const noexcept {
         return ranges::views::transform(constraint_ids(),

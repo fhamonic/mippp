@@ -1,6 +1,7 @@
 #ifndef MIPPP_LINKED_CPLEX_TRAITS_HPP
 #define MIPPP_LINKED_CPLEX_TRAITS_HPP
 
+#include <iostream>
 #include <limits>
 
 #include <scip/scipdefplugins.h>

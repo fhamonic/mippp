@@ -122,7 +122,7 @@ struct linked_cbc_solver : public abstract_solver_wrapper {
         CbcMain0(model, solverData);
         CbcMain1(static_cast<int>(parameters.size() + 1), argv.data(), model,
                  &cbc_callback, solverData);
-        // model.branchAndBound();
+                 
         return model.status();
     }
 

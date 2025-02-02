@@ -22,7 +22,7 @@ concept linear_expression_c =
              expression_scalar_t<E>) {
     { e.variables() } -> detail::range_of<expression_var_id_t<E>>;
     { e.coefficients() } -> detail::range_of<expression_scalar_t<E>>;
-    { e.constant() } -> std::same_as<expression_scalar_t<E>>;
+    { e.constant() } -> std::convertible_to<expression_scalar_t<E>>;
 };
 // clang-format on
 
