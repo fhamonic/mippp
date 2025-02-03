@@ -31,7 +31,7 @@ constexpr auto linear_expression_negate(E && e) {
         std::forward<E>(e).variables(),
         ranges::views::transform(std::forward<E>(e).coefficients(),
                                  std::negate<scalar_t>()),
-        std::forward<E>(e).constant());
+        -std::forward<E>(e).constant());
 }
 
 template <linear_expression_c E, typename S>

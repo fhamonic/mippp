@@ -67,5 +67,5 @@ GTEST_TEST(linear_constraint_operators, bounds) {
 }
 
 GTEST_TEST(linear_constraint_operators, bounds_other_way) {
-    ASSERT_CONSTRAINT((1 <= -Var(11) * 3.2 <= 3), {11}, {-3.2}, 1, 3);
+    ASSERT_CONSTRAINT(3 >= -Var(11) * 3.2 >= 1, {11}, {-3.2}, 1, 3);
 }
