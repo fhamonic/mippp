@@ -11,18 +11,18 @@ namespace mippp {
 template <typename V, typename C>
 class variable {
 public:
-    using var_id_t = V;
+    using variable_id_t = V;
     using scalar_t = C;
 
 private:
-    var_id_t _id;
+    variable_id_t _id;
 
 public:
-    constexpr explicit variable(var_id_t id) : _id(id){};
+    constexpr explicit variable(variable_id_t id) : _id(id) {};
 
-    constexpr var_id_t id() const noexcept { return _id; }
+    constexpr variable_id_t id() const noexcept { return _id; }
 
-    constexpr variable(const variable & v) : _id(v._id){};
+    constexpr variable(const variable & v) : _id(v._id) {};
 
     constexpr auto variables() const noexcept {
         return ranges::views::single(_id);

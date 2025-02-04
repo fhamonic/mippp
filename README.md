@@ -41,7 +41,6 @@ then manage to #include it where needed with the range-v3 library.
 
 ```cpp
 #include "mippp/mip_model.hpp"
-#include "mippp/operators.hpp"
 using namespace fhamonic::mippp;
 ...
 using MIP = mip_model<linked_cbc_traits>;
@@ -65,7 +64,6 @@ Using the [MELON library](https://github.com/fhamonic/melon), we can express the
 using namespace fhamonic::melon;
 
 #include "mippp/mip_model.hpp"
-#include "mippp/operators.hpp"
 #include "mippp/xsum.hpp"
 using namespace fhamonic::mippp;
 ...

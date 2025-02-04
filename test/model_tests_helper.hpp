@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#include "mippp/constraints/linear_constraint_operators.hpp"
-#include "mippp/expressions/linear_expression_operators.hpp"
+#include "mippp/linear_constraint.hpp"
+#include "mippp/linear_expression.hpp"
 #include "mippp/mip_model.hpp"
 #include "mippp/xsum.hpp"
 
@@ -250,6 +250,7 @@ public:
         }
     }
     static void add_to_objective() {
+        using namespace fhamonic::mippp::operators;
         M model;
         auto x = model.add_variable();
         auto y = model.add_variable();
@@ -266,6 +267,7 @@ public:
         ASSERT_EQ(model.obj_coef(z), -1);
     }
     static void get_objective() {
+        using namespace fhamonic::mippp::operators;
         M model;
         auto x = model.add_variable();
         auto y = model.add_variable();
@@ -276,6 +278,7 @@ public:
         ASSERT_EQ_RANGES(obj.coefficients(), {1.0, -2.0, -1.0});
     }
     static void add_and_get_constraint() {
+        using namespace fhamonic::mippp::operators;
         M model;
         auto x = model.add_variable();
         auto y = model.add_variable();
@@ -302,6 +305,7 @@ public:
     }
 
     static void build_optimize() {
+        using namespace fhamonic::mippp::operators;
         M model;
         auto x = model.add_variable({.lower_bound = 0, .upper_bound = 20});
         auto y = model.add_variable({.upper_bound = 12});

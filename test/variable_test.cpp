@@ -1,7 +1,7 @@
 #undef NDEBUG
 #include <gtest/gtest.h>
 
-#include "mippp/expressions/linear_expression_operations.hpp"
+#include "mippp/linear_expression.hpp"
 #include "mippp/variable.hpp"
 
 #include "assert_expression.hpp"

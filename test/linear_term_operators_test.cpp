@@ -1,18 +1,19 @@
 #undef NDEBUG
 #include <gtest/gtest.h>
 
-#include "mippp/expressions/linear_expression_operators.hpp"
+#include "mippp/linear_expression.hpp"
 #include "mippp/variable.hpp"
 
 #include "assert_expression.hpp"
 
 using namespace fhamonic::mippp;
+using namespace fhamonic::mippp::operators;
 
 using Var = variable<int, double>;
 
 GTEST_TEST(linear_terms_operators, negate_term) {
-    ASSERT_EXPRESSION((-Var(11)) * 3.2, {11}, {-3.2}, 0);
-    ASSERT_EXPRESSION(-(Var(11) * 3.2), {11}, {-3.2}, 0);
+    ASSERT_EXPRESSION((-Var(11)) * 3.2 + 13, {11}, {-3.2}, 13);
+    ASSERT_EXPRESSION(-(Var(11) * 3.2 + 13), {11}, {-3.2}, -13);
 }
 
 GTEST_TEST(linear_terms_operators, scalar_add) {

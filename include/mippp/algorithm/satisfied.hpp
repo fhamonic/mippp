@@ -10,7 +10,7 @@ namespace fhamonic {
 namespace mippp {
 
 template <linear_constraint_c C, typename M>
-requires id_value_map<M, constraint_var_id_t<C>, constraint_scalar_t<C>>
+requires id_value_map<M, constraint_variable_id_t<C>, constraint_scalar_t<C>>
 constexpr bool satisfied(C && c, M && m) {
     using scalar_t = constraint_scalar_t<C>;
     scalar_t value =

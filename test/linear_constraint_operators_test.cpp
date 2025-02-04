@@ -3,15 +3,15 @@
 #undef NDEBUG
 #include <gtest/gtest.h>
 
-#include "mippp/constraints/linear_constraint.hpp"
-#include "mippp/constraints/linear_constraint_operators.hpp"
-#include "mippp/expressions/linear_expression_operators.hpp"
+#include "mippp/linear_constraint.hpp"
+#include "mippp/linear_expression.hpp"
 #include "mippp/variable.hpp"
 
 #include "assert_constraint.hpp"
 #include "assert_eq_ranges.hpp"
 
 using namespace fhamonic::mippp;
+using namespace fhamonic::mippp::operators;
 
 using Var = variable<int, double>;
 

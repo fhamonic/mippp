@@ -17,7 +17,7 @@ namespace fhamonic {
 namespace mippp {
 
 struct linked_cbc_model_traits {
-    using var_id_t = int;
+    using variable_id_t = int;
     using constraint_id_t = std::size_t;
     using scalar_t = double;
 

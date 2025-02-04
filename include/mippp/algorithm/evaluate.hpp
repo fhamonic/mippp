@@ -11,7 +11,7 @@ namespace fhamonic {
 namespace mippp {
 
 template <linear_expression_c E, typename M>
-requires id_value_map<M, expression_var_id_t<E>, expression_scalar_t<E>>
+requires id_value_map<M, expression_variable_id_t<E>, expression_scalar_t<E>>
 constexpr expression_scalar_t<E> evaluate(E && e, M && m) {
     return e.constant() +
            ranges::inner_product(
