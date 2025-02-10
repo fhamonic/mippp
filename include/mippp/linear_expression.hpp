@@ -12,8 +12,6 @@
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/transform.hpp>
 
-// #include "mippp/detail/range-v3_compatibility.hpp"
-
 namespace fhamonic {
 namespace mippp {
 

@@ -18,8 +18,7 @@ class CompressorRecipe(ConanFile):
     build_policy = "missing"
 
     def requirements(self):
-        self.requires("range-v3/0.12.0")
-        # self.requires("range-v3/cci.20240905")
+        self.requires("range-v3/cci.20240905")
         
     def build_requirements(self):
         self.test_requires("gtest/[>=1.10.0 <cci]")
