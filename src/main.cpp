@@ -3,7 +3,6 @@
 #include "mippp/constraints/linear_constraint_operators.hpp"
 #include "mippp/expressions/linear_expression_operators.hpp"
 #include "mippp/mip_model.hpp"
-#include "mippp/xsum.hpp"
 
 using namespace fhamonic::mippp;
 
@@ -32,7 +31,8 @@ int main() {
 
     std::vector<std::vector<Harmonic>> notes_harmonics(notes.size());
 
-    auto positions = std::ranges::iota_view(0, static_cast<int>(notes.size()));
+    auto positions =
+        std::ranges::views::iota(0, static_cast<int>(notes.size()));
 
     for(auto && note : notes) {
         for(int i = 0; i < num_harmonics; ++i)

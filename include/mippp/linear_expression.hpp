@@ -1,14 +1,18 @@
 #ifndef MIPPP_LINEAR_EXPRESSION_HPP
 #define MIPPP_LINEAR_EXPRESSION_HPP
 
-#include <cassert>
 #include <concepts>
-#include <ranges>
+// #include <ranges>
+#include <tuple>
 #include <type_traits>
 
+#include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/all.hpp>
 #include <range/v3/view/concat.hpp>
+#include <range/v3/view/join.hpp>
 #include <range/v3/view/transform.hpp>
+
+// #include "mippp/detail/range-v3_compatibility.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -16,66 +20,64 @@ namespace mippp {
 /////////////////////////////////// CONCEPT ///////////////////////////////////
 
 template <typename _Tp>
-using variables_range_t = decltype(std::declval<_Tp &>().variables());
+using linear_term_scalar_t = std::tuple_element_t<0, _Tp>;
 
 template <typename _Tp>
-using coefficients_range_t = decltype(std::declval<_Tp &>().coefficients());
+using linear_term_variable_id_t = std::tuple_element_t<1, _Tp>;
 
 template <typename _Tp>
-using expression_variable_id_t =
-    std::ranges::range_value_t<variables_range_t<_Tp>>;
-
-template <typename _Tp>
-using expression_scalar_t =
-    std::ranges::range_value_t<coefficients_range_t<_Tp>>;
-
-template <typename _Tp>
-concept linear_expression_c = requires(const _Tp & __t) {
-    { __t.variables() } -> std::ranges::range;
-    { __t.coefficients() } -> std::ranges::range;
-    { __t.constant() } -> std::convertible_to<expression_scalar_t<_Tp>>;
+concept linear_term = requires(const _Tp & __t) {
+    { std::get<0>(__t) };
+    { std::get<1>(__t) };
 };
+
+template <typename _Tp>
+using linear_expression_terms_range_t = decltype(std::declval<_Tp &>().terms());
+
+template <typename _Tp>
+using linear_expression_term_t =
+    std::ranges::range_value_t<linear_expression_terms_range_t<_Tp>>;
+
+template <typename _Tp>
+using linear_expression_scalar_t =
+    linear_term_scalar_t<linear_expression_term_t<_Tp>>;
+
+template <typename _Tp>
+using linear_expression_variable_id_t =
+    linear_term_variable_id_t<linear_expression_term_t<_Tp>>;
+
+template <typename _Tp>
+concept linear_expression = requires(const _Tp & __t) {
+    { __t.terms() } -> ranges::range;
+    { __t.constant() } -> std::convertible_to<linear_expression_scalar_t<_Tp>>;
+} && linear_term<linear_expression_term_t<_Tp>>;
 
 //////////////////////////////////// CLASS ////////////////////////////////////
 
-template <typename _Vars, typename _Coefs>
-class linear_expression {
-public:
-    using variable_id_t = std::ranges::range_value_t<_Vars>;
-    using scalar_t = std::ranges::range_value_t<_Coefs>;
-
+template <typename _Terms>
+class linear_expression_view {
 private:
-    _Vars _variables;
-    _Coefs _coefficients;
+    using scalar_t = linear_term_scalar_t<std::ranges::range_value_t<_Terms>>;
+    _Terms _terms;
     scalar_t _constant;
 
 public:
-    template <std::ranges::range V, std::ranges::range C>
-    [[nodiscard]] constexpr linear_expression(V && variables, C && coefficients)
-        : _variables(ranges::views::all(std::forward<V>(variables)))
-        , _coefficients(ranges::views::all(std::forward<C>(coefficients)))
-        , _constant(static_cast<scalar_t>(0)) {}
+    template <ranges::range T>
+    [[nodiscard]] constexpr linear_expression_view(T && terms)
+        : _terms(ranges::views::all(std::forward<T>(terms))), _constant(0) {}
 
-    template <std::ranges::range V, std::ranges::range C, typename S>
-    [[nodiscard]] constexpr linear_expression(V && variables, C && coefficients,
-                                              S constant)
-        : _variables(ranges::views::all(std::forward<V>(variables)))
-        , _coefficients(ranges::views::all(std::forward<C>(coefficients)))
+    template <ranges::range T, typename S>
+    [[nodiscard]] constexpr linear_expression_view(T && terms, S constant)
+        : _terms(ranges::views::all(std::forward<T>(terms)))
         , _constant(static_cast<scalar_t>(constant)) {}
 
-    [[nodiscard]] constexpr const _Vars & variables() const & noexcept {
-        return _variables;
+    [[nodiscard]] constexpr decltype(auto) terms() const & noexcept {
+        return _terms;
     }
-    [[nodiscard]] constexpr _Vars && variables() && noexcept {
-        return std::move(_variables);
+    [[nodiscard]] constexpr _Terms && terms() && noexcept {
+        return std::move(_terms);
     }
-    [[nodiscard]] constexpr const _Coefs & coefficients() const & noexcept {
-        return _coefficients;
-    }
-    [[nodiscard]] constexpr _Coefs && coefficients() && noexcept {
-        return std::move(_coefficients);
-    }
-    [[nodiscard]] constexpr const scalar_t & constant() const & noexcept {
+    [[nodiscard]] constexpr decltype(auto) constant() const & noexcept {
         return _constant;
     }
     [[nodiscard]] constexpr scalar_t && constant() && noexcept {
@@ -83,116 +85,171 @@ public:
     }
 };
 
-template <typename V, typename C>
-linear_expression(V &&, C &&)
-    -> linear_expression<ranges::views::all_t<V>, ranges::views::all_t<C>>;
+template <typename T>
+linear_expression_view(T &&) -> linear_expression_view<ranges::views::all_t<T>>;
 
-template <typename V, typename C, typename S>
-    requires std::convertible_to<S, std::ranges::range_value_t<C>>
-linear_expression(V &&, C &&, S)
-    -> linear_expression<ranges::views::all_t<V>, ranges::views::all_t<C>>;
+template <typename T, typename S>
+    requires std::convertible_to<S,
+                                 linear_term_scalar_t<ranges::range_value_t<T>>>
+linear_expression_view(T &&, S)
+    -> linear_expression_view<ranges::views::all_t<T>>;
 
 ///////////////////////////////// OPERATIONS //////////////////////////////////
 
-template <linear_expression_c E1, linear_expression_c E2>
+// Optimisation de la connectivité écologique des réseaux d'habitats : PLNE et
+// prétraitemeent de plus courts chemins
+
+template <linear_expression E1, linear_expression E2>
 constexpr auto linear_expression_add(E1 && e1, E2 && e2) {
-    return linear_expression(
-        ranges::views::concat(std::forward<E1>(e1).variables(),
-                              std::forward<E2>(e2).variables()),
-        ranges::views::concat(std::forward<E1>(e1).coefficients(),
-                              std::forward<E2>(e2).coefficients()),
+    return linear_expression_view(
+        ranges::views::concat(std::forward<E1>(e1).terms(),
+                              std::forward<E2>(e2).terms()),
         std::forward<E1>(e1).constant() + std::forward<E2>(e2).constant());
 }
 
-template <linear_expression_c E>
+template <linear_expression E>
 constexpr auto linear_expression_negate(E && e) {
-    using scalar_t = expression_scalar_t<E>;
-    return linear_expression(
-        std::forward<E>(e).variables(),
-        ranges::views::transform(std::forward<E>(e).coefficients(),
-                                 std::negate<scalar_t>()),
+    return linear_expression_view(
+        ranges::views::transform(std::forward<E>(e).terms(),
+                                 [](auto && t) {
+                                     return std::make_pair(-std::get<0>(t),
+                                                           std::get<1>(t));
+                                 }),
         -std::forward<E>(e).constant());
 }
 
-template <linear_expression_c E, typename S>
+template <linear_expression E, typename S>
 constexpr auto linear_expression_scalar_add(E && e, const S c) {
-    using scalar_t = expression_scalar_t<E>;
-    return linear_expression(
-        std::forward<E>(e).variables(), std::forward<E>(e).coefficients(),
+    using scalar_t = linear_expression_scalar_t<E>;
+    return linear_expression_view(
+        std::forward<E>(e).terms(),
         std::forward<E>(e).constant() + static_cast<scalar_t>(c));
 }
 
-template <linear_expression_c E, typename S>
+template <linear_expression E, typename S>
 constexpr auto linear_expression_scalar_mul(E && e, const S c) {
-    using scalar_t = expression_scalar_t<E>;
-    return linear_expression(
-        std::forward<E>(e).variables(),
-        ranges::views::transform(
-            std::forward<E>(e).coefficients(),
-            [c](auto && coef) -> scalar_t { return c * coef; }),
-        std::forward<E>(e).constant() * c);
+    return linear_expression_view(
+        ranges::views::transform(std::forward<E>(e).terms(),
+                                 [c](auto && t) {
+                                     return std::make_pair(c * std::get<0>(t),
+                                                           std::get<1>(t));
+                                 }),
+        c * std::forward<E>(e).constant());
 }
+
+template <ranges::range _Expressions>
+    requires linear_expression<std::ranges::range_value_t<_Expressions>>
+class linear_expressions_sum {
+private:
+    using linear_expression = ranges::range_value_t<_Expressions>;
+    _Expressions _expressions;
+
+public:
+    template <typename E>
+    linear_expressions_sum(E && e)
+        : _expressions(ranges::views::all(std::forward<E>(e))) {}
+
+    template <typename E, typename F>
+    linear_expressions_sum(E && e, F && f)
+        : _expressions(ranges::views::transform(std::forward<E>(e),
+                                                std::forward<F>(f))) {}
+
+    [[nodiscard]] constexpr auto terms() const & noexcept {
+        return ranges::views::join(ranges::views::transform(
+            _expressions, [](auto && e) { return e.terms(); }));
+    }
+    [[nodiscard]] constexpr auto constant() const & noexcept {
+        using scalar_t = linear_expression_scalar_t<linear_expression>;
+        return ranges::accumulate(
+            ranges::views::transform(_expressions,
+                                     [](auto && e) { return e.constant(); }),
+            scalar_t{0});
+    }
+};
+
+template <typename _R>
+linear_expressions_sum(_R &&)
+    -> linear_expressions_sum<ranges::views::all_t<_R>>;
+
+template <typename _R, typename _F>
+linear_expressions_sum(_R &&, _F &&)
+    -> linear_expressions_sum<std::decay_t<decltype(ranges::views::transform(
+        std::declval<_R &&>(), std::declval<_F &&>()))>>;
 
 ////////////////////////////////// OPERATORS //////////////////////////////////
 
 namespace operators {
 
-template <linear_expression_c E1, linear_expression_c E2>
-    requires std::same_as<expression_variable_id_t<E1>, expression_variable_id_t<E2>> &&
-             std::same_as<expression_scalar_t<E1>, expression_scalar_t<E2>>
+template <linear_expression E1, linear_expression E2>
+    requires std::same_as<linear_expression_variable_id_t<E1>,
+                          linear_expression_variable_id_t<E2>> &&
+             std::same_as<linear_expression_scalar_t<E1>,
+                          linear_expression_scalar_t<E2>>
 [[nodiscard]] constexpr auto operator+(E1 && e1, E2 && e2) {
     return linear_expression_add(std::forward<E1>(e1), std::forward<E2>(e2));
 };
 
-template <linear_expression_c E>
+template <linear_expression E>
 [[nodiscard]] constexpr auto operator-(E && e) {
     return linear_expression_negate(std::forward<E>(e));
 };
 
-template <linear_expression_c E1, linear_expression_c E2>
-    requires std::same_as<expression_variable_id_t<E1>, expression_variable_id_t<E2>> &&
-             std::same_as<expression_scalar_t<E1>, expression_scalar_t<E2>>
+template <linear_expression E1, linear_expression E2>
+    requires std::same_as<linear_expression_variable_id_t<E1>,
+                          linear_expression_variable_id_t<E2>> &&
+             std::same_as<linear_expression_scalar_t<E1>,
+                          linear_expression_scalar_t<E2>>
 [[nodiscard]] constexpr auto operator-(E1 && e1, E2 && e2) {
     return linear_expression_add(
         std::forward<E1>(e1), linear_expression_negate(std::forward<E2>(e2)));
 };
 
-template <linear_expression_c E>
-[[nodiscard]] constexpr auto operator+(E && e, expression_scalar_t<E> c) {
+template <linear_expression E>
+[[nodiscard]] constexpr auto operator+(E && e,
+                                       linear_expression_scalar_t<E> c) {
     return linear_expression_scalar_add(std::forward<E>(e), c);
 };
 
-template <linear_expression_c E>
-[[nodiscard]] constexpr auto operator+(expression_scalar_t<E> c, E && e) {
+template <linear_expression E>
+[[nodiscard]] constexpr auto operator+(linear_expression_scalar_t<E> c,
+                                       E && e) {
     return linear_expression_scalar_add(std::forward<E>(e), c);
 };
 
-template <linear_expression_c E>
-[[nodiscard]] constexpr auto operator-(E && e, expression_scalar_t<E> c) {
+template <linear_expression E>
+[[nodiscard]] constexpr auto operator-(E && e,
+                                       linear_expression_scalar_t<E> c) {
     return linear_expression_scalar_add(std::forward<E>(e), -c);
 };
 
-template <linear_expression_c E>
-[[nodiscard]] constexpr auto operator-(expression_scalar_t<E> c, E && e) {
+template <linear_expression E>
+[[nodiscard]] constexpr auto operator-(linear_expression_scalar_t<E> c,
+                                       E && e) {
     return linear_expression_scalar_add(
         linear_expression_negate(std::forward<E>(e)), c);
 };
 
-template <linear_expression_c E>
-[[nodiscard]] constexpr auto operator*(E && e, expression_scalar_t<E> c) {
+template <linear_expression E>
+[[nodiscard]] constexpr auto operator*(E && e,
+                                       linear_expression_scalar_t<E> c) {
     return linear_expression_scalar_mul(std::forward<E>(e), c);
 };
 
-template <linear_expression_c E>
-[[nodiscard]] constexpr auto operator*(expression_scalar_t<E> c, E && e) {
+template <linear_expression E>
+[[nodiscard]] constexpr auto operator*(linear_expression_scalar_t<E> c,
+                                       E && e) {
     return linear_expression_scalar_mul(std::forward<E>(e), c);
 };
 
-template <linear_expression_c E>
-[[nodiscard]] constexpr auto operator/(E && e, expression_scalar_t<E> c) {
+template <linear_expression E>
+[[nodiscard]] constexpr auto operator/(E && e,
+                                       linear_expression_scalar_t<E> c) {
     return linear_expression_scalar_mul(std::forward<E>(e),
-                                        expression_scalar_t<E>{1} / c);
+                                        linear_expression_scalar_t<E>{1} / c);
 };
+
+template <typename E>
+using xsum = linear_expressions_sum<E>;
 
 }  // namespace operators
 

@@ -17,7 +17,7 @@ struct QuadraticIneqConstraint {
 
 struct QuadraticRangeConstraint {
     double lower_bound, upper_bound;
-    QuadraticExpr linear_expression;
+    QuadraticExpr linear_expression_view;
     QuadraticRangeConstraint()
             : lower_bound{std::numeric_limits<double>::min()}
             , upper_bound{std::numeric_limits<double>::max()} {}

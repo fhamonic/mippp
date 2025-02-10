@@ -4,19 +4,24 @@
 #include "mippp/algorithm/evaluate.hpp"
 #include "mippp/concepts/id_value_map.hpp"
 #include "mippp/concepts/linear_constraint.hpp"
-#include "mippp/expressions/linear_expression.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-template <linear_constraint_c C, typename M>
-requires id_value_map<M, constraint_variable_id_t<C>, constraint_scalar_t<C>>
+template <linear_constraint C, typename M>
+    requires id_value_map<M, constraint_variable_id_t<C>,
+                          constraint_scalar_t<C>>
 constexpr bool satisfied(C && c, M && m) {
-    using scalar_t = constraint_scalar_t<C>;
-    scalar_t value =
-        evaluate(linear_expression(c.variables(), c.coefficients()), m);
-    return c.lower_bound() <= value && value <= c.upper_bound();
-};
+    auto value = evaluate(c.expression(), m);
+    switch(c.relation()) {
+        case constraint_relation::less_equal_zero:
+            return value <= 0;
+        case constraint_relation::greater_equal_zero:
+            return value >= 0;
+        case constraint_relation::equal_zero:
+            return value == 0;
+    }
+}
 
 }  // namespace mippp
 }  // namespace fhamonic

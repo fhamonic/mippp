@@ -5,6 +5,7 @@
 
 #include <gurobi_c.h>
 
+#include "mippp/detail/infinity_helper.hpp"
 #include "mippp/solvers/abstract_solver_wrapper.hpp"
 
 namespace fhamonic {
@@ -23,8 +24,8 @@ struct linked_grb_model_traits {
     };
 
     static constexpr scalar_t minus_infinity =
-        std::numeric_limits<scalar_t>::lowest();
-    static constexpr scalar_t infinity = std::numeric_limits<scalar_t>::max();
+        detail::minus_infinity_or_lowest<scalar_t>();
+    static constexpr scalar_t infinity = detail::infinity_or_max<scalar_t>();
 };
 
 struct linked_grb_solver : public abstract_solver_wrapper {
@@ -65,8 +66,9 @@ struct linked_grb_solver : public abstract_solver_wrapper {
         if(error)
             std::cerr << "GRBstartenv" << error << ": "
                       << GRBgeterrormsg(this->env) << std::endl;
-        error = GRBnewmodel(this->env, &this->model, "PL", num_vars, obj, col_lb,
-                            col_ub, reinterpret_cast<char *>(vtype), NULL);
+        error =
+            GRBnewmodel(this->env, &this->model, "PL", num_vars, obj, col_lb,
+                        col_ub, reinterpret_cast<char *>(vtype), NULL);
         if(error)
             std::cerr << "GRBnewmodel" << error << ": "
                       << GRBgeterrormsg(this->env) << std::endl;

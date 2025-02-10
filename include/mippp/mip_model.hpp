@@ -1,5 +1,5 @@
 /**
- * @file MILP_Builder.hpp
+ * @file milp_model.hpp
  * @author François Hamonic (francois.hamonic@gmail.com)
  * @brief
  * @version 0.1
@@ -14,13 +14,14 @@
 #include <cassert>
 #include <limits>
 #include <ostream>
+#include <span>
+// #include <ranges>
 #include <sstream>
 #include <vector>
 
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/repeat_n.hpp>
-#include <range/v3/view/single.hpp>
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 
@@ -126,13 +127,12 @@ public:
             return var(var_num);
         }
 
-        constexpr auto variables() const noexcept {
-            return ranges::iota_view<variable_id_t, variable_id_t>(
-                static_cast<variable_id_t>(_offset),
-                static_cast<variable_id_t>(_offset + _count));
-        }
-        constexpr auto coefficients() const noexcept {
-            return ranges::views::repeat_n(scalar_t{1}, _count);
+        constexpr auto terms() const noexcept {
+            return ranges::views::transform(
+                ranges::views::iota(
+                    static_cast<variable_id_t>(_offset),
+                    static_cast<variable_id_t>(_offset + _count)),
+                [](auto && i) { return std::make_pair(scalar_t{1}, i); });
         }
         constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
     };
@@ -203,23 +203,23 @@ public:
                               std::forward<NL>(name_lambda), options);
     }
 
-    template <linear_expression_c E>
+    template <linear_expression E>
     mip_model & add_to_objective(E && le) noexcept {
-        auto entries_range =
-            ranges::views::zip(le.variables(), le.coefficients());
-        for(auto && [v, c] : entries_range) {
+        for(auto && [c, v] : le.terms()) {
             _col_coef[static_cast<std::size_t>(v)] += c;
         }
         return *this;
     }
 
-    template <linear_constraint_c C>
+    template <linear_constraint C>
     constraint_id_t add_constraint(C && lc) noexcept {
         _row_begins.emplace_back(num_entries());
-        _row_lb.emplace_back(lc.lower_bound());
-        _row_ub.emplace_back(lc.upper_bound());
-        std::ranges::copy(lc.variables(), std::back_inserter(_vars));
-        std::ranges::copy(lc.coefficients(), std::back_inserter(_coefs));
+        _row_lb.emplace_back(linear_constraint_lower_bound(lc));
+        _row_ub.emplace_back(linear_constraint_upper_bound(lc));
+        for(auto && [c, v] : lc.expression().terms()) {
+            _coefs.emplace_back(c);
+            _vars.emplace_back(v);
+        }
         return constraint_id_t(num_constraints() - 1);
     }
 
@@ -266,11 +266,12 @@ public:
 
     // Views
     auto variables() const noexcept {
-        return ranges::iota_view<variable_id_t, variable_id_t>(
-            variable_id_t{0}, static_cast<variable_id_t>(num_variables()));
+        return ranges::views::iota(variable_id_t{0},
+                                   static_cast<variable_id_t>(num_variables()));
     }
     auto objective() const noexcept {
-        return linear_expression(variables(), _col_coef);
+        return linear_expression_view(
+            ranges::views::zip(_col_coef, variables()));
     }
     auto constraint(constraint_id_t constraint_id) const noexcept {
         assert(constraint_id < num_constraints());
@@ -280,14 +281,19 @@ public:
             (constraint_id < num_constraints() - 1)
                 ? static_cast<std::size_t>(_row_begins[constraint_id + 1])
                 : num_entries();
-        return linear_constraint(
-            ranges::subrange(_vars.data() + row_begin, _vars.data() + row_end),
-            ranges::subrange(_coefs.data() + row_begin,
-                             _coefs.data() + row_end),
-            _row_lb[constraint_id], _row_ub[constraint_id]);
+        return linear_constraint_view(
+            linear_expression_view(
+                ranges::views::zip(std::span(_coefs.data() + row_begin,
+                                             _coefs.data() + row_end),
+                                   std::span(_vars.data() + row_begin,
+                                             _vars.data() + row_end)),
+                -_row_ub[constraint_id]),
+            _row_lb[constraint_id] == _row_ub[constraint_id]
+                ? constraint_relation::equal_zero
+                : constraint_relation::less_equal_zero);
     }
     auto constraint_ids() const noexcept {
-        return ranges::iota_view<constraint_id_t, constraint_id_t>(
+        return ranges::views::iota(
             constraint_id_t{0},
             static_cast<constraint_id_t>(num_constraints()));
     }
@@ -309,18 +315,18 @@ public:
     auto row_upper_bounds() const noexcept { return _row_ub.data(); }
 };
 
-template <typename T, typename NL>
+template <linear_expression T, typename NL>
 std::ostream & print_entries(std::ostream & os, const T & e,
                              const NL & name_lambda) {
-    using variable_id_t = typename T::variable_id_t;
-    using scalar_t = typename T::scalar_t;
-    auto entries_range = ranges::views::zip(e.variables(), e.coefficients());
+    using variable_id_t = linear_expression_variable_id_t<T>;
+    using scalar_t = linear_expression_scalar_t<T>;
+    auto && entries_range = e.terms();
     auto it = entries_range.begin();
     const auto end = entries_range.end();
     if(it == end) return os;
     for(; it != end; ++it) {
-        variable_id_t v = (*it).first;
-        scalar_t coef = (*it).second;
+        scalar_t coef = (*it).first;
+        variable_id_t v = (*it).second;
         if(coef == scalar_t(0)) continue;
         const scalar_t abs_coef = std::abs(coef);
         os << (coef < 0 ? "-" : "");
@@ -329,8 +335,8 @@ std::ostream & print_entries(std::ostream & os, const T & e,
         break;
     }
     for(++it; it != end; ++it) {
-        variable_id_t v = (*it).first;
-        scalar_t coef = (*it).second;
+        scalar_t coef = (*it).first;
+        variable_id_t v = (*it).second;
         if(coef == scalar_t(0)) continue;
         const scalar_t abs_coef = std::abs(coef);
         os << (coef < 0 ? " - " : " + ");
@@ -354,16 +360,16 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
     os << "\nSubject To\n";
     for(auto && constr_id : model.constraint_ids()) {
         auto && constr = model.constraint(constr_id);
-        const scalar_t lb = constr.lower_bound();
-        const scalar_t ub = constr.upper_bound();
+        const scalar_t lb = linear_constraint_lower_bound(constr);
+        const scalar_t ub = linear_constraint_upper_bound(constr);
         if(ub < mip_model<Traits>::infinity) {
             os << "R" << constr_id << ": ";
-            print_entries(os, constr, name_lambda);
+            print_entries(os, constr.expression(), name_lambda);
             os << " <= " << ub << '\n';
         }
         if(lb > mip_model<Traits>::minus_infinity) {
             os << "R" << constr_id << "_low: ";
-            print_entries(os, constr, name_lambda);
+            print_entries(os, constr.expression(), name_lambda);
             os << " >= " << lb << '\n';
         }
     }
@@ -394,7 +400,7 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
         }
     }
     auto binary_vars =
-        ranges::filter_view(model.variables(), [&model](variable_id_t v) {
+        ranges::views::filter(model.variables(), [&model](variable_id_t v) {
             return model.type(var(v)) ==
                    mip_model<Traits>::var_category::binary;
         });

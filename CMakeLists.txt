@@ -10,7 +10,7 @@ project(
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # ################### Options ####################
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(ENABLE_TESTING "Enable Test Builds" OFF)
@@ -50,6 +50,7 @@ target_include_directories(mippp
 target_link_libraries(mippp INTERFACE range-v3::range-v3)
 # silence false positive warinings from range-v3 invoke.hpp
 target_compile_options(mippp INTERFACE -Warray-bounds=0)
+target_compile_options(mippp INTERFACE -fconcepts-diagnostics-depth=30)
 
 # target_compile_definitions(mippp INTERFACE MIPPP_PREFERED_SOLVER=MIPPP_COIN)
 

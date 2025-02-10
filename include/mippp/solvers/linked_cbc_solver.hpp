@@ -11,6 +11,7 @@
 #include "coin/CbcSolver.hpp"
 #include "coin/OsiClpSolverInterface.hpp"
 
+#include "mippp/detail/infinity_helper.hpp"
 #include "mippp/solvers/abstract_solver_wrapper.hpp"
 
 namespace fhamonic {
@@ -25,8 +26,8 @@ struct linked_cbc_model_traits {
     enum var_category : char { continuous = 0, integer = 1, binary = 2 };
 
     static constexpr scalar_t minus_infinity =
-        std::numeric_limits<scalar_t>::lowest();
-    static constexpr scalar_t infinity = std::numeric_limits<scalar_t>::max();
+        detail::minus_infinity_or_lowest<scalar_t>();
+    static constexpr scalar_t infinity = detail::infinity_or_max<scalar_t>();
 };
 
 struct linked_cbc_solver : public abstract_solver_wrapper {
@@ -122,7 +123,7 @@ struct linked_cbc_solver : public abstract_solver_wrapper {
         CbcMain0(model, solverData);
         CbcMain1(static_cast<int>(parameters.size() + 1), argv.data(), model,
                  &cbc_callback, solverData);
-                 
+
         return model.status();
     }
 

@@ -9,6 +9,7 @@
 #include "scip/retcode.h"
 #include "scip/scip.h"
 
+#include "mippp/detail/infinity_helper.hpp"
 #include "mippp/solvers/abstract_solver_wrapper.hpp"
 
 namespace fhamonic {
@@ -30,8 +31,8 @@ struct linked_scip_model_traits {
     };
 
     static constexpr scalar_t minus_infinity =
-        std::numeric_limits<scalar_t>::lowest();
-    static constexpr scalar_t infinity = std::numeric_limits<scalar_t>::max();
+        detail::minus_infinity_or_lowest<scalar_t>();
+    static constexpr scalar_t infinity = detail::infinity_or_max<scalar_t>();
 };
 
 struct linked_scip_solver : public abstract_solver_wrapper {
@@ -66,8 +67,8 @@ struct linked_scip_solver : public abstract_solver_wrapper {
         solver_wrapper scip;
         SCIPsetObjsense(this->model, static_cast<SCIP_OBJSENSE>(sense));
 
-        this->vars =
-            std::vector<SCIP_VAR *>(static_cast<std::size_t>(num_vars), nullptr);
+        this->vars = std::vector<SCIP_VAR *>(static_cast<std::size_t>(num_vars),
+                                             nullptr);
         for(int i = 0; i < num_vars; ++i) {
             SCIPcreateVarBasic(
                 this->model,     // SCIP environment

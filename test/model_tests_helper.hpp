@@ -3,12 +3,15 @@
 
 #include <gtest/gtest.h>
 
+#include <range/v3/view/iota.hpp>
+
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/mip_model.hpp"
-#include "mippp/xsum.hpp"
 
+#include "assert_constraint.hpp"
 #include "assert_eq_ranges.hpp"
+#include "assert_expression.hpp"
 
 using namespace fhamonic::mippp;
 
@@ -274,8 +277,7 @@ public:
         auto z = model.add_variable();
         model.add_to_objective(x - 3 * y - z + y);
         auto obj = model.objective();
-        ASSERT_EQ_RANGES(obj.variables(), {0, 1, 2});
-        ASSERT_EQ_RANGES(obj.coefficients(), {1.0, -2.0, -1.0});
+        ASSERT_EXPRESSION(obj, {0, 1, 2}, {1.0, -2.0, -1.0}, 0);
     }
     static void add_and_get_constraint() {
         using namespace fhamonic::mippp::operators;
@@ -284,24 +286,35 @@ public:
         auto y = model.add_variable();
         auto z = model.add_variable();
 
-        auto constr_id = model.add_constraint(1 <= -z + y + 3 * x <= 8);
+        auto constr_id = model.add_constraint(-z + y + 3 * x <= 8);
         ASSERT_EQ(constr_id, 0);
         ASSERT_EQ(model.num_constraints(), 1);
         ASSERT_EQ(model.num_entries(), 3);
 
         auto constr = model.constraint(constr_id);
-        ASSERT_EQ(constr.lower_bound(), 1);
-        ASSERT_EQ(constr.upper_bound(), 8);
-        ASSERT_EQ_RANGES(constr.variables(), {2, 1, 0});
-        ASSERT_EQ_RANGES(constr.coefficients(), {-1.0, 1.0, 3.0});
+        ASSERT_EQ(linear_constraint_lower_bound(constr),
+                  M::solver_traits::minus_infinity);
+        ASSERT_EQ(linear_constraint_upper_bound(constr), 8);
+        ASSERT_CONSTRAINT(constr, {2, 1, 0}, {-1.0, 1.0, 3.0},
+                          M::solver_traits::minus_infinity, 8);
     }
     static void add_to_objective_xsum() {
+        using namespace fhamonic::mippp::operators;
         M model;
         auto x_vars = model.add_variables(5, [](int i) { return 4 - i; });
-
-        model.add_to_objective(xsum(ranges::views::iota(0, 4), x_vars,
-                                    [](auto && i) { return 2.0 * i; }));
+        model.add_to_objective(xsum(ranges::views::iota(0, 4), [&](auto && i) {
+            return 2.0 * x_vars(i);
+        }));
         model.add_to_objective(xsum(ranges::views::iota(0, 4), x_vars));
+    }
+    static void add_constraint_xsum() {
+        using namespace fhamonic::mippp::operators;
+        M model;
+        auto x_vars = model.add_variables(5, [](int i) { return 4 - i; });
+        model.add_constraint(xsum(ranges::views::iota(0, 4), x_vars) <= 1);
+        model.add_constraint(xsum(ranges::views::iota(0, 4), [&](auto && i) {
+                                 return 2.0 * x_vars(i);
+                             }) <= 1);
     }
 
     static void build_optimize() {

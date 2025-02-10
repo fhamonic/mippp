@@ -42,6 +42,7 @@ then manage to #include it where needed with the range-v3 library.
 ```cpp
 #include "mippp/mip_model.hpp"
 using namespace fhamonic::mippp;
+using namespace fhamonic::mippp::operators;
 ...
 using MIP = mip_model<linked_cbc_traits>;
 MIP model;
@@ -64,8 +65,8 @@ Using the [MELON library](https://github.com/fhamonic/melon), we can express the
 using namespace fhamonic::melon;
 
 #include "mippp/mip_model.hpp"
-#include "mippp/xsum.hpp"
 using namespace fhamonic::mippp;
+using namespace fhamonic::mippp::operators;
 ...
 static_graph graph = ...;
 arc_map_t<static_graph, double> capacity_map = ...;
@@ -102,7 +103,9 @@ MIP model(MIP::opt_sense::min);
 auto X_vars = model.add_variables(graph.num_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
 
-model.add_to_objective(xsum(graph.arcs(), X_vars, length_map));
+model.add_to_objective(xsum(graph.arcs(), [&](auto && a){
+    return length_map[a] * X_vars(a);
+}));
 for(auto && u : graph.vertices()) {
     const double extra_flow = (u == s ? 1 : (u == t ? -1 : 0));
     model.add_constraint(

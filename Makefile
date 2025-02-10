@@ -1,21 +1,20 @@
 BUILD_DIR = build
+CONAN_PROFILE = default
+# CONAN_PROFILE = default_c++23
 
-.PHONY: all test clean
+.PHONY: all test clean build
 
 all: test
 
 $(BUILD_DIR):
-	conan build . -of=${BUILD_DIR} -b=missing
+	conan build . -of=${BUILD_DIR} -b=missing -pr=${CONAN_PROFILE}
 
 test: $(BUILD_DIR)
 	@cd $(BUILD_DIR) && \
 	ctest --output-on-failure
 	
 package:
-	conan create . -u -b=missing
-	
-cross_w64:
-	conan build . -of=build_mingw -b=missing -pr:b=default -pr:h=linux_to_win64 -v
+	conan create . -u -b=missing -pr=${CONAN_PROFILE}
 
 clean:
 	@rm -rf CMakeUserPresets.json
