@@ -20,7 +20,7 @@ public:
 
     virtual void set_loglevel(int loglevel) = 0;
     virtual void set_timeout(int timeout_s) = 0;
-    virtual void set_mip_gap(double precision) = 0;
+    virtual void set_mip_optimality_gap(double precision) = 0;
     //virtual void add_param(const std::string & param) = 0;
 
     virtual int optimize() = 0;

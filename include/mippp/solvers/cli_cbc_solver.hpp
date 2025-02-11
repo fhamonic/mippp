@@ -56,10 +56,22 @@ struct cli_cbc_solver : public abstract_cli_solver_wrapper {
         parameters[timeout_index.value()] =
             "-seconds=" + std::to_string(timeout_s);
     }
-    void set_mip_gap(double precision) noexcept {
-        parameters[timeout_index.value()] =
+    void set_mip_optimality_gap(double precision) noexcept {
+        if(!mip_optimality_gap_index.has_value()) {
+            mip_optimality_gap_index.emplace(parameters.size());
+            parameters.emplace_back();
+        }
+        parameters[mip_optimality_gap_index.value()] =
             "-allowableGap=" + std::to_string(precision);
     }
+    // void set_feasability_tolerance(double precision) noexcept {
+    //     if(!feasability_tolerance_index.has_value()) {
+    //         feasability_tolerance_index.emplace(parameters.size());
+    //         parameters.emplace_back();
+    //     }
+    //     parameters[feasability_tolerance_index.value()] =
+    //         "-c \"set numerics feastol " + std::to_string(precision) + '\"';
+    // }
     void add_param(const std::string & param) {
         parameters.emplace_back(param);
     }

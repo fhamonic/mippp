@@ -102,7 +102,7 @@ struct linked_cbc_solver : public abstract_solver_wrapper {
         }
         parameters[timeout_index.value()] = "-sec=" + std::to_string(timeout_s);
     }
-    void set_mip_gap(double precision) noexcept {
+    void set_mip_optimality_gap(double precision) noexcept {
         parameters[timeout_index.value()] =
             "-mipgap=" + std::to_string(precision);
     }

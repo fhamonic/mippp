@@ -122,7 +122,7 @@ struct linked_grb_solver : public abstract_solver_wrapper {
     void set_timeout(int timeout_s) noexcept {
         GRBsetdblparam(env, GRB_DBL_PAR_TIMELIMIT, timeout_s);
     }
-    void set_mip_gap(double precision) noexcept {
+    void set_mip_optimality_gap(double precision) noexcept {
         GRBsetdblparam(env, GRB_DBL_PAR_MIPGAP, precision);
     }
 

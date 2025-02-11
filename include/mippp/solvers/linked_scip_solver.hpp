@@ -135,7 +135,7 @@ struct linked_scip_solver : public abstract_solver_wrapper {
     void set_timeout(int timeout_s) noexcept {
         SCIPsetRealParam(model, "limits/time", timeout_s);
     }
-    void set_mip_gap(double precision) noexcept {
+    void set_mip_optimality_gap(double precision) noexcept {
         SCIPsetRealParam(model, "limits/gap", precision);
     }
 

@@ -46,6 +46,8 @@ protected:
     std::vector<std::string> parameters;
     std::optional<std::size_t> loglevel_index;
     std::optional<std::size_t> timeout_index;
+    std::optional<std::size_t> mip_optimality_gap_index;
+    std::optional<std::size_t> feasability_tolerance_index;
 
     [[nodiscard]] abstract_cli_solver_wrapper(const auto & model) {
         using var = typename std::decay_t<decltype(model)>::var;
