@@ -64,14 +64,14 @@ struct cli_grb_solver : public abstract_cli_solver_wrapper {
         parameters[mip_optimality_gap_index.value()] =
             "MIPGap=" + std::to_string(precision);
     }
-    // void set_feasability_tolerance(double precision) noexcept {
-    //     if(!feasability_tolerance_index.has_value()) {
-    //         feasability_tolerance_index.emplace(parameters.size());
-    //         parameters.emplace_back();
-    //     }
-    //     parameters[feasability_tolerance_index.value()] =
-    //         "-c \"set numerics feastol " + std::to_string(precision) + '\"';
-    // }
+    void set_feasability_tolerance(double precision) noexcept {
+        if(!feasability_tolerance_index.has_value()) {
+            feasability_tolerance_index.emplace(parameters.size());
+            parameters.emplace_back();
+        }
+        parameters[feasability_tolerance_index.value()] =
+            "FeasibilityTol=" + std::to_string(precision);
+    }
     void add_param(const std::string & param) {
         parameters.emplace_back(param);
     }
