@@ -360,18 +360,20 @@ std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
     os << "\nSubject To\n";
     for(auto && constr_id : model.constraint_ids()) {
         auto && constr = model.constraint(constr_id);
-        const scalar_t lb = linear_constraint_lower_bound(constr);
-        const scalar_t ub = linear_constraint_upper_bound(constr);
-        if(ub < mip_model<Traits>::infinity) {
-            os << "R" << constr_id << ": ";
-            print_entries(os, constr.expression(), name_lambda);
-            os << " <= " << ub << '\n';
+        os << "R" << constr_id << ": ";
+        print_entries(os, constr.expression(), name_lambda);
+        switch(constr.relation()) {
+            case constraint_relation::less_equal_zero:
+                os << " <= ";
+                break;
+            case constraint_relation::greater_equal_zero:
+                os << " >= ";
+                break;
+            case constraint_relation::equal_zero:
+                os << " = ";
+                break;
         }
-        if(lb > mip_model<Traits>::minus_infinity) {
-            os << "R" << constr_id << "_low: ";
-            print_entries(os, constr.expression(), name_lambda);
-            os << " >= " << lb << '\n';
-        }
+        os << -constr.expression().constant() << '\n';
     }
     auto no_trivial_bound_vars =
         ranges::views::filter(model.variables(), [&model](variable_id_t v) {
