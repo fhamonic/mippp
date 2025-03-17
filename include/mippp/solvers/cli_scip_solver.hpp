@@ -64,7 +64,7 @@ struct cli_scip_solver : public abstract_cli_solver_wrapper {
             parameters.emplace_back();
         }
         parameters[mip_optimality_gap_index.value()] =
-            "-c \"set limits gap " + std::to_string(precision) + '\"';
+            "-c \"set limits gap " + double_to_string(precision) + '\"';
     }
     void set_feasability_tolerance(double precision) noexcept {
         if(!feasability_tolerance_index.has_value()) {
@@ -72,7 +72,7 @@ struct cli_scip_solver : public abstract_cli_solver_wrapper {
             parameters.emplace_back();
         }
         parameters[feasability_tolerance_index.value()] =
-            "-c \"set numerics feastol " + std::to_string(precision) + '\"';
+            "-c \"set numerics feastol " + double_to_string(precision) + '\"';
     }
     void add_param(const std::string & param) {
         parameters.emplace_back(param);

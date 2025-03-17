@@ -127,12 +127,15 @@ public:
             return var(var_num);
         }
 
+        constexpr auto ids() const noexcept {
+            return ranges::views::iota(
+                static_cast<variable_id_t>(_offset),
+                static_cast<variable_id_t>(_offset + _count));
+        }
         constexpr auto terms() const noexcept {
-            return ranges::views::transform(
-                ranges::views::iota(
-                    static_cast<variable_id_t>(_offset),
-                    static_cast<variable_id_t>(_offset + _count)),
-                [](auto && i) { return std::make_pair(scalar_t{1}, i); });
+            return ranges::views::transform(ids(), [](auto && i) {
+                return std::make_pair(scalar_t{1}, i);
+            });
         }
         constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
     };

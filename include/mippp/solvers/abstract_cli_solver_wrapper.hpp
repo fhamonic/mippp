@@ -43,6 +43,12 @@ protected:
     std::filesystem::path sol_path;
     std::filesystem::path log_path;
 
+    static std::string double_to_string(double value, int decimals=13) {
+        std::ostringstream out;
+        out << std::fixed << std::setprecision(decimals) << value;
+        return out.str();
+    }
+
     std::vector<std::string> parameters;
     std::optional<std::size_t> loglevel_index;
     std::optional<std::size_t> timeout_index;
