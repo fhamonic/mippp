@@ -2,14 +2,14 @@
 #include <gtest/gtest.h>
 
 #include "mippp/linear_expression.hpp"
-#include "mippp/variable.hpp"
+#include "mippp/model_variable.hpp"
 
 #include "assert_expression.hpp"
 
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 
-using Var = variable<int, double>;
+using Var = model_variable<int, double>;
 
 GTEST_TEST(variable_operators, negate_var) {
     ASSERT_EXPRESSION(-Var(11), {11}, {-1.0}, 0);

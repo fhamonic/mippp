@@ -15,7 +15,7 @@ template <expression E, typename M>
 constexpr expression_scalar_t<E> evaluate(E && e, M && m) {
     return ranges::accumulate(
         ranges::views::transform(
-            e.terms(),
+            e.linear_terms(),
             [&m](auto && t) { return std::get<0>(t) * m[std::get<1>(t)]; }),
         e.constant());
 }

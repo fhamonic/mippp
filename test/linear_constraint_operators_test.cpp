@@ -5,7 +5,7 @@
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
-#include "mippp/variable.hpp"
+#include "mippp/model_variable.hpp"
 
 #include "assert_constraint.hpp"
 #include "assert_eq_ranges.hpp"
@@ -13,7 +13,7 @@
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 
-using Var = variable<int, double>;
+using Var = model_variable<int, double>;
 
 GTEST_TEST(linear_constraint_operators, less_equal) {
     ASSERT_CONSTRAINT((-Var(11) * 3.2 - 2 <= Var(3) * 6 + 7 - Var(2)),

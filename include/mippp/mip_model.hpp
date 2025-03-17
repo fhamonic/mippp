@@ -29,7 +29,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/solvers/all.hpp"
-#include "mippp/variable.hpp"
+#include "mippp/model_variable.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -41,7 +41,7 @@ public:
     using variable_id_t = typename Traits::variable_id_t;
     using constraint_id_t = typename Traits::constraint_id_t;
     using scalar_t = typename Traits::scalar_t;
-    using var = variable<variable_id_t, scalar_t>;
+    using var = model_variable<variable_id_t, scalar_t>;
     using opt_sense = typename Traits::opt_sense;
     using var_category = typename Traits::var_category;
 
@@ -132,9 +132,9 @@ public:
                 static_cast<variable_id_t>(_offset),
                 static_cast<variable_id_t>(_offset + _count));
         }
-        constexpr auto terms() const noexcept {
+        constexpr auto linear_terms() const noexcept {
             return ranges::views::transform(ids(), [](auto && i) {
-                return std::make_pair(scalar_t{1}, i);
+                return std::make_pair(i, scalar_t{1});
             });
         }
         constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
@@ -208,7 +208,7 @@ public:
 
     template <linear_expression E>
     mip_model & add_to_objective(E && le) noexcept {
-        for(auto && [c, v] : le.terms()) {
+        for(auto && [v, c] : le.linear_terms()) {
             _col_coef[static_cast<std::size_t>(v)] += c;
         }
         return *this;
@@ -219,7 +219,7 @@ public:
         _row_begins.emplace_back(num_entries());
         _row_lb.emplace_back(linear_constraint_lower_bound(lc));
         _row_ub.emplace_back(linear_constraint_upper_bound(lc));
-        for(auto && [c, v] : lc.expression().terms()) {
+        for(auto && [v, c] : lc.expression().linear_terms()) {
             _coefs.emplace_back(c);
             _vars.emplace_back(v);
         }
@@ -274,7 +274,7 @@ public:
     }
     auto objective() const noexcept {
         return linear_expression_view(
-            ranges::views::zip(_col_coef, variables()));
+            ranges::views::zip(variables(), _col_coef));
     }
     auto constraint(constraint_id_t constraint_id) const noexcept {
         assert(constraint_id < num_constraints());
@@ -286,10 +286,10 @@ public:
                 : num_entries();
         return linear_constraint_view(
             linear_expression_view(
-                ranges::views::zip(std::span(_coefs.data() + row_begin,
-                                             _coefs.data() + row_end),
-                                   std::span(_vars.data() + row_begin,
-                                             _vars.data() + row_end)),
+                ranges::views::zip(
+                    std::span(_vars.data() + row_begin, _vars.data() + row_end),
+                    std::span(_coefs.data() + row_begin,
+                              _coefs.data() + row_end)),
                 -_row_ub[constraint_id]),
             _row_lb[constraint_id] == _row_ub[constraint_id]
                 ? constraint_relation::equal_zero
@@ -323,13 +323,13 @@ std::ostream & print_entries(std::ostream & os, const T & e,
                              const NL & name_lambda) {
     using variable_id_t = linear_expression_variable_id_t<T>;
     using scalar_t = linear_expression_scalar_t<T>;
-    auto && entries_range = e.terms();
+    auto && entries_range = e.linear_terms();
     auto it = entries_range.begin();
     const auto end = entries_range.end();
     if(it == end) return os;
     for(; it != end; ++it) {
-        scalar_t coef = (*it).first;
-        variable_id_t v = (*it).second;
+        variable_id_t v = (*it).first;
+        scalar_t coef = (*it).second;
         if(coef == scalar_t(0)) continue;
         const scalar_t abs_coef = std::abs(coef);
         os << (coef < 0 ? "-" : "");
@@ -338,8 +338,8 @@ std::ostream & print_entries(std::ostream & os, const T & e,
         break;
     }
     for(++it; it != end; ++it) {
-        scalar_t coef = (*it).first;
-        variable_id_t v = (*it).second;
+        variable_id_t v = (*it).first;
+        scalar_t coef = (*it).second;
         if(coef == scalar_t(0)) continue;
         const scalar_t abs_coef = std::abs(coef);
         os << (coef < 0 ? " - " : " + ");
@@ -353,7 +353,7 @@ template <typename Traits>
 std::ostream & operator<<(std::ostream & os, const mip_model<Traits> & model) {
     using variable_id_t = mip_model<Traits>::variable_id_t;
     using scalar_t = mip_model<Traits>::scalar_t;
-    using var = variable<variable_id_t, scalar_t>;
+    using var = model_variable<variable_id_t, scalar_t>;
     auto name_lambda = [&](variable_id_t id) { return model.name(var(id)); };
     os << (model.get_opt_sense() == mip_model<Traits>::opt_sense::min
                ? "Minimize"

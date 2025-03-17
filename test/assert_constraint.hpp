@@ -11,12 +11,12 @@
 template <typename Constr, typename V, typename C, typename L, typename U>
 void ASSERT_CONSTRAINT(Constr && constr, std::initializer_list<V> vars,
                        std::initializer_list<C> coefs, L && lb, U && ub) {
-    // ASSERT_EQ_RANGES(std::ranges::views::keys(constr.expression().terms()),
+    // ASSERT_EQ_RANGES(std::ranges::views::keys(constr.expression().linear_terms()),
     //                  ranges::views::zip(coefs, vars));
-    // ASSERT_EQ_RANGES(std::ranges::views::values(constr.expression().terms()),
+    // ASSERT_EQ_RANGES(std::ranges::views::values(constr.expression().linear_terms()),
     //                  ranges::views::zip(coefs, vars));
-    ASSERT_EQ_RANGES(constr.expression().terms(),
-                     ranges::views::zip(coefs, vars));
+    ASSERT_EQ_RANGES(constr.expression().linear_terms(),
+                     ranges::views::zip(vars, coefs));
     ASSERT_EQ(linear_constraint_lower_bound(constr), lb);
     ASSERT_EQ(linear_constraint_upper_bound(constr), ub);
 }

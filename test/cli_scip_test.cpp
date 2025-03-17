@@ -6,7 +6,7 @@
 
 using namespace fhamonic::mippp;
 
-using Var = variable<int, double>;
+using Var = model_variable<int, double>;
 using T = cli_solver_model_traits;
 using M = mip_model<T>;
 using S = cli_scip_solver;

@@ -2,13 +2,13 @@
 #include <gtest/gtest.h>
 
 #include "mippp/linear_expression.hpp"
-#include "mippp/variable.hpp"
+#include "mippp/model_variable.hpp"
 
 #include "assert_expression.hpp"
 
 using namespace fhamonic::mippp;
 
-using Var = variable<int, double>;
+using Var = model_variable<int, double>;
 
 GTEST_TEST(variable, ctor) {
     auto v = Var(11);

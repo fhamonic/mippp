@@ -9,10 +9,10 @@
 template <typename Expr, typename V, typename C, typename S>
 void ASSERT_EXPRESSION(Expr && expr, std::initializer_list<V> vars,
                        std::initializer_list<C> coefs, S && scalar) {
-    ASSERT_EQ_RANGES(expr.terms(), ranges::views::zip(coefs, vars));
-    //  ASSERT_EQ_RANGES(std::ranges::views::keys(expr.terms()),
+    ASSERT_EQ_RANGES(expr.linear_terms(), ranges::views::zip(vars, coefs));
+    //  ASSERT_EQ_RANGES(std::ranges::views::keys(expr.linear_terms()),
     //                   ranges::views::zip(coefs, vars));
-    //  ASSERT_EQ_RANGES(std::ranges::views::values(expr.terms()),
+    //  ASSERT_EQ_RANGES(std::ranges::views::values(expr.linear_terms()),
     //                   ranges::views::zip(coefs, vars));
     ASSERT_EQ(expr.constant(), scalar);
 }
