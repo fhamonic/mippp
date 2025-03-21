@@ -9,9 +9,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/mip_model.hpp"
 
-#include "assert_constraint.hpp"
-#include "assert_eq_ranges.hpp"
-#include "assert_expression.hpp"
+#include "assert_helper.hpp"
 
 using namespace fhamonic::mippp;
 

@@ -4,7 +4,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "assert_expression.hpp"
+#include "assert_helper.hpp"
 
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;

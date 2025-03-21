@@ -88,12 +88,42 @@ concept updatable_lp_model =
     };
 
 
+
+template <typename T>
+concept has_column_generation =
+    requires(T & model, T::constraint c, T::scalar s) {
+        { model.add_column(std::vector<std::pair<typename T::constraint, typename T::scalar>>()) }
+                 -> std::same_as<typename T::variable>;
+    };
+
+template <typename T>
+concept has_column_deletion =
+    requires(T & model, T::variable v) {
+        { model.remove_column(v) };
+    };
+
 template <typename T>
 concept has_feasability_tolerance =
     requires(T & model, T::variable v, T::constraint c, T::scalar s) {
         { model.get_feasability_tolerance() }
                 -> std::convertible_to<typename T::scalar>;
         { model.set_feasability_tolerance(s) };
+    };
+
+template <typename T>
+concept has_optimality_tolerance =
+    requires(T & model, T::variable v, T::constraint c, T::scalar s) {
+        { model.get_optimality_tolerance() }
+                -> std::convertible_to<typename T::scalar>;
+        { model.set_optimality_tolerance(s) };
+    };
+
+template <typename T>
+concept has_integrality_tolerance =
+    requires(T & model, T::variable v, T::constraint c, T::scalar s) {
+        { model.get_integrality_tolerance() }
+                -> std::convertible_to<typename T::scalar>;
+        { model.set_integrality_tolerance(s) };
     };
 
 enum basis_status : int {

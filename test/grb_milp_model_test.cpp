@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "assert_eq_ranges.hpp"
+#include "assert_helper.hpp"
 
 #include "mippp/model/grb_milp_model.hpp"
 #include "mippp/model/lp_model.hpp"
