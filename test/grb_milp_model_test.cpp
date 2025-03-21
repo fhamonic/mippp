@@ -2,9 +2,13 @@
 
 #include "assert_eq_ranges.hpp"
 
-#include "mippp/grb_milp_model.hpp"
+#include "mippp/model/grb_milp_model.hpp"
+#include "mippp/model/lp_model.hpp"
 
 using namespace fhamonic::mippp;
+
+static_assert(lp_model<grb_milp_model>);
+static_assert(updatable_lp_model<grb_milp_model>);
 
 using Var = model_variable<int, double>;
 
@@ -18,7 +22,22 @@ GTEST_TEST(grb_milp_model, test) {
     model.set_maximization();
     model.set_objective(2 * x1 + 5 * x2);
     model.add_constraint(x1 <= 4);
-    model.add_constraint(3 * x1 + x2 <= 9);
+    auto c = model.add_constraint(3 * x1 + x2 <= 9);
+
+    // std::cout << "#vars = " << model.num_variables() << std::endl;
+    // std::cout << "#constrs = " << model.num_constraints() << std::endl;
+    // model.add_ranged_constraint(-x1, -3, -1);
+    // std::cout << "#vars = " << model.num_variables() << std::endl;
+    // std::cout << "#constrs = " << model.num_constraints() << std::endl;
+    // int added_variable = static_cast<int>(model.num_variables()) - 1;
+    // std::cout << "lb = " <<
+    // model.get_variable_lower_bound(Var(added_variable)) << std::endl;
+    // std::cout << "ub = " <<
+    // model.get_variable_upper_bound(Var(added_variable)) << std::endl;
+    // std::cout << model.get_constraint_rhs(c) << " "
+    //           << model.get_constraint_sense(c) << std::endl;
+
+    // ASSERT_FALSE(true);
 
     model.optimize();
     auto solution = model.get_primal_solution();
