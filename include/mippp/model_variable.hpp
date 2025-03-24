@@ -29,6 +29,20 @@ public:
     constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
 };
 
+template <typename Arr>
+class variable_mapping {
+private:
+    Arr arr;
+
+public:
+    variable_mapping(Arr && t) : arr(std::move(t)) {}
+
+    double operator[](int i) const { return arr[i]; }
+    double operator[](model_variable<int, double> x) const {
+        return arr[static_cast<std::size_t>(x.id())];
+    }
+};
+
 }  // namespace mippp
 }  // namespace fhamonic
 

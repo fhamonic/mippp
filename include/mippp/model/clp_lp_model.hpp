@@ -17,6 +17,7 @@
 #include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
+#include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
 #include "mippp/api/clp_api.hpp"
@@ -28,6 +29,7 @@ class clp_lp_model {
 private:
     const clp_api & Clp;
     Clp_Simplex * model;
+    std::optional<lp_status> opt_lp_status;
 
     // static constexpr char constraint_relation_to_grb_sense(
     //     constraint_relation rel) {
@@ -249,27 +251,35 @@ public:
     }
     double get_feasibility_tolerance() { return Clp.primalTolerance(model); }
 
-    void optimize() { Clp.primal(model, 0); }
-
-    double get_objective_value() { return Clp.getObjValue(model); }
-
-    template <typename Arr>
-    class variable_mapping {
-    private:
-        Arr arr;
-
-    public:
-        variable_mapping(Arr && t) : arr(std::move(t)) {}
-
-        double operator[](int i) const { return arr[i]; }
-        double operator[](model_variable<int, double> x) const {
-            return arr[static_cast<std::size_t>(x.id())];
+    void optimize() {
+        if(num_variables() == 0u) {
+            opt_lp_status.emplace(lp_status::optimal);
+            return;
         }
-    };
-    auto get_primal_solution() {
+        Clp.initialSolve(model);
+        // Clp.primal(model, 0);
+        switch(Clp.status(model)) {
+            case 0:
+                opt_lp_status.emplace(lp_status::optimal);
+                return;
+            case 1:
+                opt_lp_status.emplace(lp_status::infeasible);
+                return;
+            case 2:
+                opt_lp_status.emplace(lp_status::unbounded);
+                return;
+            default:
+                opt_lp_status.reset();
+        }
+    }
+    std::optional<lp_status> get_lp_status() const { return opt_lp_status; }
+
+    double get_solution_value() { return Clp.getObjValue(model); }
+
+    auto get_solution() {
         return variable_mapping(Clp.primalColumnSolution(model));
     }
-    auto get_dual_solution() { return Clp.primalRowSolution(model); }
+    auto get_dual_solution() { return Clp.dualRowSolution(model); }
 };
 
 }  // namespace mippp

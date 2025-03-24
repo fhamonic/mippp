@@ -62,7 +62,7 @@ public:
 
 public:
     [[nodiscard]] explicit cbc_milp_model(const cbc_api & api)
-        : Cbc(api), model(Cbc.newModel()) {}
+        : Cbc(api), model(Cbc.newModel()), ojective_offset(0.0) {}
     ~cbc_milp_model() { Cbc.deleteModel(model); }
 
     std::size_t num_variables() {
@@ -239,26 +239,18 @@ public:
     }
     double set_optimality_tolerance() { return Cbc.getAllowableGap(model); }
 
-    void optimize() { Cbc.solve(model); }
-
-    double get_objective_value() { return Cbc.getObjValue(model); }
-
-    template <typename Arr>
-    class variable_mapping {
-    private:
-        Arr arr;
-
-    public:
-        variable_mapping(Arr && t) : arr(std::move(t)) {}
-
-        double operator[](int i) const { return arr[i]; }
-        double operator[](model_variable<int, double> x) const {
-            return arr[static_cast<std::size_t>(x.id())];
+    void optimize() {
+        if(num_constraints() == 0u) {
+            return;
         }
-    };
-    auto get_primal_solution() {
-        return variable_mapping(Cbc.getColSolution(model));
+        Cbc.solve(model);
     }
+
+    double get_solution_value() {
+        return ojective_offset + Cbc.getObjValue(model);
+    }
+
+    auto get_solution() { return variable_mapping(Cbc.getColSolution(model)); }
 };
 
 }  // namespace mippp

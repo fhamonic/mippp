@@ -33,9 +33,11 @@
     F(Clp_getRowStatus, getRowStatus)                 \
     F(Clp_setColumnStatus, setColumnStatus)           \
     F(Clp_setRowStatus, setRowStatus)                 \
+    F(Clp_initialSolve, initialSolve)                 \
     F(Clp_primal, primal)                             \
+    F(Clp_status, status)                             \
     F(Clp_getObjValue, getObjValue)                   \
-    F(Clp_primalRowSolution, primalRowSolution)       \
+    F(Clp_dualRowSolution, dualRowSolution)       \
     F(Clp_primalColumnSolution, primalColumnSolution) \
     F(Clp_writeMps, writeMps)
 

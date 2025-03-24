@@ -9,6 +9,7 @@
     F(GRBgeterrormsg, geterrormsg)               \
     F(GRBemptyenvinternal, emptyenvinternal)     \
     F(GRBstartenv, startenv)                     \
+    F(GRBgetenv, getenv)                         \
     F(GRBfreeenv, freeenv)                       \
     F(GRBnewmodel, newmodel)                     \
     F(GRBfreemodel, freemodel)                   \

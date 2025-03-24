@@ -331,7 +331,7 @@ public:
         ASSERT_EQ(solution[static_cast<std::size_t>(x.id())], 18);
         ASSERT_EQ(solution[static_cast<std::size_t>(y.id())], 12);
 
-        ASSERT_EQ(solver.get_objective_value(), 72.0);
+        ASSERT_EQ(solver.get_solution_value(), 72.0);
     }
 };
 #endif  // MODEL_TESTS_HELPER_HPP

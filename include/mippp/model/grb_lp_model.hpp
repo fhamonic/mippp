@@ -1,5 +1,5 @@
-#ifndef MIPPP_GRB_MILP_MODEL_HPP
-#define MIPPP_GRB_MILP_MODEL_HPP
+#ifndef MIPPP_GRB_LP_MODEL_HPP
+#define MIPPP_GRB_LP_MODEL_HPP
 
 #include <limits>
 // #include <ranges>
@@ -21,11 +21,12 @@
 namespace fhamonic {
 namespace mippp {
 
-class grb_milp_model {
+class grb_lp_model {
 private:
     const grb_api & GRB;
     GRBenv * env;
     GRBmodel * model;
+    std::optional<lp_status> opt_lp_status;
 
     static constexpr char constraint_relation_to_grb_sense(
         constraint_relation rel) {
@@ -56,18 +57,18 @@ public:
     };
 
 public:
-    [[nodiscard]] explicit grb_milp_model(const grb_api & api) : GRB(api) {
+    [[nodiscard]] explicit grb_lp_model(const grb_api & api) : GRB(api) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
-        check(GRB.newmodel(env, &model, "MIPL", 0, NULL, NULL, NULL, NULL, NULL));
+        check(GRB.newmodel(env, &model, "PL", 0, NULL, NULL, NULL, NULL, NULL));
         GRB.freeenv(env);
         env = GRB.getenv(model);
         if(env == NULL)
             throw std::runtime_error(
                 "grb_lp_model: Could not retrieve model environement.");
     }
-    ~grb_milp_model() { check(GRB.freemodel(model)); };
+    ~grb_lp_model() { check(GRB.freemodel(model)); };
 
 private:
     void check(int error) {
@@ -267,6 +268,12 @@ public:
         return std::string(name);
     }
 
+    // void set_basic(variable v);
+    // void set_non_basic(variable v);
+
+    // void set_basic(constraint v);
+    // void set_non_basic(constraint v);
+
     void set_feasibility_tolerance(double tol) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_FEASIBILITYTOL, tol));
     }
@@ -276,7 +283,41 @@ public:
         return tol;
     }
 
-    void optimize() { check(GRB.optimize(model)); }
+    void optimize() {
+        check(GRB.optimize(model));
+        int status;
+        check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status));
+        switch(status) {
+            case GRB_OPTIMAL:
+                opt_lp_status.emplace(lp_status::optimal);
+                return;
+            case GRB_INF_OR_UNBD:
+                int dual_reductions;
+                check(GRB.getintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
+                                      &dual_reductions));
+                check(GRB.setintparam(env, GRB_INT_PAR_DUALREDUCTIONS, 0));
+                check(GRB.optimize(model));
+                check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status));
+                check(GRB.setintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
+                                      dual_reductions));
+                switch(status) {
+                    case GRB_INFEASIBLE:
+                        opt_lp_status.emplace(lp_status::infeasible);
+                        return;
+                    case GRB_UNBOUNDED:
+                        opt_lp_status.emplace(lp_status::unbounded);
+                        return;
+                    default:
+                        throw std::runtime_error(
+                            "grb_lp_model: Cannot determine if model is "
+                            "infeasible or unbounded (status = " +
+                            std::to_string(status) + ").");
+                }
+            default:
+                opt_lp_status.reset();
+        }
+    }
+    std::optional<lp_status> get_lp_status() { return opt_lp_status; }
 
     double get_solution_value() {
         double value;
@@ -304,4 +345,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GRB_MILP_MODEL_HPP
+#endif  // MIPPP_GRB_LP_MODEL_HPP

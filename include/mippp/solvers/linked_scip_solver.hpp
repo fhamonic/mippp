@@ -152,7 +152,7 @@ struct linked_scip_solver : public abstract_solver_wrapper {
 
         return solution;
     }
-    [[nodiscard]] double get_objective_value() const noexcept {
+    [[nodiscard]] double get_solution_value() const noexcept {
         return SCIPgetPrimalbound(model);
     }
 };
