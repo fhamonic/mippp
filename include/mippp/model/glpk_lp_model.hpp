@@ -1,6 +1,7 @@
 #ifndef MIPPP_GLPK_LP_MODEL_HPP
 #define MIPPP_GLPK_LP_MODEL_HPP
 
+#include <cmath>
 #include <limits>
 // #include <ranges>
 #include <optional>
@@ -76,7 +77,7 @@ public:
         params.obj_ul = std::numeric_limits<double>::max();
         params.it_lim = std::numeric_limits<int>::max();
         params.tm_lim = std::numeric_limits<int>::max();
-        params.presolve = 0; // PRESOLVE
+        params.presolve = 0;  // PRESOLVE
         params.excl = 0;
         params.shift = 0;
         params.aorn = GLP_USE_AT;
@@ -151,12 +152,29 @@ public:
     }
 
     void optimize() {
-        if(num_variables() == 0u) {
+        switch(glp.simplex(model, &params)) {
+            case GLP_ENOPFS:
+                opt_lp_status.emplace(lp_status::unbounded);
+                return;
+            case GLP_ENODFS:
+                opt_lp_status.emplace(lp_status::infeasible);
+                return;
+        }
+        const int primal_status = glp.get_status(model);
+        if(primal_status == GLP_UNBND || !std::isfinite(get_solution_value())) {
+            opt_lp_status.emplace(lp_status::unbounded);
+            return;
+        }
+        if(primal_status == GLP_OPT) {
             opt_lp_status.emplace(lp_status::optimal);
             return;
         }
-        glp.simplex(model, &params);
+        if(primal_status == GLP_INFEAS || primal_status == GLP_NOFEAS) {
+            opt_lp_status.emplace(lp_status::infeasible);
+            return;
+        }
     }
+    std::optional<lp_status> get_lp_status() { return opt_lp_status; }
 
     double get_solution_value() {
         return ojective_offset + glp.get_obj_val(model);
