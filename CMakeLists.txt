@@ -15,7 +15,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(ENABLE_TESTING "Enable Test Builds" OFF)
 option(LINK_CBC "Link CBC" OFF)
-option(LINK_GUROBI "Link Gurobi" OFF)
 option(LINK_CPLEX "Link CPLEX" OFF)
 option(LINK_SCIP "Link SCIP" OFF)
 
@@ -52,6 +51,7 @@ target_compile_options(mippp INTERFACE -fconcepts-diagnostics-depth=30)
 
 
 target_include_directories(mippp INTERFACE $ENV{GUROBI_HOME}/include)
+target_include_directories(mippp INTERFACE /usr/local/include/highs)
 
 # target_compile_definitions(mippp INTERFACE MIPPP_PREFERED_SOLVER=MIPPP_COIN)
 

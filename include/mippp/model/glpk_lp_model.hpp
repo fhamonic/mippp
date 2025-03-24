@@ -19,8 +19,6 @@
 
 #include "mippp/api/glpk_api.hpp"
 
-#include <iostream>
-
 namespace fhamonic {
 namespace mippp {
 

@@ -9,6 +9,7 @@
 #include "mippp/model/glpk_lp_model.hpp"
 #include "mippp/model/grb_lp_model.hpp"
 #include "mippp/model/grb_milp_model.hpp"
+#include "mippp/model/highs_lp_model.hpp"
 #include "mippp/model/soplex_lp_model.hpp"
 
 using namespace fhamonic::mippp;
@@ -75,11 +76,20 @@ struct glpk_lp_model_test {
     glpk_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
+    static_assert(has_lp_status<T>);
+};
+struct highs_lp_model_test {
+    using T = highs_lp_model;
+    highs_api api{"highs", "/usr/local/lib"};
+    auto construct_model() const { return T(api); }
+    static_assert(lp_model<T>);
+    static_assert(has_lp_status<T>);
 };
 
 using Models =
     ::testing::Types<clp_lp_model_test, cbc_milp_model_test, grb_lp_model_test,
-                     grb_milp_model_test, soplex_lp_model_test, glpk_lp_model_test>;
+                     grb_milp_model_test, soplex_lp_model_test,
+                     glpk_lp_model_test, highs_lp_model_test>;
 
 template <typename T>
 class ModelTest : public ::testing::Test {

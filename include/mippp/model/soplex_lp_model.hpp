@@ -103,7 +103,7 @@ public:
                 ? -std::numeric_limits<double>::infinity()
                 : b,
             (lc.relation() == constraint_relation::greater_equal_zero)
-                ? -std::numeric_limits<double>::infinity()
+                ? std::numeric_limits<double>::infinity()
                 : b);
         return static_cast<int>(num_constrs);
     }
