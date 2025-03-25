@@ -372,7 +372,7 @@ TYPED_TEST(ModelTest, lp_example_add_constraint_redundant_terms) {
     model.set_maximization();
     model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
     auto c1 = model.add_constraint(3 * x1 - x1 + 3 * x2 + x3 <= 5);
-    auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+    auto c2 = model.add_constraint(4 * x1 + x3 + x2 + x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
     model.optimize();
     if constexpr(has_lp_status<T>) {

@@ -25,6 +25,18 @@ namespace fhamonic {
 namespace mippp {
 
 class cbc_milp_model {
+public:
+    using variable_id = int;
+    using scalar = double;
+    using variable = model_variable<variable_id, scalar>;
+    using constraint = int;
+
+    struct variable_params {
+        scalar obj_coef = scalar{0};
+        scalar lower_bound = scalar{0};
+        scalar upper_bound = std::numeric_limits<scalar>::infinity();
+    };
+
 private:
     const cbc_api & Cbc;
     Cbc_Model * model;
@@ -44,21 +56,9 @@ private:
     // }
 
     double ojective_offset;
-    // std::vector<CoinBigIndex> tmp_indices;
+    std::vector<std::pair<constraint, unsigned int>> tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
-
-public:
-    using variable_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        scalar lower_bound = scalar{0};
-        scalar upper_bound = std::numeric_limits<scalar>::infinity();
-    };
 
 public:
     [[nodiscard]] explicit cbc_milp_model(const cbc_api & api)
@@ -153,9 +153,17 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
+        tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
+            auto & p =
+                tmp_constraint_entry_cache[static_cast<std::size_t>(var)];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
             tmp_variables.emplace_back(var);
             tmp_scalars.emplace_back(coef);
         }
@@ -166,30 +174,30 @@ public:
         return constr_id;
     }
     // void set_constraint_rhs(constraint c, double rhs) {
-        // if(get_constraint_sense(c) ==
-        // constraint_relation::greater_equal_zero) {
-        //     Clp.rowLower(model)[c] = rhs;
-        //     return;
-        // }
-        // Clp.rowUpper(model)[c] = rhs;
+    // if(get_constraint_sense(c) ==
+    // constraint_relation::greater_equal_zero) {
+    //     Clp.rowLower(model)[c] = rhs;
+    //     return;
+    // }
+    // Clp.rowUpper(model)[c] = rhs;
     // }
     // void set_constraint_sense(constraint c, constraint_relation r) {
-        // constraint_relation old_r = get_constraint_sense(c);
-        // double old_rhs = get_constraint_rhs(c);
-        // if(old_r == r) return;
-        // switch(r) {
-        //     case constraint_relation::equal_zero:
-        //         Clp.rowLower(model)[c] = Clp.rowUpper(model)[c] = old_rhs;
-        //         return;
-        //     case constraint_relation::less_equal_zero:
-        //         Clp.rowLower(model)[c] = -COIN_DBL_MAX;
-        //         Clp.rowUpper(model)[c] = old_rhs;
-        //         return;
-        //     case constraint_relation::greater_equal_zero:
-        //         Clp.rowLower(model)[c] = old_rhs;
-        //         Clp.rowUpper(model)[c] = COIN_DBL_MAX;
-        //         return;
-        // }
+    // constraint_relation old_r = get_constraint_sense(c);
+    // double old_rhs = get_constraint_rhs(c);
+    // if(old_r == r) return;
+    // switch(r) {
+    //     case constraint_relation::equal_zero:
+    //         Clp.rowLower(model)[c] = Clp.rowUpper(model)[c] = old_rhs;
+    //         return;
+    //     case constraint_relation::less_equal_zero:
+    //         Clp.rowLower(model)[c] = -COIN_DBL_MAX;
+    //         Clp.rowUpper(model)[c] = old_rhs;
+    //         return;
+    //     case constraint_relation::greater_equal_zero:
+    //         Clp.rowLower(model)[c] = old_rhs;
+    //         Clp.rowUpper(model)[c] = COIN_DBL_MAX;
+    //         return;
+    // }
     // }
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
