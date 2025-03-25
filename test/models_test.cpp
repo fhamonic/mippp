@@ -10,6 +10,7 @@
 #include "mippp/model/grb_lp_model.hpp"
 #include "mippp/model/grb_milp_model.hpp"
 #include "mippp/model/highs_lp_model.hpp"
+#include "mippp/model/scip_milp_model.hpp"
 #include "mippp/model/soplex_lp_model.hpp"
 
 using namespace fhamonic::mippp;
@@ -27,6 +28,7 @@ struct clp_lp_model_test {
     static_assert(has_readable_constraint_rhs<T>);
     // static_assert(has_readable_constraints<T>);
     static_assert(has_lp_status<T>);
+    static_assert(has_dual_solution<T>);
 };
 struct cbc_milp_model_test {
     using T = cbc_milp_model;
@@ -52,6 +54,7 @@ struct grb_lp_model_test {
     static_assert(has_readable_constraint_rhs<T>);
     // static_assert(has_readable_constraints<T>);
     static_assert(has_lp_status<T>);
+    static_assert(has_dual_solution<T>);
 };
 struct grb_milp_model_test {
     using T = grb_milp_model;
@@ -70,6 +73,7 @@ struct soplex_lp_model_test {
     soplex_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
+    static_assert(has_dual_solution<T>);
 };
 struct glpk_lp_model_test {
     using T = glpk_lp_model;
@@ -77,6 +81,7 @@ struct glpk_lp_model_test {
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_lp_status<T>);
+    static_assert(has_dual_solution<T>);
 };
 struct highs_lp_model_test {
     using T = highs_lp_model;
@@ -84,12 +89,19 @@ struct highs_lp_model_test {
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_lp_status<T>);
+    static_assert(has_dual_solution<T>);
+};
+struct scip_milp_model_test {
+    using T = scip_milp_model;
+    scip_api api;
+    auto construct_model() const { return T(api); }
+    static_assert(lp_model<T>);
 };
 
-using Models =
-    ::testing::Types<clp_lp_model_test, cbc_milp_model_test, grb_lp_model_test,
-                     grb_milp_model_test, soplex_lp_model_test,
-                     glpk_lp_model_test, highs_lp_model_test>;
+using Models = ::testing::Types<clp_lp_model_test, cbc_milp_model_test,
+                                grb_lp_model_test, grb_milp_model_test,
+                                soplex_lp_model_test, glpk_lp_model_test,
+                                highs_lp_model_test, scip_milp_model_test>;
 
 template <typename T>
 class ModelTest : public ::testing::Test {
@@ -162,7 +174,7 @@ TYPED_TEST(ModelTest, optimize_empty_min) {
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
-    ASSERT_EQ(model.get_solution_value(), 0.0);
+    ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
 }
 TYPED_TEST(ModelTest, optimize_empty_max) {
     using T = TypeParam::T;
@@ -172,7 +184,7 @@ TYPED_TEST(ModelTest, optimize_empty_max) {
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
-    ASSERT_EQ(model.get_solution_value(), 0.0);
+    ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
 }
 TYPED_TEST(ModelTest, add_constraint_and_get) {
     using T = TypeParam::T;
@@ -190,7 +202,7 @@ TYPED_TEST(ModelTest, add_constraint_and_get) {
                   constraint_relation::less_equal_zero);
     }
     if constexpr(has_readable_constraint_rhs<T>) {
-        ASSERT_EQ(model.get_constraint_rhs(c), 5.0);
+        ASSERT_DOUBLE_EQ(model.get_constraint_rhs(c), 5.0);
     }
 }
 TYPED_TEST(ModelTest, add_constraint_and_optimize_max_bounded) {
@@ -205,13 +217,13 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_max_bounded) {
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
-    ASSERT_EQ(model.get_solution_value(), 9.0);
+    ASSERT_DOUBLE_EQ(model.get_solution_value(), 9.0);
     auto solution = model.get_solution();
-    ASSERT_EQ(solution[x], 3.0);
-    ASSERT_EQ(solution[y], 2);
+    ASSERT_DOUBLE_EQ(solution[x], 3.0);
+    ASSERT_DOUBLE_EQ(solution[y], 2);
     if constexpr(has_dual_solution<T>) {
         auto dual_solution = model.get_dual_solution();
-        ASSERT_EQ(dual_solution[c], 1.5);
+        ASSERT_DOUBLE_EQ(dual_solution[c], 1.5);
     }
 }
 TYPED_TEST(ModelTest, add_constraint_and_optimize_min_bounded) {
@@ -226,13 +238,13 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_min_bounded) {
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
-    ASSERT_EQ(model.get_solution_value(), -9.0);
+    ASSERT_DOUBLE_EQ(model.get_solution_value(), -9.0);
     auto solution = model.get_solution();
-    ASSERT_EQ(solution[x], 3.0);
-    ASSERT_EQ(solution[y], 2);
+    ASSERT_DOUBLE_EQ(solution[x], 3.0);
+    ASSERT_DOUBLE_EQ(solution[y], 2);
     if constexpr(has_dual_solution<T>) {
         auto dual_solution = model.get_dual_solution();
-        ASSERT_EQ(dual_solution[c], -1.5);
+        ASSERT_DOUBLE_EQ(dual_solution[c], -1.5);
     }
 }
 TYPED_TEST(ModelTest, add_constraint_and_optimize_max_unbounded) {
@@ -297,34 +309,84 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_min_infeasible) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::infeasible);
     }
 }
-// TYPED_TEST(ModelTest, set_variable_bounds) {
-//     using T = TypeParam::T;
-//     if constexpr(has_modifiable_variables_bounds<T>) {
-//         using T = TypeParam::T;
-//         T model = this->construct_model();
-//         auto x = model.add_variable({.obj_coef = 7.0, .upper_bound = 13.0});
-//         auto y = model.add_variable({.lower_bound = 2});
-//         if constexpr(has_readable_objective<T>) {
-//             ASSERT_EQ(model.get_objective_coefficient(x), 7.0);
-//             ASSERT_EQ(model.get_objective_coefficient(y), 0.0);
-//         }
-//         if constexpr(has_readable_variables_bounds<T>) {
-//             ASSERT_EQ(model.get_variable_lower_bound(x), 0.0);
-//             ASSERT_EQ(model.get_variable_upper_bound(x), 13.0);
-//             ASSERT_EQ(model.get_variable_lower_bound(y), 2.0);
-//             // ASSERT_EQ(model.get_variable_upper_bound(y), M::infinity);
-//         }
-//         model.set_variable_lower_bound(x, 3.0);
-//         model.set_variable_upper_bound(y, 15.0);
-//         if constexpr(has_readable_objective<T>) {
-//             ASSERT_EQ(model.get_objective_coefficient(x), 7.0);
-//             ASSERT_EQ(model.get_objective_coefficient(y), 0.0);
-//         }
-//         if constexpr(has_readable_variables_bounds<T>) {
-//             ASSERT_EQ(model.get_variable_lower_bound(x), 3.0);
-//             ASSERT_EQ(model.get_variable_upper_bound(x), 13.0);
-//             ASSERT_EQ(model.get_variable_lower_bound(y), 2.0);
-//             ASSERT_EQ(model.get_variable_upper_bound(y), 15.0);
-//         }
-//     }
-// }
+TYPED_TEST(ModelTest, lp_example) {
+    using T = TypeParam::T;
+    T model = this->construct_model();
+    auto x1 = model.add_variable();
+    auto x2 = model.add_variable();
+    auto x3 = model.add_variable();
+    model.set_maximization();
+    model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
+    auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+    auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+    auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+    model.optimize();
+    if constexpr(has_lp_status<T>) {
+        ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
+    }
+    ASSERT_NEAR(model.get_solution_value(), 13.0, 1e-13);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, 1e-13);
+    ASSERT_NEAR(solution[x2], 0.0, 1e-13);
+    ASSERT_NEAR(solution[x3], 1.0, 1e-13);
+    if constexpr(has_dual_solution<T>) {
+        auto dual_solution = model.get_dual_solution();
+        ASSERT_NEAR(dual_solution[c1], 1.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c2], 0.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c3], 1.0, 1e-13);
+    }
+}
+TYPED_TEST(ModelTest, lp_example_set_objective_redundant_terms) {
+    using T = TypeParam::T;
+    T model = this->construct_model();
+    auto x1 = model.add_variable();
+    auto x2 = model.add_variable();
+    auto x3 = model.add_variable();
+    model.set_maximization();
+    model.set_objective(2 * x1 + 3 * x1 + 4 * x2 + 3 * x3);
+    auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+    auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+    auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+    model.optimize();
+    if constexpr(has_lp_status<T>) {
+        ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
+    }
+    ASSERT_NEAR(model.get_solution_value(), 13.0, 1e-13);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, 1e-13);
+    ASSERT_NEAR(solution[x2], 0.0, 1e-13);
+    ASSERT_NEAR(solution[x3], 1.0, 1e-13);
+    if constexpr(has_dual_solution<T>) {
+        auto dual_solution = model.get_dual_solution();
+        ASSERT_NEAR(dual_solution[c1], 1.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c2], 0.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c3], 1.0, 1e-13);
+    }
+}
+TYPED_TEST(ModelTest, lp_example_add_constraint_redundant_terms) {
+    using T = TypeParam::T;
+    T model = this->construct_model();
+    auto x1 = model.add_variable();
+    auto x2 = model.add_variable();
+    auto x3 = model.add_variable();
+    model.set_maximization();
+    model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
+    auto c1 = model.add_constraint(3 * x1 - x1 + 3 * x2 + x3 <= 5);
+    auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+    auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+    model.optimize();
+    if constexpr(has_lp_status<T>) {
+        ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
+    }
+    ASSERT_NEAR(model.get_solution_value(), 13.0, 1e-13);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, 1e-13);
+    ASSERT_NEAR(solution[x2], 0.0, 1e-13);
+    ASSERT_NEAR(solution[x3], 1.0, 1e-13);
+    if constexpr(has_dual_solution<T>) {
+        auto dual_solution = model.get_dual_solution();
+        ASSERT_NEAR(dual_solution[c1], 1.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c2], 0.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c3], 1.0, 1e-13);
+    }
+}

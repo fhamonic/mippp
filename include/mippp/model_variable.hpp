@@ -37,7 +37,7 @@ private:
 public:
     variable_mapping(Arr && t) : arr(std::move(t)) {}
 
-    double operator[](int i) const { return arr[i]; }
+    double operator[](int i) const { return arr[static_cast<std::size_t>(i)]; }
     double operator[](model_variable<int, double> x) const {
         return arr[static_cast<std::size_t>(x.id())];
     }

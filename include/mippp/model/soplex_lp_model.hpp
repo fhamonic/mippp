@@ -65,7 +65,7 @@ public:
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(var)] = coef;
+            tmp_scalars[static_cast<std::size_t>(var)] += coef;
         }
         SoPlex.changeObjReal(model, tmp_scalars.data(),
                              static_cast<int>(num_vars));
@@ -92,7 +92,7 @@ public:
         tmp_scalars.resize(num_variables());
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(var)] = coef;
+            tmp_scalars[static_cast<std::size_t>(var)] += coef;
             ++num_nz;
         }
         const double b = -lc.expression().constant();

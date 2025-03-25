@@ -23,6 +23,18 @@ namespace fhamonic {
 namespace mippp {
 
 class glpk_lp_model {
+public:
+    using variable_id = int;
+    using scalar = double;
+    using variable = model_variable<variable_id, scalar>;
+    using constraint = int;
+
+    struct variable_params {
+        scalar obj_coef = scalar{0};
+        scalar lower_bound = scalar{0};
+        scalar upper_bound = std::numeric_limits<scalar>::infinity();
+    };
+
 private:
     const glpk_api & glp;
     glp_prob * model;
@@ -46,20 +58,9 @@ private:
                                  "' to constraint_relation.");
     }
 
+    std::vector<std::pair<constraint, unsigned int>> tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
-
-public:
-    using variable_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        scalar lower_bound = scalar{0};
-        scalar upper_bound = std::numeric_limits<scalar>::infinity();
-    };
 
 public:
     [[nodiscard]] explicit glpk_lp_model(const glpk_api & api)
@@ -102,14 +103,15 @@ public:
             glp.set_obj_coef(model, var + 1, 0.0);
         }
         for(auto && [var, coef] : le.linear_terms()) {
-            glp.set_obj_coef(model, var + 1, coef);
+            glp.set_obj_coef(model, var + 1,
+                             glp.get_obj_coef(model, var + 1) + coef);
         }
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
         for(auto && [var, coef] : le.linear_terms()) {
             glp.set_obj_coef(model, var + 1,
-                             glp.get_obj_coef(model, var) + coef);
+                             glp.get_obj_coef(model, var + 1) + coef);
         }
         set_objective_offset(get_objective_offset() + le.constant());
     }
@@ -131,22 +133,30 @@ public:
     //                               const variable_params p);
 
     constraint add_constraint(linear_constraint auto && lc) {
-        auto constr_id = num_constraints();
+        auto constr_id = static_cast<int>(num_constraints());
         glp.add_rows(model, 1);
+        tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(1);
         tmp_scalars.resize(1);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
+            auto & p =
+                tmp_constraint_entry_cache[static_cast<std::size_t>(var)];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
             tmp_variables.emplace_back(var + 1);
             tmp_scalars.emplace_back(coef);
         }
-        glp.set_mat_row(model, static_cast<int>(constr_id) + 1,
+        glp.set_mat_row(model, constr_id + 1,
                         static_cast<int>(tmp_variables.size()) - 1,
                         tmp_variables.data(), tmp_scalars.data());
         const double b = -lc.expression().constant();
-        glp.set_row_bnds(model, static_cast<int>(constr_id) + 1,
+        glp.set_row_bnds(model, constr_id + 1,
                          constraint_relation_to_glp_row_type(lc.relation()), b,
                          b);
-        return static_cast<int>(constr_id);
+        return constr_id;
     }
 
     void optimize() {

@@ -22,6 +22,18 @@ namespace fhamonic {
 namespace mippp {
 
 class grb_milp_model {
+public:
+    using variable_id = int;
+    using scalar = double;
+    using variable = model_variable<variable_id, scalar>;
+    using constraint = int;
+
+    struct variable_params {
+        scalar obj_coef = scalar{0};
+        scalar lower_bound = scalar{0};
+        scalar upper_bound = std::numeric_limits<scalar>::infinity();
+    };
+
 private:
     const grb_api & GRB;
     GRBenv * env;
@@ -40,27 +52,17 @@ private:
         return constraint_relation::greater_equal_zero;
     }
 
+    std::vector<std::pair<constraint, unsigned int>> tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
-
-public:
-    using variable_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        scalar lower_bound = scalar{0};
-        scalar upper_bound = std::numeric_limits<scalar>::infinity();
-    };
 
 public:
     [[nodiscard]] explicit grb_milp_model(const grb_api & api) : GRB(api) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
-        check(GRB.newmodel(env, &model, "MIPL", 0, NULL, NULL, NULL, NULL, NULL));
+        check(
+            GRB.newmodel(env, &model, "MIPL", 0, NULL, NULL, NULL, NULL, NULL));
         GRB.freeenv(env);
         env = GRB.getenv(model);
         if(env == NULL)
@@ -109,20 +111,14 @@ public:
     }
     void set_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
-        tmp_scalars.resize(0);
-        tmp_scalars.resize(num_vars, 0.0);
-        check(GRB.getdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
+        tmp_scalars.resize(num_vars);
+        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
+        for(auto && [var, coef] : le.linear_terms()) {
+            tmp_scalars[static_cast<std::size_t>(var)] += coef;
+        }
+        check(GRB.setdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
                                   static_cast<int>(num_vars),
                                   tmp_scalars.data()));
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            tmp_variables.emplace_back(var);
-            tmp_scalars.emplace_back(coef);
-        }
-        check(GRB.setdblattrlist(model, GRB_DBL_ATTR_OBJ,
-                                 static_cast<int>(tmp_variables.size()),
-                                 tmp_variables.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
@@ -210,9 +206,17 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
+        tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
+            auto & p =
+                tmp_constraint_entry_cache[static_cast<std::size_t>(var)];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
             tmp_variables.emplace_back(var);
             tmp_scalars.emplace_back(coef);
         }
@@ -297,7 +301,7 @@ public:
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_PI, 0,
                                   static_cast<int>(num_constrs),
                                   solution.get()));
-        return solution;
+        return variable_mapping(std::move(solution));
     }
 };
 

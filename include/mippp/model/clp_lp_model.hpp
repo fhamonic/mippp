@@ -87,7 +87,7 @@ public:
         double * objective = Clp.objective(model);
         std::fill(objective, objective + num_vars, 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
-            objective[var] = coef;
+            objective[var] += coef;
         }
         set_objective_offset(le.constant());
     }

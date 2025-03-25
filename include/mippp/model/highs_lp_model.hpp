@@ -22,13 +22,6 @@ namespace fhamonic {
 namespace mippp {
 
 class highs_lp_model {
-private:
-    const highs_api & Highs;
-    void * model;
-    std::optional<lp_status> opt_lp_status;
-    std::vector<int> tmp_variables;
-    std::vector<double> tmp_scalars;
-
 public:
     using variable_id = int;
     using scalar = double;
@@ -36,10 +29,19 @@ public:
     using constraint = int;
 
     struct variable_params {
-        scalar obj_coef = scalar{0};
-        scalar lower_bound = scalar{0};
-        scalar upper_bound = std::numeric_limits<scalar>::infinity();
+        scalar obj_coef = 0.0;
+        std::optional<scalar> lower_bound = 0.0;
+        std::optional<scalar> upper_bound = std::nullopt;
     };
+
+private:
+    const highs_api & Highs;
+    void * model;
+    std::optional<lp_status> opt_lp_status;
+
+    std::vector<std::pair<constraint, unsigned int>> tmp_constraint_entry_cache;
+    std::vector<int> tmp_variables;
+    std::vector<double> tmp_scalars;
 
 public:
     [[nodiscard]] explicit highs_lp_model(const highs_api & api)
@@ -78,7 +80,7 @@ public:
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(var)] = coef;
+            tmp_scalars[static_cast<std::size_t>(var)] += coef;
         }
         check(Highs.changeColsCostByRange(
             model, 0, static_cast<int>(num_vars) - 1, tmp_scalars.data()));
@@ -90,13 +92,14 @@ public:
         return offset;
     }
 
-    variable add_variable(
-        const variable_params p = {
-            .obj_coef = 0,
-            .lower_bound = 0,
-            .upper_bound = std::numeric_limits<double>::infinity()}) {
+    variable add_variable(const variable_params p = {
+                              .obj_coef = 0,
+                              .lower_bound = 0,
+                              .upper_bound = std::nullopt}) {
         int var_id = static_cast<int>(num_variables());
-        check(Highs.addCol(model, p.obj_coef, p.lower_bound, p.upper_bound, 0,
+        check(Highs.addCol(model, p.obj_coef,
+                           p.lower_bound.value_or(-Highs.getInfinity(model)),
+                           p.upper_bound.value_or(Highs.getInfinity(model)), 0,
                            NULL, NULL));
         return variable(var_id);
     }
@@ -105,9 +108,17 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
+        tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
+            auto & p =
+                tmp_constraint_entry_cache[static_cast<std::size_t>(var)];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
             tmp_variables.emplace_back(var);
             tmp_scalars.emplace_back(coef);
         }

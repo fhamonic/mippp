@@ -85,7 +85,8 @@ public:
             Cbc.setObjCoeff(model, v, 0.0);
         }
         for(auto && [var, coef] : le.linear_terms()) {
-            Cbc.setObjCoeff(model, var, coef);
+            Cbc.setObjCoeff(model, var,
+                            Cbc.getObjCoefficients(model)[var] + coef);
         }
         set_objective_offset(le.constant());
     }
@@ -164,15 +165,15 @@ public:
                    -lc.expression().constant());
         return constr_id;
     }
-    void set_constraint_rhs(constraint c, double rhs) {
+    // void set_constraint_rhs(constraint c, double rhs) {
         // if(get_constraint_sense(c) ==
         // constraint_relation::greater_equal_zero) {
         //     Clp.rowLower(model)[c] = rhs;
         //     return;
         // }
         // Clp.rowUpper(model)[c] = rhs;
-    }
-    void set_constraint_sense(constraint c, constraint_relation r) {
+    // }
+    // void set_constraint_sense(constraint c, constraint_relation r) {
         // constraint_relation old_r = get_constraint_sense(c);
         // double old_rhs = get_constraint_rhs(c);
         // if(old_r == r) return;
@@ -189,7 +190,7 @@ public:
         //         Clp.rowUpper(model)[c] = COIN_DBL_MAX;
         //         return;
         // }
-    }
+    // }
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
         const int constr_id = static_cast<int>(num_constraints());
