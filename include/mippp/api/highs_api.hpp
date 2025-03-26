@@ -19,6 +19,7 @@
     F(Highs_changeColsCostBySet, changeColsCostBySet)                   \
     F(Highs_changeColBounds, changeColBounds)                           \
     F(Highs_changeColsBoundsByRange, changeColsBoundsByRange)           \
+    F(Highs_getColsByRange, getColsByRange)                             \
     F(Highs_changeColIntegrality, changeColIntegrality)                 \
     F(Highs_changeColsIntegralityByRange, changeColsIntegralityByRange) \
     F(Highs_passColName, passColName)                                   \

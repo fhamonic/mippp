@@ -22,6 +22,7 @@ struct clp_lp_model_test {
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_readable_objective<T>);
+    static_assert(has_modifiable_objective<T>);
     static_assert(has_readable_variables_bounds<T>);
     // static_assert(has_readable_constraint_lhs<T>);
     static_assert(has_readable_constraint_sense<T>);
@@ -36,6 +37,7 @@ struct cbc_milp_model_test {
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_readable_objective<T>);
+    static_assert(has_modifiable_objective<T>);
     static_assert(has_readable_variables_bounds<T>);
     // static_assert(has_readable_constraint_lhs<T>);
     static_assert(has_readable_constraint_sense<T>);
@@ -48,6 +50,7 @@ struct grb_lp_model_test {
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_readable_objective<T>);
+    static_assert(has_modifiable_objective<T>);
     static_assert(has_readable_variables_bounds<T>);
     // static_assert(has_readable_constraint_lhs<T>);
     static_assert(has_readable_constraint_sense<T>);
@@ -62,6 +65,7 @@ struct grb_milp_model_test {
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_readable_objective<T>);
+    static_assert(has_modifiable_objective<T>);
     static_assert(has_readable_variables_bounds<T>);
     // static_assert(has_readable_constraint_lhs<T>);
     static_assert(has_readable_constraint_sense<T>);
@@ -88,6 +92,7 @@ struct highs_lp_model_test {
     highs_api api{"highs", "/usr/local/lib"};
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
+    // static_assert(has_modifiable_objective<T>);
     static_assert(has_lp_status<T>);
     static_assert(has_dual_solution<T>);
 };
@@ -96,6 +101,7 @@ struct scip_milp_model_test {
     scip_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
+    static_assert(has_modifiable_objective<T>);
 };
 
 using Models = ::testing::Types<clp_lp_model_test, cbc_milp_model_test,
@@ -343,7 +349,7 @@ TYPED_TEST(ModelTest, lp_example_set_objective_redundant_terms) {
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
     model.set_maximization();
-    model.set_objective(2 * x1 + 3 * x1 + 4 * x2 + 3 * x3);
+    model.set_objective(2 * x1 + 4 * x2 + 3 * x1 + 3 * x3);
     auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
     auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);

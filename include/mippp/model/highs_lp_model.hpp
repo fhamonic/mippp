@@ -86,6 +86,19 @@ public:
             model, 0, static_cast<int>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
+    // void add_objective(linear_expression auto && le) {
+    //     auto num_vars = num_variables();
+    //     tmp_scalars.resize(num_vars);
+    //     Highs.getColsByRange(model, 0, static_cast<int>(num_vars) - 1, NULL,
+    //                          tmp_scalars.data(), NULL, NULL, NULL, NULL, NULL,
+    //                          NULL);
+    //     for(auto && [var, coef] : le.linear_terms()) {
+    //         tmp_scalars[static_cast<std::size_t>(var)] += coef;
+    //     }
+    //     check(Highs.changeColsCostByRange(
+    //         model, 0, static_cast<int>(num_vars) - 1, tmp_scalars.data()));
+    //     set_objective_offset(le.constant());
+    // }
     double get_objective_offset() {
         double offset;
         check(Highs.getObjectiveOffset(model, &offset));
