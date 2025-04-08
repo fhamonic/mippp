@@ -13,9 +13,19 @@
 #include "mippp/model/scip_milp_model.hpp"
 #include "mippp/model/soplex_lp_model.hpp"
 
+#include "mippp/model/mosek_lp_model.hpp"
+
+#include "mippp/api/cplex_api.hpp"
+
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 
+GTEST_TEST(any, test) {
+    mosek_api api("mosek64", "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
+    // cplex_api api("cplex2212", "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+}
+
+/*
 struct clp_lp_model_test {
     using T = clp_lp_model;
     clp_api api;
@@ -103,11 +113,18 @@ struct scip_milp_model_test {
     static_assert(lp_model<T>);
     static_assert(has_modifiable_objective<T>);
 };
+struct mosek_lp_model_test {
+    using T = mosek_lp_model;
+    mosek_api api;
+    auto construct_model() const { return T(api); }
+    static_assert(lp_model<T>);
+};
 
 using Models = ::testing::Types<clp_lp_model_test, cbc_milp_model_test,
                                 grb_lp_model_test, grb_milp_model_test,
                                 soplex_lp_model_test, glpk_lp_model_test,
-                                highs_lp_model_test, scip_milp_model_test>;
+                                highs_lp_model_test, scip_milp_model_test,
+                                mosek_lp_model_test>;
 
 template <typename T>
 class ModelTest : public ::testing::Test {
@@ -396,3 +413,4 @@ TYPED_TEST(ModelTest, lp_example_add_constraint_redundant_terms) {
         ASSERT_NEAR(dual_solution[c3], 1.0, 1e-13);
     }
 }
+//*/

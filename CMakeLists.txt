@@ -53,16 +53,9 @@ target_compile_options(mippp INTERFACE -fconcepts-diagnostics-depth=30)
 target_include_directories(mippp INTERFACE $ENV{GUROBI_HOME}/include)
 target_include_directories(mippp INTERFACE /usr/local/include/highs)
 
-# target_compile_definitions(mippp INTERFACE MIPPP_PREFERED_SOLVER=MIPPP_COIN)
+target_include_directories(mippp INTERFACE /home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/h/)
+target_include_directories(mippp INTERFACE /home/plaiseek/Softwares/cplex-community/cplex/include/)
 
-# if(${LINK_GUROBI})
-#   add_library(gurobi_backend INTERFACE)
-#   target_compile_definitions(gurobi_backend INTERFACE MIPPP_LINK_GUROBI)
-#   target_include_directories(gurobi_backend INTERFACE ${GUROBI_INCLUDE_DIR})
-#   target_link_libraries(gurobi_backend INTERFACE ${GUROBI_LIBRARIES})
-
-#   target_link_libraries(mippp INTERFACE gurobi_backend)
-# endif()
 
 # ################### TESTS ######################
 if(${ENABLE_TESTING} AND NOT ${CMAKE_CROSSCOMPILING})

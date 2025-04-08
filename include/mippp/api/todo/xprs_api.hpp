@@ -16,7 +16,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class mosek_api {
+class xprs_api {
 private:
     dylib lib;
 
@@ -24,7 +24,7 @@ public:
     XPRESS_FUNCTIONS(DECLARE_XPRESS_FUN)
 
 public:
-    inline mosek_api(const char * lib_name = "xprs", const char * lib_path = "")
+    inline xprs_api(const char * lib_name = "xprs", const char * lib_path = "")
         : lib(lib_path, lib_name) XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUN) {}
 };
 
