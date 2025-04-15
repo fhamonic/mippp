@@ -1,5 +1,5 @@
-#ifndef MIPPP_GLPK_API_HPP
-#define MIPPP_GLPK_API_HPP
+#ifndef MIPPP_GLPK_5_API_HPP
+#define MIPPP_GLPK_5_API_HPP
 
 #include "dylib.hpp"
 
@@ -51,7 +51,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class glpk_api {
+class glpk5_api {
 private:
     dylib lib;
 
@@ -59,11 +59,11 @@ public:
     GLPK_FUNCTIONS(DECLARE_GLPK_FUN)
 
 public:
-    inline glpk_api(const char * lib_name = "glpk", const char * lib_path = "")
+    inline glpk5_api(const char * lib_name = "glpk", const char * lib_path = "")
         : lib(lib_path, lib_name) GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUN) {}
 };
 
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GLPK_API_HPP
+#endif  // MIPPP_GLPK_5_API_HPP

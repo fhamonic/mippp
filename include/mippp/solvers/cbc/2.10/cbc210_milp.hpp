@@ -1,11 +1,10 @@
-#ifndef MIPPP_CBC_MILP_MODEL_HPP
-#define MIPPP_CBC_MILP_MODEL_HPP
+#ifndef MIPPP_CBC_210_milp_HPP
+#define MIPPP_CBC_210_milp_HPP
 
 #include <algorithm>
 #include <cstring>
 #include <limits>
 #include <ostream>
-// #include <ranges>
 #include <sstream>
 #include <string_view>
 #include <vector>
@@ -19,12 +18,12 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/cbc_api.hpp"
+#include "mippp/solvers/cbc/2.10/cbc210_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class cbc_milp_model {
+class cbc210_milp {
 public:
     using variable_id = int;
     using scalar = double;
@@ -38,7 +37,7 @@ public:
     };
 
 private:
-    const cbc_api & Cbc;
+    const cbc210_api & Cbc;
     Cbc_Model * model;
 
     static constexpr char constraint_relation_to_cbc_sense(
@@ -55,15 +54,15 @@ private:
     //     constraint_relation::greater_equal_zero;
     // }
 
-    double ojective_offset;
+    double objective_offset;
     std::vector<std::pair<constraint, unsigned int>> tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
 
 public:
-    [[nodiscard]] explicit cbc_milp_model(const cbc_api & api)
-        : Cbc(api), model(Cbc.newModel()), ojective_offset(0.0) {}
-    ~cbc_milp_model() { Cbc.deleteModel(model); }
+    [[nodiscard]] explicit cbc210_milp(const cbc210_api & api)
+        : Cbc(api), model(Cbc.newModel()), objective_offset(0.0) {}
+    ~cbc210_milp() { Cbc.deleteModel(model); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(Cbc.getNumCols(model));
@@ -78,7 +77,7 @@ public:
     void set_maximization() { Cbc.setObjSense(model, -1); }
     void set_minimization() { Cbc.setObjSense(model, 1); }
 
-    void set_objective_offset(double offset) { ojective_offset = offset; }
+    void set_objective_offset(double offset) { objective_offset = offset; }
     void set_objective(linear_expression auto && le) {
         for(auto && v :
             std::views::iota(0, static_cast<int>(num_variables()))) {
@@ -97,7 +96,7 @@ public:
         }
         set_objective_offset(get_objective_offset() + le.constant());
     }
-    double get_objective_offset() { return ojective_offset; }
+    double get_objective_offset() { return objective_offset; }
     auto get_objective() {
         return linear_expression_view(
             ranges::view::transform(
@@ -256,7 +255,7 @@ public:
     }
 
     double get_solution_value() {
-        return ojective_offset + Cbc.getObjValue(model);
+        return objective_offset + Cbc.getObjValue(model);
     }
 
     auto get_solution() { return variable_mapping(Cbc.getColSolution(model)); }
@@ -265,4 +264,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_CBC_MILP_MODEL_HPP
+#endif  // MIPPP_CBC_210_milp_HPP

@@ -1,8 +1,7 @@
-#ifndef MIPPP_GRB_MILP_MODEL_HPP
-#define MIPPP_GRB_MILP_MODEL_HPP
+#ifndef MIPPP_GRB_12_MILP_HPP
+#define MIPPP_GRB_12_MILP_HPP
 
 #include <limits>
-// #include <ranges>
 #include <optional>
 #include <vector>
 
@@ -16,12 +15,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/grb_api.hpp"
+#include "mippp/solvers/gurobi/12/grb12_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class grb_milp_model {
+class grb12_milp {
 public:
     using variable_id = int;
     using scalar = double;
@@ -35,7 +34,7 @@ public:
     };
 
 private:
-    const grb_api & GRB;
+    const grb12_api & GRB;
     GRBenv * env;
     GRBmodel * model;
 
@@ -57,7 +56,7 @@ private:
     std::vector<double> tmp_scalars;
 
 public:
-    [[nodiscard]] explicit grb_milp_model(const grb_api & api) : GRB(api) {
+    [[nodiscard]] explicit grb12_milp(const grb12_api & api) : GRB(api) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
@@ -67,9 +66,9 @@ public:
         env = GRB.getenv(model);
         if(env == NULL)
             throw std::runtime_error(
-                "grb_lp_model: Could not retrieve model environement.");
+                "grb_lp: Could not retrieve model environement.");
     }
-    ~grb_milp_model() { check(GRB.freemodel(model)); };
+    ~grb12_milp() { check(GRB.freemodel(model)); };
 
 private:
     void check(int error) {
@@ -308,4 +307,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GRB_MILP_MODEL_HPP
+#endif  // MIPPP_GRB_12_MILP_HPP

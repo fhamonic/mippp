@@ -1,5 +1,5 @@
-#ifndef MIPPP_CLP_API_HPP
-#define MIPPP_CLP_API_HPP
+#ifndef MIPPP_CLP_117_API_HPP
+#define MIPPP_CLP_117_API_HPP
 
 #include "dylib.hpp"
 
@@ -50,7 +50,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class clp_api {
+class clp117_api {
 private:
     dylib lib;
 
@@ -58,11 +58,11 @@ public:
     CLP_FUNCTIONS(DECLARE_CLP_FUN)
 
 public:
-    inline clp_api(const char * lib_name = "Clp", const char * lib_path = "")
+    inline clp117_api(const char * lib_name = "Clp", const char * lib_path = "")
         : lib(lib_path, lib_name) CLP_FUNCTIONS(CONSTRUCT_CLP_FUN) {}
 };
 
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_CLP_API_HPP
+#endif  // MIPPP_CLP_117_API_HPP

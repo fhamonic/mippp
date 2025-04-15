@@ -1,8 +1,7 @@
-#ifndef MIPPP_MOSEK_LP_MODEL_HPP
-#define MIPPP_MOSEK_LP_MODEL_HPP
+#ifndef MIPPP_MOSEK_11_LP_HPP
+#define MIPPP_MOSEK_11_LP_HPP
 
 #include <limits>
-// #include <ranges>
 #include <optional>
 #include <vector>
 
@@ -16,14 +15,14 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/mosek_api.hpp"
+#include "mippp/solvers/mosek/11/mosek11_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class mosek_lp_model {
+class mosek11_lp {
 private:
-    const mosek_api & MSK;
+    const mosek11_api & MSK;
     MSKenv_t env;
     MSKtask_t task;
 
@@ -36,14 +35,14 @@ private:
         throw std::runtime_error(MSK.error_message.at(error));
     }
 
-    static constexpr char constraint_relation_to_mosek_sense(
+    static constexpr MSKboundkeye constraint_relation_to_mosek_sense(
         constraint_relation rel) {
         if(rel == constraint_relation::less_equal_zero) return MSK_BK_UP;
         if(rel == constraint_relation::equal_zero) return MSK_BK_FX;
         return MSK_BK_LO;
     }
     static constexpr constraint_relation mosek_sense_to_constraint_relation(
-        char sense) {
+        MSKboundkeye sense) {
         if(sense == MSK_BK_UP) return constraint_relation::less_equal_zero;
         if(sense == MSK_BK_FX) return constraint_relation::equal_zero;
         return constraint_relation::greater_equal_zero;
@@ -62,12 +61,12 @@ public:
     };
 
 public:
-    [[nodiscard]] explicit mosek_lp_model(const mosek_api & api)
+    [[nodiscard]] explicit mosek11_lp(const mosek11_api & api)
         : MSK(api), env(NULL), task(NULL) {
         check(MSK.makeenv(&env, NULL));
         check(MSK.makeemptytask(env, &task));
     }
-    ~mosek_lp_model() {
+    ~mosek11_lp() {
         check(MSK.deletetask(&task));
         check(MSK.deleteenv(&env));
     }
@@ -106,14 +105,15 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[static_cast<std::size_t>(var)] += coef;
         }
-        check(MSK.putcslice(task, 0, num_vars, tmp_scalars.data()));
+        check(MSK.putcslice(task, 0, static_cast<int>(num_vars),
+                            tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
 
     double get_objective_offset() {
-        double ojective_offset;
-        check(MSK.getcfix(task, &ojective_offset));
-        return ojective_offset;
+        double objective_offset;
+        check(MSK.getcfix(task, &objective_offset));
+        return objective_offset;
     }
 
     variable add_variable(const variable_params p = {
@@ -133,7 +133,7 @@ public:
     // //                               const variable_params p);
 
     constraint add_constraint(linear_constraint auto && lc) {
-        auto constr_id = num_constraints();
+        auto constr_id = static_cast<int>(num_constraints());
         check(MSK.appendcons(task, 1));
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
@@ -141,13 +141,14 @@ public:
             tmp_variables.emplace_back(var);
             tmp_scalars.emplace_back(coef);
         }
-        check(MSK.putarow(task, constr_id, tmp_variables.data(),
-                          tmp_scalars.data()));
+        check(MSK.putarow(task, constr_id,
+                          static_cast<int>(tmp_variables.size()),
+                          tmp_variables.data(), tmp_scalars.data()));
         const double b = -lc.expression().constant();
         check(MSK.putconbound(task, constr_id,
                               constraint_relation_to_mosek_sense(lc.relation()),
                               b, b));
-        return static_cast<int>(constr_id);
+        return constr_id;
     }
 
     void optimize() {
@@ -164,22 +165,24 @@ public:
         return val;
     }
     auto get_solution() {
-        auto num_vars = num_variables();
-        auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        // check(MSK.getprimalobj(task, MSK_SOL_BAS, solution.get()));
+        auto solution =
+            std::make_unique_for_overwrite<double[]>(num_variables());
+        check(MSK.getsolution(task, MSK_SOL_BAS, NULL, NULL, NULL, NULL, NULL,
+                              NULL, solution.get(), NULL, NULL, NULL, NULL,
+                              NULL, NULL));
         return variable_mapping(std::move(solution));
     }
-    // auto get_dual_solution() {
-    //     auto num_constrs = num_constraints();
-    //     auto solution =
-    //     std::make_unique_for_overwrite<double[]>(num_constrs);
-    //     MSK.getDualReal(model, solution.get(),
-    //                        static_cast<int>(num_constrs));
-    //     return variable_mapping(std::move(solution));
-    // }
+    auto get_dual_solution() {
+        auto solution =
+            std::make_unique_for_overwrite<double[]>(num_constraints());
+        check(MSK.getsolution(task, MSK_SOL_BAS, NULL, NULL, NULL, NULL, NULL,
+                              NULL, NULL, solution.get(), NULL, NULL, NULL,
+                              NULL, NULL));
+        return variable_mapping(std::move(solution));
+    }
 };
 
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_MOSEK_LP_MODEL_HPP
+#endif  // MIPPP_MOSEK_11_LP_HPP

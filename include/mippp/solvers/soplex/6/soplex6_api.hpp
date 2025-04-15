@@ -1,5 +1,5 @@
-#ifndef MIPPP_SOPLEX_API_HPP
-#define MIPPP_SOPLEX_API_HPP
+#ifndef MIPPP_SOPLEX_6_API_HPP
+#define MIPPP_SOPLEX_6_API_HPP
 
 #include "dylib.hpp"
 
@@ -29,7 +29,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class soplex_api {
+class soplex6_api {
 private:
     dylib lib;
 
@@ -37,7 +37,7 @@ public:
     SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUN)
 
 public:
-    inline soplex_api(const char * lib_name = "soplexshared",
+    inline soplex6_api(const char * lib_name = "soplexshared",
                       const char * lib_path = "")
         : lib(lib_path, lib_name) SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUN) {}
 };
@@ -45,4 +45,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_SOPLEX_API_HPP
+#endif  // MIPPP_SOPLEX_6_API_HPP

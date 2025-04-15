@@ -1,5 +1,7 @@
-#ifndef MIPPP_MOSEK_API_HPP
-#define MIPPP_MOSEK_API_HPP
+#ifndef MIPPP_MOSEK_11_API_HPP
+#define MIPPP_MOSEK_11_API_HPP
+
+#include <unordered_map>
 
 #include "dylib.hpp"
 
@@ -61,7 +63,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class mosek_api {
+class mosek11_api {
 private:
     dylib lib;
 
@@ -69,7 +71,7 @@ public:
     MOSEK_FUNCTIONS(DECLARE_MOSEK_FUN)
 
 public:
-    inline mosek_api(const char * lib_name = "mosek64",
+    inline mosek11_api(const char * lib_name = "mosek64",
                      const char * lib_path = "")
         : lib(lib_path, lib_name) MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUN) {}
 
@@ -774,4 +776,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_MOSEK_API_HPP
+#endif  // MIPPP_MOSEK_11_API_HPP

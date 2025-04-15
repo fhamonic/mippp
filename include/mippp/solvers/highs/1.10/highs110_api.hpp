@@ -1,5 +1,5 @@
-#ifndef MIPPP_HIGHS_API_HPP
-#define MIPPP_HIGHS_API_HPP
+#ifndef MIPPP_HIGHS_110_API_HPP
+#define MIPPP_HIGHS_110_API_HPP
 
 #include "dylib.hpp"
 
@@ -51,7 +51,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class highs_api {
+class highs110_api {
 private:
     dylib lib;
 
@@ -59,7 +59,7 @@ public:
     HIGHS_FUNCTIONS(DECLARE_HIGHS_FUN)
 
 public:
-    inline highs_api(const char * lib_name = "highs",
+    inline highs110_api(const char * lib_name = "highs",
                      const char * lib_path = "")
         : lib(lib_path, lib_name) HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUN) {}
 };
@@ -67,4 +67,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_HIGHS_API_HPP
+#endif  // MIPPP_HIGHS_110_API_HPP

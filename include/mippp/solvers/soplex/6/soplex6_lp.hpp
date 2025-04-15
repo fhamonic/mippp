@@ -1,8 +1,7 @@
-#ifndef MIPPP_SOPLEX_LP_MODEL_HPP
-#define MIPPP_SOPLEX_LP_MODEL_HPP
+#ifndef MIPPP_SOPLEX_6_lp_HPP
+#define MIPPP_SOPLEX_6_lp_HPP
 
 #include <limits>
-// #include <ranges>
 #include <optional>
 #include <vector>
 
@@ -16,17 +15,17 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/soplex_api.hpp"
+#include "mippp/solvers/soplex/6/soplex6_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class soplex_lp_model {
+class soplex6_lp {
 private:
-    const soplex_api & SoPlex;
+    const soplex6_api & SoPlex;
     void * model;
     std::optional<lp_status> opt_lp_status;
-    double ojective_offset;
+    double objective_offset;
     std::vector<double> tmp_scalars;
 
 public:
@@ -42,9 +41,9 @@ public:
     };
 
 public:
-    [[nodiscard]] explicit soplex_lp_model(const soplex_api & api)
-        : SoPlex(api), model(SoPlex.create()), ojective_offset(0.0) {}
-    ~soplex_lp_model() { SoPlex.free(model); }
+    [[nodiscard]] explicit soplex6_lp(const soplex6_api & api)
+        : SoPlex(api), model(SoPlex.create()), objective_offset(0.0) {}
+    ~soplex6_lp() { SoPlex.free(model); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(SoPlex.numCols(model));
@@ -59,7 +58,7 @@ public:
     void set_maximization() { SoPlex.setIntParam(model, 0, 1); }
     void set_minimization() { SoPlex.setIntParam(model, 0, -1); }
 
-    void set_objective_offset(double constant) { ojective_offset = constant; }
+    void set_objective_offset(double constant) { objective_offset = constant; }
     void set_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
@@ -71,7 +70,7 @@ public:
                              static_cast<int>(num_vars));
         set_objective_offset(le.constant());
     }
-    double get_objective_offset() { return ojective_offset; }
+    double get_objective_offset() { return objective_offset; }
 
     variable add_variable(
         const variable_params p = {
@@ -117,7 +116,7 @@ public:
     }
 
     double get_solution_value() {
-        return ojective_offset + SoPlex.objValueReal(model);
+        return objective_offset + SoPlex.objValueReal(model);
     }
     auto get_solution() {
         auto num_vars = num_variables();
@@ -137,4 +136,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_SOPLEX_LP_MODEL_HPP
+#endif  // MIPPP_SOPLEX_6_lp_HPP

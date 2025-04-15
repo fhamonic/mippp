@@ -1,11 +1,11 @@
-#ifndef MIPPP_CLP_LP_MODEL_HPP
-#define MIPPP_CLP_LP_MODEL_HPP
+#ifndef MIPPP_CLP_117_lp_HPP
+#define MIPPP_CLP_117_lp_HPP
 
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <optional>
 #include <ostream>
-// #include <ranges>
 #include <sstream>
 #include <string_view>
 #include <vector>
@@ -20,14 +20,14 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/clp_api.hpp"
+#include "mippp/solvers/clp/1.17/clp117_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class clp_lp_model {
+class clp117_lp {
 private:
-    const clp_api & Clp;
+    const clp117_api & Clp;
     Clp_Simplex * model;
     std::optional<lp_status> opt_lp_status;
 
@@ -62,9 +62,9 @@ public:
     };
 
 public:
-    [[nodiscard]] explicit clp_lp_model(const clp_api & api)
+    [[nodiscard]] explicit clp117_lp(const clp117_api & api)
         : Clp(api), model(Clp.newModel()) {}
-    ~clp_lp_model() { Clp.deleteModel(model); }
+    ~clp117_lp() { Clp.deleteModel(model); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(Clp.getNumCols(model));
@@ -285,4 +285,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_CLP_LP_MODEL_HPP
+#endif  // MIPPP_CLP_117_lp_HPP

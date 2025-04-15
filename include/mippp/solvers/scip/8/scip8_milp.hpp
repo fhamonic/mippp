@@ -1,5 +1,5 @@
-#ifndef MIPPP_SCIP_MILP_MODEL_HPP
-#define MIPPP_SCIP_MILP_MODEL_HPP
+#ifndef MIPPP_SCIP_8_milp_HPP
+#define MIPPP_SCIP_8_milp_HPP
 
 #include <limits>
 // #include <ranges>
@@ -16,16 +16,16 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/scip_api.hpp"
+#include "mippp/solvers/scip/8/scip8_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
 // https://github.com/scipopt/SCIPpp/blob/main/source/model.cpp
 
-class scip_milp_model {
+class scip8_milp {
 private:
-    const scip_api & SCIP;
+    const scip8_api & SCIP;
     struct Scip * model;
     std::vector<SCIP_VAR *> variables;
     std::vector<SCIP_CONS *> constraints;
@@ -44,12 +44,12 @@ public:
     };
 
 public:
-    [[nodiscard]] explicit scip_milp_model(const scip_api & api) : SCIP(api) {
+    [[nodiscard]] explicit scip8_milp(const scip8_api & api) : SCIP(api) {
         SCIP.create(&model);
         SCIP.includeDefaultPlugins(model);
         SCIP.createProbBasic(model, "MILP");
     }
-    ~scip_milp_model() {
+    ~scip8_milp() {
         for(auto & var : variables) {
             SCIP.releaseVar(model, &var);
         }
@@ -83,7 +83,7 @@ private:
 
     int check(int retval) {
         if(retval > 0) return retval;
-        throw std::runtime_error(std::string("scip_milp_model: ") +
+        throw std::runtime_error(std::string("scip8_milp: ") +
                                  error_messages[-retval]);
     }
 
@@ -292,4 +292,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_SCIP_MILP_MODEL_HPP
+#endif  // MIPPP_SCIP_8_milp_HPP

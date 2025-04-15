@@ -1,8 +1,7 @@
-#ifndef MIPPP_HIGHS_LP_MODEL_HPP
-#define MIPPP_HIGHS_LP_MODEL_HPP
+#ifndef MIPPP_HIGHS_110_lp_HPP
+#define MIPPP_HIGHS_110_lp_HPP
 
 #include <limits>
-// #include <ranges>
 #include <optional>
 #include <vector>
 
@@ -16,12 +15,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/highs_api.hpp"
+#include "mippp/solvers/highs/1.10/highs110_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class highs_lp_model {
+class highs110_lp {
 public:
     using variable_id = int;
     using scalar = double;
@@ -35,7 +34,7 @@ public:
     };
 
 private:
-    const highs_api & Highs;
+    const highs110_api & Highs;
     void * model;
     std::optional<lp_status> opt_lp_status;
 
@@ -44,14 +43,14 @@ private:
     std::vector<double> tmp_scalars;
 
 public:
-    [[nodiscard]] explicit highs_lp_model(const highs_api & api)
+    [[nodiscard]] explicit highs110_lp(const highs110_api & api)
         : Highs(api), model(Highs.create()) {}
-    ~highs_lp_model() { Highs.destroy(model); }
+    ~highs110_lp() { Highs.destroy(model); }
 
 private:
     void check(int status) {
         if(status == kHighsStatusError)
-            throw std::runtime_error("highs_lp_model: error");
+            throw std::runtime_error("highs110_lp: error");
     }
 
 public:
@@ -169,7 +168,7 @@ public:
                 opt_lp_status.emplace(lp_status::unbounded);
                 return;
             default:
-                throw std::runtime_error("highs_lp_model: error");
+                throw std::runtime_error("highs110_lp: error");
         }
 
         // const HighsInt kHighsModelStatusUnboundedOrInfeasible = 9;
@@ -194,4 +193,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_HIGHS_LP_MODEL_HPP
+#endif  // MIPPP_HIGHS_110_lp_HPP

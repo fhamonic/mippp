@@ -1,12 +1,12 @@
-#ifndef MIPPP_CPLEX_API_HPP
-#define MIPPP_CPLEX_API_HPP
+#ifndef MIPPP_CPLEX_22_API_HPP
+#define MIPPP_CPLEX_22_API_HPP
 
 #include "dylib.hpp"
 
 #include "ilcplex/cplex.h"
 
 #define CPLEX_FUNCTIONS(F)               \
-    F(CPXinitialize, initialize)         \
+    F(CPXopenCPLEX, openCPLEX)           \
     F(CPXcreateprob, createprob)         \
     F(CPXchgprobtype, chgprobtype)       \
     F(CPXfreeprob, freeprob)             \
@@ -15,6 +15,7 @@
     F(CPXgetobjsen, getobjsen)           \
     F(CPXchgobjoffset, chgobjoffset)     \
     F(CPXgetobjoffset, getobjoffset)     \
+    F(CPXnewcols, newcols)               \
     F(CPXaddcols, addcols)               \
     F(CPXchgobj, chgobj)                 \
     F(CPXchgbds, chgbds)                 \
@@ -63,7 +64,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class cplex_api {
+class cplex22_api {
 private:
     dylib lib;
 
@@ -71,7 +72,7 @@ public:
     CPLEX_FUNCTIONS(DECLARE_CPLEX_FUN)
 
 public:
-    inline cplex_api(const char * lib_name = "cplex2212",
+    inline cplex22_api(const char * lib_name = "cplex2212",
                      const char * lib_path = "")
         : lib(lib_path, lib_name) CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {}
 };
@@ -79,4 +80,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_CPLEX_API_HPP
+#endif  // MIPPP_CPLEX_22_API_HPP

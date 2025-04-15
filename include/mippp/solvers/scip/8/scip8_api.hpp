@@ -1,5 +1,5 @@
-#ifndef MIPPP_SCIP_API_HPP
-#define MIPPP_SCIP_API_HPP
+#ifndef MIPPP_SCIP_8_API_HPP
+#define MIPPP_SCIP_8_API_HPP
 
 #include "dylib.hpp"
 
@@ -57,7 +57,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class scip_api {
+class scip8_api {
 private:
     dylib lib;
 
@@ -65,11 +65,11 @@ public:
     SCIP_FUNCTIONS(DECLARE_SCIP_FUN)
 
 public:
-    inline scip_api(const char * lib_name = "scip", const char * lib_path = "")
+    inline scip8_api(const char * lib_name = "scip", const char * lib_path = "")
         : lib(lib_path, lib_name) SCIP_FUNCTIONS(CONSTRUCT_SCIP_FUN) {}
 };
 
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_SCIP_API_HPP
+#endif  // MIPPP_SCIP_8_API_HPP

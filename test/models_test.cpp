@@ -4,30 +4,31 @@
 
 #include "mippp/model_concepts.hpp"
 
-#include "mippp/model/cbc_milp_model.hpp"
-#include "mippp/model/clp_lp_model.hpp"
-#include "mippp/model/glpk_lp_model.hpp"
-#include "mippp/model/grb_lp_model.hpp"
-#include "mippp/model/grb_milp_model.hpp"
-#include "mippp/model/highs_lp_model.hpp"
-#include "mippp/model/scip_milp_model.hpp"
-#include "mippp/model/soplex_lp_model.hpp"
+#include "mippp/solvers/cbc/all.hpp"
+#include "mippp/solvers/clp/all.hpp"
+#include "mippp/solvers/glpk/all.hpp"
+#include "mippp/solvers/gurobi/all.hpp"
+#include "mippp/solvers/highs/all.hpp"
+#include "mippp/solvers/scip/all.hpp"
+#include "mippp/solvers/soplex/all.hpp"
 
-#include "mippp/model/mosek_lp_model.hpp"
-
-#include "mippp/api/cplex_api.hpp"
+// #include "mippp/solvers/cplex/all.hpp"
+// #include "mippp/solvers/mosek/all.hpp"
 
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 
-GTEST_TEST(any, test) {
-    mosek_api api("mosek64", "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
-    // cplex_api api("cplex2212", "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
-}
+// GTEST_TEST(any, test) {
+//     // mosek_api api("mosek64",
+//     // "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
+//     cplex_api api(
+//         "cplex2212",
+//         "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+// }
 
-/*
-struct clp_lp_model_test {
-    using T = clp_lp_model;
+//*
+struct clp_lp_test {
+    using T = clp_lp;
     clp_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
@@ -41,8 +42,8 @@ struct clp_lp_model_test {
     static_assert(has_lp_status<T>);
     static_assert(has_dual_solution<T>);
 };
-struct cbc_milp_model_test {
-    using T = cbc_milp_model;
+struct cbc_milp_test {
+    using T = cbc_milp;
     cbc_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
@@ -54,8 +55,8 @@ struct cbc_milp_model_test {
     static_assert(has_readable_constraint_rhs<T>);
     // static_assert(has_readable_constraints<T>);
 };
-struct grb_lp_model_test {
-    using T = grb_lp_model;
+struct grb_lp_test {
+    using T = grb_lp;
     grb_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
@@ -69,8 +70,8 @@ struct grb_lp_model_test {
     static_assert(has_lp_status<T>);
     static_assert(has_dual_solution<T>);
 };
-struct grb_milp_model_test {
-    using T = grb_milp_model;
+struct grb_milp_test {
+    using T = grb_milp;
     grb_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
@@ -82,23 +83,23 @@ struct grb_milp_model_test {
     static_assert(has_readable_constraint_rhs<T>);
     // static_assert(has_readable_constraints<T>);
 };
-struct soplex_lp_model_test {
-    using T = soplex_lp_model;
+struct soplex_lp_test {
+    using T = soplex_lp;
     soplex_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_dual_solution<T>);
 };
-struct glpk_lp_model_test {
-    using T = glpk_lp_model;
+struct glpk_lp_test {
+    using T = glpk_lp;
     glpk_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_lp_status<T>);
     static_assert(has_dual_solution<T>);
 };
-struct highs_lp_model_test {
-    using T = highs_lp_model;
+struct highs_lp_test {
+    using T = highs_lp;
     highs_api api{"highs", "/usr/local/lib"};
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
@@ -106,25 +107,43 @@ struct highs_lp_model_test {
     static_assert(has_lp_status<T>);
     static_assert(has_dual_solution<T>);
 };
-struct scip_milp_model_test {
-    using T = scip_milp_model;
+struct scip_milp_test {
+    using T = scip_milp;
     scip_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
     static_assert(has_modifiable_objective<T>);
 };
-struct mosek_lp_model_test {
-    using T = mosek_lp_model;
-    mosek_api api;
-    auto construct_model() const { return T(api); }
-    static_assert(lp_model<T>);
-};
+// struct mosek_lp_test {
+//     using T = mosek_lp;
+//     mosek_api api{
+//         "mosek64",
+//         "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin"};
+//     auto construct_model() const { return T(api); }
+//     static_assert(lp_model<T>);
+// };
+// struct cplex_lp_test {
+//     using T = cplex_lp;
+//     cplex_api api{
+//         "cplex2212",
+//         "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux"};
+//     auto construct_model() const { return T(api); }
+//     static_assert(lp_model<T>);
+// };
 
-using Models = ::testing::Types<clp_lp_model_test, cbc_milp_model_test,
-                                grb_lp_model_test, grb_milp_model_test,
-                                soplex_lp_model_test, glpk_lp_model_test,
-                                highs_lp_model_test, scip_milp_model_test,
-                                mosek_lp_model_test>;
+// clang-format off
+using Models = ::testing::Types<
+        clp_lp_test,
+        cbc_milp_test,
+        grb_lp_test,
+        grb_milp_test,
+        soplex_lp_test,
+        glpk_lp_test,
+        highs_lp_test,
+        scip_milp_test
+        // mosek_lp_test
+        >;
+// clang-format on
 
 template <typename T>
 class ModelTest : public ::testing::Test {

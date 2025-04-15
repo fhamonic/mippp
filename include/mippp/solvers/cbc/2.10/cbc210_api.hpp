@@ -1,5 +1,5 @@
-#ifndef MIPPP_CBC_API_HPP
-#define MIPPP_CBC_API_HPP
+#ifndef MIPPP_CBC_210_API_HPP
+#define MIPPP_CBC_210_API_HPP
 
 #include "dylib.hpp"
 
@@ -55,7 +55,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class cbc_api {
+class cbc210_api {
 private:
     dylib lib;
 
@@ -63,11 +63,11 @@ public:
     CBC_FUNCTIONS(DECLARE_CBC_FUN)
 
 public:
-    inline cbc_api(const char * lib_name = "CbcSolver", const char * lib_path = "")
+    inline cbc210_api(const char * lib_name = "CbcSolver", const char * lib_path = "")
         : lib(lib_path, lib_name) CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {}
 };
 
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_CBC_API_HPP
+#endif  // MIPPP_CBC_210_API_HPP

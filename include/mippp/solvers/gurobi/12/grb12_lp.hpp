@@ -1,8 +1,7 @@
-#ifndef MIPPP_GRB_LP_MODEL_HPP
-#define MIPPP_GRB_LP_MODEL_HPP
+#ifndef MIPPP_GRB12_lp_HPP
+#define MIPPP_GRB12_lp_HPP
 
 #include <limits>
-// #include <ranges>
 #include <optional>
 #include <vector>
 
@@ -17,12 +16,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/grb_api.hpp"
+#include "mippp/solvers/gurobi/12/grb12_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class grb_lp_model {
+class grb12_lp {
 public:
     using variable_id = int;
     using scalar = double;
@@ -36,7 +35,7 @@ public:
     };
 
 private:
-    const grb_api & GRB;
+    const grb12_api & GRB;
     GRBenv * env;
     GRBmodel * model;
     std::optional<lp_status> opt_lp_status;
@@ -59,7 +58,7 @@ private:
     std::vector<double> tmp_scalars;
 
 public:
-    [[nodiscard]] explicit grb_lp_model(const grb_api & api) : GRB(api) {
+    [[nodiscard]] explicit grb12_lp(const grb12_api & api) : GRB(api) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
@@ -68,9 +67,9 @@ public:
         env = GRB.getenv(model);
         if(env == NULL)
             throw std::runtime_error(
-                "grb_lp_model: Could not retrieve model environement.");
+                "grb12_lp: Could not retrieve model environement.");
     }
-    ~grb_lp_model() { check(GRB.freemodel(model)); };
+    ~grb12_lp() { check(GRB.freemodel(model)); };
 
 private:
     void check(int error) {
@@ -313,7 +312,7 @@ public:
                         return;
                     default:
                         throw std::runtime_error(
-                            "grb_lp_model: Cannot determine if model is "
+                            "grb12_lp: Cannot determine if model is "
                             "infeasible or unbounded (status = " +
                             std::to_string(status) + ").");
                 }
@@ -349,4 +348,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GRB_LP_MODEL_HPP
+#endif  // MIPPP_GRB12_lp_HPP

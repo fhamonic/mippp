@@ -1,9 +1,8 @@
-#ifndef MIPPP_GLPK_LP_MODEL_HPP
-#define MIPPP_GLPK_LP_MODEL_HPP
+#ifndef MIPPP_GLPK_5_lp_HPP
+#define MIPPP_GLPK_5_lp_HPP
 
 #include <cmath>
 #include <limits>
-// #include <ranges>
 #include <optional>
 #include <vector>
 
@@ -17,12 +16,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_variable.hpp"
 
-#include "mippp/api/glpk_api.hpp"
+#include "mippp/solvers/glpk/5/glpk5_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class glpk_lp_model {
+class glpk5_lp {
 public:
     using variable_id = int;
     using scalar = double;
@@ -36,11 +35,11 @@ public:
     };
 
 private:
-    const glpk_api & glp;
+    const glpk5_api & glp;
     glp_prob * model;
     glp_smcp params;
     std::optional<lp_status> opt_lp_status;
-    double ojective_offset;
+    double objective_offset;
 
     static constexpr int constraint_relation_to_glp_row_type(
         constraint_relation rel) {
@@ -53,7 +52,7 @@ private:
         if(type == GLP_UP) return constraint_relation::less_equal_zero;
         if(type == GLP_FX) return constraint_relation::equal_zero;
         if(type == GLP_LO) return constraint_relation::greater_equal_zero;
-        throw std::runtime_error("glpk_lp_model: Cannot convert row type '" +
+        throw std::runtime_error("glpk5_lp: Cannot convert row type '" +
                                  std::to_string(type) +
                                  "' to constraint_relation.");
     }
@@ -63,8 +62,8 @@ private:
     std::vector<double> tmp_scalars;
 
 public:
-    [[nodiscard]] explicit glpk_lp_model(const glpk_api & api)
-        : glp(api), model(glp.create_prob()), params(), ojective_offset(0.0) {
+    [[nodiscard]] explicit glpk5_lp(const glpk5_api & api)
+        : glp(api), model(glp.create_prob()), params(), objective_offset(0.0) {
         params.msg_lev = GLP_MSG_ALL;
         params.meth = GLP_PRIMAL;
         params.pricing = GLP_PT_STD;
@@ -81,7 +80,7 @@ public:
         params.shift = 0;
         params.aorn = GLP_USE_AT;
     }
-    ~glpk_lp_model() { glp.delete_prob(model); }
+    ~glpk5_lp() { glp.delete_prob(model); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(glp.get_num_cols(model));
@@ -96,7 +95,7 @@ public:
     void set_maximization() { glp.set_obj_dir(model, GLP_MAX); }
     void set_minimization() { glp.set_obj_dir(model, GLP_MIN); }
 
-    void set_objective_offset(double constant) { ojective_offset = constant; }
+    void set_objective_offset(double constant) { objective_offset = constant; }
     void set_objective(linear_expression auto && le) {
         auto num_vars = static_cast<int>(num_variables());
         for(int var = 0; var < num_vars; ++var) {
@@ -115,7 +114,7 @@ public:
         }
         set_objective_offset(get_objective_offset() + le.constant());
     }
-    double get_objective_offset() { return ojective_offset; }
+    double get_objective_offset() { return objective_offset; }
 
     variable add_variable(
         const variable_params p = {
@@ -185,7 +184,7 @@ public:
     std::optional<lp_status> get_lp_status() { return opt_lp_status; }
 
     double get_solution_value() {
-        return ojective_offset + glp.get_obj_val(model);
+        return objective_offset + glp.get_obj_val(model);
     }
     auto get_solution() {
         auto num_vars = num_variables();
@@ -209,4 +208,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GLPK_LP_MODEL_HPP
+#endif  // MIPPP_GLPK_5_lp_HPP

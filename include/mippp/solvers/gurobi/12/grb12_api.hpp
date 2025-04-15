@@ -1,5 +1,5 @@
-#ifndef MIPPP_grb_api_HPP
-#define MIPPP_grb_api_HPP
+#ifndef MIPPP_GRB_12_API_HPP
+#define MIPPP_GRB_12_API_HPP
 
 #include "dylib.hpp"
 
@@ -66,7 +66,7 @@
 namespace fhamonic {
 namespace mippp {
 
-class grb_api {
+class grb12_api {
 private:
     dylib lib;
 
@@ -74,11 +74,11 @@ public:
     GRB_FUNCTIONS(DECLARE_GRB_FUN)
 
 public:
-    grb_api(const char * lib_name = "gurobi120", const char * lib_path = "")
+    grb12_api(const char * lib_name = "gurobi120", const char * lib_path = "")
         : lib(lib_path, lib_name) GRB_FUNCTIONS(CONSTRUCT_GRB_FUN) {}
 };
 
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_grb_api_HPP
+#endif  // MIPPP_GRB_12_API_HPP
