@@ -46,37 +46,23 @@ public:
     }
 };
 
-
-template <typename Var, typename IL, typename NL, typename... Args>
-class variables_range {
+template <typename Var, typename IL, typename... Args>
+class variables_range_base {
 public:
     using variable_id_t = typename Var::variable_id_t;
     using scalar_t = typename Var::scalar_t;
 
-private:
+protected:
     const std::size_t _offset;
     const std::size_t _count;
     const IL _id_lambda;
-    mutable NL _name_lambda;
 
 public:
-    constexpr variables_range(detail::pack<Args...>, std::size_t offset,
-                         std::size_t count, IL && id_lambda,
-                         NL && name_lambda) noexcept
+    constexpr variables_range_base(std::size_t offset, std::size_t count,
+                                   IL && id_lambda) noexcept
         : _offset(offset)
         , _count(count)
-        , _id_lambda(std::forward<IL>(id_lambda))
-        , _name_lambda(std::forward<NL>(name_lambda)) {}
-
-    constexpr Var operator()(Args... args) const noexcept {
-        const variable_id_t id =
-            static_cast<variable_id_t>(_id_lambda(args...));
-        assert(static_cast<std::size_t>(id) < _count);
-        const variable_id_t var_num =
-            static_cast<variable_id_t>(_offset) + id;
-        _name_lambda(var_num, args...);
-        return Var(var_num);
-    }
+        , _id_lambda(std::forward<IL>(id_lambda)) {}
 
     constexpr auto ids() const noexcept {
         return ranges::views::iota(
@@ -84,11 +70,58 @@ public:
             static_cast<variable_id_t>(_offset + _count));
     }
     constexpr auto linear_terms() const noexcept {
-        return ranges::views::transform(ids(), [](auto && i) {
-            return std::make_pair(i, scalar_t{1});
-        });
+        return ranges::views::transform(
+            ids(), [](auto && i) { return std::make_pair(i, scalar_t{1}); });
     }
     constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
+};
+
+template <typename Var, typename IL, typename... Args>
+class variables_range : public variables_range_base<Var, IL, Args...> {
+public:
+    using variable_id_t = typename Var::variable_id_t;
+    using scalar_t = typename Var::scalar_t;
+
+public:
+    constexpr variables_range(std::size_t offset, std::size_t count,
+                              IL && id_lambda) noexcept
+        : variables_range_base<Var, IL, Args...>(offset, count,
+                                                 std::forward<IL>(id_lambda)) {}
+
+    constexpr Var operator()(Args... args) const noexcept {
+        const variable_id_t id =
+            static_cast<variable_id_t>(_id_lambda(args...));
+        assert(static_cast<std::size_t>(id) < this._count);
+        return Var(static_cast<variable_id_t>(this._offset) + id);
+    }
+};
+
+template <typename Var, typename IL, typename NL, typename... Args>
+class lazily_named_variables_range
+    : public variables_range_base<Var, IL, Args...> {
+public:
+    using variable_id_t = typename Var::variable_id_t;
+    using scalar_t = typename Var::scalar_t;
+
+private:
+    mutable NL _naming_lambda;
+
+public:
+    constexpr lazily_named_variables_range(std::size_t offset,
+                                           std::size_t count, IL && id_lambda,
+                                           NL && naming_lambda) noexcept
+        : variables_range_base<Var, IL, Args...>(offset, count,
+                                                 std::forward<IL>(id_lambda))
+        , _naming_lambda(std::forward<NL>(naming_lambda)) {}
+
+    constexpr Var operator()(Args... args) const noexcept {
+        const variable_id_t id =
+            static_cast<variable_id_t>(_id_lambda(args...));
+        assert(static_cast<std::size_t>(id) < this._count);
+        const Var var(static_cast<variable_id_t>(this._offset) + id);
+        _naming_lambda(var, args...);
+        return var;
+    }
 };
 
 }  // namespace mippp

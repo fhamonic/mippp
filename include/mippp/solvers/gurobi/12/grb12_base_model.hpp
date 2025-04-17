@@ -57,6 +57,8 @@ protected:
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
 
+    std::vector<bool> _var_name_set;
+
 public:
     [[nodiscard]] explicit grb12_base_model(const grb12_api & api) : GRB(api) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
@@ -152,74 +154,85 @@ public:
             get_objective_offset());
     }
 
-    variable add_variable(
-        const variable_params p = {
-            .obj_coef = 0,
-            .lower_bound = 0,
-            .upper_bound = std::numeric_limits<double>::infinity()}) {
+    variable add_variable(const variable_params p = {
+                              .obj_coef = 0,
+                              .lower_bound = 0,
+                              .upper_bound = std::nullopt}) {
         int var_id = static_cast<int>(num_variables());
         check(GRB.addvar(model, 0, NULL, NULL, p.obj_coef,
                          p.lower_bound.value_or(-GRB_INFINITY),
                          p.upper_bound.value_or(GRB_INFINITY), GRB_CONTINUOUS,
                          NULL));
+        _var_name_set.push_back(false);
         return variable(var_id);
     }
 
-// private:
-//     template <typename IL, typename NL, typename... Args>
-//         requires std::convertible_to<
-//             typename detail::function_traits<IL>::result_type, variable_id>
-//     auto _add_variables(detail::pack<Args...>, std::size_t count,
-//                         IL && id_lambda, NL && name_lambda,
-//                         variable_params params = {}) noexcept {
-//         const std::size_t offset = num_variables();
+private:
+    void _add_cols(std::size_t offset, std::size_t count,
+                   const variable_params & params) {
+        check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
+                          NULL, NULL, NULL, NULL, NULL));
+        if(auto obj = params.obj_coef; obj != 0.0) {
+            tmp_scalars.resize(count);
+            std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
+            check(GRB.setdblattrarray(
+                model, GRB_DBL_ATTR_OBJ, static_cast<int>(offset),
+                static_cast<int>(count), tmp_scalars.data()));
+        }
+        if(auto lb = params.lower_bound.value_or(-GRB_INFINITY); lb != 0.0) {
+            tmp_scalars.resize(count);
+            std::fill(tmp_scalars.begin(), tmp_scalars.end(), lb);
+            check(GRB.setdblattrarray(
+                model, GRB_DBL_ATTR_LB, static_cast<int>(offset),
+                static_cast<int>(count), tmp_scalars.data()));
+        }
+        if(auto ub = params.upper_bound.value_or(GRB_INFINITY);
+           ub != GRB_INFINITY) {
+            tmp_scalars.resize(count);
+            std::fill(tmp_scalars.begin(), tmp_scalars.end(), ub);
+            check(GRB.setdblattrarray(
+                model, GRB_DBL_ATTR_UB, static_cast<int>(offset),
+                static_cast<int>(count), tmp_scalars.data()));
+        }
+        _var_name_set.resize(offset + count, false);
+    }
 
-//         check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
-//                           NULL, NULL, NULL, NULL, NULL));
-//         if(auto obj = params.obj_coef; obj != 0.0) {
-//             tmp_scalars.resize(count);
-//             std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
-//             check(GRB.setdblattrarray(model, GRB_DBL_ATTR_OBJ,
-//                                       static_cast<int>(offset),
-//                                       static_cast<int>(count), NULL));
-//         }
-//         if(auto lb = params.lower_bound.value_or(-GRB_INFINITY); lb != 0.0) {
-//             tmp_scalars.resize(count);
-//             std::fill(tmp_scalars.begin(), tmp_scalars.end(), lb);
-//             check(GRB.setdblattrarray(model, GRB_DBL_ATTR_LB,
-//                                       static_cast<int>(offset),
-//                                       static_cast<int>(count), NULL));
-//         }
-//         if(auto ub = params.upper_bound.value_or(GRB_INFINITY); ub != 0.0) {
-//             tmp_scalars.resize(count);
-//             std::fill(tmp_scalars.begin(), tmp_scalars.end(), ub);
-//             check(GRB.setdblattrarray(model, GRB_DBL_ATTR_UB,
-//                                       static_cast<int>(offset),
-//                                       static_cast<int>(count), NULL));
-//         }
-
-//         return variables_range(
-//             typename detail::function_traits<IL>::arg_types(), offset, count,
-//             std::forward<IL>(id_lambda),
-//             [this, name_lambda = std::forward<NL>(name_lambda)](
-//                 const variable_id var_num, Args... args) mutable {
-//                 if(_col_name[static_cast<std::size_t>(var_num)].has_value())
-//                     return;
-//                 _col_name[static_cast<std::size_t>(var_num)].emplace(
-//                     name_lambda(args...));
-//             });
-//     }
+    template <typename IL, typename... Args>
+    auto _add_variables(detail::pack<Args...>, std::size_t count,
+                        IL && id_lambda,
+                        const variable_params & params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_cols(offset, count, params);
+        return variables_range<variable, std::decay_t<IL>, Args...>(offset, count,
+                               std::forward<IL>(id_lambda));
+    }
+    // template <typename IL, typename NL, typename... Args>
+    // auto _add_variables(detail::pack<Args...> args_pack, std::size_t count,
+    //                     IL && id_lambda, NL && name_lambda,
+    //                     const variable_params & params) noexcept {
+    //     const std::size_t offset = num_variables();
+    //     _add_cols(offset, count, params);
+    //     return lazily_named_variables_range(
+    //         args_pack, offset, count, std::forward<IL>(id_lambda),
+    //         [this, name_lambda = std::forward<NL>(name_lambda)](
+    //             const variable var, Args... args) mutable {
+    //             if(_var_name_set[static_cast<std::size_t>(var.id())]) return;
+    //             set_variable_name(var, name_lambda(args...));
+    //         });
+    // }
 
 public:
-    // template <typename IL>
-    //     requires std::convertible_to<
-    //         typename detail::function_traits<IL>::result_type, variable_id>
-    // auto add_variables(std::size_t count, IL && id_lambda,
-    //                    variable_params params = {}) noexcept {
-    //     return _add_variables(typename
-    //     detail::function_traits<IL>::arg_types(),
-    //                           count, std::forward<IL>(id_lambda), params);
-    // }
+    template <typename IL>
+        requires std::convertible_to<
+            typename detail::function_traits<IL>::result_type, variable_id>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        return _add_variables(typename detail::function_traits<IL>::arg_types(),
+                              count, std::forward<IL>(id_lambda), params);
+    }
     // template <typename IL, typename NL>
     //     requires std::convertible_to<
     //         typename detail::function_traits<IL>::result_type, variable_id>
@@ -243,6 +256,7 @@ public:
     void set_variable_name(variable v, std::string name) {
         check(GRB.setstrattrelement(model, GRB_STR_ATTR_VARNAME, v.id(),
                                     name.c_str()));
+        _var_name_set[static_cast<std::size_t>(v.id())] = true;
     }
 
     double get_objective_coefficient(variable v) {
