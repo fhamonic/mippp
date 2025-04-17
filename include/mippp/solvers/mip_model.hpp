@@ -95,51 +95,6 @@ public:
         return add_variable("x" + std::to_string(num_variables()), options);
     }
 
-    template <typename IL, typename NL, typename... Args>
-    class vars_range {
-    public:
-        using variable_id_t = mip_model::variable_id_t;
-        using scalar_t = mip_model::scalar_t;
-        using var = mip_model::var;
-
-    private:
-        const std::size_t _offset;
-        const std::size_t _count;
-        const IL _id_lambda;
-        mutable NL _name_lambda;
-
-    public:
-        constexpr vars_range(detail::pack<Args...>, std::size_t offset,
-                             std::size_t count, IL && id_lambda,
-                             NL && name_lambda) noexcept
-            : _offset(offset)
-            , _count(count)
-            , _id_lambda(std::forward<IL>(id_lambda))
-            , _name_lambda(std::forward<NL>(name_lambda)) {}
-
-        constexpr var operator()(Args... args) const noexcept {
-            const variable_id_t id =
-                static_cast<variable_id_t>(_id_lambda(args...));
-            assert(static_cast<std::size_t>(id) < _count);
-            const variable_id_t var_num =
-                static_cast<variable_id_t>(_offset) + id;
-            _name_lambda(var_num, args...);
-            return var(var_num);
-        }
-
-        constexpr auto ids() const noexcept {
-            return ranges::views::iota(
-                static_cast<variable_id_t>(_offset),
-                static_cast<variable_id_t>(_offset + _count));
-        }
-        constexpr auto linear_terms() const noexcept {
-            return ranges::views::transform(ids(), [](auto && i) {
-                return std::make_pair(i, scalar_t{1});
-            });
-        }
-        constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
-    };
-
 private:
     void _add_cols(std::size_t count, var_options options = {}) {
         const std::size_t new_size = num_variables() + count;
@@ -157,7 +112,7 @@ private:
                         IL && id_lambda, var_options options = {}) noexcept {
         const std::size_t offset = num_variables();
         _add_cols(count, options);
-        return vars_range(
+        return variables_range(
             typename detail::function_traits<IL>::arg_types(), offset, count,
             std::forward<IL>(id_lambda),
             [this](const variable_id_t var_num, Args... args) mutable {
@@ -175,7 +130,7 @@ private:
                         var_options options = {}) noexcept {
         const std::size_t offset = num_variables();
         _add_cols(count, options);
-        return vars_range(
+        return variables_range(
             typename detail::function_traits<IL>::arg_types(), offset, count,
             std::forward<IL>(id_lambda),
             [this, name_lambda = std::forward<NL>(name_lambda)](
