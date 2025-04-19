@@ -1,5 +1,5 @@
-#ifndef MIPPP_MODEL_VARIABLE_HPP
-#define MIPPP_MODEL_VARIABLE_HPP
+#ifndef MIPPP_MODEL_ENTITIES_HPP
+#define MIPPP_MODEL_ENTITIES_HPP
 
 // #include <ranges>
 
@@ -11,40 +11,102 @@
 namespace fhamonic {
 namespace mippp {
 
-template <typename V, typename C>
-class model_variable {
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// Strong types /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename I, typename C>
+class model_entity_base {
 public:
-    using variable_id_t = V;
+    using id_t = I;
     using scalar_t = C;
 
 private:
-    variable_id_t _id;
+    id_t _id;
 
 public:
-    constexpr model_variable(const model_variable & v) : _id(v._id) {};
-    constexpr explicit model_variable(variable_id_t id) : _id(id) {};
+    constexpr model_entity_base(const model_entity_base & v) : _id(v._id) {};
+    constexpr explicit model_entity_base(id_t id) : _id(id) {};
 
-    constexpr variable_id_t id() const noexcept { return _id; }
+    constexpr id_t id() const noexcept { return _id; }
+
+    constexpr std::size_t uid() const noexcept
+        requires std::integral<id_t>
+    {
+        return static_cast<std::size_t>(_id);
+    }
+
+    friend constexpr auto operator==(const model_entity_base & a,
+                                     const model_entity_base & b) noexcept {
+        return a._id == b._id;
+    }
+};
+
+template <typename I, typename C>
+class model_variable : public model_entity_base<I, C> {
+public:
+    using id_t = I;
+    using scalar_t = C;
+
+public:
+    constexpr model_variable(const model_variable & v)
+        : model_entity_base<I, C>(v) {};
+    constexpr explicit model_variable(id_t id) : model_entity_base<I, C>(id) {};
 
     constexpr auto linear_terms() const noexcept {
-        return ranges::views::single(std::make_pair(_id, scalar_t{1}));
+        return ranges::views::single(std::make_pair(*this, scalar_t{1}));
     }
     constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
 };
 
-template <typename Arr>
-class variable_mapping {
-private:
-    Arr arr;
+template <typename I, typename C>
+class model_constraint : public model_entity_base<I, C> {
+public:
+    using id_t = I;
+    using scalar_t = C;
 
 public:
-    variable_mapping(Arr && t) : arr(std::move(t)) {}
+    constexpr model_constraint(const model_constraint & v)
+        : model_entity_base<I, C>(v) {};
+    constexpr explicit model_constraint(id_t id)
+        : model_entity_base<I, C>(id) {};
+};
 
-    double operator[](int i) const { return arr[static_cast<std::size_t>(i)]; }
-    double operator[](model_variable<int, double> x) const {
-        return arr[static_cast<std::size_t>(x.id())];
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////// Strong types mappings ////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename Map>
+class variable_mapping {
+private:
+    Map _map;
+
+public:
+    variable_mapping(Map && t) : _map(std::move(t)) {}
+
+    template <typename I, typename C>
+    double operator[](const model_variable<I, C> & x) const {
+        return _map[static_cast<std::size_t>(x.id())];
     }
 };
+
+template <typename Map>
+class constraint_mapping {
+private:
+    Map _map;
+
+public:
+    constraint_mapping(Map && t) : _map(std::move(t)) {}
+
+    template <typename I, typename C>
+    double operator[](const model_constraint<I, C> & x) const {
+        return _map[static_cast<std::size_t>(x.id())];
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// Entities range ////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 template <typename Vars, typename IdLambda>
 class variables_range_base {
@@ -132,4 +194,4 @@ auto make_lazily_named_variables_range(detail::pack<Args...>, VR && variables,
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_MODEL_VARIABLE_HPP
+#endif  // MIPPP_MODEL_ENTITIES_HPP

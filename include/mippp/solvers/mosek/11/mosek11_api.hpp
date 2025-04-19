@@ -72,7 +72,7 @@ public:
 
 public:
     inline mosek11_api(const char * lib_name = "mosek64",
-                     const char * lib_path = "")
+                       const char * lib_path = "")
         : lib(lib_path, lib_name) MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUN) {}
 
     const std::unordered_map<MSKrescodee, const char *> error_message = {

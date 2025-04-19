@@ -13,7 +13,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
-#include "mippp/model_variable.hpp"
+#include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/soplex/6/soplex6_api.hpp"
 
@@ -30,9 +30,10 @@ private:
 
 public:
     using variable_id = int;
+    using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
+    using constraint = model_constraint<constraint_id, scalar>;
 
     struct variable_params {
         scalar obj_coef = scalar{0};
@@ -64,7 +65,7 @@ public:
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(var)] += coef;
+            tmp_scalars[var.uid()] += coef;
         }
         SoPlex.changeObjReal(model, tmp_scalars.data(),
                              static_cast<int>(num_vars));
@@ -87,11 +88,11 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         int num_nz = 0;
-        auto num_constrs = num_constraints();
+        int constr_id = static_cast<int>(num_constraints());
         tmp_scalars.resize(num_variables());
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(var)] += coef;
+            tmp_scalars[var.uid()] += coef;
             ++num_nz;
         }
         const double b = -lc.expression().constant();
@@ -104,7 +105,7 @@ public:
             (lc.relation() == constraint_relation::greater_equal_zero)
                 ? std::numeric_limits<double>::infinity()
                 : b);
-        return static_cast<int>(num_constrs);
+        return constraint(constr_id);
     }
 
     void optimize() {
@@ -129,7 +130,7 @@ public:
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
         SoPlex.getDualReal(model, solution.get(),
                            static_cast<int>(num_constrs));
-        return variable_mapping(std::move(solution));
+        return constraint_mapping(std::move(solution));
     }
 };
 

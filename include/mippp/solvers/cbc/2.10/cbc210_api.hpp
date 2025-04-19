@@ -63,7 +63,8 @@ public:
     CBC_FUNCTIONS(DECLARE_CBC_FUN)
 
 public:
-    inline cbc210_api(const char * lib_name = "CbcSolver", const char * lib_path = "")
+    inline cbc210_api(const char * lib_name = "CbcSolver",
+                      const char * lib_path = "")
         : lib(lib_path, lib_name) CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {}
 };
 

@@ -28,8 +28,8 @@
 #include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
+#include "mippp/model_entities.hpp"
 #include "mippp/solvers/all.hpp"
-#include "mippp/model_variable.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -164,7 +164,7 @@ public:
     template <linear_expression E>
     mip_model & add_to_objective(E && le) noexcept {
         for(auto && [v, c] : le.linear_terms()) {
-            _col_coef[static_cast<std::size_t>(v)] += c;
+            _col_coef[v.uid()] += c;
         }
         return *this;
     }
@@ -176,7 +176,7 @@ public:
         _row_ub.emplace_back(linear_constraint_upper_bound(lc));
         for(auto && [v, c] : lc.expression().linear_terms()) {
             _coefs.emplace_back(c);
-            _vars.emplace_back(v);
+            _vars.emplace_back(v.id());
         }
         return constraint_id_t(num_constraints() - 1);
     }
@@ -276,14 +276,14 @@ public:
 template <linear_expression T, typename NL>
 std::ostream & print_entries(std::ostream & os, const T & e,
                              const NL & name_lambda) {
-    using variable_id_t = linear_expression_variable_id_t<T>;
+    using variable_id_t = linear_expression_variable_t<T>;
     using scalar_t = linear_expression_scalar_t<T>;
     auto && entries_range = e.linear_terms();
     auto it = entries_range.begin();
     const auto end = entries_range.end();
     if(it == end) return os;
     for(; it != end; ++it) {
-        variable_id_t v = (*it).first;
+        variable_id_t v = (*it).first.id();
         scalar_t coef = (*it).second;
         if(coef == scalar_t(0)) continue;
         const scalar_t abs_coef = std::abs(coef);
@@ -293,7 +293,7 @@ std::ostream & print_entries(std::ostream & os, const T & e,
         break;
     }
     for(++it; it != end; ++it) {
-        variable_id_t v = (*it).first;
+        variable_id_t v = (*it).first.id();
         scalar_t coef = (*it).second;
         if(coef == scalar_t(0)) continue;
         const scalar_t abs_coef = std::abs(coef);

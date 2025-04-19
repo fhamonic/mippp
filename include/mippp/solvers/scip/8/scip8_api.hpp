@@ -41,9 +41,6 @@
     F(SCIPgetBestSol, getBestSol)                       \
     F(SCIPgetSolVal, getSolVal)
 
-// SCIP_OBJSENSE_MINIMIZE
-// SCIP_OBJSENSE_MAXIMIZE
-
 // SCIP_VARTYPE_CONTINUOUS
 // SCIP_VARTYPE_INTEGER
 // SCIP_VARTYPE_BINARY

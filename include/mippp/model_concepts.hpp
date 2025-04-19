@@ -2,12 +2,13 @@
 #define MIPPP_MODEL_CONCEPTS_HPP
 
 #include <concepts>
+#include <optional>
 
 #include <range/v3/view/single.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
-#include "mippp/model_variable.hpp"
+#include "mippp/model_entities.hpp"
 
 namespace fhamonic {
 namespace mippp {

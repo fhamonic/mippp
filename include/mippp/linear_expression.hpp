@@ -21,10 +21,10 @@ template <typename _Tp>
 concept linear_term = (std::tuple_size_v<_Tp> == 2);
 
 template <typename _Tp>
-using linear_term_variable_t = std::tuple_element_t<0, _Tp>;
+using linear_term_variable_t = std::decay_t<std::tuple_element_t<0, _Tp>>;
 
 template <typename _Tp>
-using linear_term_scalar_t = std::tuple_element_t<1, _Tp>;
+using linear_term_scalar_t = std::decay_t<std::tuple_element_t<1, _Tp>>;
 
 template <typename _Tp>
 using linear_terms_range_t = decltype(std::declval<_Tp &>().linear_terms());
@@ -36,8 +36,7 @@ template <typename _Tp>
 using linear_expression_scalar_t = linear_term_scalar_t<linear_term_t<_Tp>>;
 
 template <typename _Tp>
-using linear_expression_variable_id_t =
-    linear_term_variable_t<linear_term_t<_Tp>>;
+using linear_expression_variable_t = linear_term_variable_t<linear_term_t<_Tp>>;
 
 template <typename _Tp>
 concept linear_expression = requires(const _Tp & __t) {
@@ -174,8 +173,8 @@ linear_expressions_sum(_R &&, _F &&)
 namespace operators {
 
 template <linear_expression E1, linear_expression E2>
-    requires std::same_as<linear_expression_variable_id_t<E1>,
-                          linear_expression_variable_id_t<E2>> &&
+    requires std::same_as<linear_expression_variable_t<E1>,
+                          linear_expression_variable_t<E2>> &&
              std::same_as<linear_expression_scalar_t<E1>,
                           linear_expression_scalar_t<E2>>
 [[nodiscard]] constexpr auto operator+(E1 && e1, E2 && e2) {
@@ -188,8 +187,8 @@ template <linear_expression E>
 };
 
 template <linear_expression E1, linear_expression E2>
-    requires std::same_as<linear_expression_variable_id_t<E1>,
-                          linear_expression_variable_id_t<E2>> &&
+    requires std::same_as<linear_expression_variable_t<E1>,
+                          linear_expression_variable_t<E2>> &&
              std::same_as<linear_expression_scalar_t<E1>,
                           linear_expression_scalar_t<E2>>
 [[nodiscard]] constexpr auto operator-(E1 && e1, E2 && e2) {

@@ -38,7 +38,7 @@ public:
 
 public:
     inline soplex6_api(const char * lib_name = "soplexshared",
-                      const char * lib_path = "")
+                       const char * lib_path = "")
         : lib(lib_path, lib_name) SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUN) {}
 };
 

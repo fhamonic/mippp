@@ -13,7 +13,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
-#include "mippp/model_variable.hpp"
+#include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/cplex/22/cplex22_api.hpp"
 
@@ -50,9 +50,10 @@ private:
 
 public:
     using variable_id = int;
+    using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
+    using constraint = model_constraint<constraint_id, scalar>;
 
     struct variable_params {
         scalar obj_coef = scalar{0};
@@ -88,7 +89,7 @@ public:
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_variables.emplace_back(var);
+            tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
         check(CPX.chgobj(env, lp, static_cast<int>(tmp_variables.size()),
@@ -120,14 +121,14 @@ public:
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
-            tmp_variables.emplace_back(var);
+            tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
         const double b = -lc.expression().constant();
         const char sense = constraint_relation_to_cplex_sense(lc.relation());
         CPX.addrows(env, lp, 0, 1, static_cast<int>(), &b, &sense, NULL,
                     tmp_variables.data(), tmp_scalars.data(), NULL, NULL);
-        return constr_id;
+        return constraint(constr_id);
     }
 
     void optimize() {
@@ -157,7 +158,7 @@ public:
     //     NULL,
     //                           NULL, NULL, solution.get(), NULL, NULL, NULL,
     //                           NULL, NULL));
-    //     return variable_mapping(std::move(solution));
+    //     return constraint_mapping(std::move(solution));
     // }
 };
 

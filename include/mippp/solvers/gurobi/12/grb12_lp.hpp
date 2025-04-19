@@ -14,7 +14,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
-#include "mippp/model_variable.hpp"
+#include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/gurobi/12/grb12_base_model.hpp"
 
@@ -24,9 +24,10 @@ namespace mippp {
 class grb12_lp : public grb12_base_model {
 public:
     using variable_id = int;
+    using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
+    using constraint = model_constraint<constraint_id, scalar>;
 
 public:
     [[nodiscard]] explicit grb12_lp(const grb12_api & api)
@@ -88,7 +89,7 @@ public:
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_PI, 0,
                                   static_cast<int>(num_constrs),
                                   solution.get()));
-        return variable_mapping(std::move(solution));
+        return constraint_mapping(std::move(solution));
     }
 
     // void set_basic(variable v);

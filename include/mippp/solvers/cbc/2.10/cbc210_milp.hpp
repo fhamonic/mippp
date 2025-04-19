@@ -16,7 +16,7 @@
 #include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
-#include "mippp/model_variable.hpp"
+#include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/cbc/2.10/cbc210_api.hpp"
 
@@ -26,9 +26,10 @@ namespace mippp {
 class cbc210_milp {
 public:
     using variable_id = int;
+    using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
+    using constraint = model_constraint<constraint_id, scalar>;
 
     struct variable_params {
         scalar obj_coef = scalar{0};
@@ -55,7 +56,8 @@ private:
     // }
 
     double objective_offset;
-    std::vector<std::pair<constraint, unsigned int>> tmp_constraint_entry_cache;
+    std::vector<std::pair<constraint_id, unsigned int>>
+        tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
 
@@ -84,15 +86,15 @@ public:
             Cbc.setObjCoeff(model, v, 0.0);
         }
         for(auto && [var, coef] : le.linear_terms()) {
-            Cbc.setObjCoeff(model, var,
-                            Cbc.getObjCoefficients(model)[var] + coef);
+            set_objective_coefficient(var,
+                                      get_objective_coefficient(var) + coef);
         }
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
         for(auto && [var, coef] : le.linear_terms()) {
-            Cbc.setObjCoeff(model, var,
-                            Cbc.getObjCoefficients(model)[var] + coef);
+            set_objective_coefficient(var,
+                                      get_objective_coefficient(var) + coef);
         }
         set_objective_offset(get_objective_offset() + le.constant());
     }
@@ -156,45 +158,44 @@ public:
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
-            auto & p =
-                tmp_constraint_entry_cache[static_cast<std::size_t>(var)];
+            auto & p = tmp_constraint_entry_cache[var.uid()];
             if(p.first == constr_id + 1) {
                 tmp_scalars[p.second] += coef;
                 continue;
             }
             p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var);
+            tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
         Cbc.addRow(model, "", static_cast<int>(tmp_variables.size()),
                    tmp_variables.data(), tmp_scalars.data(),
                    constraint_relation_to_cbc_sense(lc.relation()),
                    -lc.expression().constant());
-        return constr_id;
+        return constraint(constr_id);
     }
-    // void set_constraint_rhs(constraint c, double rhs) {
-    // if(get_constraint_sense(c) ==
+    // void set_constraint_rhs(constraint constr, double rhs) {
+    // if(get_constraint_sense(constr) ==
     // constraint_relation::greater_equal_zero) {
-    //     Clp.rowLower(model)[c] = rhs;
+    //     Clp.rowLower(model)[constr] = rhs;
     //     return;
     // }
-    // Clp.rowUpper(model)[c] = rhs;
+    // Clp.rowUpper(model)[constr] = rhs;
     // }
-    // void set_constraint_sense(constraint c, constraint_relation r) {
-    // constraint_relation old_r = get_constraint_sense(c);
-    // double old_rhs = get_constraint_rhs(c);
+    // void set_constraint_sense(constraint constr, constraint_relation r) {
+    // constraint_relation old_r = get_constraint_sense(constr);
+    // double old_rhs = get_constraint_rhs(constr);
     // if(old_r == r) return;
     // switch(r) {
     //     case constraint_relation::equal_zero:
-    //         Clp.rowLower(model)[c] = Clp.rowUpper(model)[c] = old_rhs;
-    //         return;
+    //         Clp.rowLower(model)[constr] = Clp.rowUpper(model)[constr] =
+    //         old_rhs; return;
     //     case constraint_relation::less_equal_zero:
-    //         Clp.rowLower(model)[c] = -COIN_DBL_MAX;
-    //         Clp.rowUpper(model)[c] = old_rhs;
+    //         Clp.rowLower(model)[constr] = -COIN_DBL_MAX;
+    //         Clp.rowUpper(model)[constr] = old_rhs;
     //         return;
     //     case constraint_relation::greater_equal_zero:
-    //         Clp.rowLower(model)[c] = old_rhs;
-    //         Clp.rowUpper(model)[c] = COIN_DBL_MAX;
+    //         Clp.rowLower(model)[constr] = old_rhs;
+    //         Clp.rowUpper(model)[constr] = COIN_DBL_MAX;
     //         return;
     // }
     // }
@@ -204,36 +205,38 @@ public:
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_variables.emplace_back(var);
+            tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
         const double c = le.constant();
         Cbc.addRow(model, "", static_cast<int>(tmp_variables.size()),
                    tmp_variables.data(), tmp_scalars.data(), 'L', ub - c);
         Cbc.setRowLower(model, constr_id, lb - c);
-        return constr_id;
+        return constraint(constr_id);
     }
-    // void set_constraint_name(constraint c, auto && name);
+    // void set_constraint_name(constraint constr, auto && name);
 
-    // auto get_constraint_lhs(constraint c) const;
-    double get_constraint_rhs(constraint c) { return Cbc.getRowRHS(model, c); }
-    constraint_relation get_constraint_sense(constraint c) {
-        const double lb = Cbc.getRowLower(model)[c];
-        const double ub = Cbc.getRowUpper(model)[c];
+    // auto get_constraint_lhs(constraint constr) const;
+    double get_constraint_rhs(constraint constr) {
+        return Cbc.getRowRHS(model, constr.id());
+    }
+    constraint_relation get_constraint_sense(constraint constr) {
+        const double lb = Cbc.getRowLower(model)[constr.id()];
+        const double ub = Cbc.getRowUpper(model)[constr.id()];
         if(lb == ub) return constraint_relation::equal_zero;
         if(lb == -COIN_DBL_MAX) return constraint_relation::less_equal_zero;
         if(ub == COIN_DBL_MAX) return constraint_relation::greater_equal_zero;
         throw std::runtime_error(
             "Tried to get the sense of a ranged constraint");
     }
-    auto get_constraint_name(constraint c) {
+    auto get_constraint_name(constraint constr) {
         auto max_length = Cbc.maxNameLength(model);
         std::string name(max_length, '\0');
-        Cbc.getRowName(model, c, name.data(), max_length);
+        Cbc.getRowName(model, constr.id(), name.data(), max_length);
         name.resize(std::strlen(name.c_str()));
         return name;
     }
-    // auto get_constraint(const constraint c) const;
+    // auto get_constraint(const constraint constr) const;
 
     void set_feasibility_tolerance(double tol) {
         auto tol_s = std::to_string(tol);

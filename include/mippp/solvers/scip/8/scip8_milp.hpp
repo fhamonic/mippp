@@ -14,7 +14,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
-#include "mippp/model_variable.hpp"
+#include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/scip/8/scip8_api.hpp"
 
@@ -33,9 +33,10 @@ private:
 
 public:
     using variable_id = int;
+    using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
+    using constraint = model_constraint<constraint_id, scalar>;
 
     struct variable_params {
         scalar obj_coef = 0.0;
@@ -109,15 +110,15 @@ public:
         for(auto && var : variables) {
             check(SCIP.chgVarObj(model, var, 0.0));
         }
-        for(auto && [var_id, coef] : le.linear_terms()) {
-            const auto & var = variables[static_cast<std::size_t>(var_id)];
+        for(auto && [var_, coef] : le.linear_terms()) {
+            const auto & var = variables[var_.uid()];
             check(SCIP.chgVarObj(model, var, SCIP.varGetObj(var) + coef));
         }
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
-        for(auto && [var_id, coef] : le.linear_terms()) {
-            const auto & var = variables[static_cast<std::size_t>(var_id)];
+        for(auto && [var_, coef] : le.linear_terms()) {
+            const auto & var = variables[var_.uid()];
             check(SCIP.chgVarObj(model, var, SCIP.varGetObj(var) + coef));
         }
         set_objective_offset(get_objective_offset() + le.constant());
@@ -202,12 +203,12 @@ public:
                 ? SCIP.infinity(model)
                 : b));
         constraints.emplace_back(constr);
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
-            check(SCIP.addCoefLinear(
-                model, constr, variables[static_cast<std::size_t>(var)], coef));
+        for(auto && [var_, coef] : lc.expression().linear_terms()) {
+            check(
+                SCIP.addCoefLinear(model, constr, variables[var_.uid()], coef));
         }
         check(SCIP.addCons(model, constr));
-        return constr_id;
+        return constraint(constr_id);
     }
     // void set_constraint_rhs(constraint c, double rhs) {
     //     check(SCIP.setdblattrelement(model, SCIP_DBL_ATTR_RHS, c, rhs));

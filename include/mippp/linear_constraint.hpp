@@ -23,7 +23,7 @@ using linear_constraint_expression_t =
 
 template <typename _Tp>
 using linear_constraint_variable_id_t =
-    linear_expression_variable_id_t<linear_constraint_expression_t<_Tp>>;
+    linear_expression_variable_t<linear_constraint_expression_t<_Tp>>;
 
 template <typename _Tp>
 using linear_constraint_scalar_t =
@@ -81,8 +81,8 @@ public:
 namespace operators {
 
 template <linear_expression E1, linear_expression E2>
-    requires std::same_as<linear_expression_variable_id_t<E1>,
-                          linear_expression_variable_id_t<E2>> &&
+    requires std::same_as<linear_expression_variable_t<E1>,
+                          linear_expression_variable_t<E2>> &&
              std::same_as<linear_expression_scalar_t<E1>,
                           linear_expression_scalar_t<E2>>
 constexpr auto operator<=(E1 && e1, E2 && e2) {
@@ -92,8 +92,8 @@ constexpr auto operator<=(E1 && e1, E2 && e2) {
         constraint_relation::less_equal_zero);
 };
 template <linear_expression E1, linear_expression E2>
-    requires std::same_as<linear_expression_variable_id_t<E1>,
-                          linear_expression_variable_id_t<E2>> &&
+    requires std::same_as<linear_expression_variable_t<E1>,
+                          linear_expression_variable_t<E2>> &&
              std::same_as<linear_expression_scalar_t<E1>,
                           linear_expression_scalar_t<E2>>
 constexpr auto operator>=(E1 && e1, E2 && e2) {
@@ -104,8 +104,8 @@ constexpr auto operator>=(E1 && e1, E2 && e2) {
 };
 
 template <linear_expression E1, linear_expression E2>
-    requires std::same_as<linear_expression_variable_id_t<E1>,
-                          linear_expression_variable_id_t<E2>> &&
+    requires std::same_as<linear_expression_variable_t<E1>,
+                          linear_expression_variable_t<E2>> &&
              std::same_as<linear_expression_scalar_t<E1>,
                           linear_expression_scalar_t<E2>>
 constexpr auto operator==(E1 && e1, E2 && e2) {

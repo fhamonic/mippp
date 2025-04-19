@@ -13,7 +13,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
-#include "mippp/model_variable.hpp"
+#include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/mosek/11/mosek11_api.hpp"
 
@@ -50,9 +50,10 @@ private:
 
 public:
     using variable_id = int;
+    using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
+    using constraint = model_constraint<constraint_id, scalar>;
 
     struct variable_params {
         scalar obj_coef = scalar{0};
@@ -103,7 +104,7 @@ public:
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(var)] += coef;
+            tmp_scalars[var.uid()] += coef;
         }
         check(MSK.putcslice(task, 0, static_cast<int>(num_vars),
                             tmp_scalars.data()));
@@ -138,7 +139,7 @@ public:
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
-            tmp_variables.emplace_back(var);
+            tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
         check(MSK.putarow(task, constr_id,
@@ -148,7 +149,7 @@ public:
         check(MSK.putconbound(task, constr_id,
                               constraint_relation_to_mosek_sense(lc.relation()),
                               b, b));
-        return constr_id;
+        return constraint(constr_id);
     }
 
     void optimize() {
@@ -178,7 +179,7 @@ public:
         check(MSK.getsolution(task, MSK_SOL_BAS, NULL, NULL, NULL, NULL, NULL,
                               NULL, NULL, solution.get(), NULL, NULL, NULL,
                               NULL, NULL));
-        return variable_mapping(std::move(solution));
+        return constraint_mapping(std::move(solution));
     }
 };
 

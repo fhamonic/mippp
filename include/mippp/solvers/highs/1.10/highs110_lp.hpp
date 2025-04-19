@@ -13,7 +13,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
-#include "mippp/model_variable.hpp"
+#include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/highs/1.10/highs110_api.hpp"
 
@@ -23,9 +23,10 @@ namespace mippp {
 class highs110_lp {
 public:
     using variable_id = int;
+    using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = int;
+    using constraint = model_constraint<constraint_id, scalar>;
 
     struct variable_params {
         scalar obj_coef = 0.0;
@@ -38,7 +39,7 @@ private:
     void * model;
     std::optional<lp_status> opt_lp_status;
 
-    std::vector<std::pair<constraint, unsigned int>> tmp_constraint_entry_cache;
+    std::vector<std::pair<constraint_id, unsigned int>> tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
 
@@ -79,7 +80,7 @@ public:
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(var)] += coef;
+            tmp_scalars[var.uid()] += coef;
         }
         check(Highs.changeColsCostByRange(
             model, 0, static_cast<int>(num_vars) - 1, tmp_scalars.data()));
@@ -89,10 +90,10 @@ public:
     //     auto num_vars = num_variables();
     //     tmp_scalars.resize(num_vars);
     //     Highs.getColsByRange(model, 0, static_cast<int>(num_vars) - 1, NULL,
-    //                          tmp_scalars.data(), NULL, NULL, NULL, NULL, NULL,
-    //                          NULL);
+    //                          tmp_scalars.data(), NULL, NULL, NULL, NULL,
+    //                          NULL, NULL);
     //     for(auto && [var, coef] : le.linear_terms()) {
-    //         tmp_scalars[static_cast<std::size_t>(var)] += coef;
+    //         tmp_scalars[var.uid()] += coef;
     //     }
     //     check(Highs.changeColsCostByRange(
     //         model, 0, static_cast<int>(num_vars) - 1, tmp_scalars.data()));
@@ -124,14 +125,13 @@ public:
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : lc.expression().linear_terms()) {
-            auto & p =
-                tmp_constraint_entry_cache[static_cast<std::size_t>(var)];
+            auto & p = tmp_constraint_entry_cache[var.uid()];
             if(p.first == constr_id + 1) {
                 tmp_scalars[p.second] += coef;
                 continue;
             }
             p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var);
+            tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
         const double b = -lc.expression().constant();
@@ -145,7 +145,7 @@ public:
                 : b,
             static_cast<int>(tmp_variables.size()), tmp_variables.data(),
             tmp_scalars.data()));
-        return constr_id;
+        return constraint(constr_id);
     }
 
     void optimize() {
@@ -186,7 +186,7 @@ public:
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
         check(Highs.getSolution(model, NULL, NULL, NULL, solution.get()));
-        return variable_mapping(std::move(solution));
+        return constraint_mapping(std::move(solution));
     }
 };
 
