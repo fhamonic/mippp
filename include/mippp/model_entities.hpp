@@ -26,7 +26,10 @@ private:
 
 public:
     constexpr model_entity_base(const model_entity_base & v) : _id(v._id) {};
-    constexpr explicit model_entity_base(id_t id) : _id(id) {};
+
+    template <typename T>
+        requires std::constructible_from<I, T>
+    constexpr explicit model_entity_base(T t) : _id(t) {}
 
     constexpr id_t id() const noexcept { return _id; }
 
@@ -50,8 +53,10 @@ public:
 
 public:
     constexpr model_variable(const model_variable & v)
-        : model_entity_base<I, C>(v) {};
-    constexpr explicit model_variable(id_t id) : model_entity_base<I, C>(id) {};
+        : model_entity_base<I, C>(v) {}
+
+    template <typename T>
+    constexpr explicit model_variable(T t) : model_entity_base<I, C>(t) {}
 
     constexpr auto linear_terms() const noexcept {
         return ranges::views::single(std::make_pair(*this, scalar_t{1}));
@@ -67,9 +72,10 @@ public:
 
 public:
     constexpr model_constraint(const model_constraint & v)
-        : model_entity_base<I, C>(v) {};
-    constexpr explicit model_constraint(id_t id)
-        : model_entity_base<I, C>(id) {};
+        : model_entity_base<I, C>(v) {}
+
+    template <typename T>
+    constexpr explicit model_constraint(T t) : model_entity_base<I, C>(t) {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -137,6 +143,7 @@ public:
 };
 
 template <ranges::random_access_range Vars, typename IdLambda, typename... Args>
+    requires std::integral<std::invoke_result_t<IdLambda, Args...>>
 class variables_range : public variables_range_base<Vars, IdLambda> {
 public:
     template <typename VR, typename IL>
@@ -145,21 +152,25 @@ public:
                                                std::forward<IL>(id_lambda)) {}
 
     constexpr auto operator()(Args... args) const noexcept {
-        const auto index = static_cast<std::size_t>(_id_lambda(args...));
-        assert(index < this.size());
-        return this.begin()[index];
+        const auto index = static_cast<std::ranges::range_difference_t<Vars>>(
+            this->_id_lambda(args...));
+        assert(static_cast<std::size_t>(index) < this->size());
+        return this->begin()[index];
     }
 };
 
-template <typename VR, typename IL, typename... Args>
+template <ranges::viewable_range VR, typename IL, typename... Args>
 auto make_variables_range(detail::pack<Args...>, VR && variables,
                           IL && id_lambda) {
     return variables_range<ranges::view::all_t<VR>, std::decay_t<IL>, Args...>(
-        std::forward<VR>(variables), std::forward<IL>(id_lambda));
+        ranges::view::all(variables), std::forward<IL>(id_lambda));
 }
 
-template <typename Vars, typename IdLambda, typename NamingLambda,
-          typename... Args>
+template <ranges::random_access_range Vars, typename IdLambda,
+          typename NamingLambda, typename... Args>
+    requires std::integral<std::invoke_result_t<IdLambda, Args...>> &&
+             std::convertible_to<std::invoke_result_t<NamingLambda, Args...>,
+                                 std::string>
 class lazily_named_variables_range
     : public variables_range_base<Vars, IdLambda> {
 private:
@@ -174,20 +185,21 @@ public:
         , _naming_lambda(std::forward<NL>(naming_lambda)) {}
 
     constexpr auto operator()(Args... args) const noexcept {
-        const auto index = static_cast<std::size_t>(_id_lambda(args...));
-        assert(index < this.size());
-        auto && var = this.begin()[index];
+        const auto index = static_cast<std::ranges::range_difference_t<Vars>>(
+            this->_id_lambda(args...));
+        assert(static_cast<std::size_t>(index) < this->size());
+        auto && var = this->begin()[index];
         _naming_lambda(var, args...);
         return var;
     }
 };
 
-template <typename VR, typename IL, typename NL, typename... Args>
+template <ranges::viewable_range VR, typename IL, typename NL, typename... Args>
 auto make_lazily_named_variables_range(detail::pack<Args...>, VR && variables,
                                        IL && id_lambda, NL && naming_lambda) {
     return lazily_named_variables_range<
         ranges::view::all_t<VR>, std::decay_t<IL>, std::decay_t<NL>, Args...>(
-        std::forward<VR>(variables), std::forward<IL>(id_lambda),
+        ranges::view::all(variables), std::forward<IL>(id_lambda),
         std::forward<NL>(naming_lambda));
 }
 

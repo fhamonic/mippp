@@ -18,13 +18,23 @@
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 
-// GTEST_TEST(any, test) {
-//     // mosek_api api("mosek64",
-//     // "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
-//     cplex_api api(
-//         "cplex2212",
-//         "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
-// }
+GTEST_TEST(any, test) {
+    // mosek_api api("mosek64",
+    // "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
+    // cplex_api api(
+    //     "cplex2212",
+    //     "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+
+    grb_api api;
+    grb_lp model(api);
+
+    auto X_vars =
+        model.add_variables(12, [](int a, int b) { return a * 3 + b; });
+
+    ASSERT_EQ(X_vars(1, 2).id(), 5);
+
+    ASSERT_DEATH(X_vars(6, 2), ".*Assertion.*failed.*");
+}
 
 //*
 struct clp_lp_test {

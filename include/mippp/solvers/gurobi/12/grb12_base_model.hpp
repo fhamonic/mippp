@@ -54,7 +54,8 @@ protected:
         return constraint_relation::greater_equal_zero;
     }
 
-    std::vector<std::pair<constraint_id, unsigned int>> tmp_constraint_entry_cache;
+    std::vector<std::pair<constraint_id, unsigned int>>
+        tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
 
@@ -209,8 +210,10 @@ public:
         _add_variables(offset, count, params);
         return make_variables_range(
             typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(ranges::view::iota(offset, offset + count),
-                                    [](auto && i) { return variable{i}; }),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
     }
 

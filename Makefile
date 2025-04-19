@@ -1,5 +1,5 @@
 BUILD_DIR = build
-CONAN_PROFILE = default
+CONAN_PROFILE = debug
 # CONAN_PROFILE = default_c++23
 
 .PHONY: all test clean build
