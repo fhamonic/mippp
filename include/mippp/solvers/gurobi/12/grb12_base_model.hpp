@@ -168,8 +168,8 @@ public:
     }
 
 private:
-    void _add_cols(std::size_t offset, std::size_t count,
-                   const variable_params & params) {
+    void _add_variables(std::size_t offset, std::size_t count,
+                        const variable_params & params) {
         check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
                           NULL, NULL, NULL, NULL, NULL));
         if(auto obj = params.obj_coef; obj != 0.0) {
@@ -197,51 +197,41 @@ private:
         _var_name_set.resize(offset + count, false);
     }
 
-    template <typename IL, typename... Args>
-    auto _add_variables(detail::pack<Args...>, std::size_t count,
-                        IL && id_lambda,
-                        const variable_params & params) noexcept {
-        const std::size_t offset = num_variables();
-        _add_cols(offset, count, params);
-        return variables_range<variable, std::decay_t<IL>, Args...>(offset, count,
-                               std::forward<IL>(id_lambda));
-    }
-    // template <typename IL, typename NL, typename... Args>
-    // auto _add_variables(detail::pack<Args...> args_pack, std::size_t count,
-    //                     IL && id_lambda, NL && name_lambda,
-    //                     const variable_params & params) noexcept {
-    //     const std::size_t offset = num_variables();
-    //     _add_cols(offset, count, params);
-    //     return lazily_named_variables_range(
-    //         args_pack, offset, count, std::forward<IL>(id_lambda),
-    //         [this, name_lambda = std::forward<NL>(name_lambda)](
-    //             const variable var, Args... args) mutable {
-    //             if(_var_name_set[static_cast<std::size_t>(var.id())]) return;
-    //             set_variable_name(var, name_lambda(args...));
-    //         });
-    // }
-
 public:
     template <typename IL>
-        requires std::convertible_to<
-            typename detail::function_traits<IL>::result_type, variable_id>
     auto add_variables(std::size_t count, IL && id_lambda,
                        variable_params params = {
                            .obj_coef = 0,
                            .lower_bound = 0,
                            .upper_bound = std::nullopt}) noexcept {
-        return _add_variables(typename detail::function_traits<IL>::arg_types(),
-                              count, std::forward<IL>(id_lambda), params);
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(ranges::view::iota(offset, offset + count),
+                                    [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
     }
+
     // template <typename IL, typename NL>
-    //     requires std::convertible_to<
-    //         typename detail::function_traits<IL>::result_type, variable_id>
     // auto add_variables(std::size_t count, IL && id_lambda, NL && name_lambda,
-    //                    variable_params params = {}) noexcept {
-    //     return _add_variables(typename
-    //     detail::function_traits<IL>::arg_types(),
-    //                           count, std::forward<IL>(id_lambda),
-    //                           std::forward<NL>(name_lambda), params);
+    //                    variable_params params = {
+    //                        .obj_coef = 0,
+    //                        .lower_bound = 0,
+    //                        .upper_bound = std::nullopt}) noexcept {
+    //     const std::size_t offset = num_variables();
+    //     _add_variables(offset, count, params);
+    //     return make_lazily_named_variables_range(
+    //         typename detail::function_traits<IL>::arg_types(),
+    //         ranges::view::transform(ranges::view::iota(offset, offset +
+    //         count),
+    //                                 [](auto && i) { return variable{i}; }),
+    //         std::forward<IL>(id_lambda),
+    //         [this, name_lambda = std::forward<NL>(name_lambda)](
+    //             const variable var, Args... args) mutable {
+    //             if(_var_name_set[static_cast<std::size_t>(var.id())]) return;
+    //             set_variable_name(var, name_lambda(args...));
+    //         });
     // }
 
     void set_objective_coefficient(variable v, double c) {
@@ -351,12 +341,6 @@ public:
         check(GRB.getstrattrelement(model, GRB_STR_ATTR_CONSTRNAME, c, &name));
         return std::string(name);
     }
-
-    // void set_basic(variable v);
-    // void set_non_basic(variable v);
-
-    // void set_basic(constraint v);
-    // void set_non_basic(constraint v);
 
     void set_feasibility_tolerance(double tol) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_FEASIBILITYTOL, tol));

@@ -90,6 +90,12 @@ public:
                                   solution.get()));
         return variable_mapping(std::move(solution));
     }
+
+    // void set_basic(variable v);
+    // void set_non_basic(variable v);
+
+    // void set_basic(constraint v);
+    // void set_non_basic(constraint v);
 };
 
 }  // namespace mippp

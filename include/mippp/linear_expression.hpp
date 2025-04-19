@@ -21,7 +21,7 @@ template <typename _Tp>
 concept linear_term = (std::tuple_size_v<_Tp> == 2);
 
 template <typename _Tp>
-using linear_term_variable_id_t = std::tuple_element_t<0, _Tp>;
+using linear_term_variable_t = std::tuple_element_t<0, _Tp>;
 
 template <typename _Tp>
 using linear_term_scalar_t = std::tuple_element_t<1, _Tp>;
@@ -37,7 +37,7 @@ using linear_expression_scalar_t = linear_term_scalar_t<linear_term_t<_Tp>>;
 
 template <typename _Tp>
 using linear_expression_variable_id_t =
-    linear_term_variable_id_t<linear_term_t<_Tp>>;
+    linear_term_variable_t<linear_term_t<_Tp>>;
 
 template <typename _Tp>
 concept linear_expression = requires(const _Tp & __t) {
