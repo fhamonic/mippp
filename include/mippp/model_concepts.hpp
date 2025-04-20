@@ -54,15 +54,15 @@ concept lp_model = requires(T & model, T::variable v, T::variable_id vid,
     { model.add_variable({.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
             -> std::convertible_to<typename T::variable>;
     
-    // { model.add_variables(std::size_t{1u}) } -> ranges::random_access_range;
-    // { model.add_variables(std::size_t{1u},
-    //                     {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-    //         -> ranges::random_access_range;
-    // { model.add_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
-    //         -> ranges::random_access_range;
-    // { model.add_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; },
-    //                      {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-    //         -> ranges::random_access_range;
+    { model.add_variables(std::size_t{1u}) } -> ranges::random_access_range;
+    { model.add_variables(std::size_t{1u},
+                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> ranges::random_access_range;
+    { model.add_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
+            -> ranges::random_access_range;
+    { model.add_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; },
+                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> ranges::random_access_range;
 
     { model.set_objective(detail::dummy_expression<T>()) };
     { model.add_constraint(detail::dummy_constraint<T>()) }

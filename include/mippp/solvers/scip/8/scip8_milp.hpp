@@ -138,22 +138,54 @@ public:
     //         get_objective_offset());
     // }
 
-    variable add_variable(const variable_params p = {
+private:
+    void _add_var(const variable_params & params) {
+        SCIP_VAR * var = NULL;
+        check(SCIP.createVarBasic(
+            model, &var, "", params.lower_bound.value_or(-SCIP.infinity(model)),
+            params.upper_bound.value_or(SCIP.infinity(model)), params.obj_coef,
+            SCIP_VARTYPE_CONTINUOUS));
+        check(SCIP.addVar(model, var));
+        variables.emplace_back(var);
+    }
+
+public:
+    variable add_variable(const variable_params params = {
                               .obj_coef = 0,
                               .lower_bound = 0,
                               .upper_bound = std::nullopt}) {
         int var_id = static_cast<int>(num_variables());
-        SCIP_VAR * var = NULL;
-        check(SCIP.createVarBasic(model, &var, "",
-                                  p.lower_bound.value_or(-SCIP.infinity(model)),
-                                  p.upper_bound.value_or(SCIP.infinity(model)),
-                                  p.obj_coef, SCIP_VARTYPE_CONTINUOUS));
-        check(SCIP.addVar(model, var));
-        variables.emplace_back(var);
+        _add_var(params);
         return variable(var_id);
     }
-    // variables_range add_variables(std::size_t count,
-    //                               const variable_params p);
+    auto add_variables(std::size_t count,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
+    }
+    template <typename IL>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+        return make_indexed_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
+    }
 
     void set_objective_coefficient(variable v, double c) {
         check(SCIP.chgVarObj(model, variables[static_cast<std::size_t>(v.id())],

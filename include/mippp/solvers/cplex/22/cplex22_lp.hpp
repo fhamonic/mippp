@@ -2,6 +2,7 @@
 #define MIPPP_CPLEX_22_LP_HPP
 
 #include <limits>
+#include <numeric>
 #include <optional>
 #include <vector>
 
@@ -27,6 +28,7 @@ private:
     CPXLPptr lp;
 
     // std::optional<lp_status> opt_lp_status;
+    std::vector<char> tmp_type;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
 
@@ -114,56 +116,84 @@ public:
         return variable(var_id);
     }
 
-    // private:
-    // void _add_variables(std::size_t offset, std::size_t count,
-    //                     const variable_params & params) {
-    //     check(CPX.newcols(env, lp, static_cast<int>(count), NULL, NULL, NULL,
-    //     NULL, NULL)); if(auto obj = params.obj_coef; obj != 0.0) {
-    //         double * objective = Clp.objective(model);
-    //         std::fill(objective + offset, objective + offset + count, obj);
-    //     }
-    //     if(auto lb = params.lower_bound.value_or(COIN_DBL_MIN); lb != 0.0) {
-    //         double * lower_bounds = Clp.columnLower(model);
-    //         std::fill(lower_bounds + offset, lower_bounds + offset + count,
-    //         lb);
-    //     }
-    //     if(auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
-    //        ub != COIN_DBL_MAX) {
-    //         double * upper_bounds = Clp.columnUpper(model);
-    //         std::fill(upper_bounds + offset, upper_bounds + offset + count,
-    //         ub);
-    //     }
-    // }
+private:
+    void _add_variables(std::size_t offset, std::size_t count,
+                        const variable_params & params) {
+        check(CPX.newcols(env, lp, static_cast<int>(count), NULL, NULL, NULL,
+                          NULL, NULL));
+        bool done_iota = false;
+        if(auto obj = params.obj_coef; obj != 0.0) {
+            if(!done_iota) {
+                tmp_variables.resize(count);
+                std::iota(tmp_variables.begin(), tmp_variables.end(),
+                          static_cast<variable_id>(offset));
+                done_iota = true;
+            }
+            tmp_scalars.resize(count);
+            std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
+            CPX.chgobj(env, lp, static_cast<int>(count), tmp_variables.data(),
+                       tmp_scalars.data());
+        }
+        if(auto lb = params.lower_bound.value_or(-CPX_INFBOUND); lb != 0.0) {
+            if(!done_iota) {
+                tmp_variables.resize(count);
+                std::iota(tmp_variables.begin(), tmp_variables.end(),
+                          static_cast<variable_id>(offset));
+                done_iota = true;
+            }
+            tmp_type.resize(count);
+            std::fill(tmp_type.begin(), tmp_type.end(), 'L');
+            tmp_scalars.resize(count);
+            std::fill(tmp_scalars.begin(), tmp_scalars.end(), lb);
+            CPX.chgbds(env, lp, static_cast<int>(count), tmp_variables.data(),
+                       tmp_type.data(), tmp_scalars.data());
+        }
+        if(auto ub = params.upper_bound.value_or(CPX_INFBOUND);
+           ub != CPX_INFBOUND) {
+            if(!done_iota) {
+                tmp_variables.resize(count);
+                std::iota(tmp_variables.begin(), tmp_variables.end(),
+                          static_cast<variable_id>(offset));
+                done_iota = true;
+            }
+            tmp_type.resize(count);
+            std::fill(tmp_type.begin(), tmp_type.end(), 'U');
+            tmp_scalars.resize(count);
+            std::fill(tmp_scalars.begin(), tmp_scalars.end(), ub);
+            CPX.chgbds(env, lp, static_cast<int>(count), tmp_variables.data(),
+                       tmp_type.data(), tmp_scalars.data());
+        }
+    }
 
-    // public:
-    // auto add_variables(std::size_t count,
-    //                    variable_params params = {
-    //                        .obj_coef = 0,
-    //                        .lower_bound = 0,
-    //                        .upper_bound = std::nullopt}) noexcept {
-    //     const std::size_t offset = num_variables();
-    //     _add_variables(offset, count, params);
-    //     return make_variables_range(ranges::view::transform(
-    //         ranges::view::iota(static_cast<variable_id>(offset),
-    //                            static_cast<variable_id>(offset + count)),
-    //         [](auto && i) { return variable{i}; }));
-    // }
-    // template <typename IL>
-    // auto add_variables(std::size_t count, IL && id_lambda,
-    //                    variable_params params = {
-    //                        .obj_coef = 0,
-    //                        .lower_bound = 0,
-    //                        .upper_bound = std::nullopt}) noexcept {
-    //     const std::size_t offset = num_variables();
-    //     _add_variables(offset, count, params);
-    //     return make_indexed_variables_range(
-    //         typename detail::function_traits<IL>::arg_types(),
-    //         ranges::view::transform(
-    //             ranges::view::iota(static_cast<variable_id>(offset),
-    //                                static_cast<variable_id>(offset + count)),
-    //             [](auto && i) { return variable{i}; }),
-    //         std::forward<IL>(id_lambda));
-    // }
+public:
+    auto add_variables(std::size_t count,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
+    }
+    template <typename IL>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_indexed_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
+    }
 
     constraint add_constraint(linear_constraint auto && lc) {
         auto constr_id = static_cast<int>(num_constraints());

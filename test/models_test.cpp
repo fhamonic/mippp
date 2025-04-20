@@ -234,6 +234,100 @@ TYPED_TEST(ModelTest, add_variable_w_params) {
         // ASSERT_EQ(model.get_variable_upper_bound(y), M::infinity);
     }
 }
+TYPED_TEST(ModelTest, add_variables) {
+    using T = TypeParam::T;
+    auto model = this->construct_model();
+
+    auto F = model.add_variable();
+    auto X_vars = model.add_variables(
+        4, {.obj_coef = 1, .lower_bound = 2, .upper_bound = 5});
+    auto Y_vars = model.add_variables(3);
+
+    ASSERT_EQ(model.num_variables(), 8);
+    ASSERT_EQ(F.id(), 0);
+    ASSERT_EQ(X_vars[0].id(), 1);
+    ASSERT_EQ(X_vars[1].id(), 2);
+    ASSERT_EQ(X_vars[2].id(), 3);
+    ASSERT_EQ(X_vars[3].id(), 4);
+    ASSERT_EQ(Y_vars[0].id(), 5);
+    ASSERT_EQ(Y_vars[1].id(), 6);
+    ASSERT_EQ(Y_vars[2].id(), 7);
+
+    ASSERT_EQ_RANGES(X_vars, {X_vars[0], X_vars[1], X_vars[2], X_vars[3]});
+    ASSERT_EQ_RANGES(Y_vars, {Y_vars[0], Y_vars[1], Y_vars[2]});
+
+    // ASSERT_DEATH creates subprocesses that increase computation time
+    ASSERT_DEATH(X_vars[-1], ".*Assertion.*failed.*");
+    ASSERT_DEATH(X_vars[4], ".*Assertion.*failed.*");
+    ASSERT_DEATH(Y_vars[-1], ".*Assertion.*failed.*");
+    ASSERT_DEATH(Y_vars[3], ".*Assertion.*failed.*");
+
+    if constexpr(has_readable_objective<T>) {
+        for(auto && x : X_vars)
+            ASSERT_EQ(model.get_objective_coefficient(x), 1);
+        for(auto && y : Y_vars)
+            ASSERT_EQ(model.get_objective_coefficient(y), 0);
+    }
+    if constexpr(has_readable_variables_bounds<T>) {
+        for(auto && x : X_vars) {
+            ASSERT_EQ(model.get_variable_lower_bound(x), 2.0);
+            ASSERT_EQ(model.get_variable_upper_bound(x), 5.0);
+        }
+        for(auto && y : Y_vars) {
+            ASSERT_EQ(model.get_variable_lower_bound(y), 0.0);
+            // ASSERT_EQ(model.get_variable_upper_bound(y), M::infinity);
+        }
+    }
+}
+TYPED_TEST(ModelTest, add_indexed_variables) {
+    using T = TypeParam::T;
+    auto model = this->construct_model();
+
+    auto F = model.add_variable();
+    auto X_vars = model.add_variables(
+        4, [](int a) { return 3 - a; },
+        {.obj_coef = 1, .lower_bound = 2, .upper_bound = 5});
+    auto Y_vars =
+        model.add_variables(4, [](int a, int b) { return a * 2 + b; });
+
+    ASSERT_EQ(model.num_variables(), 9);
+    ASSERT_EQ(F.id(), 0);
+    ASSERT_EQ(X_vars(0).id(), 4);
+    ASSERT_EQ(X_vars(1).id(), 3);
+    ASSERT_EQ(X_vars(2).id(), 2);
+    ASSERT_EQ(X_vars(3).id(), 1);
+    ASSERT_EQ(Y_vars(0, 0).id(), 5);
+    ASSERT_EQ(Y_vars(0, 1).id(), 6);
+    ASSERT_EQ(Y_vars(1, 0).id(), 7);
+    ASSERT_EQ(Y_vars(1, 1).id(), 8);
+
+    // ASSERT_DEATH creates subprocesses that increase computation time
+    ASSERT_DEATH(X_vars(-1), ".*Assertion.*failed.*");
+    ASSERT_DEATH(X_vars(4), ".*Assertion.*failed.*");
+    ASSERT_DEATH(Y_vars(0, -1), ".*Assertion.*failed.*");
+    ASSERT_DEATH(Y_vars(2, 0), ".*Assertion.*failed.*");
+
+    ASSERT_EQ_RANGES(X_vars, {X_vars(3), X_vars(2), X_vars(1), X_vars(0)});
+    ASSERT_EQ_RANGES(Y_vars,
+                     {Y_vars(0, 0), Y_vars(0, 1), Y_vars(1, 0), Y_vars(1, 1)});
+
+    if constexpr(has_readable_objective<T>) {
+        for(auto && x : X_vars)
+            ASSERT_EQ(model.get_objective_coefficient(x), 1);
+        for(auto && y : Y_vars)
+            ASSERT_EQ(model.get_objective_coefficient(y), 0);
+    }
+    if constexpr(has_readable_variables_bounds<T>) {
+        for(auto && x : X_vars) {
+            ASSERT_EQ(model.get_variable_lower_bound(x), 2.0);
+            ASSERT_EQ(model.get_variable_upper_bound(x), 5.0);
+        }
+        for(auto && y : Y_vars) {
+            ASSERT_EQ(model.get_variable_lower_bound(y), 0.0);
+            // ASSERT_EQ(model.get_variable_upper_bound(y), M::infinity);
+        }
+    }
+}
 TYPED_TEST(ModelTest, optimize_empty_min) {
     using T = TypeParam::T;
     T model = this->construct_model();

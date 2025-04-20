@@ -121,28 +121,18 @@ public:
 private:
     void _add_variables(std::size_t offset, std::size_t count,
                         const variable_params & params) {
-        Highs.addCols(model, static_cast<HighsInt>(count), NULL, NULL, NULL, 0,
-                      NULL, NULL, NULL);
-        if(auto obj = params.obj_coef; obj != 0.0) {
-            tmp_scalars.resize(count);
-            std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
-            Highs.changeColsCostByRange(
-                model, static_cast<variable_id>(offset),
-                static_cast<variable_id>(offset + count), tmp_scalars.data());
-        }
-        if(auto lb = params.lower_bound.value_or(-Highs.getInfinity(model)),
-           ub = params.upper_bound.value_or(Highs.getInfinity(model));
-           lb != 0.0 || ub != Highs.getInfinity(model)) {
-            tmp_scalars.resize(2 * count);
-            std::fill(tmp_scalars.begin(),
-                      tmp_scalars.begin() + static_cast<int>(count), lb);
-            std::fill(tmp_scalars.begin() + static_cast<int>(count),
-                      tmp_scalars.end(), ub);
-            Highs.changeColsBoundsByRange(
-                model, static_cast<variable_id>(offset),
-                static_cast<variable_id>(offset + count), tmp_scalars.data(),
-                tmp_scalars.data() + count);
-        }
+        const auto diff_count = static_cast<std::ptrdiff_t>(count);
+        tmp_scalars.resize(3 * count);
+        std::fill(tmp_scalars.begin(), tmp_scalars.begin() + diff_count,
+                  params.obj_coef);
+        std::fill(tmp_scalars.begin() + diff_count,
+                  tmp_scalars.begin() + 2 * diff_count,
+                  params.lower_bound.value_or(-Highs.getInfinity(model)));
+        std::fill(tmp_scalars.begin() + 2 * diff_count, tmp_scalars.end(),
+                  params.upper_bound.value_or(Highs.getInfinity(model)));
+        Highs.addCols(model, static_cast<HighsInt>(count), tmp_scalars.data(),
+                      tmp_scalars.data() + diff_count,
+                      tmp_scalars.data() + 2 * diff_count, 0, NULL, NULL, NULL);
     }
 
 public:

@@ -37,8 +37,8 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        scalar lower_bound = scalar{0};
-        scalar upper_bound = std::numeric_limits<scalar>::infinity();
+        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> upper_bound = std::nullopt;
     };
 
 public:
@@ -73,18 +73,50 @@ public:
     }
     double get_objective_offset() { return objective_offset; }
 
-    variable add_variable(
-        const variable_params p = {
-            .obj_coef = 0,
-            .lower_bound = 0,
-            .upper_bound = std::numeric_limits<double>::infinity()}) {
+private:
+    inline void _add_var(const variable_params & params) {
+        SoPlex.addColReal(
+            model, NULL, 0, 0, params.obj_coef,
+            params.lower_bound.value_or(-std::numeric_limits<double>::lowest()),
+            params.upper_bound.value_or(std::numeric_limits<double>::max()));
+    }
+
+public:
+    variable add_variable(const variable_params params = {
+                              .obj_coef = 0,
+                              .lower_bound = 0,
+                              .upper_bound = std::nullopt}) {
         int var_id = static_cast<int>(num_variables());
-        SoPlex.addColReal(model, NULL, 0, 0, p.obj_coef, p.lower_bound,
-                          p.upper_bound);
+        _add_var(params);
         return variable(var_id);
     }
-    // variables_range add_variables(std::size_t count,
-    //                               const variable_params p);
+    auto add_variables(std::size_t count, const variable_params params = {
+                                              .obj_coef = 0,
+                                              .lower_bound = 0,
+                                              .upper_bound = std::nullopt}) {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
+    }
+    template <typename IL>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+        return make_indexed_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
+    }
 
     constraint add_constraint(linear_constraint auto && lc) {
         int num_nz = 0;
