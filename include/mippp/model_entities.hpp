@@ -114,25 +114,29 @@ public:
 /////////////////////////////// Entities range ////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename Vars, typename IdLambda>
-class variables_range_base {
+template <typename Vars>
+class variables_range {
 private:
     using variable = ranges::range_value_t<Vars>;
     using scalar_t = typename variable::scalar_t;
 
 protected:
     const Vars _variables;
-    const IdLambda _id_lambda;
 
 public:
-    template <typename VR, typename IL>
-    constexpr variables_range_base(VR && variables, IL && id_lambda) noexcept
-        : _variables(std::forward<VR>(variables))
-        , _id_lambda(std::forward<IL>(id_lambda)) {}
+    template <typename VR>
+    constexpr variables_range(VR && variables) noexcept
+        : _variables(std::forward<VR>(variables)) {}
 
     constexpr auto size() const noexcept { return ranges::size(_variables); }
     constexpr auto begin() const noexcept { return ranges::begin(_variables); }
     constexpr auto end() const noexcept { return ranges::end(_variables); }
+
+    template <std::integral T>
+    constexpr auto operator[](T i) const noexcept {
+        assert(static_cast<std::size_t>(i) < this->size());
+        return begin()[static_cast<std::ranges::range_difference_t<Vars>>(i)];
+    }
 
     constexpr auto linear_terms() const noexcept {
         return ranges::views::transform(_variables, [](auto && i) {
@@ -142,14 +146,23 @@ public:
     constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
 };
 
+template <ranges::viewable_range VR>
+auto make_variables_range(VR && variables) {
+    return variables_range<ranges::view::all_t<VR>>(
+        ranges::view::all(variables));
+}
+
 template <ranges::random_access_range Vars, typename IdLambda, typename... Args>
     requires std::integral<std::invoke_result_t<IdLambda, Args...>>
-class variables_range : public variables_range_base<Vars, IdLambda> {
+class indexed_variables_range : public variables_range<Vars> {
+protected:
+    const IdLambda _id_lambda;
+
 public:
     template <typename VR, typename IL>
-    constexpr variables_range(VR && variables, IL && id_lambda) noexcept
-        : variables_range_base<Vars, IdLambda>(std::forward<VR>(variables),
-                                               std::forward<IL>(id_lambda)) {}
+    constexpr indexed_variables_range(VR && variables, IL && id_lambda) noexcept
+        : variables_range<Vars>(std::forward<VR>(variables))
+        , _id_lambda(std::forward<IL>(id_lambda)) {}
 
     constexpr auto operator()(Args... args) const noexcept {
         const auto index = static_cast<std::ranges::range_difference_t<Vars>>(
@@ -160,10 +173,11 @@ public:
 };
 
 template <ranges::viewable_range VR, typename IL, typename... Args>
-auto make_variables_range(detail::pack<Args...>, VR && variables,
-                          IL && id_lambda) {
-    return variables_range<ranges::view::all_t<VR>, std::decay_t<IL>, Args...>(
-        ranges::view::all(variables), std::forward<IL>(id_lambda));
+auto make_indexed_variables_range(detail::pack<Args...>, VR && variables,
+                                  IL && id_lambda) {
+    return indexed_variables_range<ranges::view::all_t<VR>, std::decay_t<IL>,
+                                   Args...>(ranges::view::all(variables),
+                                            std::forward<IL>(id_lambda));
 }
 
 template <ranges::random_access_range Vars, typename IdLambda,
@@ -172,7 +186,7 @@ template <ranges::random_access_range Vars, typename IdLambda,
              std::convertible_to<std::invoke_result_t<NamingLambda, Args...>,
                                  std::string>
 class lazily_named_variables_range
-    : public variables_range_base<Vars, IdLambda> {
+    : public indexed_variables_range<Vars, IdLambda> {
 private:
     mutable NamingLambda _naming_lambda;
 
@@ -180,8 +194,8 @@ public:
     template <typename VR, typename IL, typename NL>
     constexpr lazily_named_variables_range(VR && variables, IL && id_lambda,
                                            NL && naming_lambda) noexcept
-        : variables_range_base<Vars, IdLambda>(std::forward<VR>(variables),
-                                               std::forward<IL>(id_lambda))
+        : indexed_variables_range<Vars, IdLambda>(std::forward<VR>(variables),
+                                                  std::forward<IL>(id_lambda))
         , _naming_lambda(std::forward<NL>(naming_lambda)) {}
 
     constexpr auto operator()(Args... args) const noexcept {

@@ -108,13 +108,62 @@ public:
                               .lower_bound = 0,
                               .upper_bound = std::nullopt}) {
         int var_id = static_cast<int>(num_variables());
-        double lb = p.lower_bound.value_or(-CPX_INFBOUND);
-        double ub = p.upper_bound.value_or(CPX_INFBOUND);
+        const double lb = p.lower_bound.value_or(-CPX_INFBOUND);
+        const double ub = p.upper_bound.value_or(CPX_INFBOUND);
         check(CPX.newcols(env, lp, 1, &p.obj_coef, &lb, &ub, NULL, NULL));
         return variable(var_id);
     }
-    // // variables_range add_variables(std::size_t count,
-    // //                               const variable_params p);
+
+    // private:
+    // void _add_variables(std::size_t offset, std::size_t count,
+    //                     const variable_params & params) {
+    //     check(CPX.newcols(env, lp, static_cast<int>(count), NULL, NULL, NULL,
+    //     NULL, NULL)); if(auto obj = params.obj_coef; obj != 0.0) {
+    //         double * objective = Clp.objective(model);
+    //         std::fill(objective + offset, objective + offset + count, obj);
+    //     }
+    //     if(auto lb = params.lower_bound.value_or(COIN_DBL_MIN); lb != 0.0) {
+    //         double * lower_bounds = Clp.columnLower(model);
+    //         std::fill(lower_bounds + offset, lower_bounds + offset + count,
+    //         lb);
+    //     }
+    //     if(auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
+    //        ub != COIN_DBL_MAX) {
+    //         double * upper_bounds = Clp.columnUpper(model);
+    //         std::fill(upper_bounds + offset, upper_bounds + offset + count,
+    //         ub);
+    //     }
+    // }
+
+    // public:
+    // auto add_variables(std::size_t count,
+    //                    variable_params params = {
+    //                        .obj_coef = 0,
+    //                        .lower_bound = 0,
+    //                        .upper_bound = std::nullopt}) noexcept {
+    //     const std::size_t offset = num_variables();
+    //     _add_variables(offset, count, params);
+    //     return make_variables_range(ranges::view::transform(
+    //         ranges::view::iota(static_cast<variable_id>(offset),
+    //                            static_cast<variable_id>(offset + count)),
+    //         [](auto && i) { return variable{i}; }));
+    // }
+    // template <typename IL>
+    // auto add_variables(std::size_t count, IL && id_lambda,
+    //                    variable_params params = {
+    //                        .obj_coef = 0,
+    //                        .lower_bound = 0,
+    //                        .upper_bound = std::nullopt}) noexcept {
+    //     const std::size_t offset = num_variables();
+    //     _add_variables(offset, count, params);
+    //     return make_indexed_variables_range(
+    //         typename detail::function_traits<IL>::arg_types(),
+    //         ranges::view::transform(
+    //             ranges::view::iota(static_cast<variable_id>(offset),
+    //                                static_cast<variable_id>(offset + count)),
+    //             [](auto && i) { return variable{i}; }),
+    //         std::forward<IL>(id_lambda));
+    // }
 
     constraint add_constraint(linear_constraint auto && lc) {
         auto constr_id = static_cast<int>(num_constraints());

@@ -130,8 +130,63 @@ public:
         check(MSK.putcj(task, var_id, p.obj_coef));
         return variable(var_id);
     }
-    // // variables_range add_variables(std::size_t count,
-    // //                               const variable_params p);
+
+private:
+    void _add_variables(std::size_t offset, std::size_t count,
+                        const variable_params & params) {
+        check(MSK.appendvars(task, static_cast<int>(count)));
+        if(auto obj = params.obj_coef; obj != 0.0) {
+            tmp_scalars.resize(count);
+            std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
+            MSK.putcslice(task, static_cast<variable_id>(offset),
+                          static_cast<variable_id>(offset + count),
+                          tmp_scalars.data());
+        }
+        const auto lb = params.lower_bound.value_or(0);
+        const auto ub = params.upper_bound.value_or(0);
+
+        MSKboundkeye boundkey = MSK_BK_FR;
+        if(params.lower_bound.has_value() && !params.upper_bound.has_value())
+            boundkey = MSK_BK_LO;
+        if(!params.lower_bound.has_value() && params.upper_bound.has_value())
+            boundkey = MSK_BK_UP;
+        if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
+            boundkey = (lb == ub) ? MSK_BK_FX : MSK_BK_RA;
+        }
+        MSK.putvarboundsliceconst(task, static_cast<variable_id>(offset),
+                                  static_cast<variable_id>(offset + count),
+                                  boundkey, lb, ub);
+    }
+
+public:
+    auto add_variables(std::size_t count,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
+    }
+    template <typename IL>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_indexed_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
+    }
 
     constraint add_constraint(linear_constraint auto && lc) {
         auto constr_id = static_cast<int>(num_constraints());

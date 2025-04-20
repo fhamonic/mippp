@@ -39,7 +39,8 @@ private:
     void * model;
     std::optional<lp_status> opt_lp_status;
 
-    std::vector<std::pair<constraint_id, unsigned int>> tmp_constraint_entry_cache;
+    std::vector<std::pair<constraint_id, unsigned int>>
+        tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
 
@@ -116,8 +117,63 @@ public:
                            NULL, NULL));
         return variable(var_id);
     }
-    // variables_range add_variables(std::size_t count,
-    //                               const variable_params p);
+
+private:
+    void _add_variables(std::size_t offset, std::size_t count,
+                        const variable_params & params) {
+        Highs.addCols(model, static_cast<HighsInt>(count), NULL, NULL, NULL, 0,
+                      NULL, NULL, NULL);
+        if(auto obj = params.obj_coef; obj != 0.0) {
+            tmp_scalars.resize(count);
+            std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
+            Highs.changeColsCostByRange(
+                model, static_cast<variable_id>(offset),
+                static_cast<variable_id>(offset + count), tmp_scalars.data());
+        }
+        if(auto lb = params.lower_bound.value_or(-Highs.getInfinity(model)),
+           ub = params.upper_bound.value_or(Highs.getInfinity(model));
+           lb != 0.0 || ub != Highs.getInfinity(model)) {
+            tmp_scalars.resize(2 * count);
+            std::fill(tmp_scalars.begin(),
+                      tmp_scalars.begin() + static_cast<int>(count), lb);
+            std::fill(tmp_scalars.begin() + static_cast<int>(count),
+                      tmp_scalars.end(), ub);
+            Highs.changeColsBoundsByRange(
+                model, static_cast<variable_id>(offset),
+                static_cast<variable_id>(offset + count), tmp_scalars.data(),
+                tmp_scalars.data() + count);
+        }
+    }
+
+public:
+    auto add_variables(std::size_t count,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
+    }
+    template <typename IL>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_indexed_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
+    }
 
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());

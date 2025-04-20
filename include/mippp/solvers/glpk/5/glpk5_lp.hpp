@@ -31,14 +31,14 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        scalar lower_bound = scalar{0};
-        scalar upper_bound = std::numeric_limits<scalar>::infinity();
+        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> upper_bound = std::nullopt;
     };
 
 private:
     const glpk5_api & glp;
     glp_prob * model;
-    glp_smcp params;
+    glp_smcp model_params;
     std::optional<lp_status> opt_lp_status;
     double objective_offset;
 
@@ -58,28 +58,29 @@ private:
                                  "' to constraint_relation.");
     }
 
-    std::vector<std::pair<constraint_id, unsigned int>> tmp_constraint_entry_cache;
+    std::vector<std::pair<constraint_id, unsigned int>>
+        tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
 
 public:
     [[nodiscard]] explicit glpk5_lp(const glpk5_api & api)
-        : glp(api), model(glp.create_prob()), params(), objective_offset(0.0) {
-        params.msg_lev = GLP_MSG_ALL;
-        params.meth = GLP_PRIMAL;
-        params.pricing = GLP_PT_STD;
-        params.r_test = GLP_RT_STD;
-        params.tol_bnd = 1e-13;
-        params.tol_dj = 1e-13;
-        params.tol_piv = 1e-13;
-        params.obj_ll = std::numeric_limits<double>::lowest();
-        params.obj_ul = std::numeric_limits<double>::max();
-        params.it_lim = std::numeric_limits<int>::max();
-        params.tm_lim = std::numeric_limits<int>::max();
-        params.presolve = 0;  // PRESOLVE
-        params.excl = 0;
-        params.shift = 0;
-        params.aorn = GLP_USE_AT;
+        : glp(api), model(glp.create_prob()), model_params(), objective_offset(0.0) {
+        model_params.msg_lev = GLP_MSG_ALL;
+        model_params.meth = GLP_PRIMAL;
+        model_params.pricing = GLP_PT_STD;
+        model_params.r_test = GLP_RT_STD;
+        model_params.tol_bnd = 1e-13;
+        model_params.tol_dj = 1e-13;
+        model_params.tol_piv = 1e-13;
+        model_params.obj_ll = std::numeric_limits<double>::lowest();
+        model_params.obj_ul = std::numeric_limits<double>::max();
+        model_params.it_lim = std::numeric_limits<int>::max();
+        model_params.tm_lim = std::numeric_limits<int>::max();
+        model_params.presolve = 0;  // PRESOLVE
+        model_params.excl = 0;
+        model_params.shift = 0;
+        model_params.aorn = GLP_USE_AT;
     }
     ~glpk5_lp() { glp.delete_prob(model); }
 
@@ -117,20 +118,67 @@ public:
     }
     double get_objective_offset() { return objective_offset; }
 
-    variable add_variable(
-        const variable_params p = {
-            .obj_coef = 0,
-            .lower_bound = 0,
-            .upper_bound = std::numeric_limits<double>::infinity()}) {
+    variable add_variable(const variable_params params = {
+                              .obj_coef = 0,
+                              .lower_bound = 0,
+                              .upper_bound = std::nullopt}) {
         int var_id = static_cast<int>(num_variables());
         glp.add_cols(model, 1);
-        glp.set_obj_coef(model, var_id + 1, p.obj_coef);
-        glp.set_col_bnds(model, var_id + 1, GLP_DB, p.lower_bound,
-                         p.upper_bound);
+        glp.set_obj_coef(model, var_id + 1, params.obj_coef);
+        glp.set_col_bnds(
+            model, var_id + 1, GLP_DB,
+            params.lower_bound.value_or(-std::numeric_limits<double>::infinity()),
+            params.upper_bound.value_or(std::numeric_limits<double>::infinity()));
         return variable(var_id);
     }
-    // variables_range add_variables(std::size_t count,
-    //                               const variable_params p);
+
+private:
+    void _add_variables(std::size_t offset, std::size_t count,
+                        const variable_params & params) {
+        glp.add_cols(model, static_cast<int>(count));
+        if(auto obj = params.obj_coef; obj != 0.0) {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp.set_obj_coef(model, static_cast<int>(i), obj);
+        }
+        if(auto lb = params.lower_bound.value_or(
+               -std::numeric_limits<double>::infinity()),
+           ub = params.upper_bound.value_or(
+               std::numeric_limits<double>::infinity());
+           lb != 0.0 || !std::isinf(ub)) {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp.set_col_bnds(model, static_cast<int>(i), GLP_DB, lb, ub);
+        }
+    }
+
+public:
+    auto add_variables(std::size_t count,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
+    }
+    template <typename IL>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_indexed_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
+    }
 
     constraint add_constraint(linear_constraint auto && lc) {
         auto constr_id = static_cast<int>(num_constraints());
@@ -159,7 +207,7 @@ public:
     }
 
     void optimize() {
-        switch(glp.simplex(model, &params)) {
+        switch(glp.simplex(model, &model_params)) {
             case GLP_ENOPFS:
                 opt_lp_status.emplace(lp_status::unbounded);
                 return;

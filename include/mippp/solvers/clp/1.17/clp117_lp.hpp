@@ -58,8 +58,8 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        scalar lower_bound = scalar{0};
-        scalar upper_bound = std::numeric_limits<scalar>::infinity();
+        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> upper_bound = std::nullopt;
     };
 
 public:
@@ -115,12 +115,61 @@ public:
             .lower_bound = 0,
             .upper_bound = std::numeric_limits<double>::infinity()}) {
         int var_id = static_cast<int>(num_variables());
-        Clp.addColumns(model, 1, &p.lower_bound, &p.upper_bound, &p.obj_coef,
-                       NULL, NULL, NULL);
+        const auto lb = p.lower_bound.value_or(COIN_DBL_MIN);
+        const auto ub = p.upper_bound.value_or(COIN_DBL_MAX);
+        Clp.addColumns(model, 1, &lb, &ub, &p.obj_coef, NULL, NULL, NULL);
         return variable(var_id);
     }
-    // variables_range add_variables(std::size_t count,
-    //                               const variable_params p);
+
+private:
+    void _add_variables(std::size_t offset, std::size_t count,
+                        const variable_params & params) {
+        Clp.addColumns(model, static_cast<int>(count), NULL, NULL, NULL, NULL,
+                       NULL, NULL);
+        if(auto obj = params.obj_coef; obj != 0.0) {
+            double * objective = Clp.objective(model);
+            std::fill(objective + offset, objective + offset + count, obj);
+        }
+        if(auto lb = params.lower_bound.value_or(COIN_DBL_MIN); lb != 0.0) {
+            double * lower_bounds = Clp.columnLower(model);
+            std::fill(lower_bounds + offset, lower_bounds + offset + count, lb);
+        }
+        if(auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
+           ub != COIN_DBL_MAX) {
+            double * upper_bounds = Clp.columnUpper(model);
+            std::fill(upper_bounds + offset, upper_bounds + offset + count, ub);
+        }
+    }
+
+public:
+    auto add_variables(std::size_t count,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
+    }
+    template <typename IL>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_indexed_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
+    }
 
     void set_objective_coefficient(variable v, double c) {
         Clp.objective(model)[v.id()] = c;

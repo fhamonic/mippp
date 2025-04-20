@@ -200,6 +200,19 @@ private:
     }
 
 public:
+    auto add_variables(std::size_t count, variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return make_variables_range(
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }));
+    }
+
     template <typename IL>
     auto add_variables(std::size_t count, IL && id_lambda,
                        variable_params params = {
@@ -208,7 +221,7 @@ public:
                            .upper_bound = std::nullopt}) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params);
-        return make_variables_range(
+        return make_indexed_variables_range(
             typename detail::function_traits<IL>::arg_types(),
             ranges::view::transform(
                 ranges::view::iota(static_cast<variable_id>(offset),

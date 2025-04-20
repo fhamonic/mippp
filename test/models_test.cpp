@@ -1,3 +1,4 @@
+#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "assert_helper.hpp"
@@ -28,12 +29,27 @@ GTEST_TEST(any, test) {
     grb_api api;
     grb_lp model(api);
 
-    auto X_vars =
-        model.add_variables(12, [](int a, int b) { return a * 3 + b; });
+    auto F = model.add_variable();
+    auto X_vars = model.add_variables(4, {.obj_coef = 1});
+    auto Y_vars =
+        model.add_variables(4, [](int a, int b) { return a * 2 + b; });
 
-    ASSERT_EQ(X_vars(1, 2).id(), 5);
+    ASSERT_EQ(model.num_variables(), 9);
 
-    ASSERT_DEATH(X_vars(6, 2), ".*Assertion.*failed.*");
+    ASSERT_EQ(X_vars[0].id(), 1);
+    ASSERT_EQ(X_vars[1].id(), 2);
+    ASSERT_EQ(X_vars[2].id(), 3);
+    ASSERT_EQ(X_vars[3].id(), 4);
+
+    ASSERT_EQ(Y_vars(0, 0).id(), 5);
+    ASSERT_EQ(Y_vars(0, 1).id(), 6);
+    ASSERT_EQ(Y_vars(1, 0).id(), 7);
+    ASSERT_EQ(Y_vars(1, 1).id(), 8);
+
+    ASSERT_DEATH(X_vars[-1], ".*Assertion.*failed.*");
+    ASSERT_DEATH(X_vars[4], ".*Assertion.*failed.*");
+    ASSERT_DEATH(Y_vars(0, -1), ".*Assertion.*failed.*");
+    ASSERT_DEATH(Y_vars(2, 0), ".*Assertion.*failed.*");
 }
 
 //*

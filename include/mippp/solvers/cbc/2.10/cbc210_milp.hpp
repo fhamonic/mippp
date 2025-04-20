@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string_view>
@@ -33,8 +34,8 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        scalar lower_bound = scalar{0};
-        scalar upper_bound = std::numeric_limits<scalar>::infinity();
+        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> upper_bound = std::nullopt;
     };
 
 private:
@@ -109,18 +110,49 @@ public:
             get_objective_offset());
     }
 
-    variable add_variable(
-        const variable_params p = {
-            .obj_coef = 0,
-            .lower_bound = 0,
-            .upper_bound = std::numeric_limits<double>::infinity()}) {
+private:
+    inline void _add_var(const variable_params & p) {
+        Cbc.addCol(model, "", p.lower_bound.value_or(-COIN_DBL_MIN),
+                   p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, false, 0,
+                   NULL, NULL);
+    }
+
+public:
+    variable add_variable(const variable_params params = {
+                              .obj_coef = 0,
+                              .lower_bound = 0,
+                              .upper_bound = std::nullopt}) {
         int var_id = static_cast<int>(num_variables());
-        Cbc.addCol(model, "", p.lower_bound, p.upper_bound, p.obj_coef, false,
-                   0, NULL, NULL);
+        _add_var(params);
         return variable(var_id);
     }
-    // variables_range add_variables(std::size_t count,
-    //                               const variable_params p);
+    auto add_variables(std::size_t count, const variable_params params = {
+                                              .obj_coef = 0,
+                                              .lower_bound = 0,
+                                              .upper_bound = std::nullopt}) {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
+    }
+    template <typename IL>
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = {
+                           .obj_coef = 0,
+                           .lower_bound = 0,
+                           .upper_bound = std::nullopt}) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+        return make_indexed_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda));
+    }
 
     void set_objective_coefficient(variable v, double c) {
         Cbc.setObjCoeff(model, v.id(), c);
