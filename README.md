@@ -44,18 +44,21 @@ then manage to #include it where needed with the range-v3 library.
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 ...
-using MIP = mip_model<linked_cbc_traits>;
-MIP model;
+grb_api api("gurobi120"); // loads libgurobi120.so C API
+grb_lp_model model(api);
+
 auto x1 = model.add_variable();
-auto x2 = model.add_variable({.upper_bound=3}); // default option is
-// {.obj_coef=0, .lower_bound=0, .upper_bound=infinity, type=MIP::var_category::continuous}
-model.add_to_objective(4 * x1 + 5 * x2);
+auto x2 = model.add_variable({.upper_bound=3});
+
+model.set_maximization();
+model.set_objective(4 * x1 + 5 * x2);
 model.add_constraint(x1 <= 4);
 model.add_constraint(2*x1 + x2 <= 9);
 
-auto solver_model = model.build();
-solver_model.optimize();
-std::vector<double> solution = solver_model.get_solution();
+model.optimize();
+auto sol = model.get_solution();
+
+std::cout << std::format("x1: {}, x2: {}", sol[x1], sol[x2]) << std::endl;
 ```
 
 Using the [MELON library](https://github.com/fhamonic/melon), we can express the Maximum Flow problem as
@@ -72,8 +75,8 @@ static_graph graph = ...;
 arc_map_t<static_graph, double> capacity_map = ...;
 vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
-
-grb_api api("gurobi120"); // loads libgurobi120.so C API
+...
+grb_api api();
 grb_lp_model model(api);
 
 auto F = model.add_variable();
@@ -92,7 +95,6 @@ for(auto && a : graph.arcs()) {
     model.set_variable_upper_bound(X_vars(a), capacity_map[a]);
 }
 ```
-
 or the Shortest Path problem as
 
 ```cpp
@@ -101,6 +103,9 @@ arc_map_t<static_graph, double> length_map = ...;
 vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 ...
+grb_api api();
+grb_lp_model model(api);
+
 auto X_vars = model.add_variables(graph.num_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
 
