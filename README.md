@@ -73,20 +73,23 @@ arc_map_t<static_graph, double> capacity_map = ...;
 vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 
-mip_model<linked_cbc_traits> model;
-auto F = model.add_variable();
-auto X_vars = model.add_variables(graph.num_arcs(),
-    [](arc_t<static_graph> a) -> std::size_t { return a; });
+grb_api api("gurobi120"); // loads libgurobi120.so C API
+grb_lp_model model(api);
 
-model.add_to_objective(F);
+auto F = model.add_variable();
+auto X_vars = model.add_variables(graph.num_arcs());
+
+model.set_maximization();
+model.set_objective(F);
 for(auto && u : graph.vertices()) {
     if(u == s || u == t) continue;
     model.add_constraint(xsum(graph.out_arcs(u), X_vars) == xsum(graph.in_arcs(u), X_vars));
 }
 model.add_constraint(xsum(graph.out_arcs(s), X_vars) == xsum(graph.in_arcs(s), X_vars) + F);
 model.add_constraint(xsum(graph.out_arcs(t), X_vars) == xsum(graph.in_arcs(t), X_vars) - F);
+
 for(auto && a : graph.arcs()) {
-    model.add_constraint(X_vars(a) <= capacity_map[a]);
+    model.set_variable_upper_bound(X_vars(a), capacity_map[a]);
 }
 ```
 
@@ -97,13 +100,12 @@ static_graph graph = ...;
 arc_map_t<static_graph, double> length_map = ...;
 vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
-
-using MIP = mip_model<linked_cbc_traits>;
-MIP model(MIP::opt_sense::min);
+...
 auto X_vars = model.add_variables(graph.num_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
 
-model.add_to_objective(xsum(graph.arcs(), [&](auto && a){
+model.set_maximization();
+model.set_objective(xsum(graph.arcs(), [&](auto && a){
     return length_map[a] * X_vars(a);
 }));
 for(auto && u : graph.vertices()) {

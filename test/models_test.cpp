@@ -165,9 +165,18 @@ using Models = ::testing::Types<
         grb_milp_test,
         soplex_lp_test,
         glpk_lp_test,
+        // glpk_milp_test,
         highs_lp_test,
+        // highs_milp_test,
         scip_milp_test
         // mosek_lp_test
+        // mosek_milp_test
+        // cplex_lp_test
+        // cplex_milp_test
+        // copt_lp_test
+        // copt_milp_test
+        // xprs_lp_test
+        // xprs_milp_test
         >;
 // clang-format on
 
