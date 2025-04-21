@@ -52,8 +52,7 @@ concept lp_model = requires(T & model, T::variable v, T::variable_id vid,
 
     { model.add_variable() } -> std::convertible_to<typename T::variable>;
     { model.add_variable({.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> std::convertible_to<typename T::variable>;
-    
+            -> std::convertible_to<typename T::variable>;    
     { model.add_variables(std::size_t{1u}) } -> ranges::random_access_range;
     { model.add_variables(std::size_t{1u},
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
@@ -78,8 +77,25 @@ concept lp_model = requires(T & model, T::variable v, T::variable_id vid,
 
 template <typename T>
 concept milp_model = lp_model<T> && requires(T & model, T::variable v,
-                                             T::variable_params vparams) {
-    { vparams.integer = true };
+                            T::variable_params vparams, T::scalar s) {
+    { model.add_integer_variable() } -> std::convertible_to<typename T::variable>;
+    { model.add_integer_variable({.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> std::convertible_to<typename T::variable>;
+    { model.add_integer_variables(std::size_t{1u}) } -> ranges::random_access_range;
+    { model.add_integer_variables(std::size_t{1u},
+                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> ranges::random_access_range;
+    { model.add_integer_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
+            -> ranges::random_access_range;
+    { model.add_integer_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; },
+                            {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> ranges::random_access_range;
+
+    { model.add_binary_variable() } -> std::convertible_to<typename T::variable>;
+    { model.add_binary_variables(std::size_t{1u}) } -> ranges::random_access_range;
+    { model.add_binary_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
+            -> ranges::random_access_range;
+
     { model.set_integer(v) };
     { model.set_continous(v) };
 };

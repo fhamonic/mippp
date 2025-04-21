@@ -34,9 +34,12 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
+
+    static constexpr variable_params default_variable_params = {
+        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 private:
     const cbc210_api & Cbc;
@@ -112,24 +115,20 @@ public:
 
 private:
     inline void _add_var(const variable_params & p) {
-        Cbc.addCol(model, "", p.lower_bound.value_or(-COIN_DBL_MIN),
+        Cbc.addCol(model, "", p.lower_bound.value_or(-COIN_DBL_MAX),
                    p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, false, 0,
                    NULL, NULL);
     }
 
 public:
-    variable add_variable(const variable_params params = {
-                              .obj_coef = 0,
-                              .lower_bound = 0,
-                              .upper_bound = std::nullopt}) {
+    variable add_variable(
+        const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(num_variables());
         _add_var(params);
         return variable(var_id);
     }
-    auto add_variables(std::size_t count, const variable_params params = {
-                                              .obj_coef = 0,
-                                              .lower_bound = 0,
-                                              .upper_bound = std::nullopt}) {
+    auto add_variables(std::size_t count,
+                       const variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return make_variables_range(ranges::view::transform(
@@ -138,11 +137,9 @@ public:
             [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = {
-                           .obj_coef = 0,
-                           .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
+    auto add_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return make_indexed_variables_range(

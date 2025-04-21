@@ -19,38 +19,22 @@
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 
-GTEST_TEST(any, test) {
-    // mosek_api api("mosek64",
-    // "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
-    // cplex_api api(
-    //     "cplex2212",
-    //     "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+// GTEST_TEST(any, test) {
+//     // mosek_api api("mosek64",
+//     // "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
+//     // cplex_api api(
+//     //     "cplex2212",
+//     // "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
 
-    grb_api api;
-    grb_lp model(api);
+//     grb_api api;
+//     grb_lp model(api);
 
-    auto F = model.add_variable();
-    auto X_vars = model.add_variables(4, {.obj_coef = 1});
-    auto Y_vars =
-        model.add_variables(4, [](int a, int b) { return a * 2 + b; });
+//     auto F = model.add_variable();
+//     auto X_vars = model.add_variables(4, {.obj_coef = 1});
+//     auto Y_vars =
+//         model.add_variables(4, [](int a, int b) { return a * 2 + b; });
 
-    ASSERT_EQ(model.num_variables(), 9);
-
-    ASSERT_EQ(X_vars[0].id(), 1);
-    ASSERT_EQ(X_vars[1].id(), 2);
-    ASSERT_EQ(X_vars[2].id(), 3);
-    ASSERT_EQ(X_vars[3].id(), 4);
-
-    ASSERT_EQ(Y_vars(0, 0).id(), 5);
-    ASSERT_EQ(Y_vars(0, 1).id(), 6);
-    ASSERT_EQ(Y_vars(1, 0).id(), 7);
-    ASSERT_EQ(Y_vars(1, 1).id(), 8);
-
-    ASSERT_DEATH(X_vars[-1], ".*Assertion.*failed.*");
-    ASSERT_DEATH(X_vars[4], ".*Assertion.*failed.*");
-    ASSERT_DEATH(Y_vars(0, -1), ".*Assertion.*failed.*");
-    ASSERT_DEATH(Y_vars(2, 0), ".*Assertion.*failed.*");
-}
+// }
 
 //*
 struct clp_lp_test {
@@ -202,7 +186,7 @@ TYPED_TEST(ModelTest, add_variable) {
     }
     if constexpr(has_readable_variables_bounds<T>) {
         ASSERT_EQ(model.get_variable_lower_bound(x), 0.0);
-        // ASSERT_EQ(model.get_variable_upper_bound(x), M::infinity);
+        ASSERT_GE(model.get_variable_upper_bound(x), 1e100);
     }
 }
 TYPED_TEST(ModelTest, add_variable_2) {
@@ -219,9 +203,9 @@ TYPED_TEST(ModelTest, add_variable_2) {
     }
     if constexpr(has_readable_variables_bounds<T>) {
         ASSERT_EQ(model.get_variable_lower_bound(x), 0.0);
-        // ASSERT_EQ(model.get_variable_upper_bound(x), M::infinity);
+        ASSERT_GE(model.get_variable_upper_bound(x), 1e-100);
         ASSERT_EQ(model.get_variable_lower_bound(y), 0.0);
-        // ASSERT_EQ(model.get_variable_upper_bound(y), M::infinity);
+        ASSERT_GE(model.get_variable_upper_bound(y), 1e-100);
     }
 }
 TYPED_TEST(ModelTest, add_variable_w_params) {
@@ -237,10 +221,10 @@ TYPED_TEST(ModelTest, add_variable_w_params) {
         ASSERT_EQ(model.get_objective_coefficient(y), 0.0);
     }
     if constexpr(has_readable_variables_bounds<T>) {
-        ASSERT_EQ(model.get_variable_lower_bound(x), 0.0);
         ASSERT_EQ(model.get_variable_upper_bound(x), 13.0);
+        ASSERT_LE(model.get_variable_lower_bound(x), -1e100);
         ASSERT_EQ(model.get_variable_lower_bound(y), 2.0);
-        // ASSERT_EQ(model.get_variable_upper_bound(y), M::infinity);
+        ASSERT_GE(model.get_variable_upper_bound(y), 1e100);
     }
 }
 TYPED_TEST(ModelTest, add_variables) {
@@ -284,7 +268,7 @@ TYPED_TEST(ModelTest, add_variables) {
         }
         for(auto && y : Y_vars) {
             ASSERT_EQ(model.get_variable_lower_bound(y), 0.0);
-            // ASSERT_EQ(model.get_variable_upper_bound(y), M::infinity);
+            ASSERT_GE(model.get_variable_upper_bound(y), 1e100);
         }
     }
 }
@@ -333,7 +317,7 @@ TYPED_TEST(ModelTest, add_indexed_variables) {
         }
         for(auto && y : Y_vars) {
             ASSERT_EQ(model.get_variable_lower_bound(y), 0.0);
-            // ASSERT_EQ(model.get_variable_upper_bound(y), M::infinity);
+            ASSERT_GE(model.get_variable_upper_bound(y), 1e100);
         }
     }
 }

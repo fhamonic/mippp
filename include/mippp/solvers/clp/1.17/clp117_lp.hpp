@@ -58,9 +58,12 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
+
+    static constexpr variable_params default_variable_params = {
+        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 public:
     [[nodiscard]] explicit clp117_lp(const clp117_api & api)
@@ -109,13 +112,9 @@ public:
             get_objective_offset());
     }
 
-    variable add_variable(
-        const variable_params p = {
-            .obj_coef = 0,
-            .lower_bound = 0,
-            .upper_bound = std::numeric_limits<double>::infinity()}) {
+    variable add_variable(const variable_params p = default_variable_params) {
         int var_id = static_cast<int>(num_variables());
-        const auto lb = p.lower_bound.value_or(COIN_DBL_MIN);
+        const auto lb = p.lower_bound.value_or(-COIN_DBL_MAX);
         const auto ub = p.upper_bound.value_or(COIN_DBL_MAX);
         Clp.addColumns(model, 1, &lb, &ub, &p.obj_coef, NULL, NULL, NULL);
         return variable(var_id);
@@ -130,7 +129,7 @@ private:
             double * objective = Clp.objective(model);
             std::fill(objective + offset, objective + offset + count, obj);
         }
-        if(auto lb = params.lower_bound.value_or(COIN_DBL_MIN); lb != 0.0) {
+        if(auto lb = params.lower_bound.value_or(-COIN_DBL_MAX); lb != 0.0) {
             double * lower_bounds = Clp.columnLower(model);
             std::fill(lower_bounds + offset, lower_bounds + offset + count, lb);
         }
@@ -142,11 +141,9 @@ private:
     }
 
 public:
-    auto add_variables(std::size_t count,
-                       variable_params params = {
-                           .obj_coef = 0,
-                           .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
+    auto add_variables(
+        std::size_t count,
+        variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params);
         return make_variables_range(ranges::view::transform(
@@ -155,11 +152,9 @@ public:
             [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = {
-                           .obj_coef = 0,
-                           .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
+    auto add_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params);
         return make_indexed_variables_range(

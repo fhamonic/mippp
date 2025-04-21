@@ -31,9 +31,12 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
+
+    static constexpr variable_params default_variable_params = {
+        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
     const grb12_api & GRB;
@@ -156,22 +159,15 @@ public:
             get_objective_offset());
     }
 
-    variable add_variable(const variable_params p = {
-                              .obj_coef = 0,
-                              .lower_bound = 0,
-                              .upper_bound = std::nullopt}) {
-        int var_id = static_cast<int>(num_variables());
-        check(GRB.addvar(model, 0, NULL, NULL, p.obj_coef,
-                         p.lower_bound.value_or(-GRB_INFINITY),
-                         p.upper_bound.value_or(GRB_INFINITY), GRB_CONTINUOUS,
-                         NULL));
+protected:
+    inline void _add_variable(const double & obj, const double lb,
+                              const double ub, const char & type) {
+        check(GRB.addvar(model, 0, NULL, NULL, obj, lb, ub, type, NULL));
         _var_name_set.push_back(false);
-        return variable(var_id);
     }
-
-private:
-    void _add_variables(std::size_t offset, std::size_t count,
-                        const variable_params & params) {
+    inline void _add_variables(const std::size_t & offset,
+                               const std::size_t & count,
+                               const variable_params & params) {
         check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
                           NULL, NULL, NULL, NULL, NULL));
         if(auto obj = params.obj_coef; obj != 0.0) {
@@ -198,29 +194,17 @@ private:
         }
         _var_name_set.resize(offset + count, false);
     }
-
-public:
-    auto add_variables(std::size_t count, variable_params params = {
-                           .obj_coef = 0,
-                           .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params);
-        return make_variables_range(
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }));
+    auto _make_variables_range(const std::size_t & offset,
+                               const std::size_t & count) {
+        return make_variables_range(ranges::view::transform(
+            ranges::view::iota(static_cast<variable_id>(offset),
+                               static_cast<variable_id>(offset + count)),
+            [](auto && i) { return variable{i}; }));
     }
-
     template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = {
-                           .obj_coef = 0,
-                           .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params);
+    auto _make_indexed_variables_range(const std::size_t & offset,
+                                       const std::size_t & count,
+                                       IL && id_lambda) {
         return make_indexed_variables_range(
             typename detail::function_traits<IL>::arg_types(),
             ranges::view::transform(
@@ -228,6 +212,29 @@ public:
                                    static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
+    }
+
+public:
+    variable add_variable(const variable_params p = default_variable_params) {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable(p.obj_coef, p.lower_bound.value_or(-GRB_INFINITY),
+                      p.upper_bound.value_or(GRB_INFINITY), GRB_CONTINUOUS);
+        return variable(var_id);
+    }
+    auto add_variables(
+        std::size_t count,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return _make_indexed_variables_range(offset, count, std::forward<IL>(id_lambda));
     }
 
     // template <typename IL, typename NL>
