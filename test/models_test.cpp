@@ -164,6 +164,9 @@ using Models = ::testing::Types<
         >;
 // clang-format on
 
+#define EPSILON 1e-13
+#define INFTY 1e100
+
 template <typename T>
 class ModelTest : public ::testing::Test {
 private:
@@ -186,7 +189,7 @@ TYPED_TEST(ModelTest, add_variable) {
     }
     if constexpr(has_readable_variables_bounds<T>) {
         ASSERT_EQ(model.get_variable_lower_bound(x), 0.0);
-        ASSERT_GE(model.get_variable_upper_bound(x), 1e100);
+        ASSERT_GE(model.get_variable_upper_bound(x), INFTY);
     }
 }
 TYPED_TEST(ModelTest, add_variable_2) {
@@ -203,9 +206,9 @@ TYPED_TEST(ModelTest, add_variable_2) {
     }
     if constexpr(has_readable_variables_bounds<T>) {
         ASSERT_EQ(model.get_variable_lower_bound(x), 0.0);
-        ASSERT_GE(model.get_variable_upper_bound(x), 1e-100);
+        ASSERT_GE(model.get_variable_upper_bound(x), INFTY);
         ASSERT_EQ(model.get_variable_lower_bound(y), 0.0);
-        ASSERT_GE(model.get_variable_upper_bound(y), 1e-100);
+        ASSERT_GE(model.get_variable_upper_bound(y), INFTY);
     }
 }
 TYPED_TEST(ModelTest, add_variable_w_params) {
@@ -222,9 +225,9 @@ TYPED_TEST(ModelTest, add_variable_w_params) {
     }
     if constexpr(has_readable_variables_bounds<T>) {
         ASSERT_EQ(model.get_variable_upper_bound(x), 13.0);
-        ASSERT_LE(model.get_variable_lower_bound(x), -1e100);
+        ASSERT_LE(model.get_variable_lower_bound(x), -INFTY);
         ASSERT_EQ(model.get_variable_lower_bound(y), 2.0);
-        ASSERT_GE(model.get_variable_upper_bound(y), 1e100);
+        ASSERT_GE(model.get_variable_upper_bound(y), INFTY);
     }
 }
 TYPED_TEST(ModelTest, add_variables) {
@@ -268,7 +271,7 @@ TYPED_TEST(ModelTest, add_variables) {
         }
         for(auto && y : Y_vars) {
             ASSERT_EQ(model.get_variable_lower_bound(y), 0.0);
-            ASSERT_GE(model.get_variable_upper_bound(y), 1e100);
+            ASSERT_GE(model.get_variable_upper_bound(y), INFTY);
         }
     }
 }
@@ -317,7 +320,7 @@ TYPED_TEST(ModelTest, add_indexed_variables) {
         }
         for(auto && y : Y_vars) {
             ASSERT_EQ(model.get_variable_lower_bound(y), 0.0);
-            ASSERT_GE(model.get_variable_upper_bound(y), 1e100);
+            ASSERT_GE(model.get_variable_upper_bound(y), INFTY);
         }
     }
 }
@@ -479,16 +482,16 @@ TYPED_TEST(ModelTest, lp_example) {
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
-    ASSERT_NEAR(model.get_solution_value(), 13.0, 1e-13);
+    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
     auto solution = model.get_solution();
-    ASSERT_NEAR(solution[x1], 2.0, 1e-13);
-    ASSERT_NEAR(solution[x2], 0.0, 1e-13);
-    ASSERT_NEAR(solution[x3], 1.0, 1e-13);
+    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
     if constexpr(has_dual_solution<T>) {
         auto dual_solution = model.get_dual_solution();
-        ASSERT_NEAR(dual_solution[c1], 1.0, 1e-13);
-        ASSERT_NEAR(dual_solution[c2], 0.0, 1e-13);
-        ASSERT_NEAR(dual_solution[c3], 1.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
     }
 }
 TYPED_TEST(ModelTest, lp_example_set_objective_redundant_terms) {
@@ -506,16 +509,16 @@ TYPED_TEST(ModelTest, lp_example_set_objective_redundant_terms) {
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
-    ASSERT_NEAR(model.get_solution_value(), 13.0, 1e-13);
+    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
     auto solution = model.get_solution();
-    ASSERT_NEAR(solution[x1], 2.0, 1e-13);
-    ASSERT_NEAR(solution[x2], 0.0, 1e-13);
-    ASSERT_NEAR(solution[x3], 1.0, 1e-13);
+    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
     if constexpr(has_dual_solution<T>) {
         auto dual_solution = model.get_dual_solution();
-        ASSERT_NEAR(dual_solution[c1], 1.0, 1e-13);
-        ASSERT_NEAR(dual_solution[c2], 0.0, 1e-13);
-        ASSERT_NEAR(dual_solution[c3], 1.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
     }
 }
 TYPED_TEST(ModelTest, lp_example_add_constraint_redundant_terms) {
@@ -533,16 +536,16 @@ TYPED_TEST(ModelTest, lp_example_add_constraint_redundant_terms) {
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
-    ASSERT_NEAR(model.get_solution_value(), 13.0, 1e-13);
+    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
     auto solution = model.get_solution();
-    ASSERT_NEAR(solution[x1], 2.0, 1e-13);
-    ASSERT_NEAR(solution[x2], 0.0, 1e-13);
-    ASSERT_NEAR(solution[x3], 1.0, 1e-13);
+    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
     if constexpr(has_dual_solution<T>) {
         auto dual_solution = model.get_dual_solution();
-        ASSERT_NEAR(dual_solution[c1], 1.0, 1e-13);
-        ASSERT_NEAR(dual_solution[c2], 0.0, 1e-13);
-        ASSERT_NEAR(dual_solution[c3], 1.0, 1e-13);
+        ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
     }
 }
 //*/
