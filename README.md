@@ -46,7 +46,7 @@ add_subdirectory(dependencies/mippp)
 ...
 target_link_libraries(<some_target> INTERFACE mippp)
 ```
-Ensure that your CMake can find [Range-v3 library](https://ericniebler.github.io/range-v3/) and [dylib](https://github.com/martin-olivier/dylib) with `find_package` calls.
+And ensure that your CMake can find the [Range-v3](https://ericniebler.github.io/range-v3/) and [dylib](https://github.com/martin-olivier/dylib) libraries with `find_package` calls.
 
     
 ## Code examples
