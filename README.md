@@ -59,7 +59,7 @@ using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 ...
 grb_api api("gurobi120"); // loads libgurobi120.so C API
-grb_lp_model model(api);
+grb_lp model(api);
 
 auto x1 = model.add_variable();
 auto x2 = model.add_variable({.upper_bound=3});
@@ -89,7 +89,7 @@ vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 ...
 grb_api api();
-grb_lp_model model(api);
+grb_lp model(api);
 
 auto F = model.add_variable();
 auto X_vars = model.add_variables(graph.num_arcs());
@@ -120,7 +120,7 @@ vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 ...
 grb_api api();
-grb_lp_model model(api);
+grb_lp model(api);
 
 auto X_vars = model.add_variables(graph.num_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
