@@ -114,34 +114,22 @@ public:
     }
 
 private:
-    inline void _add_var(const variable_params & p) {
+    inline void _add_var(const variable_params & p, const bool is_integer) {
         Cbc.addCol(model, "", p.lower_bound.value_or(-COIN_DBL_MAX),
-                   p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, false, 0,
-                   NULL, NULL);
+                   p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, is_integer,
+                   0, NULL, NULL);
     }
-
-public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_var(params);
-        return variable(var_id);
-    }
-    auto add_variables(std::size_t count,
-                       const variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+    inline auto _make_variables_range(const std::size_t & offset,
+                                      const std::size_t & count) {
         return make_variables_range(ranges::view::transform(
             ranges::view::iota(static_cast<variable_id>(offset),
                                static_cast<variable_id>(offset + count)),
             [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    auto add_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+    inline auto _make_indexed_variables_range(const std::size_t & offset,
+                                              const std::size_t & count,
+                                              IL && id_lambda) {
         return make_indexed_variables_range(
             typename detail::function_traits<IL>::arg_types(),
             ranges::view::transform(
@@ -149,6 +137,79 @@ public:
                                    static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
+    }
+
+public:
+    variable add_variable(
+        const variable_params params = default_variable_params) {
+        int var_id = static_cast<int>(num_variables());
+        _add_var(params, false);
+        return variable(var_id);
+    }
+    auto add_variables(std::size_t count,
+                       const variable_params params = default_variable_params) {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+    variable add_integer_variable(
+        const variable_params params = default_variable_params) {
+        int var_id = static_cast<int>(num_variables());
+        _add_var(params, true);
+        return variable(var_id);
+    }
+    auto add_integer_variables(std::size_t count, const variable_params params =
+                                                      default_variable_params) {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_integer_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+    variable add_binary_variable() {
+        int var_id = static_cast<int>(num_variables());
+        _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
+        return variable(var_id);
+    }
+    auto add_binary_variables(std::size_t count) {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+
+    void set_continuous(variable v) noexcept {
+        Cbc.setContinuous(model, v.id());
+    }
+    void set_integer(variable v) noexcept { Cbc.setInteger(model, v.id()); }
+    void set_binary(variable v) noexcept {
+        set_integer(v);
+        set_variable_lower_bound(v, 0);
+        set_variable_upper_bound(v, 1);
     }
 
     void set_objective_coefficient(variable v, double c) {

@@ -202,7 +202,7 @@ protected:
         }
         _var_name_set.resize(offset + count, false);
     }
-    auto _make_variables_range(const std::size_t & offset,
+    inline auto _make_variables_range(const std::size_t & offset,
                                const std::size_t & count) {
         return make_variables_range(ranges::view::transform(
             ranges::view::iota(static_cast<variable_id>(offset),
@@ -210,7 +210,7 @@ protected:
             [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    auto _make_indexed_variables_range(const std::size_t & offset,
+    inline auto _make_indexed_variables_range(const std::size_t & offset,
                                        const std::size_t & count,
                                        IL && id_lambda) {
         return make_indexed_variables_range(
@@ -253,7 +253,6 @@ public:
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
-
     // template <typename IL, typename NL>
     // auto add_variables(std::size_t count, IL && id_lambda, NL && name_lambda,
     //                    variable_params params = default_variable_params)

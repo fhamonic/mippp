@@ -15,15 +15,16 @@ namespace mippp {
 
 namespace detail {
 
-template <typename A, typename B>
-auto dummy_pair_range() {
-    return ranges::views::single(std::make_pair(A{}, B{}));
+template <typename T>
+auto dummy_range() {
+    return ranges::views::single(T{});
 };
 
 template <typename M>
 struct dummy_expression {
     auto linear_terms() const {
-        return dummy_pair_range<typename M::variable_id, typename M::scalar>();
+        return dummy_range<
+            std::pair<typename M::variable_id, typename M::scalar>>();
     }
     auto constant() const { return typename M::scalar{}; }
 };
@@ -181,8 +182,8 @@ template <typename T>
 concept has_modifiable_constraint_lhs = requires(T & model, T::constraint c) {
     {
         model.set_constraint_lhs(c,
-                                 detail::dummy_pair_range<typename T::variable,
-                                                          typename T::scalar>())
+                                 detail::dummy_range<std::pair<typename T::variable,
+                                                          typename T::scalar>>())
     };
 };
 
@@ -228,8 +229,8 @@ template <typename T>
 concept has_column_generation =
     requires(T & model, T::constraint c, T::scalar s) {
         {
-            model.add_column(detail::dummy_pair_range<typename T::cosntraint,
-                                                      typename T::scalar>())
+            model.add_column(detail::dummy_range<std::pair<typename T::constraint,
+                                                      typename T::scalar>>())
         } -> std::same_as<typename T::variable>;
     };
 
