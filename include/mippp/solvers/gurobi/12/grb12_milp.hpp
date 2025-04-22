@@ -121,7 +121,7 @@ public:
         return tol;
     }
 
-    void optimize() { check(GRB.optimize(model)); }
+    void solve() { check(GRB.optimize(model)); }
 
     double get_solution_value() {
         double value;

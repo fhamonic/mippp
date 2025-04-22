@@ -299,7 +299,7 @@ public:
     }
     double get_feasibility_tolerance() { return Clp.primalTolerance(model); }
 
-    void optimize() {
+    void solve() {
         if(num_variables() == 0u) {
             opt_lp_status.emplace(lp_status::optimal);
             return;

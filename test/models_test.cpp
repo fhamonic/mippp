@@ -76,7 +76,7 @@ using namespace fhamonic::mippp::operators;
 //         model.set_variable_lower_bound(x, 1);
 //     }
 
-//     model.optimize();
+//     model.solve();
 //     auto solution = model.get_solution();
 
 //     for(auto i : indices) {
@@ -384,7 +384,7 @@ TYPED_TEST(ModelTest, optimize_empty_min) {
     using T = TypeParam::T;
     T model = this->construct_model();
     model.set_minimization();
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
@@ -394,7 +394,7 @@ TYPED_TEST(ModelTest, optimize_empty_max) {
     using T = TypeParam::T;
     T model = this->construct_model();
     model.set_maximization();
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
@@ -427,7 +427,7 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_max_bounded) {
     model.set_maximization();
     model.set_objective(2 * x + 1.5 * y);
     auto c = model.add_constraint(x + y <= 5);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
@@ -448,7 +448,7 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_min_bounded) {
     model.set_minimization();
     model.set_objective(-2 * x - 1.5 * y);
     auto c = model.add_constraint(x + y <= 5);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
@@ -471,7 +471,7 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_max_unbounded) {
     model.set_maximization();
     model.set_objective(-2 * x + -1.5 * y);
     model.add_constraint(x + y <= 5);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::unbounded);
     }
@@ -486,7 +486,7 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_min_unbounded) {
     model.set_minimization();
     model.set_objective(2 * x + 1.5 * y);
     model.add_constraint(x + y <= 5);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::unbounded);
     }
@@ -502,7 +502,7 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_max_infeasible) {
     model.set_objective(-2 * x + -1.5 * y);
     model.add_constraint(x + y <= 4);
     model.add_constraint(x + y >= 5);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::infeasible);
     }
@@ -518,7 +518,7 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_min_infeasible) {
     model.set_objective(2 * x + 1.5 * y);
     model.add_constraint(x + y <= 4);
     model.add_constraint(x + y >= 5);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::infeasible);
     }
@@ -534,7 +534,7 @@ TYPED_TEST(ModelTest, lp_example) {
     auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
     auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
@@ -561,7 +561,7 @@ TYPED_TEST(ModelTest, lp_example_set_objective_redundant_terms) {
     auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
     auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }
@@ -588,7 +588,7 @@ TYPED_TEST(ModelTest, lp_example_add_constraint_redundant_terms) {
     auto c1 = model.add_constraint(3 * x1 - x1 + 3 * x2 + x3 <= 5);
     auto c2 = model.add_constraint(4 * x1 + x3 + x2 + x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
-    model.optimize();
+    model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
     }

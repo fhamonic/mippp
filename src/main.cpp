@@ -122,7 +122,7 @@ int main() {
     std::cout << builder << std::endl;
 
     auto solver_model = builder.build();
-    solver_model.optimize();
+    solver_model.solve();
 
     auto solution = solver_model.get_solution();
     for(auto && note : notes) {

@@ -70,7 +70,7 @@ concept lp_model = requires(T & model, T::variable v, T::variable_id vid,
     { model.num_variables() } -> std::same_as<std::size_t>;
     { model.num_constraints() } -> std::same_as<std::size_t>;
 
-    { model.optimize() };
+    { model.solve() };
     { model.get_solution_value() } -> std::same_as<typename T::scalar>;
     { model.get_solution() } /*-> input_mapping<typename T::variable>*/;
 };

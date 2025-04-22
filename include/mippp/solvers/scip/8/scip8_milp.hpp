@@ -307,7 +307,7 @@ public:
         return tol;
     }
 
-    void optimize() { check(SCIP.solve(model)); }
+    void solve() { check(SCIP.solve(model)); }
 
     double get_solution_value() { return SCIP.getPrimalbound(model); }
 

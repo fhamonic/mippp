@@ -279,7 +279,7 @@ public:
     }
     double set_optimality_tolerance() { return Cbc.getAllowableGap(model); }
 
-    void optimize() {
+    void solve() {
         if(num_constraints() == 0u) {
             return;
         }

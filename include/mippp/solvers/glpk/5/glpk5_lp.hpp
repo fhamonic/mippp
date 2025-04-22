@@ -206,7 +206,7 @@ public:
         return constraint(constr_id);
     }
 
-    void optimize() {
+    void solve() {
         switch(glp.simplex(model, &model_params)) {
             case GLP_ENOPFS:
                 opt_lp_status.emplace(lp_status::unbounded);

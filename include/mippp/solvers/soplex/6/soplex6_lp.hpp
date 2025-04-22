@@ -140,7 +140,7 @@ public:
         return constraint(constr_id);
     }
 
-    void optimize() {
+    void solve() {
         if(num_variables() == 0u) {
             opt_lp_status.emplace(lp_status::optimal);
             return;

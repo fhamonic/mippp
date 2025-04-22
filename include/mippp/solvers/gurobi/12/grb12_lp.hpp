@@ -34,7 +34,7 @@ public:
         : grb12_base_model(api) {}
 
 public:
-    void optimize() {
+    void solve() {
         check(GRB.optimize(model));
         int status;
         check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status));
