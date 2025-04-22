@@ -1,5 +1,5 @@
 # MIP++
-MIP++ (aka MIPpp) is a header‑only C++ library that brings a Python‑MIP‑style modeling interface to mixed‑integer linear programming. It lets you plug in multiple solver backends (Gurobi, Highs, Cbc, SCIP, etc...) at runtime, and uses template metaprogramming to preserve Python‑like syntactic sugar while emitting near‑optimal code at compile time.
+MIP++ (aka MIPpp) is a header‑only C++ library that brings a Python‑MIP‑style modeling interface to mixed‑integer linear programming. It lets you load multiple solver backends (Gurobi, MOSEK, Highs, Cbc, SCIP and more) at runtime, and uses template metaprogramming to preserve Python‑like syntactic sugar while emitting near‑optimal code at compile time.
 
 Work in progress.
 
@@ -10,7 +10,7 @@ Work in progress.
 
 ## Features
 
-- **Header-only**: Dynamically loading the C API of a variety of solvers (Gurobi, Clp, CBC, GLPK, Highs, etc.) allows MIP++ to stay header-only and easy to integrate to C++ projects.
+- **Header-only**: Dynamically loading the C API of solvers allows MIP++ to stay header-only and easy to integrate to C++ projects.
 - **Modern C++20**: Utilizes ranges, lambdas, and template metaprogramming for an elegant and efficient API allowing a Pythonic syntax.
 - **Solver Agnostic**: Supports a variety of solvers (Gurobi, Clp, CBC, GLPK, etc.) with unified API.
 - **High Performance**: Optimized for speed with zero cost abstractions and no unnecessary data copying.
