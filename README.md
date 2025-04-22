@@ -39,6 +39,8 @@ then manage to #include it where needed with the range-v3 library.
     
 ## Code examples
 
+### Test
+
 ```cpp
 #include "mippp/mip_model.hpp"
 using namespace fhamonic::mippp;
@@ -60,6 +62,8 @@ auto sol = model.get_solution();
 
 std::cout << std::format("x1: {}, x2: {}", sol[x1], sol[x2]) << std::endl;
 ```
+
+### Maximum Flow
 
 Using the [MELON library](https://github.com/fhamonic/melon), we can express the Maximum Flow problem as
 
@@ -95,7 +99,8 @@ for(auto && a : graph.arcs()) {
     model.set_variable_upper_bound(X_vars(a), capacity_map[a]);
 }
 ```
-or the Shortest Path problem as
+
+### Shortest Path
 
 ```cpp
 static_graph graph = ...;
@@ -117,5 +122,69 @@ for(auto && u : graph.vertices()) {
     const double extra_flow = (u == s ? 1 : (u == t ? -1 : 0));
     model.add_constraint(
         xsum(graph.out_arcs(u), X_vars) == xsum(graph.in_arcs(u), X_vars) + extra_flow);
+}
+```
+
+### Sudoku
+
+```cpp
+auto indices = std::views::iota(0, 9);  // 0 to 8
+auto values = std::views::iota(1, 10);  // 1 to 9
+auto 3x3coords = std::views::transform( // (0,0), (0,1), (0,2), (1,0), ...
+    indices, [](auto && i) { return std::make_pair(i / 3, i % 3); });
+
+grb_api api;
+grb_milp model(api);
+
+auto X_vars =
+    model.add_binary_variables(9 * 9 * 9, [](int i, int j, int value) {
+        return (81 * i) + (9 * j) + (value - 1);
+    });
+
+model.set_maximization();
+model.set_objective(xsum(X_vars));
+for(auto i : indices) {
+    for(auto j : indices) {
+        model.add_constraint(
+            xsum(values, [&](auto && v) { return X_vars(i, j, v); }) == 1);
+    }
+}
+for(auto v : values) {
+    for(auto i : indices) {
+        model.add_constraint(
+            xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) == 1);
+        model.add_constraint(
+            xsum(indices, [&](auto && j) { return X_vars(j, i, v); }) == 1);
+    }
+    for(auto && [bi, bj] : 3x3coords) {
+        model.add_constraint(xsum(3x3coords, [&](auto && p) {
+                return X_vars(3 * bi + p.first, 3 * bj + p.second, v);
+            }) == 1);
+    }
+}
+
+for(auto && x :
+    {X_vars(0, 2, 8), X_vars(0, 4, 1), X_vars(0, 8, 9), X_vars(1, 0, 6),
+    X_vars(1, 2, 1), X_vars(1, 4, 9), X_vars(1, 6, 3), X_vars(1, 7, 2),
+    X_vars(2, 1, 4), X_vars(2, 4, 3), X_vars(2, 5, 7), X_vars(2, 8, 5),
+    X_vars(3, 1, 3), X_vars(3, 2, 5), X_vars(3, 5, 8), X_vars(3, 6, 2),
+    X_vars(4, 2, 2), X_vars(4, 3, 6), X_vars(4, 4, 5), X_vars(4, 6, 8),
+    X_vars(5, 2, 4), X_vars(5, 5, 1), X_vars(5, 6, 7), X_vars(5, 7, 5),
+    X_vars(6, 0, 5), X_vars(6, 3, 3), X_vars(6, 4, 4), X_vars(6, 7, 8),
+    X_vars(7, 1, 9), X_vars(7, 2, 7), X_vars(7, 4, 8), X_vars(7, 6, 5),
+    X_vars(7, 8, 6), X_vars(8, 0, 1), X_vars(8, 4, 6), X_vars(8, 6, 9)}) {
+    model.set_variable_lower_bound(x, 1);
+}
+
+model.optimize();
+auto solution = model.get_solution();
+
+for(auto i : indices) {
+    for(auto j : indices) {
+        for(auto v : values) {
+            if(solution[X_vars(i, j, v)]) std::cout << ' ' << v;
+        }
+    }
+    std::cout << std::endl;
 }
 ```

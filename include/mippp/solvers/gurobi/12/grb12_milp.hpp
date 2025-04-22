@@ -62,11 +62,47 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
-    // variable add_binary_variable() {
-    //     int var_id = static_cast<int>(num_variables());
-    //     _add_variable(0.0, 0.0, 1.0, GRB_BINARY);
-    //     return variable(var_id);
-    // }
+private:
+    inline void _add_binary_variables(const std::size_t & offset,
+                                      const std::size_t & count) {
+        tmp_types.resize(count);
+        std::fill(tmp_types.begin(), tmp_types.end(), GRB_BINARY);
+        check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
+                          NULL, NULL, NULL, tmp_types.data(), NULL));
+        _var_name_set.resize(offset + count, false);
+    }
+
+public:
+    variable add_binary_variable() {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable(0.0, 0.0, 1.0, GRB_BINARY);
+        return variable(var_id);
+    }
+    auto add_binary_variables(std::size_t count) noexcept {
+        const std::size_t offset = num_variables();
+        _add_binary_variables(offset, count);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+        const std::size_t offset = num_variables();
+        _add_binary_variables(offset, count);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+
+
+    void set_continuous(variable v) noexcept {
+        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(), GRB_CONTINUOUS));
+    }
+    void set_integer(variable v) noexcept {
+        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(), GRB_INTEGER));
+    }
+    void set_binary(variable v) noexcept {
+        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(), GRB_BINARY));
+    }
+
+
 
     void set_feasibility_tolerance(double tol) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_FEASIBILITYTOL, tol));

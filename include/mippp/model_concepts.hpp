@@ -96,8 +96,9 @@ concept milp_model = lp_model<T> && requires(T & model, T::variable v,
     { model.add_binary_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
             -> ranges::random_access_range;
 
+    { model.set_continuous(v) };
     { model.set_integer(v) };
-    { model.set_continous(v) };
+    { model.set_binary(v) };
 };
 
 template <typename T>

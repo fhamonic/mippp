@@ -26,14 +26,69 @@ using namespace fhamonic::mippp::operators;
 //     //     "cplex2212",
 //     // "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
 
+//     auto indices = std::views::iota(0, 9);
+//     auto values = std::views::iota(1, 10);
+//     auto coords = std::views::transform(
+//         indices, [](auto && i) { return std::make_pair(i / 3, i % 3); });
+
 //     grb_api api;
-//     grb_lp model(api);
+//     grb_milp model(api);
 
-//     auto F = model.add_variable();
-//     auto X_vars = model.add_variables(4, {.obj_coef = 1});
-//     auto Y_vars =
-//         model.add_variables(4, [](int a, int b) { return a * 2 + b; });
+//     auto X_vars =
+//         model.add_binary_variables(9 * 9 * 9, [](int i, int j, int value) {
+//             return (81 * i) + (9 * j) + (value - 1);
+//         });
 
+//     model.set_maximization();
+//     model.set_objective(xsum(X_vars));
+
+//     for(auto i : indices) {
+//         for(auto j : indices) {
+//             model.add_constraint(
+//                 xsum(values, [&](auto && v) { return X_vars(i, j, v); }) == 1);
+//         }
+//     }
+//     for(auto v : values) {
+//         for(auto i : indices) {
+//             model.add_constraint(
+//                 xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) == 1);
+//             model.add_constraint(
+//                 xsum(indices, [&](auto && j) { return X_vars(j, i, v); }) == 1);
+//         }
+//         for(auto && [bi, bj] : coords) {
+//             model.add_constraint(xsum(coords, [&](auto && p) {
+//                                      return X_vars(3 * bi + p.first,
+//                                                    3 * bj + p.second, v);
+//                                  }) == 1);
+//         }
+//     }
+
+//     for(auto && x :
+//         {X_vars(0, 2, 8), X_vars(0, 4, 1), X_vars(0, 8, 9), X_vars(1, 0, 6),
+//          X_vars(1, 2, 1), X_vars(1, 4, 9), X_vars(1, 6, 3), X_vars(1, 7, 2),
+//          X_vars(2, 1, 4), X_vars(2, 4, 3), X_vars(2, 5, 7), X_vars(2, 8, 5),
+//          X_vars(3, 1, 3), X_vars(3, 2, 5), X_vars(3, 5, 8), X_vars(3, 6, 2),
+//          X_vars(4, 2, 2), X_vars(4, 3, 6), X_vars(4, 4, 5), X_vars(4, 6, 8),
+//          X_vars(5, 2, 4), X_vars(5, 5, 1), X_vars(5, 6, 7), X_vars(5, 7, 5),
+//          X_vars(6, 0, 5), X_vars(6, 3, 3), X_vars(6, 4, 4), X_vars(6, 7, 8),
+//          X_vars(7, 1, 9), X_vars(7, 2, 7), X_vars(7, 4, 8), X_vars(7, 6, 5),
+//          X_vars(7, 8, 6), X_vars(8, 0, 1), X_vars(8, 4, 6), X_vars(8, 6, 9)}) {
+//         model.set_variable_lower_bound(x, 1);
+//     }
+
+//     model.optimize();
+//     auto solution = model.get_solution();
+
+//     for(auto i : indices) {
+//         for(auto j : indices) {
+//             for(auto v : values) {
+//                 if(solution[X_vars(i, j, v)]) std::cout << ' ' << v;
+//             }
+//         }
+//         std::cout << std::endl;
+//     }
+
+//     ASSERT_TRUE(false);
 // }
 
 //*
@@ -85,6 +140,7 @@ struct grb_milp_test {
     grb_api api;
     auto construct_model() const { return T(api); }
     static_assert(lp_model<T>);
+    static_assert(milp_model<T>);
     static_assert(has_readable_objective<T>);
     static_assert(has_modifiable_objective<T>);
     static_assert(has_readable_variables_bounds<T>);

@@ -61,6 +61,7 @@ protected:
         tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
+    std::vector<char> tmp_types;
 
     std::vector<bool> _var_name_set;
 
@@ -193,11 +194,11 @@ protected:
                 static_cast<int>(count), tmp_scalars.data()));
         }
         if(type != GRB_CONTINUOUS) {
-            tmp_scalars.resize(count);
-            std::fill(tmp_scalars.begin(), tmp_scalars.end(), ub);
-            check(GRB.setdblattrarray(
-                model, GRB_DBL_ATTR_UB, static_cast<int>(offset),
-                static_cast<int>(count), tmp_scalars.data()));
+            tmp_types.resize(count);
+            std::fill(tmp_types.begin(), tmp_types.end(), type);
+            check(GRB.setcharattrarray(
+                model, GRB_CHAR_ATTR_VTYPE, static_cast<int>(offset),
+                static_cast<int>(count), tmp_types.data()));
         }
         _var_name_set.resize(offset + count, false);
     }
