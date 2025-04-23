@@ -28,18 +28,14 @@ public:
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(num_variables());
-        _add_variable(params.obj_coef,
-                      params.lower_bound.value_or(-GRB_INFINITY),
-                      params.upper_bound.value_or(GRB_INFINITY), GRB_INTEGER);
+        _add_variable(params, GRB_INTEGER);
         return variable(var_id);
     }
     auto add_integer_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params.obj_coef,
-                       params.lower_bound.value_or(-GRB_INFINITY),
-                       params.upper_bound.value_or(GRB_INFINITY), GRB_INTEGER);
+        _add_variables(offset, count, params, GRB_INTEGER);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
@@ -47,9 +43,7 @@ public:
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params.obj_coef,
-                       params.lower_bound.value_or(-GRB_INFINITY),
-                       params.upper_bound.value_or(GRB_INFINITY), GRB_INTEGER);
+        _add_variables(offset, count, params, GRB_INTEGER);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
@@ -67,7 +61,8 @@ private:
 public:
     variable add_binary_variable() {
         int var_id = static_cast<int>(num_variables());
-        _add_variable(0.0, 0.0, 1.0, GRB_BINARY);
+        _add_variable({.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
+                      GRB_BINARY);
         return variable(var_id);
     }
     auto add_binary_variables(std::size_t count) noexcept {

@@ -161,32 +161,36 @@ public:
     }
 
 protected:
-    inline void _add_variable(const double & obj, const double lb,
-                              const double ub, const char & type) {
-        check(GRB.addvar(model, 0, NULL, NULL, obj, lb, ub, type, NULL));
+    inline void _add_variable(const variable_params & params,
+                              const char & type) {
+        check(GRB.addvar(model, 0, NULL, NULL, params.obj_coef,
+                         params.lower_bound.value_or(-GRB_INFINITY),
+                         params.upper_bound.value_or(GRB_INFINITY), type,
+                         NULL));
         _var_name_set.push_back(false);
     }
     inline void _add_variables(const std::size_t & offset,
-                               const std::size_t & count, const double & obj,
-                               const double lb, const double ub,
+                               const std::size_t & count,
+                               const variable_params & params,
                                const char & type) {
         check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
                           NULL, NULL, NULL, NULL, NULL));
-        if(obj != 0.0) {
+        if(double obj = params.obj_coef; obj != 0.0) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
             check(GRB.setdblattrarray(
                 model, GRB_DBL_ATTR_OBJ, static_cast<int>(offset),
                 static_cast<int>(count), tmp_scalars.data()));
         }
-        if(lb != 0.0) {
+        if(double lb = params.lower_bound.value_or(-GRB_INFINITY); lb != 0.0) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), lb);
             check(GRB.setdblattrarray(
                 model, GRB_DBL_ATTR_LB, static_cast<int>(offset),
                 static_cast<int>(count), tmp_scalars.data()));
         }
-        if(ub != GRB_INFINITY) {
+        if(double ub = params.upper_bound.value_or(GRB_INFINITY);
+           ub != GRB_INFINITY) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), ub);
             check(GRB.setdblattrarray(
@@ -203,7 +207,7 @@ protected:
         _var_name_set.resize(offset + count, false);
     }
     inline auto _make_variables_range(const std::size_t & offset,
-                               const std::size_t & count) {
+                                      const std::size_t & count) {
         return make_variables_range(ranges::view::transform(
             ranges::view::iota(static_cast<variable_id>(offset),
                                static_cast<variable_id>(offset + count)),
@@ -211,8 +215,8 @@ protected:
     }
     template <typename IL>
     inline auto _make_indexed_variables_range(const std::size_t & offset,
-                                       const std::size_t & count,
-                                       IL && id_lambda) {
+                                              const std::size_t & count,
+                                              IL && id_lambda) {
         return make_indexed_variables_range(
             typename detail::function_traits<IL>::arg_types(),
             ranges::view::transform(
@@ -226,19 +230,14 @@ public:
     variable add_variable(
         const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(num_variables());
-        _add_variable(
-            params.obj_coef, params.lower_bound.value_or(-GRB_INFINITY),
-            params.upper_bound.value_or(GRB_INFINITY), GRB_CONTINUOUS);
+        _add_variable(params, GRB_CONTINUOUS);
         return variable(var_id);
     }
     auto add_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params.obj_coef,
-                       params.lower_bound.value_or(-GRB_INFINITY),
-                       params.upper_bound.value_or(GRB_INFINITY),
-                       GRB_CONTINUOUS);
+        _add_variables(offset, count, params, GRB_CONTINUOUS);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
@@ -246,10 +245,7 @@ public:
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params.obj_coef,
-                       params.lower_bound.value_or(-GRB_INFINITY),
-                       params.upper_bound.value_or(GRB_INFINITY),
-                       GRB_CONTINUOUS);
+        _add_variables(offset, count, params, GRB_CONTINUOUS);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }

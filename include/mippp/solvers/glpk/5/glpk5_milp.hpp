@@ -41,69 +41,28 @@ public:
         model_params.aorn = GLP_USE_AT;
     }
 
-    //     variable add_variable(const variable_params params = {
-    //                               .obj_coef = 0,
-    //                               .lower_bound = 0,
-    //                               .upper_bound = std::nullopt}) {
-    //         int var_id = static_cast<int>(num_variables());
-    //         glp.add_cols(model, 1);
-    //         glp.set_obj_coef(model, var_id + 1, params.obj_coef);
-    //         glp.set_col_bnds(
-    //             model, var_id + 1, GLP_DB,
-    //             params.lower_bound.value_or(-std::numeric_limits<double>::infinity()),
-    //             params.upper_bound.value_or(std::numeric_limits<double>::infinity()));
-    //         return variable(var_id);
-    //     }
-
-    // private:
-    //     void _add_variables(std::size_t offset, std::size_t count,
-    //                         const variable_params & params) {
-    //         glp.add_cols(model, static_cast<int>(count));
-    //         if(auto obj = params.obj_coef; obj != 0.0) {
-    //             for(std::size_t i = offset + 1; i <= offset + count; ++i)
-    //                 glp.set_obj_coef(model, static_cast<int>(i), obj);
-    //         }
-    //         if(auto lb = params.lower_bound.value_or(
-    //                -std::numeric_limits<double>::infinity()),
-    //            ub = params.upper_bound.value_or(
-    //                std::numeric_limits<double>::infinity());
-    //            lb != 0.0 || !std::isinf(ub)) {
-    //             for(std::size_t i = offset + 1; i <= offset + count; ++i)
-    //                 glp.set_col_bnds(model, static_cast<int>(i), GLP_DB, lb,
-    //                 ub);
-    //         }
-    //     }
-
-    // public:
-    //     auto add_variables(std::size_t count,
-    //                        variable_params params = {
-    //                            .obj_coef = 0,
-    //                            .lower_bound = 0,
-    //                            .upper_bound = std::nullopt}) noexcept {
-    //         const std::size_t offset = num_variables();
-    //         _add_variables(offset, count, params);
-    //         return make_variables_range(ranges::view::transform(
-    //             ranges::view::iota(static_cast<variable_id>(offset),
-    //                                static_cast<variable_id>(offset + count)),
-    //             [](auto && i) { return variable{i}; }));
-    //     }
-    //     template <typename IL>
-    //     auto add_variables(std::size_t count, IL && id_lambda,
-    //                        variable_params params = {
-    //                            .obj_coef = 0,
-    //                            .lower_bound = 0,
-    //                            .upper_bound = std::nullopt}) noexcept {
-    //         const std::size_t offset = num_variables();
-    //         _add_variables(offset, count, params);
-    //         return make_indexed_variables_range(
-    //             typename detail::function_traits<IL>::arg_types(),
-    //             ranges::view::transform(
-    //                 ranges::view::iota(static_cast<variable_id>(offset),
-    //                                    static_cast<variable_id>(offset +
-    //                                    count)),
-    //                 [](auto && i) { return variable{i}; }),
-    //             std::forward<IL>(id_lambda));
-    //     }
+    variable add_integer_variable(
+        const variable_params params = default_variable_params) {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable(var_id, params, GLP_IV);
+        return variable(var_id);
+    }
+    auto add_integer_variables(
+        std::size_t count,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, GLP_IV);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_integer_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, GLP_IV);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
 
     void set_continuous(variable v) noexcept {
         glp.set_col_kind(model, v.id(), GLP_CV);
