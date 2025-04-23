@@ -10,13 +10,7 @@ project(
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # ################### Options ####################
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 option(ENABLE_TESTING "Enable Test Builds" OFF)
-option(LINK_CBC "Link CBC" OFF)
-option(LINK_CPLEX "Link CPLEX" OFF)
-option(LINK_SCIP "Link SCIP" OFF)
 
 # ################### Modules ####################
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -28,27 +22,14 @@ include(CompilerWarnings)
 find_package(range-v3 REQUIRED)
 find_package(dylib REQUIRED)
 
-if(${LINK_CBC})
-  set(CBC_DIR "C:/Users/Plaiseek/Documents/Softwares/Cbc-releases.2.10.11-x86_64-w64-mingw64")
-  set(CBC_INCLUDE_DIR "C:/Users/Plaiseek/Documents/Softwares/Cbc-releases.2.10.11-x86_64-w64-mingw64/include")
-  find_package(CBC REQUIRED)
-endif()
-if(${LINK_GUROBI})
-  find_package(GUROBI REQUIRED)
-endif()
-
 # ############### Exported target ################
 add_library(mippp INTERFACE)
 target_include_directories(mippp
                            INTERFACE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(mippp INTERFACE range-v3::range-v3)
 target_link_libraries(mippp INTERFACE dylib::dylib)
-# silence false positive warinings from range-v3 invoke.hpp
-target_compile_options(mippp INTERFACE -Warray-bounds=0)
+
 target_compile_options(mippp INTERFACE -fconcepts-diagnostics-depth=30)
-
-
-
 
 target_include_directories(mippp INTERFACE $ENV{GUROBI_HOME}/include)
 target_include_directories(mippp INTERFACE /usr/local/include/highs)
