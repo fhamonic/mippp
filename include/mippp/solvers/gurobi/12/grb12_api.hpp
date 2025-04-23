@@ -74,7 +74,7 @@ public:
     GRB_FUNCTIONS(DECLARE_GRB_FUN)
 
 public:
-    grb12_api(const char * lib_name = "gurobi120", const char * lib_path = "")
+    grb12_api(const char * lib_path = "", const char * lib_name = "gurobi120")
         : lib(lib_path, lib_name) GRB_FUNCTIONS(CONSTRUCT_GRB_FUN) {}
 };
 

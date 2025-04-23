@@ -1,20 +1,9 @@
 #ifndef MIPPP_GRB12_lp_HPP
 #define MIPPP_GRB12_lp_HPP
 
-#include <limits>
 #include <optional>
-#include <vector>
 
-#include <range/v3/algorithm/sort.hpp>
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/move.hpp>
-#include <range/v3/view/zip.hpp>
-
-#include "mippp/detail/function_traits.hpp"
-#include "mippp/linear_constraint.hpp"
-#include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
-#include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/gurobi/12/grb12_base_model.hpp"
 

@@ -62,7 +62,7 @@ public:
     SCIP_FUNCTIONS(DECLARE_SCIP_FUN)
 
 public:
-    inline scip8_api(const char * lib_name = "scip", const char * lib_path = "")
+    inline scip8_api(const char * lib_path = "", const char * lib_name = "scip")
         : lib(lib_path, lib_name) SCIP_FUNCTIONS(CONSTRUCT_SCIP_FUN) {}
 };
 

@@ -12,21 +12,23 @@
     F(glp_get_obj_dir, get_obj_dir)     \
     F(glp_add_cols, add_cols)           \
     F(glp_set_obj_coef, set_obj_coef)   \
-    F(glp_set_col_bnds, set_col_bnds)   \
-    F(glp_set_col_name, set_col_name)   \
     F(glp_get_obj_coef, get_obj_coef)   \
+    F(glp_set_col_bnds, set_col_bnds)   \
     F(glp_get_col_lb, get_col_lb)       \
     F(glp_get_col_ub, get_col_ub)       \
+    F(glp_set_col_kind, set_col_kind)   \
+    F(glp_get_col_kind, get_col_kind)   \
+    F(glp_set_col_name, set_col_name)   \
     F(glp_get_col_name, get_col_name)   \
     F(glp_add_rows, add_rows)           \
     F(glp_set_mat_row, set_mat_row)     \
     F(glp_set_mat_col, set_mat_col)     \
     F(glp_set_row_bnds, set_row_bnds)   \
-    F(glp_set_row_name, set_row_name)   \
     F(glp_get_row_lb, get_row_lb)       \
     F(glp_get_row_ub, get_row_ub)       \
-    F(glp_get_row_type, get_row_type)   \
+    F(glp_set_row_name, set_row_name)   \
     F(glp_get_row_name, get_row_name)   \
+    F(glp_get_row_type, get_row_type)   \
     F(glp_get_num_cols, get_num_cols)   \
     F(glp_get_num_rows, get_num_rows)   \
     F(glp_get_num_nz, get_num_nz)       \
@@ -59,7 +61,7 @@ public:
     GLPK_FUNCTIONS(DECLARE_GLPK_FUN)
 
 public:
-    inline glpk5_api(const char * lib_name = "glpk", const char * lib_path = "")
+    inline glpk5_api(const char * lib_path = "", const char * lib_name = "glpk")
         : lib(lib_path, lib_name) GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUN) {}
 };
 

@@ -72,8 +72,8 @@ public:
     CPLEX_FUNCTIONS(DECLARE_CPLEX_FUN)
 
 public:
-    inline cplex22_api(const char * lib_name = "cplex2212",
-                       const char * lib_path = "")
+    inline cplex22_api(const char * lib_path = "",
+                       const char * lib_name = "cplex2212")
         : lib(lib_path, lib_name) CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {}
 };
 

@@ -58,7 +58,7 @@ public:
     CLP_FUNCTIONS(DECLARE_CLP_FUN)
 
 public:
-    inline clp117_api(const char * lib_name = "Clp", const char * lib_path = "")
+    inline clp117_api(const char * lib_path = "", const char * lib_name = "Clp")
         : lib(lib_path, lib_name) CLP_FUNCTIONS(CONSTRUCT_CLP_FUN) {}
 };
 

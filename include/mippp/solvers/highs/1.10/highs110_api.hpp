@@ -59,8 +59,8 @@ public:
     HIGHS_FUNCTIONS(DECLARE_HIGHS_FUN)
 
 public:
-    inline highs110_api(const char * lib_name = "highs",
-                        const char * lib_path = "")
+    inline highs110_api(const char * lib_path = "",
+                        const char * lib_name = "highs")
         : lib(lib_path, lib_name) HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUN) {}
 };
 

@@ -252,8 +252,7 @@ enum basis_status : int {
 };
 
 template <typename T>
-concept has_lp_basis_warm_start =
-    lp_model<T> &&
+concept has_lp_basis_warm_start = lp_model<T> &&
     requires(T & model, T::variable v, T::constraint c, T::scalar s) {
         { model.get_variable_basis_status(v) }
                 -> std::same_as<basis_status>;
@@ -262,6 +261,28 @@ concept has_lp_basis_warm_start =
         { model.get_constraint_basis_status(c) }
                 -> std::same_as<basis_status>;
         { model.set_constraint_basis_status(c, basis_status::basic) };
+    };
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// MILP features ////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+concept has_sos1_constraints = milp_model<T> &&
+    requires(T & model) {
+        { model.add_sos1_constraint(detail::dummy_range<typename T::variable>()) };
+    };
+
+template <typename T>
+concept has_sos2_constraints = milp_model<T> &&
+    requires(T & model) {
+        { model.add_sos2_constraint(detail::dummy_range<typename T::variable>()) };
+    };
+
+template <typename T>
+concept has_indicator_constraints = milp_model<T> &&
+    requires(T & model, T::variable v) {
+        { model.add_indicator_constraint(v, detail::dummy_constraint<T>()) };
     };
 
 ///////////////////////////////////////////////////////////////////////////////

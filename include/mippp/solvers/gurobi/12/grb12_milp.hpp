@@ -1,17 +1,9 @@
 #ifndef MIPPP_GRB_12_MILP_HPP
 #define MIPPP_GRB_12_MILP_HPP
 
-#include <limits>
 #include <optional>
-#include <vector>
 
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/move.hpp>
-#include <range/v3/view/zip.hpp>
-
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
-#include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
@@ -91,18 +83,22 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
-
     void set_continuous(variable v) noexcept {
-        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(), GRB_CONTINUOUS));
+        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
+                                     GRB_CONTINUOUS));
     }
     void set_integer(variable v) noexcept {
-        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(), GRB_INTEGER));
+        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
+                                     GRB_INTEGER));
     }
     void set_binary(variable v) noexcept {
-        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(), GRB_BINARY));
+        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
+                                     GRB_BINARY));
     }
 
-
+    // add_sos1_constraint
+    // add_sos2_constraint
+    // add_indicator_constraint
 
     void set_feasibility_tolerance(double tol) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_FEASIBILITYTOL, tol));
