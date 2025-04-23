@@ -3,12 +3,14 @@
 
 #include "mippp/solvers/highs/1.10/highs110_api.hpp"
 #include "mippp/solvers/highs/1.10/highs110_lp.hpp"
+#include "mippp/solvers/highs/1.10/highs110_milp.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
 using highs_api = highs110_api;
 using highs_lp = highs110_lp;
+using highs_milp = highs110_milp;
 
 }  // namespace mippp
 }  // namespace fhamonic

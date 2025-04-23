@@ -1,16 +1,16 @@
 # ################### Packages ###################
 find_package(GTest REQUIRED)
-#find_package(TBB REQUIRED)
 include(GoogleTest)
 
 # ################# TEST targets #################
 add_executable(
     mippp_test
-    main_test.cpp variable_test.cpp
-    variable_operators_test.cpp
-    linear_expression_operators_test.cpp
-    linear_constraint_operators_test.cpp
-    models_test.cpp
+    main.cpp variable.cpp
+    variable_operators.cpp
+    linear_expression_operators.cpp
+    linear_constraint_operators.cpp
+    model_methods.cpp
+    milp_examples.cpp
     )
 target_link_libraries(mippp_test mippp)
 target_link_libraries(mippp_test GTest::gtest)

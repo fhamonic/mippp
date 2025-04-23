@@ -2,22 +2,13 @@
 #include <gtest/gtest.h>
 
 #include "assert_helper.hpp"
-
-#include "mippp/model_concepts.hpp"
-
-#include "mippp/solvers/cbc/all.hpp"
-#include "mippp/solvers/clp/all.hpp"
-#include "mippp/solvers/glpk/all.hpp"
-#include "mippp/solvers/gurobi/all.hpp"
-#include "mippp/solvers/highs/all.hpp"
-#include "mippp/solvers/scip/all.hpp"
-#include "mippp/solvers/soplex/all.hpp"
-
-// #include "mippp/solvers/cplex/all.hpp"
-// #include "mippp/solvers/mosek/all.hpp"
+#include "models.hpp"
 
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
+
+#define EPSILON 1e-13
+#define INFTY 1e100
 
 // GTEST_TEST(any, test) {
 //     // mosek_api api("mosek64",
@@ -26,177 +17,8 @@ using namespace fhamonic::mippp::operators;
 //     //     "cplex2212",
 //     // "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
 
-//     auto indices = std::views::iota(0, 9);
-//     auto values = std::views::iota(1, 10);
-//     auto coords = std::views::transform(
-//         indices, [](auto && i) { return std::make_pair(i / 3, i % 3); });
-
-//     cbc_api api;
-//     cbc_milp model(api);
-
-//     auto X_vars =
-//         model.add_binary_variables(9 * 9 * 9, [](int i, int j, int value) {
-//             return (81 * i) + (9 * j) + (value - 1);
-//         });
-
-//     for(auto i : indices) {
-//         for(auto j : indices) {
-//             model.add_constraint(
-//                 xsum(values, [&](auto && v) { return X_vars(i, j, v); }) == 1);
-//         }
-//     }
-//     for(auto v : values) {
-//         for(auto i : indices) {
-//             model.add_constraint(
-//                 xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) == 1);
-//             model.add_constraint(
-//                 xsum(indices, [&](auto && j) { return X_vars(j, i, v); }) == 1);
-//         }
-//         for(auto && [bi, bj] : coords) {
-//             model.add_constraint(xsum(coords, [&](auto && p) {
-//                                      return X_vars(3 * bi + p.first,
-//                                                    3 * bj + p.second, v);
-//                                  }) == 1);
-//         }
-//     }
-
-//     for(auto && x :
-//         {X_vars(0, 2, 8), X_vars(0, 4, 1), X_vars(0, 8, 9), X_vars(1, 0, 6),
-//          X_vars(1, 2, 1), X_vars(1, 4, 9), X_vars(1, 6, 3), X_vars(1, 7, 2),
-//          X_vars(2, 1, 4), X_vars(2, 4, 3), X_vars(2, 5, 7), X_vars(2, 8, 5),
-//          X_vars(3, 1, 3), X_vars(3, 2, 5), X_vars(3, 5, 8), X_vars(3, 6, 2),
-//          X_vars(4, 2, 2), X_vars(4, 3, 6), X_vars(4, 4, 5), X_vars(4, 6, 8),
-//          X_vars(5, 2, 4), X_vars(5, 5, 1), X_vars(5, 6, 7), X_vars(5, 7, 5),
-//          X_vars(6, 0, 5), X_vars(6, 3, 3), X_vars(6, 4, 4), X_vars(6, 7, 8),
-//          X_vars(7, 1, 9), X_vars(7, 2, 7), X_vars(7, 4, 8), X_vars(7, 6, 5),
-//          X_vars(7, 8, 6), X_vars(8, 0, 1), X_vars(8, 4, 6), X_vars(8, 6, 9)}) {
-//         model.set_variable_lower_bound(x, 1);
-//     }
-
-//     model.solve();
-//     auto solution = model.get_solution();
-
-//     for(auto i : indices) {
-//         for(auto j : indices) {
-//             for(auto v : values) {
-//                 if(solution[X_vars(i, j, v)]) std::cout << ' ' << v;
-//             }
-//         }
-//         std::cout << std::endl;
-//     }
-
 //     ASSERT_TRUE(false);
 // }
-
-#define MODEL_TEST_W_PATH(MODEL_TYPE, API_TYPE, PATH)            \
-    struct MODEL_TYPE##_test {                                   \
-        using T = MODEL_TYPE;                                    \
-        API_TYPE api{PATH};                                      \
-        auto construct_model() const { return MODEL_TYPE(api); } \
-    };
-#define MODEL_TEST(MODEL_TYPE, API_TYPE) \
-    MODEL_TEST_W_PATH(MODEL_TYPE, API_TYPE, "")
-
-////////////////////////////////////////////////////////////
-MODEL_TEST(grb_lp, grb_api);
-static_assert(lp_model<grb_lp>);
-static_assert(has_readable_objective<grb_lp>);
-static_assert(has_modifiable_objective<grb_lp>);
-static_assert(has_readable_variables_bounds<grb_lp>);
-// static_assert(has_readable_constraint_lhs<grb_lp>);
-static_assert(has_readable_constraint_sense<grb_lp>);
-static_assert(has_readable_constraint_rhs<grb_lp>);
-// static_assert(has_readable_constraints<grb_lp>);
-static_assert(has_lp_status<grb_lp>);
-static_assert(has_dual_solution<grb_lp>);
-static_assert(has_feasibility_tolerance<grb_lp>);
-
-////////////////////////////////////////////////////////////
-MODEL_TEST(grb_milp, grb_api);
-static_assert(lp_model<grb_milp>);
-static_assert(milp_model<grb_milp>);
-static_assert(has_readable_objective<grb_milp>);
-static_assert(has_modifiable_objective<grb_milp>);
-static_assert(has_readable_variables_bounds<grb_milp>);
-// static_assert(has_readable_constraint_lhs<grb_milp>);
-static_assert(has_readable_constraint_sense<grb_milp>);
-static_assert(has_readable_constraint_rhs<grb_milp>);
-// static_assert(has_readable_constraints<grb_milp>);
-static_assert(has_feasibility_tolerance<grb_milp>);
-
-////////////////////////////////////////////////////////////
-MODEL_TEST(clp_lp, clp_api);
-static_assert(lp_model<clp_lp>);
-static_assert(has_readable_objective<clp_lp>);
-static_assert(has_modifiable_objective<clp_lp>);
-static_assert(has_readable_variables_bounds<clp_lp>);
-// static_assert(has_readable_constraint_lhs<clp_lp>);
-static_assert(has_readable_constraint_sense<clp_lp>);
-static_assert(has_readable_constraint_rhs<clp_lp>);
-// static_assert(has_readable_constraints<clp_lp>);
-static_assert(has_lp_status<clp_lp>);
-static_assert(has_dual_solution<clp_lp>);
-static_assert(has_feasibility_tolerance<clp_lp>);
-
-////////////////////////////////////////////////////////////
-MODEL_TEST(cbc_milp, cbc_api);
-static_assert(lp_model<cbc_milp>);
-static_assert(milp_model<cbc_milp>);
-static_assert(has_readable_objective<cbc_milp>);
-static_assert(has_modifiable_objective<cbc_milp>);
-static_assert(has_readable_variables_bounds<cbc_milp>);
-// static_assert(has_readable_constraint_lhs<cbc_milp>);
-static_assert(has_readable_constraint_sense<cbc_milp>);
-static_assert(has_readable_constraint_rhs<cbc_milp>);
-// static_assert(has_readable_constraints<cbc_milp>);
-static_assert(has_feasibility_tolerance<cbc_milp>);
-
-////////////////////////////////////////////////////////////
-MODEL_TEST(glpk_lp, glpk_api);
-static_assert(lp_model<glpk_lp>);
-static_assert(has_lp_status<glpk_lp>);
-static_assert(has_dual_solution<glpk_lp>);
-static_assert(has_feasibility_tolerance<glpk_lp>);
-
-////////////////////////////////////////////////////////////
-MODEL_TEST(glpk_milp, glpk_api);
-static_assert(lp_model<glpk_milp>);
-static_assert(milp_model<glpk_milp>);
-
-////////////////////////////////////////////////////////////
-MODEL_TEST_W_PATH(highs_lp, highs_api, "/usr/local/lib");
-static_assert(lp_model<highs_lp>);
-// static_assert(has_modifiable_objective<highs_lp>);
-static_assert(has_lp_status<highs_lp>);
-static_assert(has_dual_solution<highs_lp>);
-
-////////////////////////////////////////////////////////////
-MODEL_TEST(soplex_lp, soplex_api);
-static_assert(lp_model<soplex_lp>);
-static_assert(has_dual_solution<soplex_lp>);
-
-////////////////////////////////////////////////////////////
-MODEL_TEST(scip_milp, scip_api);
-static_assert(lp_model<scip_milp>);
-// static_assert(milp_model<scip_milp>);
-static_assert(has_modifiable_objective<scip_milp>);
-
-// struct mosek_lp_test {
-//     using T = mosek_lp;
-//     mosek_api api{
-//         "mosek64",
-//         "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin"};
-//     auto construct_model() const { return T(api); }
-//     static_assert(lp_model<T>);
-// };
-// struct cplex_lp_test {
-//     using T = cplex_lp;
-//     cplex_api api{
-//         "cplex2212",
-//         "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux"};
-//     auto construct_model() const { return T(api); }
-//     static_assert(lp_model<T>);
-// };
 
 // clang-format off
 using Models = ::testing::Types<
@@ -208,12 +30,13 @@ using Models = ::testing::Types<
         glpk_milp_test,
         soplex_lp_test,
         scip_milp_test,
-        highs_lp_test
-        // ,highs_milp_test
+        highs_lp_test,
+        highs_milp_test
         // ,mosek_lp_test
         // ,mosek_milp_test
         // ,cplex_lp_test
         // ,cplex_milp_test
+
         // ,copt_lp_test
         // ,copt_milp_test
         // ,xprs_lp_test
@@ -221,22 +44,13 @@ using Models = ::testing::Types<
         >;
 // clang-format on
 
-#define EPSILON 1e-13
-#define INFTY 1e100
-
 template <typename T>
-class ModelTest : public ::testing::Test {
-private:
-    T m;
+class ModelMethods : public ::testing::Test, public T {};
 
-public:
-    auto construct_model() const { return m.construct_model(); }
-};
+TYPED_TEST_SUITE(ModelMethods, Models);
 
-TYPED_TEST_SUITE(ModelTest, Models);
-
-TYPED_TEST(ModelTest, add_variable) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_variable) {
+    using T = TypeParam::model_type;
     auto model = this->construct_model();
     auto x = model.add_variable();
     ASSERT_EQ(model.num_variables(), 1);
@@ -249,8 +63,8 @@ TYPED_TEST(ModelTest, add_variable) {
         ASSERT_GE(model.get_variable_upper_bound(x), INFTY);
     }
 }
-TYPED_TEST(ModelTest, add_variable_2) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_variable_2) {
+    using T = TypeParam::model_type;
     auto model = this->construct_model();
     auto x = model.add_variable();
     auto y = model.add_variable();
@@ -268,8 +82,8 @@ TYPED_TEST(ModelTest, add_variable_2) {
         ASSERT_GE(model.get_variable_upper_bound(y), INFTY);
     }
 }
-TYPED_TEST(ModelTest, add_variable_w_params) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_variable_w_params) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x = model.add_variable({.obj_coef = 7.0, .upper_bound = 13.0});
     auto y = model.add_variable({.lower_bound = 2});
@@ -287,8 +101,8 @@ TYPED_TEST(ModelTest, add_variable_w_params) {
         ASSERT_GE(model.get_variable_upper_bound(y), INFTY);
     }
 }
-TYPED_TEST(ModelTest, add_variables) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_variables) {
+    using T = TypeParam::model_type;
     auto model = this->construct_model();
 
     auto F = model.add_variable();
@@ -332,8 +146,8 @@ TYPED_TEST(ModelTest, add_variables) {
         }
     }
 }
-TYPED_TEST(ModelTest, add_indexed_variables) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_indexed_variables) {
+    using T = TypeParam::model_type;
     auto model = this->construct_model();
 
     auto F = model.add_variable();
@@ -381,8 +195,8 @@ TYPED_TEST(ModelTest, add_indexed_variables) {
         }
     }
 }
-TYPED_TEST(ModelTest, optimize_empty_min) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, optimize_empty_min) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     model.set_minimization();
     model.solve();
@@ -391,8 +205,8 @@ TYPED_TEST(ModelTest, optimize_empty_min) {
     }
     ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
 }
-TYPED_TEST(ModelTest, optimize_empty_max) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, optimize_empty_max) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     model.set_maximization();
     model.solve();
@@ -401,8 +215,8 @@ TYPED_TEST(ModelTest, optimize_empty_max) {
     }
     ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
 }
-TYPED_TEST(ModelTest, add_constraint_and_get) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_constraint_and_get) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x = model.add_variable();
     auto y = model.add_variable();
@@ -420,8 +234,8 @@ TYPED_TEST(ModelTest, add_constraint_and_get) {
         ASSERT_DOUBLE_EQ(model.get_constraint_rhs(c), 5.0);
     }
 }
-TYPED_TEST(ModelTest, add_constraint_and_optimize_max_bounded) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_constraint_and_optimize_max_bounded) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x = model.add_variable({.upper_bound = 3});
     auto y = model.add_variable({.lower_bound = 1});
@@ -441,8 +255,8 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_max_bounded) {
         ASSERT_DOUBLE_EQ(dual_solution[c], 1.5);
     }
 }
-TYPED_TEST(ModelTest, add_constraint_and_optimize_min_bounded) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_constraint_and_optimize_min_bounded) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x = model.add_variable({.upper_bound = 3});
     auto y = model.add_variable({.lower_bound = 1});
@@ -462,8 +276,8 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_min_bounded) {
         ASSERT_DOUBLE_EQ(dual_solution[c], -1.5);
     }
 }
-TYPED_TEST(ModelTest, add_constraint_and_optimize_max_unbounded) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_constraint_and_optimize_max_unbounded) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x = model.add_variable(
         {.lower_bound = -std::numeric_limits<double>::infinity(),
@@ -477,8 +291,8 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_max_unbounded) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::unbounded);
     }
 }
-TYPED_TEST(ModelTest, add_constraint_and_optimize_min_unbounded) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_constraint_and_optimize_min_unbounded) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x = model.add_variable(
         {.lower_bound = -std::numeric_limits<double>::infinity(),
@@ -492,8 +306,8 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_min_unbounded) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::unbounded);
     }
 }
-TYPED_TEST(ModelTest, add_constraint_and_optimize_max_infeasible) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_constraint_and_optimize_max_infeasible) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x = model.add_variable(
         {.lower_bound = -std::numeric_limits<double>::infinity(),
@@ -508,8 +322,8 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_max_infeasible) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::infeasible);
     }
 }
-TYPED_TEST(ModelTest, add_constraint_and_optimize_min_infeasible) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, add_constraint_and_optimize_min_infeasible) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x = model.add_variable(
         {.lower_bound = -std::numeric_limits<double>::infinity(),
@@ -524,8 +338,8 @@ TYPED_TEST(ModelTest, add_constraint_and_optimize_min_infeasible) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::infeasible);
     }
 }
-TYPED_TEST(ModelTest, lp_example) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, lp_example) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
@@ -551,8 +365,8 @@ TYPED_TEST(ModelTest, lp_example) {
         ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
     }
 }
-TYPED_TEST(ModelTest, lp_example_set_objective_redundant_terms) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, lp_example_set_objective_redundant_terms) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
@@ -578,8 +392,8 @@ TYPED_TEST(ModelTest, lp_example_set_objective_redundant_terms) {
         ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
     }
 }
-TYPED_TEST(ModelTest, lp_example_add_constraint_redundant_terms) {
-    using T = TypeParam::T;
+TYPED_TEST(ModelMethods, lp_example_add_constraint_redundant_terms) {
+    using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
