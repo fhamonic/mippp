@@ -42,7 +42,11 @@
     F(glp_get_dual_stat, get_dual_stat) \
     F(glp_get_obj_val, get_obj_val)     \
     F(glp_get_col_prim, get_col_prim)   \
-    F(glp_get_row_dual, get_row_dual)
+    F(glp_get_row_dual, get_row_dual)   \
+    F(glp_intopt, intopt)               \
+    F(glp_intfeas1, intfeas1)           \
+    F(glp_mip_obj_val, mip_obj_val)     \
+    F(glp_mip_col_val, mip_col_val)
 
 #define DECLARE_GLPK_FUN(FULL, SHORT)     \
     using SHORT##_fun_t = decltype(FULL); \

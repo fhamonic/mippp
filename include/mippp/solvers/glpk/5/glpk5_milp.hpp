@@ -22,23 +22,30 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id, scalar>;
 
+private:
+    glp_iocp model_params;
+
+public:
     [[nodiscard]] explicit glpk5_milp(const glpk5_api & api)
-        : glpk5_base_model(api) {
+        : glpk5_base_model(api), model_params() {
         model_params.msg_lev = GLP_MSG_ALL;
-        model_params.meth = GLP_PRIMAL;
-        model_params.pricing = GLP_PT_STD;
-        model_params.r_test = GLP_RT_STD;
-        model_params.tol_bnd = 1e-13;
-        model_params.tol_dj = 1e-13;
-        model_params.tol_piv = 1e-13;
-        model_params.obj_ll = std::numeric_limits<double>::lowest();
-        model_params.obj_ul = std::numeric_limits<double>::max();
-        model_params.it_lim = std::numeric_limits<int>::max();
+        model_params.br_tech = GLP_BR_PCH;
+        model_params.bt_tech = GLP_BT_BLB;
+        model_params.tol_int = 1e-6;
+        model_params.tol_obj = 1e-7;
         model_params.tm_lim = std::numeric_limits<int>::max();
-        model_params.presolve = 0;  // PRESOLVE
-        model_params.excl = 0;
-        model_params.shift = 0;
-        model_params.aorn = GLP_USE_AT;
+        model_params.pp_tech = GLP_PP_ROOT;
+        model_params.mip_gap = 1e-4;
+        model_params.mir_cuts = GLP_ON;
+        model_params.gmi_cuts = GLP_ON;
+        model_params.cov_cuts = GLP_ON;
+        model_params.clq_cuts = GLP_ON;
+        model_params.presolve = GLP_ON;
+        model_params.binarize = GLP_OFF;
+        model_params.fp_heur = GLP_ON;
+        model_params.ps_heur = GLP_OFF;
+        model_params.ps_tm_lim = 1000;
+        model_params.sr_heur = GLP_ON;
     }
 
     variable add_integer_variable(
@@ -64,6 +71,35 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+private:
+    inline void _add_binary_variables(const std::size_t & offset,
+                                      const std::size_t & count) {
+        glp.add_cols(model, static_cast<int>(count));
+        for(std::size_t i = offset + 1; i <= offset + count; ++i)
+            glp.set_col_kind(model, static_cast<int>(i), GLP_BV);
+    }
+
+public:
+    variable add_binary_variable() {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable(var_id,
+                      {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
+                      GLP_BV);
+        return variable(var_id);
+    }
+    auto add_binary_variables(std::size_t count) noexcept {
+        const std::size_t offset = num_variables();
+        _add_binary_variables(offset, count);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+        const std::size_t offset = num_variables();
+        _add_binary_variables(offset, count);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+
     void set_continuous(variable v) noexcept {
         glp.set_col_kind(model, v.id(), GLP_CV);
     }
@@ -78,50 +114,27 @@ public:
     // add_sos2_constraint
     // add_indicator_constraint
 
-    void solve() {
-        switch(glp.simplex(model, &model_params)) {
-            case GLP_ENOPFS:
-                opt_lp_status.emplace(lp_status::unbounded);
-                return;
-            case GLP_ENODFS:
-                opt_lp_status.emplace(lp_status::infeasible);
-                return;
-        }
-        const int primal_status = glp.get_status(model);
-        if(primal_status == GLP_UNBND || !std::isfinite(get_solution_value())) {
-            opt_lp_status.emplace(lp_status::unbounded);
-            return;
-        }
-        if(primal_status == GLP_OPT) {
-            opt_lp_status.emplace(lp_status::optimal);
-            return;
-        }
-        if(primal_status == GLP_INFEAS || primal_status == GLP_NOFEAS) {
-            opt_lp_status.emplace(lp_status::infeasible);
-            return;
-        }
+    void set_feasibility_tolerance(double tol) {
+        model_params.tol_int = tol;
+        model_params.tol_obj = tol / 10;
     }
-    std::optional<lp_status> get_lp_status() { return opt_lp_status; }
+    double get_feasibility_tolerance() { return model_params.tol_int; }
+
+    void solve() {
+        glp.intopt(model, &model_params);
+        // glp.intfeas1(model, 0, 0);
+    }
 
     double get_solution_value() {
-        return objective_offset + glp.get_obj_val(model);
+        return objective_offset + glp.mip_obj_val(model);
     }
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         for(std::size_t var = 0u; var < num_vars; ++var) {
-            solution[var] = glp.get_col_prim(model, static_cast<int>(var) + 1);
+            solution[var] = glp.mip_col_val(model, static_cast<int>(var) + 1);
         }
         return variable_mapping(std::move(solution));
-    }
-    auto get_dual_solution() {
-        auto num_constrs = num_constraints();
-        auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
-        for(std::size_t constr = 0u; constr < num_constrs; ++constr) {
-            solution[constr] =
-                glp.get_row_dual(model, static_cast<int>(constr) + 1);
-        }
-        return constraint_mapping(std::move(solution));
     }
 };
 

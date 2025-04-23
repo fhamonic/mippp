@@ -109,6 +109,7 @@ static_assert(has_readable_constraint_rhs<grb_lp>);
 // static_assert(has_readable_constraints<grb_lp>);
 static_assert(has_lp_status<grb_lp>);
 static_assert(has_dual_solution<grb_lp>);
+static_assert(has_feasibility_tolerance<grb_lp>);
 
 ////////////////////////////////////////////////////////////
 MODEL_TEST(grb_milp, grb_api);
@@ -121,6 +122,7 @@ static_assert(has_readable_variables_bounds<grb_milp>);
 static_assert(has_readable_constraint_sense<grb_milp>);
 static_assert(has_readable_constraint_rhs<grb_milp>);
 // static_assert(has_readable_constraints<grb_milp>);
+static_assert(has_feasibility_tolerance<grb_milp>);
 
 ////////////////////////////////////////////////////////////
 MODEL_TEST(clp_lp, clp_api);
@@ -134,6 +136,7 @@ static_assert(has_readable_constraint_rhs<clp_lp>);
 // static_assert(has_readable_constraints<clp_lp>);
 static_assert(has_lp_status<clp_lp>);
 static_assert(has_dual_solution<clp_lp>);
+static_assert(has_feasibility_tolerance<clp_lp>);
 
 ////////////////////////////////////////////////////////////
 MODEL_TEST(cbc_milp, cbc_api);
@@ -146,19 +149,19 @@ static_assert(has_readable_variables_bounds<cbc_milp>);
 static_assert(has_readable_constraint_sense<cbc_milp>);
 static_assert(has_readable_constraint_rhs<cbc_milp>);
 // static_assert(has_readable_constraints<cbc_milp>);
+static_assert(has_feasibility_tolerance<cbc_milp>);
 
 ////////////////////////////////////////////////////////////
 MODEL_TEST(glpk_lp, glpk_api);
 static_assert(lp_model<glpk_lp>);
 static_assert(has_lp_status<glpk_lp>);
 static_assert(has_dual_solution<glpk_lp>);
+static_assert(has_feasibility_tolerance<glpk_lp>);
 
 ////////////////////////////////////////////////////////////
-// MODEL_TEST(glpk_milp, glpk_api);
-// static_assert(lp_model<glpk_milp>);
-// static_assert(milp_model<glpk_milp>);
-// static_assert(has_lp_status<glpk_milp>);
-// static_assert(has_dual_solution<glpk_milp>);
+MODEL_TEST(glpk_milp, glpk_api);
+static_assert(lp_model<glpk_milp>);
+static_assert(milp_model<glpk_milp>);
 
 ////////////////////////////////////////////////////////////
 MODEL_TEST_W_PATH(highs_lp, highs_api, "/usr/local/lib");
@@ -202,7 +205,7 @@ using Models = ::testing::Types<
         clp_lp_test,
         cbc_milp_test,
         glpk_lp_test,
-        // glpk_milp_test,
+        glpk_milp_test,
         soplex_lp_test,
         scip_milp_test,
         highs_lp_test

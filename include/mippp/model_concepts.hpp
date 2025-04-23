@@ -290,11 +290,11 @@ concept has_indicator_constraints = milp_model<T> &&
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-concept has_feasability_tolerance =
+concept has_feasibility_tolerance =
     requires(T & model, T::variable v, T::constraint c, T::scalar s) {
-        { model.get_feasability_tolerance() }
+        { model.get_feasibility_tolerance() }
                 -> std::convertible_to<typename T::scalar>;
-        { model.set_feasability_tolerance(s) };
+        { model.set_feasibility_tolerance(s) };
     };
 
 template <typename T>

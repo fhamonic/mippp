@@ -20,15 +20,19 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id, scalar>;
 
+private:
+    glp_smcp model_params;
+
+public:
     [[nodiscard]] explicit glpk5_lp(const glpk5_api & api)
-        : glpk5_base_model(api) {
+        : glpk5_base_model(api), model_params() {
         model_params.msg_lev = GLP_MSG_ALL;
         model_params.meth = GLP_PRIMAL;
         model_params.pricing = GLP_PT_STD;
         model_params.r_test = GLP_RT_STD;
-        model_params.tol_bnd = 1e-13;
-        model_params.tol_dj = 1e-13;
-        model_params.tol_piv = 1e-13;
+        model_params.tol_bnd = 1e-7;
+        model_params.tol_dj = 1e-7;
+        model_params.tol_piv = 1e-10;
         model_params.obj_ll = std::numeric_limits<double>::lowest();
         model_params.obj_ul = std::numeric_limits<double>::max();
         model_params.it_lim = std::numeric_limits<int>::max();
@@ -38,6 +42,12 @@ public:
         model_params.shift = 0;
         model_params.aorn = GLP_USE_AT;
     }
+
+    void set_feasibility_tolerance(double tol) {
+        model_params.tol_bnd = model_params.tol_dj = tol;
+        model_params.tol_piv = tol / 100;
+    }
+    double get_feasibility_tolerance() { return model_params.tol_bnd; }
 
     void solve() {
         switch(glp.simplex(model, &model_params)) {

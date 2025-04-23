@@ -44,6 +44,8 @@ public:
 private:
     const cbc210_api & Cbc;
     Cbc_Model * model;
+    double objective_offset;
+    double feasibility_tol;
 
     static constexpr char constraint_relation_to_cbc_sense(
         constraint_relation rel) {
@@ -59,7 +61,6 @@ private:
     //     constraint_relation::greater_equal_zero;
     // }
 
-    double objective_offset;
     std::vector<std::pair<constraint_id, unsigned int>>
         tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
@@ -67,7 +68,10 @@ private:
 
 public:
     [[nodiscard]] explicit cbc210_milp(const cbc210_api & api)
-        : Cbc(api), model(Cbc.newModel()), objective_offset(0.0) {}
+        : Cbc(api)
+        , model(Cbc.newModel())
+        , objective_offset(0.0)
+        , feasibility_tol(1e-4) {}
     ~cbc210_milp() { Cbc.deleteModel(model); }
 
     std::size_t num_variables() {
@@ -329,11 +333,12 @@ public:
     // auto get_constraint(const constraint constr) const;
 
     void set_feasibility_tolerance(double tol) {
+        feasibility_tol = tol;
         auto tol_s = std::to_string(tol);
         Cbc.setParameter(model, "-primalTolerance=", tol_s.c_str());
         Cbc.setParameter(model, "-dualTolerance=", tol_s.c_str());
     }
-    // double get_feasibility_tolerance() { return Clp.primalTolerance(model); }
+    double get_feasibility_tolerance() { return feasibility_tol; }
 
     void set_optimality_tolerance(double tol) {
         Cbc.setAllowableGap(model, tol);
