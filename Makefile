@@ -11,7 +11,7 @@ $(BUILD_DIR):
 
 test: $(BUILD_DIR)
 	@cd $(BUILD_DIR) && \
-	ctest --output-on-failure
+	ctest -j 1 --output-on-failure
 	
 package:
 	conan create . -u -b=missing -pr=${CONAN_PROFILE}

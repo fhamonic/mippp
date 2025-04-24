@@ -12,6 +12,8 @@
     F(MSK_makeemptytask, makeemptytask)                 \
     F(MSK_deletetask, deletetask)                       \
     F(MSK_deleteenv, deleteenv)                         \
+    F(MSK_getcodedesc, getcodedesc)                     \
+    F(MSK_linkfunctotaskstream, linkfunctotaskstream)   \
     F(MSK_putobjsense, putobjsense)                     \
     F(MSK_getobjsense, getobjsense)                     \
     F(MSK_putcslice, putcslice)                         \
@@ -22,8 +24,9 @@
     F(MSK_getcfix, getcfix)                             \
     F(MSK_appendvars, appendvars)                       \
     F(MSK_putcj, putcj)                                 \
-    F(MSK_chgvarbound, chgvarbound)                     \
+    F(MSK_putvarbound, putvarbound)                     \
     F(MSK_putvarboundsliceconst, putvarboundsliceconst) \
+    F(MSK_chgvarbound, chgvarbound)                     \
     F(MSK_putvarname, putvarname)                       \
     F(MSK_getcj, getcj)                                 \
     F(MSK_getvarbound, getvarbound)                     \
@@ -52,6 +55,7 @@
     F(MSK_optimize, optimize)                           \
     F(MSK_getsolsta, getsolsta)                         \
     F(MSK_getprimalobj, getprimalobj)                   \
+    F(MSK_getxx, getxx)                                 \
     F(MSK_getsolution, getsolution)                     \
     F(MSK_deletesolution, deletesolution)
 

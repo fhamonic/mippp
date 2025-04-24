@@ -5,14 +5,13 @@
 
 #include "mippp/solvers/cbc/all.hpp"
 #include "mippp/solvers/clp/all.hpp"
+#include "mippp/solvers/cplex/all.hpp"
 #include "mippp/solvers/glpk/all.hpp"
 #include "mippp/solvers/gurobi/all.hpp"
 #include "mippp/solvers/highs/all.hpp"
+#include "mippp/solvers/mosek/all.hpp"
 #include "mippp/solvers/scip/all.hpp"
 #include "mippp/solvers/soplex/all.hpp"
-
-#include "mippp/solvers/cplex/all.hpp"
-// #include "mippp/solvers/mosek/all.hpp"
 
 namespace fhamonic::mippp {
 
@@ -113,11 +112,13 @@ static_assert(lp_model<scip_milp>);
 static_assert(milp_model<scip_milp>);
 static_assert(has_modifiable_objective<scip_milp>);
 
-// ////////////////////////////////////////////////////////////
-// MODEL_TEST_W_PATH(mosek_lp, mosek_api,
-// "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
-// static_assert(lp_model<mosek_lp>);
-// static_assert(has_dual_solution<mosek_lp>);
+////////////////////////////////////////////////////////////
+MODEL_TEST_W_PATH(
+    mosek_lp, mosek_api,
+    "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
+static_assert(lp_model<mosek_lp>);
+static_assert(has_readable_variables_bounds<mosek_lp>);
+static_assert(has_dual_solution<mosek_lp>);
 
 // ////////////////////////////////////////////////////////////
 // MODEL_TEST_W_PATH(mosek_milp, mosek_api,
