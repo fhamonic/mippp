@@ -133,8 +133,9 @@ public:
     constexpr auto end() const noexcept { return ranges::end(_variables); }
 
     template <std::integral T>
-    constexpr auto operator[](T i) const noexcept {
-        assert(static_cast<std::size_t>(i) < this->size());
+    constexpr auto operator[](T i) const {
+        if(static_cast<std::size_t>(i) >= this->size())
+            throw std::out_of_range("variable's index out of range.");
         return begin()[static_cast<std::ranges::range_difference_t<Vars>>(i)];
     }
 
@@ -164,10 +165,11 @@ public:
         : variables_range<Vars>(std::forward<VR>(variables))
         , _id_lambda(std::forward<IL>(id_lambda)) {}
 
-    constexpr auto operator()(Args... args) const noexcept {
+    constexpr auto operator()(Args... args) const {
         const auto index = static_cast<std::ranges::range_difference_t<Vars>>(
             this->_id_lambda(args...));
-        assert(static_cast<std::size_t>(index) < this->size());
+        if(static_cast<std::size_t>(index) >= this->size())
+            throw std::out_of_range("variable's index out of range.");
         return this->begin()[index];
     }
 };

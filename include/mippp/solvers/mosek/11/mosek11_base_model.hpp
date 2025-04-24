@@ -78,7 +78,7 @@ public:
         : MSK(api), env(NULL), task(NULL) {
         check(MSK.makeenv(
             &env,
-            (std::filesystem::temp_directory_path() / "mosek.log").c_str()));
+            (std::filesystem::temp_directory_path() / "mosek11_").c_str()));
         check(MSK.makeemptytask(env, &task));
     }
     ~mosek11_base_model() {

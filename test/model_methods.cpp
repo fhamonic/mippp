@@ -91,7 +91,7 @@ using Models = ::testing::Types<
         highs_lp_test,
         highs_milp_test,
         cplex_lp_test,
-        // ,cplex_milp_test
+        cplex_milp_test,
         mosek_lp_test
         // ,mosek_milp_test
 
@@ -181,11 +181,10 @@ TYPED_TEST(ModelMethods, add_variables) {
     ASSERT_EQ_RANGES(X_vars, {X_vars[0], X_vars[1], X_vars[2], X_vars[3]});
     ASSERT_EQ_RANGES(Y_vars, {Y_vars[0], Y_vars[1], Y_vars[2]});
 
-    // ASSERT_DEATH creates subprocesses that increase computation time
-    ASSERT_DEATH(X_vars[-1], ".*Assertion.*failed.*");
-    ASSERT_DEATH(X_vars[4], ".*Assertion.*failed.*");
-    ASSERT_DEATH(Y_vars[-1], ".*Assertion.*failed.*");
-    ASSERT_DEATH(Y_vars[3], ".*Assertion.*failed.*");
+    ASSERT_THROW(X_vars[-1], std::out_of_range);
+    ASSERT_THROW(X_vars[4], std::out_of_range);
+    ASSERT_THROW(Y_vars[-1], std::out_of_range);
+    ASSERT_THROW(Y_vars[3], std::out_of_range);
 
     if constexpr(has_readable_objective<T>) {
         for(auto && x : X_vars)
@@ -226,11 +225,10 @@ TYPED_TEST(ModelMethods, add_indexed_variables) {
     ASSERT_EQ(Y_vars(1, 0).id(), 7);
     ASSERT_EQ(Y_vars(1, 1).id(), 8);
 
-    // ASSERT_DEATH creates subprocesses that increase computation time
-    ASSERT_DEATH(X_vars(-1), ".*Assertion.*failed.*");
-    ASSERT_DEATH(X_vars(4), ".*Assertion.*failed.*");
-    ASSERT_DEATH(Y_vars(0, -1), ".*Assertion.*failed.*");
-    ASSERT_DEATH(Y_vars(2, 0), ".*Assertion.*failed.*");
+    ASSERT_THROW(X_vars(-1), std::out_of_range);
+    ASSERT_THROW(X_vars(4), std::out_of_range);
+    ASSERT_THROW(Y_vars(0, -1), std::out_of_range);
+    ASSERT_THROW(Y_vars(2, 0), std::out_of_range);
 
     ASSERT_EQ_RANGES(X_vars, {X_vars(3), X_vars(2), X_vars(1), X_vars(0)});
     ASSERT_EQ_RANGES(Y_vars,
@@ -400,20 +398,20 @@ TYPED_TEST(ModelMethods, lp_example) {
     auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
     model.solve();
-    // if constexpr(has_lp_status<T>) {
-    //     ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
-    // }
-    // ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
-    // auto solution = model.get_solution();
-    // ASSERT_NEAR(solution[x1], 2.0, EPSILON);
-    // ASSERT_NEAR(solution[x2], 0.0, EPSILON);
-    // ASSERT_NEAR(solution[x3], 1.0, EPSILON);
-    // if constexpr(has_dual_solution<T>) {
-    //     auto dual_solution = model.get_dual_solution();
-    //     ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
-    //     ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
-    //     ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
-    // }
+    if constexpr(has_lp_status<T>) {
+        ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
+    }
+    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
+    if constexpr(has_dual_solution<T>) {
+        auto dual_solution = model.get_dual_solution();
+        ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
+    }
 }
 TYPED_TEST(ModelMethods, lp_example_set_objective_redundant_terms) {
     using T = TypeParam::model_type;
@@ -426,21 +424,21 @@ TYPED_TEST(ModelMethods, lp_example_set_objective_redundant_terms) {
     auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
     auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
-    // model.solve();
-    // if constexpr(has_lp_status<T>) {
-    //     ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
-    // }
-    // ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
-    // auto solution = model.get_solution();
-    // ASSERT_NEAR(solution[x1], 2.0, EPSILON);
-    // ASSERT_NEAR(solution[x2], 0.0, EPSILON);
-    // ASSERT_NEAR(solution[x3], 1.0, EPSILON);
-    // if constexpr(has_dual_solution<T>) {
-    //     auto dual_solution = model.get_dual_solution();
-    //     ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
-    //     ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
-    //     ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
-    // }
+    model.solve();
+    if constexpr(has_lp_status<T>) {
+        ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
+    }
+    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
+    if constexpr(has_dual_solution<T>) {
+        auto dual_solution = model.get_dual_solution();
+        ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
+    }
 }
 TYPED_TEST(ModelMethods, lp_example_add_constraint_redundant_terms) {
     using T = TypeParam::model_type;
@@ -453,20 +451,20 @@ TYPED_TEST(ModelMethods, lp_example_add_constraint_redundant_terms) {
     auto c1 = model.add_constraint(3 * x1 - x1 + 3 * x2 + x3 <= 5);
     auto c2 = model.add_constraint(4 * x1 + x3 + x2 + x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
-    // model.solve();
-    // if constexpr(has_lp_status<T>) {
-    //     ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
-    // }
-    // ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
-    // auto solution = model.get_solution();
-    // ASSERT_NEAR(solution[x1], 2.0, EPSILON);
-    // ASSERT_NEAR(solution[x2], 0.0, EPSILON);
-    // ASSERT_NEAR(solution[x3], 1.0, EPSILON);
-    // if constexpr(has_dual_solution<T>) {
-    //     auto dual_solution = model.get_dual_solution();
-    //     ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
-    //     ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
-    //     ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
-    // }
+    model.solve();
+    if constexpr(has_lp_status<T>) {
+        ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
+    }
+    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
+    if constexpr(has_dual_solution<T>) {
+        auto dual_solution = model.get_dual_solution();
+        ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
+        ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
+    }
 }
 //*/

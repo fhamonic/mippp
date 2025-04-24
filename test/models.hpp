@@ -134,10 +134,11 @@ static_assert(lp_model<cplex_lp>);
 static_assert(has_readable_variables_bounds<cplex_lp>);
 // static_assert(has_modifiable_objective<cplex_lp>);
 
-// ////////////////////////////////////////////////////////////
-// MODEL_TEST_W_PATH(cplex_milp, cplex_api,
-// "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
-// // static_assert(milp_model<cplex_milp>);
+////////////////////////////////////////////////////////////
+MODEL_TEST_W_PATH(cplex_milp, cplex_api,
+"/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+static_assert(milp_model<cplex_milp>);
+static_assert(has_readable_variables_bounds<cplex_milp>);
 // static_assert(has_modifiable_objective<cplex_milp>);
 
 }  // namespace fhamonic::mippp

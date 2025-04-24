@@ -32,7 +32,7 @@ public:
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(num_variables());
-        _add_variable(var_id, params, CPX_INTEGER);
+        _add_variable(params, CPX_INTEGER);
         return variable(var_id);
     }
     auto add_integer_variables(
@@ -48,6 +48,42 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, CPX_INTEGER);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+
+private:
+    inline void _add_binary_variables(const std::size_t & offset,
+                                      const std::size_t & count) {
+        tmp_scalars.resize(2 * count);
+        std::fill(tmp_scalars.begin(),
+                  tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count), 0);
+        std::fill(tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count),
+                  tmp_scalars.end(), 1);
+        tmp_variables.resize(count);
+        std::fill(tmp_type.begin(), tmp_type.end(), CPX_BINARY);
+        check(CPX.newcols(
+            env, lp, static_cast<int>(count), NULL, tmp_scalars.data(),
+            tmp_scalars.data() + static_cast<std::ptrdiff_t>(count),
+            tmp_type.data(), NULL));
+    }
+
+public:
+    variable add_binary_variable() {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable({.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
+                      CPX_BINARY);
+        return variable(var_id);
+    }
+    auto add_binary_variables(std::size_t count) noexcept {
+        const std::size_t offset = num_variables();
+        _add_binary_variables(offset, count);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+        const std::size_t offset = num_variables();
+        _add_binary_variables(offset, count);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }

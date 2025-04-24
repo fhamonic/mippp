@@ -113,63 +113,49 @@ public:
     }
 
 protected:
-    void _add_variable(const int & var_id, const variable_params & params,
-                       char type) {
+    void _add_variable(const variable_params & params, char type) {
         const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
         const double ub = params.upper_bound.value_or(CPX_INFBOUND);
-        check(CPX.newcols(env, lp, 1, &params.obj_coef, &lb, &ub, NULL, NULL));
-        // if(type != CPX_CONTINUOUS) {
-        //     check(CPX.chgctype(env, lp, 1, &var_id, &type));
-        // }
+        check(CPX.newcols(env, lp, 1, &params.obj_coef, &lb, &ub,
+                          (type != CPX_CONTINUOUS) ? &type : NULL, NULL));
     }
     void _add_variables(std::size_t offset, std::size_t count,
                         const variable_params & params, char type) {
-        check(CPX.newcols(env, lp, static_cast<int>(count), NULL, NULL, NULL,
-                          NULL, NULL));
-        tmp_variables.resize(count);
-        std::iota(tmp_variables.begin(), tmp_variables.end(),
-                  static_cast<variable_id>(offset));
-
-        auto iota_variables = [&, done = false]() mutable {
-            if(done) return;
-            // tmp_variables.resize(count);
-            // std::iota(tmp_variables.begin(), tmp_variables.end(),
-            //           static_cast<variable_id>(offset));
-            done = true;
-        };
-        if(auto obj = params.obj_coef; obj != 0.0) {
-            iota_variables();
-            tmp_scalars.resize(count);
-            std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
-            CPX.chgobj(env, lp, static_cast<int>(count), tmp_variables.data(),
-                       tmp_scalars.data());
+        std::optional<std::size_t> dbl_offset_1, dbl_offset_2, dbl_offset_3;
+        tmp_scalars.resize(0u);
+        if(params.obj_coef != 0.0) {
+            dbl_offset_1.emplace(tmp_scalars.size());
+            tmp_scalars.resize(tmp_scalars.size() + count, params.obj_coef);
         }
         if(auto lb = params.lower_bound.value_or(-CPX_INFBOUND); lb != 0.0) {
-            iota_variables();
-            tmp_type.resize(count);
-            std::fill(tmp_type.begin(), tmp_type.end(), 'L');
-            tmp_scalars.resize(count);
-            std::fill(tmp_scalars.begin(), tmp_scalars.end(), lb);
-            CPX.chgbds(env, lp, static_cast<int>(count), tmp_variables.data(),
-                       tmp_type.data(), tmp_scalars.data());
+            dbl_offset_2.emplace(tmp_scalars.size());
+            tmp_scalars.resize(tmp_scalars.size() + count, lb);
         }
-        if(auto ub = params.upper_bound.value_or(CPX_INFBOUND);
-           ub != CPX_INFBOUND) {
-            iota_variables();
-            tmp_type.resize(count);
-            std::fill(tmp_type.begin(), tmp_type.end(), 'U');
-            tmp_scalars.resize(count);
-            std::fill(tmp_scalars.begin(), tmp_scalars.end(), ub);
-            CPX.chgbds(env, lp, static_cast<int>(count), tmp_variables.data(),
-                       tmp_type.data(), tmp_scalars.data());
+        if(auto ub = params.upper_bound.value_or(CPX_INFBOUND); ub != 0.0) {
+            dbl_offset_3.emplace(tmp_scalars.size());
+            tmp_scalars.resize(tmp_scalars.size() + count, ub);
         }
-        // if(type != CPX_CONTINUOUS) {
-        //     iota_variables();
-        //     tmp_type.resize(count);
-        //     std::fill(tmp_type.begin(), tmp_type.end(), type);
-        //     check(CPX.chgctype(env, lp, static_cast<int>(count),
-        //                        tmp_variables.data(), tmp_type.data()));
-        // }
+
+        if(type != CPX_CONTINUOUS) {
+            tmp_type.resize(count);
+            std::fill(tmp_type.begin(), tmp_type.end(), type);
+        }
+
+        check(CPX.newcols(
+            env, lp, static_cast<int>(count),
+            dbl_offset_1.has_value()
+                ? (tmp_scalars.data() +
+                   static_cast<std::ptrdiff_t>(dbl_offset_1.value()))
+                : NULL,
+            dbl_offset_2.has_value()
+                ? (tmp_scalars.data() +
+                   static_cast<std::ptrdiff_t>(dbl_offset_2.value()))
+                : NULL,
+            dbl_offset_3.has_value()
+                ? (tmp_scalars.data() +
+                   static_cast<std::ptrdiff_t>(dbl_offset_3.value()))
+                : NULL,
+            (type != CPX_CONTINUOUS) ? tmp_type.data() : NULL, NULL));
     }
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
@@ -195,7 +181,7 @@ public:
     variable add_variable(
         const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(num_variables());
-        _add_variable(var_id, params, CPX_CONTINUOUS);
+        _add_variable(params, CPX_CONTINUOUS);
         return variable(var_id);
     }
     auto add_variables(std::size_t count,

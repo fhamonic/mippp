@@ -16,9 +16,9 @@ using Models = ::testing::Types<
         cbc_milp_test,
         glpk_milp_test,
         scip_milp_test,
-        highs_milp_test
+        highs_milp_test,
+        cplex_milp_test
         // ,mosek_milp_test
-        // ,cplex_milp_test
         // ,copt_milp_test
         // ,xprs_milp_test
         >;
@@ -30,12 +30,6 @@ class MilpModelExamples : public ::testing::Test, public T {};
 TYPED_TEST_SUITE(MilpModelExamples, Models);
 
 TYPED_TEST(MilpModelExamples, sudoku) {
-    // mosek_api api("mosek64",
-    // "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
-    // cplex_api api(
-    //     "cplex2212",
-    // "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
-
     using T = TypeParam::model_type;
     if constexpr(std::same_as<T, glpk5_milp>) {
         GTEST_SKIP();
