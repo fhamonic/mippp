@@ -1,0 +1,108 @@
+#ifndef MIPPP_CPLEX_22_MILP_HPP
+#define MIPPP_CPLEX_22_MILP_HPP
+
+#include <numeric>
+#include <optional>
+#include <vector>
+
+#include "mippp/linear_constraint.hpp"
+#include "mippp/linear_expression.hpp"
+#include "mippp/model_concepts.hpp"
+#include "mippp/model_entities.hpp"
+
+#include "mippp/solvers/cplex/22/cplex22_base_model.hpp"
+
+namespace fhamonic {
+namespace mippp {
+
+class cplex22_milp : public cplex22_base_model {
+public:
+    using variable_id = int;
+    using constraint_id = int;
+    using scalar = double;
+    using variable = model_variable<variable_id, scalar>;
+    using constraint = model_constraint<constraint_id, scalar>;
+
+    // std::optional<lp_status> opt_lp_status;
+
+public:
+    [[nodiscard]] explicit cplex22_milp(const cplex22_api & api)
+        : cplex22_base_model(api) {}
+
+    variable add_integer_variable(
+        const variable_params params = default_variable_params) {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable(var_id, params, CPX_INTEGER);
+        return variable(var_id);
+    }
+    auto add_integer_variables(
+        std::size_t count,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, CPX_INTEGER);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_integer_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, CPX_INTEGER);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+
+    void set_continuous(variable v) noexcept {
+        int var_id = v.id();
+        char type = CPX_CONTINUOUS;
+        check(CPX.chgctype(env, lp, 1, &var_id, &type));
+    }
+    void set_integer(variable v) noexcept {
+        int var_id = v.id();
+        char type = CPX_INTEGER;
+        check(CPX.chgctype(env, lp, 1, &var_id, &type));
+    }
+    void set_binary(variable v) noexcept {
+        int var_id = v.id();
+        char type = CPX_BINARY;
+        check(CPX.chgctype(env, lp, 1, &var_id, &type));
+        char lu[2] = {'L', 'U'};
+        double bd[2] = {0.0, 1.0};
+        check(CPX.chgbds(env, lp, 2, &var_id, lu, bd));
+    }
+
+    void solve() {
+        // if(num_variables() == 0u) {
+        //     opt_lp_status.emplace(lp_status::optimal);
+        //     return;
+        // }
+        check(CPX.primopt(env, lp));
+    }
+
+    double get_solution_value() {
+        double val;
+        check(CPX.solution(env, lp, NULL, &val, NULL, NULL, NULL, NULL));
+        return val;
+    }
+    auto get_solution() {
+        auto solution =
+            std::make_unique_for_overwrite<double[]>(num_variables());
+        check(CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL,
+                           NULL));
+        return variable_mapping(std::move(solution));
+    }
+    // auto get_dual_solution() {
+    //     auto solution =
+    //         std::make_unique_for_overwrite<double[]>(num_constraints());
+    //     check(CPX.getsolution(task, CPX_SOL_BAS, NULL, NULL, NULL, NULL,
+    //     NULL,
+    //                           NULL, NULL, solution.get(), NULL, NULL, NULL,
+    //                           NULL, NULL));
+    //     return constraint_mapping(std::move(solution));
+    // }
+};
+
+}  // namespace mippp
+}  // namespace fhamonic
+
+#endif  // MIPPP_CPLEX_22_MILP_HPP

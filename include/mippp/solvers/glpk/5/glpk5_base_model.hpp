@@ -31,7 +31,7 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
 
@@ -67,10 +67,7 @@ protected:
 
 public:
     [[nodiscard]] explicit glpk5_base_model(const glpk5_api & api)
-        : glp(api)
-        , model(glp.create_prob())
-        , objective_offset(0.0) {
-    }
+        : glp(api), model(glp.create_prob()), objective_offset(0.0) {}
     ~glpk5_base_model() { glp.delete_prob(model); }
 
     std::size_t num_variables() {
@@ -114,11 +111,20 @@ protected:
         if(params.obj_coef != 0.0) {
             glp.set_obj_coef(model, var_id + 1, params.obj_coef);
         }
-        glp.set_col_bnds(model, var_id + 1, GLP_DB,
-                         params.lower_bound.value_or(
-                             -std::numeric_limits<double>::infinity()),
-                         params.upper_bound.value_or(
-                             std::numeric_limits<double>::infinity()));
+        if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
+            double lb = params.lower_bound.value();
+            double ub = params.upper_bound.value();
+            glp.set_col_bnds(model, var_id + 1, (lb == ub) ? GLP_FX : GLP_DB,
+                             lb, ub);
+        } else if(params.lower_bound.has_value()) {
+            glp.set_col_bnds(model, var_id + 1, GLP_LO,
+                             params.lower_bound.value(), 0.0);
+        } else if(params.upper_bound.has_value()) {
+            glp.set_col_bnds(model, var_id + 1, GLP_UP, 0.0,
+                             params.upper_bound.value());
+        } else {
+            glp.set_col_bnds(model, var_id + 1, GLP_FR, 0.0, 0.0);
+        }
         if(type != GLP_CV) {
             glp.set_col_kind(model, var_id + 1, type);
         }
@@ -130,13 +136,23 @@ protected:
             for(std::size_t i = offset + 1; i <= offset + count; ++i)
                 glp.set_obj_coef(model, static_cast<int>(i), obj);
         }
-        if(auto lb = params.lower_bound.value_or(
-               -std::numeric_limits<double>::infinity()),
-           ub = params.upper_bound.value_or(
-               std::numeric_limits<double>::infinity());
-           lb != 0.0 || !std::isinf(ub)) {
+        if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
+            double lb = params.lower_bound.value();
+            double ub = params.upper_bound.value();
             for(std::size_t i = offset + 1; i <= offset + count; ++i)
-                glp.set_col_bnds(model, static_cast<int>(i), GLP_DB, lb, ub);
+                glp.set_col_bnds(model, static_cast<int>(i),
+                                 (lb == ub) ? GLP_FX : GLP_DB, lb, ub);
+        } else if(params.lower_bound.has_value()) {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp.set_col_bnds(model, static_cast<int>(i), GLP_LO,
+                                 params.lower_bound.value(), 0.0);
+        } else if(params.upper_bound.has_value()) {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp.set_col_bnds(model, static_cast<int>(i), GLP_UP, 0.0,
+                                 params.upper_bound.value());
+        } else {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp.set_col_bnds(model, static_cast<int>(i), GLP_FR, 0.0, 0.0);
         }
         if(type != GLP_CV) {
             for(std::size_t i = offset + 1; i <= offset + count; ++i)
@@ -185,6 +201,28 @@ public:
         _add_variables(offset, count, params, GLP_CV);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
+    }
+
+    void set_objective_coefficient(variable v, double c) {
+        glp.set_obj_coef(model, v.id() + 1, c);
+    }
+    void set_variable_lower_bound(variable v, double lb) {
+        glp.set_col_bnds(model, v.id() + 1, GLP_DB, lb,
+                         get_variable_upper_bound(v));
+    }
+    void set_variable_upper_bound(variable v, double ub) {
+        glp.set_col_bnds(model, v.id() + 1, GLP_DB, get_variable_lower_bound(v),
+                         ub);
+    }
+
+    double get_objective_coefficient(variable v) {
+        return glp.get_obj_coef(model, v.id() + 1);
+    }
+    double get_variable_lower_bound(variable v) {
+        return glp.get_col_lb(model, v.id() + 1);
+    }
+    double get_variable_upper_bound(variable v) {
+        return glp.get_col_ub(model, v.id() + 1);
     }
 
     constraint add_constraint(linear_constraint auto && lc) {

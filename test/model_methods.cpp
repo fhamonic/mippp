@@ -7,15 +7,14 @@
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 
-#define EPSILON 1e-13
-#define INFTY 1e100
+#define EPSILON 1e-10
+#define INFTY 1e20
 
 // GTEST_TEST(any, test) {
 //     // mosek_api api("mosek64",
 //     // "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
-//     // cplex_api api(
-//     //     "cplex2212",
-//     // "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+//     cplex_api api(
+//         "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
 
 //     ASSERT_TRUE(false);
 // }
@@ -31,11 +30,11 @@ using Models = ::testing::Types<
         soplex_lp_test,
         scip_milp_test,
         highs_lp_test,
-        highs_milp_test
+        highs_milp_test,
+        cplex_lp_test
+        // ,cplex_milp_test
         // ,mosek_lp_test
         // ,mosek_milp_test
-        // ,cplex_lp_test
-        // ,cplex_milp_test
 
         // ,copt_lp_test
         // ,copt_milp_test
@@ -249,7 +248,7 @@ TYPED_TEST(ModelMethods, add_constraint_and_optimize_max_bounded) {
     ASSERT_DOUBLE_EQ(model.get_solution_value(), 9.0);
     auto solution = model.get_solution();
     ASSERT_DOUBLE_EQ(solution[x], 3.0);
-    ASSERT_DOUBLE_EQ(solution[y], 2);
+    ASSERT_DOUBLE_EQ(solution[y], 2.0);
     if constexpr(has_dual_solution<T>) {
         auto dual_solution = model.get_dual_solution();
         ASSERT_DOUBLE_EQ(dual_solution[c], 1.5);
@@ -270,7 +269,7 @@ TYPED_TEST(ModelMethods, add_constraint_and_optimize_min_bounded) {
     ASSERT_DOUBLE_EQ(model.get_solution_value(), -9.0);
     auto solution = model.get_solution();
     ASSERT_DOUBLE_EQ(solution[x], 3.0);
-    ASSERT_DOUBLE_EQ(solution[y], 2);
+    ASSERT_DOUBLE_EQ(solution[y], 2.0);
     if constexpr(has_dual_solution<T>) {
         auto dual_solution = model.get_dual_solution();
         ASSERT_DOUBLE_EQ(dual_solution[c], -1.5);

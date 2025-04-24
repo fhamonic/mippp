@@ -37,7 +37,7 @@ public:
 
     struct variable_params {
         scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = scalar{0};
+        std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
 
@@ -75,10 +75,9 @@ public:
 
 private:
     inline void _add_var(const variable_params & params) {
-        SoPlex.addColReal(
-            model, NULL, 0, 0, params.obj_coef,
-            params.lower_bound.value_or(-std::numeric_limits<double>::lowest()),
-            params.upper_bound.value_or(std::numeric_limits<double>::max()));
+        SoPlex.addColReal(model, NULL, 0, 0, params.obj_coef,
+                          params.lower_bound.value_or(-1e100),
+                          params.upper_bound.value_or(1e100));
     }
 
 public:

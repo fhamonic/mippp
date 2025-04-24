@@ -30,7 +30,7 @@ public:
 
     struct variable_params {
         scalar obj_coef = 0.0;
-        std::optional<scalar> lower_bound = 0.0;
+        std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
 

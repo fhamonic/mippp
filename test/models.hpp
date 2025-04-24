@@ -11,7 +11,7 @@
 #include "mippp/solvers/scip/all.hpp"
 #include "mippp/solvers/soplex/all.hpp"
 
-// #include "mippp/solvers/cplex/all.hpp"
+#include "mippp/solvers/cplex/all.hpp"
 // #include "mippp/solvers/mosek/all.hpp"
 
 namespace fhamonic::mippp {
@@ -80,6 +80,7 @@ static_assert(has_feasibility_tolerance<cbc_milp>);
 ////////////////////////////////////////////////////////////
 MODEL_TEST(glpk_lp, glpk_api);
 static_assert(lp_model<glpk_lp>);
+static_assert(has_readable_variables_bounds<glpk_lp>);
 static_assert(has_lp_status<glpk_lp>);
 static_assert(has_dual_solution<glpk_lp>);
 static_assert(has_feasibility_tolerance<glpk_lp>);
@@ -87,6 +88,7 @@ static_assert(has_feasibility_tolerance<glpk_lp>);
 ////////////////////////////////////////////////////////////
 MODEL_TEST(glpk_milp, glpk_api);
 static_assert(milp_model<glpk_milp>);
+static_assert(has_readable_variables_bounds<glpk_milp>);
 
 ////////////////////////////////////////////////////////////
 MODEL_TEST_W_PATH(highs_lp, highs_api, "/usr/local/lib");
@@ -108,7 +110,7 @@ static_assert(has_dual_solution<soplex_lp>);
 ////////////////////////////////////////////////////////////
 MODEL_TEST(scip_milp, scip_api);
 static_assert(lp_model<scip_milp>);
-// static_assert(milp_model<scip_milp>);
+static_assert(milp_model<scip_milp>);
 static_assert(has_modifiable_objective<scip_milp>);
 
 // ////////////////////////////////////////////////////////////
@@ -123,10 +125,12 @@ static_assert(has_modifiable_objective<scip_milp>);
 // static_assert(milp_model<mosek_milp>);
 // static_assert(has_dual_solution<mosek_milp>);
 
-// ////////////////////////////////////////////////////////////
-// MODEL_TEST_W_PATH(cplex_lp, cplex_api,
-// "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
-// // static_assert(lp_model<cplex_lp>);
+////////////////////////////////////////////////////////////
+MODEL_TEST_W_PATH(
+    cplex_lp, cplex_api,
+    "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+static_assert(lp_model<cplex_lp>);
+static_assert(has_readable_variables_bounds<cplex_lp>);
 // static_assert(has_modifiable_objective<cplex_lp>);
 
 // ////////////////////////////////////////////////////////////

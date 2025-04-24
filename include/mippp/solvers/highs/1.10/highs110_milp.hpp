@@ -28,9 +28,6 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id, scalar>;
 
-private:
-    // std::vector<double> tmp_scalars;
-
 public:
     [[nodiscard]] explicit highs110_milp(const highs110_api & api)
         : highs110_base_model(api) {}

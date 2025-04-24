@@ -40,9 +40,12 @@ public:
 
     struct variable_params {
         scalar obj_coef = 0.0;
-        std::optional<scalar> lower_bound = 0.0;
+        std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
+
+    static constexpr variable_params default_variable_params = {
+        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 public:
     [[nodiscard]] explicit scip8_milp(const scip8_api & api) : SCIP(api) {
@@ -139,45 +142,27 @@ public:
     // }
 
 private:
-    void _add_var(const variable_params & params) {
+    void _add_variable(const variable_params & params, enum SCIP_Vartype type) {
         SCIP_VAR * var = NULL;
         check(SCIP.createVarBasic(
             model, &var, "", params.lower_bound.value_or(-SCIP.infinity(model)),
             params.upper_bound.value_or(SCIP.infinity(model)), params.obj_coef,
-            SCIP_VARTYPE_CONTINUOUS));
+            type));
         check(SCIP.addVar(model, var));
         variables.emplace_back(var);
     }
 
-public:
-    variable add_variable(const variable_params params = {
-                              .obj_coef = 0,
-                              .lower_bound = 0,
-                              .upper_bound = std::nullopt}) {
-        int var_id = static_cast<int>(num_variables());
-        _add_var(params);
-        return variable(var_id);
-    }
-    auto add_variables(std::size_t count,
-                       variable_params params = {
-                           .obj_coef = 0,
-                           .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+    inline auto _make_variables_range(const std::size_t & offset,
+                                      const std::size_t & count) {
         return make_variables_range(ranges::view::transform(
             ranges::view::iota(static_cast<variable_id>(offset),
                                static_cast<variable_id>(offset + count)),
             [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = {
-                           .obj_coef = 0,
-                           .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i) _add_var(params);
+    inline auto _make_indexed_variables_range(const std::size_t & offset,
+                                              const std::size_t & count,
+                                              IL && id_lambda) {
         return make_indexed_variables_range(
             typename detail::function_traits<IL>::arg_types(),
             ranges::view::transform(
@@ -185,6 +170,101 @@ public:
                                    static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
+    }
+
+public:
+    variable add_variable(
+        const variable_params params = default_variable_params) {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
+        return variable(var_id);
+    }
+    auto add_variables(
+        std::size_t count,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+
+    variable add_integer_variable(
+        const variable_params params = default_variable_params) {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable(params, SCIP_VARTYPE_INTEGER);
+        return variable(var_id);
+    }
+    auto add_integer_variables(
+        std::size_t count,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(params, SCIP_VARTYPE_INTEGER);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_integer_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(params, SCIP_VARTYPE_INTEGER);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+
+    variable add_binary_variable() {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable({.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
+                      SCIP_VARTYPE_BINARY);
+        return variable(var_id);
+    }
+    auto add_binary_variables(std::size_t count) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(
+                {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
+                SCIP_VARTYPE_BINARY);
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL>
+    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(
+                {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
+                SCIP_VARTYPE_BINARY);
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
+    }
+
+    void set_continuous(variable v) noexcept {
+        unsigned int infeas;
+        check(SCIP.chgVarType(model,
+                              variables[static_cast<std::size_t>(v.id())],
+                              SCIP_VARTYPE_CONTINUOUS, &infeas));
+    }
+    void set_integer(variable v) noexcept {
+        unsigned int infeas;
+        check(SCIP.chgVarType(model,
+                              variables[static_cast<std::size_t>(v.id())],
+                              SCIP_VARTYPE_INTEGER, &infeas));
+    }
+    void set_binary(variable v) noexcept {
+        unsigned int infeas;
+        check(SCIP.chgVarType(model,
+                              variables[static_cast<std::size_t>(v.id())],
+                              SCIP_VARTYPE_BINARY, &infeas));
     }
 
     void set_objective_coefficient(variable v, double c) {

@@ -27,6 +27,7 @@
     F(SCIPvarGetObj, varGetObj)                         \
     F(SCIPchgVarLb, chgVarLb)                           \
     F(SCIPchgVarUb, chgVarUb)                           \
+    F(SCIPchgVarType, chgVarType)                       \
     F(SCIPcreateConsBasicLinear, createConsBasicLinear) \
     F(SCIPaddCons, addCons)                             \
     F(SCIPaddCoefLinear, addCoefLinear)                 \
