@@ -1,5 +1,5 @@
-#ifndef MIPPP_GRB_12_MILP_HPP
-#define MIPPP_GRB_12_MILP_HPP
+#ifndef MIPPP_GUROBI_12_MILP_HPP
+#define MIPPP_GUROBI_12_MILP_HPP
 
 #include <optional>
 
@@ -7,12 +7,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/gurobi/12/grb12_base_model.hpp"
+#include "mippp/solvers/gurobi/12/gurobi12_base_model.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class grb12_milp : public grb12_base_model {
+class gurobi12_milp : public gurobi12_base_model {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -21,8 +21,8 @@ public:
     using constraint = model_constraint<constraint_id, scalar>;
 
 public:
-    [[nodiscard]] explicit grb12_milp(const grb12_api & api)
-        : grb12_base_model(api) {}
+    [[nodiscard]] explicit gurobi12_milp(const gurobi12_api & api)
+        : gurobi12_base_model(api) {}
 
 public:
     variable add_integer_variable(
@@ -132,4 +132,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GRB_12_MILP_HPP
+#endif  // MIPPP_GUROBI_12_MILP_HPP

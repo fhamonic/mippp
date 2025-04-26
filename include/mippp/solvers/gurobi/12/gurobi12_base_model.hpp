@@ -1,5 +1,5 @@
-#ifndef MIPPP_GRB12_BASE_MODEL_HPP
-#define MIPPP_GRB12_BASE_MODEL_HPP
+#ifndef MIPPP_GUROBI12_BASE_MODEL_HPP
+#define MIPPP_GUROBI12_BASE_MODEL_HPP
 
 #include <limits>
 #include <optional>
@@ -16,12 +16,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/gurobi/12/grb12_api.hpp"
+#include "mippp/solvers/gurobi/12/gurobi12_api.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class grb12_base_model {
+class gurobi12_base_model {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -39,18 +39,18 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
-    const grb12_api & GRB;
+    const gurobi12_api & GRB;
     GRBenv * env;
     GRBmodel * model;
     std::optional<lp_status> opt_lp_status;
 
-    static constexpr char constraint_relation_to_grb_sense(
+    static constexpr char constraint_relation_to_gurobi_sense(
         constraint_relation rel) {
         if(rel == constraint_relation::less_equal_zero) return GRB_LESS_EQUAL;
         if(rel == constraint_relation::equal_zero) return GRB_EQUAL;
         return GRB_GREATER_EQUAL;
     }
-    static constexpr constraint_relation grb_sense_to_constraint_relation(
+    static constexpr constraint_relation gurobi_sense_to_constraint_relation(
         char sense) {
         if(sense == GRB_LESS_EQUAL) return constraint_relation::less_equal_zero;
         if(sense == GRB_EQUAL) return constraint_relation::equal_zero;
@@ -59,14 +59,17 @@ protected:
 
     std::vector<std::pair<constraint_id, unsigned int>>
         tmp_constraint_entry_cache;
+    std::vector<int> tmp_indices;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
     std::vector<char> tmp_types;
+    std::vector<double> tmp_rhs;
 
     std::vector<bool> _var_name_set;
 
 public:
-    [[nodiscard]] explicit grb12_base_model(const grb12_api & api) : GRB(api) {
+    [[nodiscard]] explicit gurobi12_base_model(const gurobi12_api & api)
+        : GRB(api) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
@@ -76,9 +79,9 @@ public:
         env = GRB.getenv(model);
         if(env == NULL)
             throw std::runtime_error(
-                "grb12_base_model: Could not retrieve model environement.");
+                "gurobi12_base_model: Could not retrieve model environement.");
     }
-    ~grb12_base_model() { check(GRB.freemodel(model)); };
+    ~gurobi12_base_model() { check(GRB.freemodel(model)); };
 
 protected:
     void check(int error) {
@@ -86,24 +89,24 @@ protected:
             throw std::runtime_error(std::to_string(error) + ':' +
                                      GRB.geterrormsg(env));
     }
-    void update_grb_model() { check(GRB.updatemodel(model)); }
+    void update_gurobi_model() { check(GRB.updatemodel(model)); }
 
 public:
     std::size_t num_variables() {
         int num;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMVARS, &num));
         return static_cast<std::size_t>(num);
     }
     std::size_t num_constraints() {
         int num;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMCONSTRS, &num));
         return static_cast<std::size_t>(num);
     }
     std::size_t num_entries() {
         int num;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMNZS, &num));
         return static_cast<std::size_t>(num);
     }
@@ -144,14 +147,14 @@ public:
     }
     double get_objective_offset() {
         double constant;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getdblattr(model, GRB_DBL_ATTR_OBJCON, &constant));
         return constant;
     }
     auto get_objective() {
         auto num_vars = num_variables();
         std::vector<double> coefs(num_vars);
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
                                   static_cast<int>(num_vars), coefs.data()));
         return linear_expression_view(
@@ -285,25 +288,25 @@ public:
 
     double get_objective_coefficient(variable v) {
         double coef;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getdblattrelement(model, GRB_DBL_ATTR_OBJ, v.id(), &coef));
         return coef;
     }
     double get_variable_lower_bound(variable v) {
         double lb;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getdblattrelement(model, GRB_DBL_ATTR_LB, v.id(), &lb));
         return lb;
     }
     double get_variable_upper_bound(variable v) {
         double ub;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getdblattrelement(model, GRB_DBL_ATTR_UB, v.id(), &ub));
         return ub;
     }
     auto get_variable_name(variable v) {
         char * name;
-        update_grb_model();
+        update_gurobi_model();
         check(
             GRB.getstrattrelement(model, GRB_STR_ATTR_VARNAME, v.id(), &name));
         return std::string(name);
@@ -326,24 +329,91 @@ public:
         }
         check(GRB.addconstr(model, static_cast<int>(tmp_variables.size()),
                             tmp_variables.data(), tmp_scalars.data(),
-                            constraint_relation_to_grb_sense(lc.relation()),
+                            constraint_relation_to_gurobi_sense(lc.relation()),
                             -lc.expression().constant(), NULL));
         return constraint(constr_id);
     }
+
+#define OPT(cond, ...) ((cond) ? std::make_optional(__VA_ARGS__) : std::nullopt)
+private:
+    template <linear_constraint LC>
+    void register_constraint(const int & constr_id, const LC & lc) {
+        tmp_indices.emplace_back(static_cast<int>(tmp_variables.size()));
+        tmp_types.emplace_back(
+            constraint_relation_to_gurobi_sense(lc.relation()));
+        tmp_rhs.emplace_back(-lc.expression().constant());
+        for(auto && [var, coef] : lc.expression().linear_terms()) {
+            auto & p = tmp_constraint_entry_cache[var.uid()];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
+            tmp_variables.emplace_back(var.id());
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+    template <typename ID, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, ID>>
+    void register_first_valued_constraint(const int & constr_id, const ID & idx,
+                                          const LastConstrLambda & lc_lambda) {
+        register_constraint(constr_id, lc_lambda(idx));
+    }
+    template <typename ID, typename OptConstrLambda, typename... Tail>
+    void register_first_valued_constraint(const int & constr_id, const ID & idx,
+                                          const OptConstrLambda & opt_lc_lambda,
+                                          const Tail &... tail) {
+        if(const auto & opt_lc = opt_lc_lambda(idx)) {
+            register_constraint(constr_id, opt_lc.value());
+            return;
+        }
+        register_first_valued_constraint(constr_id, idx, tail...);
+    }
+
+public:
+    template <ranges::range IR, typename... CL>
+    auto add_constraints(IR && index_range, CL... constraint_lambdas) {
+        tmp_constraint_entry_cache.resize(num_variables());
+        tmp_indices.resize(0);
+        tmp_variables.resize(0);
+        tmp_scalars.resize(0);
+        tmp_types.resize(0);
+        tmp_rhs.resize(0);
+        const int offset = static_cast<int>(num_constraints());
+        int constr_id = offset;
+        for(auto && idx : index_range) {
+            register_first_valued_constraint(constr_id, idx,
+                                             constraint_lambdas...);
+            ++constr_id;
+        }
+        check(GRB.addconstrs(
+            model, constr_id - offset, static_cast<int>(tmp_variables.size()),
+            tmp_indices.data(), tmp_variables.data(), tmp_scalars.data(),
+            tmp_types.data(), tmp_rhs.data(), NULL));
+        // return constraint(constr_id);
+    }
+
     void set_constraint_rhs(constraint constr, double rhs) {
         check(GRB.setdblattrelement(model, GRB_DBL_ATTR_RHS, constr.id(), rhs));
     }
     void set_constraint_sense(constraint constr, constraint_relation r) {
         check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
-                                     constraint_relation_to_grb_sense(r)));
+                                     constraint_relation_to_gurobi_sense(r)));
     }
     // adds an equality constraint with a slack variable bounded in [0, ub-lb]
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
         int constr_id = static_cast<int>(num_constraints());
+        tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : le.linear_terms()) {
+            auto & p = tmp_constraint_entry_cache[var.uid()];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
             tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
@@ -357,22 +427,22 @@ public:
     // auto get_constraint_lhs(constraint constr) {}
     double get_constraint_rhs(constraint constr) {
         double rhs;
-        update_grb_model();
+        update_gurobi_model();
         check(
             GRB.getdblattrelement(model, GRB_DBL_ATTR_RHS, constr.id(), &rhs));
         return rhs;
     }
     constraint_relation get_constraint_sense(constraint constr) {
         char sense;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
                                      &sense));
-        return grb_sense_to_constraint_relation(sense);
+        return gurobi_sense_to_constraint_relation(sense);
     }
     // auto get_constraint(const constraint constr) {}
     auto get_constraint_name(constraint constr) {
         char * name;
-        update_grb_model();
+        update_gurobi_model();
         check(GRB.getstrattrelement(model, GRB_STR_ATTR_CONSTRNAME, constr.id(),
                                     &name));
         return std::string(name);
@@ -391,4 +461,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GRB12_BASE_MODEL_HPP
+#endif  // MIPPP_GUROBI12_BASE_MODEL_HPP

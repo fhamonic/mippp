@@ -1,16 +1,16 @@
-#ifndef MIPPP_GRB12_lp_HPP
-#define MIPPP_GRB12_lp_HPP
+#ifndef MIPPP_GUROBI12_lp_HPP
+#define MIPPP_GUROBI12_lp_HPP
 
 #include <optional>
 
 #include "mippp/model_concepts.hpp"
 
-#include "mippp/solvers/gurobi/12/grb12_base_model.hpp"
+#include "mippp/solvers/gurobi/12/gurobi12_base_model.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-class grb12_lp : public grb12_base_model {
+class gurobi12_lp : public gurobi12_base_model {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -19,8 +19,8 @@ public:
     using constraint = model_constraint<constraint_id, scalar>;
 
 public:
-    [[nodiscard]] explicit grb12_lp(const grb12_api & api)
-        : grb12_base_model(api) {}
+    [[nodiscard]] explicit gurobi12_lp(const gurobi12_api & api)
+        : gurobi12_base_model(api) {}
 
 public:
     void solve() {
@@ -49,7 +49,7 @@ public:
                         return;
                     default:
                         throw std::runtime_error(
-                            "grb12_base_model: Cannot determine if model is "
+                            "gurobi12_base_model: Cannot determine if model is "
                             "infeasible or unbounded (status = " +
                             std::to_string(status) + ").");
                 }
@@ -91,4 +91,4 @@ public:
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GRB12_lp_HPP
+#endif  // MIPPP_GUROBI12_lp_HPP

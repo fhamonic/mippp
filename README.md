@@ -58,8 +58,8 @@ And ensure that your CMake can find the [Range-v3](https://ericniebler.github.io
 using namespace fhamonic::mippp;
 using namespace fhamonic::mippp::operators;
 ...
-grb_api api("gurobi120"); // loads libgurobi120.so C API
-grb_lp model(api);
+gurobi_api api("gurobi120"); // loads libgurobi120.so C API
+gurobi_lp model(api);
 
 auto x1 = model.add_variable();
 auto x2 = model.add_variable({.upper_bound=3});
@@ -88,8 +88,8 @@ arc_map_t<static_graph, double> capacity_map = ...;
 vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 ...
-grb_api api();
-grb_lp model(api);
+gurobi_api api();
+gurobi_lp model(api);
 
 auto F = model.add_variable();
 auto X_vars = model.add_variables(graph.num_arcs());
@@ -119,8 +119,8 @@ arc_map_t<static_graph, double> length_map = ...;
 vertex_t<static_graph> s = ...;
 vertex_t<static_graph> t = ...;
 ...
-grb_api api();
-grb_lp model(api);
+gurobi_api api();
+gurobi_lp model(api);
 
 auto X_vars = model.add_variables(graph.num_arcs(),
     [](arc_t<static_graph> a) -> std::size_t { return a; });
@@ -144,8 +144,8 @@ auto values = std::views::iota(1, 10);  // 1 to 9
 auto 3x3coords = std::views::transform( // (0,0), (0,1), (0,2), (1,0), ...
     indices, [](auto && i) { return std::make_pair(i / 3, i % 3); });
 
-grb_api api;
-grb_milp model(api);
+gurobi_api api;
+gurobi_milp model(api);
 
 auto X_vars =
     model.add_binary_variables(9 * 9 * 9, [](int i, int j, int value) {

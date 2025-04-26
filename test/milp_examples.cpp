@@ -12,7 +12,7 @@ using namespace fhamonic::mippp::operators;
 
 // clang-format off
 using Models = ::testing::Types<
-        grb_milp_test,
+        gurobi_milp_test,
         cbc_milp_test,
         glpk_milp_test,
         scip_milp_test,
@@ -76,11 +76,11 @@ TYPED_TEST(MilpModelExamples, sudoku) {
         }
     }
     for(auto v : values) {
-        for(auto i : indices) {
+        for(auto k : indices) {
             model.add_constraint(
-                xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) == 1);
+                xsum(indices, [&](auto && j) { return X_vars(k, j, v); }) == 1);
             model.add_constraint(
-                xsum(indices, [&](auto && j) { return X_vars(j, i, v); }) == 1);
+                xsum(indices, [&](auto && i) { return X_vars(i, k, v); }) == 1);
         }
         for(auto && [bi, bj] : coords) {
             model.add_constraint(xsum(coords, [&](auto && p) {
@@ -120,3 +120,59 @@ TYPED_TEST(MilpModelExamples, sudoku) {
 
     ASSERT_EQ_RANGES(grid_solution, expected_grid_solution);
 }
+
+// void test() {
+//     gurobi_api api;
+//     gurobi_milp model(api);
+
+//     using std::views::cartesian_product;
+
+//     auto indices = std::views::iota(0, 9);
+//     auto values = std::views::iota(1, 10);
+//     auto coords =
+//         cartesian_product(std::views::iota(0, 2), std::views::iota(0, 2));
+
+//     auto X_vars =
+//         model.add_binary_variables(9 * 9 * 9, [](int i, int j, int value) {
+//             return (81 * i) + (9 * j) + (value - 1);
+//         });
+//     auto single_value_constrs =
+//         model.add_constraint(forall(indices, indices), [&](auto i, auto j) {
+//             return xsum(values, [&](auto && v) { return X_vars(i, j, v); }) ==
+//                    1;
+//         });
+//     auto one_per_row_constrs = model.add_constraints(
+//         forall(values, indices), [&](auto && v, auto && i) {
+//             return xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) ==
+//                    1;
+//         });
+//     auto one_per_col_constrs = model.add_constraints(
+//         forall(values, indices), [&](auto && v, auto && i) {
+//             return xsum(indices, [&](auto && i) { return X_vars(i, j, v); }) ==
+//                    1;
+//         });
+//     auto one_per_block_constrs = model.add_constraints(
+//         forall(values, coords), [&](auto && v, auto && c) {
+//             return xsum(coords, [&](auto && p) {
+//                        return X_vars(3 * c.first + p.first,
+//                                      3 * c.second + p.second, v);
+//                    }) == 1;
+//         });
+
+// auto flow_conservation_constrs = model.add_constraints(
+//     graph.vertices(),
+//     [&](auto && u) {
+//         return (u == s) ? xsum(graph.out_arcs(s), X_vars) ==
+//                                 xsum(graph.in_arcs(s), X_vars) + F
+//                         : std::nullopt;
+//     },
+//     [&](auto && u) {
+//         return (u == t) ? xsum(graph.out_arcs(t), X_vars) ==
+//                                 xsum(graph.in_arcs(t), X_vars) - F
+//                         : std::nullopt;
+//     },
+//     [&](auto && u) {
+//         return xsum(graph.out_arcs(u), X_vars) ==
+//                 xsum(graph.in_arcs(u), X_vars);
+//     });
+// }

@@ -25,30 +25,30 @@ namespace fhamonic::mippp {
     MODEL_TEST_W_PATH(MODEL_TYPE, API_TYPE, "")
 
 ////////////////////////////////////////////////////////////
-MODEL_TEST(grb_lp, grb_api);
-static_assert(lp_model<grb_lp>);
-static_assert(has_readable_objective<grb_lp>);
-static_assert(has_modifiable_objective<grb_lp>);
-static_assert(has_readable_variables_bounds<grb_lp>);
-// static_assert(has_readable_constraint_lhs<grb_lp>);
-static_assert(has_readable_constraint_sense<grb_lp>);
-static_assert(has_readable_constraint_rhs<grb_lp>);
-// static_assert(has_readable_constraints<grb_lp>);
-static_assert(has_lp_status<grb_lp>);
-static_assert(has_dual_solution<grb_lp>);
-static_assert(has_feasibility_tolerance<grb_lp>);
+MODEL_TEST(gurobi_lp, gurobi_api);
+static_assert(lp_model<gurobi_lp>);
+static_assert(has_readable_objective<gurobi_lp>);
+static_assert(has_modifiable_objective<gurobi_lp>);
+static_assert(has_readable_variables_bounds<gurobi_lp>);
+// static_assert(has_readable_constraint_lhs<gurobi_lp>);
+static_assert(has_readable_constraint_sense<gurobi_lp>);
+static_assert(has_readable_constraint_rhs<gurobi_lp>);
+// static_assert(has_readable_constraints<gurobi_lp>);
+static_assert(has_lp_status<gurobi_lp>);
+static_assert(has_dual_solution<gurobi_lp>);
+static_assert(has_feasibility_tolerance<gurobi_lp>);
 
 ////////////////////////////////////////////////////////////
-MODEL_TEST(grb_milp, grb_api);
-static_assert(milp_model<grb_milp>);
-static_assert(has_readable_objective<grb_milp>);
-static_assert(has_modifiable_objective<grb_milp>);
-static_assert(has_readable_variables_bounds<grb_milp>);
-// static_assert(has_readable_constraint_lhs<grb_milp>);
-static_assert(has_readable_constraint_sense<grb_milp>);
-static_assert(has_readable_constraint_rhs<grb_milp>);
-// static_assert(has_readable_constraints<grb_milp>);
-static_assert(has_feasibility_tolerance<grb_milp>);
+MODEL_TEST(gurobi_milp, gurobi_api);
+static_assert(milp_model<gurobi_milp>);
+static_assert(has_readable_objective<gurobi_milp>);
+static_assert(has_modifiable_objective<gurobi_milp>);
+static_assert(has_readable_variables_bounds<gurobi_milp>);
+// static_assert(has_readable_constraint_lhs<gurobi_milp>);
+static_assert(has_readable_constraint_sense<gurobi_milp>);
+static_assert(has_readable_constraint_rhs<gurobi_milp>);
+// static_assert(has_readable_constraints<gurobi_milp>);
+static_assert(has_feasibility_tolerance<gurobi_milp>);
 
 ////////////////////////////////////////////////////////////
 MODEL_TEST(clp_lp, clp_api);

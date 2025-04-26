@@ -1,5 +1,5 @@
-#ifndef MIPPP_GRB_12_API_HPP
-#define MIPPP_GRB_12_API_HPP
+#ifndef MIPPP_GUROBI_12_API_HPP
+#define MIPPP_GUROBI_12_API_HPP
 
 #include "dylib.hpp"
 
@@ -17,6 +17,7 @@
     F(GRBaddvar, addvar)                         \
     F(GRBaddvars, addvars)                       \
     F(GRBaddconstr, addconstr)                   \
+    F(GRBaddconstrs, addconstrs)                 \
     F(GRBaddrangeconstr, addrangeconstr)         \
     F(GRBgetconstrs, getconstrs)                 \
     F(GRBoptimize, optimize)                     \
@@ -57,28 +58,29 @@
     F(GRBsetstrattrlist, setstrattrlist)         \
     F(GRBgetstrattrlist, getstrattrlist)
 
-#define DECLARE_GRB_FUN(FULL, SHORT)      \
+#define DECLARE_GUROBI_FUN(FULL, SHORT)   \
     using SHORT##_fun_t = decltype(FULL); \
     SHORT##_fun_t * SHORT;
-#define CONSTRUCT_GRB_FUN(FULL, SHORT) \
+#define CONSTRUCT_GUROBI_FUN(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 namespace fhamonic {
 namespace mippp {
 
-class grb12_api {
+class gurobi12_api {
 private:
     dylib lib;
 
 public:
-    GRB_FUNCTIONS(DECLARE_GRB_FUN)
+    GRB_FUNCTIONS(DECLARE_GUROBI_FUN)
 
 public:
-    grb12_api(const char * lib_path = "", const char * lib_name = "gurobi120")
-        : lib(lib_path, lib_name) GRB_FUNCTIONS(CONSTRUCT_GRB_FUN) {}
+    gurobi12_api(const char * lib_path = "",
+                 const char * lib_name = "gurobi120")
+        : lib(lib_path, lib_name) GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUN) {}
 };
 
 }  // namespace mippp
 }  // namespace fhamonic
 
-#endif  // MIPPP_GRB_12_API_HPP
+#endif  // MIPPP_GUROBI_12_API_HPP

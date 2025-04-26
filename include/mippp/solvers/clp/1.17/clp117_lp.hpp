@@ -31,13 +31,13 @@ private:
     Clp_Simplex * model;
     std::optional<lp_status> opt_lp_status;
 
-    // static constexpr char constraint_relation_to_grb_sense(
+    // static constexpr char constraint_relation_to_gurobi_sense(
     //     constraint_relation rel) {
     //     if(rel == constraint_relation::less_equal_zero) return
     //     Clp_LESS_EQUAL; if(rel == constraint_relation::equal_zero) return
     //     Clp_EQUAL; return Clp_GREATER_EQUAL;
     // }
-    // static constexpr constraint_relation grb_sense_to_constraint_relation(
+    // static constexpr constraint_relation gurobi_sense_to_constraint_relation(
     //     char sense) {
     //     if(sense == Clp_LESS_EQUAL) return
     //     constraint_relation::less_equal_zero; if(sense == Clp_EQUAL) return
