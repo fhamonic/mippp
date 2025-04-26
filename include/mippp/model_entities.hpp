@@ -1,10 +1,13 @@
 #ifndef MIPPP_MODEL_ENTITIES_HPP
 #define MIPPP_MODEL_ENTITIES_HPP
 
-// #include <ranges>
+// #include <flat_map>
+#include <map>
+#include <ranges>
 
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/single.hpp>
+#include <range/v3/view/zip.hpp>
 
 #include "mippp/detail/function_traits.hpp"
 
@@ -15,26 +18,20 @@ namespace mippp {
 //////////////////////////////// Strong types /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename I, typename C>
+template <typename Id>
 class model_entity_base {
-public:
-    using id_t = I;
-    using scalar_t = C;
-
 private:
-    id_t _id;
+    Id _id;
 
 public:
-    constexpr model_entity_base(const model_entity_base & v) : _id(v._id) {};
-
     template <typename T>
-        requires std::constructible_from<I, T>
+        requires std::constructible_from<Id, T>
     constexpr explicit model_entity_base(T t) : _id(t) {}
 
-    constexpr id_t id() const noexcept { return _id; }
+    constexpr Id id() const noexcept { return _id; }
 
     constexpr std::size_t uid() const noexcept
-        requires std::integral<id_t>
+        requires std::integral<Id>
     {
         return static_cast<std::size_t>(_id);
     }
@@ -45,80 +42,65 @@ public:
     }
 };
 
-template <typename I, typename C>
-class model_variable : public model_entity_base<I, C> {
+template <typename Id, typename Scalar>
+class model_variable : public model_entity_base<Id> {
 public:
-    using id_t = I;
-    using scalar_t = C;
+    constexpr model_variable() = default;
+    constexpr model_variable(model_variable && v) = default;
+    constexpr model_variable(const model_variable & v) = default;
 
-public:
-    constexpr model_variable(const model_variable & v)
-        : model_entity_base<I, C>(v) {}
+    constexpr model_variable & operator=(const model_variable &) = default;
+    constexpr model_variable & operator=(model_variable &&) = default;
 
     template <typename T>
-    constexpr explicit model_variable(T t) : model_entity_base<I, C>(t) {}
+    constexpr explicit model_variable(T t) : model_entity_base<Id>(t) {}
 
     constexpr auto linear_terms() const noexcept {
-        return ranges::views::single(std::make_pair(*this, scalar_t{1}));
+        return ranges::views::single(std::make_pair(*this, Scalar{1}));
     }
-    constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
+    constexpr Scalar constant() const noexcept { return Scalar{0}; }
 };
 
-template <typename I, typename C>
-class model_constraint : public model_entity_base<I, C> {
+template <typename Id>
+class model_constraint : public model_entity_base<Id> {
 public:
-    using id_t = I;
-    using scalar_t = C;
+    constexpr model_constraint() = default;
+    constexpr model_constraint(model_constraint && v) = default;
+    constexpr model_constraint(const model_constraint & v) = default;
 
-public:
-    constexpr model_constraint(const model_constraint & v)
-        : model_entity_base<I, C>(v) {}
+    constexpr model_constraint & operator=(const model_constraint &) = default;
+    constexpr model_constraint & operator=(model_constraint &&) = default;
 
     template <typename T>
-    constexpr explicit model_constraint(T t) : model_entity_base<I, C>(t) {}
+    constexpr explicit model_constraint(T t) : model_entity_base<Id>(t) {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////// Strong types mappings ////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename Map>
-class variable_mapping {
+template <typename Entity, typename Map>
+class entity_mapping {
 private:
     Map _map;
 
 public:
-    variable_mapping(Map && t) : _map(std::move(t)) {}
+    entity_mapping(Map && t) : _map(std::move(t)) {}
 
-    template <typename I, typename C>
-    double operator[](const model_variable<I, C> & x) const {
-        return _map[static_cast<std::size_t>(x.id())];
-    }
-};
-
-template <typename Map>
-class constraint_mapping {
-private:
-    Map _map;
-
-public:
-    constraint_mapping(Map && t) : _map(std::move(t)) {}
-
-    template <typename I, typename C>
-    double operator[](const model_constraint<I, C> & x) const {
+    double operator[](const Entity & x) const {
         return _map[static_cast<std::size_t>(x.id())];
     }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Entities range ////////////////////////////////
+/////////////////////////////// Variables range ///////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename Vars>
 class variables_range {
 private:
     using variable = ranges::range_value_t<Vars>;
-    using scalar_t = typename variable::scalar_t;
+    using scalar = linear_expression_scalar_t<variable>;
 
 protected:
     const Vars _variables;
@@ -140,11 +122,10 @@ public:
     }
 
     constexpr auto linear_terms() const noexcept {
-        return ranges::views::transform(_variables, [](auto && i) {
-            return std::make_pair(i, scalar_t{1});
-        });
+        return ranges::views::transform(
+            _variables, [](auto && i) { return std::make_pair(i, scalar{1}); });
     }
-    constexpr scalar_t constant() const noexcept { return scalar_t{0}; }
+    constexpr scalar constant() const noexcept { return scalar{0}; }
 };
 
 template <ranges::viewable_range VR>
@@ -218,6 +199,49 @@ auto make_lazily_named_variables_range(detail::pack<Args...>, VR && variables,
         ranges::view::all(variables), std::forward<IL>(id_lambda),
         std::forward<NL>(naming_lambda));
 }
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////// Constraints range //////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename Key, typename Constraint>
+class constraints_range {
+protected:
+    // flat_map will be supported in GCC 15
+    // const std::flat_map<Key, Constraint> _constraints_map;
+    std::map<Key, Constraint> _constraints_map;
+
+public:
+    // template <typename KR, typename CR>
+    // constexpr constraints_range(KR && keys, CR && constraints) noexcept
+    //     : _constraints_map(std::from_range_t{},
+    //                        std::views::zip(keys, constraints)) {}
+    template <typename KR, typename CR>
+    constexpr constraints_range(KR && keys, CR && constraints) noexcept {
+        // if constexpr(ranges::sized_range<CR>) {
+        //     _constraints_map.reserve(ranges::size(constraints));
+        // }
+        for(auto && keyval_pair : ranges::views::zip(keys, constraints)) {
+            _constraints_map.insert(keyval_pair);
+        }
+    }
+
+    constexpr auto size() const noexcept { return _constraints_map.size(); }
+    constexpr auto begin() const noexcept {
+        return _constraints_map.values().begin();
+    }
+    constexpr auto end() const noexcept {
+        return _constraints_map.values().end();
+    }
+
+    constexpr auto operator()(const Key & k) const {
+        return _constraints_map.at(k);
+    }
+};
+
+template <typename KR, typename CR>
+constraints_range(KR &&, CR &&)
+    -> constraints_range<ranges::range_value_t<KR>, ranges::range_value_t<CR>>;
 
 }  // namespace mippp
 }  // namespace fhamonic

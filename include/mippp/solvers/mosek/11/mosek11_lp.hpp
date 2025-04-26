@@ -15,13 +15,6 @@ namespace fhamonic {
 namespace mippp {
 
 class mosek11_lp : public mosek11_base_model {
-public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
-
 private:
     std::optional<lp_status> opt_lp_status;
 

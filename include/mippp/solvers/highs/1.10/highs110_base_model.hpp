@@ -26,10 +26,14 @@ public:
     using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
+    using constraint = model_constraint<constraint_id>;
+    template <typename Map>
+    using variable_mapping = entity_mapping<variable, Map>;
+    template <typename Map>
+    using constraint_mapping = entity_mapping<constraint, Map>;
 
     struct variable_params {
-        scalar obj_coef = 0.0;
+        scalar obj_coef = scalar{0};
         std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };

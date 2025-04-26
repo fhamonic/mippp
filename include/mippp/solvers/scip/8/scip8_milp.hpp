@@ -24,28 +24,32 @@ namespace mippp {
 // https://github.com/scipopt/SCIPpp/blob/main/source/model.cpp
 
 class scip8_milp {
-private:
-    const scip8_api & SCIP;
-    struct Scip * model;
-    std::vector<SCIP_VAR *> variables;
-    std::vector<SCIP_CONS *> constraints;
-    std::optional<lp_status> opt_lp_status;
-
 public:
     using variable_id = int;
     using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
+    using constraint = model_constraint<constraint_id>;
+    template <typename Map>
+    using variable_mapping = entity_mapping<variable, Map>;
+    template <typename Map>
+    using constraint_mapping = entity_mapping<constraint, Map>;
 
     struct variable_params {
-        scalar obj_coef = 0.0;
+        scalar obj_coef = scalar{0};
         std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
 
     static constexpr variable_params default_variable_params = {
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
+
+private:
+    const scip8_api & SCIP;
+    struct Scip * model;
+    std::vector<SCIP_VAR *> variables;
+    std::vector<SCIP_CONS *> constraints;
+    std::optional<lp_status> opt_lp_status;
 
 public:
     [[nodiscard]] explicit scip8_milp(const scip8_api & api) : SCIP(api) {

@@ -14,17 +14,9 @@ namespace mippp {
 
 class gurobi12_milp : public gurobi12_base_model {
 public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
-
-public:
     [[nodiscard]] explicit gurobi12_milp(const gurobi12_api & api)
         : gurobi12_base_model(api) {}
 
-public:
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(num_variables());

@@ -11,18 +11,13 @@ namespace fhamonic {
 namespace mippp {
 
 class gurobi12_lp : public gurobi12_base_model {
-public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
+private:
+    std::optional<lp_status> opt_lp_status;
 
 public:
     [[nodiscard]] explicit gurobi12_lp(const gurobi12_api & api)
         : gurobi12_base_model(api) {}
 
-public:
     void solve() {
         check(GRB.optimize(model));
         int status;

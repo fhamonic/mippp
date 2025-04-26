@@ -17,15 +17,6 @@ namespace mippp {
 
 class cplex22_milp : public cplex22_base_model {
 public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
-
-    // std::optional<lp_status> opt_lp_status;
-
-public:
     [[nodiscard]] explicit cplex22_milp(const cplex22_api & api)
         : cplex22_base_model(api) {}
 

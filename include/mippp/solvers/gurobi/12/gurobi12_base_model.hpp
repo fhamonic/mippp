@@ -11,6 +11,7 @@
 #include <range/v3/view/zip.hpp>
 
 #include "mippp/detail/function_traits.hpp"
+#include "mippp/detail/optional_helper.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -27,7 +28,11 @@ public:
     using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
+    using constraint = model_constraint<constraint_id>;
+    template <typename Map>
+    using variable_mapping = entity_mapping<variable, Map>;
+    template <typename Map>
+    using constraint_mapping = entity_mapping<constraint, Map>;
 
     struct variable_params {
         scalar obj_coef = scalar{0};
@@ -42,7 +47,6 @@ protected:
     const gurobi12_api & GRB;
     GRBenv * env;
     GRBmodel * model;
-    std::optional<lp_status> opt_lp_status;
 
     static constexpr char constraint_relation_to_gurobi_sense(
         constraint_relation rel) {
@@ -334,7 +338,6 @@ public:
         return constraint(constr_id);
     }
 
-#define OPT(cond, ...) ((cond) ? std::make_optional(__VA_ARGS__) : std::nullopt)
 private:
     template <linear_constraint LC>
     void register_constraint(const int & constr_id, const LC & lc) {
@@ -353,26 +356,32 @@ private:
             tmp_scalars.emplace_back(coef);
         }
     }
-    template <typename ID, typename LastConstrLambda>
-        requires linear_constraint<std::invoke_result_t<LastConstrLambda, ID>>
-    void register_first_valued_constraint(const int & constr_id, const ID & idx,
+    template <typename Key, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+    void register_first_valued_constraint(const int & constr_id,
+                                          const Key & key,
                                           const LastConstrLambda & lc_lambda) {
-        register_constraint(constr_id, lc_lambda(idx));
+        register_constraint(constr_id, lc_lambda(key));
     }
-    template <typename ID, typename OptConstrLambda, typename... Tail>
-    void register_first_valued_constraint(const int & constr_id, const ID & idx,
+    template <typename Key, typename OptConstrLambda, typename... Tail>
+        requires detail::optional_type<
+                     std::invoke_result_t<OptConstrLambda, Key>> &&
+                 linear_constraint<detail::optional_type_value_t<
+                     std::invoke_result_t<OptConstrLambda, Key>>>
+    void register_first_valued_constraint(const int & constr_id,
+                                          const Key & key,
                                           const OptConstrLambda & opt_lc_lambda,
                                           const Tail &... tail) {
-        if(const auto & opt_lc = opt_lc_lambda(idx)) {
+        if(const auto & opt_lc = opt_lc_lambda(key)) {
             register_constraint(constr_id, opt_lc.value());
             return;
         }
-        register_first_valued_constraint(constr_id, idx, tail...);
+        register_first_valued_constraint(constr_id, key, tail...);
     }
 
 public:
     template <ranges::range IR, typename... CL>
-    auto add_constraints(IR && index_range, CL... constraint_lambdas) {
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
         tmp_constraint_entry_cache.resize(num_variables());
         tmp_indices.resize(0);
         tmp_variables.resize(0);
@@ -381,8 +390,8 @@ public:
         tmp_rhs.resize(0);
         const int offset = static_cast<int>(num_constraints());
         int constr_id = offset;
-        for(auto && idx : index_range) {
-            register_first_valued_constraint(constr_id, idx,
+        for(auto && key : keys) {
+            register_first_valued_constraint(constr_id, key,
                                              constraint_lambdas...);
             ++constr_id;
         }
@@ -390,7 +399,10 @@ public:
             model, constr_id - offset, static_cast<int>(tmp_variables.size()),
             tmp_indices.data(), tmp_variables.data(), tmp_scalars.data(),
             tmp_types.data(), tmp_rhs.data(), NULL));
-        // return constraint(constr_id);
+        return constraints_range(
+            keys,
+            ranges::view::transform(ranges::view::iota(offset, constr_id),
+                                    [](auto && i) { return constraint{i}; }));
     }
 
     void set_constraint_rhs(constraint constr, double rhs) {

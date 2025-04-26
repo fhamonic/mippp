@@ -22,13 +22,6 @@ namespace mippp {
 
 class highs110_milp : public highs110_base_model {
 public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
-
-public:
     [[nodiscard]] explicit highs110_milp(const highs110_api & api)
         : highs110_base_model(api) {}
 

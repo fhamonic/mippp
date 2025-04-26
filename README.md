@@ -96,15 +96,21 @@ auto X_vars = model.add_variables(graph.num_arcs());
 
 model.set_maximization();
 model.set_objective(F);
-for(auto && u : graph.vertices()) {
-    if(u == s || u == t) continue;
-    model.add_constraint(
-        xsum(graph.out_arcs(u), X_vars) == xsum(graph.in_arcs(u), X_vars));
-}
-model.add_constraint(
-    xsum(graph.out_arcs(s), X_vars) ==  xsum(graph.in_arcs(s), X_vars) + F);
-model.add_constraint(
-    xsum(graph.out_arcs(t), X_vars) == xsum(graph.in_arcs(t), X_vars) - F);
+
+auto flow_conservation_constrs = model.add_constraints(
+    graph.vertices(),
+    [&](auto && u) {
+        return OPT((u == s), xsum(graph.out_arcs(s), X_vars) ==
+                            xsum(graph.in_arcs(s), X_vars) + F);
+    },
+    [&](auto && u) {
+        return OPT((u == t), xsum(graph.out_arcs(t), X_vars) ==
+                            xsum(graph.in_arcs(t), X_vars) - F);
+    },
+    [&](auto && u) {
+        return xsum(graph.out_arcs(u), X_vars) ==
+                xsum(graph.in_arcs(u), X_vars);
+    });
 
 for(auto && a : graph.arcs()) {
     model.set_variable_upper_bound(X_vars(a), capacity_map[a]);
@@ -202,22 +208,4 @@ for(auto i : indices) {
 - Add support for COPT and XPRS
 - Improve the support for Highs, CPLEX, MOSEK and SCIP
 - Implement API for advanced features like column generation, sos constraints and indicator constraints
-- Allow batch insertion of constraints with the following syntax :
-```cpp
-auto flow_conservation_constrs = model.add_constraints(
-    graph.vertices(),
-    [&](auto && u) {
-        return (u == s) ? xsum(graph.out_arcs(s), X_vars) ==
-                                xsum(graph.in_arcs(s), X_vars) + F
-                        : std::nullopt;
-    },
-    [&](auto && u) {
-        return (u == t) ? xsum(graph.out_arcs(t), X_vars) ==
-                                xsum(graph.in_arcs(t), X_vars) - F
-                        : std::nullopt;
-    },
-    [&](auto && u) {
-        return xsum(graph.out_arcs(u), X_vars) ==
-                xsum(graph.in_arcs(u), X_vars);
-    });
-```
+

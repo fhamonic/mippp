@@ -21,25 +21,32 @@ namespace fhamonic {
 namespace mippp {
 
 class soplex6_lp {
-private:
-    const soplex6_api & SoPlex;
-    void * model;
-    std::optional<lp_status> opt_lp_status;
-    double objective_offset;
-    std::vector<double> tmp_scalars;
-
 public:
     using variable_id = int;
     using constraint_id = int;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id, scalar>;
+    using constraint = model_constraint<constraint_id>;
+    template <typename Map>
+    using variable_mapping = entity_mapping<variable, Map>;
+    template <typename Map>
+    using constraint_mapping = entity_mapping<constraint, Map>;
 
     struct variable_params {
         scalar obj_coef = scalar{0};
         std::optional<scalar> lower_bound = std::nullopt;
         std::optional<scalar> upper_bound = std::nullopt;
     };
+
+    static constexpr variable_params default_variable_params = {
+        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
+
+private:
+    const soplex6_api & SoPlex;
+    void * model;
+    std::optional<lp_status> opt_lp_status;
+    double objective_offset;
+    std::vector<double> tmp_scalars;
 
 public:
     [[nodiscard]] explicit soplex6_lp(const soplex6_api & api)
@@ -81,18 +88,14 @@ private:
     }
 
 public:
-    variable add_variable(const variable_params params = {
-                              .obj_coef = 0,
-                              .lower_bound = 0,
-                              .upper_bound = std::nullopt}) {
+    variable add_variable(
+        const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(num_variables());
         _add_var(params);
         return variable(var_id);
     }
-    auto add_variables(std::size_t count, const variable_params params = {
-                                              .obj_coef = 0,
-                                              .lower_bound = 0,
-                                              .upper_bound = std::nullopt}) {
+    auto add_variables(std::size_t count,
+                       const variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return make_variables_range(ranges::view::transform(
@@ -101,11 +104,9 @@ public:
             [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = {
-                           .obj_coef = 0,
-                           .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
+    auto add_variables(
+        std::size_t count, IL && id_lambda,
+        variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return make_indexed_variables_range(
