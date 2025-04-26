@@ -197,3 +197,27 @@ for(auto i : indices) {
     std::cout << std::endl;
 }
 ```
+## Roadmap
+
+- Add support for COPT and XPRS
+- Improve the support for Highs, CPLEX, MOSEK and SCIP
+- Implement API for advanced features like column generation, sos constraints and indicator constraints
+- Allow batch insertion of constraints with the following syntax :
+```cpp
+auto flow_conservation_constrs = model.add_constraints(
+    graph.vertices(),
+    [&](auto && u) {
+        return (u == s) ? xsum(graph.out_arcs(s), X_vars) ==
+                                xsum(graph.in_arcs(s), X_vars) + F
+                        : std::nullopt;
+    },
+    [&](auto && u) {
+        return (u == t) ? xsum(graph.out_arcs(t), X_vars) ==
+                                xsum(graph.in_arcs(t), X_vars) - F
+                        : std::nullopt;
+    },
+    [&](auto && u) {
+        return xsum(graph.out_arcs(u), X_vars) ==
+                xsum(graph.in_arcs(u), X_vars);
+    });
+```
