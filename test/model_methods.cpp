@@ -18,8 +18,11 @@ using namespace fhamonic::mippp::operators;
 GTEST_TEST(any, test) {
     // gurobi_api api;
     // gurobi_milp model(api);
-    cplex_api api("/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
-    cplex_milp model(api);
+    // cplex_api
+    // api("/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+    // cplex_milp model(api);
+    highs_api api;
+    highs_milp model(api);
 
     // clang-format off
     std::vector<int> grid_hints = {
@@ -85,7 +88,8 @@ GTEST_TEST(any, test) {
         for(auto j : indices) {
             auto value = grid_hints[static_cast<std::size_t>(9 * i + j)];
             if(value == 0) continue;
-            model.set_variable_lower_bound(X_vars(i, j, value), 1);
+            // model.set_variable_lower_bound(X_vars(i, j, value), 1);
+            model.add_constraint(X_vars(i, j, value) >= 1);
         }
     }
 
@@ -310,8 +314,7 @@ TYPED_TEST(ModelMethods, add_constraint_and_get) {
     //                    {{x.id(), 1.5}, {y.id(), 4.0}});
     // }
     if constexpr(has_readable_constraint_sense<T>) {
-        ASSERT_EQ(model.get_constraint_sense(c),
-                  constraint_sense::less_equal);
+        ASSERT_EQ(model.get_constraint_sense(c), constraint_sense::less_equal);
     }
     if constexpr(has_readable_constraint_rhs<T>) {
         ASSERT_DOUBLE_EQ(model.get_constraint_rhs(c), 5.0);
@@ -492,6 +495,36 @@ TYPED_TEST(ModelMethods, lp_example_add_constraint_redundant_terms) {
         ASSERT_NEAR(dual_solution[c1], 1.0, EPSILON);
         ASSERT_NEAR(dual_solution[c2], 0.0, EPSILON);
         ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
+    }
+}
+
+TYPED_TEST(ModelMethods, lp_example_w_add_constraints) {
+    using T = TypeParam::model_type;
+    T model = this->construct_model();
+    auto x1 = model.add_variable();
+    auto x2 = model.add_variable();
+    auto x3 = model.add_variable();
+    model.set_maximization();
+    model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
+    auto constrs = model.add_constraints(
+        ranges::views::iota(0, 3),
+        [&](auto && i) { return OPT((i == 0), 2 * x1 + 3 * x2 + x3 <= 5); },
+        [&](auto && i) { return OPT((i == 1), 4 * x1 + x2 + 2 * x3 <= 11); },
+        [&](auto && i) { return 3 * x1 + 4 * x2 + 2 * x3 <= 8; });
+    model.solve();
+    if constexpr(has_lp_status<T>) {
+        ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);
+    }
+    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
+    if constexpr(has_dual_solution<T>) {
+        auto dual_solution = model.get_dual_solution();
+        ASSERT_NEAR(dual_solution[constrs(0)], 1.0, EPSILON);
+        ASSERT_NEAR(dual_solution[constrs(1)], 0.0, EPSILON);
+        ASSERT_NEAR(dual_solution[constrs(2)], 1.0, EPSILON);
     }
 }
 //*/

@@ -3,7 +3,6 @@
 
 #include <type_traits>
 
-#include "mippp/detail/infinity_helper.hpp"
 #include "mippp/linear_expression.hpp"
 
 namespace fhamonic {

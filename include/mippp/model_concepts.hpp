@@ -15,16 +15,20 @@ namespace mippp {
 
 namespace detail {
 
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////// Dummy types for concepts ///////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 template <typename T>
 auto dummy_range() {
-    return ranges::views::single(T{});
+    return ranges::views::empty<T>;
 };
 
 template <typename M>
 struct dummy_expression {
     auto linear_terms() const {
         return dummy_range<
-            std::pair<typename M::variable_id, typename M::scalar>>();
+            std::pair<typename M::variable, typename M::scalar>>();
     }
     auto constant() const { return typename M::scalar{}; }
 };
@@ -32,12 +36,14 @@ template <typename M>
 struct dummy_constraint {
     auto linear_terms() const {
         return dummy_range<
-            std::pair<typename M::variable_id, typename M::scalar>>();
+            std::pair<typename M::variable, typename M::scalar>>();
     }
     auto sense() const { return constraint_sense::equal; }
     auto rhs() const { return typename M::scalar{0}; }
 };
 struct dummy_type {};
+
+constexpr bool operator<(dummy_type, dummy_type) { return true; }
 
 }  // namespace detail
 
@@ -71,6 +77,8 @@ concept lp_model = requires(T & model, T::variable v, T::variable_id vid,
     { model.set_objective(detail::dummy_expression<T>()) };
     { model.add_constraint(detail::dummy_constraint<T>()) }
             -> std::convertible_to<typename T::constraint>;
+    { model.add_constraints(detail::dummy_range<detail::dummy_type>(),
+            [](detail::dummy_type) { return detail::dummy_constraint<T>(); }) };
 
     { model.num_variables() } -> std::same_as<std::size_t>;
     { model.num_constraints() } -> std::same_as<std::size_t>;

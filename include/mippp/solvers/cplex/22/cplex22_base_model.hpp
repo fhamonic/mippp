@@ -15,7 +15,6 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/detail/optional_helper.hpp"
 
 #include "mippp/solvers/cplex/22/cplex22_api.hpp"
 
@@ -269,10 +268,9 @@ public:
 
 private:
     template <linear_constraint LC>
-    void register_constraint(const int & constr_id, const LC & lc) {
+    void _register_constraint(const int & constr_id, const LC & lc) {
         tmp_indices.emplace_back(static_cast<int>(tmp_variables.size()));
-        tmp_types.emplace_back(
-            constraint_sense_to_cplex_sense(lc.sense()));
+        tmp_types.emplace_back(constraint_sense_to_cplex_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
         for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_constraint_entry_cache[var.uid()];
@@ -287,25 +285,24 @@ private:
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
-    void register_first_valued_constraint(const int & constr_id,
-                                          const Key & key,
-                                          const LastConstrLambda & lc_lambda) {
-        register_constraint(constr_id, lc_lambda(key));
+    void _register_first_valued_constraint(const int & constr_id,
+                                           const Key & key,
+                                           const LastConstrLambda & lc_lambda) {
+        _register_constraint(constr_id, lc_lambda(key));
     }
     template <typename Key, typename OptConstrLambda, typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
-    void register_first_valued_constraint(const int & constr_id,
-                                          const Key & key,
-                                          const OptConstrLambda & opt_lc_lambda,
-                                          const Tail &... tail) {
+    void _register_first_valued_constraint(
+        const int & constr_id, const Key & key,
+        const OptConstrLambda & opt_lc_lambda, const Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            register_constraint(constr_id, opt_lc.value());
+            _register_constraint(constr_id, opt_lc.value());
             return;
         }
-        register_first_valued_constraint(constr_id, key, tail...);
+        _register_first_valued_constraint(constr_id, key, tail...);
     }
 
 public:
@@ -320,8 +317,8 @@ public:
         const int offset = static_cast<int>(num_constraints());
         int constr_id = offset;
         for(auto && key : keys) {
-            register_first_valued_constraint(constr_id, key,
-                                             constraint_lambdas...);
+            _register_first_valued_constraint(constr_id, key,
+                                              constraint_lambdas...);
             ++constr_id;
         }
         check(CPX.addrows(env, lp, 0, static_cast<int>(tmp_indices.size()),

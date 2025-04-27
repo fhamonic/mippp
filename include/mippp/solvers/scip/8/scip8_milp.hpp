@@ -253,34 +253,28 @@ public:
 
     void set_continuous(variable v) noexcept {
         unsigned int infeas;
-        check(SCIP.chgVarType(model,
-                              variables[static_cast<std::size_t>(v.id())],
+        check(SCIP.chgVarType(model, variables[v.uid()],
                               SCIP_VARTYPE_CONTINUOUS, &infeas));
     }
     void set_integer(variable v) noexcept {
         unsigned int infeas;
-        check(SCIP.chgVarType(model,
-                              variables[static_cast<std::size_t>(v.id())],
-                              SCIP_VARTYPE_INTEGER, &infeas));
+        check(SCIP.chgVarType(model, variables[v.uid()], SCIP_VARTYPE_INTEGER,
+                              &infeas));
     }
     void set_binary(variable v) noexcept {
         unsigned int infeas;
-        check(SCIP.chgVarType(model,
-                              variables[static_cast<std::size_t>(v.id())],
-                              SCIP_VARTYPE_BINARY, &infeas));
+        check(SCIP.chgVarType(model, variables[v.uid()], SCIP_VARTYPE_BINARY,
+                              &infeas));
     }
 
     void set_objective_coefficient(variable v, double c) {
-        check(SCIP.chgVarObj(model, variables[static_cast<std::size_t>(v.id())],
-                             c));
+        check(SCIP.chgVarObj(model, variables[v.uid()], c));
     }
     void set_variable_lower_bound(variable v, double lb) {
-        check(SCIP.chgVarLb(model, variables[static_cast<std::size_t>(v.id())],
-                            lb));
+        check(SCIP.chgVarLb(model, variables[v.uid()], lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
-        check(SCIP.chgVarUb(model, variables[static_cast<std::size_t>(v.id())],
-                            ub));
+        check(SCIP.chgVarUb(model, variables[v.uid()], ub));
     }
     // void set_variable_name(variable v, std::string name) {
     //     check(SCIP.setstrattrelement(model, SCIP_STR_ATTR_VARNAME, v.id(),
@@ -288,14 +282,14 @@ public:
     // }
 
     double get_objective_coefficient(variable v) {
-        return SCIP.varGetObj(variables[static_cast<std::size_t>(v.id())]);
+        return SCIP.varGetObj(variables[v.uid()]);
     }
     // double get_variable_lower_bound(variable v) {
-    //     return SCIP.varGetLb(variables[static_cast<std::size_t>(v.id())]);
+    //     return SCIP.varGetLb(variables[v.uid()]);
     //     SCIPgetVarUb
     // }
     // double get_variable_upper_bound(variable v) {
-    //     return SCIP.varGetUb(variables[static_cast<std::size_t>(v.id())]);
+    //     return SCIP.varGetUb(variables[v.uid()]);
     // }
     // auto get_variable_name(variable v) {
     //     char * name;
@@ -305,26 +299,70 @@ public:
     //     return std::string(name);
     // }
 
-    constraint add_constraint(linear_constraint auto && lc) {
-        int constr_id = static_cast<int>(num_constraints());
+private:
+    SCIP_CONS * _add_constraint(linear_constraint auto && lc) {
         SCIP_CONS * constr = NULL;
         const double b = lc.rhs();
         check(SCIP.createConsBasicLinear(
             model, &constr, "", 0, NULL, NULL,
-            (lc.sense() == constraint_sense::less_equal)
-                ? -SCIP.infinity(model)
-                : b,
+            (lc.sense() == constraint_sense::less_equal) ? -SCIP.infinity(model)
+                                                         : b,
             (lc.sense() == constraint_sense::greater_equal)
                 ? SCIP.infinity(model)
                 : b));
-        constraints.emplace_back(constr);
-        for(auto && [var_, coef] : lc.linear_terms()) {
+        for(auto && [var, coef] : lc.linear_terms()) {
             check(
-                SCIP.addCoefLinear(model, constr, variables[var_.uid()], coef));
+                SCIP.addCoefLinear(model, constr, variables[var.uid()], coef));
         }
         check(SCIP.addCons(model, constr));
+        return constr;
+    }
+
+public:
+    constraint add_constraint(linear_constraint auto && lc) {
+        constraint_id constr_id = static_cast<constraint_id>(num_constraints());
+        constraints.emplace_back(_add_constraint(lc));
         return constraint(constr_id);
     }
+
+private:
+    template <typename Key, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+    SCIP_CONS * _add_first_valued_constraint(
+        const Key & key, const LastConstrLambda & lc_lambda) {
+        return _add_constraint(lc_lambda(key));
+    }
+    template <typename Key, typename OptConstrLambda, typename... Tail>
+        requires detail::optional_type<
+                     std::invoke_result_t<OptConstrLambda, Key>> &&
+                 linear_constraint<detail::optional_type_value_t<
+                     std::invoke_result_t<OptConstrLambda, Key>>>
+    SCIP_CONS * _add_first_valued_constraint(
+        const Key & key, const OptConstrLambda & opt_lc_lambda,
+        const Tail &... tail) {
+        if(const auto & opt_lc = opt_lc_lambda(key)) {
+            return _add_constraint(opt_lc.value());
+        }
+        return _add_first_valued_constraint(key, tail...);
+    }
+
+public:
+    template <ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        const constraint_id offset =
+            static_cast<constraint_id>(num_constraints());
+        constraint_id constr_id = offset;
+        for(auto && key : keys) {
+            constraints.emplace_back(
+                _add_first_valued_constraint(key, constraint_lambdas...));
+            ++constr_id;
+        }
+        return constraints_range(
+            keys,
+            ranges::view::transform(ranges::view::iota(offset, constr_id),
+                                    [](auto && i) { return constraint{i}; }));
+    }
+
     // void set_constraint_rhs(constraint c, double rhs) {
     //     check(SCIP.setdblattrelement(model, SCIP_DBL_ATTR_RHS, c, rhs));
     // }

@@ -117,26 +117,71 @@ public:
             std::forward<IL>(id_lambda));
     }
 
-    constraint add_constraint(linear_constraint auto && lc) {
+private:
+    void _add_constraint(const constraint_id & cosntr_id,
+                         linear_constraint auto && lc) {
         int num_nz = 0;
-        int constr_id = static_cast<int>(num_constraints());
-        tmp_scalars.resize(num_variables());
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : lc.linear_terms()) {
+            if(coef == 0) continue;
             tmp_scalars[var.uid()] += coef;
-            ++num_nz;
+            num_nz += (tmp_scalars[var.uid()] != 0) ? 1 : -1;
         }
         const double b = lc.rhs();
-        SoPlex.addRowReal(
-            model, tmp_scalars.data(), static_cast<int>(num_variables()),
-            num_nz,
-            (lc.sense() == constraint_sense::less_equal)
-                ? -std::numeric_limits<double>::infinity()
-                : b,
-            (lc.sense() == constraint_sense::greater_equal)
-                ? std::numeric_limits<double>::infinity()
-                : b);
+        SoPlex.addRowReal(model, tmp_scalars.data(),
+                          static_cast<int>(num_variables()), num_nz,
+                          (lc.sense() == constraint_sense::less_equal)
+                              ? -std::numeric_limits<double>::infinity()
+                              : b,
+                          (lc.sense() == constraint_sense::greater_equal)
+                              ? std::numeric_limits<double>::infinity()
+                              : b);
+    }
+
+public:
+    constraint add_constraint(linear_constraint auto && lc) {
+        constraint_id constr_id = static_cast<constraint_id>(num_constraints());
+        tmp_scalars.resize(num_variables());
+        _add_constraint(constr_id, lc);
         return constraint(constr_id);
+    }
+
+private:
+    template <typename Key, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+                                      const LastConstrLambda & lc_lambda) {
+        _add_constraint(constr_id, lc_lambda(key));
+    }
+    template <typename Key, typename OptConstrLambda, typename... Tail>
+        requires detail::optional_type<
+                     std::invoke_result_t<OptConstrLambda, Key>> &&
+                 linear_constraint<detail::optional_type_value_t<
+                     std::invoke_result_t<OptConstrLambda, Key>>>
+    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+                                      const OptConstrLambda & opt_lc_lambda,
+                                      const Tail &... tail) {
+        if(const auto & opt_lc = opt_lc_lambda(key)) {
+            _add_constraint(constr_id, opt_lc.value());
+            return;
+        }
+        _add_first_valued_constraint(constr_id, key, tail...);
+    }
+
+public:
+    template <ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        tmp_scalars.resize(num_variables());
+        const int offset = static_cast<int>(num_constraints());
+        int constr_id = offset;
+        for(auto && key : keys) {
+            _add_first_valued_constraint(constr_id, key, constraint_lambdas...);
+            ++constr_id;
+        }
+        return constraints_range(
+            keys,
+            ranges::view::transform(ranges::view::iota(offset, constr_id),
+                                    [](auto && i) { return constraint{i}; }));
     }
 
     void solve() {

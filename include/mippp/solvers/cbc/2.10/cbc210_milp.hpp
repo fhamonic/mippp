@@ -50,8 +50,7 @@ private:
     double objective_offset;
     double feasibility_tol;
 
-    static constexpr char constraint_sense_to_cbc_sense(
-        constraint_sense rel) {
+    static constexpr char constraint_sense_to_cbc_sense(constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
         if(rel == constraint_sense::equal) return 'E';
         return 'G';
@@ -64,6 +63,9 @@ private:
     //     constraint_sense::greater_equal;
     // }
 
+    std::size_t _lazy_num_variables;
+    std::size_t _lazy_num_constraints;
+
     std::vector<std::pair<constraint_id, unsigned int>>
         tmp_constraint_entry_cache;
     std::vector<int> tmp_variables;
@@ -74,14 +76,24 @@ public:
         : Cbc(api)
         , model(Cbc.newModel())
         , objective_offset(0.0)
-        , feasibility_tol(1e-4) {}
+        , feasibility_tol(1e-4)
+        , _lazy_num_variables(0)
+        , _lazy_num_constraints(0) {}
     ~cbc210_milp() { Cbc.deleteModel(model); }
 
     std::size_t num_variables() {
-        return static_cast<std::size_t>(Cbc.getNumCols(model));
+        if(static_cast<std::size_t>(Cbc.getNumCols(model)) !=
+           _lazy_num_variables)
+            throw std::runtime_error(
+                "cbc210_milp : _lazy_num_variables differs from Cbc one.");
+        return _lazy_num_variables;
     }
     std::size_t num_constraints() {
-        return static_cast<std::size_t>(Cbc.getNumRows(model));
+        if(static_cast<std::size_t>(Cbc.getNumRows(model)) !=
+           _lazy_num_constraints)
+            throw std::runtime_error(
+                "cbc210_milp : _lazy_num_constraints differs from Cbc one.");
+        return _lazy_num_constraints;
     }
     std::size_t num_entries() {
         return static_cast<std::size_t>(Cbc.getNumElements(model));
@@ -93,7 +105,7 @@ public:
     void set_objective_offset(double offset) { objective_offset = offset; }
     void set_objective(linear_expression auto && le) {
         for(auto && v :
-            std::views::iota(0, static_cast<int>(num_variables()))) {
+            std::views::iota(0, static_cast<int>(_lazy_num_variables))) {
             Cbc.setObjCoeff(model, v, 0.0);
         }
         for(auto && [var, coef] : le.linear_terms()) {
@@ -113,7 +125,7 @@ public:
     auto get_objective() {
         return linear_expression_view(
             ranges::view::transform(
-                ranges::view::iota(0, static_cast<int>(num_variables())),
+                ranges::view::iota(0, static_cast<int>(_lazy_num_variables)),
                 [this](auto && v) {
                     return std::make_pair(v, Cbc.getObjCoefficients(model)[v]);
                 }),
@@ -125,6 +137,7 @@ private:
         Cbc.addCol(model, "", p.lower_bound.value_or(-COIN_DBL_MAX),
                    p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, is_integer,
                    0, NULL, NULL);
+        ++_lazy_num_variables;
     }
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
@@ -149,13 +162,13 @@ private:
 public:
     variable add_variable(
         const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
+        int var_id = static_cast<int>(_lazy_num_variables);
         _add_var(params, false);
         return variable(var_id);
     }
     auto add_variables(std::size_t count,
                        const variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
         return _make_variables_range(offset, count);
     }
@@ -163,20 +176,20 @@ public:
     auto add_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
+        int var_id = static_cast<int>(_lazy_num_variables);
         _add_var(params, true);
         return variable(var_id);
     }
     auto add_integer_variables(std::size_t count, const variable_params params =
                                                       default_variable_params) {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
         return _make_variables_range(offset, count);
     }
@@ -184,25 +197,25 @@ public:
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
     variable add_binary_variable() {
-        int var_id = static_cast<int>(num_variables());
+        int var_id = static_cast<int>(_lazy_num_variables);
         _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
         return variable(var_id);
     }
     auto add_binary_variables(std::size_t count) {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i)
             _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i)
             _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
         return _make_indexed_variables_range(offset, count,
@@ -249,9 +262,9 @@ public:
         return name;
     }
 
-    constraint add_constraint(linear_constraint auto && lc) {
-        int constr_id = static_cast<int>(num_constraints());
-        tmp_constraint_entry_cache.resize(num_variables());
+private:
+    template <linear_constraint LC>
+    void _add_constraint(const int & constr_id, const LC & lc) {
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : lc.linear_terms()) {
@@ -266,10 +279,56 @@ public:
         }
         Cbc.addRow(model, "", static_cast<int>(tmp_variables.size()),
                    tmp_variables.data(), tmp_scalars.data(),
-                   constraint_sense_to_cbc_sense(lc.sense()),
-                   lc.rhs());
+                   constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
+        ++_lazy_num_constraints;
+    }
+
+public:
+    constraint add_constraint(linear_constraint auto && lc) {
+        tmp_constraint_entry_cache.resize(_lazy_num_variables);
+        int constr_id = static_cast<int>(_lazy_num_constraints);
+        _add_constraint(constr_id, lc);
         return constraint(constr_id);
     }
+
+private:
+    template <typename Key, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+                                      const LastConstrLambda & lc_lambda) {
+        _add_constraint(constr_id, lc_lambda(key));
+    }
+    template <typename Key, typename OptConstrLambda, typename... Tail>
+        requires detail::optional_type<
+                     std::invoke_result_t<OptConstrLambda, Key>> &&
+                 linear_constraint<detail::optional_type_value_t<
+                     std::invoke_result_t<OptConstrLambda, Key>>>
+    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+                                      const OptConstrLambda & opt_lc_lambda,
+                                      const Tail &... tail) {
+        if(const auto & opt_lc = opt_lc_lambda(key)) {
+            _add_constraint(constr_id, opt_lc.value());
+            return;
+        }
+        _add_first_valued_constraint(constr_id, key, tail...);
+    }
+
+public:
+    template <ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        tmp_constraint_entry_cache.resize(_lazy_num_variables);
+        const int offset = static_cast<int>(_lazy_num_constraints);
+        int constr_id = offset;
+        for(auto && key : keys) {
+            _add_first_valued_constraint(constr_id, key, constraint_lambdas...);
+            ++constr_id;
+        }
+        return constraints_range(
+            keys,
+            ranges::view::transform(ranges::view::iota(offset, constr_id),
+                                    [](auto && i) { return constraint{i}; }));
+    }
+
     // void set_constraint_rhs(constraint constr, double rhs) {
     // if(get_constraint_sense(constr) ==
     // constraint_sense::greater_equal) {
@@ -298,7 +357,7 @@ public:
     // }
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
-        const int constr_id = static_cast<int>(num_constraints());
+        const int constr_id = static_cast<int>(_lazy_num_constraints);
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : le.linear_terms()) {
@@ -309,6 +368,7 @@ public:
         Cbc.addRow(model, "", static_cast<int>(tmp_variables.size()),
                    tmp_variables.data(), tmp_scalars.data(), 'L', ub - c);
         Cbc.setRowLower(model, constr_id, lb - c);
+        ++_lazy_num_constraints;
         return constraint(constr_id);
     }
     // void set_constraint_name(constraint constr, auto && name);
@@ -349,7 +409,7 @@ public:
     double set_optimality_tolerance() { return Cbc.getAllowableGap(model); }
 
     void solve() {
-        if(num_constraints() == 0u) {
+        if(_lazy_num_constraints == 0u) {
             return;
         }
         Cbc.solve(model);

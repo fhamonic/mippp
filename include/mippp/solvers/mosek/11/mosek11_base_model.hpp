@@ -22,9 +22,10 @@ namespace mippp {
 
 class mosek11_base_model {
 public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
+    using indice = MSKint32t;
+    using variable_id = MSKint32t;
+    using constraint_id = MSKint32t;
+    using scalar = MSKrealt;
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
     template <typename Map>
@@ -50,8 +51,11 @@ protected:
 
     std::vector<std::pair<constraint_id, unsigned int>>
         tmp_constraint_entry_cache;
-    std::vector<int> tmp_variables;
-    std::vector<double> tmp_scalars;
+    std::vector<indice> tmp_indices;
+    std::vector<variable_id> tmp_variables;
+    std::vector<scalar> tmp_scalars;
+    std::vector<MSKboundkeye> tmp_types;
+    std::vector<scalar> tmp_rhs;
 
     void check(MSKrescodee error) const {
         if(error == 0) return;
@@ -109,7 +113,7 @@ public:
         check(MSK.putobjsense(task, MSK_OBJECTIVE_SENSE_MINIMIZE));
     }
 
-    void set_objective_offset(double constant) {
+    void set_objective_offset(scalar constant) {
         check(MSK.putcfix(task, constant));
     }
 
@@ -120,13 +124,13 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(MSK.putcslice(task, 0, static_cast<int>(num_vars),
+        check(MSK.putcslice(task, 0, static_cast<indice>(num_vars),
                             tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
 
-    double get_objective_offset() {
-        double objective_offset;
+    scalar get_objective_offset() {
+        scalar objective_offset;
         check(MSK.getcfix(task, &objective_offset));
         return objective_offset;
     }
@@ -135,8 +139,8 @@ protected:
     void _add_variable(const int & var_id, const variable_params & params) {
         check(MSK.appendvars(task, 1));
         MSKboundkeye boundkey = MSK_BK_FR;
-        double lb = params.lower_bound.value_or(-MSK_INFINITY);
-        double ub = params.upper_bound.value_or(+MSK_INFINITY);
+        scalar lb = params.lower_bound.value_or(-MSK_INFINITY);
+        scalar ub = params.upper_bound.value_or(+MSK_INFINITY);
         // check(MSK.putvarbound(task, var_id, MSK_BK_RA, lb, ub));
         if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
             boundkey = (lb == ub) ? MSK_BK_FX : MSK_BK_RA;
@@ -159,8 +163,8 @@ protected:
                                 tmp_scalars.data()));
         }
         MSKboundkeye boundkey = MSK_BK_FR;
-        double lb = params.lower_bound.value_or(-MSK_INFINITY);
-        double ub = params.upper_bound.value_or(+MSK_INFINITY);
+        scalar lb = params.lower_bound.value_or(-MSK_INFINITY);
+        scalar ub = params.upper_bound.value_or(+MSK_INFINITY);
         if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
             boundkey = (lb == ub) ? MSK_BK_FX : MSK_BK_RA;
         } else if(params.lower_bound.has_value()) {
@@ -216,36 +220,36 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
-    void set_objective_coefficient(variable v, double c) {
+    void set_objective_coefficient(variable v, scalar c) {
         check(MSK.putcj(task, v.id(), c));
     }
-    void set_variable_lower_bound(variable v, double lb) {
+    void set_variable_lower_bound(variable v, scalar lb) {
         check(MSK.chgvarbound(task, v.id(), 1, 1, lb));
     }
-    void set_variable_upper_bound(variable v, double ub) {
+    void set_variable_upper_bound(variable v, scalar ub) {
         check(MSK.chgvarbound(task, v.id(), 0, 1, ub));
     }
 
-    double get_objective_coefficient(variable v) {
-        double coef;
+    scalar get_objective_coefficient(variable v) {
+        scalar coef;
         check(MSK.getcj(task, v.id(), &coef));
         return coef;
     }
-    double get_variable_lower_bound(variable v) {
+    scalar get_variable_lower_bound(variable v) {
         MSKboundkeye boundkey;
-        double lb, ub;
+        scalar lb, ub;
         check(MSK.getvarbound(task, v.id(), &boundkey, &lb, &ub));
         return lb;
     }
-    double get_variable_upper_bound(variable v) {
+    scalar get_variable_upper_bound(variable v) {
         MSKboundkeye boundkey;
-        double lb, ub;
+        scalar lb, ub;
         check(MSK.getvarbound(task, v.id(), &boundkey, &lb, &ub));
         return ub;
     }
 
     constraint add_constraint(linear_constraint auto && lc) {
-        auto constr_id = static_cast<int>(num_constraints());
+        auto constr_id = static_cast<constraint_id>(num_constraints());
         check(MSK.appendcons(task, 1));
         tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
@@ -261,13 +265,81 @@ public:
             tmp_scalars.emplace_back(coef);
         }
         check(MSK.putarow(task, constr_id,
-                          static_cast<int>(tmp_variables.size()),
+                          static_cast<indice>(tmp_variables.size()),
                           tmp_variables.data(), tmp_scalars.data()));
-        const double b = lc.rhs();
+        const scalar b = lc.rhs();
         check(MSK.putconbound(task, constr_id,
-                              constraint_sense_to_mosek_sense(lc.sense()),
-                              b, b));
+                              constraint_sense_to_mosek_sense(lc.sense()), b,
+                              b));
         return constraint(constr_id);
+    }
+
+private:
+    template <linear_constraint LC>
+    void _register_constraint(const int & constr_id, const LC & lc) {
+        tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
+        tmp_types.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
+        tmp_rhs.emplace_back(lc.rhs());
+        for(auto && [var, coef] : lc.linear_terms()) {
+            auto & p = tmp_constraint_entry_cache[var.uid()];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
+            tmp_variables.emplace_back(var.id());
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+    template <typename Key, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+    void _register_first_valued_constraint(const int & constr_id,
+                                           const Key & key,
+                                           const LastConstrLambda & lc_lambda) {
+        _register_constraint(constr_id, lc_lambda(key));
+    }
+    template <typename Key, typename OptConstrLambda, typename... Tail>
+        requires detail::optional_type<
+                     std::invoke_result_t<OptConstrLambda, Key>> &&
+                 linear_constraint<detail::optional_type_value_t<
+                     std::invoke_result_t<OptConstrLambda, Key>>>
+    void _register_first_valued_constraint(
+        const int & constr_id, const Key & key,
+        const OptConstrLambda & opt_lc_lambda, const Tail &... tail) {
+        if(const auto & opt_lc = opt_lc_lambda(key)) {
+            _register_constraint(constr_id, opt_lc.value());
+            return;
+        }
+        _register_first_valued_constraint(constr_id, key, tail...);
+    }
+
+public:
+    template <ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        tmp_constraint_entry_cache.resize(num_variables());
+        tmp_indices.resize(0);
+        tmp_variables.resize(0);
+        tmp_scalars.resize(0);
+        tmp_types.resize(0);
+        tmp_rhs.resize(0);
+        const indice offset = static_cast<indice>(num_constraints());
+        indice constr_id = offset;
+        for(auto && key : keys) {
+            _register_first_valued_constraint(constr_id, key,
+                                              constraint_lambdas...);
+            ++constr_id;
+        }
+        check(MSK.appendcons(task, constr_id - offset));
+        tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
+        check(MSK.putarowslice(task, offset, constr_id, tmp_indices.data(),
+                               tmp_indices.data() + 1, tmp_variables.data(),
+                               tmp_scalars.data()));
+        check(MSK.putconboundslice(task, offset, constr_id, tmp_types.data(),
+                                   tmp_rhs.data(), tmp_rhs.data()));
+        return constraints_range(
+            keys,
+            ranges::view::transform(ranges::view::iota(offset, constr_id),
+                                    [](auto && i) { return constraint{i}; }));
     }
 };
 

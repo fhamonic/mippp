@@ -48,14 +48,14 @@
     F(CPXgetintparam, getintparam)             \
     F(CPXsetlongparam, setlongparam)           \
     F(CPXgetlongparam, getlongparam)           \
+    F(CPXaddsos, addsos)                       \
     F(CPXaddindconstraints, addindconstraints) \
     F(CPXaddmipstarts, addmipstarts)           \
-    F(CPXaddsos, addsos)                       \
     F(CPXprimopt, primopt)                     \
     F(CPXdualopt, dualopt)                     \
     F(CPXlpopt, lpopt)                         \
     F(CPXfeasopt, feasopt)                     \
-    F(CPXmipopt, mipopt)                     \
+    F(CPXmipopt, mipopt)                       \
     F(CPXbendersopt, bendersopt)               \
     F(CPXcheckpfeas, checkpfeas)               \
     F(CPXcheckdfeas, checkdfeas)               \

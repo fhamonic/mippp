@@ -21,8 +21,8 @@ namespace mippp {
 
 class highs110_base_model {
 public:
-    using variable_id = int;
-    using constraint_id = int;
+    using variable_id = HighsInt;
+    using constraint_id = HighsInt;
     using scalar = double;
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
@@ -46,8 +46,11 @@ protected:
 
     std::vector<std::pair<constraint_id, unsigned int>>
         tmp_constraint_entry_cache;
+    std::vector<HighsInt> tmp_indices;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
+    std::vector<double> tmp_lower_bounds;
+    std::vector<double> tmp_upper_bounds;
 
 public:
     [[nodiscard]] explicit highs110_base_model(const highs110_api & api)
@@ -89,20 +92,22 @@ public:
             tmp_scalars[var.uid()] += coef;
         }
         check(Highs.changeColsCostByRange(
-            model, 0, static_cast<int>(num_vars) - 1, tmp_scalars.data()));
+            model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
     // void add_objective(linear_expression auto && le) {
     //     auto num_vars = num_variables();
     //     tmp_scalars.resize(num_vars);
-    //     Highs.getColsByRange(model, 0, static_cast<int>(num_vars) - 1, NULL,
+    //     Highs.getColsByRange(model, 0, static_cast<HighsInt>(num_vars) - 1,
+    //     NULL,
     //                          tmp_scalars.data(), NULL, NULL, NULL, NULL,
     //                          NULL, NULL);
     //     for(auto && [var, coef] : le.linear_terms()) {
     //         tmp_scalars[var.uid()] += coef;
     //     }
     //     check(Highs.changeColsCostByRange(
-    //         model, 0, static_cast<int>(num_vars) - 1, tmp_scalars.data()));
+    //         model, 0, static_cast<HighsInt>(num_vars) - 1,
+    //         tmp_scalars.data()));
     //     set_objective_offset(le.constant());
     // }
     double get_objective_offset() {
@@ -112,7 +117,7 @@ public:
     }
 
 protected:
-    void _add_variable(const int & var_id, const variable_params & params,
+    void _add_variable(const HighsInt & var_id, const variable_params & params,
                        int type) {
         check(
             Highs.addCol(model, params.obj_coef,
@@ -140,8 +145,8 @@ protected:
             tmp_variables.resize(count);
             std::fill(tmp_variables.begin(), tmp_variables.end(), type);
             check(Highs.changeColsIntegralityByRange(
-                model, static_cast<int>(offset), static_cast<int>(count-1),
-                tmp_variables.data()));
+                model, static_cast<HighsInt>(offset),
+                static_cast<HighsInt>(count - 1), tmp_variables.data()));
         }
     }
     inline auto _make_variables_range(const std::size_t & offset,
@@ -167,7 +172,7 @@ protected:
 public:
     variable add_variable(
         const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
+        HighsInt var_id = static_cast<HighsInt>(num_variables());
         _add_variable(var_id, params, kHighsVarTypeContinuous);
         return variable(var_id);
     }
@@ -219,7 +224,7 @@ public:
     // }
 
     constraint add_constraint(linear_constraint auto && lc) {
-        int constr_id = static_cast<int>(num_constraints());
+        HighsInt constr_id = static_cast<HighsInt>(num_constraints());
         tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
@@ -234,17 +239,89 @@ public:
             tmp_scalars.emplace_back(coef);
         }
         const double b = lc.rhs();
-        check(Highs.addRow(
-            model,
+        check(Highs.addRow(model,
+                           (lc.sense() == constraint_sense::less_equal)
+                               ? -Highs.getInfinity(model)
+                               : b,
+                           (lc.sense() == constraint_sense::greater_equal)
+                               ? Highs.getInfinity(model)
+                               : b,
+                           static_cast<HighsInt>(tmp_variables.size()),
+                           tmp_variables.data(), tmp_scalars.data()));
+        return constraint(constr_id);
+    }
+
+private:
+    template <linear_constraint LC>
+    void _register_constraint(const HighsInt & constr_id, const LC & lc) {
+        tmp_indices.emplace_back(static_cast<HighsInt>(tmp_variables.size()));
+        const double b = lc.rhs();
+        tmp_lower_bounds.emplace_back(
             (lc.sense() == constraint_sense::less_equal)
                 ? -Highs.getInfinity(model)
-                : b,
+                : b);
+        tmp_upper_bounds.emplace_back(
             (lc.sense() == constraint_sense::greater_equal)
                 ? Highs.getInfinity(model)
-                : b,
-            static_cast<int>(tmp_variables.size()), tmp_variables.data(),
-            tmp_scalars.data()));
-        return constraint(constr_id);
+                : b);
+        for(auto && [var, coef] : lc.linear_terms()) {
+            auto & p = tmp_constraint_entry_cache[var.uid()];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
+            tmp_variables.emplace_back(var.id());
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+    template <typename Key, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+    void _register_first_valued_constraint(const HighsInt & constr_id,
+                                           const Key & key,
+                                           const LastConstrLambda & lc_lambda) {
+        _register_constraint(constr_id, lc_lambda(key));
+    }
+    template <typename Key, typename OptConstrLambda, typename... Tail>
+        requires detail::optional_type<
+                     std::invoke_result_t<OptConstrLambda, Key>> &&
+                 linear_constraint<detail::optional_type_value_t<
+                     std::invoke_result_t<OptConstrLambda, Key>>>
+    void _register_first_valued_constraint(
+        const HighsInt & constr_id, const Key & key,
+        const OptConstrLambda & opt_lc_lambda, const Tail &... tail) {
+        if(const auto & opt_lc = opt_lc_lambda(key)) {
+            _register_constraint(constr_id, opt_lc.value());
+            return;
+        }
+        _register_first_valued_constraint(constr_id, key, tail...);
+    }
+
+public:
+    template <ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        tmp_constraint_entry_cache.resize(num_variables());
+        tmp_indices.resize(0);
+        tmp_variables.resize(0);
+        tmp_scalars.resize(0);
+        tmp_lower_bounds.resize(0);
+        tmp_upper_bounds.resize(0);
+        const HighsInt offset = static_cast<HighsInt>(num_constraints());
+        HighsInt constr_id = offset;
+        for(auto && key : keys) {
+            _register_first_valued_constraint(constr_id, key,
+                                              constraint_lambdas...);
+            ++constr_id;
+        }
+        check(Highs.addRows(model, static_cast<HighsInt>(tmp_indices.size()),
+                            tmp_lower_bounds.data(), tmp_upper_bounds.data(),
+                            static_cast<HighsInt>(tmp_variables.size()),
+                            tmp_indices.data(), tmp_variables.data(),
+                            tmp_scalars.data()));
+        return constraints_range(
+            keys,
+            ranges::view::transform(ranges::view::iota(offset, constr_id),
+                                    [](auto && i) { return constraint{i}; }));
     }
 };
 

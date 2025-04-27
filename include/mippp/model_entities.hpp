@@ -3,12 +3,12 @@
 
 // #include <flat_map>
 #include <map>
+#include <optional>
 #include <ranges>
 
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/single.hpp>
 #include <range/v3/view/zip.hpp>
-
 
 namespace fhamonic {
 namespace mippp {
@@ -218,6 +218,28 @@ auto make_lazily_named_variables_range(detail::pack<Args...>, VR && variables,
         ranges::view::all(variables), std::forward<IL>(id_lambda),
         std::forward<NL>(naming_lambda));
 }
+
+///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////// Optional helper ///////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+namespace detail {
+
+template <typename T>
+struct is_optional_type : std::false_type {};
+
+template <typename U>
+struct is_optional_type<std::optional<U>> : std::true_type {};
+
+template <typename T>
+concept optional_type = is_optional_type<std::remove_cvref_t<T>>::value;
+
+template <optional_type T>
+using optional_type_value_t = typename T::value_type;
+
+#define OPT(cond, ...) ((cond) ? std::make_optional(__VA_ARGS__) : std::nullopt)
+
+}  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// Constraints range //////////////////////////////

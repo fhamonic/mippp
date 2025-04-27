@@ -35,6 +35,8 @@
     F(MSK_appendcons, appendcons)                       \
     F(MSK_putarow, putarow)                             \
     F(MSK_putconbound, putconbound)                     \
+    F(MSK_putconboundslice, putconboundslice)           \
+    F(MSK_putarowslice, putarowslice)                   \
     F(MSK_chgconbound, chgconbound)                     \
     F(MSK_putconname, putconname)                       \
     F(MSK_getarow, getarow)                             \

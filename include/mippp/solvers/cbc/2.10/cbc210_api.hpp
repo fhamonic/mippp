@@ -31,6 +31,7 @@
     F(Cbc_getRowLower, getRowLower)                         \
     F(Cbc_getRowUpper, getRowUpper)                         \
     F(Cbc_getRowName, getRowName)                           \
+    F(Cbc_addSOS, addSOS)                                   \
     F(Cbc_getNumElements, getNumElements)                   \
     F(Cbc_getNumCols, getNumCols)                           \
     F(Cbc_getNumIntegers, getNumIntegers)                   \

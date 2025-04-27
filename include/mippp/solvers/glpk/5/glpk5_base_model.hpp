@@ -228,10 +228,10 @@ public:
         return glp.get_col_ub(model, v.id() + 1);
     }
 
-    constraint add_constraint(linear_constraint auto && lc) {
-        auto constr_id = static_cast<int>(num_constraints());
+private:
+    template <linear_constraint LC>
+    void _add_constraint(const int & constr_id, const LC & lc) {
         glp.add_rows(model, 1);
-        tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(1);
         tmp_scalars.resize(1);
         for(auto && [var, coef] : lc.linear_terms()) {
@@ -249,9 +249,53 @@ public:
                         tmp_variables.data(), tmp_scalars.data());
         const double b = lc.rhs();
         glp.set_row_bnds(model, constr_id + 1,
-                         constraint_sense_to_glp_row_type(lc.sense()), b,
-                         b);
+                         constraint_sense_to_glp_row_type(lc.sense()), b, b);
+    }
+
+public:
+    constraint add_constraint(linear_constraint auto && lc) {
+        tmp_constraint_entry_cache.resize(num_variables());
+        int constr_id = static_cast<int>(num_constraints());
+        _add_constraint(constr_id, lc);
         return constraint(constr_id);
+    }
+
+private:
+    template <typename Key, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+                                      const LastConstrLambda & lc_lambda) {
+        _add_constraint(constr_id, lc_lambda(key));
+    }
+    template <typename Key, typename OptConstrLambda, typename... Tail>
+        requires detail::optional_type<
+                     std::invoke_result_t<OptConstrLambda, Key>> &&
+                 linear_constraint<detail::optional_type_value_t<
+                     std::invoke_result_t<OptConstrLambda, Key>>>
+    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+                                      const OptConstrLambda & opt_lc_lambda,
+                                      const Tail &... tail) {
+        if(const auto & opt_lc = opt_lc_lambda(key)) {
+            _add_constraint(constr_id, opt_lc.value());
+            return;
+        }
+        _add_first_valued_constraint(constr_id, key, tail...);
+    }
+
+public:
+    template <ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        tmp_constraint_entry_cache.resize(num_variables());
+        const int offset = static_cast<int>(num_constraints());
+        int constr_id = offset;
+        for(auto && key : keys) {
+            _add_first_valued_constraint(constr_id, key, constraint_lambdas...);
+            ++constr_id;
+        }
+        return constraints_range(
+            keys,
+            ranges::view::transform(ranges::view::iota(offset, constr_id),
+                                    [](auto && i) { return constraint{i}; }));
     }
 };
 
