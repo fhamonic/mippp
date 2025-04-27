@@ -51,7 +51,7 @@ private:
                   tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count), 0);
         std::fill(tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count),
                   tmp_scalars.end(), 1);
-        tmp_variables.resize(count);
+        tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), CPX_BINARY);
         check(CPX.newcols(
             env, lp, static_cast<int>(count), NULL, tmp_scalars.data(),
@@ -99,11 +99,18 @@ public:
     }
 
     void solve() {
-        // if(num_variables() == 0u) {
-        //     opt_lp_status.emplace(lp_status::optimal);
-        //     return;
-        // }
-        check(CPX.primopt(env, lp));
+        int probtype = CPX.getprobtype(env, lp);
+        switch(probtype) {
+            case CPXPROB_MILP:
+                check(CPX.mipopt(env, lp));
+                return;
+            case CPXPROB_LP:
+                check(CPX.lpopt(env, lp));
+                return;
+            default:
+                throw std::runtime_error("cplex_milp: unknowned problem type " +
+                                         std::to_string(probtype));
+        }
     }
 
     double get_solution_value() {

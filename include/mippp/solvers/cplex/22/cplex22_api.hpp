@@ -8,6 +8,7 @@
 #define CPLEX_FUNCTIONS(F)                     \
     F(CPXopenCPLEX, openCPLEX)                 \
     F(CPXcreateprob, createprob)               \
+    F(CPXgetprobtype, getprobtype)             \
     F(CPXchgprobtype, chgprobtype)             \
     F(CPXfreeprob, freeprob)                   \
     F(CPXgeterrorstring, geterrorstring)       \
@@ -53,6 +54,8 @@
     F(CPXprimopt, primopt)                     \
     F(CPXdualopt, dualopt)                     \
     F(CPXlpopt, lpopt)                         \
+    F(CPXfeasopt, feasopt)                     \
+    F(CPXmipopt, mipopt)                     \
     F(CPXbendersopt, bendersopt)               \
     F(CPXcheckpfeas, checkpfeas)               \
     F(CPXcheckdfeas, checkdfeas)               \

@@ -47,6 +47,7 @@ private:
         std::fill(tmp_types.begin(), tmp_types.end(), GRB_BINARY);
         check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
                           NULL, NULL, NULL, tmp_types.data(), NULL));
+        lazy_num_variables += count;
         _var_name_set.resize(offset + count, false);
     }
 

@@ -16,8 +16,10 @@ using namespace fhamonic::mippp::operators;
 #define INFTY 1e20
 
 GTEST_TEST(any, test) {
-    gurobi_api api;
-    gurobi_milp model(api);
+    // gurobi_api api;
+    // gurobi_milp model(api);
+    cplex_api api("/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+    cplex_milp model(api);
 
     // clang-format off
     std::vector<int> grid_hints = {

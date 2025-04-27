@@ -326,7 +326,7 @@ public:
         }
         check(CPX.addrows(env, lp, 0, static_cast<int>(tmp_indices.size()),
                           static_cast<int>(tmp_variables.size()),
-                          tmp_rhs.data(), tmp_rhs.data(), tmp_indices.data(),
+                          tmp_rhs.data(), tmp_types.data(), tmp_indices.data(),
                           tmp_variables.data(), tmp_scalars.data(), NULL,
                           NULL));
         return constraints_range(
