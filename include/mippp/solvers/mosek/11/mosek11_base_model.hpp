@@ -54,8 +54,9 @@ protected:
     std::vector<indice> tmp_indices;
     std::vector<variable_id> tmp_variables;
     std::vector<scalar> tmp_scalars;
-    std::vector<MSKboundkeye> tmp_types;
+    std::vector<MSKboundkeye> tmp_boundkeye;
     std::vector<scalar> tmp_rhs;
+    std::vector<MSKvariabletypee> tmp_vartype;
 
     void check(MSKrescodee error) const {
         if(error == 0) return;
@@ -136,7 +137,8 @@ public:
     }
 
 protected:
-    void _add_variable(const int & var_id, const variable_params & params) {
+    void _add_variable(const int & var_id, const variable_params & params,
+                       const MSKvariabletypee type) {
         check(MSK.appendvars(task, 1));
         MSKboundkeye boundkey = MSK_BK_FR;
         scalar lb = params.lower_bound.value_or(-MSK_INFINITY);
@@ -151,9 +153,14 @@ protected:
         }
         check(MSK.putvarbound(task, var_id, boundkey, lb, ub));
         check(MSK.putcj(task, var_id, params.obj_coef));
+
+        if(type != MSK_VAR_TYPE_CONT) {
+            check(MSK.putvartype(task, var_id, type));
+        }
     }
     void _add_variables(std::size_t offset, std::size_t count,
-                        const variable_params & params) {
+                        const variable_params & params,
+                        const MSKvariabletypee type) {
         check(MSK.appendvars(task, static_cast<int>(count)));
         if(auto obj = params.obj_coef; obj != 0.0) {
             tmp_scalars.resize(count);
@@ -175,6 +182,16 @@ protected:
         check(MSK.putvarboundsliceconst(
             task, static_cast<variable_id>(offset),
             static_cast<variable_id>(offset + count), boundkey, lb, ub));
+
+        if(type != MSK_VAR_TYPE_CONT) {
+            tmp_variables.resize(count);
+            std::iota(tmp_variables.begin(), tmp_variables.end(),
+                      static_cast<variable_id>(offset));
+            tmp_vartype.resize(count);
+            std::fill(tmp_vartype.begin(), tmp_vartype.end(), type);
+            check(MSK.putvartypelist(task, static_cast<indice>(count),
+                                     tmp_variables.data(), tmp_vartype.data()));
+        }
     }
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
@@ -200,14 +217,14 @@ public:
     variable add_variable(
         const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(num_variables());
-        _add_variable(var_id, params);
+        _add_variable(var_id, params, MSK_VAR_TYPE_CONT);
         return variable(var_id);
     }
     auto add_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params);
+        _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
@@ -215,7 +232,7 @@ public:
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params);
+        _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
@@ -278,7 +295,7 @@ private:
     template <linear_constraint LC>
     void _register_constraint(const int & constr_id, const LC & lc) {
         tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
-        tmp_types.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
+        tmp_boundkeye.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
         for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_constraint_entry_cache[var.uid()];
@@ -320,7 +337,7 @@ public:
         tmp_indices.resize(0);
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        tmp_types.resize(0);
+        tmp_boundkeye.resize(0);
         tmp_rhs.resize(0);
         const indice offset = static_cast<indice>(num_constraints());
         indice constr_id = offset;
@@ -334,8 +351,9 @@ public:
         check(MSK.putarowslice(task, offset, constr_id, tmp_indices.data(),
                                tmp_indices.data() + 1, tmp_variables.data(),
                                tmp_scalars.data()));
-        check(MSK.putconboundslice(task, offset, constr_id, tmp_types.data(),
-                                   tmp_rhs.data(), tmp_rhs.data()));
+        check(MSK.putconboundslice(task, offset, constr_id,
+                                   tmp_boundkeye.data(), tmp_rhs.data(),
+                                   tmp_rhs.data()));
         return constraints_range(
             keys,
             ranges::view::transform(ranges::view::iota(offset, constr_id),

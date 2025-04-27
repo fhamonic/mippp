@@ -10,6 +10,7 @@
 #define MOSEK_FUNCTIONS(F)                              \
     F(MSK_makeenv, makeenv)                             \
     F(MSK_makeemptytask, makeemptytask)                 \
+    F(MSK_getprobtype, getprobtype)                     \
     F(MSK_deletetask, deletetask)                       \
     F(MSK_deleteenv, deleteenv)                         \
     F(MSK_getcodedesc, getcodedesc)                     \
@@ -24,12 +25,14 @@
     F(MSK_getcfix, getcfix)                             \
     F(MSK_appendvars, appendvars)                       \
     F(MSK_putcj, putcj)                                 \
+    F(MSK_getcj, getcj)                                 \
     F(MSK_putvarbound, putvarbound)                     \
     F(MSK_putvarboundsliceconst, putvarboundsliceconst) \
     F(MSK_chgvarbound, chgvarbound)                     \
-    F(MSK_putvarname, putvarname)                       \
-    F(MSK_getcj, getcj)                                 \
     F(MSK_getvarbound, getvarbound)                     \
+    F(MSK_putvartype, putvartype)                       \
+    F(MSK_putvartypelist, putvartypelist)               \
+    F(MSK_putvarname, putvarname)                       \
     F(MSK_getvarnamelen, getvarnamelen)                 \
     F(MSK_getvarname, getvarname)                       \
     F(MSK_appendcons, appendcons)                       \

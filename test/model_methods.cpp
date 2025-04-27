@@ -123,8 +123,8 @@ using Models = ::testing::Types<
         highs_milp_test,
         cplex_lp_test,
         cplex_milp_test,
-        mosek_lp_test
-        // ,mosek_milp_test
+        mosek_lp_test,
+        mosek_milp_test
 
         // ,copt_lp_test
         // ,copt_milp_test
@@ -497,13 +497,13 @@ TYPED_TEST(ModelMethods, lp_example_add_constraint_redundant_terms) {
         ASSERT_NEAR(dual_solution[c3], 1.0, EPSILON);
     }
 }
-
-TYPED_TEST(ModelMethods, lp_example_w_add_constraints) {
+TYPED_TEST(ModelMethods, add_constraints) {
     using T = TypeParam::model_type;
     T model = this->construct_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
+    ASSERT_EQ(model.num_variables(), 3);
     model.set_maximization();
     model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
     auto constrs = model.add_constraints(
@@ -511,6 +511,7 @@ TYPED_TEST(ModelMethods, lp_example_w_add_constraints) {
         [&](auto && i) { return OPT((i == 0), 2 * x1 + 3 * x2 + x3 <= 5); },
         [&](auto && i) { return OPT((i == 1), 4 * x1 + x2 + 2 * x3 <= 11); },
         [&](auto && i) { return 3 * x1 + 4 * x2 + 2 * x3 <= 8; });
+    ASSERT_EQ(model.num_constraints(), 3);
     model.solve();
     if constexpr(has_lp_status<T>) {
         ASSERT_EQ(model.get_lp_status().value(), lp_status::optimal);

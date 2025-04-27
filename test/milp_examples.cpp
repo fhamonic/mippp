@@ -17,8 +17,8 @@ using Models = ::testing::Types<
         glpk_milp_test,
         scip_milp_test,
         highs_milp_test,
-        cplex_milp_test
-        // ,mosek_milp_test
+        cplex_milp_test,
+        mosek_milp_test
         // ,copt_milp_test
         // ,xprs_milp_test
         >;
