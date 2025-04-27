@@ -9,7 +9,6 @@
 #include <range/v3/view/span.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -224,7 +223,7 @@ public:
         tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
+        for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_constraint_entry_cache[var.uid()];
             if(p.first == constr_id + 1) {
                 tmp_scalars[p.second] += coef;
@@ -234,13 +233,13 @@ public:
             tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
-        const double b = -lc.expression().constant();
+        const double b = lc.rhs();
         check(Highs.addRow(
             model,
-            (lc.relation() == constraint_relation::less_equal_zero)
+            (lc.sense() == constraint_sense::less_equal)
                 ? -Highs.getInfinity(model)
                 : b,
-            (lc.relation() == constraint_relation::greater_equal_zero)
+            (lc.sense() == constraint_sense::greater_equal)
                 ? Highs.getInfinity(model)
                 : b,
             static_cast<int>(tmp_variables.size()), tmp_variables.data(),

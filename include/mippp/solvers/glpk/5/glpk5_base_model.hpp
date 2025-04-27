@@ -10,7 +10,6 @@
 #include <range/v3/view/span.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -48,20 +47,20 @@ protected:
     std::optional<lp_status> opt_lp_status;
     double objective_offset;
 
-    static constexpr int constraint_relation_to_glp_row_type(
-        constraint_relation rel) {
-        if(rel == constraint_relation::less_equal_zero) return GLP_UP;
-        if(rel == constraint_relation::equal_zero) return GLP_LO;
+    static constexpr int constraint_sense_to_glp_row_type(
+        constraint_sense rel) {
+        if(rel == constraint_sense::less_equal) return GLP_UP;
+        if(rel == constraint_sense::equal) return GLP_LO;
         return GLP_FX;
     }
-    static constexpr constraint_relation glp_row_type_to_constraint_relation(
+    static constexpr constraint_sense glp_row_type_to_constraint_sense(
         int type) {
-        if(type == GLP_UP) return constraint_relation::less_equal_zero;
-        if(type == GLP_FX) return constraint_relation::equal_zero;
-        if(type == GLP_LO) return constraint_relation::greater_equal_zero;
+        if(type == GLP_UP) return constraint_sense::less_equal;
+        if(type == GLP_FX) return constraint_sense::equal;
+        if(type == GLP_LO) return constraint_sense::greater_equal;
         throw std::runtime_error("glpk5_base_model: Cannot convert row type '" +
                                  std::to_string(type) +
-                                 "' to constraint_relation.");
+                                 "' to constraint_sense.");
     }
 
     std::vector<std::pair<constraint_id, unsigned int>>
@@ -235,7 +234,7 @@ public:
         tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(1);
         tmp_scalars.resize(1);
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
+        for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_constraint_entry_cache[var.uid()];
             if(p.first == constr_id + 1) {
                 tmp_scalars[p.second] += coef;
@@ -248,9 +247,9 @@ public:
         glp.set_mat_row(model, constr_id + 1,
                         static_cast<int>(tmp_variables.size()) - 1,
                         tmp_variables.data(), tmp_scalars.data());
-        const double b = -lc.expression().constant();
+        const double b = lc.rhs();
         glp.set_row_bnds(model, constr_id + 1,
-                         constraint_relation_to_glp_row_type(lc.relation()), b,
+                         constraint_sense_to_glp_row_type(lc.sense()), b,
                          b);
         return constraint(constr_id);
     }

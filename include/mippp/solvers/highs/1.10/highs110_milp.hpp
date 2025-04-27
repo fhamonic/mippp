@@ -9,7 +9,6 @@
 #include <range/v3/view/span.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"

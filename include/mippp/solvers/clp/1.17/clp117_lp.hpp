@@ -14,7 +14,6 @@
 #include <range/v3/view/span.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -31,18 +30,18 @@ private:
     Clp_Simplex * model;
     std::optional<lp_status> opt_lp_status;
 
-    // static constexpr char constraint_relation_to_gurobi_sense(
-    //     constraint_relation rel) {
-    //     if(rel == constraint_relation::less_equal_zero) return
-    //     Clp_LESS_EQUAL; if(rel == constraint_relation::equal_zero) return
+    // static constexpr char constraint_sense_to_gurobi_sense(
+    //     constraint_sense rel) {
+    //     if(rel == constraint_sense::less_equal) return
+    //     Clp_LESS_EQUAL; if(rel == constraint_sense::equal) return
     //     Clp_EQUAL; return Clp_GREATER_EQUAL;
     // }
-    // static constexpr constraint_relation gurobi_sense_to_constraint_relation(
+    // static constexpr constraint_sense gurobi_sense_to_constraint_sense(
     //     char sense) {
     //     if(sense == Clp_LESS_EQUAL) return
-    //     constraint_relation::less_equal_zero; if(sense == Clp_EQUAL) return
-    //     constraint_relation::equal_zero; return
-    //     constraint_relation::greater_equal_zero;
+    //     constraint_sense::less_equal; if(sense == Clp_EQUAL) return
+    //     constraint_sense::equal; return
+    //     constraint_sense::greater_equal;
     // }
 
     // std::vector<CoinBigIndex> tmp_indices;
@@ -204,43 +203,43 @@ public:
         int constr_id = static_cast<int>(num_constraints());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
+        for(auto && [var, coef] : lc.linear_terms()) {
             tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
-        const double b = -lc.expression().constant();
+        const double b = lc.rhs();
         CoinBigIndex starts[2] = {
             0, static_cast<CoinBigIndex>(tmp_variables.size())};
         Clp.addRows(
             model, 1,
-            (lc.relation() == constraint_relation::less_equal_zero) ? NULL : &b,
-            (lc.relation() == constraint_relation::greater_equal_zero) ? NULL
+            (lc.sense() == constraint_sense::less_equal) ? NULL : &b,
+            (lc.sense() == constraint_sense::greater_equal) ? NULL
                                                                        : &b,
             starts, tmp_variables.data(), tmp_scalars.data());
         return constraint(constr_id);
     }
     void set_constraint_rhs(constraint constr, double rhs) {
         if(get_constraint_sense(constr) ==
-           constraint_relation::greater_equal_zero) {
+           constraint_sense::greater_equal) {
             Clp.rowLower(model)[constr.id()] = rhs;
             return;
         }
         Clp.rowUpper(model)[constr.id()] = rhs;
     }
-    void set_constraint_sense(constraint constr, constraint_relation r) {
-        constraint_relation old_r = get_constraint_sense(constr);
+    void set_constraint_sense(constraint constr, constraint_sense r) {
+        constraint_sense old_r = get_constraint_sense(constr);
         double old_rhs = get_constraint_rhs(constr);
         if(old_r == r) return;
         switch(r) {
-            case constraint_relation::equal_zero:
+            case constraint_sense::equal:
                 Clp.rowLower(model)[constr.id()] =
                     Clp.rowUpper(model)[constr.id()] = old_rhs;
                 return;
-            case constraint_relation::less_equal_zero:
+            case constraint_sense::less_equal:
                 Clp.rowLower(model)[constr.id()] = -COIN_DBL_MAX;
                 Clp.rowUpper(model)[constr.id()] = old_rhs;
                 return;
-            case constraint_relation::greater_equal_zero:
+            case constraint_sense::greater_equal:
                 Clp.rowLower(model)[constr.id()] = old_rhs;
                 Clp.rowUpper(model)[constr.id()] = COIN_DBL_MAX;
                 return;
@@ -270,16 +269,16 @@ public:
     // auto get_constraint_lhs(constraint constr) const;
     double get_constraint_rhs(constraint constr) {
         if(get_constraint_sense(constr) ==
-           constraint_relation::greater_equal_zero)
+           constraint_sense::greater_equal)
             return Clp.rowLower(model)[constr.id()];
         return Clp.rowUpper(model)[constr.id()];
     }
-    constraint_relation get_constraint_sense(constraint constr) {
+    constraint_sense get_constraint_sense(constraint constr) {
         const double lb = Clp.rowLower(model)[constr.id()];
         const double ub = Clp.rowUpper(model)[constr.id()];
-        if(lb == ub) return constraint_relation::equal_zero;
-        if(lb == -COIN_DBL_MAX) return constraint_relation::less_equal_zero;
-        if(ub == COIN_DBL_MAX) return constraint_relation::greater_equal_zero;
+        if(lb == ub) return constraint_sense::equal;
+        if(lb == -COIN_DBL_MAX) return constraint_sense::less_equal;
+        if(ub == COIN_DBL_MAX) return constraint_sense::greater_equal;
         throw std::runtime_error(
             "Tried to get the sense of a ranged constraint");
     }

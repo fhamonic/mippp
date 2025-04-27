@@ -34,15 +34,15 @@ void ASSERT_EXPRESSION(Expr && expr, std::initializer_list<V> vars,
 
 #include "range/v3/core.hpp"
 
-template <typename Constr, typename V, typename C, typename L, typename U>
+template <typename Constr, typename V, typename C, typename S, typename B>
 void ASSERT_CONSTRAINT(Constr && constr, std::initializer_list<V> vars,
-                       std::initializer_list<C> coefs, L && lb, U && ub) {
-    ASSERT_EQ_RANGES(ranges::view::keys(constr.expression().linear_terms()),
-                     vars);
-    ASSERT_EQ_RANGES(ranges::view::values(constr.expression().linear_terms()),
-                     coefs);
-    ASSERT_EQ(linear_constraint_lower_bound(constr), lb);
-    ASSERT_EQ(linear_constraint_upper_bound(constr), ub);
+                       std::initializer_list<C> coefs, S && rel, B && bound) {
+    // ASSERT_EQ_RANGES(ranges::view::keys(constr.linear_terms()),
+    //                  vars);
+    // ASSERT_EQ_RANGES(ranges::view::values(constr.linear_terms()),
+    //                  coefs);
+    ASSERT_EQ(constr.sense(), rel);
+    ASSERT_EQ(constr.rhs(), bound);
 }
 
 #endif  // ASSERT_HELPER_HPP

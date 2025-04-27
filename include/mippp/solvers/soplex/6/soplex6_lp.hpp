@@ -9,7 +9,6 @@
 #include <range/v3/view/span.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -123,18 +122,18 @@ public:
         int constr_id = static_cast<int>(num_constraints());
         tmp_scalars.resize(num_variables());
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
+        for(auto && [var, coef] : lc.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
             ++num_nz;
         }
-        const double b = -lc.expression().constant();
+        const double b = lc.rhs();
         SoPlex.addRowReal(
             model, tmp_scalars.data(), static_cast<int>(num_variables()),
             num_nz,
-            (lc.relation() == constraint_relation::less_equal_zero)
+            (lc.sense() == constraint_sense::less_equal)
                 ? -std::numeric_limits<double>::infinity()
                 : b,
-            (lc.relation() == constraint_relation::greater_equal_zero)
+            (lc.sense() == constraint_sense::greater_equal)
                 ? std::numeric_limits<double>::infinity()
                 : b);
         return constraint(constr_id);

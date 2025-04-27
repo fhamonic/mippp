@@ -10,7 +10,6 @@
 #include <range/v3/view/move.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/detail/optional_helper.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -48,17 +47,17 @@ protected:
     GRBenv * env;
     GRBmodel * model;
 
-    static constexpr char constraint_relation_to_gurobi_sense(
-        constraint_relation rel) {
-        if(rel == constraint_relation::less_equal_zero) return GRB_LESS_EQUAL;
-        if(rel == constraint_relation::equal_zero) return GRB_EQUAL;
+    static constexpr char constraint_sense_to_gurobi_sense(
+        constraint_sense rel) {
+        if(rel == constraint_sense::less_equal) return GRB_LESS_EQUAL;
+        if(rel == constraint_sense::equal) return GRB_EQUAL;
         return GRB_GREATER_EQUAL;
     }
-    static constexpr constraint_relation gurobi_sense_to_constraint_relation(
+    static constexpr constraint_sense gurobi_sense_to_constraint_sense(
         char sense) {
-        if(sense == GRB_LESS_EQUAL) return constraint_relation::less_equal_zero;
-        if(sense == GRB_EQUAL) return constraint_relation::equal_zero;
-        return constraint_relation::greater_equal_zero;
+        if(sense == GRB_LESS_EQUAL) return constraint_sense::less_equal;
+        if(sense == GRB_EQUAL) return constraint_sense::equal;
+        return constraint_sense::greater_equal;
     }
 
     std::vector<std::pair<constraint_id, unsigned int>>
@@ -321,7 +320,7 @@ public:
         tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
+        for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_constraint_entry_cache[var.uid()];
             if(p.first == constr_id + 1) {
                 tmp_scalars[p.second] += coef;
@@ -333,8 +332,8 @@ public:
         }
         check(GRB.addconstr(model, static_cast<int>(tmp_variables.size()),
                             tmp_variables.data(), tmp_scalars.data(),
-                            constraint_relation_to_gurobi_sense(lc.relation()),
-                            -lc.expression().constant(), NULL));
+                            constraint_sense_to_gurobi_sense(lc.sense()),
+                            lc.rhs(), NULL));
         return constraint(constr_id);
     }
 
@@ -343,9 +342,9 @@ private:
     void register_constraint(const int & constr_id, const LC & lc) {
         tmp_indices.emplace_back(static_cast<int>(tmp_variables.size()));
         tmp_types.emplace_back(
-            constraint_relation_to_gurobi_sense(lc.relation()));
-        tmp_rhs.emplace_back(-lc.expression().constant());
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
+            constraint_sense_to_gurobi_sense(lc.sense()));
+        tmp_rhs.emplace_back(lc.rhs());
+        for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_constraint_entry_cache[var.uid()];
             if(p.first == constr_id + 1) {
                 tmp_scalars[p.second] += coef;
@@ -408,9 +407,9 @@ public:
     void set_constraint_rhs(constraint constr, double rhs) {
         check(GRB.setdblattrelement(model, GRB_DBL_ATTR_RHS, constr.id(), rhs));
     }
-    void set_constraint_sense(constraint constr, constraint_relation r) {
+    void set_constraint_sense(constraint constr, constraint_sense r) {
         check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
-                                     constraint_relation_to_gurobi_sense(r)));
+                                     constraint_sense_to_gurobi_sense(r)));
     }
     // adds an equality constraint with a slack variable bounded in [0, ub-lb]
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
@@ -444,12 +443,12 @@ public:
             GRB.getdblattrelement(model, GRB_DBL_ATTR_RHS, constr.id(), &rhs));
         return rhs;
     }
-    constraint_relation get_constraint_sense(constraint constr) {
+    constraint_sense get_constraint_sense(constraint constr) {
         char sense;
         update_gurobi_model();
         check(GRB.getcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
                                      &sense));
-        return gurobi_sense_to_constraint_relation(sense);
+        return gurobi_sense_to_constraint_sense(sense);
     }
     // auto get_constraint(const constraint constr) {}
     auto get_constraint_name(constraint constr) {

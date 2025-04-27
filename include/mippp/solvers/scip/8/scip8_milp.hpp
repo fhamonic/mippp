@@ -10,7 +10,6 @@
 #include <range/v3/view/move.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -309,17 +308,17 @@ public:
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
         SCIP_CONS * constr = NULL;
-        const double b = -lc.expression().constant();
+        const double b = lc.rhs();
         check(SCIP.createConsBasicLinear(
             model, &constr, "", 0, NULL, NULL,
-            (lc.relation() == constraint_relation::less_equal_zero)
+            (lc.sense() == constraint_sense::less_equal)
                 ? -SCIP.infinity(model)
                 : b,
-            (lc.relation() == constraint_relation::greater_equal_zero)
+            (lc.sense() == constraint_sense::greater_equal)
                 ? SCIP.infinity(model)
                 : b));
         constraints.emplace_back(constr);
-        for(auto && [var_, coef] : lc.expression().linear_terms()) {
+        for(auto && [var_, coef] : lc.linear_terms()) {
             check(
                 SCIP.addCoefLinear(model, constr, variables[var_.uid()], coef));
         }
@@ -329,9 +328,9 @@ public:
     // void set_constraint_rhs(constraint c, double rhs) {
     //     check(SCIP.setdblattrelement(model, SCIP_DBL_ATTR_RHS, c, rhs));
     // }
-    // void set_constraint_sense(constraint c, constraint_relation r) {
+    // void set_constraint_sense(constraint c, constraint_sense r) {
     //     check(SCIP.setcharattrelement(model, SCIP_CHAR_ATTR_SENSE, c,
-    //                                   constraint_relation_to_scip_sense(r)));
+    //                                   constraint_sense_to_scip_sense(r)));
     // }
     // constraint add_ranged_constraint(linear_expression auto && le, double lb,
     //                                  double ub) {
@@ -357,11 +356,11 @@ public:
     //     check(SCIP.getdblattrelement(model, SCIP_DBL_ATTR_RHS, c, &rhs));
     //     return rhs;
     // }
-    // constraint_relation get_constraint_sense(constraint c) {
+    // constraint_sense get_constraint_sense(constraint c) {
     //     char sense;
     //     update_scip_model();
     //     check(SCIP.getcharattrelement(model, SCIP_CHAR_ATTR_SENSE, c,
-    //     &sense)); return scip_sense_to_constraint_relation(sense);
+    //     &sense)); return scip_sense_to_constraint_sense(sense);
     // }
     // // auto get_constraint(const constraint c) {}
     // auto get_constraint_name(constraint c) {

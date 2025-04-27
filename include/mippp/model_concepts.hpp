@@ -30,8 +30,12 @@ struct dummy_expression {
 };
 template <typename M>
 struct dummy_constraint {
-    auto expression() const { return dummy_expression<M>(); }
-    auto relation() const { return constraint_relation::equal_zero; }
+    auto linear_terms() const {
+        return dummy_range<
+            std::pair<typename M::variable_id, typename M::scalar>>();
+    }
+    auto sense() const { return constraint_sense::equal; }
+    auto rhs() const { return typename M::scalar{0}; }
 };
 struct dummy_type {};
 
@@ -190,13 +194,13 @@ concept has_modifiable_constraint_lhs = requires(T & model, T::constraint c) {
 template <typename T>
 concept has_readable_constraint_sense =
     requires(T & model, T::constraint c) {
-        { model.get_constraint_sense(c) } -> std::same_as<constraint_relation>;
+        { model.get_constraint_sense(c) } -> std::same_as<constraint_sense>;
     };
 
 template <typename T>
 concept has_modifiable_constraint_sense =
     requires(T & model, T::constraint c) {
-        { model.set_constraint_sense(c, constraint_relation::equal_zero) };
+        { model.set_constraint_sense(c, constraint_sense::equal) };
     };        
                    
 template <typename T>

@@ -10,11 +10,12 @@
 #include <range/v3/view/span.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+
+#include "mippp/detail/optional_helper.hpp"
 
 #include "mippp/solvers/cplex/22/cplex22_api.hpp"
 
@@ -50,26 +51,28 @@ protected:
 
     std::vector<std::pair<constraint_id, unsigned int>>
         tmp_constraint_entry_cache;
-    std::vector<char> tmp_type;
+    std::vector<int> tmp_indices;
     std::vector<int> tmp_variables;
     std::vector<double> tmp_scalars;
+    std::vector<char> tmp_types;
+    std::vector<double> tmp_rhs;
 
     void check(int error) const {
         if(error == 0) return;
         throw std::runtime_error("CPLEX: error " + std::to_string(error));
     }
 
-    static constexpr char constraint_relation_to_cplex_sense(
-        constraint_relation rel) {
-        if(rel == constraint_relation::less_equal_zero) return 'L';
-        if(rel == constraint_relation::equal_zero) return 'E';
+    static constexpr char constraint_sense_to_cplex_sense(
+        constraint_sense rel) {
+        if(rel == constraint_sense::less_equal) return 'L';
+        if(rel == constraint_sense::equal) return 'E';
         return 'G';
     }
-    // static constexpr constraint_relation mosek_sense_to_constraint_relation(
+    // static constexpr constraint_sense mosek_sense_to_constraint_sense(
     //     CPXboundkeye sense) {
-    //     if(sense == CPX_BK_UP) return constraint_relation::less_equal_zero;
-    //     if(sense == CPX_BK_FX) return constraint_relation::equal_zero;
-    //     return constraint_relation::greater_equal_zero;
+    //     if(sense == CPX_BK_UP) return constraint_sense::less_equal;
+    //     if(sense == CPX_BK_FX) return constraint_sense::equal;
+    //     return constraint_sense::greater_equal;
     // }
 
 public:
@@ -141,8 +144,8 @@ protected:
         }
 
         if(type != CPX_CONTINUOUS) {
-            tmp_type.resize(count);
-            std::fill(tmp_type.begin(), tmp_type.end(), type);
+            tmp_types.resize(count);
+            std::fill(tmp_types.begin(), tmp_types.end(), type);
         }
 
         check(CPX.newcols(
@@ -159,7 +162,7 @@ protected:
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_3.value()))
                 : NULL,
-            (type != CPX_CONTINUOUS) ? tmp_type.data() : NULL, NULL));
+            (type != CPX_CONTINUOUS) ? tmp_types.data() : NULL, NULL));
     }
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
@@ -245,7 +248,7 @@ public:
         tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
+        for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_constraint_entry_cache[var.uid()];
             if(p.first == constr_id + 1) {
                 tmp_scalars[p.second] += coef;
@@ -256,12 +259,80 @@ public:
             tmp_scalars.emplace_back(coef);
         }
         int matbegin = 0;
-        const double b = -lc.expression().constant();
-        const char sense = constraint_relation_to_cplex_sense(lc.relation());
+        const double b = lc.rhs();
+        const char sense = constraint_sense_to_cplex_sense(lc.sense());
         check(CPX.addrows(env, lp, 0, 1, static_cast<int>(tmp_variables.size()),
                           &b, &sense, &matbegin, tmp_variables.data(),
                           tmp_scalars.data(), NULL, NULL));
         return constraint(constr_id);
+    }
+
+private:
+    template <linear_constraint LC>
+    void register_constraint(const int & constr_id, const LC & lc) {
+        tmp_indices.emplace_back(static_cast<int>(tmp_variables.size()));
+        tmp_types.emplace_back(
+            constraint_sense_to_cplex_sense(lc.sense()));
+        tmp_rhs.emplace_back(lc.rhs());
+        for(auto && [var, coef] : lc.linear_terms()) {
+            auto & p = tmp_constraint_entry_cache[var.uid()];
+            if(p.first == constr_id + 1) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(constr_id + 1, tmp_variables.size());
+            tmp_variables.emplace_back(var.id());
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+    template <typename Key, typename LastConstrLambda>
+        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+    void register_first_valued_constraint(const int & constr_id,
+                                          const Key & key,
+                                          const LastConstrLambda & lc_lambda) {
+        register_constraint(constr_id, lc_lambda(key));
+    }
+    template <typename Key, typename OptConstrLambda, typename... Tail>
+        requires detail::optional_type<
+                     std::invoke_result_t<OptConstrLambda, Key>> &&
+                 linear_constraint<detail::optional_type_value_t<
+                     std::invoke_result_t<OptConstrLambda, Key>>>
+    void register_first_valued_constraint(const int & constr_id,
+                                          const Key & key,
+                                          const OptConstrLambda & opt_lc_lambda,
+                                          const Tail &... tail) {
+        if(const auto & opt_lc = opt_lc_lambda(key)) {
+            register_constraint(constr_id, opt_lc.value());
+            return;
+        }
+        register_first_valued_constraint(constr_id, key, tail...);
+    }
+
+public:
+    template <ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        tmp_constraint_entry_cache.resize(num_variables());
+        tmp_indices.resize(0);
+        tmp_variables.resize(0);
+        tmp_scalars.resize(0);
+        tmp_types.resize(0);
+        tmp_rhs.resize(0);
+        const int offset = static_cast<int>(num_constraints());
+        int constr_id = offset;
+        for(auto && key : keys) {
+            register_first_valued_constraint(constr_id, key,
+                                             constraint_lambdas...);
+            ++constr_id;
+        }
+        check(CPX.addrows(env, lp, 0, static_cast<int>(tmp_indices.size()),
+                          static_cast<int>(tmp_variables.size()),
+                          tmp_rhs.data(), tmp_rhs.data(), tmp_indices.data(),
+                          tmp_variables.data(), tmp_scalars.data(), NULL,
+                          NULL));
+        return constraints_range(
+            keys,
+            ranges::view::transform(ranges::view::iota(offset, constr_id),
+                                    [](auto && i) { return constraint{i}; }));
     }
 };
 

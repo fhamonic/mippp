@@ -309,7 +309,7 @@ TYPED_TEST(ModelMethods, add_constraint_and_get) {
     // }
     if constexpr(has_readable_constraint_sense<T>) {
         ASSERT_EQ(model.get_constraint_sense(c),
-                  constraint_relation::less_equal_zero);
+                  constraint_sense::less_equal);
     }
     if constexpr(has_readable_constraint_rhs<T>) {
         ASSERT_DOUBLE_EQ(model.get_constraint_rhs(c), 5.0);

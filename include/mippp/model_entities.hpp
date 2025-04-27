@@ -9,7 +9,6 @@
 #include <range/v3/view/single.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 
 namespace fhamonic {
 namespace mippp {
@@ -91,6 +90,26 @@ public:
         return _map[static_cast<std::size_t>(x.id())];
     }
 };
+
+///////////////////////////////////////////////////////////////////////////////
+/////////////////////////// Function traits detail ////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+namespace detail {
+
+template <typename... Args>
+struct pack {};
+
+template <typename T>
+struct function_traits : public function_traits<decltype(&T::operator())> {};
+
+template <typename ClassType, typename ReturnType, typename... Args>
+struct function_traits<ReturnType (ClassType::*)(Args...) const> {
+    using result_type = ReturnType;
+    using arg_types = pack<Args...>;
+};
+
+}  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Variables range ///////////////////////////////

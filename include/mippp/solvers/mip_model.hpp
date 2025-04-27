@@ -25,7 +25,6 @@
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_entities.hpp"
@@ -174,7 +173,7 @@ public:
         _row_begins.emplace_back(num_entries());
         _row_lb.emplace_back(linear_constraint_lower_bound(lc));
         _row_ub.emplace_back(linear_constraint_upper_bound(lc));
-        for(auto && [v, c] : lc.expression().linear_terms()) {
+        for(auto && [v, c] : lc.linear_terms()) {
             _coefs.emplace_back(c);
             _vars.emplace_back(v.id());
         }
@@ -247,8 +246,8 @@ public:
                               _coefs.data() + row_end)),
                 -_row_ub[constraint_id]),
             _row_lb[constraint_id] == _row_ub[constraint_id]
-                ? constraint_relation::equal_zero
-                : constraint_relation::less_equal_zero);
+                ? constraint_sense::equal
+                : constraint_sense::less_equal);
     }
     auto constraint_ids() const noexcept {
         return ranges::views::iota(

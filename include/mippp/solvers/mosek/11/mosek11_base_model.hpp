@@ -10,7 +10,6 @@
 #include <range/v3/view/span.hpp>
 #include <range/v3/view/zip.hpp>
 
-#include "mippp/detail/function_traits.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -55,26 +54,23 @@ protected:
     std::vector<double> tmp_scalars;
 
     void check(MSKrescodee error) const {
-        // if(error == 0) return;
-        // throw std::runtime_error(MSK.error_message.at(error));
-
         if(error == 0) return;
         char str[MSK_MAX_STR_LEN];
         MSK.getcodedesc(error, NULL, str);
         throw std::runtime_error(str);
     }
 
-    static constexpr MSKboundkeye constraint_relation_to_mosek_sense(
-        constraint_relation rel) {
-        if(rel == constraint_relation::less_equal_zero) return MSK_BK_UP;
-        if(rel == constraint_relation::equal_zero) return MSK_BK_FX;
+    static constexpr MSKboundkeye constraint_sense_to_mosek_sense(
+        constraint_sense rel) {
+        if(rel == constraint_sense::less_equal) return MSK_BK_UP;
+        if(rel == constraint_sense::equal) return MSK_BK_FX;
         return MSK_BK_LO;
     }
-    static constexpr constraint_relation mosek_sense_to_constraint_relation(
+    static constexpr constraint_sense mosek_sense_to_constraint_sense(
         MSKboundkeye sense) {
-        if(sense == MSK_BK_UP) return constraint_relation::less_equal_zero;
-        if(sense == MSK_BK_FX) return constraint_relation::equal_zero;
-        return constraint_relation::greater_equal_zero;
+        if(sense == MSK_BK_UP) return constraint_sense::less_equal;
+        if(sense == MSK_BK_FX) return constraint_sense::equal;
+        return constraint_sense::greater_equal;
     }
 
 public:
@@ -254,7 +250,7 @@ public:
         tmp_constraint_entry_cache.resize(num_variables());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.expression().linear_terms()) {
+        for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_constraint_entry_cache[var.uid()];
             if(p.first == constr_id + 1) {
                 tmp_scalars[p.second] += coef;
@@ -267,9 +263,9 @@ public:
         check(MSK.putarow(task, constr_id,
                           static_cast<int>(tmp_variables.size()),
                           tmp_variables.data(), tmp_scalars.data()));
-        const double b = -lc.expression().constant();
+        const double b = lc.rhs();
         check(MSK.putconbound(task, constr_id,
-                              constraint_relation_to_mosek_sense(lc.relation()),
+                              constraint_sense_to_mosek_sense(lc.sense()),
                               b, b));
         return constraint(constr_id);
     }

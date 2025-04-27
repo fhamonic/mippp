@@ -52,11 +52,11 @@ private:
         std::fill(tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count),
                   tmp_scalars.end(), 1);
         tmp_variables.resize(count);
-        std::fill(tmp_type.begin(), tmp_type.end(), CPX_BINARY);
+        std::fill(tmp_types.begin(), tmp_types.end(), CPX_BINARY);
         check(CPX.newcols(
             env, lp, static_cast<int>(count), NULL, tmp_scalars.data(),
             tmp_scalars.data() + static_cast<std::ptrdiff_t>(count),
-            tmp_type.data(), NULL));
+            tmp_types.data(), NULL));
     }
 
 public:
