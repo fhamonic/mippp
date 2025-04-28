@@ -21,6 +21,7 @@ namespace mippp {
 
 class highs110_base_model {
 public:
+    using index = HighsInt;
     using variable_id = HighsInt;
     using constraint_id = HighsInt;
     using scalar = double;
@@ -46,11 +47,11 @@ protected:
 
     std::vector<std::pair<constraint_id, unsigned int>>
         tmp_constraint_entry_cache;
-    std::vector<HighsInt> tmp_indices;
-    std::vector<int> tmp_variables;
-    std::vector<double> tmp_scalars;
-    std::vector<double> tmp_lower_bounds;
-    std::vector<double> tmp_upper_bounds;
+    std::vector<index> tmp_indices;
+    std::vector<variable_id> tmp_variables;
+    std::vector<scalar> tmp_scalars;
+    std::vector<scalar> tmp_lower_bounds;
+    std::vector<scalar> tmp_upper_bounds;
 
 public:
     [[nodiscard]] explicit highs110_base_model(const highs110_api & api)
@@ -81,11 +82,11 @@ public:
         check(Highs.changeObjectiveSense(model, kHighsObjSenseMinimize));
     }
 
-    void set_objective_offset(double offset) {
+    void set_objective_offset(scalar offset) {
         check(Highs.changeObjectiveOffset(model, offset));
     }
     void set_objective(linear_expression auto && le) {
-        auto num_vars = num_variables();
+        const auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
@@ -95,25 +96,25 @@ public:
             model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
-    // void add_objective(linear_expression auto && le) {
-    //     auto num_vars = num_variables();
-    //     tmp_scalars.resize(num_vars);
-    //     Highs.getColsByRange(model, 0, static_cast<HighsInt>(num_vars) - 1,
-    //     NULL,
-    //                          tmp_scalars.data(), NULL, NULL, NULL, NULL,
-    //                          NULL, NULL);
-    //     for(auto && [var, coef] : le.linear_terms()) {
-    //         tmp_scalars[var.uid()] += coef;
-    //     }
-    //     check(Highs.changeColsCostByRange(
-    //         model, 0, static_cast<HighsInt>(num_vars) - 1,
-    //         tmp_scalars.data()));
-    //     set_objective_offset(le.constant());
-    // }
-    double get_objective_offset() {
-        double offset;
+    scalar get_objective_offset() {
+        scalar offset;
         check(Highs.getObjectiveOffset(model, &offset));
         return offset;
+    }
+    void add_objective(linear_expression auto && le) {
+        auto num_vars = num_variables();
+        tmp_scalars.resize(num_vars);
+        int dummy_int;
+        scalar dummy_dbl;
+        Highs.getColsByRange(model, 0, static_cast<HighsInt>(num_vars) - 1,
+                             &dummy_int, tmp_scalars.data(), &dummy_dbl,
+                             &dummy_dbl, &dummy_int, NULL, NULL, NULL);
+        for(auto && [var, coef] : le.linear_terms()) {
+            tmp_scalars[var.uid()] += coef;
+        }
+        check(Highs.changeColsCostByRange(
+            model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
+        set_objective_offset(get_objective_offset() + le.constant());
     }
 
 protected:
@@ -194,34 +195,48 @@ public:
     }
 
 protected:
-    void _set_variable_bounds(variable v, double lb, double ub) {
+    void _set_variable_bounds(variable v, scalar lb, scalar ub) {
         check(Highs.changeColBounds(model, v.id(), lb, ub));
     }
 
 public:
-    // void set_objective_coefficient(variable v, double c) {
-    //     Clp.objective(model)[v.id()] = c;
-    // }
-    // void set_variable_lower_bound(variable v, double lb) {
-    //     Highs.changeColBounds(model, )
-    //     Clp.columnLower(model)[v.id()] = lb;
-    // }
-    // void set_variable_upper_bound(variable v, double ub) {
-    //     Clp.columnUpper(model)[v.id()] = ub;
-    // }
-    // void set_variable_name(variable v, std::string name) {
-    //     Clp.setColumnName(model, v.id(), const_cast<char *>(name.c_str()));
-    // }
+    void set_objective_coefficient(variable v, scalar c) {
+        check(Highs.changeColCost(model, v.id(), c));
+    }
+    void set_variable_lower_bound(variable v, scalar lb) {
+        _set_variable_bounds(v, lb, get_variable_upper_bound(v));
+    }
+    void set_variable_upper_bound(variable v, scalar ub) {
+        _set_variable_bounds(v, get_variable_lower_bound(v), ub);
+    }
 
-    // double get_objective_coefficient(variable v) {
-    //     return Clp.objective(model)[v.id()];
-    // }
-    // double get_variable_lower_bound(variable v) {
-    //     return Clp.columnLower(model)[v.id()];
-    // }
-    // double get_variable_upper_bound(variable v) {
-    //     return Clp.columnUpper(model)[v.id()];
-    // }
+    scalar get_objective_coefficient(variable v) {
+        scalar coef;
+        index dummy_int;
+        scalar dummy_dbl;
+        check(Highs.getColsByRange(model, v.id(), v.id(), &dummy_int, &coef,
+                                   &dummy_dbl, &dummy_dbl, &dummy_int, NULL,
+                                   NULL, NULL));
+        return coef;
+    }
+    scalar get_variable_lower_bound(variable v) {
+        scalar lb;
+        int dummy_int;
+        double dummy_dbl;
+        check(Highs.getColsByRange(model, v.id(), v.id(), &dummy_int,
+                                   &dummy_dbl, &lb, &dummy_dbl, &dummy_int,
+                                   NULL, NULL, NULL));
+        return lb;
+    }
+    scalar get_variable_upper_bound(variable v) {
+        scalar ub;
+        int dummy_int;
+        double dummy_dbl;
+        check(Highs.getColsByRange(model, v.id(), v.id(), &dummy_int,
+                                   &dummy_dbl, &dummy_dbl, &ub, &dummy_int,
+                                   NULL, NULL, NULL));
+        return ub;
+    }
 
     constraint add_constraint(linear_constraint auto && lc) {
         HighsInt constr_id = static_cast<HighsInt>(num_constraints());
@@ -238,7 +253,7 @@ public:
             tmp_variables.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
-        const double b = lc.rhs();
+        const scalar b = lc.rhs();
         check(Highs.addRow(model,
                            (lc.sense() == constraint_sense::less_equal)
                                ? -Highs.getInfinity(model)
@@ -255,7 +270,7 @@ private:
     template <linear_constraint LC>
     void _register_constraint(const HighsInt & constr_id, const LC & lc) {
         tmp_indices.emplace_back(static_cast<HighsInt>(tmp_variables.size()));
-        const double b = lc.rhs();
+        const scalar b = lc.rhs();
         tmp_lower_bounds.emplace_back(
             (lc.sense() == constraint_sense::less_equal)
                 ? -Highs.getInfinity(model)

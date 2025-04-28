@@ -406,7 +406,7 @@ public:
     void set_optimality_tolerance(double tol) {
         Cbc.setAllowableGap(model, tol);
     }
-    double set_optimality_tolerance() { return Cbc.getAllowableGap(model); }
+    double get_optimality_tolerance() { return Cbc.getAllowableGap(model); }
 
     void solve() {
         if(_lazy_num_constraints == 0u) {
