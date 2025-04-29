@@ -31,12 +31,6 @@ target_link_libraries(mippp INTERFACE dylib::dylib)
 
 target_compile_options(mippp INTERFACE -fconcepts-diagnostics-depth=30)
 
-target_include_directories(mippp INTERFACE $ENV{GUROBI_HOME}/include)
-target_include_directories(mippp INTERFACE /usr/local/include/highs)
-
-target_include_directories(mippp INTERFACE /home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/h/)
-target_include_directories(mippp INTERFACE /home/plaiseek/Softwares/cplex-community/cplex/include/)
-
 
 # ################### TESTS ######################
 if(${ENABLE_TESTING} AND NOT ${CMAKE_CROSSCOMPILING})

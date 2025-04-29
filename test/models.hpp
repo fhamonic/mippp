@@ -95,7 +95,7 @@ static_assert(
     has_feasibility_tolerance<glpk_milp>);
 
 ////////////////////////////////////////////////////////////
-MODEL_TEST_W_PATH(highs_lp, highs_api, "/usr/local/lib");
+MODEL_TEST(highs_lp, highs_api);
 static_assert(
     lp_model<highs_lp> &&
     has_modifiable_objective<highs_lp> &&
@@ -105,7 +105,7 @@ static_assert(
     has_dual_solution<highs_lp>);
 
 ////////////////////////////////////////////////////////////
-MODEL_TEST_W_PATH(highs_milp, highs_api, "/usr/local/lib");
+MODEL_TEST(highs_milp, highs_api);
 static_assert(
     milp_model<highs_milp> &&
     has_modifiable_objective<highs_milp> &&
@@ -128,9 +128,7 @@ static_assert(
     has_optimality_tolerance<scip_milp>);
 
 ////////////////////////////////////////////////////////////
-MODEL_TEST_W_PATH(
-    mosek_lp, mosek_api,
-    "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
+MODEL_TEST(mosek_lp, mosek_api);
 static_assert(
     lp_model<mosek_lp> &&
     has_readable_variables_bounds<mosek_lp> &&
@@ -138,27 +136,21 @@ static_assert(
     has_dual_solution<mosek_lp>);
 
 ////////////////////////////////////////////////////////////
-MODEL_TEST_W_PATH(
-    mosek_milp, mosek_api,
-    "/home/plaiseek/Softwares/mosek/11.0/tools/platform/linux64x86/bin");
+MODEL_TEST(mosek_milp, mosek_api);
 static_assert(
     milp_model<mosek_milp> &&
     has_readable_variables_bounds<mosek_milp> &&
     has_modifiable_variables_bounds<mosek_milp>);
 
 ////////////////////////////////////////////////////////////
-MODEL_TEST_W_PATH(
-    cplex_lp, cplex_api,
-    "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+MODEL_TEST(cplex_lp, cplex_api);
 static_assert(
     lp_model<cplex_lp> &&
     has_readable_variables_bounds<cplex_lp> &&
     has_modifiable_variables_bounds<cplex_lp>);
 
 ////////////////////////////////////////////////////////////
-MODEL_TEST_W_PATH(
-    cplex_milp, cplex_api,
-    "/home/plaiseek/Softwares/cplex-community/cplex/bin/x86-64_linux");
+MODEL_TEST(cplex_milp, cplex_api);
 static_assert(
     milp_model<cplex_milp> &&
     has_readable_variables_bounds<cplex_milp> &&

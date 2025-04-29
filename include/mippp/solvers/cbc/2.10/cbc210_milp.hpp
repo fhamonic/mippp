@@ -409,14 +409,13 @@ public:
     double get_optimality_tolerance() { return Cbc.getAllowableGap(model); }
 
     void solve() {
-        if(_lazy_num_constraints == 0u) {
-            return;
-        }
+        if(_lazy_num_constraints == 0u) return;
         Cbc.solve(model);
     }
 
     double get_solution_value() {
-        return objective_offset + Cbc.getObjValue(model);
+        return objective_offset +
+               (_lazy_num_variables == 0u ? 0.0 : Cbc.getObjValue(model));
     }
 
     auto get_solution() { return variable_mapping(Cbc.getColSolution(model)); }
