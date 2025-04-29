@@ -145,10 +145,10 @@ for(auto && u : graph.vertices()) {
 ### Sudoku
 
 ```cpp
-auto indices = std::views::iota(0, 9);  // 0 to 8
-auto values = std::views::iota(1, 10);  // 1 to 9
-auto 3x3coords = std::views::transform( // (0,0), (0,1), (0,2), (1,0), ...
-    indices, [](auto && i) { return std::make_pair(i / 3, i % 3); });
+auto indices = ranges::views::iota(0, 9);
+auto values = ranges::views::iota(1, 10);
+auto coords = ranges::views::cartesian_product(ranges::views::iota(0, 3),
+                                                ranges::views::iota(0, 3));
 
 gurobi_api api;
 gurobi_milp model(api);
@@ -158,37 +158,32 @@ auto X_vars =
         return (81 * i) + (9 * j) + (value - 1);
     });
 
-for(auto i : indices) {
-    for(auto j : indices) {
-        model.add_constraint(
-            xsum(values, [&](auto && v) { return X_vars(i, j, v); }) == 1);
-    }
-}
-for(auto v : values) {
-    for(auto i : indices) {
-        model.add_constraint(
-            xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) == 1);
-        model.add_constraint(
-            xsum(indices, [&](auto && j) { return X_vars(j, i, v); }) == 1);
-    }
-    for(auto [bi, bj] : 3x3coords) {
-        model.add_constraint(xsum(3x3coords, [&](auto && p) {
-                return X_vars(3 * bi + p.first, 3 * bj + p.second, v);
-            }) == 1);
-    }
-}
+auto single_value_constrs = model.add_constraints(
+    ranges::views::cartesian_product(indices, indices), [&](auto && p) {
+        auto && [i, j] = p;
+        return xsum(values, [&](auto && v) { return X_vars(i, j, v); }) == 1;
+    });
+auto one_per_row_constrs = model.add_constraints(
+    ranges::views::cartesian_product(values, indices), [&](auto && p) {
+        auto && [v, i] = p;
+        return xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) == 1;
+    });
+auto one_per_col_constrs = model.add_constraints(
+    ranges::views::cartesian_product(values, indices), [&](auto && p) {
+        auto && [v, j] = p;
+        return xsum(indices, [&](auto && i) { return X_vars(i, j, v); }) == 1;
+    });
+auto one_per_block_constrs = model.add_constraints(
+    ranges::views::cartesian_product(values, coords), [&](auto && p) {
+        auto && [v, b] = p;
+        return xsum(coords, [&](auto && p2) {
+                    return X_vars(3 * std::get<0>(b) + std::get<0>(p2),
+                                    3 * std::get<1>(b) + std::get<1>(p2), v);
+                }) == 1;
+    });
 
-for(auto && x :
-    {X_vars(0, 2, 8), X_vars(0, 4, 1), X_vars(0, 8, 9), X_vars(1, 0, 6),
-    X_vars(1, 2, 1), X_vars(1, 4, 9), X_vars(1, 6, 3), X_vars(1, 7, 2),
-    X_vars(2, 1, 4), X_vars(2, 4, 3), X_vars(2, 5, 7), X_vars(2, 8, 5),
-    X_vars(3, 1, 3), X_vars(3, 2, 5), X_vars(3, 5, 8), X_vars(3, 6, 2),
-    X_vars(4, 2, 2), X_vars(4, 3, 6), X_vars(4, 4, 5), X_vars(4, 6, 8),
-    X_vars(5, 2, 4), X_vars(5, 5, 1), X_vars(5, 6, 7), X_vars(5, 7, 5),
-    X_vars(6, 0, 5), X_vars(6, 3, 3), X_vars(6, 4, 4), X_vars(6, 7, 8),
-    X_vars(7, 1, 9), X_vars(7, 2, 7), X_vars(7, 4, 8), X_vars(7, 6, 5),
-    X_vars(7, 8, 6), X_vars(8, 0, 1), X_vars(8, 4, 6), X_vars(8, 6, 9)}) {
-    model.set_variable_lower_bound(x, 1);
+for(auto [i, j, value] : grid_hints) {
+    model.set_variable_lower_bound(X_vars(i, j, value), 1);
 }
 
 model.solve();
