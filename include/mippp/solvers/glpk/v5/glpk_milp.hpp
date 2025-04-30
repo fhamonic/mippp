@@ -1,5 +1,5 @@
-#ifndef MIPPP_GLPK_5_MILP_HPP
-#define MIPPP_GLPK_5_MILP_HPP
+#ifndef MIPPP_GLPK_v5_MILP_HPP
+#define MIPPP_GLPK_v5_MILP_HPP
 
 #include <cmath>
 #include <limits>
@@ -9,19 +9,18 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/glpk/5/glpk5_base_model.hpp"
+#include "mippp/solvers/glpk/v5/glpk_base_model.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace glpk::v5 {
 
-class glpk5_milp : public glpk5_base_model {
-
+class glpk_milp : public glpk_base_model {
 private:
     glp_iocp model_params;
 
 public:
-    [[nodiscard]] explicit glpk5_milp(const glpk5_api & api)
-        : glpk5_base_model(api), model_params() {
+    [[nodiscard]] explicit glpk_milp(const glpk_api & api)
+        : glpk_base_model(api), model_params() {
         model_params.msg_lev = GLP_MSG_ALL;
         model_params.br_tech = GLP_BR_PCH;
         model_params.bt_tech = GLP_BT_BLB;
@@ -132,7 +131,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace glpk::v5
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_GLPK_5_MILP_HPP
+#endif  // MIPPP_GLPK_v5_MILP_HPP

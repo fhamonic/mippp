@@ -1,5 +1,5 @@
-#ifndef MIPPP_CPLEX_22_BASE_MODEL_HPP
-#define MIPPP_CPLEX_22_BASE_MODEL_HPP
+#ifndef MIPPP_CPLEX_v22_12_BASE_MODEL_HPP
+#define MIPPP_CPLEX_v22_12_BASE_MODEL_HPP
 
 #include <limits>
 #include <numeric>
@@ -15,13 +15,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
+#include "mippp/solvers/cplex/v22_12/cplex_api.hpp"
 
-#include "mippp/solvers/cplex/22/cplex22_api.hpp"
+namespace fhamonic::mippp {
+namespace cplex::v22_12 {
 
-namespace fhamonic {
-namespace mippp {
-
-class cplex22_base_model {
+class cplex_base_model {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -44,7 +43,7 @@ public:
 
 protected:
     int cplex_status;
-    const cplex22_api & CPX;
+    const cplex_api & CPX;
     CPXCENVptr env;
     CPXLPptr lp;
 
@@ -75,11 +74,11 @@ protected:
     // }
 
 public:
-    [[nodiscard]] explicit cplex22_base_model(const cplex22_api & api)
+    [[nodiscard]] explicit cplex_base_model(const cplex_api & api)
         : CPX(api)
         , env(CPX.openCPLEX(&cplex_status))
-        , lp(CPX.createprob(env, &cplex_status, "cplex22_base_model")) {}
-    ~cplex22_base_model() { check(CPX.freeprob(env, &lp)); }
+        , lp(CPX.createprob(env, &cplex_status, "cplex_base_model")) {}
+    ~cplex_base_model() { check(CPX.freeprob(env, &lp)); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(CPX.getnumcols(env, lp));
@@ -333,7 +332,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace cplex::v22_12
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_CPLEX_22_BASE_MODEL_HPP
+#endif  // MIPPP_CPLEX_v22_12_BASE_MODEL_HPP

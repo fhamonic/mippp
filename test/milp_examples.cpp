@@ -31,7 +31,7 @@ TYPED_TEST_SUITE(MilpModelExamples, Models);
 
 TYPED_TEST(MilpModelExamples, sudoku) {
     using T = TypeParam::model_type;
-    if constexpr(std::same_as<T, glpk5_milp>) {
+    if constexpr(std::same_as<T, glpk_milp>) {
         GTEST_SKIP();
     }
     auto model = this->construct_model();
@@ -138,17 +138,20 @@ TYPED_TEST(MilpModelExamples, sudoku) {
 //         });
 //     auto single_value_constrs =
 //         model.add_constraint(forall(indices, indices), [&](auto i, auto j) {
-//             return xsum(values, [&](auto && v) { return X_vars(i, j, v); }) ==
+//             return xsum(values, [&](auto && v) { return X_vars(i, j, v); })
+//             ==
 //                    1;
 //         });
 //     auto one_per_row_constrs = model.add_constraints(
 //         forall(values, indices), [&](auto && v, auto && i) {
-//             return xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) ==
+//             return xsum(indices, [&](auto && j) { return X_vars(i, j, v); })
+//             ==
 //                    1;
 //         });
 //     auto one_per_col_constrs = model.add_constraints(
 //         forall(values, indices), [&](auto && v, auto && i) {
-//             return xsum(indices, [&](auto && i) { return X_vars(i, j, v); }) ==
+//             return xsum(indices, [&](auto && i) { return X_vars(i, j, v); })
+//             ==
 //                    1;
 //         });
 //     auto one_per_block_constrs = model.add_constraints(

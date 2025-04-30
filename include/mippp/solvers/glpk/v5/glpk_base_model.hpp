@@ -1,8 +1,7 @@
-#ifndef MIPPP_GLPK_5_BASE_MODEL_HPP
-#define MIPPP_GLPK_5_BASE_MODEL_HPP
+#ifndef MIPPP_GLPK_v5_BASE_MODEL_HPP
+#define MIPPP_GLPK_v5_BASE_MODEL_HPP
 
 #include <cmath>
-#include <limits>
 #include <optional>
 #include <vector>
 
@@ -15,12 +14,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/glpk/5/glpk5_api.hpp"
+#include "mippp/solvers/glpk/v5/glpk_api.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace glpk::v5 {
 
-class glpk5_base_model {
+class glpk_base_model {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -42,7 +41,7 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
-    const glpk5_api & glp;
+    const glpk_api & glp;
     glp_prob * model;
     std::optional<lp_status> opt_lp_status;
     double objective_offset;
@@ -58,7 +57,7 @@ protected:
         if(type == GLP_UP) return constraint_sense::less_equal;
         if(type == GLP_FX) return constraint_sense::equal;
         if(type == GLP_LO) return constraint_sense::greater_equal;
-        throw std::runtime_error("glpk5_base_model: Cannot convert row type '" +
+        throw std::runtime_error("glpk_base_model: Cannot convert row type '" +
                                  std::to_string(type) +
                                  "' to constraint_sense.");
     }
@@ -69,9 +68,9 @@ protected:
     std::vector<double> tmp_scalars;
 
 public:
-    [[nodiscard]] explicit glpk5_base_model(const glpk5_api & api)
+    [[nodiscard]] explicit glpk_base_model(const glpk_api & api)
         : glp(api), model(glp.create_prob()), objective_offset(0.0) {}
-    ~glpk5_base_model() { glp.delete_prob(model); }
+    ~glpk_base_model() { glp.delete_prob(model); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(glp.get_num_cols(model));
@@ -299,7 +298,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace glpk::v5
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_GLPK_5_BASE_MODEL_HPP
+#endif  // MIPPP_GLPK_v5_BASE_MODEL_HPP

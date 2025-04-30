@@ -1,5 +1,5 @@
-#ifndef MIPPP_CPLEX_22_MILP_HPP
-#define MIPPP_CPLEX_22_MILP_HPP
+#ifndef MIPPP_CPLEX_v22_12_MILP_HPP
+#define MIPPP_CPLEX_v22_12_MILP_HPP
 
 #include <numeric>
 #include <optional>
@@ -10,15 +10,15 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/cplex/22/cplex22_base_model.hpp"
+#include "mippp/solvers/cplex/v22_12/cplex_base_model.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace cplex::v22_12 {
 
-class cplex22_milp : public cplex22_base_model {
+class cplex_milp : public cplex_base_model {
 public:
-    [[nodiscard]] explicit cplex22_milp(const cplex22_api & api)
-        : cplex22_base_model(api) {}
+    [[nodiscard]] explicit cplex_milp(const cplex_api & api)
+        : cplex_base_model(api) {}
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
@@ -136,7 +136,7 @@ public:
     // }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace cplex::v22_12
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_CPLEX_22_MILP_HPP
+#endif  // MIPPP_CPLEX_v22_12_MILP_HPP

@@ -1,5 +1,5 @@
-#ifndef MIPPP_CLP_117_lp_HPP
-#define MIPPP_CLP_117_lp_HPP
+#ifndef MIPPP_CLP_v1_17_LP_HPP
+#define MIPPP_CLP_v1_17_LP_HPP
 
 #include <algorithm>
 #include <cstring>
@@ -19,12 +19,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/clp/1.17/clp117_api.hpp"
+#include "mippp/solvers/clp/v1_17/clp_api.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace clp::v1_17 {
 
-class clp117_lp {
+class clp_lp {
 public:
     using index = CoinBigIndex;
     using variable_id = int;
@@ -47,7 +47,7 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 private:
-    const clp117_api & Clp;
+    const clp_api & Clp;
     Clp_Simplex * model;
     std::optional<lp_status> opt_lp_status;
 
@@ -72,9 +72,9 @@ private:
     std::vector<scalar> tmp_upper_bounds;
 
 public:
-    [[nodiscard]] explicit clp117_lp(const clp117_api & api)
+    [[nodiscard]] explicit clp_lp(const clp_api & api)
         : Clp(api), model(Clp.newModel()) {}
-    ~clp117_lp() { Clp.deleteModel(model); }
+    ~clp_lp() { Clp.deleteModel(model); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(Clp.getNumCols(model));
@@ -398,7 +398,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace clp::v1_17
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_CLP_117_lp_HPP
+#endif  // MIPPP_CLP_v1_17_LP_HPP

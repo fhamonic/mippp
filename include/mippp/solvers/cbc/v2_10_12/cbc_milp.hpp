@@ -1,5 +1,5 @@
-#ifndef MIPPP_CBC_210_milp_HPP
-#define MIPPP_CBC_210_milp_HPP
+#ifndef MIPPP_CBC_v2_10_12_MILP_HPP
+#define MIPPP_CBC_v2_10_12_MILP_HPP
 
 #include <algorithm>
 #include <cstring>
@@ -18,12 +18,12 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/cbc/2.10/cbc210_api.hpp"
+#include "mippp/solvers/cbc/v2_10_12/cbc_api.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace cbc::v2_10_12 {
 
-class cbc210_milp {
+class cbc_milp {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -45,7 +45,7 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 private:
-    const cbc210_api & Cbc;
+    const cbc_api & Cbc;
     Cbc_Model * model;
     double objective_offset;
     double feasibility_tol;
@@ -72,27 +72,27 @@ private:
     std::vector<double> tmp_scalars;
 
 public:
-    [[nodiscard]] explicit cbc210_milp(const cbc210_api & api)
+    [[nodiscard]] explicit cbc_milp(const cbc_api & api)
         : Cbc(api)
         , model(Cbc.newModel())
         , objective_offset(0.0)
         , feasibility_tol(1e-4)
         , _lazy_num_variables(0)
         , _lazy_num_constraints(0) {}
-    ~cbc210_milp() { Cbc.deleteModel(model); }
+    ~cbc_milp() { Cbc.deleteModel(model); }
 
     std::size_t num_variables() {
         if(static_cast<std::size_t>(Cbc.getNumCols(model)) !=
            _lazy_num_variables)
             throw std::runtime_error(
-                "cbc210_milp : _lazy_num_variables differs from Cbc one.");
+                "cbc_milp : _lazy_num_variables differs from Cbc one.");
         return _lazy_num_variables;
     }
     std::size_t num_constraints() {
         if(static_cast<std::size_t>(Cbc.getNumRows(model)) !=
            _lazy_num_constraints)
             throw std::runtime_error(
-                "cbc210_milp : _lazy_num_constraints differs from Cbc one.");
+                "cbc_milp : _lazy_num_constraints differs from Cbc one.");
         return _lazy_num_constraints;
     }
     std::size_t num_entries() {
@@ -373,10 +373,7 @@ public:
     }
     // void set_constraint_name(constraint constr, auto && name);
 
-    // auto get_constraint_lhs(constraint constr) const;
-    double get_constraint_rhs(constraint constr) {
-        return Cbc.getRowRHS(model, constr.id());
-    }
+    // auto get_constraint_lexpr(constraint constr) const;
     constraint_sense get_constraint_sense(constraint constr) {
         const double lb = Cbc.getRowLower(model)[constr.id()];
         const double ub = Cbc.getRowUpper(model)[constr.id()];
@@ -385,6 +382,9 @@ public:
         if(ub == COIN_DBL_MAX) return constraint_sense::greater_equal;
         throw std::runtime_error(
             "Tried to get the sense of a ranged constraint");
+    }
+    double get_constraint_rhs(constraint constr) {
+        return Cbc.getRowRHS(model, constr.id());
     }
     auto get_constraint_name(constraint constr) {
         auto max_length = Cbc.maxNameLength(model);
@@ -404,9 +404,11 @@ public:
     double get_feasibility_tolerance() { return feasibility_tol; }
 
     void set_optimality_tolerance(double tol) {
-        Cbc.setAllowableGap(model, tol);
+        Cbc.setAllowableFractionGap(model, tol);
     }
-    double get_optimality_tolerance() { return Cbc.getAllowableGap(model); }
+    double get_optimality_tolerance() {
+        return Cbc.getAllowableFractionGap(model);
+    }
 
     void solve() {
         if(_lazy_num_constraints == 0u) return;
@@ -421,7 +423,7 @@ public:
     auto get_solution() { return variable_mapping(Cbc.getColSolution(model)); }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace cbc::v2_10_12
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_CBC_210_milp_HPP
+#endif  // MIPPP_CBC_v2_10_12_MILP_HPP
