@@ -63,19 +63,19 @@ constexpr const char * GRB_DBL_PAR_OPTIMALITYTOL = "OptimalityTol";
 constexpr const char * GRB_DBL_PAR_MIPGAP = "MIPGap";
 int GRBsetdblparam(GRBenv * env, const char * paramname, double value);
 int GRBgetdblparam(GRBenv * env, const char * paramname, double * valueP);
-// Model senses
 constexpr const char * GRB_INT_ATTR_MODELSENSE = "ModelSense";
-constexpr int GRB_MINIMIZE = 1;
-constexpr int GRB_MAXIMIZE = -1;
+enum ModelSense : int { GRB_MINIMIZE = 1, GRB_MAXIMIZE = -1 };
 constexpr const char * GRB_INT_ATTR_NUMVARS = "NumVars";
 constexpr const char * GRB_INT_ATTR_NUMCONSTRS = "NumConstrs";
 constexpr const char * GRB_INT_ATTR_NUMNZS = "NumNZs";
 // Model statuses
 constexpr const char * GRB_INT_ATTR_STATUS = "Status";
-constexpr int GRB_OPTIMAL = 2;
-constexpr int GRB_INFEASIBLE = 3;
-constexpr int GRB_INF_OR_UNBD = 4;
-constexpr int GRB_UNBOUNDED = 5;
+enum ModelStatus : int {
+    GRB_OPTIMAL = 2,
+    GRB_INFEASIBLE = 3,
+    GRB_INF_OR_UNBD = 4,
+    GRB_UNBOUNDED = 5
+};
 int GRBsetintattr(GRBmodel * model, const char * attrname, int newvalue);
 int GRBgetintattr(GRBmodel * model, const char * attrname, int * valueP);
 int GRBsetintattrelement(GRBmodel * model, const char * attrname, int element,
@@ -107,16 +107,18 @@ int GRBgetdblattrarray(GRBmodel * model, const char * attrname, int first,
                        int len, double * values);
 int GRBsetdblattrlist(GRBmodel * model, const char * attrname, int len,
                       int * ind, double * newvalues);
-// Constraint senses
 constexpr const char * GRB_CHAR_ATTR_SENSE = "Sense";
-constexpr char GRB_LESS_EQUAL = '<';
-constexpr char GRB_GREATER_EQUAL = '>';
-constexpr char GRB_EQUAL = '=';
-// Variable types
+enum ConstraintSense : char {
+    GRB_LESS_EQUAL = '<',
+    GRB_GREATER_EQUAL = '>',
+    GRB_EQUAL = '='
+};
 constexpr const char * GRB_CHAR_ATTR_VTYPE = "VType";
-constexpr char GRB_CONTINUOUS = 'C';
-constexpr char GRB_BINARY = 'B';
-constexpr char GRB_INTEGER = 'I';
+enum VariableType : char {
+    GRB_CONTINUOUS = 'C',
+    GRB_BINARY = 'B',
+    GRB_INTEGER = 'I'
+};
 int GRBsetcharattrelement(GRBmodel * model, const char * attrname, int element,
                           char newvalue);
 int GRBgetcharattrelement(GRBmodel * model, const char * attrname, int element,

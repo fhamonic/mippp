@@ -1,5 +1,5 @@
-#ifndef MIPPP_SCIP_8_milp_HPP
-#define MIPPP_SCIP_8_milp_HPP
+#ifndef MIPPP_SCIP_v8_MILP_HPP
+#define MIPPP_SCIP_v8_MILP_HPP
 
 #include <limits>
 // #include <ranges>
@@ -15,14 +15,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/scip/8/scip8_api.hpp"
+#include "mippp/solvers/scip/v8/scip_api.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace scip::v8 {
 
-// https://github.com/scipopt/SCIPpp/blob/main/source/model.cpp
-
-class scip8_milp {
+class scip_milp {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -44,19 +42,19 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 private:
-    const scip8_api & SCIP;
+    const scip_api & SCIP;
     struct Scip * model;
     std::vector<SCIP_VAR *> variables;
     std::vector<SCIP_CONS *> constraints;
     std::optional<lp_status> opt_lp_status;
 
 public:
-    [[nodiscard]] explicit scip8_milp(const scip8_api & api) : SCIP(api) {
+    [[nodiscard]] explicit scip_milp(const scip_api & api) : SCIP(api) {
         SCIP.create(&model);
         SCIP.includeDefaultPlugins(model);
         SCIP.createProbBasic(model, "MILP");
     }
-    ~scip8_milp() {
+    ~scip_milp() {
         for(auto & var : variables) {
             SCIP.releaseVar(model, &var);
         }
@@ -90,7 +88,7 @@ private:
 
     int check(int retval) {
         if(retval > 0) return retval;
-        throw std::runtime_error(std::string("scip8_milp: ") +
+        throw std::runtime_error(std::string("scip_milp: ") +
                                  error_messages[-retval]);
     }
 
@@ -145,7 +143,7 @@ public:
     // }
 
 private:
-    void _add_variable(const variable_params & params, enum SCIP_Vartype type) {
+    void _add_variable(const variable_params & params, SCIP_VARTYPE type) {
         SCIP_VAR * var = NULL;
         check(SCIP.createVarBasic(
             model, &var, "", params.lower_bound.value_or(-SCIP.infinity(model)),
@@ -443,7 +441,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace scip::v8
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_SCIP_8_milp_HPP
+#endif  // MIPPP_SCIP_v8_MILP_HPP

@@ -1,16 +1,16 @@
 #ifndef MIPPP_HIGHS_ALL_HPP
 #define MIPPP_HIGHS_ALL_HPP
 
-#include "mippp/solvers/highs/1.10/highs110_api.hpp"
-#include "mippp/solvers/highs/1.10/highs110_lp.hpp"
-#include "mippp/solvers/highs/1.10/highs110_milp.hpp"
+#include "mippp/solvers/highs/v1_10/highs_api.hpp"
+#include "mippp/solvers/highs/v1_10/highs_lp.hpp"
+#include "mippp/solvers/highs/v1_10/highs_milp.hpp"
 
 namespace fhamonic {
 namespace mippp {
 
-using highs_api = highs110_api;
-using highs_lp = highs110_lp;
-using highs_milp = highs110_milp;
+using highs_api = highs::v1_10::highs_api;
+using highs_lp = highs::v1_10::highs_lp;
+using highs_milp = highs::v1_10::highs_milp;
 
 }  // namespace mippp
 }  // namespace fhamonic

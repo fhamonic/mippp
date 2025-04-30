@@ -1,5 +1,5 @@
-#ifndef MIPPP_HIGHS_110_MILP_HPP
-#define MIPPP_HIGHS_110_MILP_HPP
+#ifndef MIPPP_HIGHS_v1_10_MILP_HPP
+#define MIPPP_HIGHS_v1_10_MILP_HPP
 
 #include <limits>
 #include <optional>
@@ -14,15 +14,15 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/highs/1.10/highs110_base_model.hpp"
+#include "mippp/solvers/highs/v1_10/highs_base_model.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace highs::v1_10 {
 
-class highs110_milp : public highs110_base_model {
+class highs_milp : public highs_base_model {
 public:
-    [[nodiscard]] explicit highs110_milp(const highs110_api & api)
-        : highs110_base_model(api) {}
+    [[nodiscard]] explicit highs_milp(const highs_api & api)
+        : highs_base_model(api) {}
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
@@ -85,7 +85,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace highs::v1_10
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_HIGHS_110_MILP_HPP
+#endif  // MIPPP_HIGHS_v1_10_MILP_HPP

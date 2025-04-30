@@ -1,5 +1,5 @@
-#ifndef MIPPP_MOSEK_11_MILP_HPP
-#define MIPPP_MOSEK_11_MILP_HPP
+#ifndef MIPPP_MOSEK_v11_MILP_HPP
+#define MIPPP_MOSEK_v11_MILP_HPP
 
 #include <optional>
 #include <vector>
@@ -9,18 +9,18 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/mosek/11/mosek11_base_model.hpp"
+#include "mippp/solvers/mosek/v11/mosek_base_model.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace mosek::v11 {
 
-class mosek11_milp : public mosek11_base_model {
+class mosek_milp : public mosek_base_model {
 private:
     std::optional<lp_status> opt_lp_status;
 
 public:
-    [[nodiscard]] explicit mosek11_milp(const mosek11_api & api)
-        : mosek11_base_model(api) {
+    [[nodiscard]] explicit mosek_milp(const mosek_api & api)
+        : mosek_base_model(api) {
         check(
             MSK.putintparam(task, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_MIXED_INT));
     }
@@ -98,7 +98,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace mosek::v11
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_MOSEK_11_MILP_HPP
+#endif  // MIPPP_MOSEK_v11_MILP_HPP

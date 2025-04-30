@@ -1,5 +1,5 @@
-#ifndef MIPPP_HIGHS_110_LP_HPP
-#define MIPPP_HIGHS_110_LP_HPP
+#ifndef MIPPP_HIGHS_v1_10_LP_HPP
+#define MIPPP_HIGHS_v1_10_LP_HPP
 
 #include <optional>
 
@@ -8,22 +8,21 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/highs/1.10/highs110_base_model.hpp"
+#include "mippp/solvers/highs/v1_10/highs_base_model.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace highs::v1_10 {
 
-class highs110_lp : public highs110_base_model {
+class highs_lp : public highs_base_model {
 private:
     std::optional<lp_status> opt_lp_status;
 
 public:
-    [[nodiscard]] explicit highs110_lp(const highs110_api & api)
-        : highs110_base_model(api) {}
+    [[nodiscard]] explicit highs_lp(const highs_api & api)
+        : highs_base_model(api) {}
 
     void solve() {
         check(Highs.run(model));
-
         switch(Highs.getModelStatus(model)) {
             case kHighsModelStatusModelEmpty:
             case kHighsModelStatusOptimal:
@@ -37,7 +36,7 @@ public:
                 opt_lp_status.emplace(lp_status::unbounded);
                 return;
             default:
-                throw std::runtime_error("highs110_lp: error");
+                throw std::runtime_error("highs_lp: error");
         }
     }
     std::optional<lp_status> get_lp_status() { return opt_lp_status; }
@@ -57,7 +56,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace highs::v1_10
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_HIGHS_110_LP_HPP
+#endif  // MIPPP_HIGHS_v1_10_LP_HPP

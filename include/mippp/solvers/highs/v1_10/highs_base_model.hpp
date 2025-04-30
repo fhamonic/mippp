@@ -1,5 +1,5 @@
-#ifndef MIPPP_HIGHS_110_BASE_MODEL_HPP
-#define MIPPP_HIGHS_110_BASE_MODEL_HPP
+#ifndef MIPPP_HIGHS_v1_10_BASE_MODEL_HPP
+#define MIPPP_HIGHS_v1_10_BASE_MODEL_HPP
 
 #include <limits>
 #include <optional>
@@ -14,12 +14,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/highs/1.10/highs110_api.hpp"
+#include "mippp/solvers/highs/v1_10/highs_api.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace highs::v1_10 {
 
-class highs110_base_model {
+class highs_base_model {
 public:
     using index = HighsInt;
     using variable_id = HighsInt;
@@ -42,7 +42,7 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
-    const highs110_api & Highs;
+    const highs_api & Highs;
     void * model;
 
     std::vector<std::pair<constraint_id, unsigned int>>
@@ -54,14 +54,14 @@ protected:
     std::vector<scalar> tmp_upper_bounds;
 
 public:
-    [[nodiscard]] explicit highs110_base_model(const highs110_api & api)
+    [[nodiscard]] explicit highs_base_model(const highs_api & api)
         : Highs(api), model(Highs.create()) {}
-    ~highs110_base_model() { Highs.destroy(model); }
+    ~highs_base_model() { Highs.destroy(model); }
 
 protected:
     void check(int status) {
         if(status == kHighsStatusError)
-            throw std::runtime_error("highs110_base_model: error");
+            throw std::runtime_error("highs_base_model: error");
     }
 
 public:
@@ -340,7 +340,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace highs::v1_10
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_HIGHS_110_BASE_MODEL_HPP
+#endif  // MIPPP_HIGHS_v1_10_BASE_MODEL_HPP

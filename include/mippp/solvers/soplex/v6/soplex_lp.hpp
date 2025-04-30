@@ -1,5 +1,5 @@
-#ifndef MIPPP_SOPLEX_6_lp_HPP
-#define MIPPP_SOPLEX_6_lp_HPP
+#ifndef MIPPP_SOPLEX_v6_LP_HPP
+#define MIPPP_SOPLEX_v6_LP_HPP
 
 #include <limits>
 #include <optional>
@@ -14,12 +14,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/soplex/6/soplex6_api.hpp"
+#include "mippp/solvers/soplex/v6/soplex_api.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace soplex::v6 {
 
-class soplex6_lp {
+class soplex_lp {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -41,16 +41,16 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 private:
-    const soplex6_api & SoPlex;
+    const soplex_api & SoPlex;
     void * model;
     std::optional<lp_status> opt_lp_status;
     double objective_offset;
     std::vector<double> tmp_scalars;
 
 public:
-    [[nodiscard]] explicit soplex6_lp(const soplex6_api & api)
+    [[nodiscard]] explicit soplex_lp(const soplex_api & api)
         : SoPlex(api), model(SoPlex.create()), objective_offset(0.0) {}
-    ~soplex6_lp() { SoPlex.free(model); }
+    ~soplex_lp() { SoPlex.free(model); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(SoPlex.numCols(model));
@@ -210,7 +210,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace soplex::v6
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_SOPLEX_6_lp_HPP
+#endif  // MIPPP_SOPLEX_v6_LP_HPP

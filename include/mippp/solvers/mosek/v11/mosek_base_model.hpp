@@ -1,5 +1,5 @@
-#ifndef MIPPP_MOSEK_11_BASE_MODEL_HPP
-#define MIPPP_MOSEK_11_BASE_MODEL_HPP
+#ifndef MIPPP_MOSEK_v11_BASE_MODEL_HPP
+#define MIPPP_MOSEK_v11_BASE_MODEL_HPP
 
 #include <filesystem>
 #include <limits>
@@ -15,12 +15,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/mosek/11/mosek11_api.hpp"
+#include "mippp/solvers/mosek/v11/mosek_api.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace mosek::v11 {
 
-class mosek11_base_model {
+class mosek_base_model {
 public:
     using indice = MSKint32t;
     using variable_id = MSKint32t;
@@ -43,7 +43,7 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
-    const mosek11_api & MSK;
+    const mosek_api & MSK;
     MSKenv_t env;
     MSKtask_t task;
 
@@ -79,14 +79,13 @@ protected:
     }
 
 public:
-    [[nodiscard]] explicit mosek11_base_model(const mosek11_api & api)
+    [[nodiscard]] explicit mosek_base_model(const mosek_api & api)
         : MSK(api), env(NULL), task(NULL) {
         check(MSK.makeenv(
-            &env,
-            (std::filesystem::temp_directory_path() / "mosek11_").c_str()));
+            &env, (std::filesystem::temp_directory_path() / "mosek_").c_str()));
         check(MSK.makeemptytask(env, &task));
     }
-    ~mosek11_base_model() {
+    ~mosek_base_model() {
         check(MSK.deletetask(&task));
         check(MSK.deleteenv(&env));
     }
@@ -361,7 +360,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace mosek::v11
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_MOSEK_11_BASE_MODEL_HPP
+#endif  // MIPPP_MOSEK_v11_BASE_MODEL_HPP
