@@ -4,7 +4,6 @@
 #if INCLUDE_GLPK_HEADER
 #include "glpk.h"
 #else
-#include <limits>
 namespace fhamonic::mippp {
 namespace glpk::v5 {
 

@@ -1,5 +1,5 @@
-#ifndef MIPPP_GUROBI12_BASE_MODEL_HPP
-#define MIPPP_GUROBI12_BASE_MODEL_HPP
+#ifndef MIPPP_GUROBI_v12_0_BASE_MODEL_HPP
+#define MIPPP_GUROBI_v12_0_BASE_MODEL_HPP
 
 #include <limits>
 #include <optional>
@@ -15,12 +15,12 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/gurobi/12/gurobi12_api.hpp"
+#include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace gurobi::v12_0 {
 
-class gurobi12_base_model {
+class gurobi_base_model {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -42,7 +42,7 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
-    const gurobi12_api & GRB;
+    const gurobi_api & GRB;
     GRBenv * env;
     GRBmodel * model;
 
@@ -73,7 +73,7 @@ protected:
     std::vector<bool> _var_name_set;
 
 public:
-    [[nodiscard]] explicit gurobi12_base_model(const gurobi12_api & api)
+    [[nodiscard]] explicit gurobi_base_model(const gurobi_api & api)
         : GRB(api), _lazy_num_variables(0), _lazy_num_constraints(0) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
@@ -84,9 +84,9 @@ public:
         env = GRB.getenv(model);
         if(env == NULL)
             throw std::runtime_error(
-                "gurobi12_base_model: Could not retrieve model environement.");
+                "gurobi_base_model: Could not retrieve model environement.");
     }
-    ~gurobi12_base_model() { check(GRB.freemodel(model)); };
+    ~gurobi_base_model() { check(GRB.freemodel(model)); };
 
 protected:
     void check(int error) {
@@ -103,7 +103,7 @@ public:
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMVARS, &num));
         if(static_cast<std::size_t>(num) != _lazy_num_variables)
             throw std::runtime_error(
-                "gurobi12_base_model: _lazy_num_variables differs from gurobi "
+                "gurobi_base_model: _lazy_num_variables differs from gurobi "
                 "one.");
         return _lazy_num_variables;
     }
@@ -113,7 +113,7 @@ public:
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMCONSTRS, &num));
         if(static_cast<std::size_t>(num) != _lazy_num_constraints)
             throw std::runtime_error(
-                "gurobi12_base_model: _lazy_num_constraints differs from "
+                "gurobi_base_model: _lazy_num_constraints differs from "
                 "gurobi "
                 "one.");
         return _lazy_num_constraints;
@@ -482,7 +482,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace gurobi::v12_0
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_GUROBI12_BASE_MODEL_HPP
+#endif  // MIPPP_GUROBI_v12_0_BASE_MODEL_HPP

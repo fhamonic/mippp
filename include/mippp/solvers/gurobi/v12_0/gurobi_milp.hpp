@@ -1,5 +1,5 @@
-#ifndef MIPPP_GUROBI_12_MILP_HPP
-#define MIPPP_GUROBI_12_MILP_HPP
+#ifndef MIPPP_GUROBI_v12_0_MILP_HPP
+#define MIPPP_GUROBI_v12_0_MILP_HPP
 
 #include <optional>
 
@@ -7,15 +7,15 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/gurobi/12/gurobi12_base_model.hpp"
+#include "mippp/solvers/gurobi/v12_0/gurobi_base_model.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace gurobi::v12_0 {
 
-class gurobi12_milp : public gurobi12_base_model {
+class gurobi_milp : public gurobi_base_model {
 public:
-    [[nodiscard]] explicit gurobi12_milp(const gurobi12_api & api)
-        : gurobi12_base_model(api) {}
+    [[nodiscard]] explicit gurobi_milp(const gurobi_api & api)
+        : gurobi_base_model(api) {}
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
@@ -88,14 +88,6 @@ public:
     // add_sos2_constraint
     // add_indicator_constraint
 
-    void set_feasibility_tolerance(double tol) {
-        check(GRB.setdblparam(env, GRB_DBL_PAR_FEASIBILITYTOL, tol));
-    }
-    double get_feasibility_tolerance() {
-        double tol;
-        check(GRB.getdblparam(env, GRB_DBL_PAR_FEASIBILITYTOL, &tol));
-        return tol;
-    }
     void set_optimality_tolerance(double tol) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_MIPGAP, tol));
     }
@@ -122,7 +114,7 @@ public:
     }
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace gurobi::v12_0
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_GUROBI_12_MILP_HPP
+#endif  // MIPPP_GUROBI_v12_0_MILP_HPP

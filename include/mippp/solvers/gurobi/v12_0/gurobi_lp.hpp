@@ -1,22 +1,22 @@
-#ifndef MIPPP_GUROBI12_lp_HPP
-#define MIPPP_GUROBI12_lp_HPP
+#ifndef MIPPP_GUROBI_v12_0_LP_HPP
+#define MIPPP_GUROBI_v12_0_LP_HPP
 
 #include <optional>
 
 #include "mippp/model_concepts.hpp"
 
-#include "mippp/solvers/gurobi/12/gurobi12_base_model.hpp"
+#include "mippp/solvers/gurobi/v12_0/gurobi_base_model.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
+namespace gurobi::v12_0 {
 
-class gurobi12_lp : public gurobi12_base_model {
+class gurobi_lp : public gurobi_base_model {
 private:
     std::optional<lp_status> opt_lp_status;
 
 public:
-    [[nodiscard]] explicit gurobi12_lp(const gurobi12_api & api)
-        : gurobi12_base_model(api) {}
+    [[nodiscard]] explicit gurobi_lp(const gurobi_api & api)
+        : gurobi_base_model(api) {}
 
     void solve() {
         check(GRB.optimize(model));
@@ -44,7 +44,7 @@ public:
                         return;
                     default:
                         throw std::runtime_error(
-                            "gurobi12_base_model: Cannot determine if model is "
+                            "gurobi_base_model: Cannot determine if model is "
                             "infeasible or unbounded (status = " +
                             std::to_string(status) + ").");
                 }
@@ -83,7 +83,7 @@ public:
     // void set_non_basic(constraint v);
 };
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace gurobi::v12_0
+}  // namespace fhamonic::mippp
 
-#endif  // MIPPP_GUROBI12_lp_HPP
+#endif  // MIPPP_GUROBI_v12_0_LP_HPP
