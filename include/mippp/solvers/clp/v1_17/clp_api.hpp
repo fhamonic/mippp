@@ -55,6 +55,8 @@ int Clp_getRowStatus(Clp_Simplex * model, int sequence);
 int Clp_initialSolve(Clp_Simplex * model);
 int Clp_primal(Clp_Simplex * model, int ifValuesPass);
 int Clp_status(Clp_Simplex * model);
+int Clp_isProvenPrimalInfeasible(Clp_Simplex * model);
+int Clp_isProvenDualInfeasible(Clp_Simplex * model);
 double Clp_getObjValue(Clp_Simplex * model);
 double * Clp_primalColumnSolution(Clp_Simplex * model);
 double * Clp_dualRowSolution(Clp_Simplex * model);
@@ -68,38 +70,40 @@ double * Clp_dualRowSolution(Clp_Simplex * model);
 namespace fhamonic::mippp {
 namespace clp::v1_17 {
 
-#define CLP_FUNCTIONS(F)                              \
-    F(Clp_newModel, newModel)                         \
-    F(Clp_deleteModel, deleteModel)                   \
-    F(Clp_setObjSense, setObjSense)                   \
-    F(Clp_setObjectiveOffset, setObjectiveOffset)     \
-    F(Clp_objectiveOffset, objectiveOffset)           \
-    F(Clp_addColumns, addColumns)                     \
-    F(Clp_addRows, addRows)                           \
-    F(Clp_objective, objective)                       \
-    F(Clp_columnLower, columnLower)                   \
-    F(Clp_columnUpper, columnUpper)                   \
-    F(Clp_setColumnName, setColumnName)               \
-    F(Clp_columnName, columnName)                     \
-    F(Clp_rowLower, rowLower)                         \
-    F(Clp_rowUpper, rowUpper)                         \
-    F(Clp_setRowName, setRowName)                     \
-    F(Clp_rowName, rowName)                           \
-    F(Clp_getNumCols, getNumCols)                     \
-    F(Clp_getNumRows, getNumRows)                     \
-    F(Clp_getNumElements, getNumElements)             \
-    F(Clp_lengthNames, lengthNames)                   \
-    F(Clp_primalTolerance, primalTolerance)           \
-    F(Clp_setPrimalTolerance, setPrimalTolerance)     \
-    F(Clp_setColumnStatus, setColumnStatus)           \
-    F(Clp_getColumnStatus, getColumnStatus)           \
-    F(Clp_setRowStatus, setRowStatus)                 \
-    F(Clp_getRowStatus, getRowStatus)                 \
-    F(Clp_initialSolve, initialSolve)                 \
-    F(Clp_primal, primal)                             \
-    F(Clp_status, status)                             \
-    F(Clp_getObjValue, getObjValue)                   \
-    F(Clp_primalColumnSolution, primalColumnSolution) \
+#define CLP_FUNCTIONS(F)                                      \
+    F(Clp_newModel, newModel)                                 \
+    F(Clp_deleteModel, deleteModel)                           \
+    F(Clp_setObjSense, setObjSense)                           \
+    F(Clp_setObjectiveOffset, setObjectiveOffset)             \
+    F(Clp_objectiveOffset, objectiveOffset)                   \
+    F(Clp_addColumns, addColumns)                             \
+    F(Clp_addRows, addRows)                                   \
+    F(Clp_objective, objective)                               \
+    F(Clp_columnLower, columnLower)                           \
+    F(Clp_columnUpper, columnUpper)                           \
+    F(Clp_setColumnName, setColumnName)                       \
+    F(Clp_columnName, columnName)                             \
+    F(Clp_rowLower, rowLower)                                 \
+    F(Clp_rowUpper, rowUpper)                                 \
+    F(Clp_setRowName, setRowName)                             \
+    F(Clp_rowName, rowName)                                   \
+    F(Clp_getNumCols, getNumCols)                             \
+    F(Clp_getNumRows, getNumRows)                             \
+    F(Clp_getNumElements, getNumElements)                     \
+    F(Clp_lengthNames, lengthNames)                           \
+    F(Clp_primalTolerance, primalTolerance)                   \
+    F(Clp_setPrimalTolerance, setPrimalTolerance)             \
+    F(Clp_setColumnStatus, setColumnStatus)                   \
+    F(Clp_getColumnStatus, getColumnStatus)                   \
+    F(Clp_setRowStatus, setRowStatus)                         \
+    F(Clp_getRowStatus, getRowStatus)                         \
+    F(Clp_initialSolve, initialSolve)                         \
+    F(Clp_primal, primal)                                     \
+    F(Clp_status, status)                                     \
+    F(Clp_isProvenPrimalInfeasible, isProvenPrimalInfeasible) \
+    F(Clp_isProvenDualInfeasible, isProvenDualInfeasible)     \
+    F(Clp_getObjValue, getObjValue)                           \
+    F(Clp_primalColumnSolution, primalColumnSolution)         \
     F(Clp_dualRowSolution, dualRowSolution)
 
 #define DECLARE_CLP_FUN(FULL, SHORT)      \

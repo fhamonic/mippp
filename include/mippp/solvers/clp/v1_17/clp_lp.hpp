@@ -370,8 +370,7 @@ public:
             opt_lp_status.emplace(lp_status::optimal);
             return;
         }
-        Clp.initialSolve(model);
-        // Clp.primal(model, 0);
+        Clp.primal(model, 0);
         switch(Clp.status(model)) {
             case 0:
                 opt_lp_status.emplace(lp_status::optimal);
