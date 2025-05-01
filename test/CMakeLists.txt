@@ -5,10 +5,11 @@ include(GoogleTest)
 # ################# TEST targets #################
 add_executable(
     mippp_test
-    main.cpp variable.cpp
-    variable_operators.cpp
-    linear_expression_operators.cpp
-    linear_constraint_operators.cpp
+    main.cpp
+    variable.cpp
+    linear_expression.cpp
+    linear_constraint.cpp
+    bilinear_expression.cpp
     model_methods.cpp
     milp_examples.cpp
     )

@@ -10,8 +10,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_entities.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
 
 namespace detail {
 
@@ -326,7 +325,6 @@ concept has_integrality_tolerance =
     };
 // clang-format on
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace fhamonic::mippp
 
 #endif  // MIPPP_MODEL_CONCEPTS_HPP

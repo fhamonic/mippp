@@ -9,10 +9,10 @@
 #else
 namespace fhamonic::mippp {
 namespace scip::v8 {
-
+#include <limits>
 using SCIP_Real = double;
-constexpr SCIP_Real SCIP_REAL_MAX = DBL_MAX;
-constexpr SCIP_Real SCIP_REAL_MIN = -DBL_MAX;
+constexpr SCIP_Real SCIP_REAL_MAX = std::numeric_limits<SCIP_Real>::max();
+constexpr SCIP_Real SCIP_REAL_MIN = -std::numeric_limits<SCIP_Real>::lowest();
 using SCIP_Longint = long long;
 using SCIP_Bool = unsigned int;
 

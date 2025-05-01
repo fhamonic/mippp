@@ -5,14 +5,9 @@
 
 #include "mippp/linear_expression.hpp"
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
 
-enum constraint_sense : int {
-    equal = 0,
-    less_equal = -1,
-    greater_equal = 1
-};
+enum constraint_sense : int { equal = 0, less_equal = -1, greater_equal = 1 };
 
 /////////////////////////////////// CONCEPT ///////////////////////////////////
 
@@ -39,8 +34,7 @@ private:
 
 public:
     constexpr linear_constraint_view(_Expression && e, constraint_sense rel)
-        : _expression(std::forward<_Expression>(e))
-        , _constraint_sense(rel) {}
+        : _expression(std::forward<_Expression>(e)), _constraint_sense(rel) {}
 
     constexpr auto linear_terms() const noexcept {
         return _expression.linear_terms();
@@ -134,7 +128,6 @@ constexpr auto operator==(linear_expression_scalar_t<E> c, E && e) {
 
 }  // namespace operators
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace fhamonic::mippp
 
 #endif  // MIPPP_LINEAR_CONSTRAINT_HPP

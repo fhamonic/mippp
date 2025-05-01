@@ -12,8 +12,7 @@
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/transform.hpp>
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
 
 /////////////////////////////////// CONCEPT ///////////////////////////////////
 
@@ -87,9 +86,6 @@ linear_expression_view(T &&, S)
     -> linear_expression_view<ranges::views::all_t<T>>;
 
 ///////////////////////////////// OPERATIONS //////////////////////////////////
-
-// Optimisation de la connectivité écologique des réseaux d'habitats : PLNE et
-// prétraitemeent de plus courts chemins
 
 template <linear_expression E1, linear_expression E2>
 constexpr auto linear_expression_add(E1 && e1, E2 && e2) {
@@ -201,19 +197,16 @@ template <linear_expression E>
                                        linear_expression_scalar_t<E> c) {
     return linear_expression_scalar_add(std::forward<E>(e), c);
 };
-
 template <linear_expression E>
 [[nodiscard]] constexpr auto operator+(linear_expression_scalar_t<E> c,
                                        E && e) {
     return linear_expression_scalar_add(std::forward<E>(e), c);
 };
-
 template <linear_expression E>
 [[nodiscard]] constexpr auto operator-(E && e,
                                        linear_expression_scalar_t<E> c) {
     return linear_expression_scalar_add(std::forward<E>(e), -c);
 };
-
 template <linear_expression E>
 [[nodiscard]] constexpr auto operator-(linear_expression_scalar_t<E> c,
                                        E && e) {
@@ -226,13 +219,11 @@ template <linear_expression E>
                                        linear_expression_scalar_t<E> c) {
     return linear_expression_scalar_mul(std::forward<E>(e), c);
 };
-
 template <linear_expression E>
 [[nodiscard]] constexpr auto operator*(linear_expression_scalar_t<E> c,
                                        E && e) {
     return linear_expression_scalar_mul(std::forward<E>(e), c);
 };
-
 template <linear_expression E>
 [[nodiscard]] constexpr auto operator/(E && e,
                                        linear_expression_scalar_t<E> c) {
@@ -245,7 +236,6 @@ using xsum = linear_expressions_sum<E>;
 
 }  // namespace operators
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace fhamonic::mippp
 
 #endif  // MIPPP_LINEAR_EXPRESSION_HPP

@@ -20,16 +20,41 @@ template <typename R1, typename T>
 void ASSERT_EQ_RANGES(R1 && r1, std::initializer_list<T> l) {
     ASSERT_EQ(ranges::distance(r1), l.size());
     for(const auto & [e1, e2] : ranges::views::zip(r1, l)) {
-        ASSERT_EQ(e1, e2);
+        if constexpr(std::floating_point<T>) {
+            ASSERT_NEAR(e1, e2, 1e-13);
+        } else {
+            ASSERT_EQ(e1, e2);
+        }
     }
 }
 
+template <typename Terms, typename V, typename C>
+void ASSERT_LIN_TERMS(Terms && terms, std::initializer_list<V> vars,
+                      std::initializer_list<C> coefs) {
+    ASSERT_EQ_RANGES(ranges::view::keys(terms), vars);
+    ASSERT_EQ_RANGES(ranges::view::values(terms), coefs);
+}
+
 template <typename Expr, typename V, typename C, typename S>
-void ASSERT_EXPRESSION(Expr && expr, std::initializer_list<V> vars,
-                       std::initializer_list<C> coefs, S && scalar) {
-    ASSERT_EQ_RANGES(ranges::view::keys(expr.linear_terms()), vars);
-    ASSERT_EQ_RANGES(ranges::view::values(expr.linear_terms()), coefs);
+void ASSERT_LIN_EXPR(Expr && expr, std::initializer_list<V> vars,
+                     std::initializer_list<C> coefs, S && scalar) {
+    ASSERT_LIN_TERMS(expr.linear_terms(), vars, coefs);
     ASSERT_EQ(expr.constant(), scalar);
+}
+
+template <typename Terms, typename V1, typename V2, typename C>
+void ASSERT_BILIN_TERMS(Terms && terms, std::initializer_list<V1> vars1,
+                        std::initializer_list<V2> vars2,
+                        std::initializer_list<C> coefs) {
+    ASSERT_EQ_RANGES(ranges::view::transform(
+                         terms, [](const auto & t) { return std::get<0>(t); }),
+                     vars1);
+    ASSERT_EQ_RANGES(ranges::view::transform(
+                         terms, [](const auto & t) { return std::get<1>(t); }),
+                     vars2);
+    ASSERT_EQ_RANGES(ranges::view::transform(
+                         terms, [](const auto & t) { return std::get<2>(t); }),
+                     coefs);
 }
 
 #include "range/v3/core.hpp"

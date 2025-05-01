@@ -10,8 +10,7 @@
 #include <range/v3/view/single.hpp>
 #include <range/v3/view/zip.hpp>
 
-namespace fhamonic {
-namespace mippp {
+namespace fhamonic::mippp {
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// Strong types /////////////////////////////////
@@ -284,7 +283,6 @@ template <typename KR, typename CR>
 constraints_range(KR &&, CR &&)
     -> constraints_range<ranges::range_value_t<KR>, ranges::range_value_t<CR>>;
 
-}  // namespace mippp
-}  // namespace fhamonic
+}  // namespace fhamonic::mippp
 
 #endif  // MIPPP_MODEL_ENTITIES_HPP
