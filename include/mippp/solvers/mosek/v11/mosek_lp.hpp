@@ -2,10 +2,7 @@
 #define MIPPP_MOSEK_v11_LP_HPP
 
 #include <optional>
-#include <vector>
 
-#include "mippp/linear_constraint.hpp"
-#include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 

@@ -47,8 +47,6 @@ protected:
     MSKenv_t env;
     MSKtask_t task;
 
-    // std::optional<lp_status> opt_lp_status;
-
     std::vector<std::pair<constraint_id, unsigned int>>
         tmp_constraint_entry_cache;
     std::vector<indice> tmp_indices;

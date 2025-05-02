@@ -5,6 +5,7 @@
 
 #include "mippp/solvers/cbc/all.hpp"
 #include "mippp/solvers/clp/all.hpp"
+#include "mippp/solvers/copt/all.hpp"
 #include "mippp/solvers/cplex/all.hpp"
 #include "mippp/solvers/glpk/all.hpp"
 #include "mippp/solvers/gurobi/all.hpp"
@@ -155,6 +156,20 @@ static_assert(
     milp_model<cplex_milp> &&
     has_readable_variables_bounds<cplex_milp> &&
     has_modifiable_variables_bounds<cplex_milp>);
+
+////////////////////////////////////////////////////////////
+MODEL_TEST(copt_lp, copt_api);
+static_assert(
+    lp_model<copt_lp> &&
+    has_readable_variables_bounds<copt_lp> &&
+    has_modifiable_variables_bounds<copt_lp>);
+
+////////////////////////////////////////////////////////////
+MODEL_TEST(copt_milp, copt_api);
+static_assert(
+    milp_model<copt_milp> &&
+    has_readable_variables_bounds<copt_milp> &&
+    has_modifiable_variables_bounds<copt_milp>);
 
 // clang-format on
 }  // namespace fhamonic::mippp

@@ -1,6 +1,8 @@
 #undef NDEBUG
 #include <gtest/gtest.h>
 
+#include <range/v3/view/cartesian_product.hpp>
+
 #include "assert_helper.hpp"
 #include "models.hpp"
 
@@ -18,8 +20,8 @@ using Models = ::testing::Types<
         scip_milp_test,
         highs_milp_test,
         cplex_milp_test,
-        mosek_milp_test
-        // ,copt_milp_test
+        mosek_milp_test,
+        copt_milp_test
         // ,xprs_milp_test
         >;
 // clang-format on
@@ -59,43 +61,49 @@ TYPED_TEST(MilpModelExamples, sudoku) {
         1, 8, 3, 7, 6, 5, 9, 4, 2};
     // clang-format on
 
-    auto indices = std::views::iota(0, 9);
-    auto values = std::views::iota(1, 10);
-    auto coords = std::views::transform(
-        indices, [](auto && i) { return std::make_pair(i / 3, i % 3); });
+    auto indices = ranges::views::iota(0, 9);
+    auto values = ranges::views::iota(1, 10);
+    auto coords = ranges::views::cartesian_product(ranges::views::iota(0, 3),
+                                                   ranges::views::iota(0, 3));
 
     auto X_vars =
         model.add_binary_variables(9 * 9 * 9, [](int i, int j, int value) {
             return (81 * i) + (9 * j) + (value - 1);
         });
 
-    for(auto i : indices) {
-        for(auto j : indices) {
-            model.add_constraint(
-                xsum(values, [&](auto && v) { return X_vars(i, j, v); }) == 1);
-        }
-    }
-    for(auto v : values) {
-        for(auto k : indices) {
-            model.add_constraint(
-                xsum(indices, [&](auto && j) { return X_vars(k, j, v); }) == 1);
-            model.add_constraint(
-                xsum(indices, [&](auto && i) { return X_vars(i, k, v); }) == 1);
-        }
-        for(auto && [bi, bj] : coords) {
-            model.add_constraint(xsum(coords, [&](auto && p) {
-                                     return X_vars(3 * bi + p.first,
-                                                   3 * bj + p.second, v);
-                                 }) == 1);
-        }
-    }
+    auto single_value_constrs = model.add_constraints(
+        ranges::views::cartesian_product(indices, indices), [&](auto && p) {
+            auto && [i, j] = p;
+            return xsum(values, [&](auto && v) { return X_vars(i, j, v); }) ==
+                   1;
+        });
+    auto one_per_row_constrs = model.add_constraints(
+        ranges::views::cartesian_product(values, indices), [&](auto && p) {
+            auto && [v, i] = p;
+            return xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) ==
+                   1;
+        });
+    auto one_per_col_constrs = model.add_constraints(
+        ranges::views::cartesian_product(values, indices), [&](auto && p) {
+            auto && [v, j] = p;
+            return xsum(indices, [&](auto && i) { return X_vars(i, j, v); }) ==
+                   1;
+        });
+    auto one_per_block_constrs = model.add_constraints(
+        ranges::views::cartesian_product(values, coords), [&](auto && p) {
+            auto && [v, b] = p;
+            return xsum(coords, [&](auto && p2) {
+                       return X_vars(3 * std::get<0>(b) + std::get<0>(p2),
+                                     3 * std::get<1>(b) + std::get<1>(p2), v);
+                   }) == 1;
+        });
 
     for(auto i : indices) {
         for(auto j : indices) {
             auto value = grid_hints[static_cast<std::size_t>(9 * i + j)];
             if(value == 0) continue;
             // model.set_variable_lower_bound(X_vars(i, j, value), 1);
-            model.add_constraint(X_vars(i, j, value) >= 1);
+            model.add_constraint(X_vars(i, j, value) == 1);
         }
     }
 

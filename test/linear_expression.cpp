@@ -19,24 +19,24 @@ GTEST_TEST(linear_expression_operators, negate_term) {
 GTEST_TEST(linear_expression_operators, scalar_add) {
     ASSERT_LIN_EXPR(Var(11) * 3.2 + 5, {Var(11)}, {3.2}, 5);
 }
-
-GTEST_TEST(linear_expression_operators, scalar_add_other_way) {
+GTEST_TEST(linear_expression_operators, scalar_add2) {
     ASSERT_LIN_EXPR(5 + Var(11) * 3.2, {Var(11)}, {3.2}, 5);
 }
 
 GTEST_TEST(linear_expression_operators, scalar_mul) {
     ASSERT_LIN_EXPR((Var(11) * 3.2) * -2, {Var(11)}, {-6.4}, 0);
 }
-
-GTEST_TEST(linear_expression_operators, scalar_mul_other_way) {
+GTEST_TEST(linear_expression_operators, scalar_mul2) {
     ASSERT_LIN_EXPR(-2 * (Var(11) * 3.2), {Var(11)}, {-6.4}, 0);
+}
+GTEST_TEST(linear_expression_operators, scalar_div) {
+    ASSERT_LIN_EXPR((Var(11) * 3.2) / (-0.5), {Var(11)}, {-6.4}, 0);
 }
 
 GTEST_TEST(linear_expression_operators, add_terms) {
     ASSERT_LIN_EXPR(Var(1) * 3.2 + Var(2) * 1.5, {Var(1), Var(2)}, {3.2, 1.5},
                       0);
 }
-
 GTEST_TEST(linear_expression_operators, substract_terms) {
     ASSERT_LIN_EXPR(Var(1) * 3.2 - Var(2) * 1.5, {Var(1), Var(2)},
                       {3.2, -1.5}, 0);
