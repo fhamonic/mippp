@@ -1,6 +1,7 @@
 #ifndef MIPPP_GUROBI_v12_0_MILP_HPP
 #define MIPPP_GUROBI_v12_0_MILP_HPP
 
+#include <functional>
 #include <optional>
 
 #include "mippp/linear_constraint.hpp"
@@ -8,6 +9,7 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/gurobi/v12_0/gurobi_base.hpp"
+#include "mippp/solvers/model_base.hpp"
 
 namespace fhamonic::mippp {
 namespace gurobi::v12_0 {
@@ -87,6 +89,90 @@ public:
     // add_sos1_constraint
     // add_sos2_constraint
     // add_indicator_constraint
+
+    // int (*cb)(GRBmodel * model, void * cbdata, int where, void * usrdata)
+
+    struct callback_handle;
+    struct callbacks_struct {
+        std::optional<std::function<void(callback_handle &)>> solution;
+    };
+    class callback_handle : public model_base<int, double> {
+    private:
+        const gurobi_api & GRB;
+        GRBmodel * master_model;
+        void * cbdata;
+        int where;
+
+        static constexpr char constraint_sense_to_gurobi_sense(
+            constraint_sense rel) {
+            if(rel == constraint_sense::less_equal) return GRB_LESS_EQUAL;
+            if(rel == constraint_sense::equal) return GRB_EQUAL;
+            return GRB_GREATER_EQUAL;
+        }
+
+    public:
+        callback_handle(const gurobi_api & api, GRBmodel * master_model_,
+                        void * cbdata_, int where_)
+            : model_base<int, double>()
+            , GRB(api)
+            , master_model(master_model_)
+            , cbdata(cbdata_)
+            , where(where_) {}
+
+        std::size_t num_variables() {
+            int num;
+            GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
+            return static_cast<std::size_t>(num);
+        }
+
+        void add_lazy_constraint(linear_constraint auto && lc) {
+            _reset_cache(num_variables());
+            _register_linear_terms(lc.linear_terms());
+            GRB.cblazy(cbdata, static_cast<int>(tmp_variables.size()),
+                       tmp_variables.data(), tmp_scalars.data(),
+                       constraint_sense_to_gurobi_sense(lc.sense()), lc.rhs());
+        }
+
+        auto get_solution() {
+            auto num_vars = num_variables();
+            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
+            GRB.cbget(cbdata, where, GRB_CB_MIPSOL_SOL, solution.get());
+            return variable_mapping(std::move(solution));
+        }
+    };
+    callbacks_struct _callbacks;
+    callbacks_struct & get_callbacks() { return _callbacks; }
+
+private:
+    bool _callbacks_enabled = false;
+    void _enable_callbacks() {
+        if(_callbacks_enabled) return;
+        check(GRB.setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
+        check(GRB.setcallbackfunc(
+            model,
+            [](GRBmodel * master_model, void * cbdata, int where,
+               void * usrdata) -> int {
+                gurobi_milp & grb_model =
+                    *reinterpret_cast<gurobi_milp *>(usrdata);
+                callback_handle handle(grb_model.get_api(), master_model,
+                                       cbdata, where);
+                callbacks_struct & callbacks = grb_model.get_callbacks();
+
+                if(where == GRB_CB_MIPSOL && callbacks.solution.has_value()) {
+                    callbacks.solution.value()(handle);
+                }
+                return 0;
+            },
+            this));
+        _callbacks_enabled = true;
+    }
+
+public:
+    template <typename F>
+    void set_solution_callback(F && f) {
+        _enable_callbacks();
+        _callbacks.solution.emplace(std::forward<F>(f));
+    }
 
     void set_optimality_tolerance(double tol) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_MIPGAP, tol));

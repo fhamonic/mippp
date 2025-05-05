@@ -79,6 +79,8 @@ public:
     }
     ~gurobi_base() { check(GRB.freemodel(model)); };
 
+    const gurobi_api & get_api() const { return GRB; }
+
 protected:
     void check(int error) {
         if(error)
@@ -381,7 +383,7 @@ public:
         check(GRB.addrangeconstr(model, static_cast<int>(tmp_variables.size()),
                                  tmp_variables.data(), tmp_scalars.data(), lb,
                                  ub, NULL));
-        ++_lazy_num_variables; // added_slack variable
+        ++_lazy_num_variables;  // added_slack variable
         return constraint(constr_id);
     }
     // void set_constraint_name(constraint constr, auto && name);

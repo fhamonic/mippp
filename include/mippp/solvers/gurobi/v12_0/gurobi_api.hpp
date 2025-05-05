@@ -135,11 +135,24 @@ int GRBsetstrattrelement(GRBmodel * model, const char * attrname, int element,
 int GRBgetstrattrelement(GRBmodel * model, const char * attrname, int element,
                          char ** valueP);
 
+enum CallbackWhere : int {
+    GRB_CB_POLLING = 0,
+    GRB_CB_PRESOLVE = 1,
+    GRB_CB_SIMPLEX = 2,
+    GRB_CB_MIP = 3,
+    GRB_CB_MIPSOL = 4,
+    GRB_CB_MIPNODE = 5,
+    GRB_CB_MESSAGE = 6,
+    GRB_CB_BARRIER = 7,
+    GRB_CB_MULTIOBJ = 8,
+    GRB_CB_IIS = 9
+};
 int GRBsetcallbackfunc(GRBmodel * model,
                        int (*cb)(GRBmodel * model, void * cbdata, int where,
                                  void * usrdata),
                        void * usrdata);
 int GRBcbproceed(void * cbdata);
+constexpr int GRB_CB_MIPSOL_SOL = 4001;
 int GRBcbget(void * cbdata, int where, int what, void * resultP);
 int GRBcbsetintparam(void * cbdata, const char * paramname, int newvalue);
 int GRBcbsetdblparam(void * cbdata, const char * paramname, double newvalue);
