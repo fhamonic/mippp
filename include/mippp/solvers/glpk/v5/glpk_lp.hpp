@@ -7,18 +7,18 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/glpk/v5/glpk_base_model.hpp"
+#include "mippp/solvers/glpk/v5/glpk_base.hpp"
 
 namespace fhamonic::mippp {
 namespace glpk::v5 {
 
-class glpk_lp : public glpk_base_model {
+class glpk_lp : public glpk_base {
 private:
     glp_smcp model_params;
 
 public:
     [[nodiscard]] explicit glpk_lp(const glpk_api & api)
-        : glpk_base_model(api), model_params() {
+        : glpk_base(api), model_params() {
         model_params.msg_lev = GLP_MSG_ALL;
         model_params.meth = GLP_PRIMAL;
         model_params.pricing = GLP_PT_STD;

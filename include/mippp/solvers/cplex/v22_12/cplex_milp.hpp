@@ -10,15 +10,15 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/cplex/v22_12/cplex_base_model.hpp"
+#include "mippp/solvers/cplex/v22_12/cplex_base.hpp"
 
 namespace fhamonic::mippp {
 namespace cplex::v22_12 {
 
-class cplex_milp : public cplex_base_model {
+class cplex_milp : public cplex_base {
 public:
     [[nodiscard]] explicit cplex_milp(const cplex_api & api)
-        : cplex_base_model(api) {}
+        : cplex_base(api) {}
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {

@@ -6,18 +6,17 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/copt/v7_2/copt_base_model.hpp"
+#include "mippp/solvers/copt/v7_2/copt_base.hpp"
 
 namespace fhamonic::mippp {
 namespace copt::v7_2 {
 
-class copt_lp : public copt_base_model {
+class copt_lp : public copt_base {
 private:
     std::optional<lp_status> opt_lp_status;
 
 public:
-    [[nodiscard]] explicit copt_lp(const copt_api & api)
-        : copt_base_model(api) {}
+    [[nodiscard]] explicit copt_lp(const copt_api & api) : copt_base(api) {}
 
     void solve() { check(COPT.SolveLp(prob)); }
 

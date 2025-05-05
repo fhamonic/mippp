@@ -15,11 +15,12 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/glpk/v5/glpk_api.hpp"
+#include "mippp/solvers/model_base.hpp"
 
 namespace fhamonic::mippp {
 namespace glpk::v5 {
 
-class glpk_base_model {
+class glpk_base : public model_base<int, double> {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -30,15 +31,6 @@ public:
     using variable_mapping = entity_mapping<variable, Map>;
     template <typename Map>
     using constraint_mapping = entity_mapping<constraint, Map>;
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
-
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
     const glpk_api & glp;
@@ -57,20 +49,18 @@ protected:
         if(type == GLP_UP) return constraint_sense::less_equal;
         if(type == GLP_FX) return constraint_sense::equal;
         if(type == GLP_LO) return constraint_sense::greater_equal;
-        throw std::runtime_error("glpk_base_model: Cannot convert row type '" +
+        throw std::runtime_error("glpk_base: Cannot convert row type '" +
                                  std::to_string(type) +
                                  "' to constraint_sense.");
     }
 
-    std::vector<std::pair<constraint_id, unsigned int>>
-        tmp_constraint_entry_cache;
-    std::vector<int> tmp_variables;
-    std::vector<double> tmp_scalars;
-
 public:
-    [[nodiscard]] explicit glpk_base_model(const glpk_api & api)
-        : glp(api), model(glp.create_prob()), objective_offset(0.0) {}
-    ~glpk_base_model() { glp.delete_prob(model); }
+    [[nodiscard]] explicit glpk_base(const glpk_api & api)
+        : model_base<int, double>()
+        , glp(api)
+        , model(glp.create_prob())
+        , objective_offset(0.0) {}
+    ~glpk_base() { glp.delete_prob(model); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(glp.get_num_cols(model));
@@ -161,25 +151,6 @@ protected:
                 glp.set_col_kind(model, static_cast<int>(i), type);
         }
     }
-    inline auto _make_variables_range(const std::size_t & offset,
-                                      const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
-                                              const std::size_t & count,
-                                              IL && id_lambda) {
-        return make_indexed_variables_range(
-            typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
-    }
 
 public:
     variable add_variable(
@@ -231,15 +202,16 @@ private:
     template <linear_constraint LC>
     void _add_constraint(const int & constr_id, const LC & lc) {
         glp.add_rows(model, 1);
+        ++entry_count;
         tmp_variables.resize(1);
         tmp_scalars.resize(1);
         for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
+            auto & p = tmp_entry_index_cache[var.uid()];
+            if(p.first == entry_count) {
                 tmp_scalars[p.second] += coef;
                 continue;
             }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
+            p = std::make_pair(entry_count, tmp_variables.size());
             tmp_variables.emplace_back(var.id() + 1);
             tmp_scalars.emplace_back(coef);
         }
@@ -253,7 +225,7 @@ private:
 
 public:
     constraint add_constraint(linear_constraint auto && lc) {
-        tmp_constraint_entry_cache.resize(num_variables());
+        tmp_entry_index_cache.resize(num_variables());
         int constr_id = static_cast<int>(num_constraints());
         _add_constraint(constr_id, lc);
         return constraint(constr_id);
@@ -284,7 +256,7 @@ private:
 public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        tmp_constraint_entry_cache.resize(num_variables());
+        tmp_entry_index_cache.resize(num_variables());
         const int offset = static_cast<int>(num_constraints());
         int constr_id = offset;
         for(auto && key : keys) {

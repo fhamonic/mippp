@@ -31,7 +31,6 @@ target_link_libraries(mippp INTERFACE dylib::dylib)
 
 target_compile_options(mippp INTERFACE -fconcepts-diagnostics-depth=30)
 
-
 # ################### TESTS ######################
 if(${ENABLE_TESTING} AND NOT ${CMAKE_CROSSCOMPILING})
   enable_testing()

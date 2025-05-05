@@ -5,18 +5,18 @@
 
 #include "mippp/model_concepts.hpp"
 
-#include "mippp/solvers/gurobi/v12_0/gurobi_base_model.hpp"
+#include "mippp/solvers/gurobi/v12_0/gurobi_base.hpp"
 
 namespace fhamonic::mippp {
 namespace gurobi::v12_0 {
 
-class gurobi_lp : public gurobi_base_model {
+class gurobi_lp : public gurobi_base {
 private:
     std::optional<lp_status> opt_lp_status;
 
 public:
     [[nodiscard]] explicit gurobi_lp(const gurobi_api & api)
-        : gurobi_base_model(api) {}
+        : gurobi_base(api) {}
 
     void solve() {
         check(GRB.optimize(model));
@@ -44,7 +44,7 @@ public:
                         return;
                     default:
                         throw std::runtime_error(
-                            "gurobi_base_model: Cannot determine if model is "
+                            "gurobi_base: Cannot determine if model is "
                             "infeasible or unbounded (status = " +
                             std::to_string(status) + ").");
                 }

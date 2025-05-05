@@ -10,6 +10,7 @@
 #include <range/v3/view/all.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/join.hpp>
+#include <range/v3/view/move.hpp>
 #include <range/v3/view/transform.hpp>
 
 namespace fhamonic::mippp {
@@ -235,6 +236,49 @@ template <typename E>
 using xsum = linear_expressions_sum<E>;
 
 }  // namespace operators
+
+///
+
+template <typename _Var, typename _Scalar,
+          typename _Container = std::vector<std::pair<_Var, _Scalar>>>
+class runtime_linear_expression {
+private:
+    _Container _terms;
+    _Scalar _constant;
+
+public:
+    [[nodiscard]] constexpr runtime_linear_expression()
+        : _terms(), _constant(0) {}
+
+    [[nodiscard]] constexpr decltype(auto) linear_terms() const & noexcept {
+        return _terms;
+    }
+    [[nodiscard]] constexpr auto linear_terms() && noexcept {
+        return ranges::view::move(_terms);
+    }
+    [[nodiscard]] constexpr decltype(auto) constant() const & noexcept {
+        return _constant;
+    }
+    [[nodiscard]] constexpr _Scalar && constant() && noexcept {
+        return std::move(_constant);
+    }
+
+    template <linear_expression E>
+        requires std::same_as<linear_expression_variable_t<E>, _Var> &&
+                 std::same_as<linear_expression_scalar_t<E>, _Scalar>
+    constexpr runtime_linear_expression & operator+=(E && e) {
+        _constant += std::forward<E>(e).constant();
+        for(auto && [var, coef] : std::forward<E>(e).linear_terms()) {
+            _terms.emplace_back(var, coef);
+        }
+        return *this;
+    }
+
+    constexpr runtime_linear_expression & operator+=(_Scalar c) {
+        _constant += c;
+        return *this;
+    }
+};
 
 }  // namespace fhamonic::mippp
 

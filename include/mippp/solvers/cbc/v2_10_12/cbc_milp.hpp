@@ -19,11 +19,12 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/cbc/v2_10_12/cbc_api.hpp"
+#include "mippp/solvers/model_base.hpp"
 
 namespace fhamonic::mippp {
 namespace cbc::v2_10_12 {
 
-class cbc_milp {
+class cbc_milp : public model_base<int, double> {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -34,15 +35,6 @@ public:
     using variable_mapping = entity_mapping<variable, Map>;
     template <typename Map>
     using constraint_mapping = entity_mapping<constraint, Map>;
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
-
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 private:
     const cbc_api & Cbc;
@@ -66,14 +58,10 @@ private:
     std::size_t _lazy_num_variables;
     std::size_t _lazy_num_constraints;
 
-    std::vector<std::pair<constraint_id, unsigned int>>
-        tmp_constraint_entry_cache;
-    std::vector<int> tmp_variables;
-    std::vector<double> tmp_scalars;
-
 public:
     [[nodiscard]] explicit cbc_milp(const cbc_api & api)
-        : Cbc(api)
+        : model_base<int, double>()
+        , Cbc(api)
         , model(Cbc.newModel())
         , objective_offset(0.0)
         , feasibility_tol(1e-4)
@@ -138,25 +126,6 @@ private:
                    p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, is_integer,
                    0, NULL, NULL);
         ++_lazy_num_variables;
-    }
-    inline auto _make_variables_range(const std::size_t & offset,
-                                      const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
-                                              const std::size_t & count,
-                                              IL && id_lambda) {
-        return make_indexed_variables_range(
-            typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
     }
 
 public:
@@ -267,16 +236,7 @@ private:
     void _add_constraint(const int & constr_id, const LC & lc) {
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_linear_terms(lc.linear_terms());
         Cbc.addRow(model, "", static_cast<int>(tmp_variables.size()),
                    tmp_variables.data(), tmp_scalars.data(),
                    constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
@@ -285,7 +245,7 @@ private:
 
 public:
     constraint add_constraint(linear_constraint auto && lc) {
-        tmp_constraint_entry_cache.resize(_lazy_num_variables);
+        tmp_entry_index_cache.resize(_lazy_num_variables);
         int constr_id = static_cast<int>(_lazy_num_constraints);
         _add_constraint(constr_id, lc);
         return constraint(constr_id);
@@ -316,7 +276,7 @@ private:
 public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        tmp_constraint_entry_cache.resize(_lazy_num_variables);
+        tmp_entry_index_cache.resize(_lazy_num_variables);
         const int offset = static_cast<int>(_lazy_num_constraints);
         int constr_id = offset;
         for(auto && key : keys) {
@@ -360,10 +320,7 @@ public:
         const int constr_id = static_cast<int>(_lazy_num_constraints);
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_linear_terms(le.linear_terms());
         const double c = le.constant();
         Cbc.addRow(model, "", static_cast<int>(tmp_variables.size()),
                    tmp_variables.data(), tmp_scalars.data(), 'L', ub - c);

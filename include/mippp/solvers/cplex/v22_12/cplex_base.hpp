@@ -16,11 +16,12 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/cplex/v22_12/cplex_api.hpp"
+#include "mippp/solvers/model_base.hpp"
 
 namespace fhamonic::mippp {
 namespace cplex::v22_12 {
 
-class cplex_base_model {
+class cplex_base : public model_base<int, double> {
 public:
     using variable_id = int;
     using constraint_id = int;
@@ -32,26 +33,13 @@ public:
     template <typename Map>
     using constraint_mapping = entity_mapping<constraint, Map>;
 
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
-
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
-
 protected:
     int cplex_status;
     const cplex_api & CPX;
     CPXCENVptr env;
     CPXLPptr lp;
 
-    std::vector<std::pair<constraint_id, unsigned int>>
-        tmp_constraint_entry_cache;
     std::vector<int> tmp_indices;
-    std::vector<int> tmp_variables;
-    std::vector<double> tmp_scalars;
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
@@ -74,11 +62,12 @@ protected:
     // }
 
 public:
-    [[nodiscard]] explicit cplex_base_model(const cplex_api & api)
-        : CPX(api)
+    [[nodiscard]] explicit cplex_base(const cplex_api & api)
+        : model_base<int, double>()
+        , CPX(api)
         , env(CPX.openCPLEX(&cplex_status))
-        , lp(CPX.createprob(env, &cplex_status, "cplex_base_model")) {}
-    ~cplex_base_model() { check(CPX.freeprob(env, &lp)); }
+        , lp(CPX.createprob(env, &cplex_status, "cplex_base")) {}
+    ~cplex_base() { check(CPX.freeprob(env, &lp)); }
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(CPX.getnumcols(env, lp));
@@ -162,25 +151,6 @@ protected:
                 : NULL,
             (type != CPX_CONTINUOUS) ? tmp_types.data() : NULL, NULL));
     }
-    inline auto _make_variables_range(const std::size_t & offset,
-                                      const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
-                                              const std::size_t & count,
-                                              IL && id_lambda) {
-        return make_indexed_variables_range(
-            typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
-    }
 
 public:
     variable add_variable(
@@ -243,19 +213,8 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
-        tmp_constraint_entry_cache.resize(num_variables());
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _reset_cache(num_variables());
+        _register_linear_terms(lc.linear_terms());
         int matbegin = 0;
         const double b = lc.rhs();
         const char sense = constraint_sense_to_cplex_sense(lc.sense());
@@ -271,16 +230,7 @@ private:
         tmp_indices.emplace_back(static_cast<int>(tmp_variables.size()));
         tmp_types.emplace_back(constraint_sense_to_cplex_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_linear_terms(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -307,10 +257,8 @@ private:
 public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        tmp_constraint_entry_cache.resize(num_variables());
+        _reset_cache(num_variables());
         tmp_indices.resize(0);
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
         const int offset = static_cast<int>(num_constraints());

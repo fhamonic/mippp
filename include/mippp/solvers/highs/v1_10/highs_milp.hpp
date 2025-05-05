@@ -14,15 +14,15 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/highs/v1_10/highs_base_model.hpp"
+#include "mippp/solvers/highs/v1_10/highs_base.hpp"
 
 namespace fhamonic::mippp {
 namespace highs::v1_10 {
 
-class highs_milp : public highs_base_model {
+class highs_milp : public highs_base {
 public:
     [[nodiscard]] explicit highs_milp(const highs_api & api)
-        : highs_base_model(api) {}
+        : highs_base(api) {}
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {

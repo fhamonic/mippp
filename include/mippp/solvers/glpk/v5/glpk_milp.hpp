@@ -9,18 +9,18 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/glpk/v5/glpk_base_model.hpp"
+#include "mippp/solvers/glpk/v5/glpk_base.hpp"
 
 namespace fhamonic::mippp {
 namespace glpk::v5 {
 
-class glpk_milp : public glpk_base_model {
+class glpk_milp : public glpk_base {
 private:
     glp_iocp model_params;
 
 public:
     [[nodiscard]] explicit glpk_milp(const glpk_api & api)
-        : glpk_base_model(api), model_params() {
+        : glpk_base(api), model_params() {
         model_params.msg_lev = GLP_MSG_ALL;
         model_params.br_tech = GLP_BR_PCH;
         model_params.bt_tech = GLP_BT_BLB;

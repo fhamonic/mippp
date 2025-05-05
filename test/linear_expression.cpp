@@ -35,11 +35,11 @@ GTEST_TEST(linear_expression_operators, scalar_div) {
 
 GTEST_TEST(linear_expression_operators, add_terms) {
     ASSERT_LIN_EXPR(Var(1) * 3.2 + Var(2) * 1.5, {Var(1), Var(2)}, {3.2, 1.5},
-                      0);
+                    0);
 }
 GTEST_TEST(linear_expression_operators, substract_terms) {
-    ASSERT_LIN_EXPR(Var(1) * 3.2 - Var(2) * 1.5, {Var(1), Var(2)},
-                      {3.2, -1.5}, 0);
+    ASSERT_LIN_EXPR(Var(1) * 3.2 - Var(2) * 1.5, {Var(1), Var(2)}, {3.2, -1.5},
+                    0);
 }
 
 GTEST_TEST(linear_expression_operators, lvalues_tests) {
@@ -56,4 +56,12 @@ GTEST_TEST(linear_expression_operators, xsum_test) {
     static_assert(linear_expression<decltype(Var(2))>);
     auto e1 = e + Var(13);
     ASSERT_LIN_EXPR(e1, {Var(13)}, {1.0}, 0);
+}
+
+GTEST_TEST(runtime_linear_expression, test) {
+    runtime_linear_expression<Var, double> e;
+    e += Var(13) - 2;
+    e += 4.5;
+    static_assert(linear_expression<decltype(e)>);
+    ASSERT_LIN_EXPR(e, {Var(13)}, {1.0}, 2.5);
 }

@@ -6,18 +6,17 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/mosek/v11/mosek_base_model.hpp"
+#include "mippp/solvers/mosek/v11/mosek_base.hpp"
 
 namespace fhamonic::mippp {
 namespace mosek::v11 {
 
-class mosek_lp : public mosek_base_model {
+class mosek_lp : public mosek_base {
 private:
     std::optional<lp_status> opt_lp_status;
 
 public:
-    [[nodiscard]] explicit mosek_lp(const mosek_api & api)
-        : mosek_base_model(api) {}
+    [[nodiscard]] explicit mosek_lp(const mosek_api & api) : mosek_base(api) {}
 
     void solve() { check(MSK.optimize(task)); }
 

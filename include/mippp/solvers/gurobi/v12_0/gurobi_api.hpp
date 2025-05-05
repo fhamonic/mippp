@@ -56,6 +56,7 @@ int GRBgetconstrs(GRBmodel * model, int * numnzP, int * cbeg, int * cind,
 int GRBoptimize(GRBmodel * model);
 
 constexpr const char * GRB_INT_PAR_DUALREDUCTIONS = "DualReductions";
+constexpr const char * GRB_INT_PAR_LAZYCONSTRAINTS = "LazyConstraints";
 int GRBsetintparam(GRBenv * env, const char * paramname, int value);
 int GRBgetintparam(GRBenv * env, const char * paramname, int * valueP);
 constexpr const char * GRB_DBL_PAR_FEASIBILITYTOL = "FeasibilityTol";
@@ -133,6 +134,23 @@ int GRBsetstrattrelement(GRBmodel * model, const char * attrname, int element,
                          const char * newvalue);
 int GRBgetstrattrelement(GRBmodel * model, const char * attrname, int element,
                          char ** valueP);
+
+int GRBsetcallbackfunc(GRBmodel * model,
+                       int (*cb)(GRBmodel * model, void * cbdata, int where,
+                                 void * usrdata),
+                       void * usrdata);
+int GRBcbproceed(void * cbdata);
+int GRBcbget(void * cbdata, int where, int what, void * resultP);
+int GRBcbsetintparam(void * cbdata, const char * paramname, int newvalue);
+int GRBcbsetdblparam(void * cbdata, const char * paramname, double newvalue);
+int GRBcbsetstrparam(void * cbdata, const char * paramname,
+                     const char * newvalue);
+int GRBcbsetparam(void * cbdata, const char * paramname, const char * newvalue);
+int GRBcbsolution(void * cbdata, const double * solution, double * objvalP);
+int GRBcbcut(void * cbdata, int cutlen, const int * cutind,
+             const double * cutval, char cutsense, double cutrhs);
+int GRBcblazy(void * cbdata, int lazylen, const int * lazyind,
+              const double * lazyval, char lazysense, double lazyrhs);
 }  // namespace gurobi::v12_0
 }  // namespace fhamonic::mippp
 #endif
@@ -184,7 +202,17 @@ namespace gurobi::v12_0 {
     F(GRBsetcharattrarray, setcharattrarray)           \
     F(GRBgetcharattrarray, getcharattrarray)           \
     F(GRBsetstrattrelement, setstrattrelement)         \
-    F(GRBgetstrattrelement, getstrattrelement)
+    F(GRBgetstrattrelement, getstrattrelement)         \
+    F(GRBsetcallbackfunc, setcallbackfunc)             \
+    F(GRBcbproceed, cbproceed)                         \
+    F(GRBcbget, cbget)                                 \
+    F(GRBcbsetintparam, cbsetintparam)                 \
+    F(GRBcbsetdblparam, cbsetdblparam)                 \
+    F(GRBcbsetstrparam, cbsetstrparam)                 \
+    F(GRBcbsetparam, cbsetparam)                       \
+    F(GRBcbsolution, cbsolution)                       \
+    F(GRBcbcut, cbcut)                                 \
+    F(GRBcblazy, cblazy)
 
 #define DECLARE_GUROBI_FUN(FULL, SHORT)   \
     using SHORT##_fun_t = decltype(FULL); \

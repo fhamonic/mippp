@@ -20,11 +20,12 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/clp/v1_17/clp_api.hpp"
+#include "mippp/solvers/model_base.hpp"
 
 namespace fhamonic::mippp {
 namespace clp::v1_17 {
 
-class clp_lp {
+class clp_lp : public model_base<int, double> {
 public:
     using index = CoinBigIndex;
     using variable_id = int;
@@ -36,15 +37,6 @@ public:
     using variable_mapping = entity_mapping<variable, Map>;
     template <typename Map>
     using constraint_mapping = entity_mapping<constraint, Map>;
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
-
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 private:
     const clp_api & Clp;
@@ -66,14 +58,12 @@ private:
     // }
 
     std::vector<index> tmp_indices;
-    std::vector<variable_id> tmp_variables;
-    std::vector<scalar> tmp_scalars;
     std::vector<scalar> tmp_lower_bounds;
     std::vector<scalar> tmp_upper_bounds;
 
 public:
     [[nodiscard]] explicit clp_lp(const clp_api & api)
-        : Clp(api), model(Clp.newModel()) {}
+        : model_base<int, double>(), Clp(api), model(Clp.newModel()) {}
     ~clp_lp() { Clp.deleteModel(model); }
 
     std::size_t num_variables() {
@@ -208,10 +198,7 @@ public:
         int constr_id = static_cast<int>(num_constraints());
         tmp_variables.resize(0);
         tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_raw_linear_terms(lc.linear_terms());
         const scalar b = lc.rhs();
         index starts[2] = {0, static_cast<index>(tmp_variables.size())};
         Clp.addRows(model, 1,

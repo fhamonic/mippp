@@ -1,5 +1,5 @@
-#ifndef MIPPP_HIGHS_v1_10_BASE_MODEL_HPP
-#define MIPPP_HIGHS_v1_10_BASE_MODEL_HPP
+#ifndef MIPPP_HIGHS_v1_10_BASE_HPP
+#define MIPPP_HIGHS_v1_10_BASE_HPP
 
 #include <limits>
 #include <optional>
@@ -15,11 +15,12 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/highs/v1_10/highs_api.hpp"
+#include "mippp/solvers/model_base.hpp"
 
 namespace fhamonic::mippp {
 namespace highs::v1_10 {
 
-class highs_base_model {
+class highs_base : public model_base<int, double> {
 public:
     using index = HighsInt;
     using variable_id = HighsInt;
@@ -32,36 +33,23 @@ public:
     template <typename Map>
     using constraint_mapping = entity_mapping<constraint, Map>;
 
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
-
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
-
 protected:
     const highs_api & Highs;
     void * model;
 
-    std::vector<std::pair<constraint_id, unsigned int>>
-        tmp_constraint_entry_cache;
     std::vector<index> tmp_indices;
-    std::vector<variable_id> tmp_variables;
-    std::vector<scalar> tmp_scalars;
     std::vector<scalar> tmp_lower_bounds;
     std::vector<scalar> tmp_upper_bounds;
 
 public:
-    [[nodiscard]] explicit highs_base_model(const highs_api & api)
-        : Highs(api), model(Highs.create()) {}
-    ~highs_base_model() { Highs.destroy(model); }
+    [[nodiscard]] explicit highs_base(const highs_api & api)
+        : model_base<int, double>(), Highs(api), model(Highs.create()) {}
+    ~highs_base() { Highs.destroy(model); }
 
 protected:
     void check(int status) {
         if(status == kHighsStatusError)
-            throw std::runtime_error("highs_base_model: error");
+            throw std::runtime_error("highs_base: error");
     }
 
 public:
@@ -150,25 +138,6 @@ protected:
                 static_cast<HighsInt>(count - 1), tmp_variables.data()));
         }
     }
-    inline auto _make_variables_range(const std::size_t & offset,
-                                      const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
-                                              const std::size_t & count,
-                                              IL && id_lambda) {
-        return make_indexed_variables_range(
-            typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
-    }
 
 public:
     variable add_variable(
@@ -240,19 +209,8 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         HighsInt constr_id = static_cast<HighsInt>(num_constraints());
-        tmp_constraint_entry_cache.resize(num_variables());
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _reset_cache(num_variables());
+        _register_linear_terms(lc.linear_terms());
         const scalar b = lc.rhs();
         check(Highs.addRow(model,
                            (lc.sense() == constraint_sense::less_equal)
@@ -279,16 +237,7 @@ private:
             (lc.sense() == constraint_sense::greater_equal)
                 ? Highs.getInfinity(model)
                 : b);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_linear_terms(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -315,10 +264,8 @@ private:
 public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        tmp_constraint_entry_cache.resize(num_variables());
+        _reset_cache(num_variables());
         tmp_indices.resize(0);
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
         tmp_lower_bounds.resize(0);
         tmp_upper_bounds.resize(0);
         const HighsInt offset = static_cast<HighsInt>(num_constraints());
@@ -343,4 +290,4 @@ public:
 }  // namespace highs::v1_10
 }  // namespace fhamonic::mippp
 
-#endif  // MIPPP_HIGHS_v1_10_BASE_MODEL_HPP
+#endif  // MIPPP_HIGHS_v1_10_BASE_HPP

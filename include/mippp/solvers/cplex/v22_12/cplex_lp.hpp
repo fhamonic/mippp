@@ -8,15 +8,14 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/cplex/v22_12/cplex_base_model.hpp"
+#include "mippp/solvers/cplex/v22_12/cplex_base.hpp"
 
 namespace fhamonic::mippp {
 namespace cplex::v22_12 {
 
-class cplex_lp : public cplex_base_model {
+class cplex_lp : public cplex_base {
 public:
-    [[nodiscard]] explicit cplex_lp(const cplex_api & api)
-        : cplex_base_model(api) {}
+    [[nodiscard]] explicit cplex_lp(const cplex_api & api) : cplex_base(api) {}
 
     void solve() {
         // if(num_variables() == 0u) {

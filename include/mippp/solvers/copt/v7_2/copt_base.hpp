@@ -1,5 +1,5 @@
-#ifndef MIPPP_COPT_v7_2_BASE_MODEL_HPP
-#define MIPPP_COPT_v7_2_BASE_MODEL_HPP
+#ifndef MIPPP_COPT_v7_2_BASE_HPP
+#define MIPPP_COPT_v7_2_BASE_HPP
 
 #include <filesystem>
 #include <limits>
@@ -16,11 +16,12 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/copt/v7_2/copt_api.hpp"
+#include "mippp/solvers/model_base.hpp"
 
 namespace fhamonic::mippp {
 namespace copt::v7_2 {
 
-class copt_base_model {
+class copt_base : public model_base<int, double> {
 public:
     using indice = int;
     using variable_id = int;
@@ -33,32 +34,18 @@ public:
     template <typename Map>
     using constraint_mapping = entity_mapping<constraint, Map>;
 
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
-
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
-
 protected:
     const copt_api & COPT;
     copt_env * env;
     copt_prob * prob;
 
-    int _num_obj;
-    std::vector<std::pair<constraint_id, unsigned int>>
-        tmp_constraint_entry_cache;
     std::vector<indice> tmp_indices;
-    std::vector<variable_id> tmp_variables;
-    std::vector<scalar> tmp_scalars;
     std::vector<char> tmp_types;
     std::vector<scalar> tmp_rhs;
 
     void check(ret_code error) const {
         if(error == COPT_RETCODE_OK) return;
-        throw std::runtime_error("copt_base_model error");
+        throw std::runtime_error("copt_base error");
     }
 
     static constexpr char constraint_sense_to_copt_sense(constraint_sense rel) {
@@ -74,12 +61,12 @@ protected:
     }
 
 public:
-    [[nodiscard]] explicit copt_base_model(const copt_api & api)
-        : COPT(api), env(NULL), prob(NULL), _num_obj(0) {
+    [[nodiscard]] explicit copt_base(const copt_api & api)
+        : model_base<int, double>(), COPT(api), env(NULL), prob(NULL) {
         COPT.CreateEnv(&env);
         COPT.CreateProb(env, &prob);
     }
-    ~copt_base_model() {
+    ~copt_base() {
         COPT.DeleteProb(&prob);
         COPT.DeleteEnv(&env);
     }
@@ -108,20 +95,8 @@ public:
     }
 
     void set_objective(linear_expression auto && le) {
-        --_num_obj;
-        tmp_constraint_entry_cache.resize(num_variables());
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == _num_obj) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(_num_obj, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _reset_cache(num_variables());
+        _register_linear_terms(le.linear_terms());
         check(COPT.ReplaceColObj(prob, static_cast<int>(tmp_variables.size()),
                                  tmp_variables.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
@@ -134,8 +109,7 @@ public:
     }
 
 protected:
-    void _add_variable(const variable_params & params,
-                       const char type) {
+    void _add_variable(const variable_params & params, const char type) {
         check(COPT.AddCol(prob, params.obj_coef, 0, NULL, NULL, type,
                           params.lower_bound.value_or(-COPT_INFINITY),
                           params.upper_bound.value_or(+COPT_INFINITY), NULL));
@@ -168,25 +142,6 @@ protected:
                    static_cast<std::ptrdiff_t>(dbl_offset_2.value()))
                 : NULL,
             NULL));
-    }
-    inline auto _make_variables_range(const std::size_t & offset,
-                                      const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
-                                              const std::size_t & count,
-                                              IL && id_lambda) {
-        return make_indexed_variables_range(
-            typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
     }
 
 public:
@@ -247,19 +202,8 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         auto constr_id = static_cast<constraint_id>(num_constraints());
-        tmp_constraint_entry_cache.resize(num_variables());
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _reset_cache(num_variables());
+        _register_linear_terms(lc.linear_terms());
         const scalar b = lc.rhs();
         check(COPT.AddRow(prob, static_cast<int>(tmp_variables.size()),
                           tmp_variables.data(), tmp_scalars.data(),
@@ -274,16 +218,7 @@ private:
         tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
         tmp_types.emplace_back(constraint_sense_to_copt_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_linear_terms(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -310,10 +245,8 @@ private:
 public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        tmp_constraint_entry_cache.resize(num_variables());
+        _reset_cache(num_variables());
         tmp_indices.resize(0);
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
         const indice offset = static_cast<indice>(num_constraints());
@@ -338,4 +271,4 @@ public:
 }  // namespace copt::v7_2
 }  // namespace fhamonic::mippp
 
-#endif  // MIPPP_COPT_v7_2_BASE_MODEL_HPP
+#endif  // MIPPP_COPT_v7_2_BASE_HPP

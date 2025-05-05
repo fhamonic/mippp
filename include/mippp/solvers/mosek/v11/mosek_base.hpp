@@ -15,12 +15,13 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
+#include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/mosek/v11/mosek_api.hpp"
 
 namespace fhamonic::mippp {
 namespace mosek::v11 {
 
-class mosek_base_model {
+class mosek_base : public model_base<int, double> {
 public:
     using indice = MSKint32t;
     using variable_id = MSKint32t;
@@ -33,25 +34,12 @@ public:
     template <typename Map>
     using constraint_mapping = entity_mapping<constraint, Map>;
 
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
-
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
-
 protected:
     const mosek_api & MSK;
     MSKenv_t env;
     MSKtask_t task;
 
-    std::vector<std::pair<constraint_id, unsigned int>>
-        tmp_constraint_entry_cache;
     std::vector<indice> tmp_indices;
-    std::vector<variable_id> tmp_variables;
-    std::vector<scalar> tmp_scalars;
     std::vector<MSKboundkeye> tmp_boundkeye;
     std::vector<scalar> tmp_rhs;
     std::vector<MSKvariabletypee> tmp_vartype;
@@ -77,13 +65,13 @@ protected:
     }
 
 public:
-    [[nodiscard]] explicit mosek_base_model(const mosek_api & api)
-        : MSK(api), env(NULL), task(NULL) {
+    [[nodiscard]] explicit mosek_base(const mosek_api & api)
+        : model_base<int, double>(), MSK(api), env(NULL), task(NULL) {
         check(MSK.makeenv(
             &env, (std::filesystem::temp_directory_path() / "mosek_").c_str()));
         check(MSK.makeemptytask(env, &task));
     }
-    ~mosek_base_model() {
+    ~mosek_base() {
         check(MSK.deletetask(&task));
         check(MSK.deleteenv(&env));
     }
@@ -190,25 +178,6 @@ protected:
                                      tmp_variables.data(), tmp_vartype.data()));
         }
     }
-    inline auto _make_variables_range(const std::size_t & offset,
-                                      const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
-                                              const std::size_t & count,
-                                              IL && id_lambda) {
-        return make_indexed_variables_range(
-            typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
-    }
 
 public:
     variable add_variable(
@@ -265,19 +234,8 @@ public:
     constraint add_constraint(linear_constraint auto && lc) {
         auto constr_id = static_cast<constraint_id>(num_constraints());
         check(MSK.appendcons(task, 1));
-        tmp_constraint_entry_cache.resize(num_variables());
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _reset_cache(num_variables());
+        _register_linear_terms(lc.linear_terms());
         check(MSK.putarow(task, constr_id,
                           static_cast<indice>(tmp_variables.size()),
                           tmp_variables.data(), tmp_scalars.data()));
@@ -294,16 +252,7 @@ private:
         tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
         tmp_boundkeye.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_linear_terms(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -330,10 +279,8 @@ private:
 public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        tmp_constraint_entry_cache.resize(num_variables());
+        _reset_cache(num_variables());
         tmp_indices.resize(0);
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
         tmp_boundkeye.resize(0);
         tmp_rhs.resize(0);
         const indice offset = static_cast<indice>(num_constraints());

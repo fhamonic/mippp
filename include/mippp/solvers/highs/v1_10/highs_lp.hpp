@@ -8,18 +8,17 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/highs/v1_10/highs_base_model.hpp"
+#include "mippp/solvers/highs/v1_10/highs_base.hpp"
 
 namespace fhamonic::mippp {
 namespace highs::v1_10 {
 
-class highs_lp : public highs_base_model {
+class highs_lp : public highs_base {
 private:
     std::optional<lp_status> opt_lp_status;
 
 public:
-    [[nodiscard]] explicit highs_lp(const highs_api & api)
-        : highs_base_model(api) {}
+    [[nodiscard]] explicit highs_lp(const highs_api & api) : highs_base(api) {}
 
     void solve() {
         check(Highs.run(model));

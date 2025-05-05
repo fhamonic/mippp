@@ -10,18 +10,17 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/copt/v7_2/copt_base_model.hpp"
+#include "mippp/solvers/copt/v7_2/copt_base.hpp"
 
 namespace fhamonic::mippp {
 namespace copt::v7_2 {
 
-class copt_milp : public copt_base_model {
+class copt_milp : public copt_base {
 private:
     int _is_mip;
 
 public:
-    [[nodiscard]] explicit copt_milp(const copt_api & api)
-        : copt_base_model(api) {}
+    [[nodiscard]] explicit copt_milp(const copt_api & api) : copt_base(api) {}
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {

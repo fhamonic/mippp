@@ -7,15 +7,15 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/gurobi/v12_0/gurobi_base_model.hpp"
+#include "mippp/solvers/gurobi/v12_0/gurobi_base.hpp"
 
 namespace fhamonic::mippp {
 namespace gurobi::v12_0 {
 
-class gurobi_milp : public gurobi_base_model {
+class gurobi_milp : public gurobi_base {
 public:
     [[nodiscard]] explicit gurobi_milp(const gurobi_api & api)
-        : gurobi_base_model(api) {}
+        : gurobi_base(api) {}
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {

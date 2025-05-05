@@ -1,7 +1,6 @@
-#ifndef MIPPP_GUROBI_v12_0_BASE_MODEL_HPP
-#define MIPPP_GUROBI_v12_0_BASE_MODEL_HPP
+#ifndef MIPPP_GUROBI_v12_0_BASE_HPP
+#define MIPPP_GUROBI_v12_0_BASE_HPP
 
-#include <limits>
 #include <optional>
 #include <vector>
 
@@ -16,12 +15,14 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
+#include "mippp/solvers/model_base.hpp"
 
 namespace fhamonic::mippp {
 namespace gurobi::v12_0 {
 
-class gurobi_base_model {
+class gurobi_base : public model_base<int, double> {
 public:
+    using indice = int;
     using variable_id = int;
     using constraint_id = int;
     using scalar = double;
@@ -31,15 +32,6 @@ public:
     using variable_mapping = entity_mapping<variable, Map>;
     template <typename Map>
     using constraint_mapping = entity_mapping<constraint, Map>;
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
-
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
     const gurobi_api & GRB;
@@ -62,19 +54,18 @@ protected:
     std::size_t _lazy_num_variables;
     std::size_t _lazy_num_constraints;
 
-    std::vector<std::pair<constraint_id, unsigned int>>
-        tmp_constraint_entry_cache;
     std::vector<int> tmp_indices;
-    std::vector<int> tmp_variables;
-    std::vector<double> tmp_scalars;
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
     std::vector<bool> _var_name_set;
 
 public:
-    [[nodiscard]] explicit gurobi_base_model(const gurobi_api & api)
-        : GRB(api), _lazy_num_variables(0), _lazy_num_constraints(0) {
+    [[nodiscard]] explicit gurobi_base(const gurobi_api & api)
+        : model_base<int, double>()
+        , GRB(api)
+        , _lazy_num_variables(0)
+        , _lazy_num_constraints(0) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
@@ -84,9 +75,9 @@ public:
         env = GRB.getenv(model);
         if(env == NULL)
             throw std::runtime_error(
-                "gurobi_base_model: Could not retrieve model environement.");
+                "gurobi_base: Could not retrieve model environement.");
     }
-    ~gurobi_base_model() { check(GRB.freemodel(model)); };
+    ~gurobi_base() { check(GRB.freemodel(model)); };
 
 protected:
     void check(int error) {
@@ -103,7 +94,7 @@ public:
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMVARS, &num));
         if(static_cast<std::size_t>(num) != _lazy_num_variables)
             throw std::runtime_error(
-                "gurobi_base_model: _lazy_num_variables differs from gurobi "
+                "gurobi_base: _lazy_num_variables differs from gurobi "
                 "one.");
         return _lazy_num_variables;
     }
@@ -113,7 +104,7 @@ public:
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMCONSTRS, &num));
         if(static_cast<std::size_t>(num) != _lazy_num_constraints)
             throw std::runtime_error(
-                "gurobi_base_model: _lazy_num_constraints differs from "
+                "gurobi_base: _lazy_num_constraints differs from "
                 "gurobi "
                 "one.");
         return _lazy_num_constraints;
@@ -225,25 +216,6 @@ protected:
         _lazy_num_variables += count;
         _var_name_set.resize(offset + count, false);
     }
-    inline auto _make_variables_range(const std::size_t & offset,
-                                      const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
-                                              const std::size_t & count,
-                                              IL && id_lambda) {
-        return make_indexed_variables_range(
-            typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
-    }
 
 public:
     variable add_variable(
@@ -330,19 +302,8 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(_lazy_num_constraints++);
-        tmp_constraint_entry_cache.resize(_lazy_num_variables);
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _reset_cache(_lazy_num_variables);
+        _register_linear_terms(lc.linear_terms());
         check(GRB.addconstr(model, static_cast<int>(tmp_variables.size()),
                             tmp_variables.data(), tmp_scalars.data(),
                             constraint_sense_to_gurobi_sense(lc.sense()),
@@ -352,27 +313,18 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _register_constraint(const int & constr_id, const LC & lc) {
+    void _register_constraint(const LC & lc) {
+        ++entry_count;
         tmp_indices.emplace_back(static_cast<int>(tmp_variables.size()));
         tmp_types.emplace_back(constraint_sense_to_gurobi_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_linear_terms(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
-    void _register_first_valued_constraint(const int & constr_id,
-                                           const Key & key,
+    void _register_first_valued_constraint(const Key & key,
                                            const LastConstrLambda & lc_lambda) {
-        _register_constraint(constr_id, lc_lambda(key));
+        _register_constraint(lc_lambda(key));
     }
     template <typename Key, typename OptConstrLambda, typename... Tail>
         requires detail::optional_type<
@@ -380,36 +332,33 @@ private:
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
     void _register_first_valued_constraint(
-        const int & constr_id, const Key & key,
-        const OptConstrLambda & opt_lc_lambda, const Tail &... tail) {
+        const Key & key, const OptConstrLambda & opt_lc_lambda,
+        const Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _register_constraint(constr_id, opt_lc.value());
+            _register_constraint(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(constr_id, key, tail...);
+        _register_first_valued_constraint(key, tail...);
     }
 
 public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        tmp_constraint_entry_cache.resize(_lazy_num_variables);
+        _reset_cache(_lazy_num_variables);
         tmp_indices.resize(0);
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
         const int offset = static_cast<int>(_lazy_num_constraints);
         int constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(constr_id, key,
-                                              constraint_lambdas...);
+            _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
         check(GRB.addconstrs(
             model, constr_id - offset, static_cast<int>(tmp_variables.size()),
             tmp_indices.data(), tmp_variables.data(), tmp_scalars.data(),
             tmp_types.data(), tmp_rhs.data(), NULL));
-        _lazy_num_constraints += static_cast<std::size_t>(constr_id);
+        _lazy_num_constraints += static_cast<std::size_t>(constr_id - offset);
         return constraints_range(
             keys,
             ranges::view::transform(ranges::view::iota(offset, constr_id),
@@ -427,23 +376,12 @@ public:
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
         int constr_id = static_cast<int>(_lazy_num_constraints++);
-        tmp_constraint_entry_cache.resize(_lazy_num_variables);
-        tmp_variables.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            auto & p = tmp_constraint_entry_cache[var.uid()];
-            if(p.first == constr_id + 1) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(constr_id + 1, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _reset_cache(_lazy_num_variables);
+        _register_linear_terms(le.linear_terms());
         check(GRB.addrangeconstr(model, static_cast<int>(tmp_variables.size()),
                                  tmp_variables.data(), tmp_scalars.data(), lb,
                                  ub, NULL));
-        ++_lazy_num_variables;
+        ++_lazy_num_variables; // added_slack variable
         return constraint(constr_id);
     }
     // void set_constraint_name(constraint constr, auto && name);
@@ -485,4 +423,4 @@ public:
 }  // namespace gurobi::v12_0
 }  // namespace fhamonic::mippp
 
-#endif  // MIPPP_GUROBI_v12_0_BASE_MODEL_HPP
+#endif  // MIPPP_GUROBI_v12_0_BASE_HPP
