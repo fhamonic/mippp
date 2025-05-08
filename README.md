@@ -12,7 +12,7 @@ Work in progress.
 
 - **Header-only**: Dynamically loading the C API of solvers allows MIP++ to stay header-only and easy to integrate to C++ projects.
 - **Modern C++20**: Utilizes ranges, lambdas, and template metaprogramming for an elegant and efficient API allowing a Pythonic syntax.
-- **Solver Agnostic**: Supports a variety of solvers (Gurobi, Clp, Cbc, GLPK, SoPlex, SCIP, Highs and more upcoming) with a unified API.
+- **Solver Agnostic**: Supports a variety of solvers (Gurobi, CPLEX, Clp, Cbc, Highs, SoPlex, SCIP, MOSEK, COPT, GLPK and more upcoming) with a unified API.
 - **High Performance**: Optimized for speed with zero cost abstractions and no unnecessary data copying.
 
 
