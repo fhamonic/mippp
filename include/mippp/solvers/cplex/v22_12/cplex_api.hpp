@@ -113,6 +113,13 @@ int CPXgetx(CPXCENVptr env, CPXCLPptr lp, double * x, int begin, int end);
 int CPXsolution(CPXCENVptr env, CPXCLPptr lp, int * lpstat_p, double * objval_p,
                 double * x, double * pi, double * slack, double * dj);
 
+int CPXcutcallbackadd(CPXCENVptr env, void * cbdata, int wherefrom, int nzcnt,
+                      double rhs, int sense, int const * cutind,
+                      double const * cutval, int purgeable);
+int CPXcutcallbackaddlocal(CPXCENVptr env, void * cbdata, int wherefrom,
+                           int nzcnt, double rhs, int sense, int const * cutind,
+                           double const * cutval);
+
 }  // namespace cplex::v22_12
 }  // namespace fhamonic::mippp
 #endif
