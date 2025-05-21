@@ -90,12 +90,6 @@ public:
     // add_sos2_constraint
     // add_indicator_constraint
 
-    // int (*cb)(GRBmodel * model, void * cbdata, int where, void * usrdata)
-
-    struct callback_handle;
-    struct callbacks_struct {
-        std::optional<std::function<void(callback_handle &)>> solution;
-    };
     class callback_handle : public model_base<int, double> {
     private:
         const gurobi_api & GRB;
@@ -140,38 +134,30 @@ public:
             return variable_mapping(std::move(solution));
         }
     };
-    callbacks_struct _callbacks;
-    callbacks_struct & get_callbacks() { return _callbacks; }
+    std::optional<std::function<int(GRBmodel *, void *, int, void *)>>
+        main_callback;
+    std::optional<std::function<void(callback_handle &)>> solution_callback;
 
 private:
-    bool _callbacks_enabled = false;
     void _enable_callbacks() {
-        if(_callbacks_enabled) return;
+        if(main_callback.has_value()) return;
+        main_callback.emplace([this](GRBmodel * master_model, void * cbdata,
+                                     int where, void * usrdata) -> int {
+            callback_handle handle(GRB, master_model, cbdata, where);
+            if(where == GRB_CB_MIPSOL && solution_callback.has_value()) {
+                solution_callback.value()(handle);
+            }
+            return 0;
+        });
         check(GRB.setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
-        check(GRB.setcallbackfunc(
-            model,
-            [](GRBmodel * master_model, void * cbdata, int where,
-               void * usrdata) -> int {
-                gurobi_milp & grb_model =
-                    *reinterpret_cast<gurobi_milp *>(usrdata);
-                callback_handle handle(grb_model.get_api(), master_model,
-                                       cbdata, where);
-                callbacks_struct & callbacks = grb_model.get_callbacks();
-
-                if(where == GRB_CB_MIPSOL && callbacks.solution.has_value()) {
-                    callbacks.solution.value()(handle);
-                }
-                return 0;
-            },
-            this));
-        _callbacks_enabled = true;
+        check(GRB.setcallbackfunc(model, main_callback.value().target<int(GRBmodel *, void *, int, void *)>(), this));
     }
 
 public:
     template <typename F>
     void set_solution_callback(F && f) {
         _enable_callbacks();
-        _callbacks.solution.emplace(std::forward<F>(f));
+        solution_callback.emplace(std::forward<F>(f));
     }
 
     void set_optimality_tolerance(double tol) {

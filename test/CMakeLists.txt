@@ -9,7 +9,7 @@ add_executable(
     variable.cpp
     linear_expression.cpp
     linear_constraint.cpp
-    bilinear_expression.cpp
+    # bilinear_expression.cpp
     model_methods.cpp
     milp_examples.cpp
     )
