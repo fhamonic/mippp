@@ -5,7 +5,7 @@ from conan.tools.build import check_min_cppstd
 
 class CompressorRecipe(ConanFile):
     name="mippp"
-    version="0.1"
+    version="0.2"
     license = "BSL-1.0"
     description="A modern interface for linear programming solvers using C++20 ranges and concepts."
     homepage = "https://github.com/fhamonic/mippp.git"
@@ -19,6 +19,7 @@ class CompressorRecipe(ConanFile):
 
     def requirements(self):
         self.requires("range-v3/cci.20240905")
+        self.requires("dylib/2.2.1")
         
     def build_requirements(self):
         self.test_requires("gtest/[>=1.10.0 <cci]")
@@ -39,7 +40,7 @@ class CompressorRecipe(ConanFile):
         cmake = CMake(self)
         cmake.configure(variables={"ENABLE_TESTING":"ON"})
         cmake.build()
-        # cmake.test(cli_args=["CTEST_OUTPUT_ON_FAILURE=1"])
+        cmake.test(cli_args=["CTEST_OUTPUT_ON_FAILURE=1"])
         
     def package(self):
         copy(self, "*.hpp", self.source_folder, self.package_folder)
