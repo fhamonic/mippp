@@ -200,7 +200,7 @@ for(auto i : indices) {
 ```
 ## Roadmap
 
-- Add support for COPT and XPRS
-- Improve the support for Highs, CPLEX, MOSEK and SCIP
-- Implement API for advanced features like column generation, sos constraints and indicator constraints
-
+- Add callbacks for Highs, CPLEX, Cbc, MOSEK and COPT.
+- Add support for XPRS
+- Add special constraints (sos and indicator constraints)
+- Add column generation features
