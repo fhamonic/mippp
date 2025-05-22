@@ -79,8 +79,6 @@ public:
     }
     ~gurobi_base() { check(GRB.freemodel(model)); };
 
-    const gurobi_api & get_api() const { return GRB; }
-
 protected:
     void check(int error) {
         if(error)

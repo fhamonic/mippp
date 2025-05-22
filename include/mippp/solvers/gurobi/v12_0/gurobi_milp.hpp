@@ -134,11 +134,12 @@ public:
             return variable_mapping(std::move(solution));
         }
     };
+
+private:
     std::optional<std::function<int(GRBmodel *, void *, int, void *)>>
         main_callback;
     std::optional<std::function<void(callback_handle &)>> solution_callback;
 
-private:
     void _enable_callbacks() {
         if(main_callback.has_value()) return;
         main_callback.emplace([this](GRBmodel * master_model, void * cbdata,
@@ -150,7 +151,11 @@ private:
             return 0;
         });
         check(GRB.setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
-        check(GRB.setcallbackfunc(model, main_callback.value().target<int(GRBmodel *, void *, int, void *)>(), this));
+        check(GRB.setcallbackfunc(
+            model,
+            main_callback.value()
+                .target<int(GRBmodel *, void *, int, void *)>(),
+            this));
     }
 
 public:

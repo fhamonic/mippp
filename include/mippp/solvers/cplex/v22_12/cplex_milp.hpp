@@ -98,6 +98,79 @@ public:
         check(CPX.chgbds(env, lp, 2, &var_id, lu, bd));
     }
 
+    // class callback_handle : public model_base<int, double> {
+    // private:
+
+    //     static constexpr char constraint_sense_to_gurobi_sense(
+    //         constraint_sense rel) {
+    //         if(rel == constraint_sense::less_equal) return GRB_LESS_EQUAL;
+    //         if(rel == constraint_sense::equal) return GRB_EQUAL;
+    //         return GRB_GREATER_EQUAL;
+    //     }
+
+    // public:
+    //     callback_handle(const gurobi_api & api, GRBmodel * master_model_,
+    //                     void * cbdata_, int where_)
+    //         : model_base<int, double>()
+    //         , GRB(api)
+    //         , master_model(master_model_)
+    //         , cbdata(cbdata_)
+    //         , where(where_) {}
+
+    //     std::size_t num_variables() {
+    //         int num;
+    //         GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
+    //         return static_cast<std::size_t>(num);
+    //     }
+
+    //     void add_lazy_constraint(linear_constraint auto && lc) {
+    //         _reset_cache(num_variables());
+    //         _register_linear_terms(lc.linear_terms());
+    //         GRB.cblazy(cbdata, static_cast<int>(tmp_variables.size()),
+    //                    tmp_variables.data(), tmp_scalars.data(),
+    //                    constraint_sense_to_gurobi_sense(lc.sense()), lc.rhs());
+    //     }
+
+    //     auto get_solution() {
+    //         auto solution =
+    //             std::make_unique_for_overwrite<double[]>(num_variables());
+    //         CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL, NULL);
+    //         return variable_mapping(std::move(solution));
+    //     }
+    // };
+
+    // private:
+    //     std::optional<std::function<int(GRBmodel *, void *, int, void *)>>
+    //         main_callback;
+    //     std::optional<std::function<void(callback_handle &)>>
+    //     solution_callback;
+
+    //     void _enable_callbacks() {
+    //         if(main_callback.has_value()) return;
+    //         main_callback.emplace([this](GRBmodel * master_model, void *
+    //         cbdata,
+    //                                      int where, void * usrdata) -> int {
+    //             callback_handle handle(GRB, master_model, cbdata, where);
+    //             if(where == GRB_CB_MIPSOL && solution_callback.has_value()) {
+    //                 solution_callback.value()(handle);
+    //             }
+    //             return 0;
+    //         });
+    //         check(GRB.setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
+    //         check(GRB.setcallbackfunc(
+    //             model,
+    //             main_callback.value()
+    //                 .target<int(GRBmodel *, void *, int, void *)>(),
+    //             this));
+    //     }
+
+    // public:
+    //     template <typename F>
+    //     void set_solution_callback(F && f) {
+    //         _enable_callbacks();
+    //         solution_callback.emplace(std::forward<F>(f));
+    //     }
+
     void solve() {
         int probtype = CPX.getprobtype(env, lp);
         switch(probtype) {
