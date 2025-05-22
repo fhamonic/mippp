@@ -101,72 +101,85 @@ public:
     class callback_handle : public model_base<int, double> {
     private:
         const cplex_api & CPX;
-        CPXCENVptr env;
-        CPXLPptr lp;
-        void * cbdata;
-        int wherefrom;
-
-        static constexpr char constraint_sense_to_cplex_sense(
-            constraint_sense rel) {
-            if(rel == constraint_sense::less_equal) return 'L';
-            if(rel == constraint_sense::equal) return 'E';
-            return 'G';
-        }
+        CPXCALLBACKCONTEXTptr context;
+        cplex_milp * model;
 
     public:
-        callback_handle(const cplex_api & api, CPXCENVptr env_, CPXLPptr lp_,
-                        void * cbdata_, int wherefrom_)
+        callback_handle(const cplex_api & api, CPXCALLBACKCONTEXTptr context_,
+                        cplex_milp * model_)
             : model_base<int, double>()
             , CPX(api)
-            , env(env_)
-            , lp(lp_)
-            , cbdata(cbdata_)
-            , wherefrom(wherefrom_) {}
+            , context(context_)
+            , model(model_) {}
 
         std::size_t num_variables() {
-            return static_cast<std::size_t>(CPX.getnumcols(env, lp));
+            return static_cast<std::size_t>(
+                CPX.getnumcols(model->env, model->lp));
         }
 
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
             _register_linear_terms(lc.linear_terms());
-            check(CPX.cutcallbackadd(
-                env, cbdata, wherefrom, static_cast<int>(tmp_variables.size()),
-                lc.rhs(), constraint_sense_to_cplex_sense(lc.sense()),
-                tmp_variables.data(), tmp_scalars.data(),
-                0 /*CPX_USECUT_FILTER*/));
+            int matbegin = 0;
+            const double b = lc.rhs();
+            const char sense = constraint_sense_to_cplex_sense(lc.sense());
+            check(CPX.callbackrejectcandidate(
+                context, 1, static_cast<int>(tmp_variables.size()), &b, &sense,
+                &matbegin, tmp_variables.data(), tmp_scalars.data()));
         }
 
+        double get_solution_value() {
+            double obj;
+            check(CPX.callbackgetcandidatepoint(context, NULL, 0, 0, &obj));
+            return obj;
+        }
         auto get_solution() {
-            auto solution =
-                std::make_unique_for_overwrite<double[]>(num_variables());
-            CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL, NULL);
+            auto num_vars = num_variables();
+            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
+            check(CPX.callbackgetcandidatepoint(context, solution.get(), 0,
+                                                static_cast<int>(num_vars) - 1,
+                                                NULL));
             return variable_mapping(std::move(solution));
         }
     };
 
 private:
-    std::function<callback_fun_t> lazy_constraint_callback;
+    std::function<void(callback_handle &)> lazy_constraint_callback;
+
+    static int candidate_callback_fun(CPXCALLBACKCONTEXTptr context,
+                                      CPXLONG contextid, void * userhandle) {
+        auto * model = static_cast<cplex_milp *>(userhandle);
+        callback_handle handle(model->CPX, context, model);
+        model->lazy_constraint_callback(handle);
+        return 0;
+    }
 
 public:
     template <typename F>
     void set_solution_callback(F && f) {
-        lazy_constraint_callback = [this, callback = std::forward<F>(f)](
-                                       CPXCENVptr xenv, void * cbdata,
-                                       int wherefrom, void * cbhandle,
-                                       int * useraction_p) -> int {
-            callback(callback_handle(CPX, env, lp, cbdata, wherefrom));
-            return 0;
-        };
-        check(CPXsetlazyconstraintcallbackfunc(
-            env, lazy_constraint_callback.target<callback_fun_t>(), NULL));
+        lazy_constraint_callback = std::forward<F>(f);
+        check(CPX.callbacksetfunc(env, lp, CPX_CALLBACKCONTEXT_CANDIDATE,
+                                     candidate_callback_fun, this));
     }
 
-    //     template <typename F>
-    //     void set_incumbent_callback(F && f) {
-    //         _enable_callbacks();
-    //         incumbent_callback = std::forward<F>(f);
-    //     }
+    void set_optimality_tolerance(double tol) {
+        check(CPX.setdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, tol));
+    }
+    double get_optimality_tolerance() {
+        double tol;
+        check(CPX.getdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, &tol));
+        return tol;
+    }
+
+    void set_feasibility_tolerance(double tol) {
+        check(CPX.setdblparam(env, CPXPARAM_MIP_Tolerances_Linearization, tol));
+    }
+    double get_feasibility_tolerance() {
+        double tol;
+        check(
+            CPX.getdblparam(env, CPXPARAM_MIP_Tolerances_Linearization, &tol));
+        return tol;
+    }
 
     void solve() {
         int probtype = CPX.getprobtype(env, lp);

@@ -96,6 +96,15 @@ int CPXaddmipstarts(CPXCENVptr env, CPXLPptr lp, int mcnt, int nzcnt,
                     double const * values, int const * effortlevel,
                     char ** mipstartname);
 
+constexpr int CPXPARAM_Simplex_Tolerances_Feasibility = 1016;
+// constexpr int CPXPARAM_Simplex_Tolerances_Markowitz = 1013;
+constexpr int CPXPARAM_Simplex_Tolerances_Optimality = 1014;
+constexpr int CPXPARAM_MIP_Tolerances_MIPGap = 2009;
+constexpr int CPXPARAM_MIP_Tolerances_Linearization = 2068;
+// constexpr int CPXPARAM_MIP_Tolerances_Integrality = 2010;
+int CPXgetdblparam(CPXCENVptr env, int whichparam, double * value_p);
+int CPXsetdblparam(CPXENVptr env, int whichparam, double newvalue);
+
 int CPXprimopt(CPXCENVptr env, CPXLPptr lp);
 int CPXdualopt(CPXCENVptr env, CPXLPptr lp);
 int CPXlpopt(CPXCENVptr env, CPXLPptr lp);
@@ -113,20 +122,35 @@ int CPXgetx(CPXCENVptr env, CPXCLPptr lp, double * x, int begin, int end);
 int CPXsolution(CPXCENVptr env, CPXCLPptr lp, int * lpstat_p, double * objval_p,
                 double * x, double * pi, double * slack, double * dj);
 
-using callback_fun_t = int(CPXCENVptr xenv, void * cbdata, int wherefrom,
-                           void * cbhandle, int * useraction_p);
-
-int CPXsetlazyconstraintcallbackfunc(CPXENVptr env,
-                                     callback_fun_t * lazyconcallback,
-                                     void * cbhandle);
-int CPXsetusercutcallbackfunc(CPXENVptr env, callback_fun_t * cutcallback,
-                              void * cbhandle);
-int CPXcutcallbackadd(CPXCENVptr env, void * cbdata, int wherefrom, int nzcnt,
-                      double rhs, int sense, int const * cutind,
-                      double const * cutval, int purgeable);
-int CPXcutcallbackaddlocal(CPXCENVptr env, void * cbdata, int wherefrom,
-                           int nzcnt, double rhs, int sense, int const * cutind,
-                           double const * cutval);
+using CPXLONG = long long;
+constexpr CPXLONG CPX_CALLBACKCONTEXT_BRANCHING = 0x0080;
+constexpr CPXLONG CPX_CALLBACKCONTEXT_CANDIDATE = 0x0020;
+constexpr CPXLONG CPX_CALLBACKCONTEXT_GLOBAL_PROGRESS = 0x0010;
+constexpr CPXLONG CPX_CALLBACKCONTEXT_LOCAL_PROGRESS = 0x0008;
+constexpr CPXLONG CPX_CALLBACKCONTEXT_RELAXATION = 0x0040;
+constexpr CPXLONG CPX_CALLBACKCONTEXT_THREAD_DOWN = 0x0004;
+constexpr CPXLONG CPX_CALLBACKCONTEXT_THREAD_UP = 0x0002;
+using CPXCALLBACKCONTEXTptr = struct cpxcallbackcontext *;
+using CPXCALLBACKFUNC = int(CPXCALLBACKCONTEXTptr context, CPXLONG contextid,
+                            void * userhandle);
+int CPXcallbacksetfunc(CPXENVptr env, CPXLPptr lp, CPXLONG contextmask,
+                       CPXCALLBACKFUNC callback, void * userhandle);
+int CPXcallbackgetcandidatepoint(CPXCALLBACKCONTEXTptr context, double * x,
+                                 int begin, int end, double * obj_p);
+int CPXcallbackrejectcandidate(CPXCALLBACKCONTEXTptr context, int rcnt,
+                               int nzcnt, double const * rhs,
+                               char const * sense, int const * rmatbeg,
+                               int const * rmatind, double const * rmatval);
+int CPXcallbackrejectcandidatelocal(CPXCALLBACKCONTEXTptr context, int rcnt,
+                                    int nzcnt, double const * rhs,
+                                    char const * sense, int const * rmatbeg,
+                                    int const * rmatind,
+                                    double const * rmatval);
+int CPXcallbackaddusercuts(CPXCALLBACKCONTEXTptr context, int rcnt, int nzcnt,
+                           double const * rhs, char const * sense,
+                           int const * rmatbeg, int const * rmatind,
+                           double const * rmatval, int const * purgeable,
+                           int const * local);
 
 }  // namespace cplex::v22_12
 }  // namespace fhamonic::mippp
@@ -137,58 +161,61 @@ int CPXcutcallbackaddlocal(CPXCENVptr env, void * cbdata, int wherefrom,
 namespace fhamonic::mippp {
 namespace cplex::v22_12 {
 
-#define CPLEX_FUNCTIONS(F)                                             \
-    F(CPXopenCPLEX, openCPLEX)                                         \
-    F(CPXcreateprob, createprob)                                       \
-    F(CPXgetprobtype, getprobtype)                                     \
-    F(CPXchgprobtype, chgprobtype)                                     \
-    F(CPXfreeprob, freeprob)                                           \
-    F(CPXgeterrorstring, geterrorstring)                               \
-    F(CPXchgobjsen, chgobjsen)                                         \
-    F(CPXgetobjsen, getobjsen)                                         \
-    F(CPXchgobjoffset, chgobjoffset)                                   \
-    F(CPXgetobjoffset, getobjoffset)                                   \
-    F(CPXnewcols, newcols)                                             \
-    F(CPXaddcols, addcols)                                             \
-    F(CPXaddrows, addrows)                                             \
-    F(CPXaddindconstraints, addindconstraints)                         \
-    F(CPXaddsos, addsos)                                               \
-    F(CPXchgobj, chgobj)                                               \
-    F(CPXgetobj, getobj)                                               \
-    F(CPXchgbds, chgbds)                                               \
-    F(CPXgetlb, getlb)                                                 \
-    F(CPXgetub, getub)                                                 \
-    F(CPXchgcolname, chgcolname)                                       \
-    F(CPXgetcolname, getcolname)                                       \
-    F(CPXchgctype, chgctype)                                           \
-    F(CPXgetctype, getctype)                                           \
-    F(CPXgetrows, getrows)                                             \
-    F(CPXchgsense, chgsense)                                           \
-    F(CPXgetsense, getsense)                                           \
-    F(CPXchgrhs, chgrhs)                                               \
-    F(CPXgetrhs, getrhs)                                               \
-    F(CPXchgrowname, chgrowname)                                       \
-    F(CPXgetrowname, getrowname)                                       \
-    F(CPXgetnumcols, getnumcols)                                       \
-    F(CPXgetnumrows, getnumrows)                                       \
-    F(CPXgetnumnz, getnumnz)                                           \
-    F(CPXaddmipstarts, addmipstarts)                                   \
-    F(CPXprimopt, primopt)                                             \
-    F(CPXdualopt, dualopt)                                             \
-    F(CPXlpopt, lpopt)                                                 \
-    F(CPXfeasopt, feasopt)                                             \
-    F(CPXmipopt, mipopt)                                               \
-    F(CPXbendersopt, bendersopt)                                       \
-    F(CPXcheckpfeas, checkpfeas)                                       \
-    F(CPXcheckdfeas, checkdfeas)                                       \
-    F(CPXgetobjval, getobjval)                                         \
-    F(CPXgetbestobjval, getbestobjval)                                 \
-    F(CPXgetx, getx)                                                   \
-    F(CPXsolution, solution)                                           \
-    F(CPXsetlazyconstraintcallbackfunc, setlazyconstraintcallbackfunc) \
-    F(CPXsetusercutcallbackfunc, setusercutcallbackfunc)               \
-    F(CPXcutcallbackadd, cutcallbackadd)                               \
-    F(CPXcutcallbackaddlocal, cutcallbackaddlocal)
+#define CPLEX_FUNCTIONS(F)                                           \
+    F(CPXopenCPLEX, openCPLEX)                                       \
+    F(CPXcreateprob, createprob)                                     \
+    F(CPXgetprobtype, getprobtype)                                   \
+    F(CPXchgprobtype, chgprobtype)                                   \
+    F(CPXfreeprob, freeprob)                                         \
+    F(CPXgeterrorstring, geterrorstring)                             \
+    F(CPXchgobjsen, chgobjsen)                                       \
+    F(CPXgetobjsen, getobjsen)                                       \
+    F(CPXchgobjoffset, chgobjoffset)                                 \
+    F(CPXgetobjoffset, getobjoffset)                                 \
+    F(CPXnewcols, newcols)                                           \
+    F(CPXaddcols, addcols)                                           \
+    F(CPXaddrows, addrows)                                           \
+    F(CPXaddindconstraints, addindconstraints)                       \
+    F(CPXaddsos, addsos)                                             \
+    F(CPXchgobj, chgobj)                                             \
+    F(CPXgetobj, getobj)                                             \
+    F(CPXchgbds, chgbds)                                             \
+    F(CPXgetlb, getlb)                                               \
+    F(CPXgetub, getub)                                               \
+    F(CPXchgcolname, chgcolname)                                     \
+    F(CPXgetcolname, getcolname)                                     \
+    F(CPXchgctype, chgctype)                                         \
+    F(CPXgetctype, getctype)                                         \
+    F(CPXgetrows, getrows)                                           \
+    F(CPXchgsense, chgsense)                                         \
+    F(CPXgetsense, getsense)                                         \
+    F(CPXchgrhs, chgrhs)                                             \
+    F(CPXgetrhs, getrhs)                                             \
+    F(CPXchgrowname, chgrowname)                                     \
+    F(CPXgetrowname, getrowname)                                     \
+    F(CPXgetnumcols, getnumcols)                                     \
+    F(CPXgetnumrows, getnumrows)                                     \
+    F(CPXgetnumnz, getnumnz)                                         \
+    F(CPXaddmipstarts, addmipstarts)                                 \
+    F(CPXgetdblparam, getdblparam)                                   \
+    F(CPXsetdblparam, setdblparam)                                   \
+    F(CPXprimopt, primopt)                                           \
+    F(CPXdualopt, dualopt)                                           \
+    F(CPXlpopt, lpopt)                                               \
+    F(CPXfeasopt, feasopt)                                           \
+    F(CPXmipopt, mipopt)                                             \
+    F(CPXbendersopt, bendersopt)                                     \
+    F(CPXcheckpfeas, checkpfeas)                                     \
+    F(CPXcheckdfeas, checkdfeas)                                     \
+    F(CPXgetobjval, getobjval)                                       \
+    F(CPXgetbestobjval, getbestobjval)                               \
+    F(CPXgetx, getx)                                                 \
+    F(CPXsolution, solution)                                         \
+    F(CPXcallbacksetfunc, callbacksetfunc)                           \
+    F(CPXcallbackgetcandidatepoint, callbackgetcandidatepoint)       \
+    F(CPXcallbackrejectcandidate, callbackrejectcandidate)           \
+    F(CPXcallbackrejectcandidatelocal, callbackrejectcandidatelocal) \
+    F(CPXcallbackaddusercuts, callbackaddusercuts)
 
 #define DECLARE_CPLEX_FUN(FULL, SHORT)    \
     using SHORT##_fun_t = decltype(FULL); \

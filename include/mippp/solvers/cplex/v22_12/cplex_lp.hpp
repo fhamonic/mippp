@@ -17,6 +17,28 @@ class cplex_lp : public cplex_base {
 public:
     [[nodiscard]] explicit cplex_lp(const cplex_api & api) : cplex_base(api) {}
 
+    void set_optimality_tolerance(double tol) {
+        check(
+            CPX.setdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality, tol));
+    }
+    double get_optimality_tolerance() {
+        double tol;
+        check(
+            CPX.getdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality, &tol));
+        return tol;
+    }
+
+    void set_feasibility_tolerance(double tol) {
+        check(
+            CPX.setdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility, tol));
+    }
+    double get_feasibility_tolerance() {
+        double tol;
+        check(CPX.getdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
+                              &tol));
+        return tol;
+    }
+
     void solve() {
         // if(num_variables() == 0u) {
         //     opt_lp_status.emplace(lp_status::optimal);

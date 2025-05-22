@@ -36,14 +36,14 @@ public:
 protected:
     int cplex_status;
     const cplex_api & CPX;
-    CPXCENVptr env;
+    CPXENVptr env;
     CPXLPptr lp;
 
     std::vector<int> tmp_indices;
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
-    void check(int error) const {
+    static void check(int error) {
         if(error == 0) return;
         throw std::runtime_error("CPLEX: error " + std::to_string(error));
     }

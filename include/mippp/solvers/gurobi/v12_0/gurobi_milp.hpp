@@ -96,13 +96,6 @@ public:
         void * cbdata;
         int where;
 
-        static constexpr char constraint_sense_to_gurobi_sense(
-            constraint_sense rel) {
-            if(rel == constraint_sense::less_equal) return GRB_LESS_EQUAL;
-            if(rel == constraint_sense::equal) return GRB_EQUAL;
-            return GRB_GREATER_EQUAL;
-        }
-
     public:
         callback_handle(const gurobi_api & api, GRBmodel * master_model_,
                         void * cbdata_, int where_)
@@ -135,22 +128,21 @@ public:
     };
 
 private:
-    std::function<callback_fun_t> main_callback;
     std::function<void(callback_handle &)> solution_callback;
 
+    static int main_callback(GRBmodel * master_model, void * cbdata, int where,
+                             void * usrdata) {
+        auto * model = static_cast<gurobi_milp *>(usrdata);
+        callback_handle handle(model->GRB, master_model, cbdata, where);
+        if((where == GRB_CB_MIPSOL) && model->solution_callback) {
+            model->solution_callback(handle);
+        }
+        return 0;
+    }
+
     void _enable_callbacks() {
-        if(main_callback) return;
-        main_callback = [this](GRBmodel * master_model, void * cbdata,
-                               int where, void * usrdata) -> int {
-            callback_handle handle(GRB, master_model, cbdata, where);
-            if(where == GRB_CB_MIPSOL && solution_callback) {
-                solution_callback(handle);
-            }
-            return 0;
-        };
         check(GRB.setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
-        check(GRB.setcallbackfunc(
-            model, main_callback.target<callback_fun_t>(), NULL));
+        check(GRB.setcallbackfunc(model, main_callback, this));
     }
 
 public:
