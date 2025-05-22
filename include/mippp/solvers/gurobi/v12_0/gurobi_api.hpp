@@ -147,10 +147,8 @@ enum CallbackWhere : int {
     GRB_CB_MULTIOBJ = 8,
     GRB_CB_IIS = 9
 };
-int GRBsetcallbackfunc(GRBmodel * model,
-                       int (*cb)(GRBmodel * model, void * cbdata, int where,
-                                 void * usrdata),
-                       void * usrdata);
+using callback_fun_t = int(GRBmodel *, void *, int, void *);
+int GRBsetcallbackfunc(GRBmodel * model, callback_fun_t * cb, void * usrdata);
 int GRBcbproceed(void * cbdata);
 constexpr int GRB_CB_MIPSOL_SOL = 4001;
 int GRBcbget(void * cbdata, int where, int what, void * resultP);

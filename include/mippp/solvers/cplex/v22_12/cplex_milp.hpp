@@ -98,77 +98,74 @@ public:
         check(CPX.chgbds(env, lp, 2, &var_id, lu, bd));
     }
 
-    // class callback_handle : public model_base<int, double> {
-    // private:
+    class callback_handle : public model_base<int, double> {
+    private:
+        const cplex_api & CPX;
+        CPXCENVptr env;
+        CPXLPptr lp;
+        void * cbdata;
+        int wherefrom;
 
-    //     static constexpr char constraint_sense_to_gurobi_sense(
-    //         constraint_sense rel) {
-    //         if(rel == constraint_sense::less_equal) return GRB_LESS_EQUAL;
-    //         if(rel == constraint_sense::equal) return GRB_EQUAL;
-    //         return GRB_GREATER_EQUAL;
-    //     }
+        static constexpr char constraint_sense_to_cplex_sense(
+            constraint_sense rel) {
+            if(rel == constraint_sense::less_equal) return 'L';
+            if(rel == constraint_sense::equal) return 'E';
+            return 'G';
+        }
 
-    // public:
-    //     callback_handle(const gurobi_api & api, GRBmodel * master_model_,
-    //                     void * cbdata_, int where_)
-    //         : model_base<int, double>()
-    //         , GRB(api)
-    //         , master_model(master_model_)
-    //         , cbdata(cbdata_)
-    //         , where(where_) {}
+    public:
+        callback_handle(const cplex_api & api, CPXCENVptr env_, CPXLPptr lp_,
+                        void * cbdata_, int wherefrom_)
+            : model_base<int, double>()
+            , CPX(api)
+            , env(env_)
+            , lp(lp_)
+            , cbdata(cbdata_)
+            , wherefrom(wherefrom_) {}
 
-    //     std::size_t num_variables() {
-    //         int num;
-    //         GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
-    //         return static_cast<std::size_t>(num);
-    //     }
+        std::size_t num_variables() {
+            return static_cast<std::size_t>(CPX.getnumcols(env, lp));
+        }
 
-    //     void add_lazy_constraint(linear_constraint auto && lc) {
-    //         _reset_cache(num_variables());
-    //         _register_linear_terms(lc.linear_terms());
-    //         GRB.cblazy(cbdata, static_cast<int>(tmp_variables.size()),
-    //                    tmp_variables.data(), tmp_scalars.data(),
-    //                    constraint_sense_to_gurobi_sense(lc.sense()), lc.rhs());
-    //     }
+        void add_lazy_constraint(linear_constraint auto && lc) {
+            _reset_cache(num_variables());
+            _register_linear_terms(lc.linear_terms());
+            check(CPX.cutcallbackadd(
+                env, cbdata, wherefrom, static_cast<int>(tmp_variables.size()),
+                lc.rhs(), constraint_sense_to_cplex_sense(lc.sense()),
+                tmp_variables.data(), tmp_scalars.data(),
+                0 /*CPX_USECUT_FILTER*/));
+        }
 
-    //     auto get_solution() {
-    //         auto solution =
-    //             std::make_unique_for_overwrite<double[]>(num_variables());
-    //         CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL, NULL);
-    //         return variable_mapping(std::move(solution));
-    //     }
-    // };
+        auto get_solution() {
+            auto solution =
+                std::make_unique_for_overwrite<double[]>(num_variables());
+            CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL, NULL);
+            return variable_mapping(std::move(solution));
+        }
+    };
 
-    // private:
-    //     std::optional<std::function<int(GRBmodel *, void *, int, void *)>>
-    //         main_callback;
-    //     std::optional<std::function<void(callback_handle &)>>
-    //     solution_callback;
+private:
+    std::function<callback_fun_t> lazy_constraint_callback;
 
-    //     void _enable_callbacks() {
-    //         if(main_callback.has_value()) return;
-    //         main_callback.emplace([this](GRBmodel * master_model, void *
-    //         cbdata,
-    //                                      int where, void * usrdata) -> int {
-    //             callback_handle handle(GRB, master_model, cbdata, where);
-    //             if(where == GRB_CB_MIPSOL && solution_callback.has_value()) {
-    //                 solution_callback.value()(handle);
-    //             }
-    //             return 0;
-    //         });
-    //         check(GRB.setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
-    //         check(GRB.setcallbackfunc(
-    //             model,
-    //             main_callback.value()
-    //                 .target<int(GRBmodel *, void *, int, void *)>(),
-    //             this));
-    //     }
+public:
+    template <typename F>
+    void set_solution_callback(F && f) {
+        lazy_constraint_callback = [this, callback = std::forward<F>(f)](
+                                       CPXCENVptr xenv, void * cbdata,
+                                       int wherefrom, void * cbhandle,
+                                       int * useraction_p) -> int {
+            callback(callback_handle(CPX, env, lp, cbdata, wherefrom));
+            return 0;
+        };
+        check(CPXsetlazyconstraintcallbackfunc(
+            env, lazy_constraint_callback.target<callback_fun_t>(), NULL));
+    }
 
-    // public:
     //     template <typename F>
-    //     void set_solution_callback(F && f) {
+    //     void set_incumbent_callback(F && f) {
     //         _enable_callbacks();
-    //         solution_callback.emplace(std::forward<F>(f));
+    //         incumbent_callback = std::forward<F>(f);
     //     }
 
     void solve() {
