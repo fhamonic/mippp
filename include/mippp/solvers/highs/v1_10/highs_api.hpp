@@ -1,6 +1,8 @@
 #ifndef MIPPP_HIGHS_v1_10_API_HPP
 #define MIPPP_HIGHS_v1_10_API_HPP
 
+#include <cstdint>
+
 #if INCLUDE_HIGHS_HEADER
 #include "interfaces/highs_c_api.h"
 #else
@@ -115,6 +117,40 @@ HighsInt Highs_setBasis(void * highs, const HighsInt * col_status,
                         const HighsInt * row_status);
 HighsInt Highs_getBasis(const void * highs, HighsInt * col_status,
                         HighsInt * row_status);
+
+struct HighsCallbackDataOut {
+    int log_type; // cast of HighsLogType
+    double running_time;
+    HighsInt simplex_iteration_count;
+    HighsInt ipm_iteration_count;
+    HighsInt pdlp_iteration_count;
+    double objective_function_value;
+    int64_t mip_node_count;
+    int64_t mip_total_lp_iterations;
+    double mip_primal_bound;
+    double mip_dual_bound;
+    double mip_gap;
+    double * mip_solution;
+    HighsInt cutpool_num_col;
+    HighsInt cutpool_num_cut;
+    HighsInt cutpool_num_nz;
+    HighsInt * cutpool_start;
+    HighsInt * cutpool_index;
+    double * cutpool_value;
+    double * cutpool_lower;
+    double * cutpool_upper;
+    HighsInt user_solution_callback_origin;
+};
+struct HighsCallbackDataIn {
+    int user_interrupt;
+    double * user_solution;
+};
+using HighsCCallbackType = void(int, const char *, const HighsCallbackDataOut *,
+                                HighsCallbackDataIn *, void *);
+
+HighsInt Highs_setCallback(void * highs, HighsCCallbackType user_callback,
+                           void * user_callback_data);
+HighsInt Highs_startCallback(void* highs, const int callback_type);
 
 }  // namespace highs::v1_10
 }  // namespace fhamonic::mippp

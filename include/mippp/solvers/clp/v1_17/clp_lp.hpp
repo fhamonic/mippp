@@ -57,7 +57,7 @@ private:
     //     constraint_sense::greater_equal;
     // }
 
-    std::vector<index> tmp_indices;
+    std::vector<index> tmp_begins;
     std::vector<scalar> tmp_lower_bounds;
     std::vector<scalar> tmp_upper_bounds;
 
@@ -196,29 +196,29 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
-        tmp_variables.resize(0);
+        tmp_indices.resize(0);
         tmp_scalars.resize(0);
-        _register_raw_linear_terms(lc.linear_terms());
+        _register_raw_entries(lc.linear_terms());
         const scalar b = lc.rhs();
-        index starts[2] = {0, static_cast<index>(tmp_variables.size())};
+        index starts[2] = {0, static_cast<index>(tmp_indices.size())};
         Clp.addRows(model, 1,
                     (lc.sense() == constraint_sense::less_equal) ? NULL : &b,
                     (lc.sense() == constraint_sense::greater_equal) ? NULL : &b,
-                    starts, tmp_variables.data(), tmp_scalars.data());
+                    starts, tmp_indices.data(), tmp_scalars.data());
         return constraint(constr_id);
     }
 
 private:
     template <linear_constraint LC>
     void _register_constraint(const constraint_id & constr_id, const LC & lc) {
-        tmp_indices.emplace_back(static_cast<index>(tmp_variables.size()));
+        tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
         const scalar b = lc.rhs();
         tmp_lower_bounds.emplace_back(
             (lc.sense() == constraint_sense::less_equal) ? -COIN_DBL_MAX : b);
         tmp_upper_bounds.emplace_back(
             (lc.sense() == constraint_sense::greater_equal) ? COIN_DBL_MAX : b);
         for(auto && [var, coef] : lc.linear_terms()) {
-            tmp_variables.emplace_back(var.id());
+            tmp_indices.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
     }
@@ -247,8 +247,8 @@ private:
 public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        tmp_begins.resize(0);
         tmp_indices.resize(0);
-        tmp_variables.resize(0);
         tmp_scalars.resize(0);
         tmp_lower_bounds.resize(0);
         tmp_upper_bounds.resize(0);
@@ -260,10 +260,10 @@ public:
                                               constraint_lambdas...);
             ++constr_id;
         }
-        tmp_indices.emplace_back(static_cast<index>(tmp_variables.size()));
-        Clp.addRows(model, static_cast<int>(tmp_indices.size()) - 1,
+        tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
+        Clp.addRows(model, static_cast<int>(tmp_begins.size()) - 1,
                     tmp_lower_bounds.data(), tmp_upper_bounds.data(),
-                    tmp_indices.data(), tmp_variables.data(),
+                    tmp_begins.data(), tmp_indices.data(),
                     tmp_scalars.data());
         return constraints_range(
             keys,
@@ -300,16 +300,16 @@ public:
     constraint add_ranged_constraint(linear_expression auto && le, scalar lb,
                                      scalar ub) {
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
-        tmp_variables.resize(0);
+        tmp_indices.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_variables.emplace_back(var.id());
+            tmp_indices.emplace_back(var.id());
             tmp_scalars.emplace_back(coef);
         }
         lb -= le.constant();
         ub -= le.constant();
-        index starts[2] = {0, static_cast<index>(tmp_variables.size())};
-        Clp.addRows(model, 1, &lb, &ub, starts, tmp_variables.data(),
+        index starts[2] = {0, static_cast<index>(tmp_indices.size())};
+        Clp.addRows(model, 1, &lb, &ub, starts, tmp_indices.data(),
                     tmp_scalars.data());
         return constraint(constr_id);
     }

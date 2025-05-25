@@ -54,9 +54,8 @@ enum lp_status : char { optimal = 0, infeasible = 1, unbounded = 2 };
 
 // clang-format off
 template <typename T>
-concept lp_model = requires(T & model, T::variable v, T::variable_id vid,
-                            T::variable_params vparams, T::constraint c,
-                            T::scalar s) {
+concept lp_model = requires(T & model, T::variable v, 
+                    T::variable_params vparams, T::constraint c, T::scalar s) {
     { model.set_maximization() };
     { model.set_minimization() };
 

@@ -260,6 +260,8 @@ public:
                               &infeas));
     }
     void set_binary(variable v) noexcept {
+        set_variable_lower_bound(v, 0);
+        set_variable_upper_bound(v, 1);
         unsigned int infeas;
         check(SCIP.chgVarType(model, variables[v.uid()], SCIP_VARTYPE_BINARY,
                               &infeas));
@@ -371,15 +373,15 @@ public:
     // constraint add_ranged_constraint(linear_expression auto && le, double lb,
     //                                  double ub) {
     //     int constr_id = static_cast<int>(num_constraints());
-    //     tmp_variables.resize(0);
+    //     tmp_indices.resize(0);
     //     tmp_scalars.resize(0);
     //     for(auto && [var, coef] : le.linear_terms()) {
-    //         tmp_variables.emplace_back(var);
+    //         tmp_indices.emplace_back(var);
     //         tmp_scalars.emplace_back(coef);
     //     }
     //     check(SCIP.addrangeconstr(model,
-    //     static_cast<int>(tmp_variables.size()),
-    //                               tmp_variables.data(), tmp_scalars.data(),
+    //     static_cast<int>(tmp_indices.size()),
+    //                               tmp_indices.data(), tmp_scalars.data(),
     //                               lb, ub, NULL));
     //     return constr_id;
     // }

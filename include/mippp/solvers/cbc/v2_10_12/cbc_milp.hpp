@@ -234,11 +234,11 @@ public:
 private:
     template <linear_constraint LC>
     void _add_constraint(const int & constr_id, const LC & lc) {
-        tmp_variables.resize(0);
+        tmp_indices.resize(0);
         tmp_scalars.resize(0);
-        _register_linear_terms(lc.linear_terms());
-        Cbc.addRow(model, "", static_cast<int>(tmp_variables.size()),
-                   tmp_variables.data(), tmp_scalars.data(),
+        _register_entries(lc.linear_terms());
+        Cbc.addRow(model, "", static_cast<int>(tmp_indices.size()),
+                   tmp_indices.data(), tmp_scalars.data(),
                    constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
         ++_lazy_num_constraints;
     }
@@ -318,12 +318,12 @@ public:
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
         const int constr_id = static_cast<int>(_lazy_num_constraints);
-        tmp_variables.resize(0);
+        tmp_indices.resize(0);
         tmp_scalars.resize(0);
-        _register_linear_terms(le.linear_terms());
+        _register_entries(le.linear_terms());
         const double c = le.constant();
-        Cbc.addRow(model, "", static_cast<int>(tmp_variables.size()),
-                   tmp_variables.data(), tmp_scalars.data(), 'L', ub - c);
+        Cbc.addRow(model, "", static_cast<int>(tmp_indices.size()),
+                   tmp_indices.data(), tmp_scalars.data(), 'L', ub - c);
         Cbc.setRowLower(model, constr_id, lb - c);
         ++_lazy_num_constraints;
         return constraint(constr_id);

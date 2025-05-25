@@ -1,6 +1,9 @@
 #ifndef MIPPP_SCIP_v8_API_HPP
 #define MIPPP_SCIP_v8_API_HPP
 
+#include <cstddef>
+#include <limits>
+
 #if INCLUDE_SCIP_HEADER
 #include <scip/scipdefplugins.h>
 #include "scip/cons_linear.h"

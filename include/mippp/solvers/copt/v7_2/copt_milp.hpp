@@ -101,6 +101,86 @@ public:
         // check(COPT.chgbds(env, lp, 2, &var_id, lu, bd));
     }
 
+    class callback_handle : public model_base<int, double> {
+    private:
+        const copt_api & COPT;
+        copt_prob * prob;
+        void * cbdata;
+
+    public:
+        callback_handle(const copt_api & api, copt_prob * prob_, void * cbdata_)
+            : model_base<int, double>()
+            , COPT(api)
+            , prob(prob_)
+            , cbdata(cbdata_) {}
+
+        std::size_t num_variables() {
+            int num;
+            check(COPT.GetIntAttr(prob, COPT_INTATTR_COLS, &num));
+            return static_cast<std::size_t>(num);
+        }
+
+        void add_lazy_constraint(linear_constraint auto && lc) {
+            _reset_cache(num_variables());
+            _register_entries(lc.linear_terms());
+            check(COPT.AddCallbackLazyConstr(
+                cbdata, static_cast<int>(tmp_indices.size()),
+                tmp_indices.data(), tmp_scalars.data(),
+                constraint_sense_to_copt_sense(lc.sense()), lc.rhs()));
+        }
+
+        double get_solution_value() {
+            double obj;
+            check(COPT.GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDOBJ, &obj));
+            return obj;
+        }
+
+        auto get_solution() {
+            auto num_vars = num_variables();
+            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
+            check(COPT.GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDIDATE,
+                                       solution.get()));
+            return variable_mapping(std::move(solution));
+        }
+    };
+
+private:
+    std::function<void(callback_handle &)> solution_callback;
+
+    static int solution_callback_func(copt_prob * prob, void * cbdata,
+                                      int cbctx, void * userdata) {
+        auto * model = static_cast<copt_milp *>(userdata);
+        callback_handle handle(model->COPT, prob, cbdata);
+        model->solution_callback(handle);
+        return 0;
+    }
+
+public:
+    template <typename F>
+    void set_solution_callback(F && f) {
+        solution_callback = std::forward<F>(f);
+        check(COPT.SetCallback(prob, solution_callback_func,
+                               COPT_CBCONTEXT_MIPSOL, this));
+    }
+
+    void set_optimality_tolerance(double tol) {
+        check(COPT.SetDblParam(prob, COPT_DBLPARAM_RELGAP, tol));
+    }
+    double get_optimality_tolerance() {
+        double tol;
+        check(COPT.GetDblParam(prob, COPT_DBLPARAM_RELGAP, &tol));
+        return tol;
+    }
+
+    void set_feasibility_tolerance(double tol) {
+        check(COPT.SetDblParam(prob, COPT_DBLPARAM_FEASTOL, tol));
+    }
+    double get_feasibility_tolerance() {
+        double tol;
+        check(COPT.GetDblParam(prob, COPT_DBLPARAM_FEASTOL, &tol));
+        return tol;
+    }
+
     void solve() {
         check(COPT.GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
         if(_is_mip)

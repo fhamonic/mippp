@@ -1,41 +1,25 @@
+#pragma once
 #undef NDEBUG
 #include <gtest/gtest.h>
+#include "../assert_helper.hpp"
 
+#include <range/v3/view/iota.hpp>
 #include <range/v3/view/cartesian_product.hpp>
 
-#include "assert_helper.hpp"
-#include "models.hpp"
+#include "mippp/linear_constraint.hpp"
+#include "mippp/model_concepts.hpp"
 
-using namespace fhamonic::mippp;
-using namespace fhamonic::mippp::operators;
-
-#define EPSILON 1e-13
-#define INFTY 1e100
-
-// clang-format off
-using Models = ::testing::Types<
-        gurobi_milp_test,
-        cbc_milp_test,
-        glpk_milp_test,
-        scip_milp_test,
-        highs_milp_test,
-        cplex_milp_test,
-        mosek_milp_test,
-        copt_milp_test
-        // ,xprs_milp_test
-        >;
-// clang-format on
+namespace fhamonic::mippp {
 
 template <typename T>
-class MilpModelExamples : public ::testing::Test, public T {};
+struct SudokuTest : public ::testing::Test, public T {
+    using typename T::model_type;
+    static_assert(milp_model<model_type>);
+};
+TYPED_TEST_SUITE_P(SudokuTest);
 
-TYPED_TEST_SUITE(MilpModelExamples, Models);
-
-TYPED_TEST(MilpModelExamples, sudoku) {
-    using T = TypeParam::model_type;
-    if constexpr(std::same_as<T, glpk_milp>) {
-        GTEST_SKIP();
-    }
+TYPED_TEST_P(SudokuTest, test) {
+    using namespace operators;
     auto model = this->construct_model();
 
     // clang-format off
@@ -102,7 +86,6 @@ TYPED_TEST(MilpModelExamples, sudoku) {
         for(auto j : indices) {
             auto value = grid_hints[static_cast<std::size_t>(9 * i + j)];
             if(value == 0) continue;
-            // model.set_variable_lower_bound(X_vars(i, j, value), 1);
             model.add_constraint(X_vars(i, j, value) == 1);
         }
     }
@@ -129,61 +112,6 @@ TYPED_TEST(MilpModelExamples, sudoku) {
     ASSERT_EQ_RANGES(grid_solution, expected_grid_solution);
 }
 
-// void test() {
-//     gurobi_api api;
-//     gurobi_milp model(api);
+REGISTER_TYPED_TEST_SUITE_P(SudokuTest, test);
 
-//     using std::views::cartesian_product;
-
-//     auto indices = std::views::iota(0, 9);
-//     auto values = std::views::iota(1, 10);
-//     auto coords =
-//         cartesian_product(std::views::iota(0, 2), std::views::iota(0, 2));
-
-//     auto X_vars =
-//         model.add_binary_variables(9 * 9 * 9, [](int i, int j, int value) {
-//             return (81 * i) + (9 * j) + (value - 1);
-//         });
-//     auto single_value_constrs =
-//         model.add_constraint(forall(indices, indices), [&](auto i, auto j) {
-//             return xsum(values, [&](auto && v) { return X_vars(i, j, v); })
-//             ==
-//                    1;
-//         });
-//     auto one_per_row_constrs = model.add_constraints(
-//         forall(values, indices), [&](auto && v, auto && i) {
-//             return xsum(indices, [&](auto && j) { return X_vars(i, j, v); })
-//             ==
-//                    1;
-//         });
-//     auto one_per_col_constrs = model.add_constraints(
-//         forall(values, indices), [&](auto && v, auto && i) {
-//             return xsum(indices, [&](auto && i) { return X_vars(i, j, v); })
-//             ==
-//                    1;
-//         });
-//     auto one_per_block_constrs = model.add_constraints(
-//         forall(values, coords), [&](auto && v, auto && c) {
-//             return xsum(coords, [&](auto && p) {
-//                        return X_vars(3 * c.first + p.first,
-//                                      3 * c.second + p.second, v);
-//                    }) == 1;
-//         });
-
-// auto flow_conservation_constrs = model.add_constraints(
-//     graph.vertices(),
-//     [&](auto && u) {
-//         return (u == s) ? xsum(graph.out_arcs(s), X_vars) ==
-//                                 xsum(graph.in_arcs(s), X_vars) + F
-//                         : std::nullopt;
-//     },
-//     [&](auto && u) {
-//         return (u == t) ? xsum(graph.out_arcs(t), X_vars) ==
-//                                 xsum(graph.in_arcs(t), X_vars) - F
-//                         : std::nullopt;
-//     },
-//     [&](auto && u) {
-//         return xsum(graph.out_arcs(u), X_vars) ==
-//                 xsum(graph.in_arcs(u), X_vars);
-//     });
-// }
+}  // namespace fhamonic::mippp

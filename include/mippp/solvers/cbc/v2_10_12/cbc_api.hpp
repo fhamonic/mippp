@@ -1,6 +1,8 @@
 #ifndef MIPPP_CBC_v2_10_12_API_HPP
 #define MIPPP_CBC_v2_10_12_API_HPP
 
+#include <cstddef>
+
 #if INCLUDE_CBC_HEADER
 #include "coin/Cbc_C_Interface.h"
 #include "coin/CoinFinite.hpp"
@@ -70,6 +72,14 @@ int Cbc_isProvenInfeasible(Cbc_Model * model);
 int Cbc_isContinuousUnbounded(Cbc_Model * model);
 double Cbc_getObjValue(Cbc_Model * model);
 const double * Cbc_getColSolution(Cbc_Model * model);
+
+using cbc_cut_callback = void(void * osiSolver, void * osiCuts, void * appdata);
+void Cbc_addCutCallback(Cbc_Model * model, cbc_cut_callback cutcb,
+                        const char * name, void * appData);
+int Osi_getNumCols(void * osi);
+const double * Osi_getColSolution(void * osi);
+void OsiCuts_addRowCut(void * osiCuts, int nz, const int * idx,
+                       const double * coef, char sense, double rhs);
 
 }  // namespace cbc::v2_10_12
 }  // namespace fhamonic::mippp

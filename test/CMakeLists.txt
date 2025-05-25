@@ -6,12 +6,20 @@ include(GoogleTest)
 add_executable(
     mippp_test
     main.cpp
-    variable.cpp
+    model_variable.cpp
     linear_expression.cpp
     linear_constraint.cpp
     # bilinear_expression.cpp
-    model_methods.cpp
-    milp_examples.cpp
+    solvers/cbc.cpp
+    solvers/clp.cpp
+    solvers/copt.cpp
+    solvers/cplex.cpp
+    solvers/glpk.cpp
+    solvers/gurobi.cpp
+    solvers/highs.cpp
+    solvers/mosek.cpp
+    solvers/scip.cpp
+    solvers/soplex.cpp
     )
 target_link_libraries(mippp_test mippp)
 target_link_libraries(mippp_test GTest::gtest)

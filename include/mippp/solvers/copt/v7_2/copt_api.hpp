@@ -31,6 +31,17 @@ ret_code COPT_DeleteEnv(copt_env ** p_env);
 ret_code COPT_CreateProb(copt_env * env, copt_prob ** p_prob);
 ret_code COPT_DeleteProb(copt_prob ** p_prob);
 
+constexpr const char * COPT_DBLPARAM_TIMELIMIT = "TimeLimit";
+constexpr const char * COPT_DBLPARAM_SOLTIMELIMIT = "SolTimeLimit";
+constexpr const char * COPT_DBLPARAM_MATRIXTOL = "MatrixTol";
+constexpr const char * COPT_DBLPARAM_FEASTOL = "FeasTol";
+constexpr const char * COPT_DBLPARAM_DUALTOL = "DualTol";
+constexpr const char * COPT_DBLPARAM_INTTOL = "IntTol";
+constexpr const char * COPT_DBLPARAM_RELGAP = "RelGap";
+ret_code COPT_SetDblParam(copt_prob * prob, const char * paramName,
+                          double dblParam);
+ret_code COPT_GetDblParam(copt_prob * prob, const char * paramName,
+                          double * p_dblParam);
 ret_code COPT_GetIntAttr(copt_prob * prob, const char * attrName,
                          int * p_intAttr);
 ret_code COPT_GetDblAttr(copt_prob * prob, const char * attrName,
@@ -133,6 +144,35 @@ ret_code COPT_GetBasis(copt_prob * prob, int * colBasis, int * rowBasis);
 ret_code COPT_SetBasis(copt_prob * prob, const int * colBasis,
                        const int * rowBasis);
 
+constexpr int COPT_CBCONTEXT_MIPRELAX = 0x1;
+constexpr int COPT_CBCONTEXT_MIPSOL = 0x2;
+constexpr int COPT_CBCONTEXT_MIPNODE = 0x4;
+constexpr int COPT_CBCONTEXT_INCUMBENT = 0x8;
+using callback_func_t = int(copt_prob * prob, void * cbdata, int cbctx,
+                            void * userdata);
+ret_code COPT_SetCallback(copt_prob * prob, callback_func_t * cb, int cbctx,
+                          void * userdata);
+constexpr const char * COPT_CBINFO_BESTOBJ = "BestObj";
+constexpr const char * COPT_CBINFO_BESTBND = "BestBnd";
+constexpr const char * COPT_CBINFO_HASINCUMBENT = "HasIncumbent";
+constexpr const char * COPT_CBINFO_INCUMBENT = "Incumbent";
+constexpr const char * COPT_CBINFO_MIPCANDIDATE = "MipCandidate";
+constexpr const char * COPT_CBINFO_MIPCANDOBJ = "MipCandObj";
+constexpr const char * COPT_CBINFO_RELAXSOLUTION = "RelaxSolution";
+constexpr const char * COPT_CBINFO_RELAXSOLOBJ = "RelaxSolObj";
+constexpr const char * COPT_CBINFO_NODESTATUS = "NodeStatus";
+ret_code COPT_GetCallbackInfo(void * cbdata, const char * cbinfo, void * p_val);
+ret_code COPT_AddCallbackSolution(void * cbdata, const double * sol,
+                                  double * p_objval);
+ret_code COPT_AddCallbackUserCut(void * cbdata, int nRowMatCnt,
+                                 const int * rowMatIdx,
+                                 const double * rowMatElem, char cRowSense,
+                                 double dRowRhs);
+ret_code COPT_AddCallbackLazyConstr(void * cbdata, int nRowMatCnt,
+                                    const int * rowMatIdx,
+                                    const double * rowMatElem, char cRowSense,
+                                    double dRowRhs);
+
 }  // namespace copt::v7_2
 }  // namespace fhamonic::mippp
 #endif
@@ -142,42 +182,49 @@ ret_code COPT_SetBasis(copt_prob * prob, const int * colBasis,
 namespace fhamonic::mippp {
 namespace copt::v7_2 {
 
-#define COPT_FUNCTIONS(F)                \
-    F(COPT_CreateEnv, CreateEnv)         \
-    F(COPT_DeleteEnv, DeleteEnv)         \
-    F(COPT_CreateProb, CreateProb)       \
-    F(COPT_DeleteProb, DeleteProb)       \
-    F(COPT_GetIntAttr, GetIntAttr)       \
-    F(COPT_GetDblAttr, GetDblAttr)       \
-    F(COPT_SetObjSense, SetObjSense)     \
-    F(COPT_SetObjConst, SetObjConst)     \
-    F(COPT_AddCol, AddCol)               \
-    F(COPT_AddCols, AddCols)             \
-    F(COPT_AddRow, AddRow)               \
-    F(COPT_AddRows, AddRows)             \
-    F(COPT_AddSOSs, AddSOSs)             \
-    F(COPT_AddIndicator, AddIndicator)   \
-    F(COPT_ReplaceColObj, ReplaceColObj) \
-    F(COPT_SetColObj, SetColObj)         \
-    F(COPT_SetColLower, SetColLower)     \
-    F(COPT_SetColUpper, SetColUpper)     \
-    F(COPT_GetColInfo, GetColInfo)       \
-    F(COPT_SetColNames, SetColNames)     \
-    F(COPT_GetColName, GetColName)       \
-    F(COPT_SetColType, SetColType)       \
-    F(COPT_GetColType, GetColType)       \
-    F(COPT_SetRowLower, SetRowLower)     \
-    F(COPT_SetRowUpper, SetRowUpper)     \
-    F(COPT_SetRowNames, SetRowNames)     \
-    F(COPT_GetRowName, GetRowName)       \
-    F(COPT_AddMipStart, AddMipStart)     \
-    F(COPT_SolveLp, SolveLp)             \
-    F(COPT_Solve, Solve)                 \
-    F(COPT_GetSolution, GetSolution)     \
-    F(COPT_GetLpSolution, GetLpSolution) \
-    F(COPT_SetLpSolution, SetLpSolution) \
-    F(COPT_GetBasis, GetBasis)           \
-    F(COPT_SetBasis, SetBasis)
+#define COPT_FUNCTIONS(F)                            \
+    F(COPT_CreateEnv, CreateEnv)                     \
+    F(COPT_DeleteEnv, DeleteEnv)                     \
+    F(COPT_CreateProb, CreateProb)                   \
+    F(COPT_DeleteProb, DeleteProb)                   \
+    F(COPT_SetDblParam, SetDblParam)                 \
+    F(COPT_GetDblParam, GetDblParam)                 \
+    F(COPT_GetIntAttr, GetIntAttr)                   \
+    F(COPT_GetDblAttr, GetDblAttr)                   \
+    F(COPT_SetObjSense, SetObjSense)                 \
+    F(COPT_SetObjConst, SetObjConst)                 \
+    F(COPT_AddCol, AddCol)                           \
+    F(COPT_AddCols, AddCols)                         \
+    F(COPT_AddRow, AddRow)                           \
+    F(COPT_AddRows, AddRows)                         \
+    F(COPT_AddSOSs, AddSOSs)                         \
+    F(COPT_AddIndicator, AddIndicator)               \
+    F(COPT_ReplaceColObj, ReplaceColObj)             \
+    F(COPT_SetColObj, SetColObj)                     \
+    F(COPT_SetColLower, SetColLower)                 \
+    F(COPT_SetColUpper, SetColUpper)                 \
+    F(COPT_GetColInfo, GetColInfo)                   \
+    F(COPT_SetColNames, SetColNames)                 \
+    F(COPT_GetColName, GetColName)                   \
+    F(COPT_SetColType, SetColType)                   \
+    F(COPT_GetColType, GetColType)                   \
+    F(COPT_SetRowLower, SetRowLower)                 \
+    F(COPT_SetRowUpper, SetRowUpper)                 \
+    F(COPT_SetRowNames, SetRowNames)                 \
+    F(COPT_GetRowName, GetRowName)                   \
+    F(COPT_AddMipStart, AddMipStart)                 \
+    F(COPT_SolveLp, SolveLp)                         \
+    F(COPT_Solve, Solve)                             \
+    F(COPT_GetSolution, GetSolution)                 \
+    F(COPT_GetLpSolution, GetLpSolution)             \
+    F(COPT_SetLpSolution, SetLpSolution)             \
+    F(COPT_GetBasis, GetBasis)                       \
+    F(COPT_SetBasis, SetBasis)                       \
+    F(COPT_SetCallback, SetCallback)                 \
+    F(COPT_GetCallbackInfo, GetCallbackInfo)         \
+    F(COPT_AddCallbackSolution, AddCallbackSolution) \
+    F(COPT_AddCallbackUserCut, AddCallbackUserCut)   \
+    F(COPT_AddCallbackLazyConstr, AddCallbackLazyConstr)
 
 #define DECLARE_COPT_FUN(FULL, SHORT)     \
     using SHORT##_fun_t = decltype(FULL); \

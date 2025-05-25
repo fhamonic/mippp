@@ -67,6 +67,7 @@ public:
 private:
     inline void _add_binary_variables(const std::size_t & offset,
                                       const std::size_t & count) {
+        if(count == 0u) return;
         glp.add_cols(model, static_cast<int>(count));
         for(std::size_t i = offset + 1; i <= offset + count; ++i)
             glp.set_col_kind(model, static_cast<int>(i), GLP_BV);
@@ -94,13 +95,13 @@ public:
     }
 
     void set_continuous(variable v) noexcept {
-        glp.set_col_kind(model, v.id(), GLP_CV);
+        glp.set_col_kind(model, v.id() + 1, GLP_CV);
     }
     void set_integer(variable v) noexcept {
-        glp.set_col_kind(model, v.id(), GLP_IV);
+        glp.set_col_kind(model, v.id() + 1, GLP_IV);
     }
     void set_binary(variable v) noexcept {
-        glp.set_col_kind(model, v.id(), GLP_BV);
+        glp.set_col_kind(model, v.id() + 1, GLP_BV);
     }
 
     // add_sos1_constraint

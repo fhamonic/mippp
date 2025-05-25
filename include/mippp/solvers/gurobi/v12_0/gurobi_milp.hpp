@@ -87,7 +87,19 @@ public:
 
     // add_sos1_constraint
     // add_sos2_constraint
-    // add_indicator_constraint
+
+    constraint add_indicator_constraint(variable x, bool val,
+                                        linear_constraint auto && lc) {
+        const int constr_id = static_cast<int>(_lazy_num_constraints++);
+        _reset_cache(_lazy_num_variables);
+        _register_entries(lc.linear_terms());
+        check(GRB.addgenconstrIndicator(
+            model, NULL, x.id(), static_cast<int>(val),
+            static_cast<int>(tmp_indices.size()), tmp_indices.data(),
+            tmp_scalars.data(), constraint_sense_to_gurobi_sense(lc.sense()),
+            lc.rhs()));
+        return constraint(constr_id);
+    }
 
     class callback_handle : public model_base<int, double> {
     private:
@@ -113,9 +125,9 @@ public:
 
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
-            _register_linear_terms(lc.linear_terms());
-            GRB.cblazy(cbdata, static_cast<int>(tmp_variables.size()),
-                       tmp_variables.data(), tmp_scalars.data(),
+            _register_entries(lc.linear_terms());
+            GRB.cblazy(cbdata, static_cast<int>(tmp_indices.size()),
+                       tmp_indices.data(), tmp_scalars.data(),
                        constraint_sense_to_gurobi_sense(lc.sense()), lc.rhs());
         }
 

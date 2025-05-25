@@ -37,7 +37,7 @@ protected:
     const highs_api & Highs;
     void * model;
 
-    std::vector<index> tmp_indices;
+    std::vector<index> tmp_begins;
     std::vector<scalar> tmp_lower_bounds;
     std::vector<scalar> tmp_upper_bounds;
 
@@ -131,11 +131,11 @@ protected:
                       tmp_scalars.data() + diff_count,
                       tmp_scalars.data() + 2 * diff_count, 0, NULL, NULL, NULL);
         if(type != kHighsVarTypeContinuous) {
-            tmp_variables.resize(count);
-            std::fill(tmp_variables.begin(), tmp_variables.end(), type);
+            tmp_indices.resize(count);
+            std::fill(tmp_indices.begin(), tmp_indices.end(), type);
             check(Highs.changeColsIntegralityByRange(
                 model, static_cast<HighsInt>(offset),
-                static_cast<HighsInt>(count - 1), tmp_variables.data()));
+                static_cast<HighsInt>(count - 1), tmp_indices.data()));
         }
     }
 
@@ -210,7 +210,7 @@ public:
     constraint add_constraint(linear_constraint auto && lc) {
         HighsInt constr_id = static_cast<HighsInt>(num_constraints());
         _reset_cache(num_variables());
-        _register_linear_terms(lc.linear_terms());
+        _register_entries(lc.linear_terms());
         const scalar b = lc.rhs();
         check(Highs.addRow(model,
                            (lc.sense() == constraint_sense::less_equal)
@@ -219,15 +219,15 @@ public:
                            (lc.sense() == constraint_sense::greater_equal)
                                ? Highs.getInfinity(model)
                                : b,
-                           static_cast<HighsInt>(tmp_variables.size()),
-                           tmp_variables.data(), tmp_scalars.data()));
+                           static_cast<HighsInt>(tmp_indices.size()),
+                           tmp_indices.data(), tmp_scalars.data()));
         return constraint(constr_id);
     }
 
 private:
     template <linear_constraint LC>
     void _register_constraint(const HighsInt & constr_id, const LC & lc) {
-        tmp_indices.emplace_back(static_cast<HighsInt>(tmp_variables.size()));
+        tmp_begins.emplace_back(static_cast<HighsInt>(tmp_indices.size()));
         const scalar b = lc.rhs();
         tmp_lower_bounds.emplace_back(
             (lc.sense() == constraint_sense::less_equal)
@@ -237,7 +237,7 @@ private:
             (lc.sense() == constraint_sense::greater_equal)
                 ? Highs.getInfinity(model)
                 : b);
-        _register_linear_terms(lc.linear_terms());
+        _register_entries(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -265,7 +265,7 @@ public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         _reset_cache(num_variables());
-        tmp_indices.resize(0);
+        tmp_begins.resize(0);
         tmp_lower_bounds.resize(0);
         tmp_upper_bounds.resize(0);
         const HighsInt offset = static_cast<HighsInt>(num_constraints());
@@ -275,10 +275,10 @@ public:
                                               constraint_lambdas...);
             ++constr_id;
         }
-        check(Highs.addRows(model, static_cast<HighsInt>(tmp_indices.size()),
+        check(Highs.addRows(model, static_cast<HighsInt>(tmp_begins.size()),
                             tmp_lower_bounds.data(), tmp_upper_bounds.data(),
-                            static_cast<HighsInt>(tmp_variables.size()),
-                            tmp_indices.data(), tmp_variables.data(),
+                            static_cast<HighsInt>(tmp_indices.size()),
+                            tmp_begins.data(), tmp_indices.data(),
                             tmp_scalars.data()));
         return constraints_range(
             keys,

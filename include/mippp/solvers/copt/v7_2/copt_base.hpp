@@ -39,11 +39,11 @@ protected:
     copt_env * env;
     copt_prob * prob;
 
-    std::vector<indice> tmp_indices;
+    std::vector<indice> tmp_begins;
     std::vector<char> tmp_types;
     std::vector<scalar> tmp_rhs;
 
-    void check(ret_code error) const {
+    static void check(ret_code error) {
         if(error == COPT_RETCODE_OK) return;
         throw std::runtime_error("copt_base error");
     }
@@ -96,9 +96,9 @@ public:
 
     void set_objective(linear_expression auto && le) {
         _reset_cache(num_variables());
-        _register_linear_terms(le.linear_terms());
-        check(COPT.ReplaceColObj(prob, static_cast<int>(tmp_variables.size()),
-                                 tmp_variables.data(), tmp_scalars.data()));
+        _register_entries(le.linear_terms());
+        check(COPT.ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
+                                 tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
 
@@ -168,6 +168,34 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params,
+                                const char & type) {
+        const int var_id = static_cast<int>(num_variables());
+        _reset_cache(num_constraints());
+        _register_raw_entries(entries);
+        check(COPT.AddCol(prob, params.obj_coef,
+                          static_cast<int>(tmp_indices.size()),
+                          tmp_indices.data(), tmp_scalars.data(), type,
+                          params.lower_bound.value_or(-COPT_INFINITY),
+                          params.upper_bound.value_or(+COPT_INFINITY), NULL));
+        return variable(var_id);
+    }
+
+public:
+    template <ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params, COPT_CONTINUOUS);
+    }
+    template <typename E>
+    variable add_column(
+        std::initializer_list<E> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params, COPT_CONTINUOUS);
+    }
+
     void set_objective_coefficient(variable v, scalar c) {
         const int id = v.id();
         check(COPT.SetColObj(prob, 1, &id, &c));
@@ -203,10 +231,10 @@ public:
     constraint add_constraint(linear_constraint auto && lc) {
         auto constr_id = static_cast<constraint_id>(num_constraints());
         _reset_cache(num_variables());
-        _register_linear_terms(lc.linear_terms());
+        _register_entries(lc.linear_terms());
         const scalar b = lc.rhs();
-        check(COPT.AddRow(prob, static_cast<int>(tmp_variables.size()),
-                          tmp_variables.data(), tmp_scalars.data(),
+        check(COPT.AddRow(prob, static_cast<int>(tmp_indices.size()),
+                          tmp_indices.data(), tmp_scalars.data(),
                           constraint_sense_to_copt_sense(lc.sense()), b,
                           COPT_INFINITY, NULL));
         return constraint(constr_id);
@@ -215,10 +243,10 @@ public:
 private:
     template <linear_constraint LC>
     void _register_constraint(const int & constr_id, const LC & lc) {
-        tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
+        tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_copt_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        _register_linear_terms(lc.linear_terms());
+        _register_entries(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -246,7 +274,7 @@ public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         _reset_cache(num_variables());
-        tmp_indices.resize(0);
+        tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
         const indice offset = static_cast<indice>(num_constraints());
@@ -256,9 +284,9 @@ public:
                                               constraint_lambdas...);
             ++constr_id;
         }
-        tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
+        tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         check(COPT.AddRows(prob, static_cast<int>(tmp_rhs.size()),
-                           tmp_indices.data(), NULL, tmp_variables.data(),
+                           tmp_begins.data(), NULL, tmp_indices.data(),
                            tmp_scalars.data(), tmp_types.data(), tmp_rhs.data(),
                            NULL, NULL));
         return constraints_range(

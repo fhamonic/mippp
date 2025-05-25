@@ -29,12 +29,12 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
-    unsigned int entry_count;
+    unsigned int register_count;
     std::vector<std::pair<unsigned int, unsigned int>> tmp_entry_index_cache;
-    std::vector<_Index> tmp_variables;
+    std::vector<_Index> tmp_indices;
     std::vector<_Scalar> tmp_scalars;
 
-    [[nodiscard]] explicit model_base() : entry_count(0) {}
+    [[nodiscard]] explicit model_base() : register_count(0) {}
 
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
@@ -58,28 +58,28 @@ protected:
 
     void _reset_cache(std::size_t num_variables) {
         tmp_entry_index_cache.resize(num_variables);
-        tmp_variables.resize(0);
+        tmp_indices.resize(0);
         tmp_scalars.resize(0);
     }
 
-    template <ranges::range Terms>
-    void _register_linear_terms(Terms && terms) {
-        ++entry_count;
-        for(auto && [var, coef] : terms) {
-            auto & p = tmp_entry_index_cache[var.uid()];
-            if(p.first == entry_count) {
+    template <ranges::range Entries>
+    void _register_entries(Entries && entries) {
+        ++register_count;
+        for(auto && [entity, coef] : entries) {
+            auto & p = tmp_entry_index_cache[entity.uid()];
+            if(p.first == register_count) {
                 tmp_scalars[p.second] += coef;
                 continue;
             }
-            p = std::make_pair(entry_count, tmp_variables.size());
-            tmp_variables.emplace_back(var.id());
+            p = std::make_pair(register_count, tmp_indices.size());
+            tmp_indices.emplace_back(entity.id());
             tmp_scalars.emplace_back(coef);
         }
     }
-    template <ranges::range Terms>
-    void _register_raw_linear_terms(Terms && terms) {
-        for(auto && [var, coef] : terms) {
-            tmp_variables.emplace_back(var.id());
+    template <ranges::range Entries>
+    void _register_raw_entries(Entries && entries) {
+        for(auto && [entity, coef] : entries) {
+            tmp_indices.emplace_back(entity.id());
             tmp_scalars.emplace_back(coef);
         }
     }

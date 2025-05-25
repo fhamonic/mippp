@@ -39,7 +39,7 @@ protected:
     CPXENVptr env;
     CPXLPptr lp;
 
-    std::vector<int> tmp_indices;
+    std::vector<int> tmp_begins;
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
@@ -88,15 +88,15 @@ public:
 
     void set_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
-        tmp_variables.resize(num_vars);
-        std::iota(tmp_variables.begin(), tmp_variables.end(), 0);
+        tmp_indices.resize(num_vars);
+        std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
         check(CPX.chgobj(env, lp, static_cast<int>(num_vars),
-                         tmp_variables.data(), tmp_scalars.data()));
+                         tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
 
@@ -107,11 +107,13 @@ public:
     }
 
 protected:
-    void _add_variable(const variable_params & params, char type) {
+    variable _add_variable(const variable_params & params, char type) {
+        const int var_id = static_cast<int>(num_variables());
         const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
         const double ub = params.upper_bound.value_or(CPX_INFBOUND);
         check(CPX.newcols(env, lp, 1, &params.obj_coef, &lb, &ub,
                           (type != CPX_CONTINUOUS) ? &type : NULL, NULL));
+        return variable(var_id);
     }
     void _add_variables(std::size_t offset, std::size_t count,
                         const variable_params & params, char type) {
@@ -155,9 +157,7 @@ protected:
 public:
     variable add_variable(
         const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(params, CPX_CONTINUOUS);
-        return variable(var_id);
+        return _add_variable(params, CPX_CONTINUOUS);
     }
     auto add_variables(std::size_t count,
                        variable_params params = {
@@ -178,6 +178,35 @@ public:
         _add_variables(offset, count, params, CPX_CONTINUOUS);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
+    }
+
+private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params,
+                                const char & type) {
+        const int var_id = static_cast<int>(num_variables());
+        const int cmatbeg = 0;
+        _reset_cache(num_constraints());
+        _register_raw_entries(entries);
+        const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
+        const double ub = params.upper_bound.value_or(CPX_INFBOUND);
+        check(CPX.addcols(env, lp, 1, static_cast<int>(tmp_indices.size()),
+                          &params.obj_coef, &cmatbeg, tmp_indices.data(),
+                          tmp_scalars.data(), &lb, &ub, NULL));
+        return variable(var_id);
+    }
+
+public:
+    template <ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params, CPX_CONTINUOUS);
+    }
+    template <typename E>
+    variable add_column(
+        std::initializer_list<E> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params, CPX_CONTINUOUS);
     }
 
     void set_objective_coefficient(variable v, double c) {
@@ -214,12 +243,12 @@ public:
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
         _reset_cache(num_variables());
-        _register_linear_terms(lc.linear_terms());
+        _register_entries(lc.linear_terms());
         int matbegin = 0;
         const double b = lc.rhs();
         const char sense = constraint_sense_to_cplex_sense(lc.sense());
-        check(CPX.addrows(env, lp, 0, 1, static_cast<int>(tmp_variables.size()),
-                          &b, &sense, &matbegin, tmp_variables.data(),
+        check(CPX.addrows(env, lp, 0, 1, static_cast<int>(tmp_indices.size()),
+                          &b, &sense, &matbegin, tmp_indices.data(),
                           tmp_scalars.data(), NULL, NULL));
         return constraint(constr_id);
     }
@@ -227,10 +256,10 @@ public:
 private:
     template <linear_constraint LC>
     void _register_constraint(const int & constr_id, const LC & lc) {
-        tmp_indices.emplace_back(static_cast<int>(tmp_variables.size()));
+        tmp_begins.emplace_back(static_cast<int>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_cplex_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        _register_linear_terms(lc.linear_terms());
+        _register_entries(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -258,7 +287,7 @@ public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         _reset_cache(num_variables());
-        tmp_indices.resize(0);
+        tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
         const int offset = static_cast<int>(num_constraints());
@@ -268,11 +297,10 @@ public:
                                               constraint_lambdas...);
             ++constr_id;
         }
-        check(CPX.addrows(env, lp, 0, static_cast<int>(tmp_indices.size()),
-                          static_cast<int>(tmp_variables.size()),
-                          tmp_rhs.data(), tmp_types.data(), tmp_indices.data(),
-                          tmp_variables.data(), tmp_scalars.data(), NULL,
-                          NULL));
+        check(CPX.addrows(env, lp, 0, static_cast<int>(tmp_begins.size()),
+                          static_cast<int>(tmp_indices.size()), tmp_rhs.data(),
+                          tmp_types.data(), tmp_begins.data(),
+                          tmp_indices.data(), tmp_scalars.data(), NULL, NULL));
         return constraints_range(
             keys,
             ranges::view::transform(ranges::view::iota(offset, constr_id),

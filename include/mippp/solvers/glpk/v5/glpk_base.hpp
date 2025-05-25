@@ -123,6 +123,7 @@ protected:
     }
     inline void _add_variables(std::size_t offset, std::size_t count,
                                const variable_params & params, int type) {
+        if(count == 0u) return;
         glp.add_cols(model, static_cast<int>(count));
         if(auto obj = params.obj_coef; obj != 0.0) {
             for(std::size_t i = offset + 1; i <= offset + count; ++i)
@@ -202,22 +203,22 @@ private:
     template <linear_constraint LC>
     void _add_constraint(const int & constr_id, const LC & lc) {
         glp.add_rows(model, 1);
-        ++entry_count;
-        tmp_variables.resize(1);
+        ++register_count;
+        tmp_indices.resize(1);
         tmp_scalars.resize(1);
         for(auto && [var, coef] : lc.linear_terms()) {
             auto & p = tmp_entry_index_cache[var.uid()];
-            if(p.first == entry_count) {
+            if(p.first == register_count) {
                 tmp_scalars[p.second] += coef;
                 continue;
             }
-            p = std::make_pair(entry_count, tmp_variables.size());
-            tmp_variables.emplace_back(var.id() + 1);
+            p = std::make_pair(register_count, tmp_indices.size());
+            tmp_indices.emplace_back(var.id() + 1);
             tmp_scalars.emplace_back(coef);
         }
         glp.set_mat_row(model, constr_id + 1,
-                        static_cast<int>(tmp_variables.size()) - 1,
-                        tmp_variables.data(), tmp_scalars.data());
+                        static_cast<int>(tmp_indices.size()) - 1,
+                        tmp_indices.data(), tmp_scalars.data());
         const double b = lc.rhs();
         glp.set_row_bnds(model, constr_id + 1,
                          constraint_sense_to_glp_row_type(lc.sense()), b, b);

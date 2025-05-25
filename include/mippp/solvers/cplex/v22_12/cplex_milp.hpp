@@ -98,6 +98,18 @@ public:
         check(CPX.chgbds(env, lp, 2, &var_id, lu, bd));
     }
 
+    constraint add_indicator_constraint(variable x, bool val,
+                                        linear_constraint auto && lc) {
+        const int constr_id = static_cast<int>(num_constraints());
+        _reset_cache(num_variables());
+        _register_entries(lc.linear_terms());
+        check(CPX.addindconstr(env, lp, x.id(), static_cast<int>(!val),
+                               static_cast<int>(tmp_indices.size()), lc.rhs(),
+                               constraint_sense_to_cplex_sense(lc.sense()),
+                               tmp_indices.data(), tmp_scalars.data(), NULL));
+        return constraint(constr_id);
+    }
+
     class callback_handle : public model_base<int, double> {
     private:
         const cplex_api & CPX;
@@ -119,13 +131,13 @@ public:
 
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
-            _register_linear_terms(lc.linear_terms());
+            _register_entries(lc.linear_terms());
             int matbegin = 0;
             const double b = lc.rhs();
             const char sense = constraint_sense_to_cplex_sense(lc.sense());
             check(CPX.callbackrejectcandidate(
-                context, 1, static_cast<int>(tmp_variables.size()), &b, &sense,
-                &matbegin, tmp_variables.data(), tmp_scalars.data()));
+                context, 1, static_cast<int>(tmp_indices.size()), &b, &sense,
+                &matbegin, tmp_indices.data(), tmp_scalars.data()));
         }
 
         double get_solution_value() {
@@ -159,7 +171,7 @@ public:
     void set_solution_callback(F && f) {
         lazy_constraint_callback = std::forward<F>(f);
         check(CPX.callbacksetfunc(env, lp, CPX_CALLBACKCONTEXT_CANDIDATE,
-                                     candidate_callback_fun, this));
+                                  candidate_callback_fun, this));
     }
 
     void set_optimality_tolerance(double tol) {

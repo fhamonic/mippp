@@ -44,12 +44,9 @@ int CPXaddrows(CPXCENVptr env, CPXLPptr lp, int ccnt, int rcnt, int nzcnt,
                double const * rhs, char const * sense, int const * rmatbeg,
                int const * rmatind, double const * rmatval, char ** colname,
                char ** rowname);
-int CPXaddindconstraints(CPXCENVptr env, CPXLPptr lp, int indcnt,
-                         int const * type, int const * indvar,
-                         int const * complemented, int nzcnt,
-                         double const * rhs, char const * sense,
-                         int const * linbeg, int const * linind,
-                         double const * linval, char ** indname);
+int CPXaddindconstr(CPXCENVptr env, CPXLPptr lp, int indvar, int complemented,
+                    int nzcnt, double rhs, int sense, int const * linind,
+                    double const * linval, char const * indname_str);
 int CPXaddsos(CPXCENVptr env, CPXLPptr lp, int numsos, int numsosnz,
               char const * sostype, int const * sosbeg, int const * sosind,
               double const * soswt, char ** sosname);
@@ -175,7 +172,7 @@ namespace cplex::v22_12 {
     F(CPXnewcols, newcols)                                           \
     F(CPXaddcols, addcols)                                           \
     F(CPXaddrows, addrows)                                           \
-    F(CPXaddindconstraints, addindconstraints)                       \
+    F(CPXaddindconstr, addindconstr)                                 \
     F(CPXaddsos, addsos)                                             \
     F(CPXchgobj, chgobj)                                             \
     F(CPXgetobj, getobj)                                             \

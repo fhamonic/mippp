@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <limits>
+#include <numeric>
 #include <optional>
 #include <vector>
 
@@ -39,7 +40,7 @@ protected:
     MSKenv_t env;
     MSKtask_t task;
 
-    std::vector<indice> tmp_indices;
+    std::vector<indice> tmp_begins;
     std::vector<MSKboundkeye> tmp_boundkeye;
     std::vector<scalar> tmp_rhs;
     std::vector<MSKvariabletypee> tmp_vartype;
@@ -169,13 +170,13 @@ protected:
             static_cast<variable_id>(offset + count), boundkey, lb, ub));
 
         if(type != MSK_VAR_TYPE_CONT) {
-            tmp_variables.resize(count);
-            std::iota(tmp_variables.begin(), tmp_variables.end(),
+            tmp_indices.resize(count);
+            std::iota(tmp_indices.begin(), tmp_indices.end(),
                       static_cast<variable_id>(offset));
             tmp_vartype.resize(count);
             std::fill(tmp_vartype.begin(), tmp_vartype.end(), type);
             check(MSK.putvartypelist(task, static_cast<indice>(count),
-                                     tmp_variables.data(), tmp_vartype.data()));
+                                     tmp_indices.data(), tmp_vartype.data()));
         }
     }
 
@@ -235,10 +236,10 @@ public:
         auto constr_id = static_cast<constraint_id>(num_constraints());
         check(MSK.appendcons(task, 1));
         _reset_cache(num_variables());
-        _register_linear_terms(lc.linear_terms());
+        _register_entries(lc.linear_terms());
         check(MSK.putarow(task, constr_id,
-                          static_cast<indice>(tmp_variables.size()),
-                          tmp_variables.data(), tmp_scalars.data()));
+                          static_cast<indice>(tmp_indices.size()),
+                          tmp_indices.data(), tmp_scalars.data()));
         const scalar b = lc.rhs();
         check(MSK.putconbound(task, constr_id,
                               constraint_sense_to_mosek_sense(lc.sense()), b,
@@ -249,10 +250,10 @@ public:
 private:
     template <linear_constraint LC>
     void _register_constraint(const int & constr_id, const LC & lc) {
-        tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
+        tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         tmp_boundkeye.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        _register_linear_terms(lc.linear_terms());
+        _register_entries(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -280,7 +281,7 @@ public:
     template <ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         _reset_cache(num_variables());
-        tmp_indices.resize(0);
+        tmp_begins.resize(0);
         tmp_boundkeye.resize(0);
         tmp_rhs.resize(0);
         const indice offset = static_cast<indice>(num_constraints());
@@ -291,9 +292,9 @@ public:
             ++constr_id;
         }
         check(MSK.appendcons(task, constr_id - offset));
-        tmp_indices.emplace_back(static_cast<indice>(tmp_variables.size()));
-        check(MSK.putarowslice(task, offset, constr_id, tmp_indices.data(),
-                               tmp_indices.data() + 1, tmp_variables.data(),
+        tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
+        check(MSK.putarowslice(task, offset, constr_id, tmp_begins.data(),
+                               tmp_begins.data() + 1, tmp_indices.data(),
                                tmp_scalars.data()));
         check(MSK.putconboundslice(task, offset, constr_id,
                                    tmp_boundkeye.data(), tmp_rhs.data(),
