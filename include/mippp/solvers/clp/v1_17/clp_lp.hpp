@@ -11,8 +11,6 @@
 #include <vector>
 
 #include <range/v3/view/iota.hpp>
-#include <range/v3/view/span.hpp>
-#include <range/v3/view/zip.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -80,7 +78,7 @@ public:
     void set_minimization() { Clp.setObjSense(model, 1); }
 
     void set_objective_offset(scalar constant) {
-        Clp.setObjectiveOffset(model, constant);
+        Clp.setObjectiveOffset(model, -constant);
     }
     void set_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
@@ -98,15 +96,17 @@ public:
         }
         set_objective_offset(get_objective_offset() + le.constant());
     }
-    scalar get_objective_offset() { return Clp.objectiveOffset(model); }
+    scalar get_objective_offset() { return -Clp.objectiveOffset(model); }
     auto get_objective() {
         auto num_vars = num_variables();
         const scalar * objective = Clp.objective(model);
         return linear_expression_view(
-            ranges::view::zip(
+            ranges::view::transform(
                 ranges::view::iota(variable_id{0},
                                    static_cast<variable_id>(num_vars)),
-                ranges::span(objective, objective + num_vars)),
+                [coefs = objective](auto i) {
+                    return std::make_pair(variable(i), coefs[i]);
+                }),
             get_objective_offset());
     }
 
@@ -263,8 +263,7 @@ public:
         tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
         Clp.addRows(model, static_cast<int>(tmp_begins.size()) - 1,
                     tmp_lower_bounds.data(), tmp_upper_bounds.data(),
-                    tmp_begins.data(), tmp_indices.data(),
-                    tmp_scalars.data());
+                    tmp_begins.data(), tmp_indices.data(), tmp_scalars.data());
         return constraints_range(
             keys,
             ranges::view::transform(ranges::view::iota(offset, constr_id),

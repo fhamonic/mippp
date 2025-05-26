@@ -67,6 +67,7 @@ MSKrescodee MSK_appendcons(MSKtask_t task, MSKint32t num);
 
 MSKrescodee MSK_putcj(MSKtask_t task, MSKint32t j, MSKrealt cj);
 MSKrescodee MSK_getcj(MSKtask_t task, MSKint32t j, MSKrealt * cj);
+MSKrescodee MSK_getc(MSKtask_t task, MSKrealt * c);
 enum MSKboundkeye : int {
     MSK_BK_LO = 0,  // lower bound
     MSK_BK_UP = 1,  // upper bound
@@ -339,6 +340,7 @@ namespace mosek::v11 {
     F(MSK_appendcons, appendcons)                       \
     F(MSK_putcj, putcj)                                 \
     F(MSK_getcj, getcj)                                 \
+    F(MSK_getc, getc)                                   \
     F(MSK_putvarbound, putvarbound)                     \
     F(MSK_putvarboundsliceconst, putvarboundsliceconst) \
     F(MSK_chgvarbound, chgvarbound)                     \

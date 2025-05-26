@@ -12,7 +12,7 @@
 #else
 namespace fhamonic::mippp {
 namespace scip::v8 {
-#include <limits>
+
 using SCIP_Real = double;
 constexpr SCIP_Real SCIP_REAL_MAX = std::numeric_limits<SCIP_Real>::max();
 constexpr SCIP_Real SCIP_REAL_MIN = -std::numeric_limits<SCIP_Real>::lowest();
@@ -92,6 +92,8 @@ SCIP_RETCODE SCIPchgVarObj(SCIP * scip, SCIP_VAR * var, SCIP_Real newobj);
 SCIP_Real SCIPvarGetObj(SCIP_VAR * var);
 SCIP_RETCODE SCIPchgVarLb(SCIP * scip, SCIP_VAR * var, SCIP_Real newbound);
 SCIP_RETCODE SCIPchgVarUb(SCIP * scip, SCIP_VAR * var, SCIP_Real newbound);
+SCIP_Real SCIPvarGetLbGlobal(SCIP_VAR * var);
+SCIP_Real SCIPvarGetUbGlobal(SCIP_VAR * var);
 SCIP_RETCODE SCIPchgVarType(SCIP * scip, SCIP_VAR * var, SCIP_VARTYPE vartype,
                             SCIP_Bool * become_infeasible);
 
@@ -146,6 +148,8 @@ namespace scip::v8 {
     F(SCIPvarGetObj, varGetObj)                         \
     F(SCIPchgVarLb, chgVarLb)                           \
     F(SCIPchgVarUb, chgVarUb)                           \
+    F(SCIPvarGetLbGlobal, varGetLbGlobal)               \
+    F(SCIPvarGetUbGlobal, varGetUbGlobal)               \
     F(SCIPchgVarType, chgVarType)                       \
     F(SCIPcreateConsBasicLinear, createConsBasicLinear) \
     F(SCIPaddCons, addCons)                             \

@@ -5,8 +5,6 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-#define EPSILON 1e-10
-
 namespace fhamonic::mippp {
 
 template <typename T>
@@ -275,11 +273,47 @@ TYPED_TEST_P(LpModelTest, solve_lp) {
     auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
     model.solve();
-    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
+    ASSERT_NEAR(model.get_solution_value(), 13.0, TEST_EPSILON);
     auto solution = model.get_solution();
-    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
-    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
-    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
+    ASSERT_NEAR(solution[x1], 2.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
+}
+TYPED_TEST_P(LpModelTest, solve_lp_with_objective_offset_min) {
+    using namespace operators;
+    auto model = this->construct_model();
+    auto x1 = model.add_variable();
+    auto x2 = model.add_variable();
+    auto x3 = model.add_variable();
+    model.set_minimization();
+    model.set_objective(15 - 5 * x1 - 4 * x2 - 3 * x3);
+    auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+    auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+    auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+    model.solve();
+    ASSERT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
+}
+TYPED_TEST_P(LpModelTest, solve_lp_with_objective_offset_max) {
+    using namespace operators;
+    auto model = this->construct_model();
+    auto x1 = model.add_variable();
+    auto x2 = model.add_variable();
+    auto x3 = model.add_variable();
+    model.set_maximization();
+    model.set_objective(15 + 5 * x1 + 4 * x2 + 3 * x3);
+    auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+    auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+    auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+    model.solve();
+    ASSERT_NEAR(model.get_solution_value(), 28.0, TEST_EPSILON);
+    auto solution = model.get_solution();
+    ASSERT_NEAR(solution[x1], 2.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
 }
 TYPED_TEST_P(LpModelTest, solve_lp_objective_redundant_terms) {
     using namespace operators;
@@ -293,11 +327,11 @@ TYPED_TEST_P(LpModelTest, solve_lp_objective_redundant_terms) {
     auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
     model.solve();
-    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
+    ASSERT_NEAR(model.get_solution_value(), 13.0, TEST_EPSILON);
     auto solution = model.get_solution();
-    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
-    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
-    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
+    ASSERT_NEAR(solution[x1], 2.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
 }
 TYPED_TEST_P(LpModelTest, solve_lp_constraint_redundant_terms) {
     using namespace operators;
@@ -311,11 +345,11 @@ TYPED_TEST_P(LpModelTest, solve_lp_constraint_redundant_terms) {
     auto c2 = model.add_constraint(4 * x1 + x3 + x2 + x3 <= 11);
     auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
     model.solve();
-    ASSERT_NEAR(model.get_solution_value(), 13.0, EPSILON);
+    ASSERT_NEAR(model.get_solution_value(), 13.0, TEST_EPSILON);
     auto solution = model.get_solution();
-    ASSERT_NEAR(solution[x1], 2.0, EPSILON);
-    ASSERT_NEAR(solution[x2], 0.0, EPSILON);
-    ASSERT_NEAR(solution[x3], 1.0, EPSILON);
+    ASSERT_NEAR(solution[x1], 2.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+    ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
 }
 
 REGISTER_TYPED_TEST_SUITE_P(
@@ -327,6 +361,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     set_objective, add_constraint, add_constraints, add_opt_constraints,
     solve_empty_no_sense, solve_empty_max, solve_empty_min,
     solve_bounded_variables_max, solve_bounded_variables_min, solve_lp,
+    solve_lp_with_objective_offset_min, solve_lp_with_objective_offset_max,
     solve_lp_objective_redundant_terms, solve_lp_constraint_redundant_terms);
 
 }  // namespace fhamonic::mippp

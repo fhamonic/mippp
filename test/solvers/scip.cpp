@@ -2,18 +2,15 @@
 
 using namespace fhamonic::mippp;
 
-#include "../test_suites/lp_model.hpp"
-#include "../test_suites/milp_model.hpp"
-#include "../test_suites/sudoku.hpp"
+#include "../test_suites/all.hpp"
 
 struct scip_milp_test {
     using model_type = scip_milp;
     scip_api api;
     auto construct_model() const { return model_type(api); }
 };
-INSTANTIATE_TYPED_TEST_SUITE_P(SCIP, LpModelTest,
-                               ::testing::Types<scip_milp_test>);
-INSTANTIATE_TYPED_TEST_SUITE_P(SCIP, MilpModelTest,
-                               ::testing::Types<scip_milp_test>);
-INSTANTIATE_TYPED_TEST_SUITE_P(SCIP, SudokuTest,
-                               ::testing::Types<scip_milp_test>);
+INSTANTIATE_TEST(SCIP, LpModelTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, MilpModelTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, ReadableObjectiveTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, ReadableVariablesBoundsTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, SudokuTest, scip_milp_test);

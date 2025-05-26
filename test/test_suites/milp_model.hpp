@@ -5,8 +5,6 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-#define EPSILON 1e-10
-
 namespace fhamonic::mippp {
 
 template <typename T>

@@ -1,14 +1,13 @@
 #ifndef MIPPP_COPT_v7_2_BASE_HPP
 #define MIPPP_COPT_v7_2_BASE_HPP
 
-#include <filesystem>
-#include <limits>
+#include <memory>
+#include <numeric>
 #include <optional>
 #include <vector>
 
 #include <range/v3/view/iota.hpp>
-#include <range/v3/view/span.hpp>
-#include <range/v3/view/zip.hpp>
+#include <range/v3/view/transform.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -93,7 +92,6 @@ public:
     void set_objective_offset(scalar constant) {
         check(COPT.SetObjConst(prob, constant));
     }
-
     void set_objective(linear_expression auto && le) {
         _reset_cache(num_variables());
         _register_entries(le.linear_terms());
@@ -106,6 +104,23 @@ public:
         scalar objective_offset;
         check(COPT.GetDblAttr(prob, COPT_DBLATTR_OBJCONST, &objective_offset));
         return objective_offset;
+    }
+    auto get_objective() {
+        const auto num_vars = num_variables();
+        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
+        tmp_indices.resize(num_vars);
+        std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
+        check(COPT.GetColInfo(prob, COPT_DBLINFO_OBJ,
+                              static_cast<int>(num_vars), tmp_indices.data(),
+                              coefs.get()));
+        return linear_expression_view(
+            ranges::view::transform(
+                ranges::view::iota(variable_id{0},
+                                   static_cast<variable_id>(num_vars)),
+                [coefs = std::move(coefs)](auto i) {
+                    return std::make_pair(variable(i), coefs[i]);
+                }),
+            get_objective_offset());
     }
 
 protected:

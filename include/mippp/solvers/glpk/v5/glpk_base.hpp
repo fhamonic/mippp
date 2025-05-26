@@ -95,6 +95,17 @@ public:
         set_objective_offset(get_objective_offset() + le.constant());
     }
     double get_objective_offset() { return objective_offset; }
+    auto get_objective() {
+        return linear_expression_view(
+            ranges::view::transform(
+                ranges::view::iota(variable_id{0},
+                                   static_cast<variable_id>(num_variables())),
+                [this](auto i) {
+                    return std::make_pair(variable(i),
+                                          glp.get_obj_coef(model, i + 1));
+                }),
+            get_objective_offset());
+    }
 
 protected:
     inline void _add_variable(const int & var_id,

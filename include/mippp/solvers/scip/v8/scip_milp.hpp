@@ -128,19 +128,18 @@ public:
         set_objective_offset(get_objective_offset() + le.constant());
     }
     double get_objective_offset() { return SCIP.getOrigObjoffset(model); }
-    // auto get_objective() {
-    //     auto num_vars = num_variables();
-    //     std::vector<double> coefs(num_vars);
-    //     update_scip_model();
-    //     check(SCIP.getdblattrarray(model, SCIP_DBL_ATTR_OBJ, 0,
-    //                                static_cast<int>(num_vars),
-    //                                coefs.data()));
-    //     return linear_expression_view(
-    //         ranges::view::zip(ranges::view::iota(0,
-    //         static_cast<int>(num_vars)),
-    //                           ranges::view::move(coefs)),
-    //         get_objective_offset());
-    // }
+    auto get_objective() {
+        return linear_expression_view(
+            ranges::view::transform(
+                ranges::view::iota(variable_id{0},
+                                   static_cast<variable_id>(num_variables())),
+                [this](auto i) {
+                    return std::make_pair(
+                        variable(i),
+                        SCIP.varGetObj(variables[static_cast<std::size_t>(i)]));
+                }),
+            get_objective_offset());
+    }
 
 private:
     void _add_variable(const variable_params & params, SCIP_VARTYPE type) {
@@ -284,13 +283,12 @@ public:
     double get_objective_coefficient(variable v) {
         return SCIP.varGetObj(variables[v.uid()]);
     }
-    // double get_variable_lower_bound(variable v) {
-    //     return SCIP.varGetLb(variables[v.uid()]);
-    //     SCIPgetVarUb
-    // }
-    // double get_variable_upper_bound(variable v) {
-    //     return SCIP.varGetUb(variables[v.uid()]);
-    // }
+    double get_variable_lower_bound(variable v) {
+        return SCIP.varGetLbGlobal(variables[v.uid()]);
+    }
+    double get_variable_upper_bound(variable v) {
+        return SCIP.varGetUbGlobal(variables[v.uid()]);
+    }
     // auto get_variable_name(variable v) {
     //     char * name;
     //     update_scip_model();

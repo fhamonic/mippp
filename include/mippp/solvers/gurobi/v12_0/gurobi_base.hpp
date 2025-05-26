@@ -1,6 +1,7 @@
 #ifndef MIPPP_GUROBI_v12_0_BASE_HPP
 #define MIPPP_GUROBI_v12_0_BASE_HPP
 
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -158,13 +159,16 @@ public:
     }
     auto get_objective() {
         auto num_vars = num_variables();
-        std::vector<double> coefs(num_vars);
+        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
         update_gurobi_model();
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
-                                  static_cast<int>(num_vars), coefs.data()));
+                                  static_cast<int>(num_vars), coefs.get()));
         return linear_expression_view(
-            ranges::view::zip(ranges::view::iota(0, static_cast<int>(num_vars)),
-                              ranges::view::move(coefs)),
+            ranges::view::transform(
+                ranges::view::iota(0, static_cast<int>(num_vars)),
+                [coefs = std::move(coefs)](auto && i) {
+                    return std::make_pair(variable(i), coefs[i]);
+                }),
             get_objective_offset());
     }
 

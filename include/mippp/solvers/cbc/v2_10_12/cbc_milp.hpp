@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <limits>
 #include <optional>
 #include <ostream>
 #include <sstream>
@@ -11,8 +10,6 @@
 #include <vector>
 
 #include <range/v3/view/iota.hpp>
-#include <range/v3/view/span.hpp>
-#include <range/v3/view/zip.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -113,9 +110,10 @@ public:
     auto get_objective() {
         return linear_expression_view(
             ranges::view::transform(
-                ranges::view::iota(0, static_cast<int>(_lazy_num_variables)),
-                [this](auto && v) {
-                    return std::make_pair(v, Cbc.getObjCoefficients(model)[v]);
+                ranges::view::iota(variable_id{0}, static_cast<variable_id>(
+                                                       _lazy_num_variables)),
+                [coefs = Cbc.getObjCoefficients(model)](auto i) {
+                    return std::make_pair(variable(i), coefs[i]);
                 }),
             get_objective_offset());
     }

@@ -144,12 +144,22 @@ concept has_milp_status =
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
+using objective_expression_t = decltype(std::declval<T &>().get_objective());
+
+template <typename T>
 concept has_readable_objective =
     requires(T & model, T::variable v) {
+        { model.get_objective_offset() }
+                -> std::convertible_to<typename T::scalar>;
         { model.get_objective_coefficient(v) }
                 -> std::convertible_to<typename T::scalar>;
         { model.get_objective() } -> linear_expression;
-    };
+    } && std::same_as<std::decay_t<
+                linear_expression_variable_t<objective_expression_t<T>>>,
+                typename T::variable>
+      && std::same_as<std::decay_t<
+                linear_expression_scalar_t<objective_expression_t<T>>>,
+                typename T::scalar>;
 
 template <typename T>
 concept has_modifiable_objective =

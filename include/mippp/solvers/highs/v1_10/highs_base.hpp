@@ -2,6 +2,7 @@
 #define MIPPP_HIGHS_v1_10_BASE_HPP
 
 #include <limits>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -84,25 +85,40 @@ public:
             model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
-    scalar get_objective_offset() {
-        scalar offset;
-        check(Highs.getObjectiveOffset(model, &offset));
-        return offset;
-    }
     void add_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
         int dummy_int;
-        scalar dummy_dbl;
         Highs.getColsByRange(model, 0, static_cast<HighsInt>(num_vars) - 1,
-                             &dummy_int, tmp_scalars.data(), &dummy_dbl,
-                             &dummy_dbl, &dummy_int, NULL, NULL, NULL);
+                             &dummy_int, tmp_scalars.data(), NULL, NULL,
+                             &dummy_int, NULL, NULL, NULL);
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
         check(Highs.changeColsCostByRange(
             model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
+    }
+    scalar get_objective_offset() {
+        scalar offset;
+        check(Highs.getObjectiveOffset(model, &offset));
+        return offset;
+    }
+    auto get_objective() {
+        const auto num_vars = num_variables();
+        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
+        int dummy_int;
+        check(Highs.getColsByRange(
+            model, 0, static_cast<HighsInt>(num_vars) - 1, &dummy_int,
+            coefs.get(), NULL, NULL, &dummy_int, NULL, NULL, NULL));
+        return linear_expression_view(
+            ranges::view::transform(
+                ranges::view::iota(variable_id{0},
+                                   static_cast<variable_id>(num_vars)),
+                [coefs = std::move(coefs)](auto i) {
+                    return std::make_pair(variable(i), coefs[i]);
+                }),
+            get_objective_offset());
     }
 
 protected:
