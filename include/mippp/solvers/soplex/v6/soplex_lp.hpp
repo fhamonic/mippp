@@ -43,7 +43,6 @@ public:
 private:
     const soplex_api & SoPlex;
     void * model;
-    std::optional<lp_status> opt_lp_status;
     double objective_offset;
     std::vector<double> tmp_scalars;
 
@@ -186,7 +185,6 @@ public:
 
     void solve() {
         if(num_variables() == 0u) {
-            opt_lp_status.emplace(lp_status::optimal);
             return;
         }
         SoPlex.optimize(model);

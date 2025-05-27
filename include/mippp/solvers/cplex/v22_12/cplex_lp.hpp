@@ -14,6 +14,9 @@ namespace fhamonic::mippp {
 namespace cplex::v22_12 {
 
 class cplex_lp : public cplex_base {
+private:
+    int opt_lp_status;
+
 public:
     [[nodiscard]] explicit cplex_lp(const cplex_api & api) : cplex_base(api) {}
 
@@ -40,11 +43,39 @@ public:
     }
 
     void solve() {
-        // if(num_variables() == 0u) {
-        //     opt_lp_status.emplace(lp_status::optimal);
-        //     return;
-        // }
         check(CPX.primopt(env, lp));
+        opt_lp_status = CPX.getstat(env, lp);
+    }
+
+private:
+    void _refine_lp_status() {
+        int tmp_advance_param, tmp_reduce_param;
+        check(CPX.getintparam(env, CPXPARAM_Advance, &tmp_advance_param));
+        check(CPX.getintparam(env, CPXPARAM_Preprocessing_Reduce,
+                              &tmp_reduce_param));
+        check(CPX.setintparam(env, CPXPARAM_Advance, 0));
+        check(CPX.setintparam(env, CPXPARAM_Preprocessing_Reduce,
+                              CPX_PREREDUCE_NOPRIMALORDUAL));
+        check(CPX.primopt(env, lp));
+        opt_lp_status = CPX.getstat(env, lp);
+        check(CPX.setintparam(env, CPXPARAM_Advance, tmp_advance_param));
+        check(CPX.setintparam(env, CPXPARAM_Preprocessing_Reduce,
+                              tmp_reduce_param));
+    }
+
+public:
+    bool is_optimal() {
+        return opt_lp_status == CPX_STAT_OPTIMAL ||
+               opt_lp_status == CPX_STAT_OPTIMAL_INFEAS ||
+               opt_lp_status == CPX_STAT_OPTIMAL_FACE_UNBOUNDED;
+    }
+    bool is_infeasible() {
+        if(opt_lp_status == CPX_STAT_INForUNBD) _refine_lp_status();
+        return opt_lp_status == CPX_STAT_INFEASIBLE;
+    }
+    bool is_unbounded() {
+        if(opt_lp_status == CPX_STAT_INForUNBD) _refine_lp_status();
+        return opt_lp_status == CPX_STAT_UNBOUNDED;
     }
 
     double get_solution_value() {
@@ -59,15 +90,13 @@ public:
                            NULL));
         return variable_mapping(std::move(solution));
     }
-    // auto get_dual_solution() {
-    //     auto solution =
-    //         std::make_unique_for_overwrite<double[]>(num_constraints());
-    //     check(CPX.getsolution(task, CPX_SOL_BAS, NULL, NULL, NULL, NULL,
-    //     NULL,
-    //                           NULL, NULL, solution.get(), NULL, NULL, NULL,
-    //                           NULL, NULL));
-    //     return constraint_mapping(std::move(solution));
-    // }
+    auto get_dual_solution() {
+        auto dual_solution =
+            std::make_unique_for_overwrite<double[]>(num_constraints());
+        check(CPX.solution(env, lp, NULL, NULL, NULL, dual_solution.get(), NULL,
+                           NULL));
+        return constraint_mapping(std::move(dual_solution));
+    }
 };
 
 }  // namespace cplex::v22_12

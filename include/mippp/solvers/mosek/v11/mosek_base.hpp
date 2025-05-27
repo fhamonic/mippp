@@ -113,6 +113,17 @@ public:
                             tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
+    void add_objective(linear_expression auto && le) {
+        auto num_vars = num_variables();
+        tmp_scalars.resize(num_vars);
+        check(MSK.getc(task, tmp_scalars.data()));
+        for(auto && [var, coef] : le.linear_terms()) {
+            tmp_scalars[var.uid()] += coef;
+        }
+        check(MSK.putcslice(task, 0, static_cast<indice>(num_vars),
+                            tmp_scalars.data()));
+        set_objective_offset(get_objective_offset() + le.constant());
+    }
 
     scalar get_objective_offset() {
         scalar objective_offset;

@@ -15,9 +15,6 @@ namespace fhamonic::mippp {
 namespace mosek::v11 {
 
 class mosek_milp : public mosek_base {
-private:
-    std::optional<lp_status> opt_lp_status;
-
 public:
     [[nodiscard]] explicit mosek_milp(const mosek_api & api) : mosek_base(api) {
         check(

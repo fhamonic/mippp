@@ -35,7 +35,6 @@ public:
 protected:
     const glpk_api & glp;
     glp_prob * model;
-    std::optional<lp_status> opt_lp_status;
     double objective_offset;
 
     static constexpr int constraint_sense_to_glp_row_type(

@@ -39,21 +39,6 @@ public:
 private:
     const clp_api & Clp;
     Clp_Simplex * model;
-    std::optional<lp_status> opt_lp_status;
-
-    // static constexpr char constraint_sense_to_gurobi_sense(
-    //     constraint_sense rel) {
-    //     if(rel == constraint_sense::less_equal) return
-    //     Clp_LESS_EQUAL; if(rel == constraint_sense::equal) return
-    //     Clp_EQUAL; return Clp_GREATER_EQUAL;
-    // }
-    // static constexpr constraint_sense gurobi_sense_to_constraint_sense(
-    //     char sense) {
-    //     if(sense == Clp_LESS_EQUAL) return
-    //     constraint_sense::less_equal; if(sense == Clp_EQUAL) return
-    //     constraint_sense::equal; return
-    //     constraint_sense::greater_equal;
-    // }
 
     std::vector<index> tmp_begins;
     std::vector<scalar> tmp_lower_bounds;
@@ -353,25 +338,15 @@ public:
 
     void solve() {
         if(num_variables() == 0u) {
-            opt_lp_status.emplace(lp_status::optimal);
+            add_variable();
             return;
         }
         Clp.primal(model, 0);
-        switch(Clp.status(model)) {
-            case 0:
-                opt_lp_status.emplace(lp_status::optimal);
-                return;
-            case 1:
-                opt_lp_status.emplace(lp_status::infeasible);
-                return;
-            case 2:
-                opt_lp_status.emplace(lp_status::unbounded);
-                return;
-            default:
-                opt_lp_status.reset();
-        }
     }
-    std::optional<lp_status> get_lp_status() const { return opt_lp_status; }
+
+    bool is_optimal() { return Clp.status(model) == 0; }
+    bool is_infeasible() { return Clp.status(model) == 1; }
+    bool is_unbounded() { return Clp.status(model) == 2; }
 
     scalar get_solution_value() { return Clp.getObjValue(model); }
 

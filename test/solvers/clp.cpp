@@ -13,3 +13,4 @@ INSTANTIATE_TEST(Clp, ModifiableObjectiveTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReadableVariablesBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ModifiableVariablesBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, DualSolutionTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, LpStatusTest, clp_lp_test);

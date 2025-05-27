@@ -15,30 +15,47 @@ namespace highs::v1_10 {
 
 class highs_lp : public highs_base {
 private:
-    std::optional<lp_status> opt_lp_status;
+    int lp_status;
 
 public:
     [[nodiscard]] explicit highs_lp(const highs_api & api) : highs_base(api) {}
 
     void solve() {
+        if(num_variables() == 0u) {
+            add_variable();
+        }
         check(Highs.run(model));
-        switch(Highs.getModelStatus(model)) {
+        lp_status = Highs.getModelStatus(model);
+        switch(lp_status) {
             case kHighsModelStatusModelEmpty:
             case kHighsModelStatusOptimal:
-                opt_lp_status.emplace(lp_status::optimal);
-                return;
-            // case kHighsModelStatusUnboundedOrInfeasible:
+            case kHighsModelStatusUnboundedOrInfeasible:
             case kHighsModelStatusInfeasible:
-                opt_lp_status.emplace(lp_status::infeasible);
-                return;
             case kHighsModelStatusUnbounded:
-                opt_lp_status.emplace(lp_status::unbounded);
                 return;
             default:
                 throw std::runtime_error("highs_lp: error");
         }
     }
-    std::optional<lp_status> get_lp_status() { return opt_lp_status; }
+
+private:
+    void _refine_lp_status() {}
+
+public:
+    bool is_optimal() {
+        return lp_status == kHighsModelStatusModelEmpty ||
+               lp_status == kHighsModelStatusOptimal;
+    }
+    bool is_infeasible() {
+        if(lp_status == kHighsModelStatusUnboundedOrInfeasible)
+            _refine_lp_status();
+        return lp_status == kHighsModelStatusInfeasible;
+    }
+    bool is_unbounded() {
+        if(lp_status == kHighsModelStatusUnboundedOrInfeasible)
+            _refine_lp_status();
+        return lp_status == kHighsModelStatusUnbounded;
+    }
 
     double get_solution_value() { return Highs.getObjectiveValue(model); }
     auto get_solution() {

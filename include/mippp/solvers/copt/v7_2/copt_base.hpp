@@ -99,6 +99,21 @@ public:
                                  tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
+    void add_objective(linear_expression auto && le) {
+        const auto num_vars = num_variables();
+        tmp_indices.resize(num_vars);
+        std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
+        tmp_scalars.resize(num_vars);
+        check(COPT.GetColInfo(prob, COPT_DBLINFO_OBJ,
+                              static_cast<int>(num_vars), tmp_indices.data(),
+                              tmp_scalars.data()));
+        for(auto && [var, coef] : le.linear_terms()) {
+            tmp_scalars[var.uid()] += coef;
+        }
+        check(COPT.ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
+                                 tmp_indices.data(), tmp_scalars.data()));
+        set_objective_offset(get_objective_offset() + le.constant());
+    }
 
     scalar get_objective_offset() {
         scalar objective_offset;

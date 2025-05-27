@@ -13,7 +13,7 @@ namespace mosek::v11 {
 
 class mosek_lp : public mosek_base {
 private:
-    std::optional<lp_status> opt_lp_status;
+    int lp_status;
 
 public:
     [[nodiscard]] explicit mosek_lp(const mosek_api & api) : mosek_base(api) {}
@@ -32,12 +32,12 @@ public:
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
-        auto solution =
+        auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
         check(MSK.getsolution(task, MSK_SOL_BAS, NULL, NULL, NULL, NULL, NULL,
-                              NULL, NULL, solution.get(), NULL, NULL, NULL,
+                              NULL, NULL, dual_solution.get(), NULL, NULL, NULL,
                               NULL, NULL));
-        return constraint_mapping(std::move(solution));
+        return constraint_mapping(std::move(dual_solution));
     }
 };
 

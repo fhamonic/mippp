@@ -102,6 +102,17 @@ constexpr int CPXPARAM_MIP_Tolerances_Linearization = 2068;
 int CPXgetdblparam(CPXCENVptr env, int whichparam, double * value_p);
 int CPXsetdblparam(CPXENVptr env, int whichparam, double newvalue);
 
+constexpr int CPXPARAM_Advance = 1001;
+constexpr int CPXPARAM_Preprocessing_Reduce = 1057;
+enum PrereduceType : int {
+    CPX_PREREDUCE_NOPRIMALORDUAL = 0,
+    CPX_PREREDUCE_PRIMALONLY = 1,
+    CPX_PREREDUCE_DUALONLY = 2,
+    CPX_PREREDUCE_PRIMALANDDUAL = 3
+};
+int CPXgetintparam(CPXCENVptr env, int whichparam, int * value_p);
+int CPXsetintparam(CPXENVptr env, int whichparam, int newvalue);
+
 int CPXprimopt(CPXCENVptr env, CPXLPptr lp);
 int CPXdualopt(CPXCENVptr env, CPXLPptr lp);
 int CPXlpopt(CPXCENVptr env, CPXLPptr lp);
@@ -110,12 +121,46 @@ int CPXfeasopt(CPXCENVptr env, CPXLPptr lp, double const * rhs,
 int CPXmipopt(CPXCENVptr env, CPXLPptr lp);
 int CPXbendersopt(CPXCENVptr env, CPXLPptr lp);
 
-int CPXcheckpfeas(CPXCENVptr env, CPXLPptr lp, int * infeas_p);
-int CPXcheckdfeas(CPXCENVptr env, CPXLPptr lp, int * infeas_p);
+constexpr int CPX_STAT_UNKNOWN = 0;
+constexpr int CPX_STAT_OPTIMAL = 1;
+constexpr int CPX_STAT_UNBOUNDED = 2;
+constexpr int CPX_STAT_INFEASIBLE = 3;
+constexpr int CPX_STAT_INForUNBD = 4;
+constexpr int CPX_STAT_OPTIMAL_INFEAS = 5;
+constexpr int CPX_STAT_NUM_BEST = 6;
+constexpr int CPX_STAT_ABORT_IT_LIM = 10;
+constexpr int CPX_STAT_ABORT_TIME_LIM = 11;
+constexpr int CPX_STAT_ABORT_OBJ_LIM = 12;
+constexpr int CPX_STAT_ABORT_USER = 13;
+constexpr int CPX_STAT_FEASIBLE_RELAXED_SUM = 14;   // after CPXfeasopt
+constexpr int CPX_STAT_OPTIMAL_RELAXED_SUM = 15;    // after CPXfeasopt
+constexpr int CPX_STAT_FEASIBLE_RELAXED_INF = 16;   // after CPXfeasopt
+constexpr int CPX_STAT_OPTIMAL_RELAXED_INF = 17;    // after CPXfeasopt
+constexpr int CPX_STAT_FEASIBLE_RELAXED_QUAD = 18;  // after CPXfeasopt
+constexpr int CPX_STAT_OPTIMAL_RELAXED_QUAD = 19;   // after CPXfeasopt
+constexpr int CPX_STAT_OPTIMAL_FACE_UNBOUNDED = 20;
+constexpr int CPX_STAT_ABORT_PRIM_OBJ_LIM = 21;
+constexpr int CPX_STAT_ABORT_DUAL_OBJ_LIM = 22;
+constexpr int CPX_STAT_FEASIBLE = 23;  // after CPXfeasopt
+constexpr int CPX_STAT_ABORT_DETTIME_LIM = 25;
+
+// constexpr int CPX_STAT_CONFLICT_FEASIBLE = 30;
+// constexpr int CPX_STAT_CONFLICT_MINIMAL = 31;
+// constexpr int CPX_STAT_CONFLICT_ABORT_CONTRADICTION = 32;
+// constexpr int CPX_STAT_CONFLICT_ABORT_TIME_LIM = 33;
+// constexpr int CPX_STAT_CONFLICT_ABORT_IT_LIM = 34;
+// constexpr int CPX_STAT_CONFLICT_ABORT_NODE_LIM = 35;
+// constexpr int CPX_STAT_CONFLICT_ABORT_OBJ_LIM = 36;
+// constexpr int CPX_STAT_CONFLICT_ABORT_MEM_LIM = 37;
+// constexpr int CPX_STAT_CONFLICT_ABORT_USER = 38;
+// constexpr int CPX_STAT_CONFLICT_ABORT_DETTIME_LIM = 39;
+
+int CPXgetstat(CPXCENVptr env, CPXLPptr lp);
 
 int CPXgetobjval(CPXCENVptr env, CPXCLPptr lp, double * objval_p);
 int CPXgetbestobjval(CPXCENVptr env, CPXCLPptr lp, double * objval_p);
 int CPXgetx(CPXCENVptr env, CPXCLPptr lp, double * x, int begin, int end);
+int CPXgetpi(CPXCENVptr env, CPXCLPptr lp, double * pi, int begin, int end);
 int CPXsolution(CPXCENVptr env, CPXCLPptr lp, int * lpstat_p, double * objval_p,
                 double * x, double * pi, double * slack, double * dj);
 
@@ -196,17 +241,19 @@ namespace cplex::v22_12 {
     F(CPXaddmipstarts, addmipstarts)                                 \
     F(CPXgetdblparam, getdblparam)                                   \
     F(CPXsetdblparam, setdblparam)                                   \
+    F(CPXgetintparam, getintparam)                                   \
+    F(CPXsetintparam, setintparam)                                   \
     F(CPXprimopt, primopt)                                           \
     F(CPXdualopt, dualopt)                                           \
     F(CPXlpopt, lpopt)                                               \
     F(CPXfeasopt, feasopt)                                           \
     F(CPXmipopt, mipopt)                                             \
     F(CPXbendersopt, bendersopt)                                     \
-    F(CPXcheckpfeas, checkpfeas)                                     \
-    F(CPXcheckdfeas, checkdfeas)                                     \
+    F(CPXgetstat, getstat)                                           \
     F(CPXgetobjval, getobjval)                                       \
     F(CPXgetbestobjval, getbestobjval)                               \
     F(CPXgetx, getx)                                                 \
+    F(CPXgetpi, getpi)                                               \
     F(CPXsolution, solution)                                         \
     F(CPXcallbacksetfunc, callbacksetfunc)                           \
     F(CPXcallbackgetcandidatepoint, callbackgetcandidatepoint)       \

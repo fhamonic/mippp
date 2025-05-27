@@ -15,6 +15,8 @@ namespace glpk::v5 {
 class glpk_lp : public glpk_base {
 private:
     glp_smcp model_params;
+    int lp_status;
+    enum status : int { unknown, optimal, infeasible, unbounded };
 
 public:
     [[nodiscard]] explicit glpk_lp(const glpk_api & api)
@@ -45,27 +47,30 @@ public:
     void solve() {
         switch(glp.simplex(model, &model_params)) {
             case GLP_ENOPFS:
-                opt_lp_status.emplace(lp_status::unbounded);
+                lp_status = unbounded;
                 return;
             case GLP_ENODFS:
-                opt_lp_status.emplace(lp_status::infeasible);
+                lp_status = infeasible;
                 return;
         }
         const int primal_status = glp.get_status(model);
         if(primal_status == GLP_UNBND || !std::isfinite(get_solution_value())) {
-            opt_lp_status.emplace(lp_status::unbounded);
+            lp_status = unbounded;
             return;
         }
         if(primal_status == GLP_OPT) {
-            opt_lp_status.emplace(lp_status::optimal);
+            lp_status = optimal;
             return;
         }
         if(primal_status == GLP_INFEAS || primal_status == GLP_NOFEAS) {
-            opt_lp_status.emplace(lp_status::infeasible);
+            lp_status = infeasible;
             return;
         }
     }
-    std::optional<lp_status> get_lp_status() { return opt_lp_status; }
+
+    bool is_optimal() { return lp_status == optimal; }
+    bool is_infeasible() { return lp_status == infeasible; }
+    bool is_unbounded() { return lp_status == unbounded; }
 
     double get_solution_value() {
         return objective_offset + glp.get_obj_val(model);

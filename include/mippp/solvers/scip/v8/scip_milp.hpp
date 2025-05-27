@@ -46,7 +46,6 @@ private:
     struct Scip * model;
     std::vector<SCIP_VAR *> variables;
     std::vector<SCIP_CONS *> constraints;
-    std::optional<lp_status> opt_lp_status;
 
 public:
     [[nodiscard]] explicit scip_milp(const scip_api & api) : SCIP(api) {

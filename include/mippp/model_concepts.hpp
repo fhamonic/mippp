@@ -50,8 +50,6 @@ constexpr bool operator<(dummy_type, dummy_type) { return true; }
 //////////////////////////////////// Model ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enum lp_status : char { optimal = 0, infeasible = 1, unbounded = 2 };
-
 // clang-format off
 template <typename T>
 concept lp_model = requires(T & model, T::variable v, 
@@ -121,10 +119,10 @@ concept sized_model = lp_model<T> && requires(T & model) {
 template <typename T>
 concept has_lp_status =
     lp_model<T> &&
-    requires(T & model, T::variable v, T::variable_id vid,
-             T::variable_params vparams, T::constraint c, T::scalar s) {
-        { model.get_lp_status() }
-                -> std::same_as<std::optional<lp_status>>;
+    requires(T & model) {
+        { model.is_optimal() } -> std::same_as<bool>;
+        { model.is_infeasible() } -> std::same_as<bool>;
+        { model.is_unbounded() } -> std::same_as<bool>;
     };
 
 template <typename T>

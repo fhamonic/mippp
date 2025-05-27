@@ -13,6 +13,7 @@ INSTANTIATE_TEST(Gurobi_lp, ModifiableObjectiveTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableVariablesBoundsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ModifiableVariablesBoundsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, DualSolutionTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, LpStatusTest, gurobi_lp_test);
 
 struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {
     static void SetUpTestSuite() { construct_api(); }

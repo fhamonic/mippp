@@ -99,6 +99,20 @@ public:
                          tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
+    void add_objective(linear_expression auto && le) {
+        auto num_vars = num_variables();
+        tmp_indices.resize(num_vars);
+        std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
+        tmp_scalars.resize(num_vars);
+        check(CPX.getobj(env, lp, tmp_scalars.data(), 0,
+                         static_cast<int>(num_vars) - 1));
+        for(auto && [var, coef] : le.linear_terms()) {
+            tmp_scalars[var.uid()] += coef;
+        }
+        check(CPX.chgobj(env, lp, static_cast<int>(num_vars),
+                         tmp_indices.data(), tmp_scalars.data()));
+        set_objective_offset(get_objective_offset() + le.constant());
+    }
 
     double get_objective_offset() {
         double objective_offset;

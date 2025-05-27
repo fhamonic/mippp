@@ -13,7 +13,7 @@ namespace copt::v7_2 {
 
 class copt_lp : public copt_base {
 private:
-    std::optional<lp_status> opt_lp_status;
+    // int lp_status;
 
 public:
     [[nodiscard]] explicit copt_lp(const copt_api & api) : copt_base(api) {}
