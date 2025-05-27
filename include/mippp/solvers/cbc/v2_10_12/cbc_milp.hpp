@@ -366,7 +366,10 @@ public:
     }
 
     void solve() {
-        if(_lazy_num_constraints == 0u) return;
+        if(_lazy_num_variables == 0u) {
+            using namespace operators;
+            add_variable();
+        };
         Cbc.solve(model);
     }
 

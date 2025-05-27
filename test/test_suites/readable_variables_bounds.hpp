@@ -7,7 +7,7 @@
 namespace fhamonic::mippp {
 
 template <typename T>
-struct ReadableVariablesBoundsTest : public ::testing::Test, public T {
+struct ReadableVariablesBoundsTest : public T {
     using typename T::model_type;
     static_assert(has_readable_variables_bounds<model_type>);
 };

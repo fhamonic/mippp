@@ -72,6 +72,7 @@ concept lp_model = requires(T & model, T::variable v,
                          {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
             -> ranges::random_access_range;
 
+    { model.set_objective_offset(0.0) };
     { model.set_objective(detail::dummy_expression<T>()) };
     { model.add_constraint(detail::dummy_constraint<T>()) }
             -> std::convertible_to<typename T::constraint>;
@@ -302,7 +303,7 @@ concept has_sos2_constraints = milp_model<T> &&
 template <typename T>
 concept has_indicator_constraints = milp_model<T> &&
     requires(T & model, T::variable v) {
-        { model.add_indicator_constraint(v, detail::dummy_constraint<T>()) };
+        { model.add_indicator_constraint(v, true, detail::dummy_constraint<T>()) };
     };
 
 ///////////////////////////////////////////////////////////////////////////////

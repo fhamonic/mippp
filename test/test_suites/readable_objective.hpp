@@ -10,7 +10,7 @@
 namespace fhamonic::mippp {
 
 template <typename T>
-struct ReadableObjectiveTest : public ::testing::Test, public T {
+struct ReadableObjectiveTest : public T {
     using typename T::model_type;
     static_assert(has_readable_objective<model_type>);
 };

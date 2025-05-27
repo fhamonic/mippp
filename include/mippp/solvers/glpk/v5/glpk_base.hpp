@@ -41,8 +41,8 @@ protected:
     static constexpr int constraint_sense_to_glp_row_type(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return GLP_UP;
-        if(rel == constraint_sense::equal) return GLP_LO;
-        return GLP_FX;
+        if(rel == constraint_sense::equal) return GLP_FX;
+        return GLP_LO;
     }
     static constexpr constraint_sense glp_row_type_to_constraint_sense(
         int type) {

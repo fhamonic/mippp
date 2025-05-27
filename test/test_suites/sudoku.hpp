@@ -12,7 +12,7 @@
 namespace fhamonic::mippp {
 
 template <typename T>
-struct SudokuTest : public ::testing::Test, public T {
+struct SudokuTest : public T {
     using typename T::model_type;
     static_assert(milp_model<model_type>);
 };
