@@ -72,10 +72,23 @@ constexpr const char * GRB_INT_ATTR_NUMNZS = "NumNZs";
 // Model statuses
 constexpr const char * GRB_INT_ATTR_STATUS = "Status";
 enum ModelStatus : int {
+    GRB_LOADED = 1,
     GRB_OPTIMAL = 2,
     GRB_INFEASIBLE = 3,
     GRB_INF_OR_UNBD = 4,
-    GRB_UNBOUNDED = 5
+    GRB_UNBOUNDED = 5,
+    GRB_CUTOFF = 6,
+    GRB_ITERATION_LIMIT = 7,
+    GRB_NODE_LIMIT = 8,
+    GRB_TIME_LIMIT = 9,
+    GRB_SOLUTION_LIMIT = 10,
+    GRB_INTERRUPTED = 11,
+    GRB_NUMERIC = 12,
+    GRB_SUBOPTIMAL = 13,
+    GRB_INPROGRESS = 14,
+    GRB_USER_OBJ_LIMIT = 15,
+    GRB_WORK_LIMIT = 16,
+    GRB_MEM_LIMIT = 17
 };
 int GRBsetintattr(GRBmodel * model, const char * attrname, int newvalue);
 int GRBgetintattr(GRBmodel * model, const char * attrname, int * valueP);

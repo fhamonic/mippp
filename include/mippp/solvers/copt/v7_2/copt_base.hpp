@@ -324,6 +324,23 @@ public:
             ranges::view::transform(ranges::view::iota(offset, constr_id),
                                     [](auto && i) { return constraint{i}; }));
     }
+
+protected:
+    static void check_lp_status(int status) {
+        if(status >= 1 && status <= 3) return;
+        if(status == COPT_LPSTATUS_UNSTARTED)
+            throw std::runtime_error("copt_base: COPT_LPSTATUS_UNSTARTED");
+        if(status == COPT_LPSTATUS_NUMERICAL)
+            throw std::runtime_error("copt_base: COPT_LPSTATUS_NUMERICAL");
+        if(status == COPT_LPSTATUS_IMPRECISE)
+            throw std::runtime_error("copt_base: COPT_LPSTATUS_IMPRECISE");
+        if(status == COPT_LPSTATUS_TIMEOUT)
+            throw std::runtime_error("copt_base: COPT_LPSTATUS_TIMEOUT");
+        if(status == COPT_LPSTATUS_UNFINISHED)
+            throw std::runtime_error("copt_base: COPT_LPSTATUS_UNFINISHED");
+        if(status == COPT_LPSTATUS_INTERRUPTED)
+            throw std::runtime_error("copt_base: COPT_LPSTATUS_INTERRUPTED");
+    }
 };
 
 }  // namespace copt::v7_2

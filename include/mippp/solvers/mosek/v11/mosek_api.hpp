@@ -149,23 +149,6 @@ MSKrescodee MSK_getdouparam(MSKtask_t task, MSKdparame param,
 
 enum MSKsoltypee : int { MSK_SOL_ITR = 0, MSK_SOL_BAS = 1, MSK_SOL_ITG = 2 };
 MSKrescodee MSK_optimize(MSKtask_t task);
-enum MSKsolstae : int {
-    MSK_SOL_STA_UNKNOWN = 0,
-    MSK_SOL_STA_OPTIMAL = 1,
-    MSK_SOL_STA_PRIM_FEAS = 2,
-    MSK_SOL_STA_DUAL_FEAS = 3,
-    MSK_SOL_STA_PRIM_AND_DUAL_FEAS = 4,
-    MSK_SOL_STA_PRIM_INFEAS_CER = 5,
-    MSK_SOL_STA_DUAL_INFEAS_CER = 6,
-    MSK_SOL_STA_PRIM_ILLPOSED_CER = 7,
-    MSK_SOL_STA_DUAL_ILLPOSED_CER = 8,
-    MSK_SOL_STA_INTEGER_OPTIMAL = 9
-};
-MSKrescodee MSK_getsolsta(MSKtask_t task, MSKsoltypee whichsol,
-                          MSKsolstae * solutionsta);
-MSKrescodee MSK_getprimalobj(MSKtask_t task, MSKsoltypee whichsol,
-                             MSKrealt * primalobj);
-MSKrescodee MSK_getxx(MSKtask_t task, MSKsoltypee whichsol, MSKrealt * xx);
 enum MSKprostae : int {
     MSK_PRO_STA_UNKNOWN = 0,
     MSK_PRO_STA_PRIM_AND_DUAL_FEAS = 1,
@@ -177,6 +160,11 @@ enum MSKprostae : int {
     MSK_PRO_STA_ILL_POSED = 7,
     MSK_PRO_STA_PRIM_INFEAS_OR_UNBOUNDED = 8
 };
+MSKrescodee MSK_getprosta(MSKtask_t task, MSKsoltypee whichsol,
+                          MSKprostae * problemsta);
+MSKrescodee MSK_getprimalobj(MSKtask_t task, MSKsoltypee whichsol,
+                             MSKrealt * primalobj);
+MSKrescodee MSK_getxx(MSKtask_t task, MSKsoltypee whichsol, MSKrealt * xx);
 enum MSKstakeye : int {
     MSK_SK_UNK = 0,
     MSK_SK_BAS = 1,
@@ -185,6 +173,18 @@ enum MSKstakeye : int {
     MSK_SK_UPR = 4,
     MSK_SK_FIX = 5,
     MSK_SK_INF = 6
+};
+enum MSKsolstae : int {
+    MSK_SOL_STA_UNKNOWN = 0,
+    MSK_SOL_STA_OPTIMAL = 1,
+    MSK_SOL_STA_PRIM_FEAS = 2,
+    MSK_SOL_STA_DUAL_FEAS = 3,
+    MSK_SOL_STA_PRIM_AND_DUAL_FEAS = 4,
+    MSK_SOL_STA_PRIM_INFEAS_CER = 5,
+    MSK_SOL_STA_DUAL_INFEAS_CER = 6,
+    MSK_SOL_STA_PRIM_ILLPOSED_CER = 7,
+    MSK_SOL_STA_DUAL_ILLPOSED_CER = 8,
+    MSK_SOL_STA_INTEGER_OPTIMAL = 9
 };
 MSKrescodee MSK_getsolution(MSKtask_t task, MSKsoltypee whichsol,
                             MSKprostae * problemsta, MSKsolstae * solutionsta,
@@ -370,7 +370,7 @@ namespace mosek::v11 {
     F(MSK_putdouparam, putdouparam)                     \
     F(MSK_getdouparam, getdouparam)                     \
     F(MSK_optimize, optimize)                           \
-    F(MSK_getsolsta, getsolsta)                         \
+    F(MSK_getprosta, getprosta)                         \
     F(MSK_getprimalobj, getprimalobj)                   \
     F(MSK_getxx, getxx)                                 \
     F(MSK_getsolution, getsolution)                     \

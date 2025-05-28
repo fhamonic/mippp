@@ -13,7 +13,7 @@ INSTANTIATE_TEST(MOSEK_lp, ModifiableObjectiveTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableVariablesBoundsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ModifiableVariablesBoundsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, DualSolutionTest, mosek_lp_test);
-// INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
 
 struct mosek_milp_test : public model_test<mosek_api, mosek_milp> {
     static void SetUpTestSuite() { construct_api(); }

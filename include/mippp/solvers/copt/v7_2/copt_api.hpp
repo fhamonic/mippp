@@ -131,6 +131,17 @@ ret_code COPT_AddMipStart(copt_prob * prob, int num, const int * list,
 constexpr const char * COPT_INTATTR_ISMIP = "IsMIP";
 ret_code COPT_SolveLp(copt_prob * prob);
 ret_code COPT_Solve(copt_prob * prob);
+enum LpStatus : int {
+    COPT_LPSTATUS_UNSTARTED = 0,
+    COPT_LPSTATUS_OPTIMAL = 1,
+    COPT_LPSTATUS_INFEASIBLE = 2,
+    COPT_LPSTATUS_UNBOUNDED = 3,
+    COPT_LPSTATUS_NUMERICAL = 5,
+    COPT_LPSTATUS_IMPRECISE = 7,
+    COPT_LPSTATUS_TIMEOUT = 8,
+    COPT_LPSTATUS_UNFINISHED = 9,
+    COPT_LPSTATUS_INTERRUPTED = 10
+};
 constexpr const char * COPT_INTATTR_LPSTATUS = "LpStatus";
 constexpr const char * COPT_DBLATTR_LPOBJVAL = "LpObjval";
 constexpr const char * COPT_DBLATTR_BESTOBJ = "BestObj";

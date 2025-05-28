@@ -14,6 +14,16 @@ class gurobi_lp : public gurobi_base {
 private:
     int lp_status;
 
+    static void check_model_status(int status) {
+        if(status <= 5) return;
+        throw std::runtime_error(
+            "gurobi_lp: solve did not succeeded, status is one of "
+            "{GRB_CUTOFF,GRB_ITERATION_LIMIT, GRB_NODE_LIMIT, "
+            "GRB_TIME_LIMIT,GRB_SOLUTION_LIMIT, GRB_INTERRUPTED, "
+            "GRB_NUMERIC, GRB_SUBOPTIMAL,GRB_INPROGRESS, "
+            "GRB_USER_OBJ_LIMIT, GRB_WORK_LIMIT,GRB_MEM_LIMIT}.");
+    }
+
 public:
     [[nodiscard]] explicit gurobi_lp(const gurobi_api & api)
         : gurobi_base(api) {}
@@ -21,6 +31,7 @@ public:
     void solve() {
         check(GRB.optimize(model));
         check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &lp_status));
+        check_model_status(lp_status);
     }
 
 private:
@@ -33,6 +44,7 @@ private:
         check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &lp_status));
         check(GRB.setintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
                               tmp_dual_reductions));
+        check_model_status(lp_status);
     }
 
 public:

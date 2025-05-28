@@ -1,6 +1,7 @@
 #ifndef MIPPP_MOSEK_v11_LP_HPP
 #define MIPPP_MOSEK_v11_LP_HPP
 
+#include <iostream>
 #include <optional>
 
 #include "mippp/model_concepts.hpp"
@@ -13,12 +14,26 @@ namespace mosek::v11 {
 
 class mosek_lp : public mosek_base {
 private:
-    int lp_status;
+    MSKprostae lp_status;
 
 public:
     [[nodiscard]] explicit mosek_lp(const mosek_api & api) : mosek_base(api) {}
 
-    void solve() { check(MSK.optimize(task)); }
+    void solve() {
+        check(MSK.optimize(task));
+        check(MSK.getprosta(task, MSK_SOL_BAS, &lp_status));
+        if(lp_status == MSK_PRO_STA_UNKNOWN)
+            throw std::runtime_error("Mosek : problem status unknown.");
+        if(lp_status == MSK_PRO_STA_ILL_POSED)
+            throw std::runtime_error("Mosek : problem ill posed.");
+    }
+
+    bool is_optimal() { return lp_status == MSK_PRO_STA_PRIM_AND_DUAL_FEAS; }
+    bool is_infeasible() {
+        return lp_status == MSK_PRO_STA_PRIM_INFEAS ||
+               lp_status == MSK_PRO_STA_PRIM_AND_DUAL_INFEAS;
+    }
+    bool is_unbounded() { return lp_status == MSK_PRO_STA_DUAL_INFEAS; }
 
     double get_solution_value() {
         double val;

@@ -15,6 +15,15 @@ double Highs_getInfinity(const void * highs);
 void * Highs_create(void);
 void Highs_destroy(void * highs);
 
+HighsInt Highs_setHighsDoubleOptionValue(void * highs, const char * option,
+                                         const double value);
+HighsInt Highs_getHighsDoubleOptionValue(const void * highs,
+                                         const char * option, double * value);
+HighsInt Highs_setHighsStringOptionValue(void * highs, const char * option,
+                                         const char * value);
+HighsInt Highs_getHighsStringOptionValue(const void * highs,
+                                         const char * option, char * value);
+
 // return status
 constexpr HighsInt kHighsStatusError = -1;
 constexpr HighsInt kHighsStatusOk = 0;
@@ -95,11 +104,24 @@ HighsInt Highs_getNumNz(const void * highs);
 
 HighsInt Highs_run(void * highs);
 enum ModelStatus : HighsInt {
+    kHighsModelStatusNotset = 0,
+    kHighsModelStatusLoadError = 1,
+    kHighsModelStatusModelError = 2,
+    kHighsModelStatusPresolveError = 3,
+    kHighsModelStatusSolveError = 4,
+    kHighsModelStatusPostsolveError = 5,
     kHighsModelStatusModelEmpty = 6,
     kHighsModelStatusOptimal = 7,
     kHighsModelStatusInfeasible = 8,
     kHighsModelStatusUnboundedOrInfeasible = 9,
-    kHighsModelStatusUnbounded = 10
+    kHighsModelStatusUnbounded = 10,
+    kHighsModelStatusObjectiveBound = 11,
+    kHighsModelStatusObjectiveTarget = 12,
+    kHighsModelStatusTimeLimit = 13,
+    kHighsModelStatusIterationLimit = 14,
+    kHighsModelStatusUnknown = 15,
+    kHighsModelStatusSolutionLimit = 16,
+    kHighsModelStatusInterrupt = 17
 };
 HighsInt Highs_getModelStatus(const void * highs);
 double Highs_getObjectiveValue(const void * highs);
@@ -119,7 +141,7 @@ HighsInt Highs_getBasis(const void * highs, HighsInt * col_status,
                         HighsInt * row_status);
 
 struct HighsCallbackDataOut {
-    int log_type; // cast of HighsLogType
+    int log_type;  // cast of HighsLogType
     double running_time;
     HighsInt simplex_iteration_count;
     HighsInt ipm_iteration_count;
@@ -150,7 +172,7 @@ using HighsCCallbackType = void(int, const char *, const HighsCallbackDataOut *,
 
 HighsInt Highs_setCallback(void * highs, HighsCCallbackType user_callback,
                            void * user_callback_data);
-HighsInt Highs_startCallback(void* highs, const int callback_type);
+HighsInt Highs_startCallback(void * highs, const int callback_type);
 
 }  // namespace highs::v1_10
 }  // namespace fhamonic::mippp
@@ -165,6 +187,10 @@ namespace highs::v1_10 {
     F(Highs_getInfinity, getInfinity)                                   \
     F(Highs_create, create)                                             \
     F(Highs_destroy, destroy)                                           \
+    F(Highs_setHighsDoubleOptionValue, setHighsDoubleOptionValue)       \
+    F(Highs_getHighsDoubleOptionValue, getHighsDoubleOptionValue)       \
+    F(Highs_setHighsStringOptionValue, setHighsStringOptionValue)       \
+    F(Highs_getHighsStringOptionValue, getHighsStringOptionValue)       \
     F(Highs_changeObjectiveSense, changeObjectiveSense)                 \
     F(Highs_getObjectiveSense, getObjectiveSense)                       \
     F(Highs_changeObjectiveOffset, changeObjectiveOffset)               \

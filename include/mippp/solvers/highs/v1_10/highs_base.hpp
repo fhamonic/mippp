@@ -301,6 +301,45 @@ public:
             ranges::view::transform(ranges::view::iota(offset, constr_id),
                                     [](auto && i) { return constraint{i}; }));
     }
+
+protected:
+    static void check_model_status(int status) {
+        if(status >= 7 && status <= 10) return;
+        if(status == kHighsModelStatusNotset)
+            throw std::runtime_error("highs_lp: kHighsModelStatusNotset.");
+        if(status == kHighsModelStatusLoadError)
+            throw std::runtime_error("highs_lp: kHighsModelStatusLoadError.");
+        if(status == kHighsModelStatusModelError)
+            throw std::runtime_error("highs_lp: kHighsModelStatusModelError.");
+        if(status == kHighsModelStatusPresolveError)
+            throw std::runtime_error(
+                "highs_lp: kHighsModelStatusPresolveError.");
+        if(status == kHighsModelStatusSolveError)
+            throw std::runtime_error("highs_lp: kHighsModelStatusSolveError.");
+        if(status == kHighsModelStatusPostsolveError)
+            throw std::runtime_error(
+                "highs_lp: kHighsModelStatusPostsolveError.");
+        if(status == kHighsModelStatusModelEmpty)
+            throw std::runtime_error("highs_lp: kHighsModelStatusModelEmpty.");
+        if(status == kHighsModelStatusObjectiveBound)
+            throw std::runtime_error(
+                "highs_lp: kHighsModelStatusObjectiveBound.");
+        if(status == kHighsModelStatusObjectiveTarget)
+            throw std::runtime_error(
+                "highs_lp: kHighsModelStatusObjectiveTarget.");
+        if(status == kHighsModelStatusTimeLimit)
+            throw std::runtime_error("highs_lp: kHighsModelStatusTimeLimit.");
+        if(status == kHighsModelStatusIterationLimit)
+            throw std::runtime_error(
+                "highs_lp: kHighsModelStatusIterationLimit.");
+        if(status == kHighsModelStatusUnknown)
+            throw std::runtime_error("highs_lp: kHighsModelStatusUnknown.");
+        if(status == kHighsModelStatusSolutionLimit)
+            throw std::runtime_error(
+                "highs_lp: kHighsModelStatusSolutionLimit.");
+        if(status == kHighsModelStatusInterrupt)
+            throw std::runtime_error("highs_lp: kHighsModelStatusInterrupt.");
+    }
 };
 
 }  // namespace highs::v1_10

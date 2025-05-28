@@ -13,12 +13,20 @@ namespace copt::v7_2 {
 
 class copt_lp : public copt_base {
 private:
-    // int lp_status;
+    int lp_status;
 
 public:
     [[nodiscard]] explicit copt_lp(const copt_api & api) : copt_base(api) {}
 
-    void solve() { check(COPT.SolveLp(prob)); }
+    void solve() {
+        check(COPT.SolveLp(prob));
+        check(COPT.GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &lp_status));
+        check_lp_status(lp_status);
+    }
+
+    bool is_optimal() { return lp_status == COPT_LPSTATUS_OPTIMAL; }
+    bool is_infeasible() { return lp_status == COPT_LPSTATUS_INFEASIBLE; }
+    bool is_unbounded() { return lp_status == COPT_LPSTATUS_UNBOUNDED; }
 
     double get_solution_value() {
         double val;

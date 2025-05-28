@@ -14,6 +14,13 @@ struct LpStatusTest : public T {
 };
 TYPED_TEST_SUITE_P(LpStatusTest);
 
+TYPED_TEST_P(LpStatusTest, not_solved) {
+    using namespace operators;
+    auto model = this->construct_model();
+    ASSERT_FALSE(model.is_optimal());
+    ASSERT_FALSE(model.is_infeasible());
+    ASSERT_FALSE(model.is_unbounded());
+}
 TYPED_TEST_P(LpStatusTest, max_bounded) {
     using namespace operators;
     auto model = this->construct_model();
@@ -77,12 +84,12 @@ TYPED_TEST_P(LpStatusTest, min_unbounded) {
 TYPED_TEST_P(LpStatusTest, max_infeasible) {
     using namespace operators;
     auto model = this->construct_model();
-    auto x = model.add_variable({.upper_bound = 3});
-    auto y = model.add_variable({.lower_bound = 1});
+    auto x = model.add_variable();
+    auto y = model.add_variable({.upper_bound = 1});
     model.set_maximization();
     model.set_objective(-2 * x + -1.5 * y);
-    model.add_constraint(x + y <= 4);
-    model.add_constraint(x + y >= 5);
+    model.add_constraint(y >= -2 + 2 * x);
+    model.add_constraint(y >= 3 - x);
     model.solve();
     ASSERT_FALSE(model.is_optimal());
     ASSERT_TRUE(model.is_infeasible());
@@ -91,19 +98,19 @@ TYPED_TEST_P(LpStatusTest, max_infeasible) {
 TYPED_TEST_P(LpStatusTest, min_infeasible) {
     using namespace operators;
     auto model = this->construct_model();
-    auto x = model.add_variable({.upper_bound = 3});
-    auto y = model.add_variable({.lower_bound = 1});
+    auto x = model.add_variable();
+    auto y = model.add_variable({.upper_bound = 1});
     model.set_minimization();
-    model.set_objective(2 * x + 1.5 * y);
-    model.add_constraint(x + y <= 4);
-    model.add_constraint(x + y >= 5);
+    model.set_objective(-2 * x + -1.5 * y);
+    model.add_constraint(y >= -2 + 2 * x);
+    model.add_constraint(y >= 3 - x);
     model.solve();
     ASSERT_FALSE(model.is_optimal());
     ASSERT_TRUE(model.is_infeasible());
     ASSERT_FALSE(model.is_unbounded());
 }
 
-REGISTER_TYPED_TEST_SUITE_P(LpStatusTest, max_bounded, min_bounded,
+REGISTER_TYPED_TEST_SUITE_P(LpStatusTest, not_solved, max_bounded, min_bounded,
                             max_unbounded, min_unbounded, max_infeasible,
                             min_infeasible);
 
