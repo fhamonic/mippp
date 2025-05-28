@@ -189,6 +189,30 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params) {
+        _reset_cache(_lazy_num_constraints);
+        _register_raw_entries(entries);
+        Cbc.addCol(model, "", params.lower_bound.value_or(-COIN_DBL_MAX),
+                   params.upper_bound.value_or(COIN_DBL_MAX), params.obj_coef,
+                   false, static_cast<int>(tmp_indices.size()),
+                   tmp_indices.data(), tmp_scalars.data());
+        return variable(static_cast<int>(_lazy_num_variables++));
+    }
+
+public:
+    template <ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+    variable add_column(
+        std::initializer_list<std::pair<constraint, scalar>> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+
     void set_continuous(variable v) noexcept {
         Cbc.setContinuous(model, v.id());
     }

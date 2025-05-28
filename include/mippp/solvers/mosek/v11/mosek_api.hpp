@@ -116,6 +116,8 @@ MSKrescodee MSK_getconnamelen(MSKtask_t task, MSKint32t i, MSKint32t * len);
 MSKrescodee MSK_getconname(MSKtask_t task, MSKint32t i, MSKint32t sizename,
                            char * name);
 
+MSKrescodee MSK_putacol(MSKtask_t task, MSKint32t j, MSKint32t nzj,
+                        const MSKint32t * subj, const MSKrealt * valj);
 MSKrescodee MSK_getacol(MSKtask_t task, MSKint32t j, MSKint32t * nzj,
                         MSKint32t * subj, MSKrealt * valj);
 MSKrescodee MSK_getaij(MSKtask_t task, MSKint32t i, MSKint32t j,
@@ -360,6 +362,7 @@ namespace mosek::v11 {
     F(MSK_putconname, putconname)                       \
     F(MSK_getconnamelen, getconnamelen)                 \
     F(MSK_getconname, getconname)                       \
+    F(MSK_putacol, putacol)                             \
     F(MSK_getacol, getacol)                             \
     F(MSK_getaij, getaij)                               \
     F(MSK_getnumvar, getnumvar)                         \

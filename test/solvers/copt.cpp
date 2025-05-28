@@ -12,6 +12,7 @@ INSTANTIATE_TEST(COPT_lp, ReadableObjectiveTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ModifiableObjectiveTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ReadableVariablesBoundsTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ModifiableVariablesBoundsTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_lp, ColumGenerationTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, DualSolutionTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, LpStatusTest, copt_lp_test);
 
@@ -24,4 +25,5 @@ INSTANTIATE_TEST(COPT_milp, ReadableObjectiveTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, ModifiableObjectiveTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, ReadableVariablesBoundsTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, ModifiableVariablesBoundsTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, ColumGenerationTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, SudokuTest, copt_milp_test);

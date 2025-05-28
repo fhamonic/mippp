@@ -219,9 +219,8 @@ public:
         ER && entries, const variable_params params = default_variable_params) {
         return _add_column(entries, params, COPT_CONTINUOUS);
     }
-    template <typename E>
     variable add_column(
-        std::initializer_list<E> entries,
+        std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
         return _add_column(entries, params, COPT_CONTINUOUS);
     }

@@ -179,6 +179,33 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params) {
+        const int var_id = static_cast<int>(num_variables());
+        _reset_cache(num_constraints());
+        _register_raw_entries(entries);
+        check(
+            Highs.addCol(model, params.obj_coef,
+                         params.lower_bound.value_or(-Highs.getInfinity(model)),
+                         params.upper_bound.value_or(Highs.getInfinity(model)),
+                         static_cast<HighsInt>(tmp_indices.size()),
+                         tmp_indices.data(), tmp_scalars.data()));
+        return variable(var_id);
+    }
+
+public:
+    template <ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+    variable add_column(
+        std::initializer_list<std::pair<constraint, scalar>> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+
 protected:
     void _set_variable_bounds(variable v, scalar lb, scalar ub) {
         check(Highs.changeColBounds(model, v.id(), lb, ub));

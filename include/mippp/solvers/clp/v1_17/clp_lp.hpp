@@ -149,6 +149,32 @@ public:
             std::forward<IL>(id_lambda));
     }
 
+private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params) {
+        const int var_id = static_cast<int>(num_variables());
+        _reset_cache(num_constraints());
+        _register_raw_entries(entries);
+        const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
+        const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
+        index starts[2] = {0, static_cast<index>(tmp_indices.size())};
+        Clp.addColumns(model, 1, &lb, &ub, &params.obj_coef, starts,
+                       tmp_indices.data(), tmp_scalars.data());
+        return variable(var_id);
+    }
+
+public:
+    template <ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+    variable add_column(
+        std::initializer_list<std::pair<constraint, scalar>> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+
     void set_objective_coefficient(variable v, scalar c) {
         Clp.objective(model)[v.id()] = c;
     }

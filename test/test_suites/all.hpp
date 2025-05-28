@@ -35,6 +35,7 @@ struct model_test : public ::testing::Test {
     auto construct_model() const { return Model(api.value()); }
 };
 
+#include "column_generation.hpp"
 #include "dual_solution.hpp"
 #include "lp_model.hpp"
 #include "lp_status.hpp"

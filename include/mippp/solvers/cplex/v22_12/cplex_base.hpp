@@ -210,8 +210,7 @@ public:
 
 private:
     template <typename ER>
-    inline variable _add_column(ER && entries, const variable_params & params,
-                                const char & type) {
+    inline variable _add_column(ER && entries, const variable_params & params) {
         const int var_id = static_cast<int>(num_variables());
         const int cmatbeg = 0;
         _reset_cache(num_constraints());
@@ -228,13 +227,12 @@ public:
     template <ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
-        return _add_column(entries, params, CPX_CONTINUOUS);
+        return _add_column(entries, params);
     }
-    template <typename E>
     variable add_column(
-        std::initializer_list<E> entries,
+        std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
-        return _add_column(entries, params, CPX_CONTINUOUS);
+        return _add_column(entries, params);
     }
 
     void set_objective_coefficient(variable v, double c) {

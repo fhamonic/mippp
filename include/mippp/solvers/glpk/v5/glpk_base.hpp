@@ -53,6 +53,27 @@ protected:
                                  "' to constraint_sense.");
     }
 
+    void _reset_cache(std::size_t num_variables) {
+        tmp_entry_index_cache.resize(num_variables);
+        tmp_indices.resize(1);
+        tmp_scalars.resize(1);
+    }
+
+    template <ranges::range Entries>
+    void _register_entries(Entries && entries) {
+        ++register_count;
+        for(auto && [entity, coef] : entries) {
+            auto & p = tmp_entry_index_cache[entity.uid()];
+            if(p.first == register_count) {
+                tmp_scalars[p.second] += coef;
+                continue;
+            }
+            p = std::make_pair(register_count, tmp_indices.size());
+            tmp_indices.emplace_back(entity.id() + 1);
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+
 public:
     [[nodiscard]] explicit glpk_base(const glpk_api & api)
         : model_base<int, double>()
@@ -187,6 +208,31 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params) {
+        const int var_id = static_cast<int>(num_variables());
+        _add_variable(var_id, params, GLP_CV);
+        _reset_cache(num_constraints());
+        _register_entries(entries);
+        glp.set_mat_col(model, var_id + 1,
+                        static_cast<int>(tmp_indices.size()) - 1,
+                        tmp_indices.data(), tmp_scalars.data());
+        return variable(var_id);
+    }
+
+public:
+    template <ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+    variable add_column(
+        std::initializer_list<std::pair<constraint, scalar>> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+
     void set_objective_coefficient(variable v, double c) {
         glp.set_obj_coef(model, v.id() + 1, c);
     }
@@ -213,19 +259,9 @@ private:
     template <linear_constraint LC>
     void _add_constraint(const int & constr_id, const LC & lc) {
         glp.add_rows(model, 1);
-        ++register_count;
         tmp_indices.resize(1);
         tmp_scalars.resize(1);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            auto & p = tmp_entry_index_cache[var.uid()];
-            if(p.first == register_count) {
-                tmp_scalars[p.second] += coef;
-                continue;
-            }
-            p = std::make_pair(register_count, tmp_indices.size());
-            tmp_indices.emplace_back(var.id() + 1);
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_entries(lc.linear_terms());
         glp.set_mat_row(model, constr_id + 1,
                         static_cast<int>(tmp_indices.size()) - 1,
                         tmp_indices.data(), tmp_scalars.data());

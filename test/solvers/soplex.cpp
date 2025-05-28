@@ -8,4 +8,5 @@ struct soplex_lp_test : public model_test<soplex_api, soplex_lp> {
     static void SetUpTestSuite() { construct_api(); }
 };
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, ColumGenerationTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, DualSolutionTest, soplex_lp_test);

@@ -117,6 +117,37 @@ public:
     }
 
 private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params) {
+        const auto num_vars = num_variables();
+        tmp_scalars.resize(num_constraints());
+        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
+        int num_nz = 0;
+        for(auto && [constr, coef] : entries) {
+            if(coef == 0) continue;
+            tmp_scalars[constr.uid()] += coef;
+            num_nz += (tmp_scalars[constr.uid()] != 0) ? 1 : -1;
+        }
+        SoPlex.addColReal(model, tmp_scalars.data(), num_nz,
+                          static_cast<int>(num_vars), params.obj_coef,
+                          params.lower_bound.value_or(-1e100),
+                          params.upper_bound.value_or(1e100));
+        return variable(static_cast<int>(num_vars));
+    }
+
+public:
+    template <ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+    variable add_column(
+        std::initializer_list<std::pair<constraint, scalar>> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+
+private:
     void _add_constraint(const constraint_id & cosntr_id,
                          linear_constraint auto && lc) {
         int num_nz = 0;

@@ -151,7 +151,6 @@ protected:
         MSKboundkeye boundkey = MSK_BK_FR;
         scalar lb = params.lower_bound.value_or(-MSK_INFINITY);
         scalar ub = params.upper_bound.value_or(+MSK_INFINITY);
-        // check(MSK.putvarbound(task, var_id, MSK_BK_RA, lb, ub));
         if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
             boundkey = (lb == ub) ? MSK_BK_FX : MSK_BK_RA;
         } else if(params.lower_bound.has_value()) {
@@ -224,6 +223,30 @@ public:
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
+    }
+
+private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params) {
+        const int var_id = static_cast<int>(num_variables());
+        _add_variable(var_id, params, MSK_VAR_TYPE_CONT);
+        _reset_cache(num_constraints());
+        _register_raw_entries(entries);
+        check(MSK.putacol(task, var_id, static_cast<int>(tmp_indices.size()),
+                          tmp_indices.data(), tmp_scalars.data()));
+        return variable(var_id);
+    }
+
+public:
+    template <ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+    variable add_column(
+        std::initializer_list<std::pair<constraint, scalar>> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
     }
 
     void set_objective_coefficient(variable v, scalar c) {

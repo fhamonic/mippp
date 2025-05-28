@@ -273,7 +273,7 @@ private:
                        params.lower_bound.value_or(-GRB_INFINITY),
                        params.upper_bound.value_or(GRB_INFINITY), type, NULL));
         _var_name_set.push_back(false);
-        return variable(_lazy_num_variables++);
+        return variable(static_cast<int>(_lazy_num_variables++));
     }
 
 public:
@@ -282,9 +282,8 @@ public:
         ER && entries, const variable_params params = default_variable_params) {
         return _add_column(entries, params, GRB_CONTINUOUS);
     }
-    template <typename E>
     variable add_column(
-        std::initializer_list<E> entries,
+        std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
         return _add_column(entries, params, GRB_CONTINUOUS);
     }
