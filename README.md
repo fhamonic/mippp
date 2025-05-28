@@ -203,4 +203,3 @@ for(auto i : indices) {
 - Add callbacks for Highs, CPLEX, Cbc, MOSEK and COPT.
 - Add support for XPRS
 - Add special constraints (sos and indicator constraints)
-- Add column generation features
