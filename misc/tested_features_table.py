@@ -161,7 +161,7 @@ def write_and_compile_latex(table, output_path, output_filename):
             ["xelatex", f"-output-directory={output_path}", tex_path], check=True
         )
         res = 600
-        width = int((94 + 1066 + (len(table.values()) + 0.5) * 183 + 94) * 600 / res)
+        width = int((94 + 1066 + (len(table.values()) + 1) * 183 + 94) * 600 / res)
         subprocess.run(
             [
                 "pdftocairo",
