@@ -3,6 +3,7 @@ import sys
 import re
 import subprocess
 from collections import defaultdict
+from PIL import ImageFont
 
 
 def find_cpp_files(root_folder):
@@ -42,7 +43,9 @@ formated_test_names = [
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
     ("ColumGenerationTest", "Add column"),
     ("LpStatusTest", "LP status"),
+    ("CandidateSolutionCallbackTest", "Candidate solution callback"),
     ("DualSolutionTest", "Dual solution"),
+    ("SudokuTest", "Solves sudoku"),
 ]
 
 
@@ -95,7 +98,7 @@ def generate_latex_table(table):
     return "\n".join(latex)
 
 
-def write_and_compile_latex(table, output_path, output_filename):
+def write_and_compile_latex(table, output_path, output_filename, res, width):
     latex_doc = [
         """\\documentclass[border=5pt]{standalone}
 \\usepackage{booktabs}
@@ -160,8 +163,6 @@ def write_and_compile_latex(table, output_path, output_filename):
         subprocess.run(
             ["xelatex", f"-output-directory={output_path}", tex_path], check=True
         )
-        res = 600
-        width = int((94 + 1066 + (len(table.values()) + 1) * 183 + 94) * 600 / res)
         subprocess.run(
             [
                 "pdftocairo",
@@ -197,13 +198,35 @@ def write_and_compile_latex(table, output_path, output_filename):
         )
 
 
+def compute_names_max_width(names, font_size=10, res=600):
+    font = ImageFont.truetype("DejaVuSans", int(res / 92 * font_size))
+    return max([font.getsize(name)[0] for name in names])
+
+
+def compute_width(table, res):
+    return int(
+        (
+            94
+            + compute_names_max_width(format_test_names(table)[1])
+            + (len(table.values()) + 1) * 183
+            + 94
+        )
+        * 600
+        / res
+    )
+
+
 def main():
     root_path = os.path.dirname(sys.argv[0])
     tests_folder = f"{root_path}/../test/solvers"
     cpp_files = find_cpp_files(tests_folder)
     lp_table, milp_table = parse_instantiate_lines(cpp_files)
-    write_and_compile_latex(lp_table, root_path, "lp_table")
-    write_and_compile_latex(milp_table, root_path, "milp_table")
+
+    res = 600
+    width = max(compute_width(lp_table, res), compute_width(milp_table, res))
+
+    write_and_compile_latex(lp_table, root_path, "lp_table", res, width)
+    write_and_compile_latex(milp_table, root_path, "milp_table", res, width)
 
 
 if __name__ == "__main__":
