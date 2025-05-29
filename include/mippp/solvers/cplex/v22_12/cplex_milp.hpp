@@ -110,15 +110,17 @@ public:
         return constraint(constr_id);
     }
 
-    class callback_handle : public model_base<int, double> {
-    private:
+private:
+    class callback_handle_base : public model_base<int, double> {
+    protected:
         const cplex_api & CPX;
         CPXCALLBACKCONTEXTptr context;
         cplex_milp * model;
 
     public:
-        callback_handle(const cplex_api & api, CPXCALLBACKCONTEXTptr context_,
-                        cplex_milp * model_)
+        callback_handle_base(const cplex_api & api,
+                             CPXCALLBACKCONTEXTptr context_,
+                             cplex_milp * model_)
             : model_base<int, double>()
             , CPX(api)
             , context(context_)
@@ -128,6 +130,15 @@ public:
             return static_cast<std::size_t>(
                 CPX.getnumcols(model->env, model->lp));
         }
+    };
+
+public:
+    class candidate_solution_callback_handle : public callback_handle_base {
+    public:
+        candidate_solution_callback_handle(const cplex_api & api,
+                                           CPXCALLBACKCONTEXTptr context_,
+                                           cplex_milp * model_)
+            : callback_handle_base(api, context_, model_) {}
 
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
@@ -156,22 +167,24 @@ public:
     };
 
 private:
-    std::function<void(callback_handle &)> lazy_constraint_callback;
+    std::function<void(candidate_solution_callback_handle &)>
+        candidate_solution_callback;
 
-    static int candidate_callback_fun(CPXCALLBACKCONTEXTptr context,
-                                      CPXLONG contextid, void * userhandle) {
+    static int candidate_solution_callback_fun(CPXCALLBACKCONTEXTptr context,
+                                               CPXLONG contextid,
+                                               void * userhandle) {
         auto * model = static_cast<cplex_milp *>(userhandle);
-        callback_handle handle(model->CPX, context, model);
-        model->lazy_constraint_callback(handle);
+        candidate_solution_callback_handle handle(model->CPX, context, model);
+        model->candidate_solution_callback(handle);
         return 0;
     }
 
 public:
     template <typename F>
-    void set_solution_callback(F && f) {
-        lazy_constraint_callback = std::forward<F>(f);
+    void set_candidate_solution_callback(F && f) {
+        candidate_solution_callback = std::forward<F>(f);
         check(CPX.callbacksetfunc(env, lp, CPX_CALLBACKCONTEXT_CANDIDATE,
-                                  candidate_callback_fun, this));
+                                  candidate_solution_callback_fun, this));
     }
 
     void set_optimality_tolerance(double tol) {
@@ -200,6 +213,10 @@ public:
                 check(CPX.mipopt(env, lp));
                 return;
             case CPXPROB_LP:
+                if(candidate_solution_callback)
+                    throw std::runtime_error(
+                        "cplex_milp: can't solve lp (no integer variables) "
+                        "with candidate_solution_callback");
                 check(CPX.lpopt(env, lp));
                 return;
             default:
@@ -220,15 +237,6 @@ public:
                            NULL));
         return variable_mapping(std::move(solution));
     }
-    // auto get_dual_solution() {
-    //     auto solution =
-    //         std::make_unique_for_overwrite<double[]>(num_constraints());
-    //     check(CPX.getsolution(task, CPX_SOL_BAS, NULL, NULL, NULL, NULL,
-    //     NULL,
-    //                           NULL, NULL, solution.get(), NULL, NULL, NULL,
-    //                           NULL, NULL));
-    //     return constraint_mapping(std::move(solution));
-    // }
 };
 
 }  // namespace cplex::v22_12

@@ -101,28 +101,41 @@ public:
         return constraint(constr_id);
     }
 
-    class callback_handle : public model_base<int, double> {
-    private:
+private:
+    class callback_handle_base : public model_base<int, double> {
+    protected:
         const gurobi_api & GRB;
         GRBmodel * master_model;
         void * cbdata;
-        int where;
 
     public:
-        callback_handle(const gurobi_api & api, GRBmodel * master_model_,
-                        void * cbdata_, int where_)
+        callback_handle_base(const gurobi_api & api, GRBmodel * master_model_,
+                             void * cbdata_)
             : model_base<int, double>()
             , GRB(api)
             , master_model(master_model_)
-            , cbdata(cbdata_)
-            , where(where_) {}
+            , cbdata(cbdata_) {}
 
         std::size_t num_variables() {
             int num;
             GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
             return static_cast<std::size_t>(num);
         }
+    };
 
+public:
+    class candidate_solution_callback_handle : public callback_handle_base {
+    public:
+        candidate_solution_callback_handle(const gurobi_api & api,
+                                           GRBmodel * master_model_,
+                                           void * cbdata_)
+            : callback_handle_base(api, master_model_, cbdata_) {}
+
+        std::size_t num_variables() {
+            int num;
+            GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
+            return static_cast<std::size_t>(num);
+        }
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
             _register_entries(lc.linear_terms());
@@ -130,24 +143,25 @@ public:
                        tmp_indices.data(), tmp_scalars.data(),
                        constraint_sense_to_gurobi_sense(lc.sense()), lc.rhs());
         }
-
         auto get_solution() {
-            auto num_vars = num_variables();
-            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            GRB.cbget(cbdata, where, GRB_CB_MIPSOL_SOL, solution.get());
+            auto solution =
+                std::make_unique_for_overwrite<double[]>(num_variables());
+            GRB.cbget(cbdata, GRB_CB_MIPSOL, GRB_CB_MIPSOL_SOL, solution.get());
             return variable_mapping(std::move(solution));
         }
     };
 
 private:
-    std::function<void(callback_handle &)> solution_callback;
+    std::function<void(candidate_solution_callback_handle &)>
+        candidate_solution_callback;
 
     static int main_callback(GRBmodel * master_model, void * cbdata, int where,
                              void * usrdata) {
         auto * model = static_cast<gurobi_milp *>(usrdata);
-        callback_handle handle(model->GRB, master_model, cbdata, where);
-        if((where == GRB_CB_MIPSOL) && model->solution_callback) {
-            model->solution_callback(handle);
+        if((where == GRB_CB_MIPSOL) && model->candidate_solution_callback) {
+            candidate_solution_callback_handle handle(model->GRB, master_model,
+                                                      cbdata);
+            model->candidate_solution_callback(handle);
         }
         return 0;
     }
@@ -159,9 +173,9 @@ private:
 
 public:
     template <typename F>
-    void set_solution_callback(F && f) {
+    void set_candidate_solution_callback(F && f) {
         _enable_callbacks();
-        solution_callback = std::forward<F>(f);
+        candidate_solution_callback = std::forward<F>(f);
     }
 
     void set_optimality_tolerance(double tol) {

@@ -2,7 +2,7 @@
 
 using namespace fhamonic::mippp;
 
-#include "../test_suites/all.hpp"
+#include "test_suites/all.hpp"
 
 struct highs_lp_test : public model_test<highs_api, highs_lp> {
     static void SetUpTestSuite() { construct_api(); }

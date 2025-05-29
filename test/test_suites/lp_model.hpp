@@ -15,12 +15,12 @@ struct LpModelTest : public T {
 TYPED_TEST_SUITE_P(LpModelTest);
 
 TYPED_TEST_P(LpModelTest, construct) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     ASSERT_EQ(model.num_variables(), 0);
     ASSERT_EQ(model.num_constraints(), 0);
 }
 TYPED_TEST_P(LpModelTest, add_variable) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     ASSERT_EQ(model.num_variables(), 2);
@@ -29,7 +29,7 @@ TYPED_TEST_P(LpModelTest, add_variable) {
     ASSERT_EQ(x2.id(), 1);
 }
 TYPED_TEST_P(LpModelTest, add_variable_params) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable({});
     auto x2 = model.add_variable(
         {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
@@ -43,14 +43,14 @@ TYPED_TEST_P(LpModelTest, add_variable_params) {
     ASSERT_EQ(x4.id(), 3);
 }
 TYPED_TEST_P(LpModelTest, add_zero_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variables(0);
     ASSERT_EQ(model.num_variables(), 0);
     ASSERT_EQ(model.num_constraints(), 0);
     ASSERT_THROW(x[0], std::out_of_range);
 }
 TYPED_TEST_P(LpModelTest, add_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variables(1);
     auto y = model.add_variables(3);
     ASSERT_EQ(model.num_variables(), 4);
@@ -62,7 +62,7 @@ TYPED_TEST_P(LpModelTest, add_variables) {
     ASSERT_THROW(y[3], std::out_of_range);
 }
 TYPED_TEST_P(LpModelTest, add_variables_params) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variables(1, {});
     auto y = model.add_variables(
         3, {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
@@ -75,7 +75,7 @@ TYPED_TEST_P(LpModelTest, add_variables_params) {
     ASSERT_THROW(y[3], std::out_of_range);
 }
 TYPED_TEST_P(LpModelTest, add_variable_and_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variables(2);
     auto z = model.add_variable();
@@ -87,14 +87,14 @@ TYPED_TEST_P(LpModelTest, add_variable_and_variables) {
     ASSERT_EQ(z.id(), 3);
 }
 TYPED_TEST_P(LpModelTest, add_zero_indexed_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variables(0, [](int i, int j) { return i + j; });
     ASSERT_EQ(model.num_variables(), 0);
     ASSERT_EQ(model.num_constraints(), 0);
     ASSERT_THROW(x(0, 0), std::out_of_range);
 }
 TYPED_TEST_P(LpModelTest, add_indexed_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variables(1, [](int i) { return i; });
     auto y = model.add_variables(3, [](int i, int j) { return 2 * i + j; });
     ASSERT_EQ(model.num_variables(), 4);
@@ -107,7 +107,7 @@ TYPED_TEST_P(LpModelTest, add_indexed_variables) {
     ASSERT_THROW(y(1, 1), std::out_of_range);
 }
 TYPED_TEST_P(LpModelTest, add_indexed_variables_params) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variables(1, [](int i) { return i; }, {});
     auto y = model.add_variables(
         3, [](int i, int j) { return 2 * i + j; },
@@ -122,7 +122,7 @@ TYPED_TEST_P(LpModelTest, add_indexed_variables_params) {
     ASSERT_THROW(y(1, 1), std::out_of_range);
 }
 TYPED_TEST_P(LpModelTest, add_capturing_indexed_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     int side_effect = 0;
     auto x = model.add_variables(2, [&](int i) { return side_effect + i; });
     ASSERT_EQ(model.num_variables(), 2);
@@ -135,7 +135,7 @@ TYPED_TEST_P(LpModelTest, add_capturing_indexed_variables) {
     ASSERT_THROW(x(0), std::out_of_range);
 }
 TYPED_TEST_P(LpModelTest, add_variable_and_indexed_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variables(2, [](int i, int j) { return i + j; });
     auto z = model.add_variable();
@@ -148,7 +148,7 @@ TYPED_TEST_P(LpModelTest, add_variable_and_indexed_variables) {
 }
 TYPED_TEST_P(LpModelTest, set_objective) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variable();
     model.set_objective(x + y);
@@ -157,7 +157,7 @@ TYPED_TEST_P(LpModelTest, set_objective) {
 }
 TYPED_TEST_P(LpModelTest, add_constraint) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variable();
     auto c1 = model.add_constraint(x + y >= 1);
@@ -171,7 +171,7 @@ TYPED_TEST_P(LpModelTest, add_constraint) {
 }
 TYPED_TEST_P(LpModelTest, add_constraints) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variable();
     auto c1 = model.add_constraint(x + y >= 1);
@@ -189,7 +189,7 @@ TYPED_TEST_P(LpModelTest, add_constraints) {
 }
 TYPED_TEST_P(LpModelTest, add_opt_constraints) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variable();
     auto c1 = model.add_constraint(x + y >= 1);
@@ -208,20 +208,20 @@ TYPED_TEST_P(LpModelTest, add_opt_constraints) {
     ASSERT_THROW(c(3), std::out_of_range);
 }
 TYPED_TEST_P(LpModelTest, solve_empty_no_sense) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     model.solve();
     ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
     auto solution = model.get_solution();
 }
 TYPED_TEST_P(LpModelTest, solve_empty_max) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     model.set_maximization();
     model.solve();
     ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
     auto solution = model.get_solution();
 }
 TYPED_TEST_P(LpModelTest, solve_empty_min) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     model.set_minimization();
     model.solve();
     ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
@@ -229,7 +229,7 @@ TYPED_TEST_P(LpModelTest, solve_empty_min) {
 }
 TYPED_TEST_P(LpModelTest, solve_bounded_variables_max) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable({.upper_bound = 3});
     auto y = model.add_variable({.lower_bound = 1});
     model.set_maximization();
@@ -246,7 +246,7 @@ TYPED_TEST_P(LpModelTest, solve_bounded_variables_max) {
 }
 TYPED_TEST_P(LpModelTest, solve_bounded_variables_min) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable({.upper_bound = 3});
     auto y = model.add_variable({.lower_bound = 1});
     model.set_minimization();
@@ -263,7 +263,7 @@ TYPED_TEST_P(LpModelTest, solve_bounded_variables_min) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -281,7 +281,7 @@ TYPED_TEST_P(LpModelTest, solve_lp) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp_add_constraints) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -301,7 +301,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_add_constraints) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp_with_objective_offset_min) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -319,7 +319,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_with_objective_offset_min) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp_with_objective_offset_max) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -337,7 +337,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_with_objective_offset_max) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp_set_objective_offset) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -356,7 +356,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_set_objective_offset) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp_objective_redundant_terms) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -374,7 +374,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_objective_redundant_terms) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp_constraint_redundant_terms) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -392,7 +392,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_constraint_redundant_terms) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_max) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -410,7 +410,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_max) {
 }
 TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_min) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();

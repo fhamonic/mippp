@@ -2,7 +2,7 @@
 
 using namespace fhamonic::mippp;
 
-#include "../test_suites/all.hpp"
+#include "test_suites/all.hpp"
 
 struct glpk_lp_test : public model_test<glpk_api, glpk_lp> {
     static void SetUpTestSuite() { construct_api(); }

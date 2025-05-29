@@ -15,7 +15,7 @@ struct MilpModelTest : public T {
 TYPED_TEST_SUITE_P(MilpModelTest);
 
 TYPED_TEST_P(MilpModelTest, add_integer_variable) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_integer_variable();
     auto x2 = model.add_integer_variable();
     ASSERT_EQ(model.num_variables(), 2);
@@ -24,7 +24,7 @@ TYPED_TEST_P(MilpModelTest, add_integer_variable) {
     ASSERT_EQ(x2.id(), 1);
 }
 TYPED_TEST_P(MilpModelTest, add_integer_variable_params) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_integer_variable({});
     auto x2 = model.add_integer_variable(
         {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
@@ -38,14 +38,14 @@ TYPED_TEST_P(MilpModelTest, add_integer_variable_params) {
     ASSERT_EQ(x4.id(), 3);
 }
 TYPED_TEST_P(MilpModelTest, add_zero_integer_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variables(0);
     ASSERT_EQ(model.num_variables(), 0);
     ASSERT_EQ(model.num_constraints(), 0);
     ASSERT_THROW(x[0], std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_integer_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variables(1);
     auto y = model.add_integer_variables(3);
     ASSERT_EQ(model.num_variables(), 4);
@@ -57,7 +57,7 @@ TYPED_TEST_P(MilpModelTest, add_integer_variables) {
     ASSERT_THROW(y[3], std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_integer_variables_params) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variables(1, {});
     auto y = model.add_integer_variables(
         3, {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
@@ -70,7 +70,7 @@ TYPED_TEST_P(MilpModelTest, add_integer_variables_params) {
     ASSERT_THROW(y[3], std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_integer_variable_and_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variable();
     auto y = model.add_integer_variables(2);
     auto z = model.add_integer_variable();
@@ -82,14 +82,14 @@ TYPED_TEST_P(MilpModelTest, add_integer_variable_and_variables) {
     ASSERT_EQ(z.id(), 3);
 }
 TYPED_TEST_P(MilpModelTest, add_zero_indexed_integer_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variables(0, [](int i, int j) { return i + j; });
     ASSERT_EQ(model.num_variables(), 0);
     ASSERT_EQ(model.num_constraints(), 0);
     ASSERT_THROW(x(0, 0), std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_indexed_integer_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variables(1, [](int i) { return i; });
     auto y =
         model.add_integer_variables(3, [](int i, int j) { return 2 * i + j; });
@@ -103,7 +103,7 @@ TYPED_TEST_P(MilpModelTest, add_indexed_integer_variables) {
     ASSERT_THROW(y(1, 1), std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_indexed_integer_variables_params) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variables(1, [](int i) { return i; }, {});
     auto y = model.add_integer_variables(
         3, [](int i, int j) { return 2 * i + j; },
@@ -118,7 +118,7 @@ TYPED_TEST_P(MilpModelTest, add_indexed_integer_variables_params) {
     ASSERT_THROW(y(1, 1), std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_capturing_indexed_integer_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     int side_effect = 0;
     auto x =
         model.add_integer_variables(2, [&](int i) { return side_effect + i; });
@@ -133,7 +133,7 @@ TYPED_TEST_P(MilpModelTest, add_capturing_indexed_integer_variables) {
 }
 TYPED_TEST_P(MilpModelTest,
              add_integer_variable_and_indexed_integer_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variable();
     auto y = model.add_integer_variables(2, [](int i, int j) { return i + j; });
     auto z = model.add_integer_variable();
@@ -146,7 +146,7 @@ TYPED_TEST_P(MilpModelTest,
 }
 TYPED_TEST_P(MilpModelTest, solve_bounded_integer_variables_max) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variable({.upper_bound = 3});
     auto y = model.add_integer_variable({.lower_bound = 1});
     model.set_maximization();
@@ -163,7 +163,7 @@ TYPED_TEST_P(MilpModelTest, solve_bounded_integer_variables_max) {
 }
 TYPED_TEST_P(MilpModelTest, solve_bounded_integer_variables_min) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variable({.upper_bound = 3});
     auto y = model.add_integer_variable({.lower_bound = 1});
     model.set_minimization();
@@ -185,7 +185,7 @@ TYPED_TEST_P(MilpModelTest, solve_unbounded_knapsack) {
     const auto N = values.size();
     const auto items = ranges::views::iota(0u, N);
     const double budget = 50.0;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variables(N);
     model.set_maximization();
     model.set_objective(xsum(items, [&](auto i) { return values[i] * x[i]; }));
@@ -201,7 +201,7 @@ TYPED_TEST_P(MilpModelTest, solve_unbounded_knapsack) {
     ASSERT_DOUBLE_EQ(solution[x[4]], 0.0);
 }
 TYPED_TEST_P(MilpModelTest, add_binary_variable) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_binary_variable();
     auto x2 = model.add_binary_variable();
     ASSERT_EQ(model.num_variables(), 2);
@@ -210,14 +210,14 @@ TYPED_TEST_P(MilpModelTest, add_binary_variable) {
     ASSERT_EQ(x2.id(), 1);
 }
 TYPED_TEST_P(MilpModelTest, add_zero_binary_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_binary_variables(0);
     ASSERT_EQ(model.num_variables(), 0);
     ASSERT_EQ(model.num_constraints(), 0);
     ASSERT_THROW(x[0], std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_binary_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_binary_variables(1);
     auto y = model.add_binary_variables(3);
     ASSERT_EQ(model.num_variables(), 4);
@@ -229,7 +229,7 @@ TYPED_TEST_P(MilpModelTest, add_binary_variables) {
     ASSERT_THROW(y[3], std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_binary_variable_and_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_binary_variable();
     auto y = model.add_binary_variables(2);
     auto z = model.add_binary_variable();
@@ -241,14 +241,14 @@ TYPED_TEST_P(MilpModelTest, add_binary_variable_and_variables) {
     ASSERT_EQ(z.id(), 3);
 }
 TYPED_TEST_P(MilpModelTest, add_zero_indexed_binary_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_binary_variables(0, [](int i, int j) { return i + j; });
     ASSERT_EQ(model.num_variables(), 0);
     ASSERT_EQ(model.num_constraints(), 0);
     ASSERT_THROW(x(0, 0), std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_indexed_binary_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_binary_variables(1, [](int i) { return i; });
     auto y =
         model.add_binary_variables(3, [](int i, int j) { return 2 * i + j; });
@@ -262,7 +262,7 @@ TYPED_TEST_P(MilpModelTest, add_indexed_binary_variables) {
     ASSERT_THROW(y(1, 1), std::out_of_range);
 }
 TYPED_TEST_P(MilpModelTest, add_capturing_indexed_binary_variables) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     int side_effect = 0;
     auto x =
         model.add_binary_variables(2, [&](int i) { return side_effect + i; });
@@ -282,7 +282,7 @@ TYPED_TEST_P(MilpModelTest, solve_binary_knapsack) {
     const auto N = values.size();
     const auto items = ranges::views::iota(0u, N);
     const double budget = 10.0;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_binary_variables(N);
     model.set_maximization();
     model.set_objective(xsum(items, [&](auto i) { return values[i] * x[i]; }));
@@ -299,7 +299,7 @@ TYPED_TEST_P(MilpModelTest, solve_binary_knapsack) {
 }
 TYPED_TEST_P(MilpModelTest, set_integer_to_continuous) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_integer_variable();
     auto y = model.add_integer_variable();
     model.set_maximization();
@@ -316,7 +316,7 @@ TYPED_TEST_P(MilpModelTest, set_integer_to_continuous) {
 }
 TYPED_TEST_P(MilpModelTest, set_continuous_to_integer) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variable();
     model.set_maximization();
@@ -333,7 +333,7 @@ TYPED_TEST_P(MilpModelTest, set_continuous_to_integer) {
 }
 TYPED_TEST_P(MilpModelTest, set_continuous_to_binary) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variable();
     model.set_maximization();
@@ -355,7 +355,7 @@ TYPED_TEST_P(MilpModelTest, set_binary_to_continuous) {
     const auto N = values.size();
     const auto items = ranges::views::iota(0u, N);
     const double budget = 10.0;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_binary_variables(N);
     model.set_maximization();
     model.set_objective(xsum(items, [&](auto i) { return values[i] * x[i]; }));

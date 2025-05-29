@@ -2,7 +2,7 @@
 
 using namespace fhamonic::mippp;
 
-#include "../test_suites/all.hpp"
+#include "test_suites/all.hpp"
 
 struct scip_milp_test : public model_test<scip_api, scip_milp> {
     static void SetUpTestSuite() { construct_api(); }

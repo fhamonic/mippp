@@ -2,7 +2,7 @@
 
 using namespace fhamonic::mippp;
 
-#include "../test_suites/all.hpp"
+#include "test_suites/all.hpp"
 
 struct soplex_lp_test : public model_test<soplex_api, soplex_lp> {
     static void SetUpTestSuite() { construct_api(); }

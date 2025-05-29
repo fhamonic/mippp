@@ -21,6 +21,7 @@ add_executable(
     solvers/scip.cpp
     solvers/soplex.cpp
     )
+target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
 target_link_libraries(mippp_test mippp)
 target_link_libraries(mippp_test GTest::gtest)
 gtest_discover_tests(mippp_test)

@@ -1,7 +1,7 @@
 #pragma once
 #undef NDEBUG
 #include <gtest/gtest.h>
-#include "../assert_helper.hpp"
+#include "assert_helper.hpp"
 
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/cartesian_product.hpp>
@@ -20,7 +20,7 @@ TYPED_TEST_SUITE_P(SudokuTest);
 
 TYPED_TEST_P(SudokuTest, test) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
 
     // clang-format off
     std::vector<int> grid_hints = {

@@ -14,7 +14,7 @@ struct ReadableVariablesBoundsTest : public T {
 TYPED_TEST_SUITE_P(ReadableVariablesBoundsTest);
 
 TYPED_TEST_P(ReadableVariablesBoundsTest, get_variable_lower_bound) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.lower_bound = 2.5});
     auto x3 = model.add_variable({});
@@ -36,7 +36,7 @@ TYPED_TEST_P(ReadableVariablesBoundsTest, get_variable_lower_bound) {
     ASSERT_LE(model.get_variable_lower_bound(xis3(0)), -TEST_INFINITY);
 }
 TYPED_TEST_P(ReadableVariablesBoundsTest, get_variable_upper_bound) {
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.upper_bound = 2.5});
     auto x3 = model.add_variable({});

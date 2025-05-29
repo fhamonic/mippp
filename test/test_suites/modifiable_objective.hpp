@@ -5,7 +5,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-#include "../assert_helper.hpp"
+#include "assert_helper.hpp"
 
 namespace fhamonic::mippp {
 
@@ -18,7 +18,7 @@ TYPED_TEST_SUITE_P(ModifiableObjectiveTest);
 
 TYPED_TEST_P(ModifiableObjectiveTest, set_objective_coefficient) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.obj_coef = 2.5, .lower_bound = 0});
     auto x3 = model.add_variable({.lower_bound = 0});
@@ -56,7 +56,7 @@ TYPED_TEST_P(ModifiableObjectiveTest, set_objective_coefficient) {
 }
 TYPED_TEST_P(ModifiableObjectiveTest, add_objective) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.obj_coef = 2.5, .lower_bound = 0});
     auto x3 = model.add_variable({.lower_bound = 0});

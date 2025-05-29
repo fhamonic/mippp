@@ -4,7 +4,7 @@
 
 using namespace fhamonic::mippp;
 
-#include "../test_suites/all.hpp"
+#include "test_suites/all.hpp"
 
 struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
     static void SetUpTestSuite() { construct_api(); }

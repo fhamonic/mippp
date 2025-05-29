@@ -16,7 +16,7 @@ TYPED_TEST_SUITE_P(ColumGenerationTest);
 
 TYPED_TEST_P(ColumGenerationTest, add_column_entries) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto c1 = model.add_constraint(2 * x1 <= 5);
     auto x2 = model.add_column({{c1, 3.0}});

@@ -16,14 +16,14 @@ TYPED_TEST_SUITE_P(LpStatusTest);
 
 TYPED_TEST_P(LpStatusTest, not_solved) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     ASSERT_FALSE(model.is_optimal());
     ASSERT_FALSE(model.is_infeasible());
     ASSERT_FALSE(model.is_unbounded());
 }
 TYPED_TEST_P(LpStatusTest, max_bounded) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable({.upper_bound = 3});
     auto y = model.add_variable({.lower_bound = 1});
     model.set_maximization();
@@ -40,7 +40,7 @@ TYPED_TEST_P(LpStatusTest, max_bounded) {
 }
 TYPED_TEST_P(LpStatusTest, min_bounded) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable({.upper_bound = 3});
     auto y = model.add_variable({.lower_bound = 1});
     model.set_minimization();
@@ -57,7 +57,7 @@ TYPED_TEST_P(LpStatusTest, min_bounded) {
 }
 TYPED_TEST_P(LpStatusTest, max_unbounded) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable({.upper_bound = 3});
     auto y = model.add_variable({.lower_bound = 1});
     model.set_maximization();
@@ -70,7 +70,7 @@ TYPED_TEST_P(LpStatusTest, max_unbounded) {
 }
 TYPED_TEST_P(LpStatusTest, min_unbounded) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable({.upper_bound = 3});
     auto y = model.add_variable({.lower_bound = 1});
     model.set_minimization();
@@ -83,7 +83,7 @@ TYPED_TEST_P(LpStatusTest, min_unbounded) {
 }
 TYPED_TEST_P(LpStatusTest, max_infeasible) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variable({.upper_bound = 1});
     model.set_maximization();
@@ -97,7 +97,7 @@ TYPED_TEST_P(LpStatusTest, max_infeasible) {
 }
 TYPED_TEST_P(LpStatusTest, min_infeasible) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x = model.add_variable();
     auto y = model.add_variable({.upper_bound = 1});
     model.set_minimization();

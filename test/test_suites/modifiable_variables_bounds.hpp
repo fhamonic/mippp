@@ -15,7 +15,7 @@ TYPED_TEST_SUITE_P(ModifiableVariablesBoundsTest);
 
 TYPED_TEST_P(ModifiableVariablesBoundsTest, set_variable_lower_bound) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.lower_bound = 2.5});
     auto x3 = model.add_variable({});
@@ -51,7 +51,7 @@ TYPED_TEST_P(ModifiableVariablesBoundsTest, set_variable_lower_bound) {
 }
 TYPED_TEST_P(ModifiableVariablesBoundsTest, set_variable_upper_bound) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.upper_bound = 2.5});
     auto x3 = model.add_variable({});

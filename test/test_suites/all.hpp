@@ -32,9 +32,10 @@ struct model_test : public ::testing::Test {
             GTEST_SKIP() << e.what();
         }
     }
-    auto construct_model() const { return Model(api.value()); }
+    auto new_model() const { return Model(api.value()); }
 };
 
+#include "candidate_solution_callback.hpp"
 #include "column_generation.hpp"
 #include "dual_solution.hpp"
 #include "lp_model.hpp"

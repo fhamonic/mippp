@@ -242,8 +242,10 @@ concept has_readable_constraints =
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-concept has_column_generation = requires(T & model, T::constraint c,
-                                         T::scalar s) {
+concept has_column_generation = requires(
+    T & model, T::constraint c, T::scalar s,
+    std::initializer_list<std::pair<typename T::constraint, typename T::scalar>>
+        init_entries) {
     { model.add_column(detail::dummy_range<
                 std::pair<typename T::constraint, typename T::scalar>>()) }
             -> std::same_as<typename T::variable>;
@@ -251,9 +253,8 @@ concept has_column_generation = requires(T & model, T::constraint c,
                 std::pair<typename T::constraint, typename T::scalar>>(),
                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
             -> std::same_as<typename T::variable>;
-    { model.add_column({{c, s}, {c, s}}) }
-            -> std::same_as<typename T::variable>;
-    { model.add_column({{c, s}, {c, s}},
+    { model.add_column(init_entries) } -> std::same_as<typename T::variable>;
+    { model.add_column(init_entries,
                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
             -> std::same_as<typename T::variable>;
 };
@@ -276,7 +277,6 @@ enum basis_status : int {
 
 template <typename T>
 concept has_lp_basis_warm_start =
-    lp_model<T> &&
     requires(T & model, T::variable v, T::constraint c, T::scalar s) {
         { model.get_variable_basis_status(v) } -> std::same_as<basis_status>;
         { model.set_variable_basis_status(v, basis_status::basic) };
@@ -286,27 +286,51 @@ concept has_lp_basis_warm_start =
     };
 
 ///////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// MILP features ////////////////////////////////
+///////////////////////////// Special constraints /////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-concept has_sos1_constraints = milp_model<T> && requires(T & model) {
+concept has_sos1_constraints = requires(
+    T & model, std::initializer_list<typename T::variable> init_variables) {
     { model.add_sos1_constraint(detail::dummy_range<typename T::variable>()) }
             -> std::same_as<typename T::constraint>;
-};
-
-template <typename T>
-concept has_sos2_constraints = milp_model<T> && requires(T & model) {
-    { model.add_sos2_constraint(detail::dummy_range<typename T::variable>()) }
+    { model.add_sos1_constraint(init_variables) }
             -> std::same_as<typename T::constraint>;
 };
 
 template <typename T>
-concept has_indicator_constraints = milp_model<T> && requires(T & model,
+concept has_sos2_constraints = requires(
+    T & model, std::initializer_list<typename T::variable> init_variables) {
+    { model.add_sos2_constraint(detail::dummy_range<typename T::variable>()) }
+            -> std::same_as<typename T::constraint>;
+    { model.add_sos2_constraint(init_variables) }
+            -> std::same_as<typename T::constraint>;
+};
+
+template <typename T>
+concept has_indicator_constraints = requires(T & model,
                                                               T::variable v) {
     { model.add_indicator_constraint(v, true, detail::dummy_constraint<T>()) }
             -> std::same_as<typename T::constraint>;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// Callbacks //////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+concept has_candidate_solution_callback =
+    requires(T & model, T::candidate_solution_callback_handle) {
+        { model.set_candidate_solution_callback(
+            [](T::candidate_solution_callback_handle & h) {}) };
+    };
+
+// template <typename T>
+// concept has_node_relaxation_callback =
+//     requires(T & model, T::node_relaxation_callback_handle) {
+//         { model.set_node_relaxation_callback(
+//             [](T::node_relaxation_callback_handle & h) {}) };
+//     };
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////// Tolerance parameters /////////////////////////////

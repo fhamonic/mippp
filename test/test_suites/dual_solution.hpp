@@ -16,7 +16,7 @@ TYPED_TEST_SUITE_P(DualSolutionTest);
 
 TYPED_TEST_P(DualSolutionTest, standard_form_max) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -38,7 +38,7 @@ TYPED_TEST_P(DualSolutionTest, standard_form_max) {
 }
 TYPED_TEST_P(DualSolutionTest, arbitrary_max) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -60,7 +60,7 @@ TYPED_TEST_P(DualSolutionTest, arbitrary_max) {
 }
 TYPED_TEST_P(DualSolutionTest, arbitrary_min) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
@@ -83,7 +83,7 @@ TYPED_TEST_P(DualSolutionTest, arbitrary_min) {
 
 TYPED_TEST_P(DualSolutionTest, arbitrary_min_add_constraints) {
     using namespace operators;
-    auto model = this->construct_model();
+    auto model = this->new_model();
     auto x1 = model.add_variable();
     auto x2 = model.add_variable();
     auto x3 = model.add_variable();
