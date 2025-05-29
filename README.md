@@ -198,9 +198,19 @@ for(auto i : indices) {
     std::cout << std::endl;
 }
 ```
+
+## Features
+
+<p align="center">
+    <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="misc/lp_table_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="misc/milp_table_light.png">
+    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="misc/milp_table_light.png">
+    </picture>
+</p>
+
 ## Roadmap
 
-- Add callbacks for Highs, CPLEX, Cbc, MOSEK and COPT.
+- Add callbacks for Highs, Cbc, MOSEK and COPT.
 - Add support for XPRS
 - Add special constraints (sos and indicator constraints)
-- Add column generation features

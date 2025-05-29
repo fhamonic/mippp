@@ -4,3 +4,6 @@
 *.log
 *.lp
 CMakeUserPresets.json
+misc/*.aux
+misc/*.pdf
+misc/*.blend1
