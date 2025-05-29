@@ -201,9 +201,21 @@ for(auto i : indices) {
 
 ## Features
 
+### Linear Programming
+
 <p align="center">
     <picture>
     <source media="(prefers-color-scheme: dark)" srcset="misc/lp_table_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="misc/lp_table_light.png">
+    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="misc/lp_table_light.png">
+    </picture>
+</p>
+
+### Mixed Integer Linear Programming
+
+<p align="center">
+    <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="misc/milp_table_dark.png">
     <source media="(prefers-color-scheme: light)" srcset="misc/milp_table_light.png">
     <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="misc/milp_table_light.png">
     </picture>
