@@ -74,7 +74,12 @@ public:
         check(Highs.changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
     }
 
-    void solve() { check(Highs.run(model)); }
+    void solve() {
+        if(num_variables() == 0u) {
+            add_variable();
+        }
+        check(Highs.run(model));
+    }
 
     double get_solution_value() { return Highs.getObjectiveValue(model); }
     auto get_solution() {

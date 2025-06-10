@@ -21,7 +21,7 @@ public:
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
         int var_id = static_cast<int>(_lazy_num_variables);
-        _add_variable(params, GRB_INTEGER);
+        _add_variable(params, GRB_INTEGER, NULL);
         return variable(var_id);
     }
     auto add_integer_variables(
@@ -56,7 +56,7 @@ public:
     variable add_binary_variable() {
         int var_id = static_cast<int>(_lazy_num_variables);
         _add_variable({.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-                      GRB_BINARY);
+                      GRB_BINARY, NULL);
         return variable(var_id);
     }
     auto add_binary_variables(std::size_t count) noexcept {

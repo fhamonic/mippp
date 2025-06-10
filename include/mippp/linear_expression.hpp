@@ -273,7 +273,6 @@ public:
         }
         return *this;
     }
-
     constexpr runtime_linear_expression & operator+=(_Scalar c) {
         _constant += c;
         return *this;

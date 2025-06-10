@@ -43,6 +43,7 @@ struct model_test : public ::testing::Test {
 #include "milp_model.hpp"
 #include "modifiable_objective.hpp"
 #include "modifiable_variables_bounds.hpp"
+#include "named_variables.hpp"
 #include "readable_objective.hpp"
 #include "readable_variables_bounds.hpp"
 #include "sudoku.hpp"

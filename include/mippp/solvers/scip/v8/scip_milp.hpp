@@ -153,7 +153,7 @@ private:
 
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
+        return variables_range(ranges::view::transform(
             ranges::view::iota(static_cast<variable_id>(offset),
                                static_cast<variable_id>(offset + count)),
             [](auto && i) { return variable{i}; }));
@@ -162,7 +162,7 @@ private:
     inline auto _make_indexed_variables_range(const std::size_t & offset,
                                               const std::size_t & count,
                                               IL && id_lambda) {
-        return make_indexed_variables_range(
+        return variables_range(
             typename detail::function_traits<IL>::arg_types(),
             ranges::view::transform(
                 ranges::view::iota(static_cast<variable_id>(offset),

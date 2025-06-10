@@ -174,12 +174,11 @@ public:
 
 protected:
     inline variable _add_variable(const variable_params & params,
-                                  const char & type) {
+                                  const char & type, const char * name_str) {
         check(GRB.addvar(model, 0, NULL, NULL, params.obj_coef,
                          params.lower_bound.value_or(-GRB_INFINITY),
                          params.upper_bound.value_or(GRB_INFINITY), type,
-                         NULL));
-        _var_name_set.push_back(false);
+                         name_str));
         return variable(static_cast<int>(_lazy_num_variables++));
     }
     inline void _add_variables(const std::size_t & offset,
@@ -218,13 +217,12 @@ protected:
                 static_cast<int>(count), tmp_types.data()));
         }
         _lazy_num_variables += count;
-        _var_name_set.resize(_lazy_num_variables, false);
     }
 
 public:
     variable add_variable(
         const variable_params params = default_variable_params) {
-        return _add_variable(params, GRB_CONTINUOUS);
+        return _add_variable(params, GRB_CONTINUOUS, NULL);
     }
     auto add_variables(
         std::size_t count,
@@ -242,24 +240,33 @@ public:
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
-    // template <typename IL, typename NL>
-    // auto add_variables(std::size_t count, IL && id_lambda, NL && name_lambda,
-    //                    variable_params params = default_variable_params)
-    //                    noexcept {
-    //     const std::size_t offset = num_variables();
-    //     _add_variables(offset, count, params);
-    //     return make_lazily_named_variables_range(
-    //         typename detail::function_traits<IL>::arg_types(),
-    //         ranges::view::transform(ranges::view::iota(offset, offset +
-    //         count),
-    //                                 [](auto && i) { return variable{i}; }),
-    //         std::forward<IL>(id_lambda),
-    //         [this, name_lambda = std::forward<NL>(name_lambda)](
-    //             const variable var, Args... args) mutable {
-    //             if(_var_name_set[static_cast<std::size_t>(var.id())]) return;
-    //             set_variable_name(var, name_lambda(args...));
-    //         });
-    // }
+
+public:
+    variable add_named_variable(
+        const std::string & name,
+        const variable_params params = default_variable_params) {
+        return _add_variable(params, GRB_CONTINUOUS, name.c_str());
+    }
+    template <typename NL>
+    auto add_named_variables(
+        std::size_t count, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = _lazy_num_variables;
+        _add_variables(offset, count, params, GRB_CONTINUOUS);
+        return _make_named_variables_range(offset, count,
+                                           std::forward<NL>(name_lambda),
+                                           this);
+    }
+    template <typename IL, typename NL>
+    auto add_named_variables(
+        std::size_t count, IL && id_lambda, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = _lazy_num_variables;
+        _add_variables(offset, count, params, GRB_CONTINUOUS);
+        return _make_indexed_named_variables_range(
+            offset, count, std::forward<IL>(id_lambda),
+            std::forward<NL>(name_lambda), this);
+    }
 
 private:
     template <typename ER>
@@ -272,7 +279,6 @@ private:
                        tmp_indices.data(), tmp_scalars.data(), params.obj_coef,
                        params.lower_bound.value_or(-GRB_INFINITY),
                        params.upper_bound.value_or(GRB_INFINITY), type, NULL));
-        _var_name_set.push_back(false);
         return variable(static_cast<int>(_lazy_num_variables++));
     }
 
@@ -297,10 +303,9 @@ public:
     void set_variable_upper_bound(variable v, double ub) {
         check(GRB.setdblattrelement(model, GRB_DBL_ATTR_UB, v.id(), ub));
     }
-    void set_variable_name(variable v, std::string name) {
+    void set_variable_name(variable v, const std::string & name) {
         check(GRB.setstrattrelement(model, GRB_STR_ATTR_VARNAME, v.id(),
                                     name.c_str()));
-        _var_name_set[static_cast<std::size_t>(v.id())] = true;
     }
 
     double get_objective_coefficient(variable v) {

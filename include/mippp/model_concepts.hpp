@@ -3,6 +3,7 @@
 
 #include <concepts>
 #include <optional>
+#include <string>
 
 #include <range/v3/view/single.hpp>
 
@@ -57,9 +58,9 @@ concept lp_model = requires(T & model, T::variable v,
     { model.set_maximization() };
     { model.set_minimization() };
 
-    { model.add_variable() } -> std::convertible_to<typename T::variable>;
+    { model.add_variable() } -> std::same_as<typename T::variable>;
     { model.add_variable({.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> std::convertible_to<typename T::variable>;    
+            -> std::same_as<typename T::variable>;    
     { model.add_variables(std::size_t{1u}) } -> ranges::random_access_range;
     { model.add_variables(std::size_t{1u},
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
@@ -73,7 +74,7 @@ concept lp_model = requires(T & model, T::variable v,
     { model.set_objective_offset(0.0) };
     { model.set_objective(detail::dummy_expression<T>()) };
     { model.add_constraint(detail::dummy_constraint<T>()) }
-            -> std::convertible_to<typename T::constraint>;
+            -> std::same_as<typename T::constraint>;
     { model.add_constraints(detail::dummy_range<detail::dummy_type>(),
             [](detail::dummy_type) { return detail::dummy_constraint<T>(); }) };
 
@@ -88,22 +89,28 @@ concept lp_model = requires(T & model, T::variable v,
 template <typename T>
 concept milp_model = lp_model<T> && requires(T & model, T::variable v,
                             T::variable_params vparams, T::scalar s) {
-    { model.add_integer_variable() } -> std::convertible_to<typename T::variable>;
-    { model.add_integer_variable({.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> std::convertible_to<typename T::variable>;
-    { model.add_integer_variables(std::size_t{1u}) } -> ranges::random_access_range;
+    { model.add_integer_variable() } -> std::same_as<typename T::variable>;
+    { model.add_integer_variable(
+                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> std::same_as<typename T::variable>;
+    { model.add_integer_variables(std::size_t{1u}) }
+            -> ranges::random_access_range;
     { model.add_integer_variables(std::size_t{1u},
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
             -> ranges::random_access_range;
-    { model.add_integer_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
+    { model.add_integer_variables(std::size_t{1u}, 
+                                  [](detail::dummy_type) { return 0; }) }
             -> ranges::random_access_range;
-    { model.add_integer_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; },
-                            {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+    { model.add_integer_variables(std::size_t{1u}, 
+                        [](detail::dummy_type) { return 0; },
+                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
             -> ranges::random_access_range;
 
-    { model.add_binary_variable() } -> std::convertible_to<typename T::variable>;
-    { model.add_binary_variables(std::size_t{1u}) } -> ranges::random_access_range;
-    { model.add_binary_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
+    { model.add_binary_variable() } -> std::same_as<typename T::variable>;
+    { model.add_binary_variables(std::size_t{1u}) }
+            -> ranges::random_access_range;
+    { model.add_binary_variables(std::size_t{1u}, 
+                                 [](detail::dummy_type) { return 0; }) }
             -> ranges::random_access_range;
 
     { model.set_continuous(v) };
@@ -138,6 +145,46 @@ concept has_dual_solution = requires(T & model) {
 //         { model.get_milp_status() };
 //     };
 
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// Names ////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+concept has_named_variables = lp_model<T> && requires(T & model, T::variable v,
+                    T::variable_params vparams, T::scalar s, std::string nm) {
+    { model.set_variable_name(v, nm) };
+    { model.get_variable_name(v) };
+
+    { model.add_named_variable(nm) } -> std::same_as<typename T::variable>;
+    { model.add_named_variable(nm,
+                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> std::same_as<typename T::variable>;
+    { model.add_named_variables(std::size_t{1u},
+                        [](std::size_t) -> std::string { return ""; }) }
+            -> ranges::random_access_range;
+    { model.add_named_variables(std::size_t{1u},
+                        [](std::size_t) -> std::string { return ""; },
+                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> ranges::random_access_range;  
+    { model.add_named_variables(std::size_t{1u},
+                        [](detail::dummy_type) { return 0; },
+                        [](detail::dummy_type) -> std::string { return ""; }) }
+            -> ranges::random_access_range;
+    { model.add_named_variables(std::size_t{1u},
+                        [](detail::dummy_type) { return 0; },
+                        [](detail::dummy_type) -> std::string { return ""; },
+                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
+            -> ranges::random_access_range; 
+};
+
+template <typename T>
+concept has_named_constraints =
+    requires(T & model, T::constraint v, std::string s) {
+        { model.set_constraint_name(v, s) };
+        { model.get_constraint_name(v) };
+    };
+
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Objective //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -149,9 +196,9 @@ template <typename T>
 concept has_readable_objective =
     requires(T & model, T::variable v) {
         { model.get_objective_offset() }
-                -> std::convertible_to<typename T::scalar>;
+                -> std::same_as<typename T::scalar>;
         { model.get_objective_coefficient(v) }
-                -> std::convertible_to<typename T::scalar>;
+                -> std::same_as<typename T::scalar>;
         { model.get_objective() } -> linear_expression;
     } && std::same_as<std::decay_t<
                 linear_expression_variable_t<objective_expression_t<T>>>,
@@ -175,9 +222,9 @@ template <typename T>
 concept has_readable_variables_bounds =
     requires(T & model, T::variable v) {
         { model.get_variable_lower_bound(v) }
-                -> std::convertible_to<typename T::scalar>;
+                -> std::same_as<typename T::scalar>;
         { model.get_variable_upper_bound(v) }
-                -> std::convertible_to<typename T::scalar>;
+                -> std::same_as<typename T::scalar>;
     };
 
 template <typename T>
@@ -221,7 +268,7 @@ concept has_modifiable_constraint_sense = requires(T & model, T::constraint c) {
 
 template <typename T>
 concept has_readable_constraint_rhs = requires(T & model, T::constraint c) {
-    { model.get_constraint_rhs(c) } -> std::convertible_to<typename T::scalar>;
+    { model.get_constraint_rhs(c) } -> std::same_as<typename T::scalar>;
 };
 
 template <typename T>
@@ -308,8 +355,7 @@ concept has_sos2_constraints = requires(
 };
 
 template <typename T>
-concept has_indicator_constraints = requires(T & model,
-                                                              T::variable v) {
+concept has_indicator_constraints = requires(T & model, T::variable v) {
     { model.add_indicator_constraint(v, true, detail::dummy_constraint<T>()) }
             -> std::same_as<typename T::constraint>;
 };
@@ -340,7 +386,7 @@ template <typename T>
 concept has_feasibility_tolerance =
     requires(T & model, T::variable v, T::constraint c, T::scalar s) {
         { model.get_feasibility_tolerance() }
-                -> std::convertible_to<typename T::scalar>;
+                -> std::same_as<typename T::scalar>;
         { model.set_feasibility_tolerance(s) };
     };
 
@@ -348,7 +394,7 @@ template <typename T>
 concept has_optimality_tolerance =
     requires(T & model, T::variable v, T::constraint c, T::scalar s) {
         { model.get_optimality_tolerance() }
-                -> std::convertible_to<typename T::scalar>;
+                -> std::same_as<typename T::scalar>;
         { model.set_optimality_tolerance(s) };
     };
 
@@ -356,7 +402,7 @@ template <typename T>
 concept has_integrality_tolerance =
     requires(T & model, T::variable v, T::constraint c, T::scalar s) {
         { model.get_integrality_tolerance() } 
-                -> std::convertible_to<typename T::scalar>;
+                -> std::same_as<typename T::scalar>;
         { model.set_integrality_tolerance(s) };
     };
 // clang-format on

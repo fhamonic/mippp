@@ -114,19 +114,27 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
 /////////////////////////////// Variables range ///////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename Vars>
+template <ranges::random_access_range Vars, typename IdLambda, typename... Args>
+    requires std::integral<
+        std::decay_t<std::invoke_result_t<IdLambda, Args...>>>
 class variables_range {
-private:
+protected:
     using variable = ranges::range_value_t<Vars>;
     using scalar = linear_expression_scalar_t<variable>;
 
-protected:
     const Vars _variables;
+    [[no_unique_address]] const IdLambda _id_lambda;
 
 public:
     template <typename VR>
     constexpr variables_range(VR && variables) noexcept
-        : _variables(std::forward<VR>(variables)) {}
+        : _variables(ranges::views::all(std::forward<VR>(variables)))
+        , _id_lambda() {}
+
+    template <typename AP, typename VR, typename IL>
+    constexpr variables_range(AP, VR && variables, IL && id_lambda) noexcept
+        : _variables(ranges::views::all(std::forward<VR>(variables)))
+        , _id_lambda(std::forward<IL>(id_lambda)) {}
 
     constexpr auto size() const noexcept { return ranges::size(_variables); }
     constexpr auto begin() const noexcept { return ranges::begin(_variables); }
@@ -139,31 +147,6 @@ public:
         return begin()[static_cast<std::ranges::range_difference_t<Vars>>(i)];
     }
 
-    constexpr auto linear_terms() const noexcept {
-        return ranges::views::transform(
-            _variables, [](auto && i) { return std::make_pair(i, scalar{1}); });
-    }
-    constexpr scalar constant() const noexcept { return scalar{0}; }
-};
-
-template <ranges::viewable_range VR>
-auto make_variables_range(VR && variables) {
-    return variables_range<ranges::view::all_t<VR>>(
-        ranges::view::all(variables));
-}
-
-template <ranges::random_access_range Vars, typename IdLambda, typename... Args>
-    requires std::integral<std::invoke_result_t<IdLambda, Args...>>
-class indexed_variables_range : public variables_range<Vars> {
-protected:
-    const IdLambda _id_lambda;
-
-public:
-    template <typename VR, typename IL>
-    constexpr indexed_variables_range(VR && variables, IL && id_lambda) noexcept
-        : variables_range<Vars>(std::forward<VR>(variables))
-        , _id_lambda(std::forward<IL>(id_lambda)) {}
-
     constexpr auto operator()(Args... args) const {
         const auto index = static_cast<std::ranges::range_difference_t<Vars>>(
             this->_id_lambda(args...));
@@ -171,52 +154,79 @@ public:
             throw std::out_of_range("variable's index out of range.");
         return this->begin()[index];
     }
+
+    constexpr auto linear_terms() const noexcept {
+        return ranges::views::transform(
+            _variables, [](auto && i) { return std::make_pair(i, scalar{1}); });
+    }
+    constexpr scalar constant() const noexcept { return scalar{0}; }
 };
 
-template <ranges::viewable_range VR, typename IL, typename... Args>
-auto make_indexed_variables_range(detail::pack<Args...>, VR && variables,
-                                  IL && id_lambda) {
-    return indexed_variables_range<ranges::view::all_t<VR>, std::decay_t<IL>,
-                                   Args...>(ranges::view::all(variables),
-                                            std::forward<IL>(id_lambda));
-}
-
 template <ranges::random_access_range Vars, typename IdLambda,
-          typename NamingLambda, typename... Args>
-    requires std::integral<std::invoke_result_t<IdLambda, Args...>> &&
-             std::convertible_to<std::invoke_result_t<NamingLambda, Args...>,
+          typename NameLambda, typename Model, typename... Args>
+    requires std::integral<
+                 std::decay_t<std::invoke_result_t<IdLambda, Args...>>> &&
+             std::convertible_to<std::invoke_result_t<NameLambda, Args...>,
                                  std::string>
 class lazily_named_variables_range
-    : public indexed_variables_range<Vars, IdLambda> {
+    : public variables_range<Vars, IdLambda, Args...> {
 private:
-    mutable NamingLambda _naming_lambda;
+    [[no_unique_address]] mutable NameLambda _name_lambda;
+    std::unique_ptr<bool[]> _name_set_map;
+    Model * _model;
 
 public:
-    template <typename VR, typename IL, typename NL>
-    constexpr lazily_named_variables_range(VR && variables, IL && id_lambda,
-                                           NL && naming_lambda) noexcept
-        : indexed_variables_range<Vars, IdLambda>(std::forward<VR>(variables),
-                                                  std::forward<IL>(id_lambda))
-        , _naming_lambda(std::forward<NL>(naming_lambda)) {}
+    template <typename VR, typename NL, typename M>
+    constexpr lazily_named_variables_range(VR && variables, NL && name_lambda,
+                                           M * model) noexcept
+        : variables_range<Vars, IdLambda, Args...>(std::forward<VR>(variables))
+        , _name_lambda(std::forward<NL>(name_lambda))
+        , _name_set_map(std::make_unique<bool[]>(this->size()))
+        , _model(model) {}
 
-    constexpr auto operator()(Args... args) const noexcept {
-        const auto index = static_cast<std::ranges::range_difference_t<Vars>>(
-            this->_id_lambda(args...));
-        assert(static_cast<std::size_t>(index) < this->size());
-        auto && var = this->begin()[index];
-        _naming_lambda(var, args...);
+    template <typename AP, typename VR, typename IL, typename NL, typename M>
+    constexpr lazily_named_variables_range(AP p, VR && variables,
+                                           IL && id_lambda, NL && name_lambda,
+                                           M * model) noexcept
+        : variables_range<Vars, IdLambda, Args...>(
+              p, std::forward<VR>(variables), std::forward<IL>(id_lambda))
+        , _name_lambda(std::forward<NL>(name_lambda))
+        , _name_set_map(std::make_unique<bool[]>(this->size()))
+        , _model(model) {}
+
+    constexpr auto operator()(Args... args) const {
+        const auto index = static_cast<std::size_t>(this->_id_lambda(args...));
+        if(index >= this->size())
+            throw std::out_of_range("variable's index out of range.");
+        auto && var =
+            this->begin()[static_cast<std::ranges::range_difference_t<Vars>>(
+                index)];
+        if(!_name_set_map[index]) {
+            _name_set_map[index] = true;
+            _model->set_variable_name(var, _name_lambda(args...));
+        }
         return var;
     }
 };
 
-template <ranges::viewable_range VR, typename IL, typename NL, typename... Args>
-auto make_lazily_named_variables_range(detail::pack<Args...>, VR && variables,
-                                       IL && id_lambda, NL && naming_lambda) {
-    return lazily_named_variables_range<
-        ranges::view::all_t<VR>, std::decay_t<IL>, std::decay_t<NL>, Args...>(
-        ranges::view::all(variables), std::forward<IL>(id_lambda),
-        std::forward<NL>(naming_lambda));
-}
+template <ranges::viewable_range VR>
+variables_range(VR &&)
+    -> variables_range<ranges::view::all_t<VR>, std::identity, std::size_t>;
+
+template <ranges::viewable_range VR, typename IL, typename... Args>
+variables_range(detail::pack<Args...>, VR &&, IL &&)
+    -> variables_range<ranges::view::all_t<VR>, IL, Args...>;
+
+template <ranges::viewable_range VR, typename NL, typename M>
+lazily_named_variables_range(VR &&, NL &&, M *)
+    -> lazily_named_variables_range<ranges::view::all_t<VR>, std::identity, NL,
+                                    M, std::size_t>;
+
+template <ranges::viewable_range VR, typename IL, typename NL, typename M,
+          typename... Args>
+lazily_named_variables_range(detail::pack<Args...>, VR &&, IL &&, NL &&, M *)
+    -> lazily_named_variables_range<ranges::view::all_t<VR>, IL, NL, M,
+                                    Args...>;
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Optional helper ///////////////////////////////
@@ -241,7 +251,8 @@ using optional_type_value_t = typename T::value_type;
 }  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
-////////////////////////////// Constraints range //////////////////////////////
+////////////////////////////// Constraints range
+/////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename Key, typename Constraint>

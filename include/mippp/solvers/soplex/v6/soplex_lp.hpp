@@ -96,7 +96,7 @@ public:
                        const variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
-        return make_variables_range(ranges::view::transform(
+        return variables_range(ranges::view::transform(
             ranges::view::iota(static_cast<variable_id>(offset),
                                static_cast<variable_id>(offset + count)),
             [](auto && i) { return variable{i}; }));
@@ -107,7 +107,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
-        return make_indexed_variables_range(
+        return variables_range(
             typename detail::function_traits<IL>::arg_types(),
             ranges::view::transform(
                 ranges::view::iota(static_cast<variable_id>(offset),

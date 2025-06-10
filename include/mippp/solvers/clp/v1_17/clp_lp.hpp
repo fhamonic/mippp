@@ -129,10 +129,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params);
-        return make_variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
+        return _make_variables_range(offset, count);
     }
     template <typename IL>
     auto add_variables(
@@ -140,13 +137,8 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params);
-        return make_indexed_variables_range(
-            typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
+        return _make_indexed_variables_range(offset, count,
+                                             std::forward<IL>(id_lambda));
     }
 
 private:

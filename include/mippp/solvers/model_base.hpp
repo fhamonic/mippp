@@ -38,7 +38,7 @@ protected:
 
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
-        return make_variables_range(ranges::view::transform(
+        return variables_range(ranges::view::transform(
             ranges::view::iota(static_cast<_Index>(offset),
                                static_cast<_Index>(offset + count)),
             [](auto && i) { return variable{i}; }));
@@ -47,13 +47,37 @@ protected:
     inline auto _make_indexed_variables_range(const std::size_t & offset,
                                               const std::size_t & count,
                                               IL && id_lambda) {
-        return make_indexed_variables_range(
+        return variables_range(
             typename detail::function_traits<IL>::arg_types(),
             ranges::view::transform(
                 ranges::view::iota(static_cast<_Index>(offset),
                                    static_cast<_Index>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
+    }
+    template <typename NL, typename M>
+    inline auto _make_named_variables_range(const std::size_t & offset,
+                                            const std::size_t & count,
+                                            NL && name_lambda, M * model) {
+        for(std::size_t i = 0; i < count; ++i) {
+            model->set_variable_name(variable(static_cast<int>(offset + i)),
+                                     name_lambda(i));
+        }
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL, typename NL, typename M>
+    inline auto _make_indexed_named_variables_range(const std::size_t & offset,
+                                                    const std::size_t & count,
+                                                    IL && id_lambda,
+                                                    NL && name_lambda,
+                                                    M * model) {
+        return lazily_named_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<_Index>(offset),
+                                   static_cast<_Index>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda), std::forward<NL>(name_lambda), model);
     }
 
     void _reset_cache(std::size_t num_variables) {
