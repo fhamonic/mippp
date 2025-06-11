@@ -50,9 +50,9 @@ TYPED_TEST_P(CuttingStockTest, test) {
     auto satisfaction_constrs =
         model.add_constraints(order_ids, [&](auto order_id) {
             auto && demanded_quantity = orders[order_id].first;
-            return xsum(patterns, [&, order_id](auto && pattern) {
-                       auto && [var, satisfaction_map] = pattern;
-                       return satisfaction_map[order_id] * var;
+            return xsum(patterns, [&, order_id](auto && p) {
+                       auto && [var, pattern] = p;
+                       return pattern[order_id] * var;
                    }) >= demanded_quantity;
         });
 
@@ -68,8 +68,6 @@ TYPED_TEST_P(CuttingStockTest, test) {
             [&](auto order_id) { return orders[order_id].second; },
             roll_length);
         knapsack.run();
-
-        std::cout << knapsack.solution_value() << std::endl;
         if(knapsack.solution_value() - 1 <= TEST_EPSILON) break;
 
         std::vector<int> pattern(orders.size(), 0);
@@ -95,8 +93,6 @@ TYPED_TEST_P(CuttingStockTest, test) {
     int actual_roll_count = 0;
     for(auto && [var, pattern] : patterns) {
         actual_roll_count += static_cast<int>(std::ceil(solution[var]));
-
-        std::cout << solution[var] << std::endl;
     }
     ASSERT_EQ(actual_roll_count, 454);
 }
