@@ -25,6 +25,7 @@ class CompressorRecipe(ConanFile):
     def build_requirements(self):
         self.test_requires("gtest/[>=1.10.0 <cci]")
         self.test_requires("fmt/[>=11.0.0 <cci]")
+        self.test_requires("melon/1.0.0-alpha.1")
 
     def generate(self):
         print("conanfile.py: IDE include dirs:")

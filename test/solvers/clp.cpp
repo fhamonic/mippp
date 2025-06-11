@@ -13,6 +13,7 @@ INSTANTIATE_TEST(Clp, ModifiableObjectiveTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReadableVariablesBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ModifiableVariablesBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, NamedVariablesTest, clp_lp_test);
-INSTANTIATE_TEST(Clp, ColumGenerationTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, AddColumnTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, DualSolutionTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, LpStatusTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, CuttingStockTest, clp_lp_test);

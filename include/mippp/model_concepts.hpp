@@ -289,7 +289,7 @@ concept has_readable_constraints =
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-concept has_column_generation = requires(
+concept has_add_column = requires(
     T & model, T::constraint c, T::scalar s,
     std::initializer_list<std::pair<typename T::constraint, typename T::scalar>>
         init_entries) {

@@ -8,13 +8,13 @@
 namespace fhamonic::mippp {
 
 template <typename T>
-struct ColumGenerationTest : public T {
+struct AddColumnTest : public T {
     using typename T::model_type;
-    static_assert(has_column_generation<model_type>);
+    static_assert(has_add_column<model_type>);
 };
-TYPED_TEST_SUITE_P(ColumGenerationTest);
+TYPED_TEST_SUITE_P(AddColumnTest);
 
-TYPED_TEST_P(ColumGenerationTest, add_column_entries) {
+TYPED_TEST_P(AddColumnTest, add_column_entries) {
     using namespace operators;
     auto model = this->new_model();
     auto x1 = model.add_variable();
@@ -35,6 +35,6 @@ TYPED_TEST_P(ColumGenerationTest, add_column_entries) {
     ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
 }
 
-REGISTER_TYPED_TEST_SUITE_P(ColumGenerationTest, add_column_entries);
+REGISTER_TYPED_TEST_SUITE_P(AddColumnTest, add_column_entries);
 
 }  // namespace fhamonic::mippp

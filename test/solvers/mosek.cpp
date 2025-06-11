@@ -13,9 +13,10 @@ INSTANTIATE_TEST(MOSEK_lp, ModifiableObjectiveTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableVariablesBoundsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ModifiableVariablesBoundsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, NamedVariablesTest, mosek_lp_test);
-INSTANTIATE_TEST(MOSEK_lp, ColumGenerationTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, AddColumnTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, DualSolutionTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, CuttingStockTest, mosek_lp_test);
 
 struct mosek_milp_test : public model_test<mosek_api, mosek_milp> {
     static void SetUpTestSuite() { construct_api(); }
@@ -27,5 +28,5 @@ INSTANTIATE_TEST(MOSEK_milp, ModifiableObjectiveTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ReadableVariablesBoundsTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ModifiableVariablesBoundsTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, NamedVariablesTest, mosek_milp_test);
-INSTANTIATE_TEST(MOSEK_milp, ColumGenerationTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, AddColumnTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, SudokuTest, mosek_milp_test);

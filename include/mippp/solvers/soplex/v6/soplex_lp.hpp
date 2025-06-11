@@ -125,7 +125,7 @@ private:
         int num_nz = 0;
         for(auto && [constr, coef] : entries) {
             if(coef == 0) continue;
-            tmp_scalars[constr.uid()] += coef;
+            tmp_scalars[constr.uid()] += static_cast<scalar>(coef);
             num_nz += (tmp_scalars[constr.uid()] != 0) ? 1 : -1;
         }
         SoPlex.addColReal(model, tmp_scalars.data(), num_nz,

@@ -13,9 +13,10 @@ INSTANTIATE_TEST(CPLEX_lp, ModifiableObjectiveTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ReadableVariablesBoundsTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ModifiableVariablesBoundsTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, NamedVariablesTest, cplex_lp_test);
-INSTANTIATE_TEST(CPLEX_lp, ColumGenerationTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, AddColumnTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, DualSolutionTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, LpStatusTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, CuttingStockTest, cplex_lp_test);
 
 struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {
     static void SetUpTestSuite() { construct_api(); }
@@ -27,6 +28,6 @@ INSTANTIATE_TEST(CPLEX_milp, ModifiableObjectiveTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, ReadableVariablesBoundsTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, ModifiableVariablesBoundsTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, NamedVariablesTest, cplex_milp_test);
-INSTANTIATE_TEST(CPLEX_milp, ColumGenerationTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, AddColumnTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, CandidateSolutionCallbackTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, SudokuTest, cplex_milp_test);

@@ -13,9 +13,10 @@ INSTANTIATE_TEST(HiGHS_lp, ModifiableObjectiveTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ReadableVariablesBoundsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ModifiableVariablesBoundsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, NamedVariablesTest, highs_lp_test);
-INSTANTIATE_TEST(HiGHS_lp, ColumGenerationTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, AddColumnTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, DualSolutionTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpStatusTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, CuttingStockTest, highs_lp_test);
 
 struct highs_milp_test : public model_test<highs_api, highs_milp> {
     static void SetUpTestSuite() { construct_api(); }
@@ -27,5 +28,5 @@ INSTANTIATE_TEST(HiGHS_milp, ModifiableObjectiveTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ReadableVariablesBoundsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ModifiableVariablesBoundsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, NamedVariablesTest, highs_milp_test);
-INSTANTIATE_TEST(HiGHS_milp, ColumGenerationTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, AddColumnTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, SudokuTest, highs_milp_test);

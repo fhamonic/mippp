@@ -16,7 +16,7 @@ def find_cpp_files(root_folder):
 
 
 def parse_instantiate_lines(cpp_files):
-    pattern = re.compile(r"INSTANTIATE_TEST\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(\w+)\s*\);")
+    pattern = re.compile(r"^INSTANTIATE_TEST\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(\w+)\s*\);")
     lp_table = defaultdict(set)
     milp_table = defaultdict(set)
 
@@ -42,11 +42,12 @@ formated_test_names = [
     ("ModifiableObjectiveTest", "Increment objective"),
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
     ("NamedVariablesTest", "Named variables"),
-    ("ColumGenerationTest", "Add column"),
+    ("AddColumnTest", "Add column"),
     ("LpStatusTest", "LP status"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),
     ("DualSolutionTest", "Dual solution"),
     ("SudokuTest", "Solves sudoku"),
+    ("CuttingStockTest", "Cutting stock"),
 ]
 
 

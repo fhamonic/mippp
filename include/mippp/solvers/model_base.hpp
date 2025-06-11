@@ -98,7 +98,7 @@ protected:
         for(auto && [entity, coef] : entries) {
             auto & p = tmp_entry_index_cache[entity.uid()];
             if(p.first == register_count) {
-                tmp_scalars[p.second] += coef;
+                tmp_scalars[p.second] += static_cast<_Scalar>(coef);
                 continue;
             }
             p = std::make_pair(register_count, tmp_indices.size());
