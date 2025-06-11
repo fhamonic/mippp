@@ -225,6 +225,33 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+    variable add_named_variable(
+        const std::string & name,
+        const variable_params params = default_variable_params) {
+        variable v = add_variable(params);
+        set_variable_name(v, name);
+        return v;
+    }
+    template <typename NL>
+    auto add_named_variables(
+        std::size_t count, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
+        return _make_named_variables_range(offset, count,
+                                           std::forward<NL>(name_lambda), this);
+    }
+    template <typename IL, typename NL>
+    auto add_named_variables(
+        std::size_t count, IL && id_lambda, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
+        return _make_indexed_named_variables_range(
+            offset, count, std::forward<IL>(id_lambda),
+            std::forward<NL>(name_lambda), this);
+    }
+
 private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
@@ -258,6 +285,9 @@ public:
     void set_variable_upper_bound(variable v, scalar ub) {
         check(MSK.chgvarbound(task, v.id(), 0, 1, ub));
     }
+    void set_variable_name(variable v, const std::string & name) {
+        check(MSK.putvarname(task, v.id(), name.c_str()));
+    }
 
     scalar get_objective_coefficient(variable v) {
         scalar coef;
@@ -275,6 +305,14 @@ public:
         scalar lb, ub;
         check(MSK.getvarbound(task, v.id(), &boundkey, &lb, &ub));
         return ub;
+    }
+    std::string get_variable_name(variable v) {
+        MSKint32t len;
+        check(MSK.getvarnamelen(task, v.id(), &len));
+        std::string name(static_cast<std::size_t>(len + 1), '\0');
+        check(MSK.getvarname(task, v.id(), len + 1, name.data()));
+        name.pop_back();
+        return name;
     }
 
     constraint add_constraint(linear_constraint auto && lc) {

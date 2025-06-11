@@ -85,6 +85,7 @@ HighsInt Highs_getColIntegrality(const void * highs, const HighsInt col,
                                  HighsInt * integrality);
 HighsInt Highs_passColName(const void * highs, const HighsInt col,
                            const char * name);
+constexpr HighsInt kHighsMaximumStringLength = 512;
 HighsInt Highs_getColName(const void * highs, const HighsInt col, char * name);
 
 HighsInt Highs_changeRowBounds(void * highs, const HighsInt row,

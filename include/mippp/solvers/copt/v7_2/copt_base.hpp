@@ -44,7 +44,7 @@ protected:
 
     static void check(ret_code error) {
         if(error == COPT_RETCODE_OK) return;
-        throw std::runtime_error("copt_base error");
+        throw std::runtime_error("copt_base error : " + std::to_string(error));
     }
 
     static constexpr char constraint_sense_to_copt_sense(constraint_sense rel) {
@@ -139,10 +139,13 @@ public:
     }
 
 protected:
-    void _add_variable(const variable_params & params, const char type) {
+    variable _add_variable(const variable_params & params, const char type,
+                           const char * name = NULL) {
+        int var_id = static_cast<int>(num_variables());
         check(COPT.AddCol(prob, params.obj_coef, 0, NULL, NULL, type,
                           params.lower_bound.value_or(-COPT_INFINITY),
-                          params.upper_bound.value_or(+COPT_INFINITY), NULL));
+                          params.upper_bound.value_or(+COPT_INFINITY), name));
+        return variable(var_id);
     }
     void _add_variables(std::size_t offset, std::size_t count,
                         const variable_params & params, const char type) {
@@ -177,9 +180,7 @@ protected:
 public:
     variable add_variable(
         const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(params, COPT_CONTINUOUS);
-        return variable(var_id);
+        return _add_variable(params, COPT_CONTINUOUS);
     }
     auto add_variables(
         std::size_t count,
@@ -196,6 +197,31 @@ public:
         _add_variables(offset, count, params, COPT_CONTINUOUS);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
+    }
+
+    variable add_named_variable(
+        const std::string & name,
+        const variable_params params = default_variable_params) {
+        return _add_variable(params, COPT_CONTINUOUS, name.c_str());
+    }
+    template <typename NL>
+    auto add_named_variables(
+        std::size_t count, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, COPT_CONTINUOUS);
+        return _make_named_variables_range(offset, count,
+                                           std::forward<NL>(name_lambda), this);
+    }
+    template <typename IL, typename NL>
+    auto add_named_variables(
+        std::size_t count, IL && id_lambda, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, COPT_CONTINUOUS);
+        return _make_indexed_named_variables_range(
+            offset, count, std::forward<IL>(id_lambda),
+            std::forward<NL>(name_lambda), this);
     }
 
 private:
@@ -237,6 +263,11 @@ public:
         const int id = v.id();
         check(COPT.SetColUpper(prob, 1, &id, &ub));
     }
+    void set_variable_name(variable v, const std::string & name) {
+        const int id = v.id();
+        const char * c_str = name.c_str();
+        check(COPT.SetColNames(prob, 1, &id, &c_str));
+    }
 
     scalar get_objective_coefficient(variable v) {
         scalar coef;
@@ -255,6 +286,14 @@ public:
         const int id = v.id();
         check(COPT.GetColInfo(prob, COPT_DBLINFO_UB, 1, &id, &ub));
         return ub;
+    }
+    std::string get_variable_name(variable v) {
+        int size;
+        check(COPT.GetColName(prob, v.id(), NULL, 0, &size));
+        std::string name(static_cast<std::size_t>(size), '\0');
+        COPT.GetColName(prob, v.id(), name.data(), size, NULL);
+        name.pop_back();
+        return name;
     }
 
     constraint add_constraint(linear_constraint auto && lc) {

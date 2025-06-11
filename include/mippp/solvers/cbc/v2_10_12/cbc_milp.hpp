@@ -119,8 +119,9 @@ public:
     }
 
 private:
-    inline void _add_var(const variable_params & p, const bool is_integer) {
-        Cbc.addCol(model, "", p.lower_bound.value_or(-COIN_DBL_MAX),
+    inline void _add_var(const variable_params & p, const bool is_integer,
+                         const char * name = "") {
+        Cbc.addCol(model, name, p.lower_bound.value_or(-COIN_DBL_MAX),
                    p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, is_integer,
                    0, NULL, NULL);
         ++_lazy_num_variables;
@@ -189,6 +190,33 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+    variable add_named_variable(
+        const std::string & name,
+        const variable_params params = default_variable_params) {
+        int var_id = static_cast<int>(_lazy_num_variables);
+        _add_var(params, false, name.c_str());
+        return variable(var_id);
+    }
+    template <typename NL>
+    auto add_named_variables(
+        std::size_t count, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_var(params, false, name_lambda(i).c_str());
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL, typename NL>
+    auto add_named_variables(
+        std::size_t count, IL && id_lambda, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
+        return _make_indexed_named_variables_range(
+            offset, count, std::forward<IL>(id_lambda),
+            std::forward<NL>(name_lambda), this);
+    }
+
 private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
@@ -245,10 +273,10 @@ public:
     double get_variable_upper_bound(variable v) {
         return Cbc.getColUpper(model)[v.id()];
     }
-    auto get_variable_name(variable v) {
+    std::string get_variable_name(variable v) {
         auto max_length = Cbc.maxNameLength(model);
-        std::string name(max_length, '\0');
-        Cbc.getColName(model, v.id(), name.data(), max_length);
+        std::string name(max_length + 1, '\0');
+        Cbc.getColName(model, v.id(), name.data(), max_length + 1);
         name.resize(std::strlen(name.c_str()));
         return name;
     }

@@ -96,6 +96,8 @@ SCIP_Real SCIPvarGetLbGlobal(SCIP_VAR * var);
 SCIP_Real SCIPvarGetUbGlobal(SCIP_VAR * var);
 SCIP_RETCODE SCIPchgVarType(SCIP * scip, SCIP_VAR * var, SCIP_VARTYPE vartype,
                             SCIP_Bool * become_infeasible);
+const char * SCIPvarGetName(SCIP_VAR * var);
+SCIP_RETCODE SCIPchgVarName(SCIP * scip, SCIP_VAR * var, const char * name);
 
 SCIP_RETCODE SCIPaddCoefLinear(SCIP * scip, SCIP_CONS * cons, SCIP_VAR * var,
                                SCIP_Real val);
@@ -151,6 +153,8 @@ namespace scip::v8 {
     F(SCIPvarGetLbGlobal, varGetLbGlobal)               \
     F(SCIPvarGetUbGlobal, varGetUbGlobal)               \
     F(SCIPchgVarType, chgVarType)                       \
+    F(SCIPchgVarName, chgVarName)                       \
+    F(SCIPvarGetName, varGetName)                       \
     F(SCIPcreateConsBasicLinear, createConsBasicLinear) \
     F(SCIPaddCons, addCons)                             \
     F(SCIPaddCoefLinear, addCoefLinear)                 \

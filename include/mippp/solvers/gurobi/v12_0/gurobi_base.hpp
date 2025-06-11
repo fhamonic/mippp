@@ -240,8 +240,7 @@ public:
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
-
-public:
+    
     variable add_named_variable(
         const std::string & name,
         const variable_params params = default_variable_params) {
@@ -326,7 +325,7 @@ public:
         check(GRB.getdblattrelement(model, GRB_DBL_ATTR_UB, v.id(), &ub));
         return ub;
     }
-    auto get_variable_name(variable v) {
+    std::string get_variable_name(variable v) {
         char * name;
         update_gurobi_model();
         check(

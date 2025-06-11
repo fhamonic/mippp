@@ -135,12 +135,13 @@ public:
     }
 
 protected:
-    variable _add_variable(const variable_params & params, char type) {
+    variable _add_variable(const variable_params & params, char type,
+                           char * name = NULL) {
         const int var_id = static_cast<int>(num_variables());
         const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
         const double ub = params.upper_bound.value_or(CPX_INFBOUND);
         check(CPX.newcols(env, lp, 1, &params.obj_coef, &lb, &ub,
-                          (type != CPX_CONTINUOUS) ? &type : NULL, NULL));
+                          (type != CPX_CONTINUOUS) ? &type : NULL, &name));
         return variable(var_id);
     }
     void _add_variables(std::size_t offset, std::size_t count,
@@ -208,6 +209,36 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+    variable add_named_variable(
+        const std::string & name,
+        const variable_params params = default_variable_params) {
+        return _add_variable(params, CPX_CONTINUOUS, std::string(name).data());
+    }
+    variable add_named_variable(
+        std::string && name,
+        const variable_params params = default_variable_params) {
+        return _add_variable(params, CPX_CONTINUOUS, name.data());
+    }
+    template <typename NL>
+    auto add_named_variables(
+        std::size_t count, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, CPX_CONTINUOUS);
+        return _make_named_variables_range(offset, count,
+                                           std::forward<NL>(name_lambda), this);
+    }
+    template <typename IL, typename NL>
+    auto add_named_variables(
+        std::size_t count, IL && id_lambda, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, CPX_CONTINUOUS);
+        return _make_indexed_named_variables_range(
+            offset, count, std::forward<IL>(id_lambda),
+            std::forward<NL>(name_lambda), this);
+    }
+
 private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
@@ -249,6 +280,11 @@ public:
         char lu = 'U';
         check(CPX.chgbds(env, lp, 1, &var_id, &lu, &ub));
     }
+    void set_variable_name(variable v, const std::string & name) noexcept {
+        int var_id = v.id();
+        char * col_name = std::string(name).data();
+        check(CPX.chgcolname(env, lp, 1, &var_id, &col_name));
+    }
 
     double get_objective_coefficient(variable v) {
         double coef;
@@ -264,6 +300,17 @@ public:
         double b;
         check(CPX.getub(env, lp, &b, v.id(), v.id()));
         return b;
+    }
+    std::string get_variable_name(variable v) noexcept {
+        char * subptr;
+        int surplus;
+        assert(CPX.getcolname(env, lp, NULL, NULL, 0, &surplus, v.id(),
+                              v.id()) == 1207);
+        std::string name(static_cast<std::size_t>(-surplus), '\0');
+        check(CPX.getcolname(env, lp, &subptr, name.data(), -surplus, &surplus,
+                             v.id(), v.id()));
+        name.resize(name.size() - static_cast<std::size_t>(surplus + 1));
+        return name;
     }
 
     constraint add_constraint(linear_constraint auto && lc) {

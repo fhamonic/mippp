@@ -56,6 +56,9 @@ protected:
             std::forward<IL>(id_lambda));
     }
     template <typename NL, typename M>
+        requires requires(M & model, typename M::variable v, std::string n) {
+            model.set_variable_name(v, n);
+        }
     inline auto _make_named_variables_range(const std::size_t & offset,
                                             const std::size_t & count,
                                             NL && name_lambda, M * model) {
@@ -66,6 +69,9 @@ protected:
         return _make_variables_range(offset, count);
     }
     template <typename IL, typename NL, typename M>
+        requires requires(M & model, typename M::variable v, std::string n) {
+            model.set_variable_name(v, n);
+        }
     inline auto _make_indexed_named_variables_range(const std::size_t & offset,
                                                     const std::size_t & count,
                                                     IL && id_lambda,

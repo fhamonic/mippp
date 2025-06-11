@@ -20,6 +20,7 @@ TYPED_TEST_P(NamedVariablesTest, set_variable_name) {
     auto x2 = model.add_variable();
     model.set_variable_name(x1, "X1");
     model.set_variable_name(x2, "X2");
+    std::cout << model.get_variable_name(x1).length() << std::endl;
     ASSERT_EQ(model.get_variable_name(x1), "X1");
     ASSERT_EQ(model.get_variable_name(x2), "X2");
 }

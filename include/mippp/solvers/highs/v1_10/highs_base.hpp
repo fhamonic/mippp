@@ -1,6 +1,7 @@
 #ifndef MIPPP_HIGHS_v1_10_BASE_HPP
 #define MIPPP_HIGHS_v1_10_BASE_HPP
 
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -179,6 +180,33 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+    variable add_named_variable(
+        const std::string & name,
+        const variable_params params = default_variable_params) {
+        variable v = add_variable(params);
+        set_variable_name(v, name);
+        return v;
+    }
+    template <typename NL>
+    auto add_named_variables(
+        std::size_t count, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, kHighsVarTypeContinuous);
+        return _make_named_variables_range(offset, count,
+                                           std::forward<NL>(name_lambda), this);
+    }
+    template <typename IL, typename NL>
+    auto add_named_variables(
+        std::size_t count, IL && id_lambda, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params, kHighsVarTypeContinuous);
+        return _make_indexed_named_variables_range(
+            offset, count, std::forward<IL>(id_lambda),
+            std::forward<NL>(name_lambda), this);
+    }
+
 private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
@@ -221,6 +249,9 @@ public:
     void set_variable_upper_bound(variable v, scalar ub) {
         _set_variable_bounds(v, get_variable_lower_bound(v), ub);
     }
+    void set_variable_name(variable v, const std::string & name) {
+        check(Highs.passColName(model, v.id(), name.c_str()));
+    }
 
     scalar get_objective_coefficient(variable v) {
         scalar coef;
@@ -248,6 +279,13 @@ public:
                                    &dummy_dbl, &dummy_dbl, &ub, &dummy_int,
                                    NULL, NULL, NULL));
         return ub;
+    }
+    std::string get_variable_name(variable v) {
+        std::string name(kHighsMaximumStringLength, '\0');
+        check(Highs.getColName(model, v.id(), name.data()));
+        name.resize(std::strlen(name.data()));
+        name.shrink_to_fit();
+        return name;
     }
 
     constraint add_constraint(linear_constraint auto && lc) {

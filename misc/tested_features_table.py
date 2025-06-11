@@ -41,6 +41,7 @@ formated_test_names = [
     ("ReadableVariablesBoundsTest", "Read variables bounds"),
     ("ModifiableObjectiveTest", "Increment objective"),
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
+    ("NamedVariablesTest", "Named variables"),
     ("ColumGenerationTest", "Add column"),
     ("LpStatusTest", "LP status"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),

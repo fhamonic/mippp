@@ -95,14 +95,6 @@ public:
             get_objective_offset());
     }
 
-    variable add_variable(const variable_params p = default_variable_params) {
-        variable_id var_id = static_cast<variable_id>(num_variables());
-        const auto lb = p.lower_bound.value_or(-COIN_DBL_MAX);
-        const auto ub = p.upper_bound.value_or(COIN_DBL_MAX);
-        Clp.addColumns(model, 1, &lb, &ub, &p.obj_coef, NULL, NULL, NULL);
-        return variable(var_id);
-    }
-
 private:
     void _add_variables(std::size_t offset, std::size_t count,
                         const variable_params & params) {
@@ -124,6 +116,13 @@ private:
     }
 
 public:
+    variable add_variable(const variable_params p = default_variable_params) {
+        variable_id var_id = static_cast<variable_id>(num_variables());
+        const auto lb = p.lower_bound.value_or(-COIN_DBL_MAX);
+        const auto ub = p.upper_bound.value_or(COIN_DBL_MAX);
+        Clp.addColumns(model, 1, &lb, &ub, &p.obj_coef, NULL, NULL, NULL);
+        return variable(var_id);
+    }
     auto add_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
@@ -139,6 +138,33 @@ public:
         _add_variables(offset, count, params);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
+    }
+
+    variable add_named_variable(
+        const std::string & name,
+        const variable_params params = default_variable_params) {
+        variable v = add_variable(params);
+        set_variable_name(v, name);
+        return v;
+    }
+    template <typename NL>
+    auto add_named_variables(
+        std::size_t count, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return _make_named_variables_range(offset, count,
+                                           std::forward<NL>(name_lambda), this);
+    }
+    template <typename IL, typename NL>
+    auto add_named_variables(
+        std::size_t count, IL && id_lambda, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params);
+        return _make_indexed_named_variables_range(
+            offset, count, std::forward<IL>(id_lambda),
+            std::forward<NL>(name_lambda), this);
     }
 
 private:
@@ -189,7 +215,7 @@ public:
     scalar get_variable_upper_bound(variable v) {
         return Clp.columnUpper(model)[v.id()];
     }
-    auto get_variable_name(variable v) {
+    std::string get_variable_name(variable v) {
         auto max_length = static_cast<std::size_t>(Clp.lengthNames(model));
         std::string name(max_length, '\0');
         Clp.columnName(model, v.id(), name.data());

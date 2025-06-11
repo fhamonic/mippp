@@ -15,5 +15,6 @@ INSTANTIATE_TEST(Cbc, ReadableObjectiveTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ModifiableObjectiveTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableVariablesBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ModifiableVariablesBoundsTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, NamedVariablesTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ColumGenerationTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, SudokuTest, cbc_milp_test);

@@ -141,10 +141,12 @@ public:
     }
 
 private:
-    void _add_variable(const variable_params & params, SCIP_VARTYPE type) {
+    void _add_variable(const variable_params & params, SCIP_VARTYPE type,
+                       const char * name = "") {
         SCIP_VAR * var = NULL;
         check(SCIP.createVarBasic(
-            model, &var, "", params.lower_bound.value_or(-SCIP.infinity(model)),
+            model, &var, name,
+            params.lower_bound.value_or(-SCIP.infinity(model)),
             params.upper_bound.value_or(SCIP.infinity(model)), params.obj_coef,
             type));
         check(SCIP.addVar(model, var));
@@ -169,6 +171,19 @@ private:
                                    static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
+    }
+    template <typename IL, typename NL>
+    inline auto _make_indexed_named_variables_range(const std::size_t & offset,
+                                                    const std::size_t & count,
+                                                    IL && id_lambda,
+                                                    NL && name_lambda) {
+        return lazily_named_variables_range(
+            typename detail::function_traits<IL>::arg_types(),
+            ranges::view::transform(
+                ranges::view::iota(static_cast<variable_id>(offset),
+                                   static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }),
+            std::forward<IL>(id_lambda), std::forward<NL>(name_lambda), this);
     }
 
 public:
@@ -247,6 +262,35 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
+    variable add_named_variable(
+        const std::string & name,
+        const variable_params params = default_variable_params) {
+        int var_id = static_cast<int>(num_variables());
+        _add_variable(params, SCIP_VARTYPE_CONTINUOUS, name.c_str());
+        return variable(var_id);
+    }
+    template <typename NL>
+    auto add_named_variables(
+        std::size_t count, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(params, SCIP_VARTYPE_CONTINUOUS,
+                          name_lambda(i).c_str());
+        return _make_variables_range(offset, count);
+    }
+    template <typename IL, typename NL>
+    auto add_named_variables(
+        std::size_t count, IL && id_lambda, NL && name_lambda,
+        variable_params params = default_variable_params) noexcept {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
+        return _make_indexed_named_variables_range(
+            offset, count, std::forward<IL>(id_lambda),
+            std::forward<NL>(name_lambda));
+    }
+
     void set_continuous(variable v) noexcept {
         unsigned int infeas;
         check(SCIP.chgVarType(model, variables[v.uid()],
@@ -274,10 +318,9 @@ public:
     void set_variable_upper_bound(variable v, double ub) {
         check(SCIP.chgVarUb(model, variables[v.uid()], ub));
     }
-    // void set_variable_name(variable v, std::string name) {
-    //     check(SCIP.setstrattrelement(model, SCIP_STR_ATTR_VARNAME, v.id(),
-    //                                  name.c_str()));
-    // }
+    void set_variable_name(variable v, std::string name) {
+        check(SCIP.chgVarName(model, variables[v.uid()], name.c_str()));
+    }
 
     double get_objective_coefficient(variable v) {
         return SCIP.varGetObj(variables[v.uid()]);
@@ -288,13 +331,9 @@ public:
     double get_variable_upper_bound(variable v) {
         return SCIP.varGetUbGlobal(variables[v.uid()]);
     }
-    // auto get_variable_name(variable v) {
-    //     char * name;
-    //     update_scip_model();
-    //     check(SCIP.getstrattrelement(model, SCIP_STR_ATTR_VARNAME, v.id(),
-    //                                  &name));
-    //     return std::string(name);
-    // }
+    std::string get_variable_name(variable v) {
+        return std::string(SCIP.varGetName(variables[v.uid()]));
+    }
 
 private:
     SCIP_CONS * _add_constraint(linear_constraint auto && lc) {
