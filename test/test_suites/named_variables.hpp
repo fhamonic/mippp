@@ -2,6 +2,8 @@
 #undef NDEBUG
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
+
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
@@ -41,7 +43,7 @@ TYPED_TEST_P(NamedVariablesTest, add_named_variables) {
     auto x = model.add_named_variables(
         1, [](auto i) { return std::string("X") + std::to_string(i); });
     auto y = model.add_named_variables(
-        3, [](auto i) { return std::string("Y") + std::to_string(i); },
+        3, [](auto i) { return fmt::format("Y{}", i); },
         {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
     ASSERT_EQ(model.num_variables(), 4);
     ASSERT_EQ(model.num_constraints(), 0);
@@ -62,10 +64,7 @@ TYPED_TEST_P(NamedVariablesTest, add_indexed_named_variables) {
         [](int i) { return std::string("X") + std::to_string(i); });
     auto y = model.add_named_variables(
         3, [](int i, int j) { return 2 * i + j; },
-        [](int i, int j) {
-            return std::string("Y") + std::to_string(i) + "_" +
-                   std::to_string(j);
-        },
+        [](int i, int j) { return fmt::format("Y{}_{}", i, j); },
         {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
     ASSERT_EQ(model.num_variables(), 4);
     ASSERT_EQ(model.num_constraints(), 0);
