@@ -223,6 +223,6 @@ for(auto i : indices) {
 
 ## Roadmap
 
-- Add callbacks for Highs, Cbc, MOSEK and COPT.
 - Add support for XPRS
+- Add model persistance (write/read from file)
 - Add special constraints (sos and indicator constraints)
