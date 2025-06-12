@@ -53,6 +53,13 @@ int GRBgetcoeff(GRBmodel * model, int constr, int var, double * valP);
 int GRBgetconstrs(GRBmodel * model, int * numnzP, int * cbeg, int * cind,
                   double * cval, int start, int len);
 
+int GRBaddqpterms(GRBmodel * model, int numqnz, int * qrow, int * qcol,
+                  double * qval);
+int GRBdelq(GRBmodel * model);
+int GRBaddqconstr(GRBmodel * model, int numlnz, int * lind, double * lval,
+                  int numqnz, int * qrow, int * qcol, double * qval, char sense,
+                  double rhs, const char * QCname);
+
 int GRBoptimize(GRBmodel * model);
 
 constexpr const char * GRB_INT_PAR_DUALREDUCTIONS = "DualReductions";
@@ -196,9 +203,12 @@ namespace gurobi::v12_0 {
     F(GRBupdatemodel, updatemodel)                     \
     F(GRBaddvar, addvar)                               \
     F(GRBaddvars, addvars)                             \
+    F(GRBaddqpterms, addqpterms)                       \
+    F(GRBdelq, delq)                                   \
     F(GRBaddconstr, addconstr)                         \
     F(GRBaddconstrs, addconstrs)                       \
     F(GRBaddrangeconstr, addrangeconstr)               \
+    F(GRBaddqconstr, addqconstr)                       \
     F(GRBaddsos, addsos)                               \
     F(GRBaddgenconstrIndicator, addgenconstrIndicator) \
     F(GRBgetcoeff, getcoeff)                           \

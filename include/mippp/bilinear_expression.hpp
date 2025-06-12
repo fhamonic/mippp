@@ -19,21 +19,21 @@ namespace fhamonic::mippp {
 /////////////////////////////////// CONCEPT ///////////////////////////////////
 
 template <typename _Tp>
-concept bilinear_term = (std::tuple_size_v<_Tp> == 3);
+concept quadratic_term = (std::tuple_size_v<_Tp> == 3);
 
 template <typename _Tp>
-using bilinear_term_left_variable_t =
+using quadratic_term_left_variable_t =
     std::decay_t<std::tuple_element_t<0, _Tp>>;
 
 template <typename _Tp>
-using bilinear_term_right_variable_t =
+using quadratic_term_right_variable_t =
     std::decay_t<std::tuple_element_t<1, _Tp>>;
 
 template <typename _Tp>
-using bilinear_term_scalar_t = std::decay_t<std::tuple_element_t<2, _Tp>>;
+using quadratic_term_scalar_t = std::decay_t<std::tuple_element_t<2, _Tp>>;
 
 template <typename _Tp>
-using bilinear_terms_range_t = decltype(std::declval<_Tp &>().bilinear_terms());
+using quadratic_terms_range_t = decltype(std::declval<_Tp &>().quadratic_terms());
 
 template <typename _Tp>
 using left_linear_terms_range_t =
@@ -44,7 +44,7 @@ using right_linear_terms_range_t =
     decltype(std::declval<_Tp &>().right_linear_terms());
 
 template <typename _Tp>
-using bilinear_term_t = std::ranges::range_value_t<bilinear_terms_range_t<_Tp>>;
+using quadratic_term_t = std::ranges::range_value_t<quadratic_terms_range_t<_Tp>>;
 
 template <typename _Tp>
 using left_linear_term_t =
@@ -55,64 +55,64 @@ using right_linear_term_t =
     std::ranges::range_value_t<right_linear_terms_range_t<_Tp>>;
 
 template <typename _Tp>
-using bilinear_expression_scalar_t =
-    bilinear_term_scalar_t<bilinear_term_t<_Tp>>;
+using quadratic_expression_scalar_t =
+    quadratic_term_scalar_t<quadratic_term_t<_Tp>>;
 
 template <typename _Tp>
-using bilinear_expression_left_variable_t =
-    bilinear_term_left_variable_t<bilinear_term_t<_Tp>>;
+using quadratic_expression_left_variable_t =
+    quadratic_term_left_variable_t<quadratic_term_t<_Tp>>;
 
 template <typename _Tp>
-using bilinear_expression_right_variable_t =
-    bilinear_term_right_variable_t<bilinear_term_t<_Tp>>;
+using quadratic_expression_right_variable_t =
+    quadratic_term_right_variable_t<quadratic_term_t<_Tp>>;
 
 template <typename _Tp>
-concept bilinear_expression =
+concept quadratic_expression =
     requires(const _Tp & __t) {
-        { __t.bilinear_terms() } -> ranges::range;
+        { __t.quadratic_terms() } -> ranges::range;
         { __t.left_linear_terms() } -> ranges::range;
         { __t.right_linear_terms() } -> ranges::range;
         {
             __t.constant()
-        } -> std::convertible_to<bilinear_expression_scalar_t<_Tp>>;
-    } && bilinear_term<bilinear_term_t<_Tp>> &&
+        } -> std::convertible_to<quadratic_expression_scalar_t<_Tp>>;
+    } && quadratic_term<quadratic_term_t<_Tp>> &&
     linear_term<left_linear_term_t<_Tp>> &&
     linear_term<right_linear_term_t<_Tp>> &&
     std::same_as<linear_term_variable_t<left_linear_term_t<_Tp>>,
-                 bilinear_term_left_variable_t<bilinear_term_t<_Tp>>> &&
+                 quadratic_term_left_variable_t<quadratic_term_t<_Tp>>> &&
     std::same_as<linear_term_variable_t<right_linear_term_t<_Tp>>,
-                 bilinear_term_right_variable_t<bilinear_term_t<_Tp>>>;
+                 quadratic_term_right_variable_t<quadratic_term_t<_Tp>>>;
 
 //////////////////////////////////// CLASS ////////////////////////////////////
 
 template <typename _BiTerms, typename _LTerms, typename _RTerms>
-class bilinear_expression_view {
+class quadratic_expression_view {
 private:
     using scalar_t =
-        bilinear_term_scalar_t<std::ranges::range_value_t<_BiTerms>>;
-    _BiTerms _bilinear_terms;
+        quadratic_term_scalar_t<std::ranges::range_value_t<_BiTerms>>;
+    _BiTerms _quadratic_terms;
     _LTerms _left_linear_terms;
     _RTerms _right_linear_terms;
     scalar_t _constant;
 
 public:
     template <ranges::range BT, ranges::range LT, ranges::range RT, typename S>
-    [[nodiscard]] constexpr bilinear_expression_view(BT && bilinear_terms,
+    [[nodiscard]] constexpr quadratic_expression_view(BT && quadratic_terms,
                                                      LT && left_linear_terms,
                                                      RT && right_linear_terms,
                                                      S constant)
-        : _bilinear_terms(ranges::views::all(std::forward<BT>(bilinear_terms)))
+        : _quadratic_terms(ranges::views::all(std::forward<BT>(quadratic_terms)))
         , _left_linear_terms(
               ranges::views::all(std::forward<LT>(left_linear_terms)))
         , _right_linear_terms(
               ranges::views::all(std::forward<RT>(right_linear_terms)))
         , _constant(static_cast<scalar_t>(constant)) {}
 
-    [[nodiscard]] constexpr decltype(auto) bilinear_terms() const & noexcept {
-        return _bilinear_terms;
+    [[nodiscard]] constexpr decltype(auto) quadratic_terms() const & noexcept {
+        return _quadratic_terms;
     }
-    [[nodiscard]] constexpr _BiTerms && bilinear_terms() && noexcept {
-        return std::move(_bilinear_terms);
+    [[nodiscard]] constexpr _BiTerms && quadratic_terms() && noexcept {
+        return std::move(_quadratic_terms);
     }
     [[nodiscard]] constexpr decltype(auto) left_linear_terms()
         const & noexcept {
@@ -137,8 +137,8 @@ public:
 };
 
 template <typename BT, typename LT, typename RT, typename S>
-bilinear_expression_view(BT &&, LT &&, RT &&, S)
-    -> bilinear_expression_view<ranges::views::all_t<BT>,
+quadratic_expression_view(BT &&, LT &&, RT &&, S)
+    -> quadratic_expression_view<ranges::views::all_t<BT>,
                                 ranges::views::all_t<LT>,
                                 ranges::views::all_t<RT>>;
 
@@ -146,7 +146,7 @@ bilinear_expression_view(BT &&, LT &&, RT &&, S)
 
 template <linear_expression E1, linear_expression E2>
 constexpr auto linear_expression_mult(E1 && e1, E2 && e2) {
-    return bilinear_expression_view(
+    return quadratic_expression_view(
         ranges::views::transform(ranges::views::cartesian_product(
                                      std::forward<E1>(e1).linear_terms(),
                                      std::forward<E2>(e2).linear_terms()),
@@ -169,11 +169,11 @@ constexpr auto linear_expression_mult(E1 && e1, E2 && e2) {
         std::forward<E1>(e1).constant() * std::forward<E2>(e2).constant());
 }
 
-template <bilinear_expression E1, bilinear_expression E2>
-constexpr auto bilinear_expression_add(E1 && e1, E2 && e2) {
-    return bilinear_expression_view(
-        ranges::views::concat(std::forward<E1>(e1).bilinear_terms(),
-                              std::forward<E2>(e2).bilinear_terms()),
+template <quadratic_expression E1, quadratic_expression E2>
+constexpr auto quadratic_expression_add(E1 && e1, E2 && e2) {
+    return quadratic_expression_view(
+        ranges::views::concat(std::forward<E1>(e1).quadratic_terms(),
+                              std::forward<E2>(e2).quadratic_terms()),
         ranges::views::concat(std::forward<E1>(e1).left_linear_terms(),
                               std::forward<E2>(e2).left_linear_terms()),
         ranges::views::concat(std::forward<E1>(e1).right_linear_terms(),
@@ -181,10 +181,10 @@ constexpr auto bilinear_expression_add(E1 && e1, E2 && e2) {
         std::forward<E1>(e1).constant() + std::forward<E2>(e2).constant());
 }
 
-template <bilinear_expression E>
-constexpr auto bilinear_expression_negate(E && e) {
-    return bilinear_expression_view(
-        ranges::views::transform(std::forward<E>(e).bilinear_terms(),
+template <quadratic_expression E>
+constexpr auto quadratic_expression_negate(E && e) {
+    return quadratic_expression_view(
+        ranges::views::transform(std::forward<E>(e).quadratic_terms(),
                                  [](auto && t) {
                                      return std::make_tuple(std::get<0>(t),
                                                             std::get<1>(t),
@@ -203,22 +203,22 @@ constexpr auto bilinear_expression_negate(E && e) {
         -std::forward<E>(e).constant());
 }
 
-template <bilinear_expression E, typename S>
-constexpr auto bilinear_expression_scalar_add(E && e, const S c) {
-    using scalar_t = bilinear_expression_scalar_t<E>;
-    return bilinear_expression_view(
-        std::forward<E>(e).bilinear_terms(),
+template <quadratic_expression E, typename S>
+constexpr auto quadratic_expression_scalar_add(E && e, const S c) {
+    using scalar_t = quadratic_expression_scalar_t<E>;
+    return quadratic_expression_view(
+        std::forward<E>(e).quadratic_terms(),
         std::forward<E>(e).left_linear_terms(),
         std::forward<E>(e).right_linear_terms(),
         std::forward<E>(e).constant() + static_cast<scalar_t>(c));
 }
 
-template <bilinear_expression E, typename S>
-constexpr auto bilinear_expression_scalar_mul(E && e, const S c_) {
-    using scalar_t = bilinear_expression_scalar_t<E>;
+template <quadratic_expression E, typename S>
+constexpr auto quadratic_expression_scalar_mul(E && e, const S c_) {
+    using scalar_t = quadratic_expression_scalar_t<E>;
     scalar_t c = static_cast<scalar_t>(c_);
-    return bilinear_expression_view(
-        ranges::views::transform(std::forward<E>(e).bilinear_terms(),
+    return quadratic_expression_view(
+        ranges::views::transform(std::forward<E>(e).quadratic_terms(),
                                  [c](auto && t) {
                                      return std::make_tuple(std::get<0>(t),
                                                             std::get<1>(t),
@@ -237,28 +237,28 @@ constexpr auto bilinear_expression_scalar_mul(E && e, const S c_) {
         c * std::forward<E>(e).constant());
 }
 
-template <bilinear_expression E1, linear_expression E2>
-    requires(std::same_as<bilinear_term_left_variable_t<bilinear_term_t<E1>>,
+template <quadratic_expression E1, linear_expression E2>
+    requires(std::same_as<quadratic_term_left_variable_t<quadratic_term_t<E1>>,
                           linear_term_variable_t<left_linear_term_t<E2>>> &&
-             !std::same_as<bilinear_term_right_variable_t<bilinear_term_t<E1>>,
+             !std::same_as<quadratic_term_right_variable_t<quadratic_term_t<E1>>,
                            linear_term_variable_t<left_linear_term_t<E2>>>)
-constexpr auto bilinear_expression_lexpr_add(E1 && e1, E2 && e2) {
-    return bilinear_expression_view(
-        std::forward<E1>(e1).bilinear_terms(),
+constexpr auto quadratic_expression_lexpr_add(E1 && e1, E2 && e2) {
+    return quadratic_expression_view(
+        std::forward<E1>(e1).quadratic_terms(),
         ranges::views::concat(std::forward<E1>(e1).left_linear_terms(),
                               std::forward<E2>(e2).linear_terms()),
         std::forward<E1>(e1).right_linear_terms(),
         std::forward<E1>(e1).constant() + std::forward<E2>(e2).constant());
 }
 
-template <bilinear_expression E1, linear_expression E2>
-    requires(!std::same_as<bilinear_term_left_variable_t<bilinear_term_t<E1>>,
+template <quadratic_expression E1, linear_expression E2>
+    requires(!std::same_as<quadratic_term_left_variable_t<quadratic_term_t<E1>>,
                            linear_term_variable_t<left_linear_term_t<E2>>> &&
-             std::same_as<bilinear_term_right_variable_t<bilinear_term_t<E1>>,
+             std::same_as<quadratic_term_right_variable_t<quadratic_term_t<E1>>,
                           linear_term_variable_t<left_linear_term_t<E2>>>)
-constexpr auto bilinear_expression_lexpr_add(E1 && e1, E2 && e2) {
-    return bilinear_expression_view(
-        std::forward<E1>(e1).bilinear_terms(),
+constexpr auto quadratic_expression_lexpr_add(E1 && e1, E2 && e2) {
+    return quadratic_expression_view(
+        std::forward<E1>(e1).quadratic_terms(),
         std::forward<E1>(e1).left_linear_terms(),
         ranges::views::concat(std::forward<E1>(e1).right_linear_terms(),
                               std::forward<E2>(e2).linear_terms()),
@@ -274,58 +274,58 @@ template <linear_expression E1, linear_expression E2>
     return linear_expression_mult(std::forward<E1>(e1), std::forward<E2>(e2));
 };
 
-template <bilinear_expression E1, bilinear_expression E2>
+template <quadratic_expression E1, quadratic_expression E2>
 [[nodiscard]] constexpr auto operator+(E1 && e1, E2 && e2) {
-    return bilinear_expression_add(std::forward<E1>(e1), std::forward<E2>(e2));
+    return quadratic_expression_add(std::forward<E1>(e1), std::forward<E2>(e2));
 };
-template <bilinear_expression E1, bilinear_expression E2>
+template <quadratic_expression E1, quadratic_expression E2>
 [[nodiscard]] constexpr auto operator-(E1 && e1, E2 && e2) {
-    return bilinear_expression_add(
-        std::forward<E1>(e1), bilinear_expression_negate(std::forward<E2>(e2)));
+    return quadratic_expression_add(
+        std::forward<E1>(e1), quadratic_expression_negate(std::forward<E2>(e2)));
 };
 
-template <bilinear_expression E>
+template <quadratic_expression E>
 [[nodiscard]] constexpr auto operator-(E && e) {
-    return bilinear_expression_negate(std::forward<E>(e));
+    return quadratic_expression_negate(std::forward<E>(e));
 };
 
-template <bilinear_expression E>
+template <quadratic_expression E>
 [[nodiscard]] constexpr auto operator+(E && e,
-                                       bilinear_expression_scalar_t<E> c) {
-    return bilinear_expression_scalar_add(std::forward<E>(e), c);
+                                       quadratic_expression_scalar_t<E> c) {
+    return quadratic_expression_scalar_add(std::forward<E>(e), c);
 };
-template <bilinear_expression E>
-[[nodiscard]] constexpr auto operator+(bilinear_expression_scalar_t<E> c,
+template <quadratic_expression E>
+[[nodiscard]] constexpr auto operator+(quadratic_expression_scalar_t<E> c,
                                        E && e) {
-    return bilinear_expression_scalar_add(std::forward<E>(e), c);
+    return quadratic_expression_scalar_add(std::forward<E>(e), c);
 };
-template <bilinear_expression E>
+template <quadratic_expression E>
 [[nodiscard]] constexpr auto operator-(E && e,
-                                       bilinear_expression_scalar_t<E> c) {
-    return bilinear_expression_scalar_add(std::forward<E>(e), -c);
+                                       quadratic_expression_scalar_t<E> c) {
+    return quadratic_expression_scalar_add(std::forward<E>(e), -c);
 };
-template <bilinear_expression E>
-[[nodiscard]] constexpr auto operator-(bilinear_expression_scalar_t<E> c,
+template <quadratic_expression E>
+[[nodiscard]] constexpr auto operator-(quadratic_expression_scalar_t<E> c,
                                        E && e) {
-    return bilinear_expression_scalar_add(
-        bilinear_expression_negate(std::forward<E>(e)), c);
+    return quadratic_expression_scalar_add(
+        quadratic_expression_negate(std::forward<E>(e)), c);
 };
 
-template <bilinear_expression E>
+template <quadratic_expression E>
 [[nodiscard]] constexpr auto operator*(E && e,
-                                       bilinear_expression_scalar_t<E> c) {
-    return bilinear_expression_scalar_mul(std::forward<E>(e), c);
+                                       quadratic_expression_scalar_t<E> c) {
+    return quadratic_expression_scalar_mul(std::forward<E>(e), c);
 };
-template <bilinear_expression E>
-[[nodiscard]] constexpr auto operator*(bilinear_expression_scalar_t<E> c,
+template <quadratic_expression E>
+[[nodiscard]] constexpr auto operator*(quadratic_expression_scalar_t<E> c,
                                        E && e) {
-    return bilinear_expression_scalar_mul(std::forward<E>(e), c);
+    return quadratic_expression_scalar_mul(std::forward<E>(e), c);
 };
-template <bilinear_expression E>
+template <quadratic_expression E>
 [[nodiscard]] constexpr auto operator/(E && e,
-                                       bilinear_expression_scalar_t<E> c) {
-    return bilinear_expression_scalar_mul(
-        std::forward<E>(e), bilinear_expression_scalar_t<E>{1} / c);
+                                       quadratic_expression_scalar_t<E> c) {
+    return quadratic_expression_scalar_mul(
+        std::forward<E>(e), quadratic_expression_scalar_t<E>{1} / c);
 };
 
 }  // namespace operators

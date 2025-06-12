@@ -71,6 +71,16 @@ HighsInt Highs_getColsByRange(const void * highs, const HighsInt from_col,
                               double * costs, double * lower, double * upper,
                               HighsInt * num_nz, HighsInt * matrix_start,
                               HighsInt * matrix_index, double * matrix_value);
+
+enum HessianFromat : HighsInt {
+    kHighsHessianFormatTriangular = 1,
+    kHighsHessianFormatSquare = 2
+};
+HighsInt Highs_passHessian(void * highs, const HighsInt dim,
+                           const HighsInt num_nz, const HighsInt format,
+                           const HighsInt * start, const HighsInt * index,
+                           const double * value);
+
 enum VarType : HighsInt {
     kHighsVarTypeContinuous = 0,
     kHighsVarTypeInteger = 1
@@ -207,6 +217,7 @@ namespace highs::v1_10 {
     F(Highs_changeColsCostBySet, changeColsCostBySet)                   \
     F(Highs_changeColBounds, changeColBounds)                           \
     F(Highs_getColsByRange, getColsByRange)                             \
+    F(Highs_passHessian, passHessian)                                   \
     F(Highs_changeColIntegrality, changeColIntegrality)                 \
     F(Highs_changeColsIntegralityByRange, changeColsIntegralityByRange) \
     F(Highs_getColIntegrality, getColIntegrality)                       \
