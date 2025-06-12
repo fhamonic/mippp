@@ -1,4 +1,4 @@
-# ![MIP++](misc/mippp_thick_outlined_256x.png)
+# ![MIP++](misc/logo/mippp_256x.png)
 MIP++ (aka MIPpp) is a header‑only C++ library that brings a Pythonic modeling interface to mixed‑integer linear programming. It lets you load multiple solver backends (Gurobi, Cbc, Highs, etc...) at runtime, and uses template metaprogramming to preserve Python‑like syntactic sugar while emitting near‑optimal code at compile time.
 
 Work in progress.
@@ -205,9 +205,9 @@ for(auto i : indices) {
 
 <p align="center">
     <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="misc/lp_table_dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="misc/lp_table_light.png">
-    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="misc/lp_table_light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="misc/features_tables/lp_table_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="misc/features_tables/lp_table_light.png">
+    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="misc/features_tables/lp_table_light.png">
     </picture>
 </p>
 
@@ -215,9 +215,9 @@ for(auto i : indices) {
 
 <p align="center">
     <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="misc/milp_table_dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="misc/milp_table_light.png">
-    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="misc/milp_table_light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="misc/features_tables/milp_table_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="misc/features_tables/milp_table_light.png">
+    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src="misc/features_tables/milp_table_light.png">
     </picture>
 </p>
 
