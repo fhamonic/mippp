@@ -12,7 +12,7 @@ add_executable(
     model_variable.cpp
     linear_expression.cpp
     linear_constraint.cpp
-    # quadratic_expression.cpp
+    quadratic_expression.cpp
     solvers/cbc.cpp
     solvers/clp.cpp
     solvers/copt.cpp

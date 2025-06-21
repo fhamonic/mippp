@@ -8,7 +8,10 @@
 
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/single.hpp>
+#include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
+
+#include "mippp/model_concepts.hpp"
 
 namespace fhamonic::mippp {
 
@@ -37,6 +40,10 @@ public:
     friend constexpr auto operator==(const model_entity_base & a,
                                      const model_entity_base & b) noexcept {
         return a._id == b._id;
+    }
+    friend constexpr auto operator<(const model_entity_base & a,
+                                     const model_entity_base & b) noexcept {
+        return a._id < b._id;
     }
 };
 

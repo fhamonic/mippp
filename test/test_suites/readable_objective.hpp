@@ -39,7 +39,8 @@ TYPED_TEST_P(ReadableObjectiveTest, get_objective) {
     auto y = model.add_variable();
     auto z = model.add_variable();
     model.set_objective(123 + 3 * x - 5 * y + z);
-    ASSERT_LIN_EXPR(model.get_objective(), {x, y, z}, {3.0, -5.0, 1.0}, 123.0);
+    ASSERT_LIN_EXPR(model.get_objective(), {{x, 3.0}, {y, -5.0}, {z, 1.0}},
+                    123.0);
 }
 
 REGISTER_TYPED_TEST_SUITE_P(ReadableObjectiveTest, get_objective_offset,
