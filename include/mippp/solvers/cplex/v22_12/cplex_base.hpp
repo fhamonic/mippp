@@ -7,8 +7,7 @@
 #include <vector>
 
 #include <range/v3/view/iota.hpp>
-#include <range/v3/view/span.hpp>
-#include <range/v3/view/zip.hpp>
+#include <range/v3/view/transform.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"

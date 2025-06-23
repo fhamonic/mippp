@@ -23,6 +23,7 @@ add_executable(
     solvers/mosek.cpp
     solvers/scip.cpp
     solvers/soplex.cpp
+    solvers/xpress.cpp
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
 target_link_libraries(mippp_test mippp)
