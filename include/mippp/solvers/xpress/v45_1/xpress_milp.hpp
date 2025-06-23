@@ -44,25 +44,6 @@ public:
                                              std::forward<IL>(id_lambda));
     }
 
-    // private:
-    //     inline void _add_binary_variables(const std::size_t & offset,
-    //                                       const std::size_t & count) {
-    //         tmp_scalars.resize(2 * count);
-    //         std::fill(tmp_scalars.begin(),
-    //                   tmp_scalars.begin() +
-    //                   static_cast<std::ptrdiff_t>(count), 0);
-    //         std::fill(tmp_scalars.begin() +
-    //         static_cast<std::ptrdiff_t>(count),
-    //                   tmp_scalars.end(), 1);
-    //         tmp_types.resize(count);
-    //         std::fill(tmp_types.begin(), tmp_types.end(), CPX_BINARY);
-    //         check(CPX.newcols(
-    //             env, lp, static_cast<int>(count), NULL, tmp_scalars.data(),
-    //             tmp_scalars.data() + static_cast<std::ptrdiff_t>(count),
-    //             tmp_types.data(), NULL));
-    //     }
-
-public:
     variable add_binary_variable() {
         int var_id = static_cast<int>(num_variables());
         _add_variable({}, 'B');

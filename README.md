@@ -223,8 +223,7 @@ for(auto i : indices) {
 
 ## Roadmap
 
-- Add support for XPRS
-- Improve callback support (COPT, HiGHS, Cbc)
+- Improve callback support (COPT, HiGHS, Cbc, SCIP, Xpress)
 - Add example for Benders decomposition (with and without lazyconstraints)
 - Add QP interfaces
 - Add model persistance (write/read from file)

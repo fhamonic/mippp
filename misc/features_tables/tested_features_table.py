@@ -220,7 +220,7 @@ def compute_width(table, res):
 
 def main():
     root_path = os.path.dirname(sys.argv[0])
-    tests_folder = f"{root_path}/../test/solvers"
+    tests_folder = f"{root_path}/../../test/solvers"
     cpp_files = find_cpp_files(tests_folder)
     lp_table, milp_table = parse_instantiate_lines(cpp_files)
 
