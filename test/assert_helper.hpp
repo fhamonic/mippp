@@ -29,8 +29,8 @@ void ASSERT_LIN_TERMS(
     std::map<variable, scalar> factorized_terms;
     for(auto && [var, coef] : terms) factorized_terms[var] += coef;
     ASSERT_EQ(factorized_terms.size(), expected_terms.size());
-    for(auto && [var, coef] : terms)
-        ASSERT_NEAR(factorized_terms[var], coef, 1e-7);
+    for(auto && [var, coef] : expected_terms)
+        ASSERT_NEAR(factorized_terms.at(var), coef, 1e-7);
 }
 
 template <typename Expr>
@@ -63,12 +63,12 @@ void ASSERT_QUAD_TERMS(
     using scalar = fhamonic::mippp::quadratic_term_scalar_t<term>;
     std::map<std::pair<variable, variable>, scalar, variables_pair_cmp>
         factorized_terms;
-
     for(auto && [var1, var2, coef] : terms)
         factorized_terms[std::make_pair(var1, var2)] += coef;
     ASSERT_EQ(factorized_terms.size(), expected_terms.size());
-    for(auto && [var1, var2, coef] : terms)
-        ASSERT_NEAR(factorized_terms[std::make_pair(var1, var2)], coef, 1e-7);
+    for(auto && [var1, var2, coef] : expected_terms)
+        ASSERT_NEAR(factorized_terms.at(std::make_pair(var1, var2)), coef,
+                    1e-7);
 }
 
 #include "range/v3/core.hpp"

@@ -52,10 +52,6 @@ template <typename _Tp>
 using quadratic_expression_linear_term_t =
     linear_term_t<quadratic_exprresion_linear_part_t<_Tp>>;
 
-// template <typename _Tp>
-// using right_linear_term_t =
-//     std::ranges::range_value_t<right_linear_terms_range_t<_Tp>>;
-
 template <typename _Tp>
 concept quadratic_expression = requires(const _Tp & __t) {
     { __t.quadratic_terms() } -> ranges::range;
@@ -98,6 +94,43 @@ public:
 template <typename QT, typename LE>
 quadratic_expression_view(QT &&, LE &&)
     -> quadratic_expression_view<ranges::views::all_t<QT>, LE>;
+
+template <typename _LExpr>
+class linear_expression_square {
+private:
+    _LExpr _linear_expression;
+
+public:
+    template <linear_expression E>
+    [[nodiscard]] constexpr linear_expression_square(E && linear_expression)
+        : _linear_expression(std::forward<E>(linear_expression)) {}
+
+    [[nodiscard]] constexpr decltype(auto) quadratic_terms() const & noexcept {
+        return ranges::views::transform(
+            ranges::views::cartesian_product(_linear_expression.linear_terms(),
+                                             _linear_expression.linear_terms()),
+            [](auto && p) {
+                auto && [t1, t2] = p;
+                auto && [v1, c1] = t1;
+                auto && [v2, c2] = t2;
+                return std::make_tuple(v1, v2, c1 * c2);
+            });
+    }
+    [[nodiscard]] constexpr decltype(auto) linear_expression()
+        const & noexcept {
+        return linear_expression_view(
+            ranges::views::transform(
+                _linear_expression.linear_terms(),
+                [c = _linear_expression.constant()](auto && t) {
+                    return std::make_pair(std::get<0>(t),
+                                          2 * c * std::get<1>(t));
+                }),
+            _linear_expression.constant() * _linear_expression.constant());
+    }
+};
+
+template <typename E>
+linear_expression_square(E &&) -> linear_expression_square<std::decay_t<E>>;
 
 template <typename _LExpr1, typename _LExpr2>
 class linear_expression_mul_view {
@@ -207,6 +240,12 @@ constexpr auto quadratic_expression_lexpr_add(E1 && e1, E2 && e2) {
 ////////////////////////////////// OPERATORS //////////////////////////////////
 
 namespace operators {
+
+template <linear_expression E>
+[[nodiscard]] constexpr auto operator^(E && e, int power) {
+    assert(power == 2);
+    return linear_expression_square(e);
+};
 
 template <linear_expression E1, linear_expression E2>
 [[nodiscard]] constexpr auto operator*(E1 && e1, E2 && e2) {

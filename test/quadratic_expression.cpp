@@ -11,6 +11,15 @@ using namespace fhamonic::mippp::operators;
 
 using Var = model_variable<int, double>;
 
+GTEST_TEST(linear_expression_operators, square) {
+    auto quadexpr = (Var(2) - Var(11) * 3.2 + 13) ^ 2;
+    ASSERT_QUAD_TERMS(quadexpr.quadratic_terms(), {{Var(2), Var(2), 1.0},
+                                                   {Var(11), Var(11), 10.24},
+                                                   {Var(2), Var(11), -6.4}});
+    ASSERT_LIN_EXPR(quadexpr.linear_expression(),
+                    {{Var(2), 26.0}, {Var(11), -83.2}}, 169);
+}
+
 GTEST_TEST(linear_expression_operators, mul_terms) {
     auto quadexpr = (-Var(11) * 3.2 + 13) * (Var(7) + Var(5) + 2);
     ASSERT_QUAD_TERMS(quadexpr.quadratic_terms(),
@@ -39,7 +48,7 @@ GTEST_TEST(quadratic_expression_operators, negate) {
     auto e = (-Var(11) * 3.2 + 13) * (Var(7) + Var(5) + 2);
     auto quadexpr = -e;
     ASSERT_QUAD_TERMS(quadexpr.quadratic_terms(),
-                      {{Var(11), Var(7), -3.2}, {Var(11), Var(5), -3.2}});
+                      {{Var(11), Var(7), 3.2}, {Var(11), Var(5), 3.2}});
     ASSERT_LIN_EXPR(quadexpr.linear_expression(),
                     {{Var(11), 6.4}, {Var(7), -13.0}, {Var(5), -13.0}}, -26.0);
 }
