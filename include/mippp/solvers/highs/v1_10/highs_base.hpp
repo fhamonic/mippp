@@ -75,7 +75,8 @@ public:
     void set_objective_offset(scalar offset) {
         check(Highs.changeObjectiveOffset(model, offset));
     }
-    void set_objective(linear_expression auto && le) {
+    template <linear_expression LE>
+    void set_objective(LE && le) {
         const auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);

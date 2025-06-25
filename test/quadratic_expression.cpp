@@ -112,3 +112,32 @@ GTEST_TEST(quadratic_expression_operators, scalar_div) {
     ASSERT_LIN_EXPR(quadexpr.linear_expression(),
                     {{Var(11), -19.2}, {Var(7), 39.0}, {Var(5), 39.0}}, 78.0);
 }
+
+GTEST_TEST(quadratic_expression_operators, add_linear_expr) {
+    auto e = (-Var(11) * 3.2 + 13) * (3 * Var(7) + 2);
+    auto quadexpr = e + 6.0 * Var(4);
+    ASSERT_QUAD_TERMS(quadexpr.quadratic_terms(), {{Var(11), Var(7), -9.6}});
+    ASSERT_LIN_EXPR(quadexpr.linear_expression(),
+                    {{Var(11), -6.4}, {Var(7), 39.0}, {Var(4), 6.0}}, 26.0);
+}
+GTEST_TEST(quadratic_expression_operators, add_linear_expr2) {
+    auto e = (-Var(11) * 3.2 + 13) * (3 * Var(7) + 2);
+    auto quadexpr = 6.0 * Var(4) + e;
+    ASSERT_QUAD_TERMS(quadexpr.quadratic_terms(), {{Var(11), Var(7), -9.6}});
+    ASSERT_LIN_EXPR(quadexpr.linear_expression(),
+                    {{Var(11), -6.4}, {Var(7), 39.0}, {Var(4), 6.0}}, 26.0);
+}
+GTEST_TEST(quadratic_expression_operators, sub_linear_expr) {
+    auto e = (-Var(11) * 3.2 + 13) * (3 * Var(7) + 2);
+    auto quadexpr = e - 6.0 * Var(4);
+    ASSERT_QUAD_TERMS(quadexpr.quadratic_terms(), {{Var(11), Var(7), -9.6}});
+    ASSERT_LIN_EXPR(quadexpr.linear_expression(),
+                    {{Var(11), -6.4}, {Var(7), 39.0}, {Var(4), -6.0}}, 26.0);
+}
+GTEST_TEST(quadratic_expression_operators, sub_linear_expr2) {
+    auto e = (-Var(11) * 3.2 + 13) * (3 * Var(7) + 2);
+    auto quadexpr = 6.0 * Var(4) - e;
+    ASSERT_QUAD_TERMS(quadexpr.quadratic_terms(), {{Var(11), Var(7), 9.6}});
+    ASSERT_LIN_EXPR(quadexpr.linear_expression(),
+                    {{Var(11), 6.4}, {Var(7), -39.0}, {Var(4), 6.0}}, -26.0);
+}

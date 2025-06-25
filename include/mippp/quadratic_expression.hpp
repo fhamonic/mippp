@@ -234,7 +234,7 @@ constexpr auto quadratic_expression_lexpr_add(E1 && e1, E2 && e2) {
     return quadratic_expression_view(
         std::forward<E1>(e1).quadratic_terms(),
         linear_expression_add(std::forward<E1>(e1).linear_expression(),
-                              std::forward<E2>(e2).linear_expression()));
+                              std::forward<E2>(e2)));
 }
 
 ////////////////////////////////// OPERATORS //////////////////////////////////
@@ -306,6 +306,28 @@ template <quadratic_expression E>
                                        quadratic_expression_scalar_t<E> c) {
     return quadratic_expression_scalar_mul(
         std::forward<E>(e), quadratic_expression_scalar_t<E>{1} / c);
+};
+
+template <quadratic_expression QE, linear_expression LE>
+[[nodiscard]] constexpr auto operator+(QE && qe, LE && le) {
+    return quadratic_expression_lexpr_add(std::forward<QE>(qe),
+                                          std::forward<LE>(le));
+};
+template <quadratic_expression QE, linear_expression LE>
+[[nodiscard]] constexpr auto operator+(LE && le, QE && qe) {
+    return quadratic_expression_lexpr_add(std::forward<QE>(qe),
+                                          std::forward<LE>(le));
+};
+template <quadratic_expression QE, linear_expression LE>
+[[nodiscard]] constexpr auto operator-(QE && qe, LE && le) {
+    return quadratic_expression_lexpr_add(
+        std::forward<QE>(qe), linear_expression_negate(std::forward<LE>(le)));
+};
+template <quadratic_expression QE, linear_expression LE>
+[[nodiscard]] constexpr auto operator-(LE && le, QE && qe) {
+    return quadratic_expression_lexpr_add(
+        quadratic_expression_negate(std::forward<QE>(qe)),
+        std::forward<LE>(le));
 };
 
 }  // namespace operators

@@ -45,6 +45,7 @@ struct model_test : public ::testing::Test {
 #include "modifiable_objective.hpp"
 #include "modifiable_variables_bounds.hpp"
 #include "named_variables.hpp"
+#include "qp_model.hpp"
 #include "readable_objective.hpp"
 #include "readable_variables_bounds.hpp"
 #include "sudoku.hpp"
