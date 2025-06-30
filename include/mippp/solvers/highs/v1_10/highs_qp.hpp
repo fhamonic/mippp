@@ -65,18 +65,11 @@ public:
                 tmp_begins[static_cast<std::size_t>(next_row++)] =
                     static_cast<HighsInt>(tmp_scalars.size());
             tmp_indices.emplace_back(var2.id());
-            tmp_scalars.emplace_back(2*coef);
-
-            std::cout << tmp_begins[next_row - 1] << ' ' << tmp_indices.back()
-                      << ' ' << tmp_scalars.back() << std::endl;
+            tmp_scalars.emplace_back(2 * coef);
         }
         while(next_row <= static_cast<int>(num_vars))
             tmp_begins[static_cast<std::size_t>(next_row++)] =
                 static_cast<HighsInt>(tmp_scalars.size());
-
-        for(auto i : tmp_begins) std::cout << ' ' << i;
-        std::cout << std::endl;
-
         check(Highs.passHessian(
             model, static_cast<int>(num_vars),
             static_cast<int>(tmp_scalars.size()), kHighsHessianFormatTriangular,
