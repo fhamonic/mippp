@@ -18,7 +18,7 @@ Work in progress.
 
 ## Getting started
 
-:warning: Since commit [](https://github.com/fhamonic/mippp/commit/) the use of Range-v3 and fmt have been replaced by C++26 functionnalities which are currently only implemented in GCC 15.
+:warning: Since commit [81d8a53b529558e336628f477108b91412eebe98](https://github.com/fhamonic/mippp/commit/81d8a53b529558e336628f477108b91412eebe98) the use of Range-v3 and fmt have been replaced by C++26 functionnalities which are currently only implemented in GCC 15.
 
 ### Local Conan package (from latest commit)
 
