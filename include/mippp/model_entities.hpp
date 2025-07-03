@@ -6,11 +6,6 @@
 #include <optional>
 #include <ranges>
 
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/single.hpp>
-#include <range/v3/view/transform.hpp>
-#include <range/v3/view/zip.hpp>
-
 #include "mippp/model_concepts.hpp"
 
 namespace fhamonic::mippp {
@@ -42,7 +37,7 @@ public:
         return a._id == b._id;
     }
     friend constexpr auto operator<(const model_entity_base & a,
-                                     const model_entity_base & b) noexcept {
+                                    const model_entity_base & b) noexcept {
         return a._id < b._id;
     }
 };
@@ -61,7 +56,9 @@ public:
     constexpr explicit model_variable(T t) : model_entity_base<Id>(t) {}
 
     constexpr auto linear_terms() const noexcept {
-        return ranges::views::single(std::make_pair(*this, Scalar{1}));
+        // return std::views::single(std::make_pair(*this, Scalar{1}));
+        return std::views::single(
+            std::pair<model_variable<Id, Scalar>, Scalar>(*this, Scalar{1}));
     }
     constexpr Scalar constant() const noexcept { return Scalar{0}; }
 };
@@ -121,12 +118,13 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
 /////////////////////////////// Variables range ///////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <ranges::random_access_range Vars, typename IdLambda, typename... Args>
+template <std::ranges::random_access_range Vars, typename IdLambda,
+          typename... Args>
     requires std::integral<
         std::decay_t<std::invoke_result_t<IdLambda, Args...>>>
 class variables_range {
 protected:
-    using variable = ranges::range_value_t<Vars>;
+    using variable = std::ranges::range_value_t<Vars>;
     using scalar = linear_expression_scalar_t<variable>;
 
     const Vars _variables;
@@ -135,17 +133,21 @@ protected:
 public:
     template <typename VR>
     constexpr variables_range(VR && variables) noexcept
-        : _variables(ranges::views::all(std::forward<VR>(variables)))
+        : _variables(std::views::all(std::forward<VR>(variables)))
         , _id_lambda() {}
 
     template <typename AP, typename VR, typename IL>
     constexpr variables_range(AP, VR && variables, IL && id_lambda) noexcept
-        : _variables(ranges::views::all(std::forward<VR>(variables)))
+        : _variables(std::views::all(std::forward<VR>(variables)))
         , _id_lambda(std::forward<IL>(id_lambda)) {}
 
-    constexpr auto size() const noexcept { return ranges::size(_variables); }
-    constexpr auto begin() const noexcept { return ranges::begin(_variables); }
-    constexpr auto end() const noexcept { return ranges::end(_variables); }
+    constexpr auto size() const noexcept {
+        return std::ranges::size(_variables);
+    }
+    constexpr auto begin() const noexcept {
+        return std::ranges::begin(_variables);
+    }
+    constexpr auto end() const noexcept { return std::ranges::end(_variables); }
 
     template <std::integral T>
     constexpr auto operator[](T i) const {
@@ -163,13 +165,13 @@ public:
     }
 
     constexpr auto linear_terms() const noexcept {
-        return ranges::views::transform(
+        return std::views::transform(
             _variables, [](auto && i) { return std::make_pair(i, scalar{1}); });
     }
     constexpr scalar constant() const noexcept { return scalar{0}; }
 };
 
-template <ranges::random_access_range Vars, typename IdLambda,
+template <std::ranges::random_access_range Vars, typename IdLambda,
           typename NameLambda, typename Model, typename... Args>
     requires std::integral<
                  std::decay_t<std::invoke_result_t<IdLambda, Args...>>> &&
@@ -216,24 +218,23 @@ public:
     }
 };
 
-template <ranges::viewable_range VR>
+template <std::ranges::viewable_range VR>
 variables_range(VR &&)
-    -> variables_range<ranges::view::all_t<VR>, std::identity, std::size_t>;
+    -> variables_range<std::views::all_t<VR>, std::identity, std::size_t>;
 
-template <ranges::viewable_range VR, typename IL, typename... Args>
+template <std::ranges::viewable_range VR, typename IL, typename... Args>
 variables_range(detail::pack<Args...>, VR &&, IL &&)
-    -> variables_range<ranges::view::all_t<VR>, IL, Args...>;
+    -> variables_range<std::views::all_t<VR>, IL, Args...>;
 
-template <ranges::viewable_range VR, typename NL, typename M>
+template <std::ranges::viewable_range VR, typename NL, typename M>
 lazily_named_variables_range(VR &&, NL &&, M *)
-    -> lazily_named_variables_range<ranges::view::all_t<VR>, std::identity, NL,
-                                    M, std::size_t>;
+    -> lazily_named_variables_range<std::views::all_t<VR>, std::identity, NL, M,
+                                    std::size_t>;
 
-template <ranges::viewable_range VR, typename IL, typename NL, typename M,
+template <std::ranges::viewable_range VR, typename IL, typename NL, typename M,
           typename... Args>
 lazily_named_variables_range(detail::pack<Args...>, VR &&, IL &&, NL &&, M *)
-    -> lazily_named_variables_range<ranges::view::all_t<VR>, IL, NL, M,
-                                    Args...>;
+    -> lazily_named_variables_range<std::views::all_t<VR>, IL, NL, M, Args...>;
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Optional helper ///////////////////////////////
@@ -276,10 +277,10 @@ public:
     //                        std::views::zip(keys, constraints)) {}
     template <typename KR, typename CR>
     constexpr constraints_range(KR && keys, CR && constraints) noexcept {
-        // if constexpr(ranges::sized_range<CR>) {
-        //     _constraints_map.reserve(ranges::size(constraints));
+        // if constexpr(std::ranges::sized_range<CR>) {
+        //     _constraints_map.reserve(std::ranges::size(constraints));
         // }
-        for(auto && keyval_pair : ranges::views::zip(keys, constraints)) {
+        for(auto && keyval_pair : std::views::zip(keys, constraints)) {
             _constraints_map.insert(keyval_pair);
         }
     }
@@ -299,7 +300,8 @@ public:
 
 template <typename KR, typename CR>
 constraints_range(KR &&, CR &&)
-    -> constraints_range<ranges::range_value_t<KR>, ranges::range_value_t<CR>>;
+    -> constraints_range<std::ranges::range_value_t<KR>,
+                         std::ranges::range_value_t<CR>>;
 
 }  // namespace fhamonic::mippp
 

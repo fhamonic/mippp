@@ -5,10 +5,8 @@
 #include <memory>
 #include <numeric>
 #include <optional>
+#include <ranges>
 #include <vector>
-
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/transform.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -135,8 +133,8 @@ public:
         auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
         check(MSK.getc(task, coefs.get()));
         return linear_expression_view(
-            ranges::view::transform(
-                ranges::view::iota(variable_id{0},
+           std::views::transform(
+               std::views::iota(variable_id{0},
                                    static_cast<variable_id>(num_vars)),
                 [coefs = std::move(coefs)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
@@ -265,7 +263,7 @@ private:
     }
 
 public:
-    template <ranges::range ER>
+    template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
         return _add_column(entries, params);
@@ -361,7 +359,7 @@ private:
     }
 
 public:
-    template <ranges::range IR, typename... CL>
+    template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         _reset_cache(num_variables());
         tmp_begins.resize(0);
@@ -384,7 +382,7 @@ public:
                                    tmp_rhs.data()));
         return constraints_range(
             keys,
-            ranges::view::transform(ranges::view::iota(offset, constr_id),
+           std::views::transform(std::views::iota(offset, constr_id),
                                     [](auto && i) { return constraint{i}; }));
     }
 };

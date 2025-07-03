@@ -183,7 +183,7 @@ TYPED_TEST_P(MilpModelTest, solve_unbounded_knapsack) {
     std::vector<double> values = {50.0, 120.0, 150.0, 210.0, 240.0};
     std::vector<double> costs = {10.0, 20.0, 30.0, 40.0, 50.0};
     const auto N = values.size();
-    const auto items = ranges::views::iota(0u, N);
+    const auto items = std::views::iota(0u, N);
     const double budget = 50.0;
     auto model = this->new_model();
     auto x = model.add_integer_variables(N);
@@ -280,7 +280,7 @@ TYPED_TEST_P(MilpModelTest, solve_binary_knapsack) {
     std::vector<double> values = {5.0, 3.0, 2.0, 7.0, 4.0};
     std::vector<double> costs = {2.0, 8.0, 4.0, 2.0, 5.0};
     const auto N = values.size();
-    const auto items = ranges::views::iota(0u, N);
+    const auto items = std::views::iota(0u, N);
     const double budget = 10.0;
     auto model = this->new_model();
     auto x = model.add_binary_variables(N);
@@ -353,7 +353,7 @@ TYPED_TEST_P(MilpModelTest, set_binary_to_continuous) {
     std::vector<double> values = {5.0, 3.0, 2.0, 7.0, 4.0};
     std::vector<double> costs = {2.0, 8.0, 4.0, 2.0, 5.0};
     const auto N = values.size();
-    const auto items = ranges::views::iota(0u, N);
+    const auto items = std::views::iota(0u, N);
     const double budget = 10.0;
     auto model = this->new_model();
     auto x = model.add_binary_variables(N);

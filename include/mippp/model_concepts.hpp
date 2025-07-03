@@ -3,9 +3,8 @@
 
 #include <concepts>
 #include <optional>
+#include <ranges>
 #include <string>
-
-#include <range/v3/view/single.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -21,7 +20,7 @@ namespace detail {
 
 template <typename T>
 auto dummy_range() {
-    return ranges::views::empty<T>;
+    return std::views::empty<T>;
 };
 
 template <typename M>
@@ -61,15 +60,15 @@ concept lp_model = requires(T & model, T::variable v,
     { model.add_variable() } -> std::same_as<typename T::variable>;
     { model.add_variable({.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
             -> std::same_as<typename T::variable>;    
-    { model.add_variables(std::size_t{1u}) } -> ranges::random_access_range;
+    { model.add_variables(std::size_t{1u}) } ->std::ranges::random_access_range;
     { model.add_variables(std::size_t{1u},
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
     { model.add_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
     { model.add_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; },
                          {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
 
     { model.set_objective_offset(0.0) };
     { model.set_objective(detail::dummy_expression<T>()) };
@@ -94,24 +93,24 @@ concept milp_model = lp_model<T> && requires(T & model, T::variable v,
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
             -> std::same_as<typename T::variable>;
     { model.add_integer_variables(std::size_t{1u}) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
     { model.add_integer_variables(std::size_t{1u},
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
     { model.add_integer_variables(std::size_t{1u}, 
                                   [](detail::dummy_type) { return 0; }) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
     { model.add_integer_variables(std::size_t{1u}, 
                         [](detail::dummy_type) { return 0; },
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
 
     { model.add_binary_variable() } -> std::same_as<typename T::variable>;
     { model.add_binary_variables(std::size_t{1u}) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
     { model.add_binary_variables(std::size_t{1u}, 
                                  [](detail::dummy_type) { return 0; }) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
 
     { model.set_continuous(v) };
     { model.set_integer(v) };
@@ -162,20 +161,20 @@ concept has_named_variables = lp_model<T> && requires(T & model, T::variable v,
             -> std::same_as<typename T::variable>;
     { model.add_named_variables(std::size_t{1u},
                         [](std::size_t) -> std::string { return ""; }) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
     { model.add_named_variables(std::size_t{1u},
                         [](std::size_t) -> std::string { return ""; },
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> ranges::random_access_range;  
+            ->std::ranges::random_access_range;  
     { model.add_named_variables(std::size_t{1u},
                         [](detail::dummy_type) { return 0; },
                         [](detail::dummy_type) -> std::string { return ""; }) }
-            -> ranges::random_access_range;
+            ->std::ranges::random_access_range;
     { model.add_named_variables(std::size_t{1u},
                         [](detail::dummy_type) { return 0; },
                         [](detail::dummy_type) -> std::string { return ""; },
                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> ranges::random_access_range; 
+            ->std::ranges::random_access_range; 
 };
 
 template <typename T>
@@ -245,9 +244,9 @@ using constraint_lhs_range_t = decltype(std::declval<T &>().get_constraint_lhs(
 template <typename T>
 concept has_readable_constraint_lhs =
     requires(T & model, T::constraint c) {
-        { model.get_constraint_lhs(c) } -> ranges::range;
+        { model.get_constraint_lhs(c) } ->std::ranges::range;
     } && std::same_as<
-            std::decay_t<ranges::value_type_t<constraint_lhs_range_t<T>>>,
+            std::decay_t<std::ranges::range_value_t<constraint_lhs_range_t<T>>>,
             std::pair<typename T::variable, typename T::scalar>>;
 
 template <typename T>

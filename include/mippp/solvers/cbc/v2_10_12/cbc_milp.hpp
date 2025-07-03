@@ -5,11 +5,10 @@
 #include <cstring>
 #include <optional>
 #include <ostream>
+#include <ranges>
 #include <sstream>
 #include <string_view>
 #include <vector>
-
-#include <range/v3/view/iota.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -109,8 +108,8 @@ public:
     double get_objective_offset() { return objective_offset; }
     auto get_objective() {
         return linear_expression_view(
-            ranges::view::transform(
-                ranges::view::iota(variable_id{0}, static_cast<variable_id>(
+           std::views::transform(
+               std::views::iota(variable_id{0}, static_cast<variable_id>(
                                                        _lazy_num_variables)),
                 [coefs = Cbc.getObjCoefficients(model)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
@@ -230,7 +229,7 @@ private:
     }
 
 public:
-    template <ranges::range ER>
+    template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
         return _add_column(entries, params);
@@ -324,7 +323,7 @@ private:
     }
 
 public:
-    template <ranges::range IR, typename... CL>
+    template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         tmp_entry_index_cache.resize(_lazy_num_variables);
         const int offset = static_cast<int>(_lazy_num_constraints);
@@ -335,7 +334,7 @@ public:
         }
         return constraints_range(
             keys,
-            ranges::view::transform(ranges::view::iota(offset, constr_id),
+           std::views::transform(std::views::iota(offset, constr_id),
                                     [](auto && i) { return constraint{i}; }));
     }
 

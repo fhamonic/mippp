@@ -18,6 +18,8 @@ Work in progress.
 
 ## Getting started
 
+:warning: Since commit [](https://github.com/fhamonic/mippp/commit/) the use of Range-v3 and fmt have been replaced by C++26 functionnalities which are currently only implemented in GCC 15.
+
 ### Local Conan package (from latest commit)
 
 ```
@@ -46,7 +48,7 @@ add_subdirectory(dependencies/mippp)
 ...
 target_link_libraries(<some_target> INTERFACE mippp)
 ```
-And ensure that your CMake can find the [Range-v3](https://ericniebler.github.io/range-v3/) and [dylib](https://github.com/martin-olivier/dylib) libraries with `find_package` calls.
+And ensure that your CMake can find the [dylib](https://github.com/martin-olivier/dylib) libraries with `find_package` calls.
 
     
 ## Code examples
@@ -145,10 +147,10 @@ for(auto && u : graph.vertices()) {
 ### Sudoku
 
 ```cpp
-auto indices = ranges::views::iota(0, 9);
-auto values = ranges::views::iota(1, 10);
-auto coords = ranges::views::cartesian_product(ranges::views::iota(0, 3),
-                                                ranges::views::iota(0, 3));
+auto indices = std::views::iota(0, 9);
+auto values = std::views::iota(1, 10);
+auto coords = std::views::cartesian_product(std::views::iota(0, 3),
+                                                std::views::iota(0, 3));
 
 gurobi_api api;
 gurobi_milp model(api);
@@ -159,22 +161,22 @@ auto X_vars =
     });
 
 auto single_value_constrs = model.add_constraints(
-    ranges::views::cartesian_product(indices, indices), [&](auto && p) {
+    std::views::cartesian_product(indices, indices), [&](auto && p) {
         auto && [i, j] = p;
         return xsum(values, [&](auto && v) { return X_vars(i, j, v); }) == 1;
     });
 auto one_per_row_constrs = model.add_constraints(
-    ranges::views::cartesian_product(values, indices), [&](auto && p) {
+    std::views::cartesian_product(values, indices), [&](auto && p) {
         auto && [v, i] = p;
         return xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) == 1;
     });
 auto one_per_col_constrs = model.add_constraints(
-    ranges::views::cartesian_product(values, indices), [&](auto && p) {
+    std::views::cartesian_product(values, indices), [&](auto && p) {
         auto && [v, j] = p;
         return xsum(indices, [&](auto && i) { return X_vars(i, j, v); }) == 1;
     });
 auto one_per_block_constrs = model.add_constraints(
-    ranges::views::cartesian_product(values, coords), [&](auto && p) {
+    std::views::cartesian_product(values, coords), [&](auto && p) {
         auto && [v, b] = p;
         return xsum(coords, [&](auto && p2) {
                     return X_vars(3 * std::get<0>(b) + std::get<0>(p2),

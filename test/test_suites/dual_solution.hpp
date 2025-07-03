@@ -90,7 +90,7 @@ TYPED_TEST_P(DualSolutionTest, arbitrary_min_add_constraints) {
     model.set_minimization();
     model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
     auto c = model.add_constraints(
-        ranges::views::iota(0, 3),
+        std::views::iota(0, 3),
         [&](int i) { return OPT((i == 0), 2 * x1 + 2 * x2 - x3 >= 5); },
         [&](int i) { return OPT((i == 1), 4 * x1 + x2 + 2 * x3 <= 11); },
         [&](int i) { return 3 * x1 + 4 * x2 + 2 * x3 == 8; });

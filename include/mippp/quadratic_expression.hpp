@@ -2,15 +2,9 @@
 #define MIPPP_QUADRATIC_EXPRESSION_HPP
 
 #include <concepts>
-// #include <ranges>
+#include <ranges>
 #include <tuple>
 #include <type_traits>
-
-#include <range/v3/numeric/accumulate.hpp>
-#include <range/v3/view/all.hpp>
-#include <range/v3/view/cartesian_product.hpp>
-#include <range/v3/view/concat.hpp>
-#include <range/v3/view/transform.hpp>
 
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -54,7 +48,7 @@ using quadratic_expression_linear_term_t =
 
 template <typename _Tp>
 concept quadratic_expression = requires(const _Tp & __t) {
-    { __t.quadratic_terms() } -> ranges::range;
+    { __t.quadratic_terms() } -> std::ranges::range;
     { __t.linear_expression() } -> linear_expression;
 } && quadratic_term<quadratic_term_t<_Tp>>;
 
@@ -69,11 +63,10 @@ private:
     _LExpr _linear_expression;
 
 public:
-    template <ranges::range QT, linear_expression LE>
+    template <std::ranges::range QT, linear_expression LE>
     [[nodiscard]] constexpr quadratic_expression_view(QT && quadratic_terms,
                                                       LE && linear_expression)
-        : _quadratic_terms(
-              ranges::views::all(std::forward<QT>(quadratic_terms)))
+        : _quadratic_terms(std::views::all(std::forward<QT>(quadratic_terms)))
         , _linear_expression(std::forward<LE>(linear_expression)) {}
 
     [[nodiscard]] constexpr decltype(auto) quadratic_terms() const & noexcept {
@@ -93,7 +86,7 @@ public:
 
 template <typename QT, typename LE>
 quadratic_expression_view(QT &&, LE &&)
-    -> quadratic_expression_view<ranges::views::all_t<QT>, LE>;
+    -> quadratic_expression_view<std::views::all_t<QT>, LE>;
 
 template <typename _LExpr>
 class linear_expression_square {
@@ -106,9 +99,9 @@ public:
         : _linear_expression(std::forward<E>(linear_expression)) {}
 
     [[nodiscard]] constexpr decltype(auto) quadratic_terms() const & noexcept {
-        return ranges::views::transform(
-            ranges::views::cartesian_product(_linear_expression.linear_terms(),
-                                             _linear_expression.linear_terms()),
+        return std::views::transform(
+            std::views::cartesian_product(_linear_expression.linear_terms(),
+                                          _linear_expression.linear_terms()),
             [](auto && p) {
                 auto && [t1, t2] = p;
                 auto && [v1, c1] = t1;
@@ -119,7 +112,7 @@ public:
     [[nodiscard]] constexpr decltype(auto) linear_expression()
         const & noexcept {
         return linear_expression_view(
-            ranges::views::transform(
+            std::views::transform(
                 _linear_expression.linear_terms(),
                 [c = _linear_expression.constant()](auto && t) {
                     return std::make_pair(std::get<0>(t),
@@ -146,10 +139,9 @@ public:
         , _linear_expression_2(std::forward<E2>(linear_expression_2)) {}
 
     [[nodiscard]] constexpr decltype(auto) quadratic_terms() const & noexcept {
-        return ranges::views::transform(
-            ranges::views::cartesian_product(
-                _linear_expression_1.linear_terms(),
-                _linear_expression_2.linear_terms()),
+        return std::views::transform(
+            std::views::cartesian_product(_linear_expression_1.linear_terms(),
+                                          _linear_expression_2.linear_terms()),
             [](auto && p) {
                 auto && [t1, t2] = p;
                 auto && [v1, c1] = t1;
@@ -160,14 +152,14 @@ public:
     [[nodiscard]] constexpr decltype(auto) linear_expression()
         const & noexcept {
         return linear_expression_view(
-            ranges::views::concat(
-                ranges::views::transform(
+            std::views::concat(
+                std::views::transform(
                     _linear_expression_1.linear_terms(),
                     [c = _linear_expression_2.constant()](auto && t) {
                         return std::make_pair(std::get<0>(t),
                                               c * std::get<1>(t));
                     }),
-                ranges::views::transform(
+                std::views::transform(
                     _linear_expression_2.linear_terms(),
                     [c = _linear_expression_1.constant()](auto && t) {
                         return std::make_pair(std::get<0>(t),
@@ -186,8 +178,8 @@ linear_expression_mul_view(E1 &&, E2 &&)
 template <quadratic_expression E1, quadratic_expression E2>
 constexpr auto quadratic_expression_add(E1 && e1, E2 && e2) {
     return quadratic_expression_view(
-        ranges::views::concat(std::forward<E1>(e1).quadratic_terms(),
-                              std::forward<E2>(e2).quadratic_terms()),
+        std::views::concat(std::forward<E1>(e1).quadratic_terms(),
+                           std::forward<E2>(e2).quadratic_terms()),
         linear_expression_add(std::forward<E1>(e1).linear_expression(),
                               std::forward<E2>(e2).linear_expression()));
 }
@@ -195,12 +187,12 @@ constexpr auto quadratic_expression_add(E1 && e1, E2 && e2) {
 template <quadratic_expression E>
 constexpr auto quadratic_expression_negate(E && e) {
     return quadratic_expression_view(
-        ranges::views::transform(std::forward<E>(e).quadratic_terms(),
-                                 [](auto && t) {
-                                     return std::make_tuple(std::get<0>(t),
-                                                            std::get<1>(t),
-                                                            -std::get<2>(t));
-                                 }),
+        std::views::transform(std::forward<E>(e).quadratic_terms(),
+                              [](auto && t) {
+                                  return std::make_tuple(std::get<0>(t),
+                                                         std::get<1>(t),
+                                                         -std::get<2>(t));
+                              }),
         linear_expression_negate(std::forward<E>(e).linear_expression()));
 }
 
@@ -217,12 +209,12 @@ constexpr auto quadratic_expression_scalar_mul(E && e, const S c_) {
     using scalar_t = quadratic_expression_scalar_t<E>;
     scalar_t c = static_cast<scalar_t>(c_);
     return quadratic_expression_view(
-        ranges::views::transform(std::forward<E>(e).quadratic_terms(),
-                                 [c](auto && t) {
-                                     return std::make_tuple(std::get<0>(t),
-                                                            std::get<1>(t),
-                                                            c * std::get<2>(t));
-                                 }),
+        std::views::transform(std::forward<E>(e).quadratic_terms(),
+                              [c](auto && t) {
+                                  return std::make_tuple(std::get<0>(t),
+                                                         std::get<1>(t),
+                                                         c * std::get<2>(t));
+                              }),
         linear_expression_scalar_mul(std::forward<E>(e).linear_expression(),
                                      c));
 }
@@ -242,8 +234,7 @@ constexpr auto quadratic_expression_lexpr_add(E1 && e1, E2 && e2) {
 namespace operators {
 
 template <linear_expression E>
-[[nodiscard]] constexpr auto operator^(E && e, int power) {
-    assert(power == 2);
+[[nodiscard]] constexpr auto square(E && e) {
     return linear_expression_square(e);
 };
 

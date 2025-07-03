@@ -2,13 +2,9 @@
 #define MIPPP_SCIP_v8_MILP_HPP
 
 #include <limits>
-// #include <ranges>
 #include <optional>
+#include <ranges>
 #include <vector>
-
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/move.hpp>
-#include <range/v3/view/zip.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -129,8 +125,8 @@ public:
     double get_objective_offset() { return SCIP.getOrigObjoffset(model); }
     auto get_objective() {
         return linear_expression_view(
-            ranges::view::transform(
-                ranges::view::iota(variable_id{0},
+           std::views::transform(
+               std::views::iota(variable_id{0},
                                    static_cast<variable_id>(num_variables())),
                 [this](auto i) {
                     return std::make_pair(
@@ -155,8 +151,8 @@ private:
 
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
-        return variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
+        return variables_range(std::views::transform(
+           std::views::iota(static_cast<variable_id>(offset),
                                static_cast<variable_id>(offset + count)),
             [](auto && i) { return variable{i}; }));
     }
@@ -166,8 +162,8 @@ private:
                                               IL && id_lambda) {
         return variables_range(
             typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
+           std::views::transform(
+               std::views::iota(static_cast<variable_id>(offset),
                                    static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
@@ -179,8 +175,8 @@ private:
                                                     NL && name_lambda) {
         return lazily_named_variables_range(
             typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
+           std::views::transform(
+               std::views::iota(static_cast<variable_id>(offset),
                                    static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda), std::forward<NL>(name_lambda), this);
@@ -383,7 +379,7 @@ private:
     }
 
 public:
-    template <ranges::range IR, typename... CL>
+    template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         const constraint_id offset =
             static_cast<constraint_id>(num_constraints());
@@ -395,7 +391,7 @@ public:
         }
         return constraints_range(
             keys,
-            ranges::view::transform(ranges::view::iota(offset, constr_id),
+           std::views::transform(std::views::iota(offset, constr_id),
                                     [](auto && i) { return constraint{i}; }));
     }
 

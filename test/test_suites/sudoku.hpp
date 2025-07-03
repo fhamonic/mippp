@@ -3,8 +3,7 @@
 #include <gtest/gtest.h>
 #include "assert_helper.hpp"
 
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/cartesian_product.hpp>
+#include <ranges>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
@@ -45,10 +44,10 @@ TYPED_TEST_P(SudokuTest, test) {
         1, 8, 3, 7, 6, 5, 9, 4, 2};
     // clang-format on
 
-    auto indices = ranges::views::iota(0, 9);
-    auto values = ranges::views::iota(1, 10);
-    auto coords = ranges::views::cartesian_product(ranges::views::iota(0, 3),
-                                                   ranges::views::iota(0, 3));
+    auto indices = std::views::iota(0, 9);
+    auto values = std::views::iota(1, 10);
+    auto coords = std::views::cartesian_product(std::views::iota(0, 3),
+                                                std::views::iota(0, 3));
 
     auto X_vars =
         model.add_binary_variables(9 * 9 * 9, [](int i, int j, int value) {
@@ -56,25 +55,25 @@ TYPED_TEST_P(SudokuTest, test) {
         });
 
     auto single_value_constrs = model.add_constraints(
-        ranges::views::cartesian_product(indices, indices), [&](auto && p) {
+        std::views::cartesian_product(indices, indices), [&](auto && p) {
             auto && [i, j] = p;
             return xsum(values, [&](auto && v) { return X_vars(i, j, v); }) ==
                    1;
         });
     auto one_per_row_constrs = model.add_constraints(
-        ranges::views::cartesian_product(values, indices), [&](auto && p) {
+        std::views::cartesian_product(values, indices), [&](auto && p) {
             auto && [v, i] = p;
             return xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) ==
                    1;
         });
     auto one_per_col_constrs = model.add_constraints(
-        ranges::views::cartesian_product(values, indices), [&](auto && p) {
+        std::views::cartesian_product(values, indices), [&](auto && p) {
             auto && [v, j] = p;
             return xsum(indices, [&](auto && i) { return X_vars(i, j, v); }) ==
                    1;
         });
     auto one_per_block_constrs = model.add_constraints(
-        ranges::views::cartesian_product(values, coords), [&](auto && p) {
+        std::views::cartesian_product(values, coords), [&](auto && p) {
             auto && [v, b] = p;
             return xsum(coords, [&](auto && p2) {
                        return X_vars(3 * std::get<0>(b) + std::get<0>(p2),

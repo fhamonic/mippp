@@ -19,21 +19,25 @@ class CompressorRecipe(ConanFile):
     build_policy = "missing"
 
     def requirements(self):
-        self.requires("range-v3/cci.20240905")
         self.requires("dylib/2.2.1")
 
     def build_requirements(self):
         self.test_requires("gtest/[>=1.10.0 <cci]")
-        self.test_requires("fmt/[>=11.0.0 <cci]")
         self.test_requires("melon/1.0.0-alpha.1")
 
     def generate(self):
-        print("conanfile.py: IDE include dirs:")
-        for lib, dep in self.dependencies.items():
-            if not lib.headers:
-                continue
-            for inc in dep.cpp_info.includedirs:
-                print("\t" + inc)
+        print(
+            'conanfile.py: Include directories:\n\t"{}"'.format(
+                '",\n\t"'.join(
+                    [
+                        dir
+                        for lib, dep in self.dependencies.items()
+                        if lib.headers
+                        for dir in dep.cpp_info.includedirs
+                    ]
+                )
+            )
+        )
 
     def validate(self):
         check_min_cppstd(self, 20)

@@ -1,13 +1,12 @@
 #ifndef MIPPP_CPLEX_v22_12_BASE_MODEL_HPP
 #define MIPPP_CPLEX_v22_12_BASE_MODEL_HPP
 
+#include <cassert>
 #include <memory>
 #include <numeric>
 #include <optional>
+#include <ranges>
 #include <vector>
-
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/transform.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -16,6 +15,8 @@
 
 #include "mippp/solvers/cplex/v22_12/cplex_api.hpp"
 #include "mippp/solvers/model_base.hpp"
+
+#include <iostream>
 
 namespace fhamonic::mippp {
 namespace cplex::v22_12 {
@@ -124,9 +125,9 @@ public:
         check(CPX.getobj(env, lp, coefs.get(), 0,
                          static_cast<int>(num_vars) - 1));
         return linear_expression_view(
-            ranges::view::transform(
-                ranges::view::iota(variable_id{0},
-                                   static_cast<variable_id>(num_vars)),
+            std::views::transform(
+                std::views::iota(variable_id{0},
+                                 static_cast<variable_id>(num_vars)),
                 [coefs = std::move(coefs)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -254,7 +255,7 @@ private:
     }
 
 public:
-    template <ranges::range ER>
+    template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
         return _add_column(entries, params);
@@ -281,7 +282,7 @@ public:
     }
     void set_variable_name(variable v, const std::string & name) noexcept {
         int var_id = v.id();
-        char * col_name = std::string(name).data();
+        char * col_name = const_cast<char *>(name.c_str());
         check(CPX.chgcolname(env, lp, 1, &var_id, &col_name));
     }
 
@@ -301,13 +302,18 @@ public:
         return b;
     }
     std::string get_variable_name(variable v) noexcept {
+        std::string name;
+        name.resize(name.capacity());
         char * subptr;
-        int surplus;
-        assert(CPX.getcolname(env, lp, NULL, NULL, 0, &surplus, v.id(),
-                              v.id()) == 1207);
-        std::string name(static_cast<std::size_t>(-surplus), '\0');
-        check(CPX.getcolname(env, lp, &subptr, name.data(), -surplus, &surplus,
-                             v.id(), v.id()));
+        int surplus = 0;
+        if(CPX.getcolname(env, lp, &subptr, name.data(),
+                          static_cast<int>(name.size()), &surplus, v.id(),
+                          v.id()) == 1207) {
+            name.resize(name.size() - static_cast<std::size_t>(surplus));
+            check(CPX.getcolname(env, lp, &subptr, name.data(),
+                                 static_cast<int>(name.size()), &surplus,
+                                 v.id(), v.id()));
+        }
         name.resize(name.size() - static_cast<std::size_t>(surplus + 1));
         return name;
     }
@@ -356,7 +362,7 @@ private:
     }
 
 public:
-    template <ranges::range IR, typename... CL>
+    template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         _reset_cache(num_variables());
         tmp_begins.resize(0);
@@ -375,8 +381,8 @@ public:
                           tmp_indices.data(), tmp_scalars.data(), NULL, NULL));
         return constraints_range(
             keys,
-            ranges::view::transform(ranges::view::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+            std::views::transform(std::views::iota(offset, constr_id),
+                                  [](auto && i) { return constraint{i}; }));
     }
 };
 

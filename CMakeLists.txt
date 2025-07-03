@@ -19,14 +19,12 @@ include(GNUInstallDirs)
 include(CompilerWarnings)
 
 # ################### Packages ###################
-find_package(range-v3 REQUIRED)
 find_package(dylib REQUIRED)
 
 # ############### Exported target ################
 add_library(mippp INTERFACE)
 target_include_directories(mippp
                            INTERFACE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(mippp INTERFACE range-v3::range-v3)
 target_link_libraries(mippp INTERFACE dylib::dylib)
 
 target_compile_options(mippp INTERFACE -fconcepts-diagnostics-depth=30)

@@ -175,7 +175,7 @@ TYPED_TEST_P(LpModelTest, add_constraints) {
     auto x = model.add_variable();
     auto y = model.add_variable();
     auto c1 = model.add_constraint(x + y >= 1);
-    auto c = model.add_constraints(ranges::views::iota(0, 3), [&](auto i) {
+    auto c = model.add_constraints(std::views::iota(0, 3), [&](auto i) {
         return (3 - i) * x + i * y <= 5;
     });
     ASSERT_EQ(model.num_variables(), 2);
@@ -194,7 +194,7 @@ TYPED_TEST_P(LpModelTest, add_opt_constraints) {
     auto y = model.add_variable();
     auto c1 = model.add_constraint(x + y >= 1);
     auto c = model.add_constraints(
-        ranges::views::iota(0, 3),
+        std::views::iota(0, 3),
         [&](auto i) { return OPT((i == 0), 3 * x <= 5); },
         [&](auto i) { return OPT((i == 1), 2 * x + y <= 5); },
         [&](auto i) { return x + 2 * y <= 5; });
@@ -288,7 +288,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_add_constraints) {
     model.set_maximization();
     model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
     auto c1 = model.add_constraints(
-        ranges::views::iota(0, 3),
+        std::views::iota(0, 3),
         [&](int i) { return OPT((i == 0), 2 * x1 + 3 * x2 + x3 <= 5); },
         [&](int i) { return OPT((i == 1), 4 * x1 + x2 + 2 * x3 <= 11); },
         [&](int i) { return 3 * x1 + 4 * x2 + 2 * x3 <= 8; });

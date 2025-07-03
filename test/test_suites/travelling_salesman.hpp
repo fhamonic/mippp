@@ -4,11 +4,10 @@
 #include "assert_helper.hpp"
 
 #include <cmath>
+#include <ranges>
 #include <vector>
 
-#include <range/v3/view/cartesian_product.hpp>
-#include <range/v3/view/iota.hpp>
-
+#include "melon/algorithm/breadth_first_search.hpp"
 #include "melon/algorithm/depth_first_search.hpp"
 #include "melon/algorithm/strongly_connected_components.hpp"
 #include "melon/container/static_digraph.hpp"
@@ -17,8 +16,6 @@
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
-
-#include "mippp/detail/std_ranges_to_range_v3.hpp"
 
 namespace fhamonic::mippp {
 
@@ -62,10 +59,10 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
         graph.arcs(), [&](auto && a) { return length_map[a] * X_vars(a); }));
 
     model.add_constraints(graph.vertices(), [&](auto && u) {
-        return xsum(graph.in_arcs(u), X_vars) == 1;
+        return xsum(graph.in_arcs(u), [&](auto a) { return X_vars(a); }) == 1;
     });
     model.add_constraints(graph.vertices(), [&](auto && u) {
-        return xsum(graph.out_arcs(u), X_vars) == 1;
+        return xsum(graph.out_arcs(u), [&](auto a) { return X_vars(a); }) == 1;
     });
 
     model.set_candidate_solution_callback([&](auto & handle) {
@@ -85,8 +82,10 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
             if(tour_size == graph.num_vertices()) return;
             auto tour_induced_subgraph =
                 melon::views::subgraph(graph, component_vertex_filter, {});
-            handle.add_lazy_constraint(xsum(melon::arcs(tour_induced_subgraph),
-                                            X_vars) <= tour_size - 1);
+            handle.add_lazy_constraint(
+                xsum(melon::arcs(tour_induced_subgraph), [&](auto a) {
+                    return X_vars(a);
+                }) <= static_cast<int>(tour_size) - 1);
         }
     });
 
@@ -95,10 +94,11 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
     ASSERT_NEAR(model.get_solution_value(), 76, TEST_EPSILON);
 
     auto solution = model.get_solution();
-    auto solution_graph = melon::views::subgraph(
-        graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
+    auto solution_graph = melon::views::subgraph(graph, {}, [&](auto a) {
+        return solution[X_vars(a)] > 0.5;
+    });
 
-    for(auto && v : melon::depth_first_search(solution_graph, 0u))
+    for(auto && v : melon::breadth_first_search(solution_graph, 0u))
         std::cout << " -> " << vertex_names[v];
     std::cout << std::endl;
 }

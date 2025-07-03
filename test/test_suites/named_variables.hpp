@@ -2,7 +2,7 @@
 #undef NDEBUG
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <format>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
@@ -25,6 +25,8 @@ TYPED_TEST_P(NamedVariablesTest, set_variable_name) {
     std::cout << model.get_variable_name(x1).length() << std::endl;
     ASSERT_EQ(model.get_variable_name(x1), "X1");
     ASSERT_EQ(model.get_variable_name(x2), "X2");
+    model.set_variable_name(x2, "LongNameSoThatSmallStringOptimizationIsNotUsed");
+    ASSERT_EQ(model.get_variable_name(x2), "LongNameSoThatSmallStringOptimizationIsNotUsed");
 }
 TYPED_TEST_P(NamedVariablesTest, add_named_variable) {
     auto model = this->new_model();
@@ -43,7 +45,7 @@ TYPED_TEST_P(NamedVariablesTest, add_named_variables) {
     auto x = model.add_named_variables(
         1, [](auto i) { return std::string("X") + std::to_string(i); });
     auto y = model.add_named_variables(
-        3, [](auto i) { return fmt::format("Y{}", i); },
+        3, [](auto i) { return std::format("Y{}", i); },
         {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
     ASSERT_EQ(model.num_variables(), 4);
     ASSERT_EQ(model.num_constraints(), 0);
@@ -64,7 +66,7 @@ TYPED_TEST_P(NamedVariablesTest, add_indexed_named_variables) {
         [](int i) { return std::string("X") + std::to_string(i); });
     auto y = model.add_named_variables(
         3, [](int i, int j) { return 2 * i + j; },
-        [](int i, int j) { return fmt::format("Y{}_{}", i, j); },
+        [](int i, int j) { return std::format("Y{}_{}", i, j); },
         {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
     ASSERT_EQ(model.num_variables(), 4);
     ASSERT_EQ(model.num_constraints(), 0);

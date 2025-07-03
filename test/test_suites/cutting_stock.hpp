@@ -4,10 +4,8 @@
 #include "assert_helper.hpp"
 
 #include <cmath>
+#include <ranges>
 #include <vector>
-
-#include <range/v3/view/cartesian_product.hpp>
-#include <range/v3/view/iota.hpp>
 
 #include "melon/algorithm/unbounded_knapsack_bnb.hpp"
 

@@ -3,11 +3,8 @@
 
 #include <limits>
 #include <optional>
+#include <ranges>
 #include <vector>
-
-#include <range/v3/view/iota.hpp>
-#include <range/v3/view/span.hpp>
-#include <range/v3/view/zip.hpp>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -96,8 +93,8 @@ public:
                        const variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
-        return variables_range(ranges::view::transform(
-            ranges::view::iota(static_cast<variable_id>(offset),
+        return variables_range(std::views::transform(
+           std::views::iota(static_cast<variable_id>(offset),
                                static_cast<variable_id>(offset + count)),
             [](auto && i) { return variable{i}; }));
     }
@@ -109,8 +106,8 @@ public:
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return variables_range(
             typename detail::function_traits<IL>::arg_types(),
-            ranges::view::transform(
-                ranges::view::iota(static_cast<variable_id>(offset),
+           std::views::transform(
+               std::views::iota(static_cast<variable_id>(offset),
                                    static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
@@ -136,7 +133,7 @@ private:
     }
 
 public:
-    template <ranges::range ER>
+    template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
         return _add_column(entries, params);
@@ -199,7 +196,7 @@ private:
     }
 
 public:
-    template <ranges::range IR, typename... CL>
+    template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
         tmp_scalars.resize(num_variables());
         const int offset = static_cast<int>(num_constraints());
@@ -210,7 +207,7 @@ public:
         }
         return constraints_range(
             keys,
-            ranges::view::transform(ranges::view::iota(offset, constr_id),
+           std::views::transform(std::views::iota(offset, constr_id),
                                     [](auto && i) { return constraint{i}; }));
     }
 

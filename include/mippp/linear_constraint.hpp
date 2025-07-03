@@ -1,6 +1,7 @@
 #ifndef MIPPP_LINEAR_CONSTRAINT_HPP
 #define MIPPP_LINEAR_CONSTRAINT_HPP
 
+#include <ranges>
 #include <type_traits>
 
 #include "mippp/linear_expression.hpp"
@@ -19,7 +20,7 @@ using linear_constraint_scalar_t = linear_term_scalar_t<linear_term_t<_Tp>>;
 
 template <typename _Tp>
 concept linear_constraint = requires(const _Tp & __t) {
-    { __t.linear_terms() } -> ranges::range;
+    { __t.linear_terms() } ->std::ranges::range;
     { __t.sense() } -> std::same_as<constraint_sense>;
     { __t.rhs() } -> std::same_as<linear_constraint_scalar_t<_Tp>>;
 };

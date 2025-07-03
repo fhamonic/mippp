@@ -4,16 +4,13 @@
 #include <initializer_list>
 #include <ranges>
 
-#include <range/v3/view/map.hpp>
-#include <range/v3/view/zip.hpp>
-
 #include "mippp/linear_expression.hpp"
 #include "mippp/quadratic_expression.hpp"
 
 template <typename R1, typename R2>
 void ASSERT_EQ_RANGES(R1 && r1, R2 && r2) {
-    ASSERT_EQ(std::ranges::distance(r1), std::ranges::distance(r2));
-    for(const auto & [e1, e2] : ranges::views::zip(r1, r2)) {
+    ASSERT_EQ(std::ranges::distance(r1),std::ranges::distance(r2));
+    for(const auto & [e1, e2] : std::views::zip(r1, r2)) {
         ASSERT_EQ(e1, e2);
     }
 }
@@ -23,7 +20,7 @@ template <typename Terms>
 void ASSERT_LIN_TERMS(
     Terms && terms,
     std::initializer_list<std::ranges::range_value_t<Terms>> expected_terms) {
-    using term = std::ranges::range_value_t<Terms>;
+    using term =std::ranges::range_value_t<Terms>;
     using variable = fhamonic::mippp::linear_term_variable_t<term>;
     using scalar = fhamonic::mippp::linear_term_scalar_t<term>;
     std::map<variable, scalar> factorized_terms;
@@ -58,7 +55,7 @@ template <typename Terms>
 void ASSERT_QUAD_TERMS(
     Terms && terms,
     std::initializer_list<std::ranges::range_value_t<Terms>> expected_terms) {
-    using term = std::ranges::range_value_t<Terms>;
+    using term =std::ranges::range_value_t<Terms>;
     using variable = fhamonic::mippp::quadratic_term_variable_t<term>;
     using scalar = fhamonic::mippp::quadratic_term_scalar_t<term>;
     std::map<std::pair<variable, variable>, scalar, variables_pair_cmp>
@@ -71,7 +68,6 @@ void ASSERT_QUAD_TERMS(
                     1e-7);
 }
 
-#include "range/v3/core.hpp"
 
 template <typename Constr>
 void ASSERT_CONSTRAINT(
