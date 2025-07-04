@@ -1,6 +1,8 @@
 #pragma once
 #undef NDEBUG
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
 #include "assert_helper.hpp"
 
 #include <ranges>
@@ -108,7 +110,7 @@ TYPED_TEST_P(SudokuTest, test) {
             for(auto v : values)
                 if(solution[X_vars(i, j, v)]) grid_solution.push_back(v);
 
-    ASSERT_EQ_RANGES(grid_solution, expected_grid_solution);
+    ASSERT_THAT(grid_solution, ::testing::ElementsAreArray(expected_grid_solution));
 }
 
 REGISTER_TYPED_TEST_SUITE_P(SudokuTest, test);

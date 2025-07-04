@@ -93,10 +93,12 @@ public:
                        const variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
-        return variables_range(std::views::transform(
-           std::views::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
+        return variables_range(
+            std::from_range_t{},
+            std::views::transform(
+                std::views::iota(static_cast<variable_id>(offset),
+                                 static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
     auto add_variables(
@@ -106,9 +108,9 @@ public:
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return variables_range(
             typename detail::function_traits<IL>::arg_types(),
-           std::views::transform(
-               std::views::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
+            std::views::transform(
+                std::views::iota(static_cast<variable_id>(offset),
+                                 static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
     }
@@ -207,8 +209,8 @@ public:
         }
         return constraints_range(
             keys,
-           std::views::transform(std::views::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+            std::views::transform(std::views::iota(offset, constr_id),
+                                  [](auto && i) { return constraint{i}; }));
     }
 
     void solve() {

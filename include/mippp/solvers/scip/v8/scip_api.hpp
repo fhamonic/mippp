@@ -118,9 +118,95 @@ SCIP_Real SCIPgetPrimalbound(SCIP * scip);
 SCIP_SOL * SCIPgetBestSol(SCIP * scip);
 SCIP_Real SCIPgetSolVal(SCIP * scip, SCIP_SOL * sol, SCIP_VAR * var);
 
-// SCIP_VARTYPE_CONTINUOUS
-// SCIP_VARTYPE_INTEGER
-// SCIP_VARTYPE_BINARY
+// SCIPfeastol
+
+// SCIPcreateEmptyRowConshdlr
+// SCIPcacheRowExtensions
+// SCIPaddVarToRow
+// SCIPflushRowExtensions
+// SCIPaddRow
+
+using SCIP_CONSHDLR = struct SCIP_Conshdlr;
+
+enum SCIP_RESULT {
+    SCIP_DIDNOTRUN = 1, /**< the method was not executed */
+    SCIP_DELAYED =
+        2, /**< the method was not executed, but should be called again later */
+    SCIP_DIDNOTFIND =
+        3, /**< the method was executed, but failed finding anything */
+    SCIP_FEASIBLE = 4,   /**< no infeasibility could be found */
+    SCIP_INFEASIBLE = 5, /**< an infeasibility was detected */
+    SCIP_UNBOUNDED = 6,  /**< an unboundedness was detected */
+    SCIP_CUTOFF = 7, /**< the current node is infeasible and can be cut off */
+    SCIP_SEPARATED = 8,    /**< the method added a cutting plane */
+    SCIP_NEWROUND = 9,     /**< the method added a cutting plane and a new
+                              separation round should immediately start */
+    SCIP_REDUCEDDOM = 10,  /**< the method reduced the domain of a variable */
+    SCIP_CONSADDED = 11,   /**< the method added a constraint */
+    SCIP_CONSCHANGED = 12, /**< the method changed a constraint */
+    SCIP_BRANCHED = 13,    /**< the method created a branching */
+    SCIP_SOLVELP = 14,     /**< the current node's LP must be solved */
+    SCIP_FOUNDSOL = 15,    /**< the method found a feasible primal solution */
+    SCIP_SUSPENDED = 16,   /**< the method interrupted its execution, but can
+                              continue if needed */
+    SCIP_SUCCESS = 17,     /**< the method was successfully executed */
+    SCIP_DELAYNODE = 18 /**< the processing of the branch-and-bound node should
+                           stopped and continued later */
+};
+
+#define SCIP_DECL_CONSENFOLP(x)                                               \
+    SCIP_RETCODE x(SCIP * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss, \
+                   int nconss, int nusefulconss, SCIP_Bool solinfeasible,     \
+                   SCIP_RESULT * result)
+
+#define SCIP_DECL_CONSENFOPS(x)                                               \
+    SCIP_RETCODE x(SCIP * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss, \
+                   int nconss, int nusefulconss, SCIP_Bool solinfeasible,     \
+                   SCIP_Bool objinfeasible, SCIP_RESULT * result)
+
+#define SCIP_DECL_CONSCHECK(x)                                                \
+    SCIP_RETCODE x(SCIP * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss, \
+                   int nconss, SCIP_SOL * sol, SCIP_Bool checkintegrality,    \
+                   SCIP_Bool checklprows, SCIP_Bool printreason,              \
+                   SCIP_Bool completely, SCIP_RESULT * result)
+
+enum SCIP_LOCKTYPE {
+    SCIP_LOCKTYPE_MODEL =
+        0, /**< variable locks for model and check constraints */
+    SCIP_LOCKTYPE_CONFLICT = 1 /**< variable locks for conflict constraints */
+};
+#define SCIP_DECL_CONSLOCK(x)                                               \
+    SCIP_RETCODE x(SCIP * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS * cons, \
+                   SCIP_LOCKTYPE locktype, int nlockspos, int nlocksneg)
+
+using SCIP_CONSHDLRDATA = struct SCIP_ConshdlrData;
+
+SCIP_RETCODE SCIPincludeConshdlrBasic(
+    SCIP * scip, /**< SCIP data structure */
+    SCIP_CONSHDLR **
+        conshdlrptr, /**< reference to a constraint handler pointer, or NULL */
+    const char * name,   /**< name of constraint handler */
+    const char * desc,   /**< description of constraint handler */
+    int enfopriority,    /**< priority of the constraint handler for constraint
+                            enforcing */
+    int chckpriority,    /**< priority of the constraint handler for checking
+                            feasibility (and propagation) */
+    int eagerfreq,       /**< frequency for using all instead of only the useful
+                          * constraints in separation,       propagation and
+                          * enforcement, -1       for no eager evaluations, 0 for
+                          * first only
+                          */
+    SCIP_Bool needscons, /**< should the constraint handler be skipped, if no
+                            constraints are available? */
+    SCIP_DECL_CONSENFOLP(
+        (*consenfolp)), /**< enforcing constraints for LP solutions */
+    SCIP_DECL_CONSENFOPS(
+        (*consenfops)), /**< enforcing constraints for pseudo solutions */
+    SCIP_DECL_CONSCHECK(
+        (*conscheck)), /**< check feasibility of primal solution */
+    SCIP_DECL_CONSLOCK((*conslock)), /**< variable rounding lock method */
+    SCIP_CONSHDLRDATA * conshdlrdata /**< constraint handler data */
+);
 
 }  // namespace scip::v8
 }  // namespace fhamonic::mippp

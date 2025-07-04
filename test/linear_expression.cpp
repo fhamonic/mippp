@@ -54,19 +54,17 @@ GTEST_TEST(linear_expression_operators, xsum_test) {
     auto e = xsum(vars);
     static_assert(linear_expression<decltype(e)>);
     static_assert(linear_expression<decltype(Var(2))>);
-    auto e1 = e + Var(13);
-    // auto e1 = xsum(vars) + xsum(vars);
-    // auto e1 = 2 * Var(13) + e;
-    ASSERT_LIN_EXPR(e1, {{Var(3), 1.0}, {Var(13), 1.0}}, 0);
+    auto e1 = e + 2 * Var(13);
+    ASSERT_LIN_EXPR(e1, {{Var(3), 1.0}, {Var(13), 2.0}}, 0);
+}
 
-    // std::vector<int> vec = {1, 2};
-
-    // auto r1 = std::views::join(std::views::transform(
-    //     vec, [](auto && v) { return std::views::single(v); }));
-    // auto r2 = std::views::single(3);
-
-    // auto c1 = std::views::all(std::views::concat(r1, r2));
-    // // auto c2 = std::views::all(std::views::concat(r2, r1));
+GTEST_TEST(linear_expression_operators, xsum_test2) {
+    std::vector<Var> vars = {Var(3)};
+    auto e = xsum(vars);
+    static_assert(linear_expression<decltype(e)>);
+    static_assert(linear_expression<decltype(Var(2))>);
+    auto e1 = 2 * Var(13) + e;
+    ASSERT_LIN_EXPR(e1, {{Var(3), 1.0}, {Var(13), 2.0}}, 0);
 }
 
 GTEST_TEST(runtime_linear_expression, test) {

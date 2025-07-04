@@ -1,6 +1,8 @@
 #pragma once
 #undef NDEBUG
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
 #include "assert_helper.hpp"
 
 #include <cmath>
@@ -27,11 +29,12 @@ struct TravellingSalesmanTest : public T {
 TYPED_TEST_SUITE_P(TravellingSalesmanTest);
 
 TYPED_TEST_P(TravellingSalesmanTest, test) {
+    using namespace ::testing;
     using namespace operators;
     auto model = this->new_model();
 
     // https://jlmartin.ku.edu/courses/math105-F14/chapter6-part6.pdf
-    std::vector<std::string> vertex_names = {"A", "B", "C", "D", "E", "F"};
+    std::vector<char> vertex_names = {'A', 'B', 'C', 'D', 'E', 'F'};
     // clang-format off
     std::vector<std::vector<int>> distances = {
         { 0, 12, 29, 22, 13, 24},
@@ -59,10 +62,10 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
         graph.arcs(), [&](auto && a) { return length_map[a] * X_vars(a); }));
 
     model.add_constraints(graph.vertices(), [&](auto && u) {
-        return xsum(graph.in_arcs(u), [&](auto a) { return X_vars(a); }) == 1;
+        return xsum(graph.in_arcs(u), X_vars) == 1;
     });
     model.add_constraints(graph.vertices(), [&](auto && u) {
-        return xsum(graph.out_arcs(u), [&](auto a) { return X_vars(a); }) == 1;
+        return xsum(graph.out_arcs(u), X_vars) == 1;
     });
 
     model.set_candidate_solution_callback([&](auto & handle) {
@@ -83,9 +86,8 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
             auto tour_induced_subgraph =
                 melon::views::subgraph(graph, component_vertex_filter, {});
             handle.add_lazy_constraint(
-                xsum(melon::arcs(tour_induced_subgraph), [&](auto a) {
-                    return X_vars(a);
-                }) <= static_cast<int>(tour_size) - 1);
+                xsum(melon::arcs(tour_induced_subgraph), X_vars) <=
+                static_cast<int>(tour_size) - 1);
         }
     });
 
@@ -94,13 +96,15 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
     ASSERT_NEAR(model.get_solution_value(), 76, TEST_EPSILON);
 
     auto solution = model.get_solution();
-    auto solution_graph = melon::views::subgraph(graph, {}, [&](auto a) {
-        return solution[X_vars(a)] > 0.5;
-    });
+    auto solution_graph = melon::views::subgraph(
+        graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
 
-    for(auto && v : melon::breadth_first_search(solution_graph, 0u))
-        std::cout << " -> " << vertex_names[v];
-    std::cout << std::endl;
+    auto tour = std::ranges::to<std::vector<char>>(
+        std::views::transform(melon::breadth_first_search(solution_graph, 0u),
+                              [&](auto && v) { return vertex_names[v]; }));
+
+    ASSERT_THAT(tour, AnyOf(ElementsAre('A', 'C', 'B', 'F', 'D', 'E'),
+                            ElementsAre('A', 'E', 'D', 'F', 'B', 'C')));
 }
 
 REGISTER_TYPED_TEST_SUITE_P(TravellingSalesmanTest, test);

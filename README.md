@@ -119,29 +119,59 @@ for(auto && a : graph.arcs()) {
 }
 ```
 
-### Shortest Path
+### Traveling Salesman (lazy subtour elimination)
 
 ```cpp
-static_graph graph = ...;
-arc_map_t<static_graph, double> length_map = ...;
-vertex_t<static_graph> s = ...;
-vertex_t<static_graph> t = ...;
+melon::static_graph graph = ...;
+std::vector<std::vector<int>> distances = ...
 ...
 gurobi_api api();
 gurobi_lp model(api);
 
-auto X_vars = model.add_variables(graph.num_arcs(),
-    [](arc_t<static_graph> a) -> std::size_t { return a; });
+auto X_vars = model.add_binary_variables(graph.num_arcs());
 
-model.set_maximization();
-model.set_objective(xsum(graph.arcs(), [&](auto && a){
-    return length_map[a] * X_vars(a);
-}));
-for(auto && u : graph.vertices()) {
-    const double extra_flow = (u == s ? 1 : (u == t ? -1 : 0));
-    model.add_constraint(xsum(graph.out_arcs(u), X_vars) == 
-                         xsum(graph.in_arcs(u), X_vars) + extra_flow);
-}
+model.set_minimization();
+model.set_objective(xsum(
+    graph.arcs(), [&](auto && a) { return length_map[a] * X_vars(a); }));
+
+model.add_constraints(graph.vertices(), [&](auto && u) {
+    return xsum(graph.in_arcs(u), X_vars) == 1;
+});
+model.add_constraints(graph.vertices(), [&](auto && u) {
+    return xsum(graph.out_arcs(u), X_vars) == 1;
+});
+
+model.set_candidate_solution_callback([&](auto & handle) {
+    auto solution = handle.get_solution();
+    auto solution_graph = melon::views::subgraph(
+        graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
+
+    for(auto component :
+        melon::strongly_connected_components(solution_graph)) {
+        auto component_vertex_filter =
+            melon::create_vertex_map<bool>(graph, false);
+        std::size_t tour_size = 0u;
+        for(const auto & v : component) {
+            component_vertex_filter[v] = true;
+            ++tour_size;
+        }
+        // if the tour is Hamiltonian no need to add constraints
+        if(tour_size == graph.num_vertices()) return;
+        auto tour_induced_subgraph =
+            melon::views::subgraph(graph, component_vertex_filter, {});
+        handle.add_lazy_constraint(
+            xsum(melon::arcs(tour_induced_subgraph), X_vars) <=
+            static_cast<int>(tour_size) - 1);
+    }
+});
+
+model.solve();
+
+auto solution = model.get_solution();
+auto solution_graph = melon::views::subgraph(
+    graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
+auto tour = std::ranges::to<std::vector<melon::vertex_t<decltype(graph)>>>(
+    melon::breadth_first_search(solution_graph, 0u));
 ```
 
 ### Sudoku

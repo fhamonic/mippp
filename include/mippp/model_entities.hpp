@@ -132,7 +132,7 @@ protected:
 
 public:
     template <typename VR>
-    constexpr variables_range(VR && variables) noexcept
+    constexpr variables_range(std::from_range_t, VR && variables) noexcept
         : _variables(std::views::all(std::forward<VR>(variables)))
         , _id_lambda() {}
 
@@ -140,6 +140,9 @@ public:
     constexpr variables_range(AP, VR && variables, IL && id_lambda) noexcept
         : _variables(std::views::all(std::forward<VR>(variables)))
         , _id_lambda(std::forward<IL>(id_lambda)) {}
+
+    constexpr variables_range(const variables_range &) = default;
+    constexpr variables_range(variables_range &&) = default;
 
     constexpr auto size() const noexcept {
         return std::ranges::size(_variables);
@@ -219,7 +222,7 @@ public:
 };
 
 template <std::ranges::viewable_range VR>
-variables_range(VR &&)
+variables_range(std::from_range_t, VR &&)
     -> variables_range<std::views::all_t<VR>, std::identity, std::size_t>;
 
 template <std::ranges::viewable_range VR, typename IL, typename... Args>

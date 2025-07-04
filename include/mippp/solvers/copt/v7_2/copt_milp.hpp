@@ -98,14 +98,15 @@ public:
         // check(COPT.chgbds(env, lp, 2, &var_id, lu, bd));
     }
 
-    class callback_handle : public model_base<int, double> {
+    class candidate_solution_callback_handle : public model_base<int, double> {
     private:
         const copt_api & COPT;
         copt_prob * prob;
         void * cbdata;
 
     public:
-        callback_handle(const copt_api & api, copt_prob * prob_, void * cbdata_)
+        candidate_solution_callback_handle(const copt_api & api,
+                                           copt_prob * prob_, void * cbdata_)
             : model_base<int, double>()
             , COPT(api)
             , prob(prob_)
@@ -142,21 +143,21 @@ public:
     };
 
 private:
-    std::function<void(callback_handle &)> solution_callback;
+    std::function<void(candidate_solution_callback_handle &)> solution_callback;
 
-    static int solution_callback_func(copt_prob * prob, void * cbdata,
-                                      int cbctx, void * userdata) {
+    static int candidate_solution_callback_func(copt_prob * prob, void * cbdata,
+                                                int cbctx, void * userdata) {
         auto * model = static_cast<copt_milp *>(userdata);
-        callback_handle handle(model->COPT, prob, cbdata);
+        candidate_solution_callback_handle handle(model->COPT, prob, cbdata);
         model->solution_callback(handle);
         return 0;
     }
 
 public:
     template <typename F>
-    void set_solution_callback(F && f) {
+    void set_candidate_solution_callback(F && f) {
         solution_callback = std::forward<F>(f);
-        check(COPT.SetCallback(prob, solution_callback_func,
+        check(COPT.SetCallback(prob, candidate_solution_callback_func,
                                COPT_CBCONTEXT_MIPSOL, this));
     }
 

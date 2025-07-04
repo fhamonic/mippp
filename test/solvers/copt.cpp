@@ -29,4 +29,6 @@ INSTANTIATE_TEST(COPT_milp, ReadableVariablesBoundsTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, ModifiableVariablesBoundsTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, NamedVariablesTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, AddColumnTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, CandidateSolutionCallbackTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, SudokuTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, TravellingSalesmanTest, copt_milp_test);

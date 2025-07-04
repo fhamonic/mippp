@@ -151,7 +151,7 @@ private:
 
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
-        return variables_range(std::views::transform(
+        return variables_range(std::from_range_t{}, std::views::transform(
            std::views::iota(static_cast<variable_id>(offset),
                                static_cast<variable_id>(offset + count)),
             [](auto && i) { return variable{i}; }));
