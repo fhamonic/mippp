@@ -83,12 +83,11 @@ Using the [MELON library](https://github.com/fhamonic/melon), we can express the
 
 ```cpp
 #include "melon/static_digraph.hpp"
-using namespace fhamonic::melon;
 ...
-static_graph graph = ...;
-arc_map_t<static_graph, double> capacity_map = ...;
-vertex_t<static_graph> s = ...;
-vertex_t<static_graph> t = ...;
+melon::static_graph graph = ...;
+melon::arc_map_t<decltype(graph), double> capacity_map = ...;
+melon::vertex_t<decltype(graph)> s = ...;
+melon::vertex_t<decltype(graph)> t = ...;
 ...
 gurobi_api api();
 gurobi_lp model(api);
@@ -131,8 +130,9 @@ gurobi_lp model(api);
 auto X_vars = model.add_binary_variables(graph.num_arcs());
 
 model.set_minimization();
-model.set_objective(xsum(
-    graph.arcs(), [&](auto && a) { return length_map[a] * X_vars(a); }));
+model.set_objective(xsum(graph.arcs(), [&](auto && a) {
+    return distances[graph.arc_source(a)][graph.arc_target(a)] * X_vars(a);
+}));
 
 model.add_constraints(graph.vertices(), [&](auto && u) {
     return xsum(graph.in_arcs(u), X_vars) == 1;
@@ -179,7 +179,7 @@ auto tour = std::ranges::to<std::vector<melon::vertex_t<decltype(graph)>>>(
 ```cpp
 auto indices = std::views::iota(0, 9);
 auto values = std::views::iota(1, 10);
-auto coords = std::views::cartesian_product(std::views::iota(0, 3),
+auto 3x3_coords = std::views::cartesian_product(std::views::iota(0, 3),
                                                 std::views::iota(0, 3));
 
 gurobi_api api;
@@ -190,25 +190,25 @@ auto X_vars =
         return (81 * i) + (9 * j) + (value - 1);
     });
 
-auto single_value_constrs = model.add_constraints(
+model.add_constraints( // single value per cell
     std::views::cartesian_product(indices, indices), [&](auto && p) {
         auto && [i, j] = p;
         return xsum(values, [&](auto && v) { return X_vars(i, j, v); }) == 1;
     });
-auto one_per_row_constrs = model.add_constraints(
+model.add_constraints( // unique values within rows
     std::views::cartesian_product(values, indices), [&](auto && p) {
         auto && [v, i] = p;
         return xsum(indices, [&](auto && j) { return X_vars(i, j, v); }) == 1;
     });
-auto one_per_col_constrs = model.add_constraints(
+model.add_constraints( // unique values within cols
     std::views::cartesian_product(values, indices), [&](auto && p) {
         auto && [v, j] = p;
         return xsum(indices, [&](auto && i) { return X_vars(i, j, v); }) == 1;
     });
-auto one_per_block_constrs = model.add_constraints(
-    std::views::cartesian_product(values, coords), [&](auto && p) {
+model.add_constraints( // unique values within 3x3 blocks
+    std::views::cartesian_product(values, 3x3_coords), [&](auto && p) {
         auto && [v, b] = p;
-        return xsum(coords, [&](auto && p2) {
+        return xsum(3x3_coords, [&](auto && p2) {
                     return X_vars(3 * std::get<0>(b) + std::get<0>(p2),
                                     3 * std::get<1>(b) + std::get<1>(p2), v);
                 }) == 1;
