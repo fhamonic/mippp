@@ -11,7 +11,7 @@ namespace fhamonic::mippp {
 template <typename T>
 struct QpModelTest : public T {
     using typename T::model_type;
-    static_assert(lp_model<model_type>);
+    static_assert(qp_model<model_type>);
 };
 TYPED_TEST_SUITE_P(QpModelTest);
 

@@ -72,7 +72,7 @@ public:
 
     void solve() {
         if(num_variables() == 0u) {
-            add_variable();
+            return;
         }
         check(Highs.run(model));
     }

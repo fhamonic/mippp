@@ -22,23 +22,24 @@ public:
 
     void solve() {
         if(num_variables() == 0u) {
-            add_variable();
+            lp_status = kHighsModelStatusModelEmpty;
+            return;
         }
         check(Highs.run(model));
         lp_status = Highs.getModelStatus(model);
         check_model_status(lp_status);
     }
 
-// private:
-//     void _refine_lp_status() {
-//         char tmp_presolve[4];
-//         check(Highs.getHighsStringOptionValue(model, "presolve", tmp_presolve));
-//         check(Highs.setHighsStringOptionValue(model, "presolve", "off"));
-//         check(Highs.run(model));
-//         lp_status = Highs.getModelStatus(model);
-//         check(Highs.setHighsStringOptionValue(model, "presolve", tmp_presolve));
-//         check_model_status(lp_status);
-//     }
+    // private:
+    //     void _refine_lp_status() {
+    //         char tmp_presolve[4];
+    //         check(Highs.getHighsStringOptionValue(model, "presolve",
+    //         tmp_presolve)); check(Highs.setHighsStringOptionValue(model,
+    //         "presolve", "off")); check(Highs.run(model)); lp_status =
+    //         Highs.getModelStatus(model);
+    //         check(Highs.setHighsStringOptionValue(model, "presolve",
+    //         tmp_presolve)); check_model_status(lp_status);
+    //     }
 
     // public:
     bool is_optimal() {

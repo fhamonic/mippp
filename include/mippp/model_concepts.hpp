@@ -24,7 +24,7 @@ auto dummy_range() {
 };
 
 template <typename M>
-struct dummy_expression {
+struct dummy_linear_expression {
     auto linear_terms() const {
         return dummy_range<
             std::pair<typename M::variable, typename M::scalar>>();
@@ -32,7 +32,7 @@ struct dummy_expression {
     auto constant() const { return typename M::scalar{}; }
 };
 template <typename M>
-struct dummy_constraint {
+struct dummy_linear_constraint {
     auto linear_terms() const {
         return dummy_range<
             std::pair<typename M::variable, typename M::scalar>>();
@@ -40,6 +40,16 @@ struct dummy_constraint {
     auto sense() const { return constraint_sense::equal; }
     auto rhs() const { return typename M::scalar{0}; }
 };
+
+template <typename M>
+struct dummy_quadratic_expression {
+    auto quadratic_terms() const {
+        return dummy_range<std::tuple<
+            typename M::variable, typename M::variable, typename M::scalar>>();
+    }
+    auto linear_expression() const { return dummy_linear_expression<M>(); }
+};
+
 struct dummy_type {};
 
 constexpr bool operator<(dummy_type, dummy_type) { return true; }
@@ -71,11 +81,14 @@ concept lp_model = requires(T & model, T::variable v,
             ->std::ranges::random_access_range;
 
     { model.set_objective_offset(0.0) };
-    { model.set_objective(detail::dummy_expression<T>()) };
-    { model.add_constraint(detail::dummy_constraint<T>()) }
+    { model.set_objective(detail::dummy_linear_expression<T>()) };
+    { model.add_constraint(detail::dummy_linear_constraint<T>()) }
             -> std::same_as<typename T::constraint>;
     { model.add_constraints(detail::dummy_range<detail::dummy_type>(),
-            [](detail::dummy_type) { return detail::dummy_constraint<T>(); }) };
+                              [](detail::dummy_type) {
+                                  return detail::dummy_linear_constraint<T>();
+                              }) } 
+            -> std::ranges::range;
 
     { model.num_variables() } -> std::same_as<std::size_t>;
     { model.num_constraints() } -> std::same_as<std::size_t>;
@@ -83,6 +96,12 @@ concept lp_model = requires(T & model, T::variable v,
     { model.solve() };
     { model.get_solution_value() } -> std::same_as<typename T::scalar>;
     { model.get_solution() } /*-> input_mapping<typename T::variable>*/;
+};
+
+
+template <typename T>
+concept qp_model = lp_model<T> && requires(T & model) {
+    { model.set_objective(detail::dummy_quadratic_expression<T>()) };
 };
 
 template <typename T>
@@ -210,7 +229,7 @@ template <typename T>
 concept has_modifiable_objective =
     requires(T & model, T::variable v, T::scalar s) {
         { model.set_objective_coefficient(v, s) };
-        { model.add_objective(detail::dummy_expression<T>()) };
+        { model.add_objective(detail::dummy_linear_expression<T>()) };
     };
     
 ///////////////////////////////////////////////////////////////////////////////
@@ -355,7 +374,8 @@ concept has_sos2_constraints = requires(
 
 template <typename T>
 concept has_indicator_constraints = requires(T & model, T::variable v) {
-    { model.add_indicator_constraint(v, true, detail::dummy_constraint<T>()) }
+    { model.add_indicator_constraint(v, true, 
+                                     detail::dummy_linear_constraint<T>()) }
             -> std::same_as<typename T::constraint>;
 };
 

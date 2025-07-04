@@ -28,7 +28,7 @@ def parse_instantiate_lines(cpp_files):
                     solver, test, model = match.groups()
                     if "_lp_" in model:
                         lp_table[test].add(solver.replace("_lp", ""))
-                    else:
+                    elif "_milp_" in model:
                         milp_table[test].add(solver.replace("_milp", ""))
 
     return lp_table, milp_table
@@ -43,11 +43,12 @@ formated_test_names = [
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
     ("NamedVariablesTest", "Named variables"),
     ("AddColumnTest", "Add column"),
+    ("CuttingStockTest", "Cutting stock example"),
     ("LpStatusTest", "LP status"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),
+    ("TravellingSalesmanTest", "Travelling Salesman example"),
     ("DualSolutionTest", "Dual solution"),
-    ("SudokuTest", "Solves sudoku"),
-    ("CuttingStockTest", "Cutting stock"),
+    ("SudokuTest", "Sudoku example"),
 ]
 
 

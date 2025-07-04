@@ -78,7 +78,8 @@ public:
 
     void solve() {
         if(num_variables() == 0u) {
-            add_variable();
+            qp_status = kHighsModelStatusModelEmpty;
+            return;
         }
         check(Highs.run(model));
         qp_status = Highs.getModelStatus(model);
