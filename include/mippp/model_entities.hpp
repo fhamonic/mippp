@@ -1,8 +1,7 @@
 #ifndef MIPPP_MODEL_ENTITIES_HPP
 #define MIPPP_MODEL_ENTITIES_HPP
 
-// #include <flat_map>
-#include <map>
+#include <flat_map>
 #include <optional>
 #include <ranges>
 
@@ -269,24 +268,13 @@ using optional_type_value_t = typename T::value_type;
 template <typename Key, typename Constraint>
 class constraints_range {
 protected:
-    // flat_map will be supported in GCC 15
-    // const std::flat_map<Key, Constraint> _constraints_map;
-    std::map<Key, Constraint> _constraints_map;
+    const std::flat_map<Key, Constraint> _constraints_map;
 
 public:
-    // template <typename KR, typename CR>
-    // constexpr constraints_range(KR && keys, CR && constraints) noexcept
-    //     : _constraints_map(std::from_range_t{},
-    //                        std::views::zip(keys, constraints)) {}
     template <typename KR, typename CR>
-    constexpr constraints_range(KR && keys, CR && constraints) noexcept {
-        // if constexpr(std::ranges::sized_range<CR>) {
-        //     _constraints_map.reserve(std::ranges::size(constraints));
-        // }
-        for(auto && keyval_pair : std::views::zip(keys, constraints)) {
-            _constraints_map.insert(keyval_pair);
-        }
-    }
+    constexpr constraints_range(KR && keys, CR && constraints) noexcept
+        : _constraints_map(std::from_range_t{},
+                           std::views::zip(keys, constraints)) {}
 
     constexpr auto size() const noexcept { return _constraints_map.size(); }
     constexpr auto begin() const noexcept {

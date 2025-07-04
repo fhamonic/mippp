@@ -108,9 +108,9 @@ public:
     double get_objective_offset() { return objective_offset; }
     auto get_objective() {
         return linear_expression_view(
-           std::views::transform(
-               std::views::iota(variable_id{0}, static_cast<variable_id>(
-                                                       _lazy_num_variables)),
+            std::views::transform(
+                std::views::iota(variable_id{0},
+                                 static_cast<variable_id>(_lazy_num_variables)),
                 [coefs = Cbc.getObjCoefficients(model)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -325,17 +325,20 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        using key_t = std::ranges::range_value_t<IR>;
         tmp_entry_index_cache.resize(_lazy_num_variables);
         const int offset = static_cast<int>(_lazy_num_constraints);
         int constr_id = offset;
-        for(auto && key : keys) {
+        for(const key_t & key : keys) {
             _add_first_valued_constraint(constr_id, key, constraint_lambdas...);
             ++constr_id;
         }
-        return constraints_range(
-            keys,
-           std::views::transform(std::views::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+        if constexpr(std::strict_weak_order<std::less<key_t>, key_t, key_t>) {
+            return constraints_range(
+                keys,
+                std::views::transform(std::views::iota(offset, constr_id),
+                                      [](auto && i) { return constraint{i}; }));
+        }
     }
 
     // void set_constraint_rhs(constraint constr, double rhs) {
