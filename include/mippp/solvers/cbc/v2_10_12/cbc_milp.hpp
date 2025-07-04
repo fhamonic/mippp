@@ -335,7 +335,7 @@ public:
         }
         if constexpr(std::strict_weak_order<std::less<key_t>, key_t, key_t>) {
             return constraints_range(
-                keys,
+                std::forward<IR>(keys),
                 std::views::transform(std::views::iota(offset, constr_id),
                                       [](auto && i) { return constraint{i}; }));
         }

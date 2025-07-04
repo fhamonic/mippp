@@ -380,7 +380,7 @@ public:
                           tmp_types.data(), tmp_begins.data(),
                           tmp_indices.data(), tmp_scalars.data(), NULL, NULL));
         return constraints_range(
-            keys,
+            std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
     }

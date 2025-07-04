@@ -85,9 +85,9 @@ public:
         auto num_vars = num_variables();
         const scalar * objective = Clp.objective(model);
         return linear_expression_view(
-           std::views::transform(
-               std::views::iota(variable_id{0},
-                                   static_cast<variable_id>(num_vars)),
+            std::views::transform(
+                std::views::iota(variable_id{0},
+                                 static_cast<variable_id>(num_vars)),
                 [coefs = objective](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -293,9 +293,9 @@ public:
                     tmp_lower_bounds.data(), tmp_upper_bounds.data(),
                     tmp_begins.data(), tmp_indices.data(), tmp_scalars.data());
         return constraints_range(
-            keys,
-           std::views::transform(std::views::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+            std::forward<IR>(keys),
+            std::views::transform(std::views::iota(offset, constr_id),
+                                  [](auto && i) { return constraint{i}; }));
     }
 
     void set_constraint_rhs(constraint constr, scalar rhs) {

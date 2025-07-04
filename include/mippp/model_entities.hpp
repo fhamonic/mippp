@@ -274,7 +274,8 @@ public:
     template <typename KR, typename CR>
     constexpr constraints_range(KR && keys, CR && constraints) noexcept
         : _constraints_map(std::from_range_t{},
-                           std::views::zip(keys, constraints)) {}
+                           std::views::zip(std::forward<KR>(keys),
+                                           std::forward<CR>(constraints))) {}
 
     constexpr auto size() const noexcept { return _constraints_map.size(); }
     constexpr auto begin() const noexcept {

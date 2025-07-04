@@ -125,9 +125,9 @@ public:
     double get_objective_offset() { return SCIP.getOrigObjoffset(model); }
     auto get_objective() {
         return linear_expression_view(
-           std::views::transform(
-               std::views::iota(variable_id{0},
-                                   static_cast<variable_id>(num_variables())),
+            std::views::transform(
+                std::views::iota(variable_id{0},
+                                 static_cast<variable_id>(num_variables())),
                 [this](auto i) {
                     return std::make_pair(
                         variable(i),
@@ -151,10 +151,12 @@ private:
 
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
-        return variables_range(std::from_range_t{}, std::views::transform(
-           std::views::iota(static_cast<variable_id>(offset),
-                               static_cast<variable_id>(offset + count)),
-            [](auto && i) { return variable{i}; }));
+        return variables_range(
+            std::from_range_t{},
+            std::views::transform(
+                std::views::iota(static_cast<variable_id>(offset),
+                                 static_cast<variable_id>(offset + count)),
+                [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
     inline auto _make_indexed_variables_range(const std::size_t & offset,
@@ -162,9 +164,9 @@ private:
                                               IL && id_lambda) {
         return variables_range(
             typename detail::function_traits<IL>::arg_types(),
-           std::views::transform(
-               std::views::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
+            std::views::transform(
+                std::views::iota(static_cast<variable_id>(offset),
+                                 static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
     }
@@ -175,9 +177,9 @@ private:
                                                     NL && name_lambda) {
         return lazily_named_variables_range(
             typename detail::function_traits<IL>::arg_types(),
-           std::views::transform(
-               std::views::iota(static_cast<variable_id>(offset),
-                                   static_cast<variable_id>(offset + count)),
+            std::views::transform(
+                std::views::iota(static_cast<variable_id>(offset),
+                                 static_cast<variable_id>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda), std::forward<NL>(name_lambda), this);
     }
@@ -390,9 +392,9 @@ public:
             ++constr_id;
         }
         return constraints_range(
-            keys,
-           std::views::transform(std::views::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+            std::forward<IR>(keys),
+            std::views::transform(std::views::iota(offset, constr_id),
+                                  [](auto && i) { return constraint{i}; }));
     }
 
     // void set_constraint_rhs(constraint c, double rhs) {

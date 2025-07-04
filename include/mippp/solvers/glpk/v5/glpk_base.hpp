@@ -114,9 +114,9 @@ public:
     double get_objective_offset() { return objective_offset; }
     auto get_objective() {
         return linear_expression_view(
-           std::views::transform(
-               std::views::iota(variable_id{0},
-                                   static_cast<variable_id>(num_variables())),
+            std::views::transform(
+                std::views::iota(variable_id{0},
+                                 static_cast<variable_id>(num_variables())),
                 [this](auto i) {
                     return std::make_pair(variable(i),
                                           glp.get_obj_coef(model, i + 1));
@@ -341,9 +341,9 @@ public:
             ++constr_id;
         }
         return constraints_range(
-            keys,
-           std::views::transform(std::views::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+            std::forward<IR>(keys),
+            std::views::transform(std::views::iota(offset, constr_id),
+                                  [](auto && i) { return constraint{i}; }));
     }
 };
 

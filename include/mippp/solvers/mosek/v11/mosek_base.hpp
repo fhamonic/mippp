@@ -133,9 +133,9 @@ public:
         auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
         check(MSK.getc(task, coefs.get()));
         return linear_expression_view(
-           std::views::transform(
-               std::views::iota(variable_id{0},
-                                   static_cast<variable_id>(num_vars)),
+            std::views::transform(
+                std::views::iota(variable_id{0},
+                                 static_cast<variable_id>(num_vars)),
                 [coefs = std::move(coefs)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -381,9 +381,9 @@ public:
                                    tmp_boundkeye.data(), tmp_rhs.data(),
                                    tmp_rhs.data()));
         return constraints_range(
-            keys,
-           std::views::transform(std::views::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+            std::forward<IR>(keys),
+            std::views::transform(std::views::iota(offset, constr_id),
+                                  [](auto && i) { return constraint{i}; }));
     }
 };
 

@@ -160,8 +160,8 @@ public:
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
                                   static_cast<int>(num_vars), coefs.get()));
         return linear_expression_view(
-           std::views::transform(
-               std::views::iota(0, static_cast<int>(num_vars)),
+            std::views::transform(
+                std::views::iota(0, static_cast<int>(num_vars)),
                 [coefs = std::move(coefs)](auto && i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -388,9 +388,9 @@ public:
             tmp_types.data(), tmp_rhs.data(), NULL));
         _lazy_num_constraints += static_cast<std::size_t>(constr_id - offset);
         return constraints_range(
-            keys,
-           std::views::transform(std::views::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+            std::forward<IR>(keys),
+            std::views::transform(std::views::iota(offset, constr_id),
+                                  [](auto && i) { return constraint{i}; }));
     }
 
     void set_constraint_rhs(constraint constr, double rhs) {

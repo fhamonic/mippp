@@ -127,9 +127,9 @@ public:
                               static_cast<int>(num_vars), tmp_indices.data(),
                               coefs.get()));
         return linear_expression_view(
-           std::views::transform(
-               std::views::iota(variable_id{0},
-                                   static_cast<variable_id>(num_vars)),
+            std::views::transform(
+                std::views::iota(variable_id{0},
+                                 static_cast<variable_id>(num_vars)),
                 [coefs = std::move(coefs)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -356,9 +356,9 @@ public:
                            tmp_scalars.data(), tmp_types.data(), tmp_rhs.data(),
                            NULL, NULL));
         return constraints_range(
-            keys,
-           std::views::transform(std::views::iota(offset, constr_id),
-                                    [](auto && i) { return constraint{i}; }));
+            std::forward<IR>(keys),
+            std::views::transform(std::views::iota(offset, constr_id),
+                                  [](auto && i) { return constraint{i}; }));
     }
 
 protected:
