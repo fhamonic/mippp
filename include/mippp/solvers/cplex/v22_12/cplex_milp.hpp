@@ -117,6 +117,11 @@ private:
         CPXCALLBACKCONTEXTptr context;
         cplex_milp * model;
 
+        void cbcheck(int error) {
+            if(error == 0) return;
+            CPX.callbackabort(context);
+        }
+
     public:
         callback_handle_base(const cplex_api & api,
                              CPXCALLBACKCONTEXTptr context_,
@@ -146,20 +151,20 @@ public:
             int matbegin = 0;
             const double b = lc.rhs();
             const char sense = constraint_sense_to_cplex_sense(lc.sense());
-            check(CPX.callbackrejectcandidate(
+            cbcheck(CPX.callbackrejectcandidate(
                 context, 1, static_cast<int>(tmp_indices.size()), &b, &sense,
                 &matbegin, tmp_indices.data(), tmp_scalars.data()));
         }
 
         double get_solution_value() {
             double obj;
-            check(CPX.callbackgetcandidatepoint(context, NULL, 0, 0, &obj));
+            cbcheck(CPX.callbackgetcandidatepoint(context, NULL, 0, 0, &obj));
             return obj;
         }
         auto get_solution() {
             auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            check(CPX.callbackgetcandidatepoint(context, solution.get(), 0,
+            cbcheck(CPX.callbackgetcandidatepoint(context, solution.get(), 0,
                                                 static_cast<int>(num_vars) - 1,
                                                 NULL));
             return variable_mapping(std::move(solution));

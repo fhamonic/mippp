@@ -194,6 +194,8 @@ int CPXcallbackaddusercuts(CPXCALLBACKCONTEXTptr context, int rcnt, int nzcnt,
                            double const * rmatval, int const * purgeable,
                            int const * local);
 
+void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
+
 }  // namespace cplex::v22_12
 }  // namespace fhamonic::mippp
 #endif
@@ -259,7 +261,8 @@ namespace cplex::v22_12 {
     F(CPXcallbackgetcandidatepoint, callbackgetcandidatepoint)       \
     F(CPXcallbackrejectcandidate, callbackrejectcandidate)           \
     F(CPXcallbackrejectcandidatelocal, callbackrejectcandidatelocal) \
-    F(CPXcallbackaddusercuts, callbackaddusercuts)
+    F(CPXcallbackaddusercuts, callbackaddusercuts)                   \
+    F(CPXcallbackabort, callbackabort)
 
 #define DECLARE_CPLEX_FUN(FULL, SHORT)    \
     using SHORT##_fun_t = decltype(FULL); \

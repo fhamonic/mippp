@@ -78,27 +78,107 @@ public:
         check(XPRS.chgcoltype(prob, 1, &var_id, &type));
     }
 
+private:
+    class callback_handle_base : public model_base<int, double> {
+    protected:
+        const xpress_api & XPRS;
+        XPRSprob prob;
+        const double objective_offset;
+
+        void check(int error) {
+            if(error == 0) return;
+            char errmsg[512];
+            check(XPRS.getlasterror(prob, errmsg));
+            throw std::runtime_error("Xpress: error " + std::to_string(error) +
+                                     ": " + errmsg);
+        }
+
+    public:
+        callback_handle_base(const xpress_api & api, XPRSprob prob_,
+                             const double obj_offset)
+            : model_base<int, double>()
+            , XPRS(api)
+            , prob(prob_)
+            , objective_offset(obj_offset) {}
+
+        std::size_t num_variables() {
+            int num_vars;
+            check(XPRS.getintattrib(prob, XPRS_COLS, &num_vars));
+            return static_cast<std::size_t>(num_vars);
+        }
+    };
+
+public:
+    class candidate_solution_callback_handle : public callback_handle_base {
+    private:
+        int * reject;
+
+    public:
+        candidate_solution_callback_handle(const xpress_api & api,
+                                           XPRSprob prob_,
+                                           const double obj_offset,
+                                           int * reject_)
+            : callback_handle_base(api, prob_, obj_offset) {}
+
+        void reject_solution() { *reject = 1; }
+
+        double get_solution_value() {
+            double val;
+            check(XPRS.getdblattrib(prob, XPRS_MIPOBJVAL, &val));
+            return objective_offset + val;
+        }
+        auto get_solution() {
+            const auto num_vars = num_variables();
+            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
+            check(XPRS.getsolution(prob, NULL, solution.get(), 0,
+                                   static_cast<int>(num_vars) - 1));
+            return variable_mapping(std::move(solution));
+        }
+    };
+
+private:
+    std::function<void(candidate_solution_callback_handle &)>
+        candidate_solution_callback;
+
+    static int candidate_solution_callback_fun(XPRSprob cbprob, void * cbdata,
+                                               int soltype, int * p_reject,
+                                               double * p_cutoff) {
+        auto * model = static_cast<xpress_milp *>(cbdata);
+        candidate_solution_callback_handle handle(
+            model->XPRS, cbprob, model->objective_offset, p_reject);
+        model->candidate_solution_callback(handle);
+        return 0;
+    }
+
+public:
+    template <typename F>
+    void set_candidate_solution_callback(F && f) {
+        candidate_solution_callback = std::forward<F>(f);
+        check(XPRS.addcbpreintsol(prob, candidate_solution_callback_fun, this,
+                                  1));
+    }
+
     // void set_optimality_tolerance(double tol) {
     //     check(
-    //         CPX.setdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality,
+    //         XPRS.setdblparam(env, XPRSPARAM_Simplex_Tolerances_Optimality,
     //         tol));
     // }
     // double get_optimality_tolerance() {
     //     double tol;
     //     check(
-    //         CPX.getdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality,
+    //         XPRS.getdblparam(env, XPRSPARAM_Simplex_Tolerances_Optimality,
     //         &tol));
     //     return tol;
     // }
 
     // void set_feasibility_tolerance(double tol) {
     //     check(
-    //         CPX.setdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
+    //         XPRS.setdblparam(env, XPRSPARAM_Simplex_Tolerances_Feasibility,
     //         tol));
     // }
     // double get_feasibility_tolerance() {
     //     double tol;
-    //     check(CPX.getdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
+    //     check(XPRS.getdblparam(env, XPRSPARAM_Simplex_Tolerances_Feasibility,
     //                           &tol));
     //     return tol;
     // }

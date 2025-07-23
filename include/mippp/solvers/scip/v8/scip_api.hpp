@@ -9,6 +9,7 @@
 #include "scip/cons_linear.h"
 #include "scip/retcode.h"
 #include "scip/scip.h"
+#include "scip/struct_cons.h"
 #else
 namespace fhamonic::mippp {
 namespace scip::v8 {
@@ -117,6 +118,8 @@ SCIP_RETCODE SCIPsolve(SCIP * scip);
 SCIP_Real SCIPgetPrimalbound(SCIP * scip);
 SCIP_SOL * SCIPgetBestSol(SCIP * scip);
 SCIP_Real SCIPgetSolVal(SCIP * scip, SCIP_SOL * sol, SCIP_VAR * var);
+SCIP_RETCODE SCIPgetSolVals(SCIP * scip, SCIP_SOL * sol, int nvars,
+                            SCIP_VAR ** vars, SCIP_Real * vals);
 
 // SCIPfeastol
 
@@ -126,6 +129,11 @@ SCIP_Real SCIPgetSolVal(SCIP * scip, SCIP_SOL * sol, SCIP_VAR * var);
 // SCIPflushRowExtensions
 // SCIPaddRow
 
+struct SCIP_Conshdlr {
+    char pad1[480];
+    void * conshdlrdata;
+    char pad2[448];
+};
 using SCIP_CONSHDLR = struct SCIP_Conshdlr;
 
 enum SCIP_RESULT {
@@ -154,30 +162,30 @@ enum SCIP_RESULT {
                            stopped and continued later */
 };
 
-#define SCIP_DECL_CONSENFOLP(x)                                               \
-    SCIP_RETCODE x(SCIP * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss, \
-                   int nconss, int nusefulconss, SCIP_Bool solinfeasible,     \
-                   SCIP_RESULT * result)
-
-#define SCIP_DECL_CONSENFOPS(x)                                               \
-    SCIP_RETCODE x(SCIP * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss, \
-                   int nconss, int nusefulconss, SCIP_Bool solinfeasible,     \
-                   SCIP_Bool objinfeasible, SCIP_RESULT * result)
-
-#define SCIP_DECL_CONSCHECK(x)                                                \
-    SCIP_RETCODE x(SCIP * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss, \
-                   int nconss, SCIP_SOL * sol, SCIP_Bool checkintegrality,    \
-                   SCIP_Bool checklprows, SCIP_Bool printreason,              \
-                   SCIP_Bool completely, SCIP_RESULT * result)
+using SCIP_CONSENFOLP = SCIP_RETCODE(SCIP * scip, SCIP_CONSHDLR * conshdlr,
+                                     SCIP_CONS ** conss, int nconss,
+                                     int nusefulconss, SCIP_Bool solinfeasible,
+                                     SCIP_RESULT * result);
+using SCIP_CONSENFOPS = SCIP_RETCODE(SCIP * scip, SCIP_CONSHDLR * conshdlr,
+                                     SCIP_CONS ** conss, int nconss,
+                                     int nusefulconss, SCIP_Bool solinfeasible,
+                                     SCIP_Bool objinfeasible,
+                                     SCIP_RESULT * result);
+using SCIP_CONSCHECK = SCIP_RETCODE(SCIP * scip, SCIP_CONSHDLR * conshdlr,
+                                    SCIP_CONS ** conss, int nconss,
+                                    SCIP_SOL * sol, SCIP_Bool checkintegrality,
+                                    SCIP_Bool checklprows,
+                                    SCIP_Bool printreason, SCIP_Bool completely,
+                                    SCIP_RESULT * result);
 
 enum SCIP_LOCKTYPE {
     SCIP_LOCKTYPE_MODEL =
         0, /**< variable locks for model and check constraints */
     SCIP_LOCKTYPE_CONFLICT = 1 /**< variable locks for conflict constraints */
 };
-#define SCIP_DECL_CONSLOCK(x)                                               \
-    SCIP_RETCODE x(SCIP * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS * cons, \
-                   SCIP_LOCKTYPE locktype, int nlockspos, int nlocksneg)
+using SCIP_CONSLOCK = SCIP_RETCODE(SCIP * scip, SCIP_CONSHDLR * conshdlr,
+                                   SCIP_CONS * cons, SCIP_LOCKTYPE locktype,
+                                   int nlockspos, int nlocksneg);
 
 using SCIP_CONSHDLRDATA = struct SCIP_ConshdlrData;
 
@@ -198,15 +206,14 @@ SCIP_RETCODE SCIPincludeConshdlrBasic(
                           */
     SCIP_Bool needscons, /**< should the constraint handler be skipped, if no
                             constraints are available? */
-    SCIP_DECL_CONSENFOLP(
-        (*consenfolp)), /**< enforcing constraints for LP solutions */
-    SCIP_DECL_CONSENFOPS(
-        (*consenfops)), /**< enforcing constraints for pseudo solutions */
-    SCIP_DECL_CONSCHECK(
-        (*conscheck)), /**< check feasibility of primal solution */
-    SCIP_DECL_CONSLOCK((*conslock)), /**< variable rounding lock method */
+    SCIP_CONSENFOLP * consenfolp, /**< enforcing constraints for LP solutions */
+    SCIP_CONSENFOPS *
+        consenfops, /**< enforcing constraints for pseudo solutions */
+    SCIP_CONSCHECK * conscheck, /**< check feasibility of primal solution */
+    SCIP_CONSLOCK * conslock,   /**< variable rounding lock method */
     SCIP_CONSHDLRDATA * conshdlrdata /**< constraint handler data */
 );
+SCIP_CONSHDLRDATA * SCIPconshdlrGetData(SCIP_CONSHDLR * conshdlr);
 
 }  // namespace scip::v8
 }  // namespace fhamonic::mippp
@@ -253,7 +260,10 @@ namespace scip::v8 {
     F(SCIPsolve, solve)                                 \
     F(SCIPgetPrimalbound, getPrimalbound)               \
     F(SCIPgetBestSol, getBestSol)                       \
-    F(SCIPgetSolVal, getSolVal)
+    F(SCIPgetSolVal, getSolVal)                         \
+    F(SCIPgetSolVals, getSolVals)                       \
+    F(SCIPincludeConshdlrBasic, includeConshdlrBasic)   \
+    F(SCIPconshdlrGetData, conshdlrGetData)
 
 #define DECLARE_SCIP_FUN(FULL, SHORT)     \
     using SHORT##_fun_t = decltype(FULL); \

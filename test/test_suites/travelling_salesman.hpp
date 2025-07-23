@@ -73,16 +73,15 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
         auto solution_graph = melon::views::subgraph(
             graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
 
-        for(auto component :
+        for(auto && component :
             melon::strongly_connected_components(solution_graph)) {
+            const std::size_t tour_size = component.size();
+            if(tour_size == graph.num_vertices()) return;
+            
             auto component_vertex_filter =
                 melon::create_vertex_map<bool>(graph, false);
-            std::size_t tour_size = 0u;
-            for(const auto & v : component) {
-                component_vertex_filter[v] = true;
-                ++tour_size;
-            }
-            if(tour_size == graph.num_vertices()) return;
+            for(auto && v : component) component_vertex_filter[v] = true;
+
             auto tour_induced_subgraph =
                 melon::views::subgraph(graph, component_vertex_filter, {});
             handle.add_lazy_constraint(

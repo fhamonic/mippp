@@ -13,6 +13,9 @@
 
 #include "mippp/solvers/scip/v8/scip_api.hpp"
 
+#include <iostream>
+#include <format>
+
 namespace fhamonic::mippp {
 namespace scip::v8 {
 
@@ -37,7 +40,7 @@ public:
     static constexpr variable_params default_variable_params = {
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
-private:
+protected:
     const scip_api & SCIP;
     struct Scip * model;
     std::vector<SCIP_VAR *> variables;
@@ -81,7 +84,7 @@ private:
         "no branching could be created",               // SCIP_BRANCHERROR
         "function not implemented"};                   // SCIP_NOTIMPLEMENTED
 
-    int check(int retval) {
+    static constexpr int check(int retval) {
         if(retval > 0) return retval;
         throw std::runtime_error(std::string("scip_milp: ") +
                                  error_messages[-retval]);
@@ -444,6 +447,88 @@ public:
     //     return std::string(name);
     // }
 
+private:
+    class callback_handle_base {
+    protected:
+        const scip_api & SCIP;
+        scip_milp & milp;
+        SCIP_RESULT * result;
+
+    public:
+        callback_handle_base(const scip_api & api, scip_milp & milp_,
+                             SCIP_RESULT * result_)
+            : SCIP(api), milp(milp_), result(result_) {}
+
+        std::size_t num_variables() { return milp.num_variables(); }
+    };
+
+public:
+    class candidate_solution_callback_handle : public callback_handle_base {
+    public:
+        candidate_solution_callback_handle(const scip_api & api,
+                                           scip_milp & milp_,
+                                           SCIP_RESULT * result_)
+            : callback_handle_base(api, milp_, result_) {
+            *result = SCIP_FEASIBLE;
+        }
+
+        void reject_solution() { *result = SCIP_INFEASIBLE; }
+
+        void add_lazy_constraint(linear_constraint auto && lc) {
+            milp.add_constraint(lc);
+            *result = SCIP_CONSADDED;
+        }
+
+        // double get_solution_value() {
+        //     double obj;
+        //     check(SCIP.callbackgetcandidatepoint(context, NULL, 0, 0, &obj));
+        //     return obj;
+        // }
+        auto get_solution() {
+            auto num_vars = num_variables();
+            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
+            SCIP_SOL * sol = SCIP.getBestSol(milp.model);
+            SCIP.getSolVals(milp.model, sol, static_cast<int>(num_vars),
+                            milp.variables.data(), solution.get());
+            return variable_mapping(std::move(solution));
+        }
+    };
+
+private:
+    SCIP_CONSHDLR * candidate_solution_constraint_handler;
+    std::function<void(candidate_solution_callback_handle &)>
+        candidate_solution_callback;
+
+    static SCIP_RETCODE candidate_solution_callback_fun(
+        struct Scip * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss,
+        int nconss, int nusefulconss, SCIP_Bool solinfeasible,
+        SCIP_RESULT * result) {
+            
+        std::cout << std::format("*ptr = {:p}\n", *((void**)conshdlr->conshdlrdata));
+
+        auto * model = *(static_cast<scip_milp **>(conshdlr->conshdlrdata));
+        // candidate_solution_callback_handle handle(model->SCIP, *model,
+        // result); model->candidate_solution_callback(handle);
+        return SCIP_OKAY;
+    }
+
+public:
+    template <typename F>
+    void set_candidate_solution_callback(F && f) {
+        candidate_solution_callback = std::forward<F>(f);
+
+        auto ptr = static_cast<scip_milp **>(malloc(sizeof(scip_milp **)));
+        *ptr = this;
+
+    std::cout << std::format("this = {:p}\n", (void*)(*ptr));
+
+        check(SCIP.includeConshdlrBasic(
+            model, &candidate_solution_constraint_handler,
+            "candidate_solution_callback", "candidate_solution_callback", -1,
+            -1, -1, false, NULL, NULL, NULL, NULL,
+            reinterpret_cast<SCIP_CONSHDLRDATA *>(ptr)));
+    }
+
     void set_feasibility_tolerance(double tol) {
         check(SCIPsetRealParam(model, "numerics/feastol", tol));
     }
@@ -470,9 +555,8 @@ public:
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         SCIP_SOL * sol = SCIP.getBestSol(model);
-        for(std::size_t i = 0; i < variables.size(); ++i) {
-            solution[i] = SCIP.getSolVal(model, sol, variables[i]);
-        }
+        check(SCIP.getSolVals(model, sol, static_cast<int>(num_vars),
+                              variables.data(), solution.get()));
         return variable_mapping(std::move(solution));
     }
 };
