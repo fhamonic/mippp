@@ -122,7 +122,7 @@ for(auto && a : graph.arcs()) {
 
 ```cpp
 melon::static_graph graph = ...;
-std::vector<std::vector<int>> distances = ...
+std::vector<double> lengths = ...
 ...
 gurobi_api api();
 gurobi_lp model(api);
@@ -131,7 +131,7 @@ auto X_vars = model.add_binary_variables(graph.num_arcs());
 
 model.set_minimization();
 model.set_objective(xsum(graph.arcs(), [&](auto && a) {
-    return distances[graph.arc_source(a)][graph.arc_target(a)] * X_vars(a);
+    return lengths[a] * X_vars(a);
 }));
 
 model.add_constraints(graph.vertices(), [&](auto && u) {
@@ -146,21 +146,15 @@ model.set_candidate_solution_callback([&](auto & handle) {
     auto solution_graph = melon::views::subgraph(
         graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
 
-    for(auto && component :
+    for(auto && tour :
         melon::strongly_connected_components(solution_graph)) {
-        const std::size_t tour_size = component.size();
-        // if the tour is Hamiltonian no need to add constraints
-        if(tour_size == graph.num_vertices()) return;
-        
-        auto component_vertex_filter =
-            melon::create_vertex_map<bool>(graph, false);
-        for(const auto & v : component) component_vertex_filter[v] = true;
+        if(tour.size() == graph.num_vertices()) return;
 
         auto tour_induced_subgraph =
-            melon::views::subgraph(graph, component_vertex_filter, {});
+            melon::views::induced_subgraph(graph, tour);
         handle.add_lazy_constraint(
             xsum(melon::arcs(tour_induced_subgraph), X_vars) <=
-            static_cast<int>(tour_size) - 1);
+            static_cast<int>(tour.size()) - 1);
     }
 });
 
