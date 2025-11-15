@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "melon/algorithm/breadth_first_search.hpp"
-#include "melon/algorithm/depth_first_search.hpp"
-#include "melon/algorithm/strongly_connected_components.hpp"
+#include "melon/algorithm/traversal_forest.hpp"
+// #include "melon/algorithm/strongly_connected_components.hpp"
 #include "melon/container/static_digraph.hpp"
 #include "melon/utility/static_digraph_builder.hpp"
 #include "melon/views/subgraph.hpp"
@@ -73,10 +73,8 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
         auto solution_graph = melon::views::subgraph(
             graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
 
-        for(auto && tour :
-            melon::strongly_connected_components(solution_graph)) {
+        for(auto && tour : melon::traversal_forest(solution_graph)) {
             if(tour.size() == graph.num_vertices()) return;
-
             auto tour_induced_subgraph =
                 melon::views::induced_subgraph(graph, tour);
             handle.add_lazy_constraint(

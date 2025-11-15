@@ -133,23 +133,19 @@ model.set_minimization();
 model.set_objective(xsum(graph.arcs(), [&](auto && a) {
     return lengths[a] * X_vars(a);
 }));
-
 model.add_constraints(graph.vertices(), [&](auto && u) {
     return xsum(graph.in_arcs(u), X_vars) == 1;
 });
 model.add_constraints(graph.vertices(), [&](auto && u) {
     return xsum(graph.out_arcs(u), X_vars) == 1;
 });
-
 model.set_candidate_solution_callback([&](auto & handle) {
     auto solution = handle.get_solution();
     auto solution_graph = melon::views::subgraph(
         graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
 
-    for(auto && tour :
-        melon::strongly_connected_components(solution_graph)) {
+    for(auto && tour : melon::traversal_forest(solution_graph)) {
         if(tour.size() == graph.num_vertices()) return;
-
         auto tour_induced_subgraph =
             melon::views::induced_subgraph(graph, tour);
         handle.add_lazy_constraint(
