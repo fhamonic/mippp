@@ -49,6 +49,7 @@ formated_test_names = [
     ("TravellingSalesmanTest", "Travelling Salesman example"),
     ("DualSolutionTest", "Dual solution"),
     ("SudokuTest", "Sudoku example"),
+    ("MipStartTest", "MIP start"),
 ]
 
 

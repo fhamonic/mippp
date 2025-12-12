@@ -303,12 +303,41 @@ concept has_readable_constraints =
     };
 
 ///////////////////////////////////////////////////////////////////////////////
+///////////////////////////// Special constraints /////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+concept has_sos1_constraints = requires(
+    T & model, std::initializer_list<typename T::variable> init_variables) {
+    { model.add_sos1_constraint(detail::dummy_range<typename T::variable>()) }
+            -> std::same_as<typename T::constraint>;
+    { model.add_sos1_constraint(init_variables) }
+            -> std::same_as<typename T::constraint>;
+};
+
+template <typename T>
+concept has_sos2_constraints = requires(
+    T & model, std::initializer_list<typename T::variable> init_variables) {
+    { model.add_sos2_constraint(detail::dummy_range<typename T::variable>()) }
+            -> std::same_as<typename T::constraint>;
+    { model.add_sos2_constraint(init_variables) }
+            -> std::same_as<typename T::constraint>;
+};
+
+template <typename T>
+concept has_indicator_constraints = requires(T & model, T::variable v) {
+    { model.add_indicator_constraint(v, true, 
+                                     detail::dummy_linear_constraint<T>()) }
+            -> std::same_as<typename T::constraint>;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// Column generation //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
 concept has_add_column = requires(
-    T & model, T::constraint c, T::scalar s,
+    T & model, T::scalar s,
     std::initializer_list<std::pair<typename T::constraint, typename T::scalar>>
         init_entries) {
     { model.add_column(detail::dummy_range<
@@ -342,7 +371,7 @@ enum basis_status : int {
 
 template <typename T>
 concept has_lp_basis_warm_start =
-    requires(T & model, T::variable v, T::constraint c, T::scalar s) {
+    requires(T & model, T::variable v, T::constraint c) {
         { model.get_variable_basis_status(v) } -> std::same_as<basis_status>;
         { model.set_variable_basis_status(v, basis_status::basic) };
 
@@ -351,33 +380,18 @@ concept has_lp_basis_warm_start =
     };
 
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////// Special constraints /////////////////////////////
+////////////////////////////////// MIP start //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-concept has_sos1_constraints = requires(
-    T & model, std::initializer_list<typename T::variable> init_variables) {
-    { model.add_sos1_constraint(detail::dummy_range<typename T::variable>()) }
-            -> std::same_as<typename T::constraint>;
-    { model.add_sos1_constraint(init_variables) }
-            -> std::same_as<typename T::constraint>;
-};
-
-template <typename T>
-concept has_sos2_constraints = requires(
-    T & model, std::initializer_list<typename T::variable> init_variables) {
-    { model.add_sos2_constraint(detail::dummy_range<typename T::variable>()) }
-            -> std::same_as<typename T::constraint>;
-    { model.add_sos2_constraint(init_variables) }
-            -> std::same_as<typename T::constraint>;
-};
-
-template <typename T>
-concept has_indicator_constraints = requires(T & model, T::variable v) {
-    { model.add_indicator_constraint(v, true, 
-                                     detail::dummy_linear_constraint<T>()) }
-            -> std::same_as<typename T::constraint>;
-};
+concept has_mip_start =
+    requires(T & model,
+    std::initializer_list<std::pair<typename T::variable, typename T::scalar>>
+        init_entries) {
+    { model.set_mip_start(detail::dummy_range<
+                std::pair<typename T::variable, typename T::scalar>>()) };
+    { model.set_mip_start(init_entries) };
+    };
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Callbacks //////////////////////////////////

@@ -25,6 +25,7 @@ template <typename T>
 struct TravellingSalesmanTest : public T {
     using typename T::model_type;
     static_assert(milp_model<model_type>);
+    static_assert(has_candidate_solution_callback<model_type>);
 };
 TYPED_TEST_SUITE_P(TravellingSalesmanTest);
 

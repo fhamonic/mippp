@@ -115,6 +115,7 @@ constexpr const char * GRB_DBL_ATTR_RHS = "RHS";        // constraint rhs
 constexpr const char * GRB_DBL_ATTR_OBJVAL = "ObjVal";  // solution value
 constexpr const char * GRB_DBL_ATTR_X = "X";            // solution
 constexpr const char * GRB_DBL_ATTR_PI = "Pi";          // dual solution
+constexpr const char * GRB_DBL_ATTR_START = "Start";    // MIP start
 int GRBsetdblattr(GRBmodel * model, const char * attrname, double newvalue);
 int GRBgetdblattr(GRBmodel * model, const char * attrname, double * valueP);
 int GRBsetdblattrelement(GRBmodel * model, const char * attrname, int element,

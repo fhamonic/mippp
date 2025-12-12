@@ -42,6 +42,7 @@ struct model_test : public ::testing::Test {
 #include "lp_model.hpp"
 #include "lp_status.hpp"
 #include "milp_model.hpp"
+#include "mip_start.hpp"
 #include "modifiable_objective.hpp"
 #include "modifiable_variables_bounds.hpp"
 #include "named_variables.hpp"

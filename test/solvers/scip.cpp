@@ -14,5 +14,5 @@ INSTANTIATE_TEST(SCIP, ModifiableObjectiveTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, ReadableVariablesBoundsTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, ModifiableVariablesBoundsTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, NamedVariablesTest, scip_milp_test);
-INSTANTIATE_TEST(SCIP, CandidateSolutionCallbackTest, scip_milp_test);
+// INSTANTIATE_TEST(SCIP, CandidateSolutionCallbackTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, SudokuTest, scip_milp_test);

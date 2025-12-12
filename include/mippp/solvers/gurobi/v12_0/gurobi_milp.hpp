@@ -85,12 +85,12 @@ public:
                                      GRB_BINARY));
     }
 
-    // add_sos1_constraint
-    // add_sos2_constraint
+    /////////////////////////// Special constraints ///////////////////////////
+    // void add_sos1_constraint(VR && variables)
+    // void add_sos2_constraint(VR && variables)
 
-    constraint add_indicator_constraint(variable x, bool val,
-                                        linear_constraint auto && lc) {
-        const int constr_id = static_cast<int>(_lazy_num_constraints++);
+    void add_indicator_constraint(variable x, bool val,
+                                  linear_constraint auto && lc) {
         _reset_cache(_lazy_num_variables);
         _register_entries(lc.linear_terms());
         check(GRB.addgenconstrIndicator(
@@ -98,9 +98,30 @@ public:
             static_cast<int>(tmp_indices.size()), tmp_indices.data(),
             tmp_scalars.data(), constraint_sense_to_gurobi_sense(lc.sense()),
             lc.rhs()));
-        return constraint(constr_id);
     }
 
+    //////////////////////////////// MIP start ////////////////////////////////
+private:
+    template <typename ER>
+    inline void _set_mip_start(ER && entries) {
+        _reset_cache(_lazy_num_variables);
+        _register_raw_entries(entries);
+        check(GRB.setdblattrlist(model, GRB_DBL_ATTR_START,
+                                 static_cast<int>(tmp_indices.size()),
+                                 tmp_indices.data(), tmp_scalars.data()));
+    }
+
+public:
+    template <std::ranges::range ER>
+    void set_mip_start(ER && entries) {
+        _set_mip_start(entries);
+    }
+    void set_mip_start(
+        std::initializer_list<std::pair<variable, scalar>> entries) {
+        _set_mip_start(entries);
+    }
+
+    //////////////////////////////// Callbacks ////////////////////////////////
 private:
     class callback_handle_base : public model_base<int, double> {
     protected:
@@ -171,6 +192,7 @@ private:
         check(GRB.setcallbackfunc(model, main_callback, this));
     }
 
+    ////////////////////////// Tolerance parameters ///////////////////////////
 public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {

@@ -27,6 +27,7 @@ INSTANTIATE_TEST(Gurobi_milp, ReadableObjectiveTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ModifiableObjectiveTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ReadableVariablesBoundsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ModifiableVariablesBoundsTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, MipStartTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, NamedVariablesTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, AddColumnTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, CandidateSolutionCallbackTest, gurobi_milp_test);
