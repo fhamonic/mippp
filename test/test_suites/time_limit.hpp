@@ -15,15 +15,14 @@
 namespace fhamonic::mippp {
 
 template <typename T>
-struct MipStartTest : public T {
+struct TimeLimitTest : public T {
     using typename T::model_type;
     static_assert(milp_model<model_type>);
-    static_assert(has_mip_start<model_type>);
     static_assert(has_time_limit<model_type>);
 };
-TYPED_TEST_SUITE_P(MipStartTest);
+TYPED_TEST_SUITE_P(TimeLimitTest);
 
-TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
+TYPED_TEST_P(TimeLimitTest, quadratic_knapsack) {
     using namespace operators;
 
     constexpr std::size_t num_items = 20;
@@ -32,9 +31,6 @@ TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
     auto items_pairs = std::views::filter(
         std::views::cartesian_product(items, items),
         [](auto && p) { return std::get<0>(p) < std::get<1>(p); });
-
-    std::chrono::microseconds default_time_us_sum{0};
-    std::chrono::microseconds mipstarted_time_us_sum{0};
 
     // clang-format off
     // r_100_25_1
@@ -140,104 +136,54 @@ TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
                                                                                                                                                                                                                                                                                                                                                                                                             {  0,  0 },
                                                                                                                                                                                                                                                                                                                                                                                                                 {  0 }};
     const int costs[100] = {28,  8, 24, 38, 26, 47, 46, 23, 18, 18, 34, 36, 12, 33, 32, 29, 35, 10,  2,  1, 37, 35, 12, 36, 33,  8, 34, 36,  2, 36,  3, 44, 42,  9,  7, 32, 12,  5,  4, 50, 48, 30, 39, 46, 26,  5, 44, 28, 21, 24, 45, 11, 20, 45, 21, 24, 37,  8,  7, 49, 25, 44, 16,  9, 37,  8,  1, 17, 42, 12, 32, 49, 20, 42, 48, 47, 11,  1,  9, 16,  3, 48, 27, 18, 23, 38, 30,  3, 48, 20, 36, 46, 20,  8, 16, 50, 32, 49, 12, 14 };
+    const int budget = static_cast<int>(6.69 * num_items);
     // clang-format on
-    const int budget = 150;  // 669;
 
     auto qvalue = [&](auto i, auto j) {
         if(i > j) std::swap(i, j);
         return qvalues[i][j - i - 1];
     };
 
-    auto default_model = this->new_model();
-    auto default_X = default_model.add_binary_variables(num_items);
-    auto default_Z = default_model.add_variables(
-        num_items_pairs, [&](std::size_t i, std::size_t j) {
+    auto model = this->new_model();
+    auto X = model.add_binary_variables(num_items);
+    auto Z =
+        model.add_variables(num_items_pairs, [&](std::size_t i, std::size_t j) {
             assert(i < j);
             return j * num_items + i - ((j + 1) * (j + 2)) / 2;
         });
-    default_model.set_maximization();
-    default_model.set_objective(
-        xsum(items, [&](auto i) { return values[i] * default_X(i); }) +
-        xsum(items_pairs, [&](auto p) {
-            auto [i, j] = p;
-            return qvalue(i, j) * default_Z(i, j);
-        }));
-    default_model.add_constraints(items_pairs, [&](auto p) {
+    model.set_maximization();
+    model.set_objective(xsum(items, [&](auto i) { return values[i] * X(i); }) +
+                        xsum(items_pairs, [&](auto p) {
+                            auto [i, j] = p;
+                            return qvalue(i, j) * Z(i, j);
+                        }));
+    model.add_constraints(items_pairs, [&](auto p) {
         auto [i, j] = p;
-        return default_Z(i, j) <= default_X(i);
+        return Z(i, j) <= X(i);
     });
-    default_model.add_constraints(items_pairs, [&](auto p) {
+    model.add_constraints(items_pairs, [&](auto p) {
         auto [i, j] = p;
-        return default_Z(i, j) <= default_X(j);
+        return Z(i, j) <= X(j);
     });
-    default_model.add_constraints(items_pairs, [&](auto p) {
+    model.add_constraints(items_pairs, [&](auto p) {
         auto [i, j] = p;
-        return default_Z(i, j) >= default_X(1) + default_X(j) - 1;
+        return Z(i, j) >= X(1) + X(j) - 1;
     });
-    default_model.add_constraint(
-        xsum(items, [&](auto i) { return costs[i] * default_X(i); }) <= budget);
+    model.add_constraint(xsum(items, [&](auto i) { return costs[i] * X(i); }) <=
+                         budget);
 
-    auto default_start = std::chrono::system_clock::now();
-    default_model.solve();
-    auto default_end = std::chrono::system_clock::now();
-    default_time_us_sum +=
-        std::chrono::duration_cast<std::chrono::microseconds>(default_end -
-                                                              default_start);
+    model.set_time_limit(std::chrono::milliseconds(1));
 
-    auto solution = default_model.get_solution();
+    auto start = std::chrono::system_clock::now();
+    model.solve();
+    auto end = std::chrono::system_clock::now();
+    auto time_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-    auto mipstarted_model = this->new_model();
-    auto mipstarted_X = mipstarted_model.add_binary_variables(num_items);
-    auto mipstarted_Z = mipstarted_model.add_variables(
-        num_items_pairs, [&](std::size_t i, std::size_t j) {
-            assert(i < j);
-            return j * num_items + i - ((j + 1) * (j + 2)) / 2;
-        });
-    mipstarted_model.set_maximization();
-    mipstarted_model.set_objective(
-        xsum(items, [&](auto i) { return values[i] * mipstarted_X(i); }) +
-        xsum(items_pairs, [&](auto p) {
-            auto [i, j] = p;
-            return qvalue(i, j) * mipstarted_Z(i, j);
-        }));
-    mipstarted_model.add_constraints(items_pairs, [&](auto p) {
-        auto [i, j] = p;
-        return mipstarted_Z(i, j) <= mipstarted_X(i);
-    });
-    mipstarted_model.add_constraints(items_pairs, [&](auto p) {
-        auto [i, j] = p;
-        return mipstarted_Z(i, j) <= mipstarted_X(j);
-    });
-    mipstarted_model.add_constraints(items_pairs, [&](auto p) {
-        auto [i, j] = p;
-        return mipstarted_Z(i, j) >= mipstarted_X(1) + mipstarted_X(j) - 1;
-    });
-    mipstarted_model.add_constraint(xsum(items, [&](auto i) {
-                                        return costs[i] * mipstarted_X(i);
-                                    }) <= budget);
-
-    mipstarted_model.set_mip_start(std::views::transform(items, [&](auto i) {
-        return std::make_pair(mipstarted_X(i), solution[default_X(i)]);
-    }));
-
-    mipstarted_model.set_time_limit(std::chrono::milliseconds(100));
-
-    auto mipstarted_start = std::chrono::system_clock::now();
-    mipstarted_model.solve();
-    auto mipstarted_end = std::chrono::system_clock::now();
-    mipstarted_time_us_sum +=
-        std::chrono::duration_cast<std::chrono::microseconds>(mipstarted_end -
-                                                              mipstarted_start);
-
-    std::cout << "default avg.    : " << default_time_us_sum / 10 << std::endl;
-    std::cout << "mipstarted avg. : " << mipstarted_time_us_sum / 10
-              << std::endl;
-    // ASSERT_TRUE(mipstarted_time_us_sum < 0.95 * default_time_us_sum);
-
-    ASSERT_DOUBLE_EQ(mipstarted_model.get_solution_value(),
-                     default_model.get_solution_value());
+    std::cout << time_us << std::endl;
+    ASSERT_LE(std::chrono::milliseconds(1), 10 * time_us);
 }
 
-REGISTER_TYPED_TEST_SUITE_P(MipStartTest, quadratic_knapsack);
+REGISTER_TYPED_TEST_SUITE_P(TimeLimitTest, quadratic_knapsack);
 
 }  // namespace fhamonic::mippp

@@ -72,6 +72,7 @@ int Cbc_isProvenInfeasible(Cbc_Model * model);
 int Cbc_isContinuousUnbounded(Cbc_Model * model);
 double Cbc_getObjValue(Cbc_Model * model);
 const double * Cbc_getColSolution(Cbc_Model * model);
+double * Cbc_bestSolution(Cbc_Model * model);
 
 using cbc_cut_callback = void(void * osiSolver, void * osiCuts, void * appdata);
 void Cbc_addCutCallback(Cbc_Model * model, cbc_cut_callback cutcb,
@@ -134,7 +135,8 @@ namespace cbc::v2_10_12 {
     F(Cbc_isProvenInfeasible, isProvenInfeasible)           \
     F(Cbc_isContinuousUnbounded, isContinuousUnbounded)     \
     F(Cbc_getObjValue, getObjValue)                         \
-    F(Cbc_getColSolution, getColSolution)
+    F(Cbc_getColSolution, getColSolution)                   \
+    F(Cbc_bestSolution, bestSolution)
 
 #define DECLARE_CBC_FUN(FULL, SHORT)      \
     using SHORT##_fun_t = decltype(FULL); \

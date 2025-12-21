@@ -88,6 +88,15 @@ int CPXgetnumcols(CPXCENVptr env, CPXCLPptr lp);
 int CPXgetnumrows(CPXCENVptr env, CPXCLPptr lp);
 int CPXgetnumnz(CPXCENVptr env, CPXCLPptr lp);
 
+enum MipStartEffort : int {
+    CPX_MIPSTART_AUTO = 0,
+    CPX_MIPSTART_CHECKFEAS = 1,
+    CPX_MIPSTART_SOLVEFIXED = 2,
+    CPX_MIPSTART_SOLVEMIP = 3,
+    CPX_MIPSTART_REPAIR = 4,
+    CPX_MIPSTART_NOCHECK = 5
+};
+
 int CPXaddmipstarts(CPXCENVptr env, CPXLPptr lp, int mcnt, int nzcnt,
                     int const * beg, int const * varindices,
                     double const * values, int const * effortlevel,
@@ -96,6 +105,7 @@ int CPXaddmipstarts(CPXCENVptr env, CPXLPptr lp, int mcnt, int nzcnt,
 constexpr int CPXPARAM_Simplex_Tolerances_Feasibility = 1016;
 // constexpr int CPXPARAM_Simplex_Tolerances_Markowitz = 1013;
 constexpr int CPXPARAM_Simplex_Tolerances_Optimality = 1014;
+constexpr int CPXPARAM_TimeLimit = 1039;
 constexpr int CPXPARAM_MIP_Tolerances_MIPGap = 2009;
 constexpr int CPXPARAM_MIP_Tolerances_Linearization = 2068;
 // constexpr int CPXPARAM_MIP_Tolerances_Integrality = 2010;

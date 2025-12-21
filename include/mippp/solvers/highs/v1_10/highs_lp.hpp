@@ -42,16 +42,16 @@ public:
     //     }
 
     // public:
-    bool is_optimal() {
+    bool proven_optimal() {
         return lp_status == kHighsModelStatusModelEmpty ||
                lp_status == kHighsModelStatusOptimal;
     }
-    bool is_infeasible() {
+    bool proven_infeasible() {
         // if(lp_status == kHighsModelStatusUnboundedOrInfeasible)
         //     _refine_lp_status();
         return lp_status == kHighsModelStatusInfeasible;
     }
-    bool is_unbounded() {
+    bool proven_unbounded() {
         // if(lp_status == kHighsModelStatusUnboundedOrInfeasible)
         //     _refine_lp_status();
         return lp_status == kHighsModelStatusUnbounded;

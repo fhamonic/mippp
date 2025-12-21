@@ -24,9 +24,9 @@ public:
         check_lp_status(lp_status);
     }
 
-    bool is_optimal() { return lp_status == COPT_LPSTATUS_OPTIMAL; }
-    bool is_infeasible() { return lp_status == COPT_LPSTATUS_INFEASIBLE; }
-    bool is_unbounded() { return lp_status == COPT_LPSTATUS_UNBOUNDED; }
+    bool proven_optimal() { return lp_status == COPT_LPSTATUS_OPTIMAL; }
+    bool proven_infeasible() { return lp_status == COPT_LPSTATUS_INFEASIBLE; }
+    bool proven_unbounded() { return lp_status == COPT_LPSTATUS_UNBOUNDED; }
 
     double get_solution_value() {
         double val;

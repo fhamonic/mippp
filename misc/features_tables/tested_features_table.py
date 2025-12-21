@@ -42,14 +42,15 @@ formated_test_names = [
     ("ModifiableObjectiveTest", "Increment objective"),
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
     ("NamedVariablesTest", "Named variables"),
-    ("AddColumnTest", "Add column"),
-    ("CuttingStockTest", "Cutting stock example"),
     ("LpStatusTest", "LP status"),
+    ("AddColumnTest", "Add column"),
+    ("DualSolutionTest", "Dual solution"),
+    ("CuttingStockTest", "Cutting stock example"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),
     ("TravellingSalesmanTest", "Travelling Salesman example"),
-    ("DualSolutionTest", "Dual solution"),
-    ("SudokuTest", "Sudoku example"),
+    ("TimeLimitTest", "Time limit"),
     ("MipStartTest", "MIP start"),
+    ("SudokuTest", "Sudoku example"),
 ]
 
 

@@ -51,9 +51,9 @@ public:
         check(XPRS.getintattrib(prob, XPRS_LPSTATUS, &lp_status));
     }
 
-    bool is_optimal() { return lp_status == XPRS_LP_OPTIMAL; }
-    bool is_infeasible() { return lp_status == XPRS_LP_INFEAS; }
-    bool is_unbounded() { return lp_status == XPRS_LP_UNBOUNDED; }
+    bool proven_optimal() { return lp_status == XPRS_LP_OPTIMAL; }
+    bool proven_infeasible() { return lp_status == XPRS_LP_INFEAS; }
+    bool proven_unbounded() { return lp_status == XPRS_LP_UNBOUNDED; }
 
     double get_solution_value() {
         double val;

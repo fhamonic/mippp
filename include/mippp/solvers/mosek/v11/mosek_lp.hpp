@@ -28,12 +28,12 @@ public:
             throw std::runtime_error("Mosek : problem ill posed.");
     }
 
-    bool is_optimal() { return lp_status == MSK_PRO_STA_PRIM_AND_DUAL_FEAS; }
-    bool is_infeasible() {
+    bool proven_optimal() { return lp_status == MSK_PRO_STA_PRIM_AND_DUAL_FEAS; }
+    bool proven_infeasible() {
         return lp_status == MSK_PRO_STA_PRIM_INFEAS ||
                lp_status == MSK_PRO_STA_PRIM_AND_DUAL_INFEAS;
     }
-    bool is_unbounded() { return lp_status == MSK_PRO_STA_DUAL_INFEAS; }
+    bool proven_unbounded() { return lp_status == MSK_PRO_STA_DUAL_INFEAS; }
 
     double get_solution_value() {
         double val;

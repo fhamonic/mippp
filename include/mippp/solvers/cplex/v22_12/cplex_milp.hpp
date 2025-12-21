@@ -98,18 +98,41 @@ public:
         check(CPX.chgbds(env, lp, 2, &var_id, lu, bd));
     }
 
-    constraint add_indicator_constraint(variable x, bool val,
-                                        linear_constraint auto && lc) {
-        const int constr_id = static_cast<int>(num_constraints());
+    /////////////////////////// Special constraints ///////////////////////////
+    void add_indicator_constraint(variable x, bool val,
+                                  linear_constraint auto && lc) {
         _reset_cache(num_variables());
         _register_entries(lc.linear_terms());
         check(CPX.addindconstr(env, lp, x.id(), static_cast<int>(!val),
                                static_cast<int>(tmp_indices.size()), lc.rhs(),
                                constraint_sense_to_cplex_sense(lc.sense()),
                                tmp_indices.data(), tmp_scalars.data(), NULL));
-        return constraint(constr_id);
     }
 
+    //////////////////////////////// MIP start ////////////////////////////////
+private:
+    template <typename ER>
+    inline void _set_mip_start(ER && entries) {
+        _reset_cache(num_variables());
+        _register_raw_entries(entries);
+        int beg = 0;
+        int effort_level = CPX_MIPSTART_SOLVEMIP;
+        check(CPX.addmipstarts(env, lp, 1, static_cast<int>(tmp_indices.size()),
+                               &beg, tmp_indices.data(), tmp_scalars.data(),
+                               &effort_level, NULL));
+    }
+
+public:
+    template <std::ranges::range ER>
+    void set_mip_start(ER && entries) {
+        _set_mip_start(entries);
+    }
+    void set_mip_start(
+        std::initializer_list<std::pair<variable, scalar>> entries) {
+        _set_mip_start(entries);
+    }
+
+    //////////////////////////////// Callbacks ////////////////////////////////
 private:
     class callback_handle_base : public model_base<int, double> {
     protected:
@@ -164,9 +187,9 @@ public:
         auto get_solution() {
             auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            cbcheck(CPX.callbackgetcandidatepoint(context, solution.get(), 0,
-                                                static_cast<int>(num_vars) - 1,
-                                                NULL));
+            cbcheck(CPX.callbackgetcandidatepoint(
+                context, solution.get(), 0, static_cast<int>(num_vars) - 1,
+                NULL));
             return variable_mapping(std::move(solution));
         }
     };
@@ -192,6 +215,17 @@ public:
                                   candidate_solution_callback_fun, this));
     }
 
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(CPX.setdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(CPX.getdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, &t));
+        return std::chrono::duration<double>(t);
+    }
+
+    ////////////////////////// Tolerance parameters ///////////////////////////
     void set_optimality_tolerance(double tol) {
         check(CPX.setdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, tol));
     }
@@ -234,6 +268,9 @@ public:
         double val;
         check(CPX.solution(env, lp, NULL, &val, NULL, NULL, NULL, NULL));
         return val;
+        // double val;
+        // check(CPX.getbestobjval(env, lp, &val));
+        // return val;
     }
     auto get_solution() {
         auto solution =

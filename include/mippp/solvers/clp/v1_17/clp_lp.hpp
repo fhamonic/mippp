@@ -387,9 +387,9 @@ public:
         Clp.primal(model, 0);
     }
 
-    bool is_optimal() { return Clp.status(model) == 0; }
-    bool is_infeasible() { return Clp.status(model) == 1; }
-    bool is_unbounded() { return Clp.status(model) == 2; }
+    bool proven_optimal() { return Clp.status(model) == 0; }
+    bool proven_infeasible() { return Clp.status(model) == 1; }
+    bool proven_unbounded() { return Clp.status(model) == 2; }
 
     scalar get_solution_value() { return Clp.getObjValue(model); }
 

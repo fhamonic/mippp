@@ -17,9 +17,9 @@ TYPED_TEST_SUITE_P(LpStatusTest);
 TYPED_TEST_P(LpStatusTest, not_solved) {
     using namespace operators;
     auto model = this->new_model();
-    ASSERT_FALSE(model.is_optimal());
-    ASSERT_FALSE(model.is_infeasible());
-    ASSERT_FALSE(model.is_unbounded());
+    ASSERT_FALSE(model.proven_optimal());
+    ASSERT_FALSE(model.proven_infeasible());
+    ASSERT_FALSE(model.proven_unbounded());
 }
 TYPED_TEST_P(LpStatusTest, max_bounded) {
     using namespace operators;
@@ -30,9 +30,9 @@ TYPED_TEST_P(LpStatusTest, max_bounded) {
     model.set_objective(2 * x + 1.5 * y);
     auto c = model.add_constraint(x + y <= 5);
     model.solve();
-    ASSERT_TRUE(model.is_optimal());
-    ASSERT_FALSE(model.is_infeasible());
-    ASSERT_FALSE(model.is_unbounded());
+    ASSERT_TRUE(model.proven_optimal());
+    ASSERT_FALSE(model.proven_infeasible());
+    ASSERT_FALSE(model.proven_unbounded());
     ASSERT_DOUBLE_EQ(model.get_solution_value(), 9.0);
     auto solution = model.get_solution();
     ASSERT_DOUBLE_EQ(solution[x], 3.0);
@@ -47,9 +47,9 @@ TYPED_TEST_P(LpStatusTest, min_bounded) {
     model.set_objective(-2 * x - 1.5 * y);
     auto c = model.add_constraint(x + y <= 5);
     model.solve();
-    ASSERT_TRUE(model.is_optimal());
-    ASSERT_FALSE(model.is_infeasible());
-    ASSERT_FALSE(model.is_unbounded());
+    ASSERT_TRUE(model.proven_optimal());
+    ASSERT_FALSE(model.proven_infeasible());
+    ASSERT_FALSE(model.proven_unbounded());
     ASSERT_DOUBLE_EQ(model.get_solution_value(), -9.0);
     auto solution = model.get_solution();
     ASSERT_DOUBLE_EQ(solution[x], 3.0);
@@ -64,9 +64,9 @@ TYPED_TEST_P(LpStatusTest, max_unbounded) {
     model.set_objective(-2 * x + -1.5 * y);
     model.add_constraint(x + y <= 5);
     model.solve();
-    ASSERT_FALSE(model.is_optimal());
-    ASSERT_FALSE(model.is_infeasible());
-    ASSERT_TRUE(model.is_unbounded());
+    ASSERT_FALSE(model.proven_optimal());
+    ASSERT_FALSE(model.proven_infeasible());
+    ASSERT_TRUE(model.proven_unbounded());
 }
 TYPED_TEST_P(LpStatusTest, min_unbounded) {
     using namespace operators;
@@ -77,9 +77,9 @@ TYPED_TEST_P(LpStatusTest, min_unbounded) {
     model.set_objective(2 * x + 1.5 * y);
     model.add_constraint(x + y <= 5);
     model.solve();
-    ASSERT_FALSE(model.is_optimal());
-    ASSERT_FALSE(model.is_infeasible());
-    ASSERT_TRUE(model.is_unbounded());
+    ASSERT_FALSE(model.proven_optimal());
+    ASSERT_FALSE(model.proven_infeasible());
+    ASSERT_TRUE(model.proven_unbounded());
 }
 TYPED_TEST_P(LpStatusTest, max_infeasible) {
     using namespace operators;
@@ -91,9 +91,9 @@ TYPED_TEST_P(LpStatusTest, max_infeasible) {
     model.add_constraint(y >= -2 + 2 * x);
     model.add_constraint(y >= 3 - x);
     model.solve();
-    ASSERT_FALSE(model.is_optimal());
-    ASSERT_TRUE(model.is_infeasible());
-    ASSERT_FALSE(model.is_unbounded());
+    ASSERT_FALSE(model.proven_optimal());
+    ASSERT_TRUE(model.proven_infeasible());
+    ASSERT_FALSE(model.proven_unbounded());
 }
 TYPED_TEST_P(LpStatusTest, min_infeasible) {
     using namespace operators;
@@ -105,9 +105,9 @@ TYPED_TEST_P(LpStatusTest, min_infeasible) {
     model.add_constraint(y >= -2 + 2 * x);
     model.add_constraint(y >= 3 - x);
     model.solve();
-    ASSERT_FALSE(model.is_optimal());
-    ASSERT_TRUE(model.is_infeasible());
-    ASSERT_FALSE(model.is_unbounded());
+    ASSERT_FALSE(model.proven_optimal());
+    ASSERT_TRUE(model.proven_infeasible());
+    ASSERT_FALSE(model.proven_unbounded());
 }
 
 REGISTER_TYPED_TEST_SUITE_P(LpStatusTest, not_solved, max_bounded, min_bounded,

@@ -66,6 +66,8 @@ constexpr const char * GRB_INT_PAR_DUALREDUCTIONS = "DualReductions";
 constexpr const char * GRB_INT_PAR_LAZYCONSTRAINTS = "LazyConstraints";
 int GRBsetintparam(GRBenv * env, const char * paramname, int value);
 int GRBgetintparam(GRBenv * env, const char * paramname, int * valueP);
+constexpr const char * GRB_DBL_PAR_NODELIMIT = "NodeLimit";
+constexpr const char * GRB_DBL_PAR_TIMELIMIT = "TimeLimit";
 constexpr const char * GRB_DBL_PAR_FEASIBILITYTOL = "FeasibilityTol";
 constexpr const char * GRB_DBL_PAR_OPTIMALITYTOL = "OptimalityTol";
 constexpr const char * GRB_DBL_PAR_MIPGAP = "MIPGap";

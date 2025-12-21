@@ -68,9 +68,9 @@ public:
         }
     }
 
-    bool is_optimal() { return lp_status == optimal; }
-    bool is_infeasible() { return lp_status == infeasible; }
-    bool is_unbounded() { return lp_status == unbounded; }
+    bool proven_optimal() { return lp_status == optimal; }
+    bool proven_infeasible() { return lp_status == infeasible; }
+    bool proven_unbounded() { return lp_status == unbounded; }
 
     double get_solution_value() {
         return objective_offset + glp.get_obj_val(model);

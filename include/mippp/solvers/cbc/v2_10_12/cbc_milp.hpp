@@ -2,6 +2,7 @@
 #define MIPPP_CBC_v2_10_12_MILP_HPP
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <optional>
 #include <ostream>
@@ -35,6 +36,7 @@ public:
 private:
     const cbc_api & Cbc;
     Cbc_Model * model;
+    std::chrono::duration<double> time_limit;
     double objective_offset;
     double feasibility_tol;
 
@@ -404,11 +406,40 @@ public:
     }
     // auto get_constraint(const constraint constr) const;
 
+    //////////////////////////////// MIP start ////////////////////////////////
+private:
+    template <typename ER>
+    inline void _set_mip_start(ER && entries) {
+        _reset_cache(_lazy_num_variables);
+        _register_raw_entries(entries);
+        Cbc.setMIPStartI(model, static_cast<int>(tmp_indices.size()),
+                         tmp_indices.data(), tmp_scalars.data());
+    }
+
+public:
+    template <std::ranges::range ER>
+    void set_mip_start(ER && entries) {
+        _set_mip_start(entries);
+    }
+    void set_mip_start(
+        std::initializer_list<std::pair<variable, scalar>> entries) {
+        _set_mip_start(entries);
+    }
+
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        time_limit = t;
+        auto t_s = std::to_string(t.count());
+        Cbc.setParameter(model, "seconds=", t_s.c_str());
+    }
+    auto get_time_limit() { return time_limit; }
+
+    ////////////////////////// Tolerance parameters ///////////////////////////
     void set_feasibility_tolerance(double tol) {
         feasibility_tol = tol;
         auto tol_s = std::to_string(tol);
-        Cbc.setParameter(model, "-primalTolerance=", tol_s.c_str());
-        Cbc.setParameter(model, "-dualTolerance=", tol_s.c_str());
+        Cbc.setParameter(model, "primalTolerance=", tol_s.c_str());
+        Cbc.setParameter(model, "dualTolerance=", tol_s.c_str());
     }
     double get_feasibility_tolerance() { return feasibility_tol; }
 
@@ -431,8 +462,9 @@ public:
         return objective_offset +
                (_lazy_num_variables == 0u ? 0.0 : Cbc.getObjValue(model));
     }
-
-    auto get_solution() { return variable_mapping(Cbc.getColSolution(model)); }
+    // auto get_solution() { return variable_mapping(Cbc.getColSolution(model));
+    // }
+    auto get_solution() { return variable_mapping(Cbc.bestSolution(model)); }
 };
 
 }  // namespace cbc::v2_10_12

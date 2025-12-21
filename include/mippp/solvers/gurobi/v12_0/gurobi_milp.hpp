@@ -100,27 +100,6 @@ public:
             lc.rhs()));
     }
 
-    //////////////////////////////// MIP start ////////////////////////////////
-private:
-    template <typename ER>
-    inline void _set_mip_start(ER && entries) {
-        _reset_cache(_lazy_num_variables);
-        _register_raw_entries(entries);
-        check(GRB.setdblattrlist(model, GRB_DBL_ATTR_START,
-                                 static_cast<int>(tmp_indices.size()),
-                                 tmp_indices.data(), tmp_scalars.data()));
-    }
-
-public:
-    template <std::ranges::range ER>
-    void set_mip_start(ER && entries) {
-        _set_mip_start(entries);
-    }
-    void set_mip_start(
-        std::initializer_list<std::pair<variable, scalar>> entries) {
-        _set_mip_start(entries);
-    }
-
     //////////////////////////////// Callbacks ////////////////////////////////
 private:
     class callback_handle_base : public model_base<int, double> {
@@ -192,7 +171,26 @@ private:
         check(GRB.setcallbackfunc(model, main_callback, this));
     }
 
-    ////////////////////////// Tolerance parameters ///////////////////////////
+    //////////////////////////////// MIP start ////////////////////////////////
+private:
+    template <typename ER>
+    inline void _set_mip_start(ER && entries) {
+        _reset_cache(_lazy_num_variables);
+        _register_raw_entries(entries);
+        check(GRB.setdblattrlist(model, GRB_DBL_ATTR_START,
+                                 static_cast<int>(tmp_indices.size()),
+                                 tmp_indices.data(), tmp_scalars.data()));
+    }
+
+public:
+    template <std::ranges::range ER>
+    void set_mip_start(ER && entries) {
+        _set_mip_start(entries);
+    }
+    void set_mip_start(
+        std::initializer_list<std::pair<variable, scalar>> entries) {
+        _set_mip_start(entries);
+    }
 public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
@@ -200,6 +198,7 @@ public:
         candidate_solution_callback = std::forward<F>(f);
     }
 
+    ////////////////////////// Tolerance parameters ///////////////////////////
     void set_optimality_tolerance(double tol) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_MIPGAP, tol));
     }
@@ -209,6 +208,26 @@ public:
         return tol;
     }
 
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(GRB.setdblparam(env, GRB_DBL_PAR_TIMELIMIT, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(GRB.getdblparam(env, GRB_DBL_PAR_TIMELIMIT, &t));
+        return std::chrono::duration<double>(t);
+    }
+    
+    void set_node_limit(std::size_t n) {
+        check(GRB.setdblparam(env, GRB_DBL_PAR_NODELIMIT, static_cast<double>(n)));
+    }
+    std::size_t get_node_limit() {
+        double n;
+        check(GRB.getdblparam(env, GRB_DBL_PAR_NODELIMIT, &n));
+        return static_cast<std::size_t>(n);
+    }
+
+    ////////////////////////////////// Solve //////////////////////////////////
     void solve() { check(GRB.optimize(model)); }
 
     double get_solution_value() {

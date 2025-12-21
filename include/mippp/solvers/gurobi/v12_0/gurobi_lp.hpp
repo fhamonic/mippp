@@ -48,12 +48,12 @@ private:
     }
 
 public:
-    bool is_optimal() { return lp_status == GRB_OPTIMAL; }
-    bool is_infeasible() {
+    bool proven_optimal() { return lp_status == GRB_OPTIMAL; }
+    bool proven_infeasible() {
         if(lp_status == GRB_INF_OR_UNBD) _refine_lp_status();
         return lp_status == GRB_INFEASIBLE;
     }
-    bool is_unbounded() {
+    bool proven_unbounded() {
         if(lp_status == GRB_INF_OR_UNBD) _refine_lp_status();
         return lp_status == GRB_UNBOUNDED;
     }

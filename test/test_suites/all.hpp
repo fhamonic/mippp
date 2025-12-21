@@ -51,3 +51,4 @@ struct model_test : public ::testing::Test {
 #include "readable_variables_bounds.hpp"
 #include "sudoku.hpp"
 #include "travelling_salesman.hpp"
+#include "time_limit.hpp"

@@ -64,16 +64,16 @@ private:
     }
 
 public:
-    bool is_optimal() {
+    bool proven_optimal() {
         return opt_lp_status == CPX_STAT_OPTIMAL ||
                opt_lp_status == CPX_STAT_OPTIMAL_INFEAS ||
                opt_lp_status == CPX_STAT_OPTIMAL_FACE_UNBOUNDED;
     }
-    bool is_infeasible() {
+    bool proven_infeasible() {
         if(opt_lp_status == CPX_STAT_INForUNBD) _refine_lp_status();
         return opt_lp_status == CPX_STAT_INFEASIBLE;
     }
-    bool is_unbounded() {
+    bool proven_unbounded() {
         if(opt_lp_status == CPX_STAT_INForUNBD) _refine_lp_status();
         return opt_lp_status == CPX_STAT_UNBOUNDED;
     }

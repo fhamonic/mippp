@@ -98,6 +98,7 @@ public:
         // check(COPT.chgbds(env, lp, 2, &var_id, lu, bd));
     }
 
+    //////////////////////////////// Callbacks ////////////////////////////////
     class candidate_solution_callback_handle : public model_base<int, double> {
     private:
         const copt_api & COPT;
@@ -161,6 +162,37 @@ public:
                                COPT_CBCONTEXT_MIPSOL, this));
     }
 
+    //////////////////////////////// MIP start ////////////////////////////////
+private:
+    template <typename ER>
+    inline void _set_mip_start(ER && entries) {
+        _reset_cache(num_variables());
+        _register_raw_entries(entries);
+        check(COPT.AddMipStart(prob, static_cast<int>(tmp_indices.size()),
+                               tmp_indices.data(), tmp_scalars.data()));
+    }
+
+public:
+    template <std::ranges::range ER>
+    void set_mip_start(ER && entries) {
+        _set_mip_start(entries);
+    }
+    void set_mip_start(
+        std::initializer_list<std::pair<variable, scalar>> entries) {
+        _set_mip_start(entries);
+    }
+
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(COPT.SetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(COPT.GetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, &t));
+        return std::chrono::duration<double>(t);
+    }
+
+    ////////////////////////// Tolerance parameters ///////////////////////////
     void set_optimality_tolerance(double tol) {
         check(COPT.SetDblParam(prob, COPT_DBLPARAM_RELGAP, tol));
     }
