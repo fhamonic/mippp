@@ -78,6 +78,30 @@ public:
         set_variable_upper_bound(v, 1);
     }
 
+    //////////////////////////////// MIP start ////////////////////////////////
+private:
+    template <typename ER>
+    inline void _add_mip_start(ER && entries) {
+        tmp_scalars.resize(num_variables());
+        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
+        for(auto && [var, coef] : entries) {
+            tmp_scalars[var.uid()] += coef;
+        }
+        check(MSK.putxx(task,MSK_SOL_ITG, tmp_scalars.data()));
+    }
+
+public:
+    template <std::ranges::range ER>
+    void add_mip_start(ER && entries) {
+        _add_mip_start(entries);
+    }
+    void add_mip_start(
+        std::initializer_list<std::pair<variable, scalar>> entries) {
+        _add_mip_start(entries);
+    }
+
+    ////////////////////////////////// Solve //////////////////////////////////
+
     void solve() { check(MSK.optimize(task)); }
 
     double get_solution_value() {

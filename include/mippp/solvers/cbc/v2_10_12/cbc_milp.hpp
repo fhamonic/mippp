@@ -409,7 +409,7 @@ public:
     //////////////////////////////// MIP start ////////////////////////////////
 private:
     template <typename ER>
-    inline void _set_mip_start(ER && entries) {
+    inline void _add_mip_start(ER && entries) {
         _reset_cache(_lazy_num_variables);
         _register_raw_entries(entries);
         Cbc.setMIPStartI(model, static_cast<int>(tmp_indices.size()),
@@ -418,19 +418,19 @@ private:
 
 public:
     template <std::ranges::range ER>
-    void set_mip_start(ER && entries) {
-        _set_mip_start(entries);
+    void add_mip_start(ER && entries) {
+        _add_mip_start(entries);
     }
-    void set_mip_start(
+    void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
-        _set_mip_start(entries);
+        _add_mip_start(entries);
     }
 
     ///////////////////////////////// Limits //////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
         time_limit = t;
         auto t_s = std::to_string(t.count());
-        Cbc.setParameter(model, "seconds=", t_s.c_str());
+        Cbc.setParameter(model, "seconds", t_s.c_str());
     }
     auto get_time_limit() { return time_limit; }
 
@@ -438,8 +438,8 @@ public:
     void set_feasibility_tolerance(double tol) {
         feasibility_tol = tol;
         auto tol_s = std::to_string(tol);
-        Cbc.setParameter(model, "primalTolerance=", tol_s.c_str());
-        Cbc.setParameter(model, "dualTolerance=", tol_s.c_str());
+        Cbc.setParameter(model, "primalTolerance", tol_s.c_str());
+        Cbc.setParameter(model, "dualTolerance", tol_s.c_str());
     }
     double get_feasibility_tolerance() { return feasibility_tol; }
 

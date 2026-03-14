@@ -30,6 +30,7 @@ INSTANTIATE_TEST(HiGHS_milp, ModifiableVariablesBoundsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, NamedVariablesTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, AddColumnTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, SudokuTest, highs_milp_test);
+// INSTANTIATE_TEST(HiGHS_milp, MipStartTest, highs_milp_test);
 
 struct highs_qp_test : public model_test<highs_api, highs_qp> {
     static void SetUpTestSuite() { construct_api(); }

@@ -70,6 +70,28 @@ public:
         check(Highs.changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
     }
 
+    //////////////////////////////// MIP start ////////////////////////////////
+private:
+    template <typename ER>
+    inline void _add_mip_start(ER && entries) {
+        _reset_cache(num_variables());
+        _register_raw_entries(entries);
+        check(Highs.setSparseSolution(model,
+                                      static_cast<int>(tmp_indices.size()),
+                                      tmp_indices.data(), tmp_scalars.data()));
+    }
+
+public:
+    template <std::ranges::range ER>
+    void add_mip_start(ER && entries) {
+        _add_mip_start(entries);
+    }
+    void add_mip_start(
+        std::initializer_list<std::pair<variable, scalar>> entries) {
+        _add_mip_start(entries);
+    }
+
+    ////////////////////////////////// Solve //////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
             return;

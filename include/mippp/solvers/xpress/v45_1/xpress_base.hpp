@@ -390,6 +390,15 @@ public:
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
     }
+
+    void set_feasibility_tolerance(double tol) {
+        check(XPRS.setdblcontrol(prob, XPRS_FEASTOL, tol));
+    }
+    double get_feasibility_tolerance() {
+        double tol;
+        check(XPRS.getdblcontrol(prob, XPRS_FEASTOL, &tol));
+        return tol;
+    }
 };
 
 }  // namespace xpress::v45_1

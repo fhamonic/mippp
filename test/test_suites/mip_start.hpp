@@ -141,7 +141,7 @@ TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
                                                                                                                                                                                                                                                                                                                                                                                                                 {  0 }};
     const int costs[100] = {28,  8, 24, 38, 26, 47, 46, 23, 18, 18, 34, 36, 12, 33, 32, 29, 35, 10,  2,  1, 37, 35, 12, 36, 33,  8, 34, 36,  2, 36,  3, 44, 42,  9,  7, 32, 12,  5,  4, 50, 48, 30, 39, 46, 26,  5, 44, 28, 21, 24, 45, 11, 20, 45, 21, 24, 37,  8,  7, 49, 25, 44, 16,  9, 37,  8,  1, 17, 42, 12, 32, 49, 20, 42, 48, 47, 11,  1,  9, 16,  3, 48, 27, 18, 23, 38, 30,  3, 48, 20, 36, 46, 20,  8, 16, 50, 32, 49, 12, 14 };
     // clang-format on
-    const int budget = 150;  // 669;
+    const int budget = static_cast<int>(6.69 * num_items);
 
     auto qvalue = [&](auto i, auto j) {
         if(i > j) std::swap(i, j);
@@ -216,7 +216,7 @@ TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
                                         return costs[i] * mipstarted_X(i);
                                     }) <= budget);
 
-    mipstarted_model.set_mip_start(std::views::transform(items, [&](auto i) {
+    mipstarted_model.add_mip_start(std::views::transform(items, [&](auto i) {
         return std::make_pair(mipstarted_X(i), solution[default_X(i)]);
     }));
 

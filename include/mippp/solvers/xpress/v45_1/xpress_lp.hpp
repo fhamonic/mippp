@@ -46,6 +46,7 @@ public:
     //     return tol;
     // }
 
+    ////////////////////////////////// Solve //////////////////////////////////
     void solve() {
         check(XPRS.lpoptimize(prob, NULL));
         check(XPRS.getintattrib(prob, XPRS_LPSTATUS, &lp_status));

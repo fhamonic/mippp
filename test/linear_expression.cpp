@@ -74,3 +74,9 @@ GTEST_TEST(runtime_linear_expression, test) {
     static_assert(linear_expression<decltype(e)>);
     ASSERT_LIN_EXPR(e, {{Var(13), 1.0}}, 2.5);
 }
+
+GTEST_TEST(empty_linear_expression, test) {
+    auto e = empty_linear_expression<int, double>;
+    static_assert(linear_expression<decltype(e)>);
+    ASSERT_LIN_EXPR(e, {}, 0);
+}

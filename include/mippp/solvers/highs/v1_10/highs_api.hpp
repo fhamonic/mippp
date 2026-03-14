@@ -151,6 +151,12 @@ HighsInt Highs_setBasis(void * highs, const HighsInt * col_status,
 HighsInt Highs_getBasis(const void * highs, HighsInt * col_status,
                         HighsInt * row_status);
 
+HighsInt Highs_setSolution(void * highs, const double * col_value,
+                           const double * row_value, const double * col_dual,
+                           const double * row_dual);
+HighsInt Highs_setSparseSolution(void * highs, const HighsInt num_entries,
+                                 const HighsInt * index, const double * value);
+
 struct HighsCallbackDataOut {
     int log_type;  // cast of HighsLogType
     double running_time;
@@ -235,7 +241,9 @@ namespace highs::v1_10 {
     F(Highs_getObjectiveValue, getObjectiveValue)                       \
     F(Highs_getSolution, getSolution)                                   \
     F(Highs_setBasis, setBasis)                                         \
-    F(Highs_getBasis, getBasis)
+    F(Highs_getBasis, getBasis)                                         \
+    F(Highs_setSolution, setSolution)                                   \
+    F(Highs_setSparseSolution, setSparseSolution)
 
 #define DECLARE_HIGHS_FUN(FULL, SHORT)    \
     using SHORT##_fun_t = decltype(FULL); \

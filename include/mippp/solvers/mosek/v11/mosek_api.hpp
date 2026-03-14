@@ -166,6 +166,11 @@ MSKrescodee MSK_getprosta(MSKtask_t task, MSKsoltypee whichsol,
                           MSKprostae * problemsta);
 MSKrescodee MSK_getprimalobj(MSKtask_t task, MSKsoltypee whichsol,
                              MSKrealt * primalobj);
+MSKrescodee MSK_putxx(MSKtask_t task, MSKsoltypee whichsol,
+                      const MSKrealt * xx);
+MSKrescodee MSK_putxxslice(MSKtask_t task, MSKsoltypee whichsol,
+                           MSKint32t first, MSKint32t last,
+                           const MSKrealt * xx);
 MSKrescodee MSK_getxx(MSKtask_t task, MSKsoltypee whichsol, MSKrealt * xx);
 enum MSKstakeye : int {
     MSK_SK_UNK = 0,
@@ -375,6 +380,8 @@ namespace mosek::v11 {
     F(MSK_optimize, optimize)                           \
     F(MSK_getprosta, getprosta)                         \
     F(MSK_getprimalobj, getprimalobj)                   \
+    F(MSK_putxx, putxx)                                 \
+    F(MSK_putxxslice, putxxslice)                       \
     F(MSK_getxx, getxx)                                 \
     F(MSK_getsolution, getsolution)                     \
     F(MSK_deletesolution, deletesolution)

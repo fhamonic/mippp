@@ -85,6 +85,17 @@ enum LPStatus : int {
     XPRS_LP_NONCONVEX = 8
 };
 
+enum DblCtrlPar : int {
+    XPRS_FEASTOL = 7003,
+    XPRS_MIPTOL = 7009,
+    XPRS_TIMELIMIT = 7158
+};
+int XPRSsetdblcontrol(XPRSprob prob, int control, double value);
+int XPRSgetdblcontrol(XPRSprob prob, int control, double * p_value);
+
+int XPRSaddmipsol(XPRSprob prob, int length, const double solval[],
+                  const int colind[], const char * name);
+
 int XPRSaddcbpreintsol(XPRSprob prob,
                        void (*preintsol)(XPRSprob cbprob, void * cbdata,
                                          int soltype, int * p_reject,
@@ -146,6 +157,9 @@ namespace xpress::v45_1 {
     F(XPRSmipoptimize, mipoptimize)             \
     F(XPRSgetsolution, getsolution)             \
     F(XPRSgetduals, getduals)                   \
+    F(XPRSsetdblcontrol, setdblcontrol)         \
+    F(XPRSgetdblcontrol, getdblcontrol)         \
+    F(XPRSaddmipsol, addmipsol)                 \
     F(XPRSaddcbpreintsol, addcbpreintsol)       \
     F(XPRSremovecbpreintsol, removecbpreintsol) \
     F(XPRSaddcboptnode, addcboptnode)           \

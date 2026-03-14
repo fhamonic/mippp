@@ -158,31 +158,47 @@ public:
                                   1));
     }
 
-    // void set_optimality_tolerance(double tol) {
-    //     check(
-    //         XPRS.setdblparam(env, XPRSPARAM_Simplex_Tolerances_Optimality,
-    //         tol));
-    // }
-    // double get_optimality_tolerance() {
-    //     double tol;
-    //     check(
-    //         XPRS.getdblparam(env, XPRSPARAM_Simplex_Tolerances_Optimality,
-    //         &tol));
-    //     return tol;
-    // }
+    //////////////////////////////// MIP start ////////////////////////////////
+private:
+    template <typename ER>
+    inline void _add_mip_start(ER && entries) {
+        _reset_cache(num_variables());
+        _register_raw_entries(entries);
+        check(XPRS.addmipsol(prob, static_cast<int>(tmp_indices.size()),
+                             tmp_scalars.data(), tmp_indices.data(), NULL));
+    }
 
-    // void set_feasibility_tolerance(double tol) {
-    //     check(
-    //         XPRS.setdblparam(env, XPRSPARAM_Simplex_Tolerances_Feasibility,
-    //         tol));
-    // }
-    // double get_feasibility_tolerance() {
-    //     double tol;
-    //     check(XPRS.getdblparam(env, XPRSPARAM_Simplex_Tolerances_Feasibility,
-    //                           &tol));
-    //     return tol;
-    // }
+public:
+    template <std::ranges::range ER>
+    void add_mip_start(ER && entries) {
+        _add_mip_start(entries);
+    }
+    void add_mip_start(
+        std::initializer_list<std::pair<variable, scalar>> entries) {
+        _add_mip_start(entries);
+    }
 
+    ////////////////////////// Tolerance parameters ///////////////////////////
+    void set_optimality_tolerance(double tol) {
+        check(XPRS.setdblcontrol(prob, XPRS_MIPTOL, tol));
+    }
+    double get_optimality_tolerance() {
+        double tol;
+        check(XPRS.getdblcontrol(prob, XPRS_MIPTOL, &tol));
+        return tol;
+    }
+
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(XPRS.setdblcontrol(prob, XPRS_TIMELIMIT, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(XPRS.getdblcontrol(prob, XPRS_TIMELIMIT, &t));
+        return std::chrono::duration<double>(t);
+    }
+
+    ////////////////////////////////// Solve //////////////////////////////////
     void solve() { check(XPRS.mipoptimize(prob, NULL)); }
 
     double get_solution_value() {

@@ -229,6 +229,10 @@ template <typename R, typename F>
         std::views::transform(std::forward<R>(r), std::forward<F>(f)));
 };
 
+template <typename V, typename S>
+constexpr auto empty_linear_expression =
+    linear_expression_view(std::views::empty<std::pair<V, S>>, S{0});
+
 }  // namespace operators
 
 ///

@@ -31,3 +31,5 @@ INSTANTIATE_TEST(Xpress_milp, NamedVariablesTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, AddColumnTest, xpress_milp_test);
 // INSTANTIATE_TEST(Xpress_milp, CandidateSolutionCallbackTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, SudokuTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, TimeLimitTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, MipStartTest, xpress_milp_test);

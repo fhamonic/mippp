@@ -165,7 +165,7 @@ public:
     //////////////////////////////// MIP start ////////////////////////////////
 private:
     template <typename ER>
-    inline void _set_mip_start(ER && entries) {
+    inline void _add_mip_start(ER && entries) {
         _reset_cache(num_variables());
         _register_raw_entries(entries);
         check(COPT.AddMipStart(prob, static_cast<int>(tmp_indices.size()),
@@ -174,12 +174,12 @@ private:
 
 public:
     template <std::ranges::range ER>
-    void set_mip_start(ER && entries) {
-        _set_mip_start(entries);
+    void add_mip_start(ER && entries) {
+        _add_mip_start(entries);
     }
-    void set_mip_start(
+    void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
-        _set_mip_start(entries);
+        _add_mip_start(entries);
     }
 
     ///////////////////////////////// Limits //////////////////////////////////

@@ -25,7 +25,7 @@ TYPED_TEST_SUITE_P(TimeLimitTest);
 TYPED_TEST_P(TimeLimitTest, quadratic_knapsack) {
     using namespace operators;
 
-    constexpr std::size_t num_items = 20;
+    constexpr std::size_t num_items = 26;
     auto items = std::views::iota(std::size_t{0}, num_items);
     auto num_items_pairs = num_items * (num_items - 1) / 2;
     auto items_pairs = std::views::filter(
@@ -144,44 +144,68 @@ TYPED_TEST_P(TimeLimitTest, quadratic_knapsack) {
         return qvalues[i][j - i - 1];
     };
 
-    auto model = this->new_model();
-    auto X = model.add_binary_variables(num_items);
-    auto Z =
-        model.add_variables(num_items_pairs, [&](std::size_t i, std::size_t j) {
-            assert(i < j);
-            return j * num_items + i - ((j + 1) * (j + 2)) / 2;
-        });
-    model.set_maximization();
-    model.set_objective(xsum(items, [&](auto i) { return values[i] * X(i); }) +
-                        xsum(items_pairs, [&](auto p) {
-                            auto [i, j] = p;
-                            return qvalue(i, j) * Z(i, j);
-                        }));
-    model.add_constraints(items_pairs, [&](auto p) {
-        auto [i, j] = p;
-        return Z(i, j) <= X(i);
-    });
-    model.add_constraints(items_pairs, [&](auto p) {
-        auto [i, j] = p;
-        return Z(i, j) <= X(j);
-    });
-    model.add_constraints(items_pairs, [&](auto p) {
-        auto [i, j] = p;
-        return Z(i, j) >= X(1) + X(j) - 1;
-    });
-    model.add_constraint(xsum(items, [&](auto i) { return costs[i] * X(i); }) <=
-                         budget);
+    auto get_running_time =
+        [&, k = 0,
+         parent = this](std::chrono::duration<double> time_limit) mutable {
+            auto model = parent->new_model();
+            auto ref_X = model.add_binary_variables(num_items);
+            auto ref_Z = model.add_variables(
+                num_items_pairs, [&](std::size_t i, std::size_t j) {
+                    assert(i < j);
+                    return j * num_items + i - ((j + 1) * (j + 2)) / 2;
+                });
+            model.set_maximization();
+            model.set_objective(
+                xsum(items, [&](auto i) { return values[i] * ref_X(i); }) +
+                xsum(items_pairs, [&](auto p) {
+                    auto [i, j] = p;
+                    return qvalue(i, j) * ref_Z(i, j);
+                }));
+            model.add_constraints(items_pairs, [&](auto p) {
+                auto [i, j] = p;
+                return ref_Z(i, j) <= (20 + k) * ref_X(i);
+            });
+            model.add_constraints(items_pairs, [&](auto p) {
+                auto [i, j] = p;
+                return ref_Z(i, j) <= (20 + k) * ref_X(j);
+            });
+            model.add_constraints(items_pairs, [&](auto p) {
+                auto [i, j] = p;
+                return ref_Z(i, j) >= ref_X(1) + ref_X(j) - 1;
+            });
+            model.add_constraint(xsum(items, [&](auto i) {
+                                     return costs[i] * ref_X(i);
+                                 }) <= budget);
 
-    model.set_time_limit(std::chrono::milliseconds(1));
+            model.set_time_limit(time_limit);
 
-    auto start = std::chrono::system_clock::now();
-    model.solve();
-    auto end = std::chrono::system_clock::now();
-    auto time_us =
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            auto ref_start = std::chrono::system_clock::now();
+            model.solve();
+            auto ref_end = std::chrono::system_clock::now();
+            ++k;
+            return std::chrono::duration_cast<std::chrono::duration<double>>(
+                ref_end - ref_start);
+        };
 
-    std::cout << time_us << std::endl;
-    ASSERT_LE(std::chrono::milliseconds(1), 10 * time_us);
+    std::chrono::duration<double> ref_time_sum, time_sum;
+
+    for(auto k : std::views::iota(0, 10)) {
+        std::chrono::duration<double> ref_time =
+            get_running_time(std::chrono::seconds(1));
+        ASSERT_LE(ref_time, 1.1 * std::chrono::seconds(1));
+
+        auto time_limit = 0.7 * ref_time;
+        auto time = get_running_time(time_limit);
+        ASSERT_LE(time, 1.2 * time_limit);
+
+        ref_time_sum += ref_time;
+        time_sum += time;
+    }
+
+    std::cout << ref_time_sum << std::endl;
+    std::cout << time_sum << std::endl;
+    // ASSERT_GE(time_sum, 0.5 * ref_time_sum);
+    ASSERT_LE(time_sum, 0.8 * ref_time_sum);
 }
 
 REGISTER_TYPED_TEST_SUITE_P(TimeLimitTest, quadratic_knapsack);

@@ -171,10 +171,17 @@ private:
         check(GRB.setcallbackfunc(model, main_callback, this));
     }
 
+public:
+    template <typename F>
+    void set_candidate_solution_callback(F && f) {
+        _enable_callbacks();
+        candidate_solution_callback = std::forward<F>(f);
+    }
+
     //////////////////////////////// MIP start ////////////////////////////////
 private:
     template <typename ER>
-    inline void _set_mip_start(ER && entries) {
+    inline void _add_mip_start(ER && entries) {
         _reset_cache(_lazy_num_variables);
         _register_raw_entries(entries);
         check(GRB.setdblattrlist(model, GRB_DBL_ATTR_START,
@@ -184,18 +191,12 @@ private:
 
 public:
     template <std::ranges::range ER>
-    void set_mip_start(ER && entries) {
-        _set_mip_start(entries);
+    void add_mip_start(ER && entries) {
+        _add_mip_start(entries);
     }
-    void set_mip_start(
+    void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
-        _set_mip_start(entries);
-    }
-public:
-    template <typename F>
-    void set_candidate_solution_callback(F && f) {
-        _enable_callbacks();
-        candidate_solution_callback = std::forward<F>(f);
+        _add_mip_start(entries);
     }
 
     ////////////////////////// Tolerance parameters ///////////////////////////
@@ -217,9 +218,10 @@ public:
         check(GRB.getdblparam(env, GRB_DBL_PAR_TIMELIMIT, &t));
         return std::chrono::duration<double>(t);
     }
-    
+
     void set_node_limit(std::size_t n) {
-        check(GRB.setdblparam(env, GRB_DBL_PAR_NODELIMIT, static_cast<double>(n)));
+        check(GRB.setdblparam(env, GRB_DBL_PAR_NODELIMIT,
+                              static_cast<double>(n)));
     }
     std::size_t get_node_limit() {
         double n;
@@ -242,6 +244,25 @@ public:
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_X, 0,
                                   static_cast<int>(num_vars), solution.get()));
         return variable_mapping(std::move(solution));
+    }
+
+    /////////////////////////// Termination reason ////////////////////////////
+    std::variant<reason::optimal, reason::infeasible, reason::unbounded,
+                 reason::infeasible_or_unbounded, reason::time_limit,
+                 reason::node_limit, reason::numerical_failure, reason::unknown>
+    termination_reason() {
+        using namespace reason;
+        int status;
+        check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status));
+        if(status == GRB_OPTIMAL) return optimal{};
+        if(status == GRB_INFEASIBLE) return infeasible{};
+        if(status == GRB_UNBOUNDED) return unbounded{};
+        if(status == GRB_INF_OR_UNBD) return infeasible_or_unbounded{};
+        if(status == GRB_NUMERIC || status == GRB_SUBOPTIMAL)
+            return numerical_failure{};
+        if(status == GRB_TIME_LIMIT) return time_limit{};
+        if(status == GRB_NODE_LIMIT) return node_limit{};
+        return unknown{};
     }
 };
 

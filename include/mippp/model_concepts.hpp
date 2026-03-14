@@ -95,7 +95,7 @@ concept lp_model = requires(T & model, T::variable v,
 
     { model.solve() };
     { model.get_solution_value() } -> std::same_as<typename T::scalar>;
-    { model.get_solution() } /*-> input_mapping<typename T::variable>*/;
+    { model.get_solution()[v] } -> std::convertible_to<typename T::scalar>;
 };
 
 
@@ -149,17 +149,42 @@ concept has_lp_status = lp_model<T> && requires(T & model) {
 };
 
 template <typename T>
-concept has_dual_solution = requires(T & model) {
-    { model.get_dual_solution() } /*-> input_mapping<typename T::constraint>*/;
+concept has_dual_solution = requires(T & model, T::constraint c) {
+    { model.get_dual_solution()[c] } -> std::convertible_to<typename T::scalar>;
 };
 
-// template <typename T>
-// concept has_milp_status =
-//     milp_model<T> &&
-//     requires(T & model, T::variable v, T::variable_id vid,
-//              T::variable_params vparams, T::constraint c, T::scalar s) {
-//         { model.get_milp_status() };
-//     };
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////// Termination reasons /////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+namespace detail {
+template <class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+}  // namespace detail
+
+namespace reason {
+struct optimal {};
+struct infeasible {};
+struct unbounded {};
+struct infeasible_or_unbounded {};
+struct numerical_failure {};
+struct time_limit {};
+struct node_limit {};
+struct unknown {};
+}  // namespace reason
+
+template <typename T>
+using termination_reason_t =
+    std::decay_t<decltype(std::declval<T>().termination_reason())>;
+
+template <typename T>
+concept has_terminaition_reason = requires(T & model) {
+        { model.termination_reason() };
+    };
 
 template <typename T>
 concept has_time_limit =
@@ -176,7 +201,6 @@ concept has_node_limit =
     { model.get_node_limit() }-> std::same_as<std::size_t>;
     // { model.reached_node_limit() } -> std::convertible_to<bool>;
 };
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Names ////////////////////////////////////
@@ -400,24 +424,24 @@ concept has_mip_start =
         requires(T & model,
     std::initializer_list<std::pair<typename T::variable, typename T::scalar>>
         init_entries) {
-    { model.set_mip_start(detail::dummy_range<
-                std::pair<typename T::variable, typename T::scalar>>()) };
-    { model.set_mip_start(init_entries) };
-};
-
-template <typename T>
-concept has_multiple_mip_starts =
-        requires(T & model,
-    std::initializer_list<std::pair<typename T::variable, typename T::scalar>>
-        init_entries, std::size_t i) {
     { model.add_mip_start(detail::dummy_range<
                 std::pair<typename T::variable, typename T::scalar>>()) };
     { model.add_mip_start(init_entries) };
-    { model.num_mip_starts() } -> std::same_as<std::size_t>;
-    { model.set_mip_start(i, detail::dummy_range<
-                std::pair<typename T::variable, typename T::scalar>>()) };
-    { model.set_mip_start(i, init_entries) };
 };
+
+// template <typename T>
+// concept has_multiple_mip_starts =
+//         requires(T & model,
+//     std::initializer_list<std::pair<typename T::variable, typename T::scalar>>
+//         init_entries, std::size_t i) {
+//     { model.add_mip_start(detail::dummy_range<
+//                 std::pair<typename T::variable, typename T::scalar>>()) } -> std::same_as<std::size_t>;
+//     { model.add_mip_start(init_entries) } -> std::same_as<std::size_t>;
+//     { model.num_mip_starts() } -> std::same_as<std::size_t>;
+//     { model.set_mip_start(i, detail::dummy_range<
+//                 std::pair<typename T::variable, typename T::scalar>>()) };
+//     { model.set_mip_start(i, init_entries) };
+// };
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Callbacks //////////////////////////////////
