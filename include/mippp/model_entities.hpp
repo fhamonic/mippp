@@ -261,8 +261,7 @@ using optional_type_value_t = typename T::value_type;
 }  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
-////////////////////////////// Constraints range
-/////////////////////////////////
+////////////////////////////// Constraints range //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename Key, typename Constraint>
@@ -276,6 +275,9 @@ public:
         : _constraints_map(std::from_range_t{},
                            std::views::zip(std::forward<KR>(keys),
                                            std::forward<CR>(constraints))) {}
+
+    constexpr constraints_range(const constraints_range &) = default;
+    constexpr constraints_range(constraints_range &&) = default;
 
     constexpr auto size() const noexcept { return _constraints_map.size(); }
     constexpr auto begin() const noexcept {

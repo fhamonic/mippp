@@ -80,3 +80,13 @@ GTEST_TEST(empty_linear_expression, test) {
     static_assert(linear_expression<decltype(e)>);
     ASSERT_LIN_EXPR(e, {}, 0);
 }
+
+GTEST_TEST(evaluate_linear_expression, test) {
+    auto e = Var(1) * 3.2 - Var(2) * 1.5 + 9;
+    entity_mapping<Var, std::vector<double>> values_1 =
+        std::vector<double>{0, 5.2, 3.1};
+    entity_mapping<Var, std::vector<double>> values_2 =
+        std::vector<double>{0, 7, 1.5};
+    ASSERT_DOUBLE_EQ(evaluate(e, values_1), 20.99);
+    ASSERT_DOUBLE_EQ(evaluate(e, values_2), 29.15);
+}

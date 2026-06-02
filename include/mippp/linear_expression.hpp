@@ -277,6 +277,19 @@ public:
     }
 };
 
+///
+
+template <linear_expression E, typename VM>
+linear_expression_scalar_t<E> evaluate(const E & e, const VM & values_map) {
+    return std::ranges::fold_left(
+        std::views::transform(e.linear_terms(),
+                              [&values_map](auto && t) {
+                                  return values_map[std::get<0>(t)] *
+                                         std::get<1>(t);
+                              }),
+        e.constant(), std::plus<linear_expression_scalar_t<E>>());
+}
+
 }  // namespace fhamonic::mippp
 
 #endif  // MIPPP_LINEAR_EXPRESSION_HPP

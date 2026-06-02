@@ -60,6 +60,25 @@ constexpr bool operator<(dummy_type, dummy_type) { return true; }
 //////////////////////////////////// Model ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+template <typename M>
+using model_variable_t = typename M::variable;
+
+// template <typename M, typename... A>
+// using model_variable_range_t = decltype(std::declval<M>().add_variables(
+//     std::size_t{1u}, [](A, ...) { return 0; }));
+
+template <typename M>
+using model_constraint_t = typename M::constraint;
+
+// template <typename M, typename K>
+// using model_constraint_range_t = constraints_range<model_constraint_t<M>, K>;
+
+template <typename M, typename K>
+using model_constraints_range_t =
+    decltype(std::declval<M>().add_constraints(detail::dummy_range<K>(), [](K) {
+        return detail::dummy_linear_constraint<M>();
+    }));
+
 // clang-format off
 template <typename T>
 concept lp_model = requires(T & model, T::variable v, 
@@ -82,6 +101,7 @@ concept lp_model = requires(T & model, T::variable v,
 
     { model.set_objective_offset(0.0) };
     { model.set_objective(detail::dummy_linear_expression<T>()) };
+
     { model.add_constraint(detail::dummy_linear_constraint<T>()) }
             -> std::same_as<typename T::constraint>;
     { model.add_constraints(detail::dummy_range<detail::dummy_type>(),
