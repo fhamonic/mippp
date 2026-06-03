@@ -74,7 +74,27 @@ public:
             throw std::runtime_error(
                 "gurobi_base: Could not retrieve model environement.");
     }
-    ~gurobi_base() { check(GRB.freemodel(model)); };
+    ~gurobi_base() {
+        if(model) check(GRB.freemodel(model));
+    }
+
+    constexpr gurobi_base(const gurobi_base &) = delete;
+    constexpr gurobi_base(gurobi_base && other) noexcept
+        : GRB(other.GRB)
+        , env(other.env)
+        , model(other.model)
+        , _lazy_num_variables(other._lazy_num_variables)
+        , _lazy_num_constraints(other._lazy_num_constraints)
+        , tmp_begins(std::move(other.tmp_begins))
+        , tmp_types(std::move(other.tmp_types))
+        , tmp_rhs(std::move(other.tmp_rhs))
+        , _var_name_set(std::move(other._var_name_set)) {
+        other.model = nullptr;
+        other.env = nullptr;
+    }
+
+    constexpr gurobi_base & operator=(const gurobi_base &) = delete;
+    constexpr gurobi_base & operator=(gurobi_base &&) = delete;
 
 protected:
     void check(int error) {
