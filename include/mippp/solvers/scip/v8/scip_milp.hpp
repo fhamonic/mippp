@@ -13,8 +13,8 @@
 
 #include "mippp/solvers/scip/v8/scip_api.hpp"
 
-#include <iostream>
 #include <format>
+#include <iostream>
 
 namespace fhamonic::mippp {
 namespace scip::v8 {
@@ -53,6 +53,7 @@ public:
         SCIP.createProbBasic(model, "MILP");
     }
     ~scip_milp() {
+        if(!model) return;
         for(auto & var : variables) {
             SCIP.releaseVar(model, &var);
         }
@@ -60,7 +61,19 @@ public:
             SCIP.releaseCons(model, &cons);
         }
         SCIP.free(&model);
-    };
+    }
+
+    constexpr scip_milp(const scip_milp &) = delete;
+    constexpr scip_milp(scip_milp && other) noexcept
+        : SCIP(other.SCIP)
+        , model(other.model)
+        , variables(std::move(other.variables))
+        , constraints(std::move(other.constraints)) {
+        other.model = nullptr;
+    }
+
+    constexpr scip_milp & operator=(const scip_milp &) = delete;
+    constexpr scip_milp & operator=(scip_milp && other) = delete;
 
 private:
     static constexpr const char * error_messages[] = {
@@ -503,8 +516,8 @@ private:
         struct Scip * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss,
         int nconss, int nusefulconss, SCIP_Bool solinfeasible,
         SCIP_RESULT * result) {
-            
-        std::cout << std::format("*ptr = {:p}\n", *((void**)conshdlr->conshdlrdata));
+        std::cout << std::format("*ptr = {:p}\n",
+                                 *((void **)conshdlr->conshdlrdata));
 
         auto * model = *(static_cast<scip_milp **>(conshdlr->conshdlrdata));
         // candidate_solution_callback_handle handle(model->SCIP, *model,
@@ -520,7 +533,7 @@ public:
         auto ptr = static_cast<scip_milp **>(malloc(sizeof(scip_milp **)));
         *ptr = this;
 
-    std::cout << std::format("this = {:p}\n", (void*)(*ptr));
+        std::cout << std::format("this = {:p}\n", (void *)(*ptr));
 
         check(SCIP.includeConshdlrBasic(
             model, &candidate_solution_constraint_handler,

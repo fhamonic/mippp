@@ -46,7 +46,23 @@ private:
 public:
     [[nodiscard]] explicit clp_lp(const clp_api & api)
         : model_base<int, double>(), Clp(api), model(Clp.newModel()) {}
-    ~clp_lp() { Clp.deleteModel(model); }
+    ~clp_lp() {
+        if(model) Clp.deleteModel(model);
+    }
+
+    constexpr clp_lp(const clp_lp &) = delete;
+    constexpr clp_lp(clp_lp && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , Clp(other.Clp)
+        , model(other.model)
+        , tmp_begins(std::move(other.tmp_begins))
+        , tmp_lower_bounds(std::move(other.tmp_lower_bounds))
+        , tmp_upper_bounds(std::move(other.tmp_upper_bounds)) {
+        other.model = nullptr;
+    }
+
+    constexpr clp_lp & operator=(const clp_lp &) = delete;
+    constexpr clp_lp & operator=(clp_lp && other) = delete;
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(Clp.getNumCols(model));

@@ -65,7 +65,24 @@ public:
         , feasibility_tol(1e-4)
         , _lazy_num_variables(0)
         , _lazy_num_constraints(0) {}
-    ~cbc_milp() { Cbc.deleteModel(model); }
+    ~cbc_milp() {
+        if(model) Cbc.deleteModel(model);
+    }
+
+    constexpr cbc_milp(const cbc_milp &) = delete;
+    constexpr cbc_milp(cbc_milp && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , Cbc(other.Cbc)
+        , model(other.model)
+        , objective_offset(other.objective_offset)
+        , feasibility_tol(other.feasibility_tol)
+        , _lazy_num_variables(other._lazy_num_variables)
+        , _lazy_num_constraints(other._lazy_num_constraints) {
+        other.model = nullptr;
+    }
+
+    constexpr cbc_milp & operator=(const cbc_milp &) = delete;
+    constexpr cbc_milp & operator=(cbc_milp && other) = delete;
 
     std::size_t num_variables() {
         if(static_cast<std::size_t>(Cbc.getNumCols(model)) !=

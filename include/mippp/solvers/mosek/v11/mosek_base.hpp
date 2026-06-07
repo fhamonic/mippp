@@ -70,9 +70,26 @@ public:
         check(MSK.makeemptytask(env, &task));
     }
     ~mosek_base() {
-        check(MSK.deletetask(&task));
-        check(MSK.deleteenv(&env));
+        if(task) check(MSK.deletetask(&task));
+        if(env) check(MSK.deleteenv(&env));
     }
+
+    constexpr mosek_base(const mosek_base &) = delete;
+    constexpr mosek_base(mosek_base && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , MSK(other.MSK)
+        , env(other.env)
+        , task(other.task)
+        , tmp_begins(std::move(other.tmp_begins))
+        , tmp_boundkeye(std::move(other.tmp_boundkeye))
+        , tmp_rhs(std::move(other.tmp_rhs))
+        , tmp_vartype(std::move(other.tmp_vartype)) {
+        other.task = nullptr;
+        other.env = nullptr;
+    }
+
+    constexpr mosek_base & operator=(const mosek_base &) = delete;
+    constexpr mosek_base & operator=(mosek_base && other) = delete;
 
     std::size_t num_variables() {
         MSKint32t num;

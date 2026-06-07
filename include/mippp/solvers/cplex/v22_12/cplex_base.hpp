@@ -67,7 +67,25 @@ public:
         , CPX(api)
         , env(CPX.openCPLEX(&cplex_status))
         , lp(CPX.createprob(env, &cplex_status, "cplex_base")) {}
-    ~cplex_base() { check(CPX.freeprob(env, &lp)); }
+    ~cplex_base() {
+        if(lp) check(CPX.freeprob(env, &lp));
+    }
+
+    constexpr cplex_base(const cplex_base &) = delete;
+    constexpr cplex_base(cplex_base && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , CPX(other.CPX)
+        , env(other.env)
+        , lp(other.lp)
+        , tmp_begins(std::move(other.tmp_begins))
+        , tmp_types(std::move(other.tmp_types))
+        , tmp_rhs(std::move(other.tmp_rhs)) {
+        other.env = nullptr;
+        other.lp = nullptr;
+    }
+
+    constexpr cplex_base & operator=(const cplex_base &) = delete;
+    constexpr cplex_base & operator=(cplex_base && other) = delete;
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(CPX.getnumcols(env, lp));

@@ -71,9 +71,25 @@ public:
         XPRS.createprob(&prob);
     }
     ~xpress_base() {
+        if(!prob) return;
         XPRS.destroyprob(prob);
         XPRS.free();
     }
+
+    constexpr xpress_base(const xpress_base &) = delete;
+    constexpr xpress_base(xpress_base && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , XPRS(other.XPRS)
+        , prob(other.prob)
+        , objective_offset(other.objective_offset)
+        , tmp_begins(std::move(other.tmp_begins))
+        , tmp_types(std::move(other.tmp_types))
+        , tmp_rhs(std::move(other.tmp_rhs)) {
+        other.prob = nullptr;
+    }
+
+    constexpr xpress_base & operator=(const xpress_base &) = delete;
+    constexpr xpress_base & operator=(xpress_base && other) = delete;
 
     std::size_t num_variables() {
         int num_vars;

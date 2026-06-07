@@ -43,7 +43,23 @@ protected:
 public:
     [[nodiscard]] explicit highs_base(const highs_api & api)
         : model_base<int, double>(), Highs(api), model(Highs.create()) {}
-    ~highs_base() { Highs.destroy(model); }
+    ~highs_base() {
+        if(model) Highs.destroy(model);
+    }
+
+    constexpr highs_base(const highs_base &) = delete;
+    constexpr highs_base(highs_base && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , Highs(other.Highs)
+        , model(other.model)
+        , tmp_begins(std::move(other.tmp_begins))
+        , tmp_lower_bounds(std::move(other.tmp_lower_bounds))
+        , tmp_upper_bounds(std::move(other.tmp_upper_bounds)) {
+        other.model = nullptr;
+    }
+
+    constexpr highs_base & operator=(const highs_base &) = delete;
+    constexpr highs_base & operator=(highs_base && other) = delete;
 
 protected:
     void check(int status) {

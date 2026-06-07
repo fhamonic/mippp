@@ -80,7 +80,8 @@ public:
 
     constexpr gurobi_base(const gurobi_base &) = delete;
     constexpr gurobi_base(gurobi_base && other) noexcept
-        : GRB(other.GRB)
+        : model_base<int, double>(std::move(other))
+        , GRB(other.GRB)
         , env(other.env)
         , model(other.model)
         , _lazy_num_variables(other._lazy_num_variables)
@@ -94,7 +95,7 @@ public:
     }
 
     constexpr gurobi_base & operator=(const gurobi_base &) = delete;
-    constexpr gurobi_base & operator=(gurobi_base &&) = delete;
+    constexpr gurobi_base & operator=(gurobi_base && other) = delete;
 
 protected:
     void check(int error) {

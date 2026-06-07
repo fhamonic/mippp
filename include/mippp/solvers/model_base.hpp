@@ -34,12 +34,20 @@ protected:
 
     [[nodiscard]] explicit model_base() : register_count(0) {}
 
+    constexpr model_base(const model_base &) = default;
+    constexpr model_base(model_base &&) = default;
+
+    constexpr model_base & operator=(const model_base &) = default;
+    constexpr model_base & operator=(model_base && other) = default;
+
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
-        return variables_range(std::from_range_t{}, std::views::transform(
-           std::views::iota(static_cast<_Index>(offset),
-                               static_cast<_Index>(offset + count)),
-            [](auto && i) { return variable{i}; }));
+        return variables_range(
+            std::from_range_t{},
+            std::views::transform(
+                std::views::iota(static_cast<_Index>(offset),
+                                 static_cast<_Index>(offset + count)),
+                [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
     inline auto _make_indexed_variables_range(const std::size_t & offset,
@@ -47,9 +55,9 @@ protected:
                                               IL && id_lambda) {
         return variables_range(
             typename detail::function_traits<IL>::arg_types(),
-           std::views::transform(
-               std::views::iota(static_cast<_Index>(offset),
-                                   static_cast<_Index>(offset + count)),
+            std::views::transform(
+                std::views::iota(static_cast<_Index>(offset),
+                                 static_cast<_Index>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
     }
@@ -77,9 +85,9 @@ protected:
                                                     M * model) {
         return lazily_named_variables_range(
             typename detail::function_traits<IL>::arg_types(),
-           std::views::transform(
-               std::views::iota(static_cast<_Index>(offset),
-                                   static_cast<_Index>(offset + count)),
+            std::views::transform(
+                std::views::iota(static_cast<_Index>(offset),
+                                 static_cast<_Index>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda), std::forward<NL>(name_lambda), model);
     }

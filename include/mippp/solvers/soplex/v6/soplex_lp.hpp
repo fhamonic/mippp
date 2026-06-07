@@ -46,7 +46,21 @@ private:
 public:
     [[nodiscard]] explicit soplex_lp(const soplex_api & api)
         : SoPlex(api), model(SoPlex.create()), objective_offset(0.0) {}
-    ~soplex_lp() { SoPlex.free(model); }
+    ~soplex_lp() {
+        if(model) SoPlex.free(model);
+    }
+
+    constexpr soplex_lp(const soplex_lp &) = delete;
+    constexpr soplex_lp(soplex_lp && other) noexcept
+        : SoPlex(other.SoPlex)
+        , model(other.model)
+        , objective_offset(other.objective_offset)
+        , tmp_scalars(std::move(other.tmp_scalars)) {
+        other.model = nullptr;
+    }
+
+    constexpr soplex_lp & operator=(const soplex_lp &) = delete;
+    constexpr soplex_lp & operator=(soplex_lp && other) = delete;
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(SoPlex.numCols(model));

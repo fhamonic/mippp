@@ -77,7 +77,21 @@ public:
         , glp(api)
         , model(glp.create_prob())
         , objective_offset(0.0) {}
-    ~glpk_base() { glp.delete_prob(model); }
+    ~glpk_base() {
+        if(model) glp.delete_prob(model);
+    }
+
+    constexpr glpk_base(const glpk_base &) = delete;
+    constexpr glpk_base(glpk_base && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , glp(other.glp)
+        , model(other.model)
+        , objective_offset(other.objective_offset) {
+        other.model = nullptr;
+    }
+
+    constexpr glpk_base & operator=(const glpk_base &) = delete;
+    constexpr glpk_base & operator=(glpk_base && other) = delete;
 
     std::size_t num_variables() {
         return static_cast<std::size_t>(glp.get_num_cols(model));

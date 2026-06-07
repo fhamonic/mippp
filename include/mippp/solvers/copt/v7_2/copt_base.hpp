@@ -64,9 +64,25 @@ public:
         COPT.CreateProb(env, &prob);
     }
     ~copt_base() {
-        COPT.DeleteProb(&prob);
-        COPT.DeleteEnv(&env);
+        if(prob) COPT.DeleteProb(&prob);
+        if(env) COPT.DeleteEnv(&env);
     }
+
+    constexpr copt_base(const copt_base &) = delete;
+    constexpr copt_base(copt_base && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , COPT(other.COPT)
+        , env(other.env)
+        , prob(other.prob)
+        , tmp_begins(std::move(other.tmp_begins))
+        , tmp_types(std::move(other.tmp_types))
+        , tmp_rhs(std::move(other.tmp_rhs)) {
+        other.env = nullptr;
+        other.prob = nullptr;
+    }
+
+    constexpr copt_base & operator=(const copt_base &) = delete;
+    constexpr copt_base & operator=(copt_base && other) = delete;
 
     std::size_t num_variables() {
         int num;
