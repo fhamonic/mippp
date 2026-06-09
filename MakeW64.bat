@@ -1,1 +1,1 @@
-conan create . -u -b=missing -pr=mingw_gcc15
+conan create . -u -b=missing -pr=mingw_gcc15 -c tools.build:jobs=1

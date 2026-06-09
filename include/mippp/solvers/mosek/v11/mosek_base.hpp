@@ -65,8 +65,8 @@ protected:
 public:
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
         : model_base<int, double>(), MSK(api), env(NULL), task(NULL) {
-        check(MSK.makeenv(
-            &env, (std::filesystem::temp_directory_path() / "mosek_").c_str()));
+        const auto env_path_str = (std::filesystem::temp_directory_path() / "mosek_").string();
+        check(MSK.makeenv(&env, env_path_str.c_str()));
         check(MSK.makeemptytask(env, &task));
     }
     ~mosek_base() {
