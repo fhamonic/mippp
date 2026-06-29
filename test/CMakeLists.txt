@@ -5,13 +5,7 @@ include(GoogleTest)
 find_package(melon REQUIRED)
 
 # ################# TEST targets #################
-add_executable(
-    mippp_test
-    main.cpp
-    model_variable.cpp
-    linear_expression.cpp
-    linear_constraint.cpp
-    quadratic_expression.cpp
+set(MIPPP_TEST_ALL_SOLVER_SOURCES
     solvers/cbc.cpp
     solvers/clp.cpp
     solvers/copt.cpp
@@ -23,6 +17,22 @@ add_executable(
     solvers/scip.cpp
     solvers/soplex.cpp
     solvers/xpress.cpp
+    )
+if(TEST_FILTER)
+    string(TOLOWER ${TEST_FILTER} TEST_FILTER_SOURCE)
+    set(MIPPP_TEST_SOLVER_SOURCES solvers/${TEST_FILTER_SOURCE}.cpp)
+else()
+    set(MIPPP_TEST_SOLVER_SOURCES ${MIPPP_TEST_ALL_SOLVER_SOURCES})
+endif()
+
+add_executable(
+    mippp_test
+    main.cpp
+    model_variable.cpp
+    linear_expression.cpp
+    linear_constraint.cpp
+    quadratic_expression.cpp
+    ${MIPPP_TEST_SOLVER_SOURCES}
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
 target_link_libraries(mippp_test mippp)

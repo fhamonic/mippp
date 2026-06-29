@@ -97,7 +97,6 @@ protected:
         tmp_indices.resize(0);
         tmp_scalars.resize(0);
     }
-
     template <std::ranges::range Entries>
     void _register_entries(Entries && entries) {
         ++register_count;
@@ -111,6 +110,11 @@ protected:
             tmp_indices.emplace_back(entity.id());
             tmp_scalars.emplace_back(coef);
         }
+    }
+
+    void _reset_raw_cache() {
+        tmp_indices.resize(0);
+        tmp_scalars.resize(0);
     }
     template <std::ranges::range Entries>
     void _register_raw_entries(Entries && entries) {

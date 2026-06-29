@@ -238,7 +238,7 @@ public:
 private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
-        _reset_cache(_lazy_num_constraints);
+        _reset_raw_cache();
         _register_raw_entries(entries);
         Cbc.addCol(model, "", params.lower_bound.value_or(-COIN_DBL_MAX),
                    params.upper_bound.value_or(COIN_DBL_MAX), params.obj_coef,
@@ -401,7 +401,15 @@ public:
     }
     // void set_constraint_name(constraint constr, auto && name);
 
-    // auto get_constraint_lexpr(constraint constr) const;
+    auto get_constraint_lhs(constraint constr) {
+        const int num_nz = Cbc.getRowNz(model, constr.id());
+        const int * ids = Cbc.getRowIndices(model, constr.id());
+        const double * coeffs = Cbc.getRowCoeffs(model, constr.id());
+        return std::views::transform(
+            std::views::iota(0, num_nz), [ids, coeffs](int i) {
+                return std::make_pair(variable(ids[i]), coeffs[i]);
+            });
+    }
     constraint_sense get_constraint_sense(constraint constr) {
         const double lb = Cbc.getRowLower(model)[constr.id()];
         const double ub = Cbc.getRowUpper(model)[constr.id()];
@@ -414,6 +422,16 @@ public:
     double get_constraint_rhs(constraint constr) {
         return Cbc.getRowRHS(model, constr.id());
     }
+    auto get_constraint(constraint constr) {
+        const int num_nz = Cbc.getRowNz(model, constr.id());
+        const int * ids = Cbc.getRowIndices(model, constr.id());
+        const double * coeffs = Cbc.getRowCoeffs(model, constr.id());
+        return linear_constraint_view(
+            linear_expression_view(get_constraint_lhs(constr),
+                                   -get_constraint_rhs(constr)),
+            get_constraint_sense(constr));
+    }
+
     auto get_constraint_name(constraint constr) {
         auto max_length = Cbc.maxNameLength(model);
         std::string name(max_length, '\0');
@@ -421,13 +439,12 @@ public:
         name.resize(std::strlen(name.c_str()));
         return name;
     }
-    // auto get_constraint(const constraint constr) const;
 
     //////////////////////////////// MIP start ////////////////////////////////
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
-        _reset_cache(_lazy_num_variables);
+        _reset_raw_cache();
         _register_raw_entries(entries);
         Cbc.setMIPStartI(model, static_cast<int>(tmp_indices.size()),
                          tmp_indices.data(), tmp_scalars.data());

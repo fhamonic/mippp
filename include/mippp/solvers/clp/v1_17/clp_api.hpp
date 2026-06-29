@@ -41,8 +41,14 @@ void Clp_rowName(Clp_Simplex * model, int iRow, char * name);
 
 int Clp_getNumCols(Clp_Simplex * model);
 int Clp_getNumRows(Clp_Simplex * model);
-int Clp_getNumElements(Clp_Simplex * model);
+CoinBigIndex Clp_getNumElements(Clp_Simplex * model);
 int Clp_lengthNames(Clp_Simplex * model);
+
+const CoinBigIndex * Clp_getVectorStarts(Clp_Simplex * model);
+const int * Clp_getIndices(Clp_Simplex * model);
+const double * Clp_getElements(Clp_Simplex * model);
+void Clp_modifyCoefficient(Clp_Simplex * model, int row, int column,
+                           double newElement, bool keepZero);
 
 double Clp_primalTolerance(Clp_Simplex * model);
 void Clp_setPrimalTolerance(Clp_Simplex * model, double value);
@@ -91,6 +97,10 @@ namespace clp::v1_17 {
     F(Clp_getNumRows, getNumRows)                             \
     F(Clp_getNumElements, getNumElements)                     \
     F(Clp_lengthNames, lengthNames)                           \
+    F(Clp_getVectorStarts, getVectorStarts)                   \
+    F(Clp_getIndices, getIndices)                             \
+    F(Clp_getElements, getElements)                           \
+    F(Clp_modifyCoefficient, modifyCoefficient)               \
     F(Clp_primalTolerance, primalTolerance)                   \
     F(Clp_setPrimalTolerance, setPrimalTolerance)             \
     F(Clp_setColumnStatus, setColumnStatus)                   \

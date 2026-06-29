@@ -43,6 +43,8 @@ private:
     std::vector<scalar> tmp_lower_bounds;
     std::vector<scalar> tmp_upper_bounds;
 
+    std::vector<int> _free_variable_ids;
+
 public:
     [[nodiscard]] explicit clp_lp(const clp_api & api)
         : model_base<int, double>(), Clp(api), model(Clp.newModel()) {}
@@ -57,7 +59,8 @@ public:
         , model(other.model)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_lower_bounds(std::move(other.tmp_lower_bounds))
-        , tmp_upper_bounds(std::move(other.tmp_upper_bounds)) {
+        , tmp_upper_bounds(std::move(other.tmp_upper_bounds))
+        , _free_variable_ids(std::move(other._free_variable_ids)) {
         other.model = nullptr;
     }
 
@@ -65,7 +68,8 @@ public:
     constexpr clp_lp & operator=(clp_lp && other) = delete;
 
     std::size_t num_variables() {
-        return static_cast<std::size_t>(Clp.getNumCols(model));
+        return static_cast<std::size_t>(Clp.getNumCols(model)) -
+               _free_variable_ids.size();
     }
     std::size_t num_constraints() {
         return static_cast<std::size_t>(Clp.getNumRows(model));
@@ -130,12 +134,29 @@ private:
         }
     }
 
+    inline variable _recylcle_variable(const variable_params & params,
+                                       const char * name_str = "") {
+        variable v{_free_variable_ids.back()};
+        _free_variable_ids.pop_back();
+        set_objective_coefficient(v, params.obj_coef);
+        if(double lb = params.lower_bound.value_or(-COIN_DBL_MAX); lb != 0.0)
+            set_variable_lower_bound(v, lb);
+        if(double ub = params.upper_bound.value_or(COIN_DBL_MAX); ub != 0.0)
+            set_variable_upper_bound(v, ub);
+        set_variable_name(v, name_str);
+        return v;
+    }
+
 public:
-    variable add_variable(const variable_params p = default_variable_params) {
+    variable add_variable(
+        const variable_params params = default_variable_params) {
+        if(!_free_variable_ids.empty()) {
+            return _recylcle_variable(params);
+        }
         variable_id var_id = static_cast<variable_id>(num_variables());
-        const auto lb = p.lower_bound.value_or(-COIN_DBL_MAX);
-        const auto ub = p.upper_bound.value_or(COIN_DBL_MAX);
-        Clp.addColumns(model, 1, &lb, &ub, &p.obj_coef, NULL, NULL, NULL);
+        const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
+        const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
+        Clp.addColumns(model, 1, &lb, &ub, &params.obj_coef, NULL, NULL, NULL);
         return variable(var_id);
     }
     auto add_variables(
@@ -158,6 +179,9 @@ public:
     variable add_named_variable(
         const std::string & name,
         const variable_params params = default_variable_params) {
+        if(!_free_variable_ids.empty()) {
+            return _recylcle_variable(params, name.c_str());
+        }
         variable v = add_variable(params);
         set_variable_name(v, name);
         return v;
@@ -185,9 +209,17 @@ public:
 private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
-        const int var_id = static_cast<int>(num_variables());
-        _reset_cache(num_constraints());
+        if(!_free_variable_ids.empty()) {
+            variable v = _recylcle_variable(params);
+            for(auto && [constr, coef] : entries) {
+                Clp.modifyCoefficient(model, constr.id(), v.id(),
+                                      static_cast<double>(coef), false);
+            }
+            return v;
+        }
+        _reset_raw_cache();
         _register_raw_entries(entries);
+        const int var_id = static_cast<int>(num_variables());
         const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
         const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
@@ -208,6 +240,24 @@ public:
         return _add_column(entries, params);
     }
 
+    void remove_variable(variable v) {
+        set_objective_coefficient(v, 0);
+        set_variable_lower_bound(v, 0);
+        set_variable_upper_bound(v, 0);
+        // Zeroes the column
+        const int * col_starts = Clp.getVectorStarts(model);
+        const int * row_indices = Clp.getIndices(model);
+        const int * begin = row_indices + col_starts[v.id()];
+        const int * end = row_indices + (v.id() < Clp.getNumCols(model) - 1
+                                             ? col_starts[v.id() + 1]
+                                             : Clp.getNumElements(model));
+        for(const int * it = begin; it != end; ++it) {
+            Clp.modifyCoefficient(model, *it, v.id(), 0.0, false);
+        }
+
+        _free_variable_ids.emplace_back(v.id());
+    }
+
     void set_objective_coefficient(variable v, scalar c) {
         Clp.objective(model)[v.id()] = c;
     }
@@ -217,8 +267,11 @@ public:
     void set_variable_upper_bound(variable v, scalar ub) {
         Clp.columnUpper(model)[v.id()] = ub;
     }
+    void set_variable_name(variable v, const char * name) {
+        Clp.setColumnName(model, v.id(), const_cast<char *>(name));
+    }
     void set_variable_name(variable v, std::string name) {
-        Clp.setColumnName(model, v.id(), const_cast<char *>(name.c_str()));
+        set_variable_name(v, name.c_str());
     }
 
     scalar get_objective_coefficient(variable v) {
@@ -240,8 +293,7 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
-        tmp_indices.resize(0);
-        tmp_scalars.resize(0);
+        _reset_raw_cache();
         _register_raw_entries(lc.linear_terms());
         const scalar b = lc.rhs();
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
@@ -360,7 +412,8 @@ public:
         Clp.setRowName(model, constr.id(), const_cast<char *>(name.c_str()));
     }
 
-    // auto get_constraint_lhs(constraint constr) const;
+    // auto get_constraint_lhs(constraint constr) {} // Clp C API only has
+    // column-major accessors
     scalar get_constraint_rhs(constraint constr) {
         if(get_constraint_sense(constr) == constraint_sense::greater_equal)
             return Clp.rowLower(model)[constr.id()];
@@ -375,6 +428,13 @@ public:
         throw std::runtime_error(
             "Tried to get the sense of a ranged constraint");
     }
+    // auto get_constraint(constraint constr) {
+    //     return linear_constraint_view(
+    //         linear_expression_view(get_constraint_lhs(constr),
+    //                                -get_constraint_rhs(constr)),
+    //         get_constraint_sense(constr));
+    // }
+
     auto get_constraint_name(constraint constr) {
         auto max_length = static_cast<std::size_t>(Clp.lengthNames(model));
         std::string name(max_length, '\0');

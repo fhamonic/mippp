@@ -65,7 +65,8 @@ protected:
 public:
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
         : model_base<int, double>(), MSK(api), env(NULL), task(NULL) {
-        const auto env_path_str = (std::filesystem::temp_directory_path() / "mosek_").string();
+        const auto env_path_str =
+            (std::filesystem::temp_directory_path() / "mosek_").string();
         check(MSK.makeenv(&env, env_path_str.c_str()));
         check(MSK.makeemptytask(env, &task));
     }
@@ -272,7 +273,7 @@ private:
     inline variable _add_column(ER && entries, const variable_params & params) {
         const int var_id = static_cast<int>(num_variables());
         _add_variable(var_id, params, MSK_VAR_TYPE_CONT);
-        _reset_cache(num_constraints());
+        _reset_raw_cache();
         _register_raw_entries(entries);
         check(MSK.putacol(task, var_id, static_cast<int>(tmp_indices.size()),
                           tmp_indices.data(), tmp_scalars.data()));

@@ -410,8 +410,8 @@ concept has_add_column = requires(
 };
 
 template <typename T>
-concept has_column_deletion = requires(T & model, T::variable v) {
-    { model.remove_column(v) };
+concept has_remove_variable = requires(T & model, T::variable v) {
+    { model.remove_variable(v) };
 };
 
 ///////////////////////////////////////////////////////////////////////////////

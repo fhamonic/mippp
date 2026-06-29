@@ -33,6 +33,10 @@ int GRBaddvar(GRBmodel * model, int numnz, int * vind, double * vval,
 int GRBaddvars(GRBmodel * model, int numvars, int numnz, int * vbeg, int * vind,
                double * vval, double * obj, double * lb, double * ub,
                char * vtype, char ** varnames);
+int GRBgetvars(GRBmodel * model, int * numnzP, int * vbeg, int * vind,
+               double * vval, int start, int len);
+int GRBchgcoeffs(GRBmodel * model, int cnt, int * cind, int * vind,
+                 double * val);
 int GRBaddconstr(GRBmodel * model, int numnz, int * cind, double * cval,
                  char sense, double rhs, const char * constrname);
 int GRBaddconstrs(GRBmodel * model, int numconstrs, int numnz, int * cbeg,
@@ -206,6 +210,8 @@ namespace gurobi::v12_0 {
     F(GRBupdatemodel, updatemodel)                     \
     F(GRBaddvar, addvar)                               \
     F(GRBaddvars, addvars)                             \
+    F(GRBgetvars, getvars)                             \
+    F(GRBchgcoeffs, chgcoeffs)                         \
     F(GRBaddqpterms, addqpterms)                       \
     F(GRBdelq, delq)                                   \
     F(GRBaddconstr, addconstr)                         \

@@ -18,5 +18,6 @@ INSTANTIATE_TEST(Cbc, MipStartTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ModifiableVariablesBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, NamedVariablesTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, AddColumnTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, ReadableConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, SudokuTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, TimeLimitTest, cbc_milp_test);

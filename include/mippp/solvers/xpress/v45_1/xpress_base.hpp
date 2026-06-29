@@ -273,7 +273,7 @@ private:
     inline variable _add_column(ER && entries, const variable_params & params) {
         const int var_id = static_cast<int>(num_variables());
         const int cmatbeg = 0;
-        _reset_cache(num_constraints());
+        _reset_raw_cache();
         _register_raw_entries(entries);
         const double lb = params.lower_bound.value_or(XPRS_MINUSINFINITY);
         const double ub = params.upper_bound.value_or(XPRS_PLUSINFINITY);

@@ -225,7 +225,7 @@ private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
         const int var_id = static_cast<int>(num_variables());
-        _reset_cache(num_constraints());
+        _reset_raw_cache();
         _register_raw_entries(entries);
         check(
             Highs.addCol(model, params.obj_coef,

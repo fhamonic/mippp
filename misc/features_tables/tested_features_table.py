@@ -205,7 +205,7 @@ def write_and_compile_latex(table, output_path, output_filename, res, width):
 
 def compute_names_max_width(names, font_size=10, res=600):
     font = ImageFont.truetype("DejaVuSans", int(res / 92 * font_size))
-    return max([font.getsize(name)[0] for name in names])
+    return max([font.getbbox(name)[0] for name in names])
 
 
 def compute_width(table, res):

@@ -2,12 +2,17 @@ BUILD_DIR = build
 # CONAN_PROFILE = debug
 CONAN_PROFILE = default_c++26
 
+ifeq (test,$(firstword $(MAKECMDGOALS)))
+  TEST_FILTER := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(TEST_FILTER):;@:)
+endif
+
 .PHONY: all test package clean
 
 all: test
 
 test:
-	conan build . -of=${BUILD_DIR} -b=missing -pr=${CONAN_PROFILE}
+	TEST_FILTER="$(TEST_FILTER)" conan build . -of=${BUILD_DIR} -b=missing -pr=${CONAN_PROFILE}
 	
 package:
 	conan create . -u -b=missing -pr=${CONAN_PROFILE} -c tools.build:skip_test=true

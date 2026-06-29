@@ -243,7 +243,7 @@ private:
     inline variable _add_column(ER && entries, const variable_params & params,
                                 const char & type) {
         const int var_id = static_cast<int>(num_variables());
-        _reset_cache(num_constraints());
+        _reset_raw_cache();
         _register_raw_entries(entries);
         check(COPT.AddCol(prob, params.obj_coef,
                           static_cast<int>(tmp_indices.size()),

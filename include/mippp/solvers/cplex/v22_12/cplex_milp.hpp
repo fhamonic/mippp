@@ -113,7 +113,7 @@ public:
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
-        _reset_cache(num_variables());
+        _reset_raw_cache();
         _register_raw_entries(entries);
         int beg = 0;
         int effort_level = CPX_MIPSTART_SOLVEMIP;

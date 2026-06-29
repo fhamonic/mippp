@@ -1,3 +1,5 @@
+import os
+
 from conan import ConanFile
 from conan.tools.cmake import CMake
 from conan.tools.files import copy
@@ -40,15 +42,25 @@ class CompressorRecipe(ConanFile):
         )
 
     def validate(self):
-        check_min_cppstd(self, 20)
+        check_min_cppstd(self, 23)
 
     def build(self):
         if self.conf.get("tools.build:skip_test", default=False):
             return
+        test_filter = os.environ.get("TEST_FILTER")
+
         cmake = CMake(self)
-        cmake.configure(variables={"ENABLE_TESTING": "ON"})
+
+        variables = {"ENABLE_TESTING": "ON"}
+        if test_filter:
+            variables["TEST_FILTER"] = test_filter
+        cmake.configure(variables=variables)
         cmake.build()
-        cmake.test(cli_args=["CTEST_OUTPUT_ON_FAILURE=1"])
+
+        cli_args = ["CTEST_OUTPUT_ON_FAILURE=1"]
+        if test_filter:
+            cli_args.append("ARGS=-R {}".format(test_filter))
+        cmake.test(cli_args=cli_args)
 
     def package(self):
         copy(self, "*.hpp", self.source_folder, self.package_folder)
