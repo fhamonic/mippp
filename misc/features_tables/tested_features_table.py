@@ -39,11 +39,13 @@ formated_test_names = [
     ("MilpModelTest", "MILP Model"),
     ("ReadableObjectiveTest", "Read objective"),
     ("ReadableVariablesBoundsTest", "Read variables bounds"),
+    ("ReadableConstraintsTest", "Read constraints"),
     ("ModifiableObjectiveTest", "Increment objective"),
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
     ("NamedVariablesTest", "Named variables"),
     ("LpStatusTest", "LP status"),
     ("AddColumnTest", "Add column"),
+    ("RemoveVariableTest", "Remove variable"),
     ("DualSolutionTest", "Dual solution"),
     ("CuttingStockTest", "Cutting stock example"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),
@@ -104,8 +106,7 @@ def generate_latex_table(table):
 
 
 def write_and_compile_latex(table, output_path, output_filename, res, width):
-    latex_doc = [
-        """\\documentclass[border=5pt]{standalone}
+    latex_doc = ["""\\documentclass[border=5pt]{standalone}
 \\usepackage{booktabs}
 \\usepackage{amssymb}
 \\usepackage{xparse}
@@ -149,8 +150,7 @@ def write_and_compile_latex(table, output_path, output_filename, res, width):
 \\begin{document}     
         
 \\def\\Angle{60}
-"""
-    ]
+"""]
 
     if table:
         latex_doc.append(generate_latex_table(table))
@@ -204,8 +204,8 @@ def write_and_compile_latex(table, output_path, output_filename, res, width):
 
 
 def compute_names_max_width(names, font_size=10, res=600):
-    font = ImageFont.truetype("DejaVuSans", int(res / 92 * font_size))
-    return max([font.getbbox(name)[0] for name in names])
+    font = ImageFont.truetype("DejaVuSans", int(res / 78 * font_size))
+    return max([font.getlength(name) for name in names])
 
 
 def compute_width(table, res):
@@ -213,7 +213,9 @@ def compute_width(table, res):
         (
             94
             + compute_names_max_width(format_test_names(table)[1])
-            + (len(table.values()) + 1) * 183
+            + 110
+            + max([len(v) for v in table.values()]) * 183
+            + 183
             + 94
         )
         * 600
