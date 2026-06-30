@@ -92,7 +92,11 @@ public:
     void add_indicator_constraint(variable x, bool val,
                                   linear_constraint auto && lc) {
         _reset_cache(_lazy_num_native_ids);
-        _register_entries(lc.linear_terms());
+        if(_remap_ids) {
+            _register_entries(lc.linear_terms(), _native_ids_map);
+        } else {
+            _register_entries(lc.linear_terms());
+        }
         check(GRB.addgenconstrIndicator(
             model, NULL, x.id(), static_cast<int>(val),
             static_cast<int>(tmp_indices.size()), tmp_indices.data(),
@@ -102,52 +106,60 @@ public:
 
     //////////////////////////////// Callbacks ////////////////////////////////
 private:
-    class callback_handle_base : public model_base<int, double> {
+    class callback_handle_base {
     protected:
-        const gurobi_api & GRB;
+        const gurobi_milp & parent;
         GRBmodel * master_model;
         void * cbdata;
 
     public:
-        callback_handle_base(const gurobi_api & api, GRBmodel * master_model_,
-                             void * cbdata_)
-            : model_base<int, double>()
-            , GRB(api)
-            , master_model(master_model_)
-            , cbdata(cbdata_) {}
+        callback_handle_base(const gurobi_milp & parent_,
+                             GRBmodel * master_model_, void * cbdata_)
+            : parent(parent_), master_model(master_model_), cbdata(cbdata_) {}
 
         std::size_t num_variables() {
             int num;
-            GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
+            parent.GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
             return static_cast<std::size_t>(num);
         }
     };
 
 public:
-    class candidate_solution_callback_handle : public callback_handle_base {
+    class candidate_solution_callback_handle : public callback_handle_base,
+                                               public model_base<int, double> {
     public:
-        candidate_solution_callback_handle(const gurobi_api & api,
+        candidate_solution_callback_handle(const gurobi_milp & parent_,
                                            GRBmodel * master_model_,
                                            void * cbdata_)
-            : callback_handle_base(api, master_model_, cbdata_) {}
+            : callback_handle_base(parent_, master_model_, cbdata_)
+            , model_base<int, double>() {}
 
         std::size_t num_variables() {
             int num;
-            GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
+            parent.GRB.getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
             return static_cast<std::size_t>(num);
         }
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
-            _register_entries(lc.linear_terms());
-            GRB.cblazy(cbdata, static_cast<int>(tmp_indices.size()),
-                       tmp_indices.data(), tmp_scalars.data(),
-                       constraint_sense_to_gurobi_sense(lc.sense()), lc.rhs());
+            if(parent._remap_ids) {
+                _register_entries(lc.linear_terms(), parent._native_ids_map);
+            } else {
+                _register_entries(lc.linear_terms());
+            }
+            parent.GRB.cblazy(cbdata, static_cast<int>(tmp_indices.size()),
+                              tmp_indices.data(), tmp_scalars.data(),
+                              constraint_sense_to_gurobi_sense(lc.sense()),
+                              lc.rhs());
         }
         auto get_solution() {
             auto solution =
                 std::make_unique_for_overwrite<double[]>(num_variables());
-            GRB.cbget(cbdata, GRB_CB_MIPSOL, GRB_CB_MIPSOL_SOL, solution.get());
-            return variable_mapping(std::move(solution));
+            parent.GRB.cbget(cbdata, GRB_CB_MIPSOL, GRB_CB_MIPSOL_SOL,
+                             solution.get());
+            return variable_mapping(
+                [this, solution = std::move(solution)](const variable & x) {
+                    return *(solution.get() + parent._native_id(x));
+                });
         }
     };
 
@@ -157,11 +169,11 @@ private:
 
     static int main_callback(GRBmodel * master_model, void * cbdata, int where,
                              void * usrdata) {
-        auto * model = static_cast<gurobi_milp *>(usrdata);
-        if((where == GRB_CB_MIPSOL) && model->candidate_solution_callback) {
-            candidate_solution_callback_handle handle(model->GRB, master_model,
+        const gurobi_milp & parent = *static_cast<gurobi_milp *>(usrdata);
+        if((where == GRB_CB_MIPSOL) && parent.candidate_solution_callback) {
+            candidate_solution_callback_handle handle(parent, master_model,
                                                       cbdata);
-            model->candidate_solution_callback(handle);
+            parent.candidate_solution_callback(handle);
         }
         return 0;
     }
@@ -183,7 +195,11 @@ private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
         _reset_raw_cache();
-        _register_raw_entries(entries);
+        if(_remap_ids) {
+            _register_raw_entries(entries, _native_ids_map);
+        } else {
+            _register_raw_entries(entries);
+        }
         check(GRB.setdblattrlist(model, GRB_DBL_ATTR_START,
                                  static_cast<int>(tmp_indices.size()),
                                  tmp_indices.data(), tmp_scalars.data()));
@@ -244,7 +260,10 @@ public:
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_X, 0,
                                   static_cast<int>(_lazy_num_native_ids),
                                   solution.get()));
-        return variable_mapping(std::move(solution));
+        return variable_mapping(
+            [this, solution = std::move(solution)](const variable & x) {
+                return *(solution.get() + _native_id(x));
+            });
     }
 
     /////////////////////////// Termination reason ////////////////////////////

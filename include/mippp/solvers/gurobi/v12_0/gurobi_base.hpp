@@ -15,6 +15,8 @@
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
 #include "mippp/solvers/model_base.hpp"
 
+#include <iostream>
+
 namespace fhamonic::mippp {
 namespace gurobi::v12_0 {
 
@@ -146,6 +148,7 @@ protected:
 
     void _lazily_remove_variables() {
         if(_var_handles_to_delete.empty()) return;
+        update_gurobi_model();
         tmp_indices.resize(0);
         for(const variable & var : _var_handles_to_delete)
             tmp_indices.emplace_back(_native_id(var));
@@ -547,6 +550,7 @@ public:
 
     auto get_constraint_lhs(constraint constr) {
         int num_nz, beg = 0;
+        update_gurobi_model();
         check(GRB.getconstrs(model, &num_nz, NULL, NULL, NULL, constr.id(), 1));
         auto indices = std::make_shared_for_overwrite<int[]>(
             static_cast<std::size_t>(num_nz));

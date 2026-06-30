@@ -89,7 +89,12 @@ public:
     entity_mapping(Map && t) : _map(std::move(t)) {}
 
     double operator[](const Entity & x) const {
-        return _map[static_cast<std::size_t>(x.id())];
+        if constexpr(requires(Map & m) { m[static_cast<std::size_t>(x.id())]; })
+            return _map[static_cast<std::size_t>(x.id())];
+        else if constexpr(requires(Map & m) { m(x); })
+            return _map(x);
+        else if constexpr(requires(Map & m) { m.at(x); })
+            return _map.at(x);
     }
 };
 

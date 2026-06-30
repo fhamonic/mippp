@@ -70,7 +70,10 @@ public:
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_X, 0,
                                   static_cast<int>(_lazy_num_native_ids),
                                   solution.get()));
-        return variable_mapping(std::move(solution));
+        return variable_mapping(
+            [this, solution = std::move(solution)](const variable & x) {
+                return *(solution.get() + _native_id(x));
+            });
     }
     auto get_dual_solution() {
         auto num_constrs = num_constraints();
