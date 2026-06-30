@@ -257,6 +257,10 @@ public:
 
         _free_variable_ids.emplace_back(v.id());
     }
+    template <std::ranges::range VR>
+    void remove_variables(VR && variables) {
+        for(auto && v : variables) remove_variable(v);
+    }
 
     void set_objective_coefficient(variable v, scalar c) {
         Clp.objective(model)[v.id()] = c;

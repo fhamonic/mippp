@@ -412,6 +412,7 @@ concept has_add_column = requires(
 template <typename T>
 concept has_remove_variable = requires(T & model, T::variable v) {
     { model.remove_variable(v) };
+    { model.remove_variables(detail::dummy_range<typename T::variable>()) };
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -284,6 +284,26 @@ public:
         return _add_column(entries, params);
     }
 
+    void remove_variable(variable v) {
+        set_objective_coefficient(v, 0);
+        set_variable_lower_bound(v, 0);
+        set_variable_upper_bound(v, 0);
+        // Zeroes the column
+        // int num_nz, beg = 0;
+        // check(GRB.getvars(model, &num_nz, NULL, NULL, NULL, v.id(), 1));
+        // tmp_indices.resize(static_cast<std::size_t>(2 * num_nz));
+        // tmp_scalars.resize(static_cast<std::size_t>(num_nz));
+        // check(GRB.getvars(model, &num_nz, &beg, tmp_indices.data(), NULL,
+        //                   v.id(), 1));
+        // std::fill(tmp_indices.begin() + num_nz,
+        //           tmp_indices.begin() + 2 * num_nz, v.id());
+        // std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
+        // check(GRB.chgcoeffs(model, num_nz, tmp_indices.data(),
+        //                     tmp_indices.data() + num_nz, tmp_scalars.data()));
+
+        // _free_variable_ids.emplace_back(v.id());
+    }
+
     void set_objective_coefficient(variable v, double c) {
         int var_id = v.id();
         check(CPX.chgobj(env, lp, 1, &var_id, &c));

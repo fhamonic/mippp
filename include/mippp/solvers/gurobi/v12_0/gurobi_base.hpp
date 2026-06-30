@@ -2,6 +2,7 @@
 #define MIPPP_GUROBI_v12_0_BASE_HPP
 
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <ranges>
 #include <vector>
@@ -48,7 +49,7 @@ protected:
         return constraint_sense::greater_equal;
     }
 
-    std::size_t _lazy_num_variable_ids;
+    std::size_t _lazy_num_native_ids;
     std::size_t _lazy_num_constraints;
 
     std::vector<int> tmp_begins;
@@ -56,14 +57,20 @@ protected:
     std::vector<double> tmp_rhs;
 
     std::vector<bool> _var_name_set;
-    std::vector<int> _free_variable_ids;
+
+    std::vector<variable> _var_handles_to_delete;
+    std::vector<variable> _free_var_handles;
+    bool _remap_ids;
+    std::vector<int> _native_ids_map;
+    std::vector<int> _handle_ids_map;
 
 public:
     [[nodiscard]] explicit gurobi_base(const gurobi_api & api)
         : model_base<int, double>()
         , GRB(api)
-        , _lazy_num_variable_ids(0)
-        , _lazy_num_constraints(0) {
+        , _lazy_num_native_ids(0)
+        , _lazy_num_constraints(0)
+        , _remap_ids(false) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
@@ -85,13 +92,17 @@ public:
         , GRB(other.GRB)
         , env(other.env)
         , model(other.model)
-        , _lazy_num_variable_ids(other._lazy_num_variable_ids)
+        , _lazy_num_native_ids(other._lazy_num_native_ids)
         , _lazy_num_constraints(other._lazy_num_constraints)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_types(std::move(other.tmp_types))
         , tmp_rhs(std::move(other.tmp_rhs))
         , _var_name_set(std::move(other._var_name_set))
-        , _free_variable_ids(std::move(other._free_variable_ids)) {
+        , _var_handles_to_delete(std::move(other._var_handles_to_delete))
+        , _free_var_handles(std::move(other._free_var_handles))
+        , _remap_ids(other._remap_ids)
+        , _native_ids_map(std::move(other._native_ids_map))
+        , _handle_ids_map(std::move(other._handle_ids_map)) {
         other.model = nullptr;
         other.env = nullptr;
     }
@@ -107,16 +118,85 @@ protected:
     }
     void update_gurobi_model() { check(GRB.updatemodel(model)); }
 
+    int _native_id(variable variable_handle) const {
+        if(!_remap_ids) return variable_handle.id();
+        return _native_ids_map[static_cast<std::size_t>(variable_handle.id())];
+    }
+    variable _var_handle(int native_id) const {
+        if(!_remap_ids) return variable(native_id);
+        return variable(_handle_ids_map[static_cast<std::size_t>(native_id)]);
+    }
+
+    variable _new_var_handle() {
+        int new_native_id = static_cast<int>(_lazy_num_native_ids++);
+        if(!_remap_ids) return variable(new_native_id);
+        if(_free_var_handles.empty()) {
+            int new_handle_id = static_cast<int>(_native_ids_map.size());
+            _native_ids_map.push_back(new_native_id);
+            _handle_ids_map.push_back(new_handle_id);
+            return variable(new_handle_id);
+        }
+        variable var_handle = _free_var_handles.back();
+        _free_var_handles.pop_back();
+        _native_ids_map[static_cast<std::size_t>(var_handle.id())] =
+            new_native_id;
+        _handle_ids_map.push_back(var_handle.id());
+        return var_handle;
+    }
+
+    void _lazily_remove_variables() {
+        if(_var_handles_to_delete.empty()) return;
+        tmp_indices.resize(0);
+        for(const variable & var : _var_handles_to_delete)
+            tmp_indices.emplace_back(_native_id(var));
+        std::ranges::sort(tmp_indices);
+        check(GRB.delvars(model, static_cast<int>(tmp_indices.size()),
+                          tmp_indices.data()));
+
+        std::size_t new_num_native_ids =
+            _lazy_num_native_ids - tmp_indices.size();
+        // Skips remapping if all deletiond are the native ids tail
+        if(_remap_ids ||
+           static_cast<std::size_t>(tmp_indices.front()) < new_num_native_ids) {
+            if(!_remap_ids) {
+                _native_ids_map.resize(_lazy_num_native_ids);
+                _handle_ids_map.resize(_lazy_num_native_ids);
+                std::ranges::iota(_native_ids_map, 0);
+                std::ranges::iota(_handle_ids_map, 0);
+                _remap_ids = true;
+            }
+
+            std::vector<int> new_handle_ids_map(new_num_native_ids);
+            std::size_t offset = 0;
+            for(int id :
+                std::views::iota(0, static_cast<int>(_lazy_num_native_ids))) {
+                if(offset < tmp_indices.size() && id == tmp_indices[offset]) {
+                    ++offset;
+                    continue;
+                }
+                const int handle =
+                    _handle_ids_map[static_cast<std::size_t>(id)];
+                const int new_id = id - static_cast<int>(offset);
+                new_handle_ids_map[static_cast<std::size_t>(new_id)] = handle;
+                _native_ids_map[static_cast<std::size_t>(handle)] = new_id;
+            }
+            _handle_ids_map = std::move(new_handle_ids_map);
+            _free_var_handles.append_range(_var_handles_to_delete);
+        }
+        _lazy_num_native_ids = new_num_native_ids;
+        _var_handles_to_delete.clear();
+    }
+
 public:
     std::size_t num_variables() {
         int num;
         update_gurobi_model();
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMVARS, &num));
-        if(static_cast<std::size_t>(num) != _lazy_num_variable_ids)
+        if(static_cast<std::size_t>(num) != _lazy_num_native_ids)
             throw std::runtime_error(
-                "gurobi_base: _lazy_num_variable_ids differs from gurobi "
+                "gurobi_base: _lazy_num_native_ids differs from gurobi "
                 "one.");
-        return _lazy_num_variable_ids - _free_variable_ids.size();
+        return _lazy_num_native_ids - _var_handles_to_delete.size();
     }
     std::size_t num_constraints() {
         int num;
@@ -147,14 +227,13 @@ public:
         check(GRB.setdblattr(model, GRB_DBL_ATTR_OBJCON, constant));
     }
     void set_objective(linear_expression auto && le) {
-        auto num_vars = num_variables();
-        tmp_scalars.resize(num_vars);
+        tmp_scalars.resize(_lazy_num_native_ids);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[var.uid()] += coef;
+            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
         }
         check(GRB.setdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
-                                  static_cast<int>(num_vars),
+                                  static_cast<int>(_lazy_num_native_ids),
                                   tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
@@ -162,7 +241,7 @@ public:
         tmp_indices.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_indices.emplace_back(var.id());
+            tmp_indices.emplace_back(_native_id(var));
             tmp_scalars.emplace_back(get_objective_coefficient(var) + coef);
         }
         check(GRB.setdblattrlist(model, GRB_DBL_ATTR_OBJ,
@@ -177,46 +256,29 @@ public:
         return constant;
     }
     auto get_objective() {
-        auto num_vars = num_variables();
-        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
+        auto coefs =
+            std::make_shared_for_overwrite<double[]>(_lazy_num_native_ids);
         update_gurobi_model();
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
-                                  static_cast<int>(num_vars), coefs.get()));
+                                  static_cast<int>(_lazy_num_native_ids),
+                                  coefs.get()));
         return linear_expression_view(
             std::views::transform(
-                std::views::iota(0, static_cast<int>(num_vars)),
-                [coefs = std::move(coefs)](auto && i) {
-                    return std::make_pair(variable(i), coefs[i]);
+                std::views::iota(0, static_cast<int>(_lazy_num_native_ids)),
+                [this, coefs = std::move(coefs)](auto && i) {
+                    return std::make_pair(_var_handle(i), coefs[i]);
                 }),
             get_objective_offset());
     }
 
 protected:
-    inline variable _recylcle_variable(const variable_params & params,
-                                       const char & type,
-                                       const char * name_str) {
-        variable v{_free_variable_ids.back()};
-        _free_variable_ids.pop_back();
-        set_objective_coefficient(v, params.obj_coef);
-        if(double lb = params.lower_bound.value_or(-GRB_INFINITY); lb != 0.0)
-            set_variable_lower_bound(v, lb);
-        if(double ub = params.upper_bound.value_or(GRB_INFINITY); ub != 0.0)
-            set_variable_upper_bound(v, ub);
-        check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(), type));
-        set_variable_name(v, name_str);
-        return v;
-    }
-
     inline variable _add_variable(const variable_params & params,
                                   const char & type, const char * name_str) {
-        if(!_free_variable_ids.empty()) {
-            return _recylcle_variable(params, type, name_str);
-        }
         check(GRB.addvar(model, 0, NULL, NULL, params.obj_coef,
                          params.lower_bound.value_or(-GRB_INFINITY),
                          params.upper_bound.value_or(GRB_INFINITY), type,
                          name_str));
-        return variable(static_cast<int>(_lazy_num_variable_ids++));
+        return _new_var_handle();
     }
     inline void _add_variables(const std::size_t & offset,
                                const std::size_t & count,
@@ -253,7 +315,7 @@ protected:
                 model, GRB_CHAR_ATTR_VTYPE, static_cast<int>(offset),
                 static_cast<int>(count), tmp_types.data()));
         }
-        _lazy_num_variable_ids += count;
+        _lazy_num_native_ids += count;
     }
 
 public:
@@ -264,7 +326,7 @@ public:
     auto add_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_variable_ids;
+        const std::size_t offset = _lazy_num_native_ids;
         _add_variables(offset, count, params, GRB_CONTINUOUS);
         return _make_variables_range(offset, count);
     }
@@ -272,7 +334,7 @@ public:
     auto add_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_variable_ids;
+        const std::size_t offset = _lazy_num_native_ids;
         _add_variables(offset, count, params, GRB_CONTINUOUS);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
@@ -287,7 +349,7 @@ public:
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_variable_ids;
+        const std::size_t offset = _lazy_num_native_ids;
         _add_variables(offset, count, params, GRB_CONTINUOUS);
         return _make_named_variables_range(offset, count,
                                            std::forward<NL>(name_lambda), this);
@@ -296,7 +358,7 @@ public:
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_variable_ids;
+        const std::size_t offset = _lazy_num_native_ids;
         _add_variables(offset, count, params, GRB_CONTINUOUS);
         return _make_indexed_named_variables_range(
             offset, count, std::forward<IL>(id_lambda),
@@ -307,17 +369,6 @@ private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params,
                                 const char & type) {
-        if(!_free_variable_ids.empty()) {
-            variable v = _recylcle_variable(params, type, nullptr);
-            _reset_raw_cache();
-            _register_raw_entries(entries);
-            int num_entries = static_cast<int>(tmp_indices.size());
-            tmp_indices.resize(static_cast<std::size_t>(2 * num_entries),
-                               v.id());
-            GRB.chgcoeffs(model, num_entries, tmp_indices.data(),
-                          tmp_indices.data() + num_entries, tmp_scalars.data());
-            return v;
-        }
         _reset_raw_cache();
         _register_raw_entries(entries);
         check(
@@ -325,7 +376,7 @@ private:
                        tmp_indices.data(), tmp_scalars.data(), params.obj_coef,
                        params.lower_bound.value_or(-GRB_INFINITY),
                        params.upper_bound.value_or(GRB_INFINITY), type, NULL));
-        return variable(static_cast<int>(_lazy_num_variable_ids++));
+        return _new_var_handle();
     }
 
 public:
@@ -341,36 +392,26 @@ public:
     }
 
     void remove_variable(variable v) {
-        set_objective_coefficient(v, 0);
-        set_variable_lower_bound(v, 0);
-        set_variable_upper_bound(v, 0);
-        // Zeroes the column
-        int num_nz, beg = 0;
-        check(GRB.getvars(model, &num_nz, NULL, NULL, NULL, v.id(), 1));
-        tmp_indices.resize(static_cast<std::size_t>(2 * num_nz));
-        tmp_scalars.resize(static_cast<std::size_t>(num_nz));
-        check(GRB.getvars(model, &num_nz, &beg, tmp_indices.data(), NULL,
-                          v.id(), 1));
-        std::fill(tmp_indices.begin() + num_nz,
-                  tmp_indices.begin() + 2 * num_nz, v.id());
-        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
-        check(GRB.chgcoeffs(model, num_nz, tmp_indices.data(),
-                            tmp_indices.data() + num_nz, tmp_scalars.data()));
-
-        _free_variable_ids.emplace_back(v.id());
+        _var_handles_to_delete.emplace_back(v);
+        _lazily_remove_variables();
+    }
+    template <std::ranges::range VR>
+    void remove_variables(VR && variables) {
+        _var_handles_to_delete.append_range(variables);
+        _lazily_remove_variables();
     }
 
     void set_objective_coefficient(variable v, double c) {
-        check(GRB.setdblattrelement(model, GRB_DBL_ATTR_OBJ, v.id(), c));
+        check(GRB.setdblattrelement(model, GRB_DBL_ATTR_OBJ, _native_id(v), c));
     }
     void set_variable_lower_bound(variable v, double lb) {
-        check(GRB.setdblattrelement(model, GRB_DBL_ATTR_LB, v.id(), lb));
+        check(GRB.setdblattrelement(model, GRB_DBL_ATTR_LB, _native_id(v), lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
-        check(GRB.setdblattrelement(model, GRB_DBL_ATTR_UB, v.id(), ub));
+        check(GRB.setdblattrelement(model, GRB_DBL_ATTR_UB, _native_id(v), ub));
     }
     void set_variable_name(variable v, const char * name_ptr) {
-        check(GRB.setstrattrelement(model, GRB_STR_ATTR_VARNAME, v.id(),
+        check(GRB.setstrattrelement(model, GRB_STR_ATTR_VARNAME, _native_id(v),
                                     name_ptr));
     }
     void set_variable_name(variable v, const std::string & name) {
@@ -380,33 +421,40 @@ public:
     double get_objective_coefficient(variable v) {
         double coef;
         update_gurobi_model();
-        check(GRB.getdblattrelement(model, GRB_DBL_ATTR_OBJ, v.id(), &coef));
+        check(GRB.getdblattrelement(model, GRB_DBL_ATTR_OBJ, _native_id(v),
+                                    &coef));
         return coef;
     }
     double get_variable_lower_bound(variable v) {
         double lb;
         update_gurobi_model();
-        check(GRB.getdblattrelement(model, GRB_DBL_ATTR_LB, v.id(), &lb));
+        check(
+            GRB.getdblattrelement(model, GRB_DBL_ATTR_LB, _native_id(v), &lb));
         return lb;
     }
     double get_variable_upper_bound(variable v) {
         double ub;
         update_gurobi_model();
-        check(GRB.getdblattrelement(model, GRB_DBL_ATTR_UB, v.id(), &ub));
+        check(
+            GRB.getdblattrelement(model, GRB_DBL_ATTR_UB, _native_id(v), &ub));
         return ub;
     }
     std::string get_variable_name(variable v) {
         char * name;
         update_gurobi_model();
-        check(
-            GRB.getstrattrelement(model, GRB_STR_ATTR_VARNAME, v.id(), &name));
+        check(GRB.getstrattrelement(model, GRB_STR_ATTR_VARNAME, _native_id(v),
+                                    &name));
         return std::string(name);
     }
 
     constraint add_constraint(linear_constraint auto && lc) {
         const int constr_id = static_cast<int>(_lazy_num_constraints++);
-        _reset_cache(_lazy_num_variable_ids);
-        _register_entries(lc.linear_terms());
+        _reset_cache(_lazy_num_native_ids);
+        if(_remap_ids) {
+            _register_entries(lc.linear_terms(), _native_ids_map);
+        } else {
+            _register_entries(lc.linear_terms());
+        }
         check(GRB.addconstr(model, static_cast<int>(tmp_indices.size()),
                             tmp_indices.data(), tmp_scalars.data(),
                             constraint_sense_to_gurobi_sense(lc.sense()),
@@ -421,7 +469,11 @@ private:
         tmp_begins.emplace_back(static_cast<int>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_gurobi_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        _register_entries(lc.linear_terms());
+        if(_remap_ids) {
+            _register_entries(lc.linear_terms(), _native_ids_map);
+        } else {
+            _register_entries(lc.linear_terms());
+        }
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -447,7 +499,7 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        _reset_cache(_lazy_num_variable_ids);
+        _reset_cache(_lazy_num_native_ids);
         tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
@@ -479,12 +531,16 @@ public:
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
         int constr_id = static_cast<int>(_lazy_num_constraints++);
-        _reset_cache(_lazy_num_variable_ids);
-        _register_entries(le.linear_terms());
+        _reset_cache(_lazy_num_native_ids);
+        if(_remap_ids) {
+            _register_entries(le.linear_terms(), _native_ids_map);
+        } else {
+            _register_entries(le.linear_terms());
+        }
         check(GRB.addrangeconstr(model, static_cast<int>(tmp_indices.size()),
                                  tmp_indices.data(), tmp_scalars.data(), lb, ub,
                                  NULL));
-        ++_lazy_num_variable_ids;  // added_slack variable
+        _new_var_handle();  // added_slack variable
         return constraint(constr_id);
     }
     // void set_constraint_name(constraint constr, auto && name);
@@ -499,9 +555,9 @@ public:
         check(GRB.getconstrs(model, &num_nz, &beg, indices.get(), coefs.get(),
                              constr.id(), 1));
         return std::views::transform(
-            std::views::iota(0, num_nz),
-            [indices = std::move(indices), coefs = std::move(coefs)](int i) {
-                return std::make_pair(variable(indices.get()[i]),
+            std::views::iota(0, num_nz), [this, indices = std::move(indices),
+                                          coefs = std::move(coefs)](int i) {
+                return std::make_pair(_var_handle(indices.get()[i]),
                                       coefs.get()[i]);
             });
     }
