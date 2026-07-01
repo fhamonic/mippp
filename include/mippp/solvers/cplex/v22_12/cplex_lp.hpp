@@ -88,7 +88,10 @@ public:
             std::make_unique_for_overwrite<double[]>(num_variables());
         check(CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL,
                            NULL));
-        return variable_mapping(std::move(solution));
+        return variable_mapping(
+            [this, solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + _native_id(v));
+            });
     }
     auto get_dual_solution() {
         auto dual_solution =

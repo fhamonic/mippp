@@ -71,8 +71,8 @@ public:
                                   static_cast<int>(_lazy_num_native_ids),
                                   solution.get()));
         return variable_mapping(
-            [this, solution = std::move(solution)](const variable & x) {
-                return *(solution.get() + _native_id(x));
+            [this, solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + _native_id(v));
             });
     }
     auto get_dual_solution() {

@@ -1,0 +1,129 @@
+#ifndef MIPPP_remapping_model_base_HPP
+#define MIPPP_remapping_model_base_HPP
+
+#include <concepts>
+#include <optional>
+#include <ranges>
+#include <vector>
+
+#include "mippp/solvers/model_base.hpp"
+
+namespace fhamonic::mippp {
+
+template <std::integral _Index, std::floating_point _Scalar>
+class remapping_model_base : public model_base<_Index, _Scalar> {
+protected:
+    using typename model_base<_Index, _Scalar>::variable;
+    using model_base<_Index, _Scalar>::register_count;
+    using model_base<_Index, _Scalar>::tmp_entry_index_cache;
+    using model_base<_Index, _Scalar>::tmp_indices;
+    using model_base<_Index, _Scalar>::tmp_scalars;
+    using model_base<_Index, _Scalar>::_register_entries;
+    using model_base<_Index, _Scalar>::_register_raw_entries;
+
+    std::vector<variable> _var_handles_to_delete;
+    std::vector<variable> _free_var_handles;
+    std::vector<int> _native_ids_map;
+    std::vector<int> _handle_ids_map;
+    bool _remap_ids;
+
+    [[nodiscard]] explicit remapping_model_base()
+        : model_base<_Index, _Scalar>(), _remap_ids(false) {}
+
+    constexpr remapping_model_base(const remapping_model_base &) = default;
+    constexpr remapping_model_base(remapping_model_base &&) = default;
+
+    constexpr remapping_model_base & operator=(const remapping_model_base &) =
+        default;
+    constexpr remapping_model_base & operator=(remapping_model_base && other) =
+        default;
+
+    int _native_id(variable variable_handle) const {
+        if(!_remap_ids) return variable_handle.id();
+        return _native_ids_map[static_cast<std::size_t>(variable_handle.id())];
+    }
+    variable _var_handle(int native_id) const {
+        if(!_remap_ids) return variable(native_id);
+        return variable(_handle_ids_map[static_cast<std::size_t>(native_id)]);
+    }
+
+    variable _new_var_handle(int new_native_id) {
+        if(!_remap_ids) return variable(new_native_id);
+        if(_free_var_handles.empty()) {
+            int new_handle_id = static_cast<int>(_native_ids_map.size());
+            _native_ids_map.push_back(new_native_id);
+            _handle_ids_map.push_back(new_handle_id);
+            return variable(new_handle_id);
+        }
+        variable var_handle = _free_var_handles.back();
+        _free_var_handles.pop_back();
+        _native_ids_map[static_cast<std::size_t>(var_handle.id())] =
+            new_native_id;
+        _handle_ids_map.push_back(var_handle.id());
+        return var_handle;
+    }
+
+
+    template <std::ranges::range Entries>
+        requires linear_term<std::ranges::range_value_t<Entries>> &&
+                 std::same_as<linear_term_variable_t<
+                                  std::ranges::range_value_t<Entries>>,
+                              variable>
+    void _register_entries(Entries && entries) {
+        ++register_count;
+        if(_remap_ids) {
+            for(auto && [entity, coef] : entries) {
+                auto & p = tmp_entry_index_cache[entity.uid()];
+                if(p.first == register_count) {
+                    tmp_scalars[p.second] += static_cast<_Scalar>(coef);
+                    continue;
+                }
+                p = std::make_pair(register_count, tmp_indices.size());
+                tmp_indices.emplace_back(_handle_ids_map[entity.uid()]);
+                tmp_scalars.emplace_back(coef);
+            }
+            return;
+        }
+        for(auto && [entity, coef] : entries) {
+            auto & p = tmp_entry_index_cache[entity.uid()];
+            if(p.first == register_count) {
+                tmp_scalars[p.second] += static_cast<_Scalar>(coef);
+                continue;
+            }
+            p = std::make_pair(register_count, tmp_indices.size());
+            tmp_indices.emplace_back(entity.id());
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+
+    template <std::ranges::range Entries>
+        requires linear_term<std::ranges::range_value_t<Entries>> &&
+                 std::same_as<linear_term_variable_t<
+                                  std::ranges::range_value_t<Entries>>,
+                              variable>
+    void _register_raw_entries(Entries && entries) {
+        if(_remap_ids) {
+            for(auto && [entity, coef] : entries) {
+                tmp_indices.emplace_back(_handle_ids_map[entity.uid()]);
+                tmp_scalars.emplace_back(coef);
+            }
+            return;
+        }
+        for(auto && [entity, coef] : entries) {
+            tmp_indices.emplace_back(entity.id());
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+    template <std::ranges::range Entries, typename NativeIdMap>
+    void _register_raw_entries(Entries && entries,
+                               NativeIdMap && native_id_map) {
+        for(auto && [entity, coef] : entries) {
+            tmp_indices.emplace_back(native_id_map[entity.uid()]);
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+};
+
+}  // namespace fhamonic::mippp
+
+#endif  // MIPPP_MODEL_BASE_HPP

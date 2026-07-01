@@ -22,14 +22,14 @@ public:
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
+        int var_id = _new_var_native_id();
         _add_variable(params, CPX_INTEGER);
-        return variable(var_id);
+        return _new_var_handle(var_id);
     }
     auto add_integer_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _num_var_native_ids();
         _add_variables(offset, count, params, CPX_INTEGER);
         return _make_variables_range(offset, count);
     }
@@ -37,7 +37,7 @@ public:
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _num_var_native_ids();
         _add_variables(offset, count, params, CPX_INTEGER);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
@@ -61,19 +61,19 @@ private:
 
 public:
     variable add_binary_variable() {
-        int var_id = static_cast<int>(num_variables());
+        int var_id = _new_var_native_id();
         _add_variable({.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
                       CPX_BINARY);
-        return variable(var_id);
+        return _new_var_handle(var_id);
     }
     auto add_binary_variables(std::size_t count) noexcept {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _num_var_native_ids();
         _add_binary_variables(offset, count);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
-        const std::size_t offset = num_variables();
+        const std::size_t offset = _num_var_native_ids();
         _add_binary_variables(offset, count);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
@@ -101,7 +101,7 @@ public:
     /////////////////////////// Special constraints ///////////////////////////
     void add_indicator_constraint(variable x, bool val,
                                   linear_constraint auto && lc) {
-        _reset_cache(num_variables());
+        _reset_cache(_num_var_native_ids());
         _register_entries(lc.linear_terms());
         check(CPX.addindconstr(env, lp, x.id(), static_cast<int>(!val),
                                static_cast<int>(tmp_indices.size()), lc.rhs(),
@@ -169,7 +169,7 @@ public:
             : callback_handle_base(api, context_, model_) {}
 
         void add_lazy_constraint(linear_constraint auto && lc) {
-            _reset_cache(num_variables());
+            _reset_cache(model->_num_var_native_ids());
             _register_entries(lc.linear_terms());
             int matbegin = 0;
             const double b = lc.rhs();
@@ -185,12 +185,15 @@ public:
             return obj;
         }
         auto get_solution() {
-            auto num_vars = num_variables();
+            auto num_vars = model->_num_var_native_ids();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
             cbcheck(CPX.callbackgetcandidatepoint(
                 context, solution.get(), 0, static_cast<int>(num_vars) - 1,
                 NULL));
-            return variable_mapping(std::move(solution));
+            return variable_mapping(
+                [this, solution = std::move(solution)](const variable & v) {
+                    return *(solution.get() + model->_native_id(v));
+                });
         }
     };
 
@@ -274,10 +277,13 @@ public:
     }
     auto get_solution() {
         auto solution =
-            std::make_unique_for_overwrite<double[]>(num_variables());
+            std::make_unique_for_overwrite<double[]>(_num_var_native_ids());
         check(CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL,
                            NULL));
-        return variable_mapping(std::move(solution));
+        return variable_mapping(
+            [this, solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + _native_id(v));
+            });
     }
 };
 

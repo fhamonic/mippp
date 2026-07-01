@@ -12,15 +12,15 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
+#include "mippp/solvers/remapping_model_base.hpp"
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
-#include "mippp/solvers/model_base.hpp"
 
 #include <iostream>
 
 namespace fhamonic::mippp {
 namespace gurobi::v12_0 {
 
-class gurobi_base : public model_base<int, double> {
+class gurobi_base : public remapping_model_base<int, double> {
 public:
     using indice = int;
     using variable_id = int;
@@ -60,19 +60,12 @@ protected:
 
     std::vector<bool> _var_name_set;
 
-    std::vector<variable> _var_handles_to_delete;
-    std::vector<variable> _free_var_handles;
-    bool _remap_ids;
-    std::vector<int> _native_ids_map;
-    std::vector<int> _handle_ids_map;
-
 public:
     [[nodiscard]] explicit gurobi_base(const gurobi_api & api)
-        : model_base<int, double>()
+        : remapping_model_base<int, double>()
         , GRB(api)
         , _lazy_num_native_ids(0)
-        , _lazy_num_constraints(0)
-        , _remap_ids(false) {
+        , _lazy_num_constraints(0) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
@@ -90,7 +83,7 @@ public:
 
     constexpr gurobi_base(const gurobi_base &) = delete;
     constexpr gurobi_base(gurobi_base && other) noexcept
-        : model_base<int, double>(std::move(other))
+        : remapping_model_base<int, double>(std::move(other))
         , GRB(other.GRB)
         , env(other.env)
         , model(other.model)
@@ -99,12 +92,7 @@ public:
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_types(std::move(other.tmp_types))
         , tmp_rhs(std::move(other.tmp_rhs))
-        , _var_name_set(std::move(other._var_name_set))
-        , _var_handles_to_delete(std::move(other._var_handles_to_delete))
-        , _free_var_handles(std::move(other._free_var_handles))
-        , _remap_ids(other._remap_ids)
-        , _native_ids_map(std::move(other._native_ids_map))
-        , _handle_ids_map(std::move(other._handle_ids_map)) {
+        , _var_name_set(std::move(other._var_name_set)) {
         other.model = nullptr;
         other.env = nullptr;
     }
@@ -119,32 +107,6 @@ protected:
                                      GRB.geterrormsg(env));
     }
     void update_gurobi_model() { check(GRB.updatemodel(model)); }
-
-    int _native_id(variable variable_handle) const {
-        if(!_remap_ids) return variable_handle.id();
-        return _native_ids_map[static_cast<std::size_t>(variable_handle.id())];
-    }
-    variable _var_handle(int native_id) const {
-        if(!_remap_ids) return variable(native_id);
-        return variable(_handle_ids_map[static_cast<std::size_t>(native_id)]);
-    }
-
-    variable _new_var_handle() {
-        int new_native_id = static_cast<int>(_lazy_num_native_ids++);
-        if(!_remap_ids) return variable(new_native_id);
-        if(_free_var_handles.empty()) {
-            int new_handle_id = static_cast<int>(_native_ids_map.size());
-            _native_ids_map.push_back(new_native_id);
-            _handle_ids_map.push_back(new_handle_id);
-            return variable(new_handle_id);
-        }
-        variable var_handle = _free_var_handles.back();
-        _free_var_handles.pop_back();
-        _native_ids_map[static_cast<std::size_t>(var_handle.id())] =
-            new_native_id;
-        _handle_ids_map.push_back(var_handle.id());
-        return var_handle;
-    }
 
     void _lazily_remove_variables() {
         if(_var_handles_to_delete.empty()) return;
@@ -281,7 +243,7 @@ protected:
                          params.lower_bound.value_or(-GRB_INFINITY),
                          params.upper_bound.value_or(GRB_INFINITY), type,
                          name_str));
-        return _new_var_handle();
+        return _new_var_handle(static_cast<int>(_lazy_num_native_ids++));
     }
     inline void _add_variables(const std::size_t & offset,
                                const std::size_t & count,
@@ -379,7 +341,7 @@ private:
                        tmp_indices.data(), tmp_scalars.data(), params.obj_coef,
                        params.lower_bound.value_or(-GRB_INFINITY),
                        params.upper_bound.value_or(GRB_INFINITY), type, NULL));
-        return _new_var_handle();
+        return _new_var_handle(static_cast<int>(_lazy_num_native_ids++));
     }
 
 public:
@@ -453,11 +415,7 @@ public:
     constraint add_constraint(linear_constraint auto && lc) {
         const int constr_id = static_cast<int>(_lazy_num_constraints++);
         _reset_cache(_lazy_num_native_ids);
-        if(_remap_ids) {
-            _register_entries(lc.linear_terms(), _native_ids_map);
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _register_entries(lc.linear_terms());        
         check(GRB.addconstr(model, static_cast<int>(tmp_indices.size()),
                             tmp_indices.data(), tmp_scalars.data(),
                             constraint_sense_to_gurobi_sense(lc.sense()),
@@ -472,11 +430,7 @@ private:
         tmp_begins.emplace_back(static_cast<int>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_gurobi_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        if(_remap_ids) {
-            _register_entries(lc.linear_terms(), _native_ids_map);
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _register_entries(lc.linear_terms());
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -535,21 +489,17 @@ public:
                                      double ub) {
         int constr_id = static_cast<int>(_lazy_num_constraints++);
         _reset_cache(_lazy_num_native_ids);
-        if(_remap_ids) {
-            _register_entries(le.linear_terms(), _native_ids_map);
-        } else {
-            _register_entries(le.linear_terms());
-        }
+        _register_entries(le.linear_terms());
         check(GRB.addrangeconstr(model, static_cast<int>(tmp_indices.size()),
                                  tmp_indices.data(), tmp_scalars.data(), lb, ub,
                                  NULL));
-        _new_var_handle();  // added_slack variable
+        _new_var_handle(static_cast<int>(_lazy_num_native_ids++));  // added_slack variable
         return constraint(constr_id);
     }
     // void set_constraint_name(constraint constr, auto && name);
 
     auto get_constraint_lhs(constraint constr) {
-        int num_nz, beg = 0;
+        int num_nz, beg;
         update_gurobi_model();
         check(GRB.getconstrs(model, &num_nz, NULL, NULL, NULL, constr.id(), 1));
         auto indices = std::make_shared_for_overwrite<int[]>(

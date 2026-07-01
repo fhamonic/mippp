@@ -40,6 +40,7 @@ int CPXaddcols(CPXCENVptr env, CPXLPptr lp, int ccnt, int nzcnt,
                double const * obj, int const * cmatbeg, int const * cmatind,
                double const * cmatval, double const * lb, double const * ub,
                char ** colname);
+int CPXdelsetcols(CPXCENVptr env, CPXLPptr lp, int * delstat);
 int CPXaddrows(CPXCENVptr env, CPXLPptr lp, int ccnt, int rcnt, int nzcnt,
                double const * rhs, char const * sense, int const * rmatbeg,
                int const * rmatind, double const * rmatval, char ** colname,
@@ -228,6 +229,7 @@ namespace cplex::v22_12 {
     F(CPXgetobjoffset, getobjoffset)                                 \
     F(CPXnewcols, newcols)                                           \
     F(CPXaddcols, addcols)                                           \
+    F(CPXdelsetcols, delsetcols)                                     \
     F(CPXaddrows, addrows)                                           \
     F(CPXaddindconstr, addindconstr)                                 \
     F(CPXaddsos, addsos)                                             \

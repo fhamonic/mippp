@@ -98,6 +98,7 @@ protected:
         tmp_scalars.resize(0);
     }
     template <std::ranges::range Entries>
+        requires linear_term<std::ranges::range_value_t<Entries>>
     void _register_entries(Entries && entries) {
         ++register_count;
         for(auto && [entity, coef] : entries) {
@@ -131,6 +132,7 @@ protected:
         tmp_scalars.resize(0);
     }
     template <std::ranges::range Entries>
+        requires linear_term<std::ranges::range_value_t<Entries>>
     void _register_raw_entries(Entries && entries) {
         for(auto && [entity, coef] : entries) {
             tmp_indices.emplace_back(entity.id());

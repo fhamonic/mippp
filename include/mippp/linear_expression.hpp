@@ -17,10 +17,10 @@ namespace fhamonic::mippp {
 template <typename _Tp>
 concept linear_term = (std::tuple_size_v<_Tp> == 2);
 
-template <typename _Tp>
+template <linear_term _Tp>
 using linear_term_variable_t = std::decay_t<std::tuple_element_t<0, _Tp>>;
 
-template <typename _Tp>
+template <linear_term _Tp>
 using linear_term_scalar_t = std::decay_t<std::tuple_element_t<1, _Tp>>;
 
 template <typename _Tp>
