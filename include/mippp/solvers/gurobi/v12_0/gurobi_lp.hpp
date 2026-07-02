@@ -66,9 +66,9 @@ public:
 
     auto get_solution() {
         auto solution =
-            std::make_unique_for_overwrite<double[]>(_lazy_num_native_ids);
+            std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_X, 0,
-                                  static_cast<int>(_lazy_num_native_ids),
+                                  static_cast<int>(_num_var_native_ids),
                                   solution.get()));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {

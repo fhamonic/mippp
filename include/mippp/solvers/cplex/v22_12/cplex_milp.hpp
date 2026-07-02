@@ -29,23 +29,24 @@ public:
     auto add_integer_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _num_var_native_ids();
-        _add_variables(offset, count, params, CPX_INTEGER);
-        return _make_variables_range(offset, count);
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, CPX_INTEGER);
+        return _make_variables_range(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _num_var_native_ids();
-        _add_variables(offset, count, params, CPX_INTEGER);
-        return _make_indexed_variables_range(offset, count,
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, CPX_INTEGER);
+        return _make_indexed_variables_range(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
 private:
-    inline void _add_binary_variables(const std::size_t & offset,
-                                      const std::size_t & count) {
+    inline std::size_t _add_binary_variables(const std::size_t & count) {
+        const std::size_t handle_ids_begin =
+            _new_var_handle_range(_num_var_native_ids(), count);
         tmp_scalars.resize(2 * count);
         std::fill(tmp_scalars.begin(),
                   tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count), 0);
@@ -57,6 +58,7 @@ private:
             env, lp, static_cast<int>(count), NULL, tmp_scalars.data(),
             tmp_scalars.data() + static_cast<std::ptrdiff_t>(count),
             tmp_types.data(), NULL));
+        return handle_ids_begin;
     }
 
 public:
@@ -67,15 +69,13 @@ public:
         return _new_var_handle(var_id);
     }
     auto add_binary_variables(std::size_t count) noexcept {
-        const std::size_t offset = _num_var_native_ids();
-        _add_binary_variables(offset, count);
-        return _make_variables_range(offset, count);
+        const std::size_t handle_ids_begin = _add_binary_variables(count);
+        return _make_variables_range(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
-        const std::size_t offset = _num_var_native_ids();
-        _add_binary_variables(offset, count);
-        return _make_indexed_variables_range(offset, count,
+        const std::size_t handle_ids_begin = _add_binary_variables(count);
+        return _make_indexed_variables_range(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 

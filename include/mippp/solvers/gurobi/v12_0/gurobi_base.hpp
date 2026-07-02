@@ -12,8 +12,8 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/remapping_model_base.hpp"
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
+#include "mippp/solvers/remapping_model_base.hpp"
 
 #include <iostream>
 
@@ -51,7 +51,7 @@ protected:
         return constraint_sense::greater_equal;
     }
 
-    std::size_t _lazy_num_native_ids;
+    std::size_t _num_var_native_ids;
     std::size_t _lazy_num_constraints;
 
     std::vector<int> tmp_begins;
@@ -64,7 +64,7 @@ public:
     [[nodiscard]] explicit gurobi_base(const gurobi_api & api)
         : remapping_model_base<int, double>()
         , GRB(api)
-        , _lazy_num_native_ids(0)
+        , _num_var_native_ids(0)
         , _lazy_num_constraints(0) {
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
@@ -87,7 +87,7 @@ public:
         , GRB(other.GRB)
         , env(other.env)
         , model(other.model)
-        , _lazy_num_native_ids(other._lazy_num_native_ids)
+        , _num_var_native_ids(other._num_var_native_ids)
         , _lazy_num_constraints(other._lazy_num_constraints)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_types(std::move(other.tmp_types))
@@ -108,6 +108,8 @@ protected:
     }
     void update_gurobi_model() { check(GRB.updatemodel(model)); }
 
+    int _new_var_native_id() { return static_cast<int>(_num_var_native_ids++); }
+
     void _lazily_remove_variables() {
         if(_var_handles_to_delete.empty()) return;
         update_gurobi_model();
@@ -118,14 +120,14 @@ protected:
         check(GRB.delvars(model, static_cast<int>(tmp_indices.size()),
                           tmp_indices.data()));
 
-        std::size_t new_num_native_ids =
-            _lazy_num_native_ids - tmp_indices.size();
+        const std::size_t new_num_native_ids =
+            _num_var_native_ids - tmp_indices.size();
         // Skips remapping if all deletiond are the native ids tail
         if(_remap_ids ||
            static_cast<std::size_t>(tmp_indices.front()) < new_num_native_ids) {
             if(!_remap_ids) {
-                _native_ids_map.resize(_lazy_num_native_ids);
-                _handle_ids_map.resize(_lazy_num_native_ids);
+                _native_ids_map.resize(_num_var_native_ids);
+                _handle_ids_map.resize(_num_var_native_ids);
                 std::ranges::iota(_native_ids_map, 0);
                 std::ranges::iota(_handle_ids_map, 0);
                 _remap_ids = true;
@@ -134,7 +136,7 @@ protected:
             std::vector<int> new_handle_ids_map(new_num_native_ids);
             std::size_t offset = 0;
             for(int id :
-                std::views::iota(0, static_cast<int>(_lazy_num_native_ids))) {
+                std::views::iota(0, static_cast<int>(_num_var_native_ids))) {
                 if(offset < tmp_indices.size() && id == tmp_indices[offset]) {
                     ++offset;
                     continue;
@@ -148,7 +150,7 @@ protected:
             _handle_ids_map = std::move(new_handle_ids_map);
             _free_var_handles.append_range(_var_handles_to_delete);
         }
-        _lazy_num_native_ids = new_num_native_ids;
+        _num_var_native_ids = new_num_native_ids;
         _var_handles_to_delete.clear();
     }
 
@@ -157,11 +159,11 @@ public:
         int num;
         update_gurobi_model();
         check(GRB.getintattr(model, GRB_INT_ATTR_NUMVARS, &num));
-        if(static_cast<std::size_t>(num) != _lazy_num_native_ids)
+        if(static_cast<std::size_t>(num) != _num_var_native_ids)
             throw std::runtime_error(
-                "gurobi_base: _lazy_num_native_ids differs from gurobi "
+                "gurobi_base: _num_var_native_ids differs from gurobi "
                 "one.");
-        return _lazy_num_native_ids - _var_handles_to_delete.size();
+        return _num_var_native_ids - _var_handles_to_delete.size();
     }
     std::size_t num_constraints() {
         int num;
@@ -192,13 +194,13 @@ public:
         check(GRB.setdblattr(model, GRB_DBL_ATTR_OBJCON, constant));
     }
     void set_objective(linear_expression auto && le) {
-        tmp_scalars.resize(_lazy_num_native_ids);
+        tmp_scalars.resize(_num_var_native_ids);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
         }
         check(GRB.setdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
-                                  static_cast<int>(_lazy_num_native_ids),
+                                  static_cast<int>(_num_var_native_ids),
                                   tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
@@ -222,14 +224,14 @@ public:
     }
     auto get_objective() {
         auto coefs =
-            std::make_shared_for_overwrite<double[]>(_lazy_num_native_ids);
+            std::make_shared_for_overwrite<double[]>(_num_var_native_ids);
         update_gurobi_model();
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
-                                  static_cast<int>(_lazy_num_native_ids),
+                                  static_cast<int>(_num_var_native_ids),
                                   coefs.get()));
         return linear_expression_view(
             std::views::transform(
-                std::views::iota(0, static_cast<int>(_lazy_num_native_ids)),
+                std::views::iota(0, static_cast<int>(_num_var_native_ids)),
                 [this, coefs = std::move(coefs)](auto && i) {
                     return std::make_pair(_var_handle(i), coefs[i]);
                 }),
@@ -243,26 +245,28 @@ protected:
                          params.lower_bound.value_or(-GRB_INFINITY),
                          params.upper_bound.value_or(GRB_INFINITY), type,
                          name_str));
-        return _new_var_handle(static_cast<int>(_lazy_num_native_ids++));
+        return _new_var_handle(_new_var_native_id());
     }
-    inline void _add_variables(const std::size_t & offset,
-                               const std::size_t & count,
-                               const variable_params & params,
-                               const char & type) {
+    inline std::size_t _add_variables(const std::size_t & count,
+                                      const variable_params & params,
+                                      const char & type) {
+        const int new_native_ids_begin = static_cast<int>(_num_var_native_ids);
+        const std::size_t handle_ids_begin =
+            _new_var_handle_range(_num_var_native_ids, count);
         check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
                           NULL, NULL, NULL, NULL, NULL));
         if(double obj = params.obj_coef; obj != 0.0) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
             check(GRB.setdblattrarray(
-                model, GRB_DBL_ATTR_OBJ, static_cast<int>(offset),
+                model, GRB_DBL_ATTR_OBJ, new_native_ids_begin,
                 static_cast<int>(count), tmp_scalars.data()));
         }
         if(double lb = params.lower_bound.value_or(-GRB_INFINITY); lb != 0.0) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), lb);
             check(GRB.setdblattrarray(
-                model, GRB_DBL_ATTR_LB, static_cast<int>(offset),
+                model, GRB_DBL_ATTR_LB, new_native_ids_begin,
                 static_cast<int>(count), tmp_scalars.data()));
         }
         if(double ub = params.upper_bound.value_or(GRB_INFINITY);
@@ -270,17 +274,18 @@ protected:
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), ub);
             check(GRB.setdblattrarray(
-                model, GRB_DBL_ATTR_UB, static_cast<int>(offset),
+                model, GRB_DBL_ATTR_UB, new_native_ids_begin,
                 static_cast<int>(count), tmp_scalars.data()));
         }
         if(type != GRB_CONTINUOUS) {
             tmp_types.resize(count);
             std::fill(tmp_types.begin(), tmp_types.end(), type);
             check(GRB.setcharattrarray(
-                model, GRB_CHAR_ATTR_VTYPE, static_cast<int>(offset),
+                model, GRB_CHAR_ATTR_VTYPE, new_native_ids_begin,
                 static_cast<int>(count), tmp_types.data()));
         }
-        _lazy_num_native_ids += count;
+        _num_var_native_ids += count;
+        return handle_ids_begin;
     }
 
 public:
@@ -291,17 +296,17 @@ public:
     auto add_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_native_ids;
-        _add_variables(offset, count, params, GRB_CONTINUOUS);
-        return _make_variables_range(offset, count);
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, GRB_CONTINUOUS);
+        return _make_variables_range(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_native_ids;
-        _add_variables(offset, count, params, GRB_CONTINUOUS);
-        return _make_indexed_variables_range(offset, count,
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, GRB_CONTINUOUS);
+        return _make_indexed_variables_range(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -314,19 +319,19 @@ public:
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_native_ids;
-        _add_variables(offset, count, params, GRB_CONTINUOUS);
-        return _make_named_variables_range(offset, count,
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, GRB_CONTINUOUS);
+        return _make_named_variables_range(handle_ids_begin, count,
                                            std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_native_ids;
-        _add_variables(offset, count, params, GRB_CONTINUOUS);
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, GRB_CONTINUOUS);
         return _make_indexed_named_variables_range(
-            offset, count, std::forward<IL>(id_lambda),
+            handle_ids_begin, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }
 
@@ -341,7 +346,7 @@ private:
                        tmp_indices.data(), tmp_scalars.data(), params.obj_coef,
                        params.lower_bound.value_or(-GRB_INFINITY),
                        params.upper_bound.value_or(GRB_INFINITY), type, NULL));
-        return _new_var_handle(static_cast<int>(_lazy_num_native_ids++));
+        return _new_var_handle(_new_var_native_id());
     }
 
 public:
@@ -414,8 +419,8 @@ public:
 
     constraint add_constraint(linear_constraint auto && lc) {
         const int constr_id = static_cast<int>(_lazy_num_constraints++);
-        _reset_cache(_lazy_num_native_ids);
-        _register_entries(lc.linear_terms());        
+        _reset_cache(_num_var_native_ids);
+        _register_entries(lc.linear_terms());
         check(GRB.addconstr(model, static_cast<int>(tmp_indices.size()),
                             tmp_indices.data(), tmp_scalars.data(),
                             constraint_sense_to_gurobi_sense(lc.sense()),
@@ -456,7 +461,7 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        _reset_cache(_lazy_num_native_ids);
+        _reset_cache(_num_var_native_ids);
         tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
@@ -488,12 +493,12 @@ public:
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
         int constr_id = static_cast<int>(_lazy_num_constraints++);
-        _reset_cache(_lazy_num_native_ids);
+        _reset_cache(_num_var_native_ids);
         _register_entries(le.linear_terms());
         check(GRB.addrangeconstr(model, static_cast<int>(tmp_indices.size()),
                                  tmp_indices.data(), tmp_scalars.data(), lb, ub,
                                  NULL));
-        _new_var_handle(static_cast<int>(_lazy_num_native_ids++));  // added_slack variable
+        _new_var_handle(_new_var_native_id());  // added_slack variable
         return constraint(constr_id);
     }
     // void set_constraint_name(constraint constr, auto && name);

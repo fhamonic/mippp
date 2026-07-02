@@ -38,16 +38,16 @@ protected:
     constexpr remapping_model_base & operator=(remapping_model_base && other) =
         default;
 
-    int _native_id(variable variable_handle) const {
+    int _native_id(const variable variable_handle) const {
         if(!_remap_ids) return variable_handle.id();
         return _native_ids_map[static_cast<std::size_t>(variable_handle.id())];
     }
-    variable _var_handle(int native_id) const {
+    variable _var_handle(const int native_id) const {
         if(!_remap_ids) return variable(native_id);
         return variable(_handle_ids_map[static_cast<std::size_t>(native_id)]);
     }
 
-    variable _new_var_handle(int new_native_id) {
+    variable _new_var_handle(const int new_native_id) {
         if(!_remap_ids) return variable(new_native_id);
         if(_free_var_handles.empty()) {
             int new_handle_id = static_cast<int>(_native_ids_map.size());
@@ -62,7 +62,16 @@ protected:
         _handle_ids_map.push_back(var_handle.id());
         return var_handle;
     }
-
+    std::size_t _new_var_handle_range(const std::size_t num_native_ids,
+                                      const std::size_t count) {
+        if(!_remap_ids) return num_native_ids;
+        const std::size_t new_handle_ids_begin = _native_ids_map.size();
+        for(std::size_t i = 0; i < count; ++i) {
+            _native_ids_map.emplace_back(num_native_ids + i);
+            _handle_ids_map.emplace_back(new_handle_ids_begin + i);
+        }
+        return new_handle_ids_begin;
+    }
 
     template <std::ranges::range Entries>
         requires linear_term<std::ranges::range_value_t<Entries>> &&
@@ -111,14 +120,6 @@ protected:
         }
         for(auto && [entity, coef] : entries) {
             tmp_indices.emplace_back(entity.id());
-            tmp_scalars.emplace_back(coef);
-        }
-    }
-    template <std::ranges::range Entries, typename NativeIdMap>
-    void _register_raw_entries(Entries && entries,
-                               NativeIdMap && native_id_map) {
-        for(auto && [entity, coef] : entries) {
-            tmp_indices.emplace_back(native_id_map[entity.uid()]);
             tmp_scalars.emplace_back(coef);
         }
     }

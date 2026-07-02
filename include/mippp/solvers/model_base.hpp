@@ -112,20 +112,6 @@ protected:
             tmp_scalars.emplace_back(coef);
         }
     }
-    template <std::ranges::range Entries, typename NativeIdMap>
-    void _register_entries(Entries && entries, NativeIdMap && native_id_map) {
-        ++register_count;
-        for(auto && [entity, coef] : entries) {
-            auto & p = tmp_entry_index_cache[entity.uid()];
-            if(p.first == register_count) {
-                tmp_scalars[p.second] += static_cast<_Scalar>(coef);
-                continue;
-            }
-            p = std::make_pair(register_count, tmp_indices.size());
-            tmp_indices.emplace_back(native_id_map[entity.uid()]);
-            tmp_scalars.emplace_back(coef);
-        }
-    }
 
     void _reset_raw_cache() {
         tmp_indices.resize(0);
@@ -136,14 +122,6 @@ protected:
     void _register_raw_entries(Entries && entries) {
         for(auto && [entity, coef] : entries) {
             tmp_indices.emplace_back(entity.id());
-            tmp_scalars.emplace_back(coef);
-        }
-    }
-    template <std::ranges::range Entries, typename NativeIdMap>
-    void _register_raw_entries(Entries && entries,
-                               NativeIdMap && native_id_map) {
-        for(auto && [entity, coef] : entries) {
-            tmp_indices.emplace_back(native_id_map[entity.uid()]);
             tmp_scalars.emplace_back(coef);
         }
     }

@@ -20,55 +20,54 @@ public:
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(_lazy_num_native_ids);
-        _add_variable(params, GRB_INTEGER, NULL);
-        return variable(var_id);
+        return _add_variable(params, GRB_INTEGER, NULL);
     }
     auto add_integer_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_native_ids;
-        _add_variables(offset, count, params, GRB_INTEGER);
-        return _make_variables_range(offset, count);
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, GRB_INTEGER);
+        return _make_variables_range(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _lazy_num_native_ids;
-        _add_variables(offset, count, params, GRB_INTEGER);
-        return _make_indexed_variables_range(offset, count,
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, GRB_INTEGER);
+        return _make_indexed_variables_range(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
 private:
-    inline void _add_binary_variables(const std::size_t & offset,
-                                      const std::size_t & count) {
+    inline std::size_t _add_binary_variables(const std::size_t & count) {
+        const std::size_t offset = _num_var_native_ids;
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), GRB_BINARY);
         check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
                           NULL, NULL, NULL, tmp_types.data(), NULL));
-        _lazy_num_native_ids += count;
-        _var_name_set.resize(offset + count, false);
+
+        const std::size_t handle_ids_begin =
+            _new_var_handle_range(_num_var_native_ids, count);
+        _num_var_native_ids += count;
+        _var_name_set.resize(_num_var_native_ids, false);
+        return handle_ids_begin;
     }
 
 public:
     variable add_binary_variable() {
-        int var_id = static_cast<int>(_lazy_num_native_ids);
-        _add_variable({.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-                      GRB_BINARY, NULL);
-        return variable(var_id);
+        return _add_variable(
+            {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
+            GRB_BINARY, NULL);
     }
     auto add_binary_variables(std::size_t count) noexcept {
-        const std::size_t offset = _lazy_num_native_ids;
-        _add_binary_variables(offset, count);
-        return _make_variables_range(offset, count);
+        const std::size_t handle_ids_begin = _add_binary_variables(count);
+        return _make_variables_range(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
-        const std::size_t offset = _lazy_num_native_ids;
-        _add_binary_variables(offset, count);
-        return _make_indexed_variables_range(offset, count,
+        const std::size_t handle_ids_begin = _add_binary_variables(count);
+        return _make_indexed_variables_range(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -91,12 +90,8 @@ public:
 
     void add_indicator_constraint(variable x, bool val,
                                   linear_constraint auto && lc) {
-        _reset_cache(_lazy_num_native_ids);
-        if(_remap_ids) {
-            _register_entries(lc.linear_terms(), _native_ids_map);
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _reset_cache(_num_var_native_ids);
+        _register_entries(lc.linear_terms());
         check(GRB.addgenconstrIndicator(
             model, NULL, x.id(), static_cast<int>(val),
             static_cast<int>(tmp_indices.size()), tmp_indices.data(),
@@ -141,11 +136,7 @@ public:
         }
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
-            if(parent._remap_ids) {
-                _register_entries(lc.linear_terms(), parent._native_ids_map);
-            } else {
-                _register_entries(lc.linear_terms());
-            }
+            _register_entries(lc.linear_terms());
             parent.GRB.cblazy(cbdata, static_cast<int>(tmp_indices.size()),
                               tmp_indices.data(), tmp_scalars.data(),
                               constraint_sense_to_gurobi_sense(lc.sense()),
@@ -195,11 +186,7 @@ private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
         _reset_raw_cache();
-        if(_remap_ids) {
-            _register_raw_entries(entries, _native_ids_map);
-        } else {
-            _register_raw_entries(entries);
-        }
+        _register_raw_entries(entries);
         check(GRB.setdblattrlist(model, GRB_DBL_ATTR_START,
                                  static_cast<int>(tmp_indices.size()),
                                  tmp_indices.data(), tmp_scalars.data()));
@@ -256,9 +243,9 @@ public:
 
     auto get_solution() {
         auto solution =
-            std::make_unique_for_overwrite<double[]>(_lazy_num_native_ids);
+            std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
         check(GRB.getdblattrarray(model, GRB_DBL_ATTR_X, 0,
-                                  static_cast<int>(_lazy_num_native_ids),
+                                  static_cast<int>(_num_var_native_ids),
                                   solution.get()));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & x) {

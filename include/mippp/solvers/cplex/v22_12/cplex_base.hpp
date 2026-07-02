@@ -141,7 +141,7 @@ public:
     }
 
     void set_objective(linear_expression auto && le) {
-        auto num_vars = _num_var_native_ids();
+        const std::size_t num_vars = _num_var_native_ids();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
         tmp_scalars.resize(num_vars);
@@ -154,7 +154,7 @@ public:
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
-        auto num_vars = _num_var_native_ids();
+        const std::size_t num_vars = _num_var_native_ids();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
         tmp_scalars.resize(num_vars);
@@ -197,8 +197,10 @@ protected:
                           (type != CPX_CONTINUOUS) ? &type : NULL, &name));
         return _new_var_handle(var_id);
     }
-    void _add_variables(std::size_t offset, std::size_t count,
-                        const variable_params & params, char type) {
+    std::size_t _add_variables(std::size_t count,
+                               const variable_params & params, char type) {
+        const std::size_t handle_ids_begin =
+            _new_var_handle_range(_num_var_native_ids(), count);
         std::optional<std::size_t> dbl_offset_1, dbl_offset_2, dbl_offset_3;
         tmp_scalars.resize(0u);
         if(params.obj_coef != 0.0) {
@@ -213,12 +215,10 @@ protected:
             dbl_offset_3.emplace(tmp_scalars.size());
             tmp_scalars.resize(tmp_scalars.size() + count, ub);
         }
-
         if(type != CPX_CONTINUOUS) {
             tmp_types.resize(count);
             std::fill(tmp_types.begin(), tmp_types.end(), type);
         }
-
         check(CPX.newcols(
             env, lp, static_cast<int>(count),
             dbl_offset_1.has_value()
@@ -234,6 +234,8 @@ protected:
                    static_cast<std::ptrdiff_t>(dbl_offset_3.value()))
                 : NULL,
             (type != CPX_CONTINUOUS) ? tmp_types.data() : NULL, NULL));
+
+        return handle_ids_begin;
     }
 
 public:
@@ -246,9 +248,9 @@ public:
                            .obj_coef = 0,
                            .lower_bound = 0,
                            .upper_bound = std::nullopt}) noexcept {
-        const std::size_t offset = _num_var_native_ids();
-        _add_variables(offset, count, params, CPX_CONTINUOUS);
-        return _make_variables_range(offset, count);
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, CPX_CONTINUOUS);
+        return _make_variables_range(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_variables(std::size_t count, IL && id_lambda,
@@ -256,9 +258,9 @@ public:
                            .obj_coef = 0,
                            .lower_bound = 0,
                            .upper_bound = std::nullopt}) noexcept {
-        const std::size_t offset = _num_var_native_ids();
-        _add_variables(offset, count, params, CPX_CONTINUOUS);
-        return _make_indexed_variables_range(offset, count,
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, CPX_CONTINUOUS);
+        return _make_indexed_variables_range(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -276,19 +278,19 @@ public:
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _num_var_native_ids();
-        _add_variables(offset, count, params, CPX_CONTINUOUS);
-        return _make_named_variables_range(offset, count,
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, CPX_CONTINUOUS);
+        return _make_named_variables_range(handle_ids_begin, count,
                                            std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = _num_var_native_ids();
-        _add_variables(offset, count, params, CPX_CONTINUOUS);
+        const std::size_t handle_ids_begin =
+            _add_variables(count, params, CPX_CONTINUOUS);
         return _make_indexed_named_variables_range(
-            offset, count, std::forward<IL>(id_lambda),
+            handle_ids_begin, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }
 
