@@ -16,6 +16,8 @@
 #include "mippp/solvers/cplex/v22_12/cplex_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
 
+#include <iostream>
+
 namespace fhamonic::mippp {
 namespace cplex::v22_12 {
 
@@ -86,7 +88,10 @@ protected:
         throw std::runtime_error("CPLEX: error " + std::to_string(error));
     }
 
-    int _new_var_native_id() { return CPX.getnumcols(env, lp); }
+    int _new_var_native_id() {
+        if(_remap_ids) _extend_handle_ids_map(1);
+        return CPX.getnumcols(env, lp);
+    }
     std::size_t _num_var_native_ids() {
         return static_cast<std::size_t>(CPX.getnumcols(env, lp));
     }
@@ -109,14 +114,17 @@ protected:
             std::ranges::iota(_handle_ids_map, 0);
             _remap_ids = true;
         }
-        for(std::size_t old_id :
+        for(std::size_t old_native_id :
             std::views::iota(std::size_t{0}, old_num_variables)) {
-            const int new_id = tmp_indices[old_id];
-            if(new_id == -1) continue;
-            _native_ids_map[static_cast<std::size_t>(_handle_ids_map[old_id])] =
-                new_id;
+            const int new_native_id = tmp_indices[old_native_id];
+            if(new_native_id == -1) continue;
+            _native_ids_map[static_cast<std::size_t>(
+                _handle_ids_map[old_native_id])] = new_native_id;
+            // (new_native_id <= old_native_id) is guaranteed
+            _handle_ids_map[static_cast<std::size_t>(new_native_id)] =
+                _handle_ids_map[old_native_id];
         }
-
+        _shrink_handle_ids_map(_var_handles_to_delete.size());
         _free_var_handles.append_range(_var_handles_to_delete);
         _var_handles_to_delete.clear();
     }
@@ -199,6 +207,7 @@ protected:
     }
     std::size_t _add_variables(std::size_t count,
                                const variable_params & params, char type) {
+        if(_remap_ids) _extend_handle_ids_map(count);
         const std::size_t handle_ids_begin =
             _new_var_handle_range(_num_var_native_ids(), count);
         std::optional<std::size_t> dbl_offset_1, dbl_offset_2, dbl_offset_3;
@@ -211,7 +220,8 @@ protected:
             dbl_offset_2.emplace(tmp_scalars.size());
             tmp_scalars.resize(tmp_scalars.size() + count, lb);
         }
-        if(auto ub = params.upper_bound.value_or(CPX_INFBOUND); ub != 0.0) {
+        if(auto ub = params.upper_bound.value_or(CPX_INFBOUND);
+           ub != CPX_INFBOUND) {
             dbl_offset_3.emplace(tmp_scalars.size());
             tmp_scalars.resize(tmp_scalars.size() + count, ub);
         }
@@ -234,7 +244,6 @@ protected:
                    static_cast<std::ptrdiff_t>(dbl_offset_3.value()))
                 : NULL,
             (type != CPX_CONTINUOUS) ? tmp_types.data() : NULL, NULL));
-
         return handle_ids_begin;
     }
 
@@ -468,7 +477,7 @@ public:
         int palceholder, surplus, beg;
         if(int error = CPX.getrows(env, lp, &palceholder, NULL, NULL, NULL, 0,
                                    &surplus, constr.id(), constr.id());
-           error != 1207)
+           error != 1207 && error != 0)
             throw std::runtime_error("CPLEX: error " + std::to_string(error));
 
         const int num_nz = -surplus;
@@ -482,9 +491,7 @@ public:
         return std::views::transform(
             std::views::iota(0, num_nz), [this, indices = std::move(indices),
                                           coefs = std::move(coefs)](int i) {
-                // return std::make_pair(_var_handle(indices.get()[i]),
-                //                       coefs.get()[i]);
-                return std::make_pair(variable(indices.get()[i]),
+                return std::make_pair(_var_handle(indices.get()[i]),
                                       coefs.get()[i]);
             });
     }

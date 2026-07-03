@@ -39,6 +39,7 @@ struct model_test : public ::testing::Test {
 #include "candidate_solution_callback.hpp"
 #include "cutting_stock.hpp"
 #include "dual_solution.hpp"
+#include "lp_fuzzy_tests.hpp"
 #include "lp_model.hpp"
 #include "lp_status.hpp"
 #include "milp_model.hpp"

@@ -47,20 +47,28 @@ protected:
         return variable(_handle_ids_map[static_cast<std::size_t>(native_id)]);
     }
 
+    void _extend_handle_ids_map(const std::size_t count) {
+        _handle_ids_map.resize(_handle_ids_map.size() + count);
+    }
+    void _shrink_handle_ids_map(const std::size_t count) {
+        _handle_ids_map.resize(_handle_ids_map.size() - count);
+    }
+
     variable _new_var_handle(const int new_native_id) {
         if(!_remap_ids) return variable(new_native_id);
+        int new_handle_id;
         if(_free_var_handles.empty()) {
-            int new_handle_id = static_cast<int>(_native_ids_map.size());
+            new_handle_id = static_cast<int>(_native_ids_map.size());
             _native_ids_map.push_back(new_native_id);
-            _handle_ids_map.push_back(new_handle_id);
-            return variable(new_handle_id);
+        } else {
+            new_handle_id = _free_var_handles.back().id();
+            _free_var_handles.pop_back();
+            _native_ids_map[static_cast<std::size_t>(new_handle_id)] =
+                new_native_id;
         }
-        variable var_handle = _free_var_handles.back();
-        _free_var_handles.pop_back();
-        _native_ids_map[static_cast<std::size_t>(var_handle.id())] =
-            new_native_id;
-        _handle_ids_map.push_back(var_handle.id());
-        return var_handle;
+        _handle_ids_map[static_cast<std::size_t>(new_native_id)] =
+            new_handle_id;
+        return variable(new_handle_id);
     }
     std::size_t _new_var_handle_range(const std::size_t num_native_ids,
                                       const std::size_t count) {
@@ -68,7 +76,8 @@ protected:
         const std::size_t new_handle_ids_begin = _native_ids_map.size();
         for(std::size_t i = 0; i < count; ++i) {
             _native_ids_map.emplace_back(num_native_ids + i);
-            _handle_ids_map.emplace_back(new_handle_ids_begin + i);
+            _handle_ids_map[num_native_ids + i] =
+                static_cast<int>(new_handle_ids_begin + i);
         }
         return new_handle_ids_begin;
     }
@@ -82,13 +91,15 @@ protected:
         ++register_count;
         if(_remap_ids) {
             for(auto && [entity, coef] : entries) {
-                auto & p = tmp_entry_index_cache[entity.uid()];
+                const std::size_t native_id =
+                    static_cast<std::size_t>(_native_ids_map[entity.uid()]);
+                auto & p = tmp_entry_index_cache[native_id];
                 if(p.first == register_count) {
                     tmp_scalars[p.second] += static_cast<_Scalar>(coef);
                     continue;
                 }
                 p = std::make_pair(register_count, tmp_indices.size());
-                tmp_indices.emplace_back(_handle_ids_map[entity.uid()]);
+                tmp_indices.emplace_back(native_id);
                 tmp_scalars.emplace_back(coef);
             }
             return;
@@ -113,7 +124,7 @@ protected:
     void _register_raw_entries(Entries && entries) {
         if(_remap_ids) {
             for(auto && [entity, coef] : entries) {
-                tmp_indices.emplace_back(_handle_ids_map[entity.uid()]);
+                tmp_indices.emplace_back(_native_ids_map[entity.uid()]);
                 tmp_scalars.emplace_back(coef);
             }
             return;

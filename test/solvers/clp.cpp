@@ -18,3 +18,4 @@ INSTANTIATE_TEST(Clp, RemoveVariableTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, DualSolutionTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, LpStatusTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, CuttingStockTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, LpFuzzyTest, clp_lp_test);

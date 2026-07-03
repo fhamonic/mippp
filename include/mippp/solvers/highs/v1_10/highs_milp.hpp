@@ -22,9 +22,7 @@ public:
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(var_id, params, kHighsVarTypeInteger);
-        return variable(var_id);
+        return _add_variable(params, kHighsVarTypeInteger);
     }
     auto add_integer_variables(
         std::size_t count,

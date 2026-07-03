@@ -49,13 +49,9 @@ HighsInt Highs_addCols(void * highs, const HighsInt num_new_col,
                        const double * upper, const HighsInt num_new_nz,
                        const HighsInt * starts, const HighsInt * index,
                        const double * value);
-HighsInt Highs_addRow(void * highs, const double lower, const double upper,
-                      const HighsInt num_new_nz, const HighsInt * index,
-                      const double * value);
-HighsInt Highs_addRows(void * highs, const HighsInt num_new_row,
-                       const double * lower, const double * upper,
-                       const HighsInt num_new_nz, const HighsInt * starts,
-                       const HighsInt * index, const double * value);
+HighsInt Highs_deleteColsBySet(void * highs, const HighsInt num_set_entries,
+                               const HighsInt * set);
+HighsInt Highs_deleteColsByMask(void * highs, HighsInt * mask);
 
 HighsInt Highs_changeColCost(void * highs, const HighsInt col,
                              const double cost);
@@ -71,6 +67,14 @@ HighsInt Highs_getColsByRange(const void * highs, const HighsInt from_col,
                               double * costs, double * lower, double * upper,
                               HighsInt * num_nz, HighsInt * matrix_start,
                               HighsInt * matrix_index, double * matrix_value);
+
+HighsInt Highs_addRow(void * highs, const double lower, const double upper,
+                      const HighsInt num_new_nz, const HighsInt * index,
+                      const double * value);
+HighsInt Highs_addRows(void * highs, const HighsInt num_new_row,
+                       const double * lower, const double * upper,
+                       const HighsInt num_new_nz, const HighsInt * starts,
+                       const HighsInt * index, const double * value);
 
 enum HessianFromat : HighsInt {
     kHighsHessianFormatTriangular = 1,
@@ -216,13 +220,15 @@ namespace highs::v1_10 {
     F(Highs_addVars, addVars)                                           \
     F(Highs_addCol, addCol)                                             \
     F(Highs_addCols, addCols)                                           \
-    F(Highs_addRow, addRow)                                             \
-    F(Highs_addRows, addRows)                                           \
+    F(Highs_deleteColsBySet, deleteColsBySet)                           \
+    F(Highs_deleteColsByMask, deleteColsByMask)                         \
     F(Highs_changeColCost, changeColCost)                               \
     F(Highs_changeColsCostByRange, changeColsCostByRange)               \
     F(Highs_changeColsCostBySet, changeColsCostBySet)                   \
     F(Highs_changeColBounds, changeColBounds)                           \
     F(Highs_getColsByRange, getColsByRange)                             \
+    F(Highs_addRow, addRow)                                             \
+    F(Highs_addRows, addRows)                                           \
     F(Highs_passHessian, passHessian)                                   \
     F(Highs_changeColIntegrality, changeColIntegrality)                 \
     F(Highs_changeColsIntegralityByRange, changeColsIntegralityByRange) \

@@ -1,6 +1,7 @@
 #ifndef MIPPP_MODEL_CONCEPTS_HPP
 #define MIPPP_MODEL_CONCEPTS_HPP
 
+#include <chrono>
 #include <concepts>
 #include <optional>
 #include <ranges>
@@ -419,22 +420,22 @@ concept has_remove_variable = requires(T & model, T::variable v) {
 ///////////////////////////////// Warm start //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-enum basis_status : int {
-    basic = 0,
-    nonbasic_at_lb = 1,
-    nonbasic_at_ub = 2,
-    nonbasic_free = 3
-};
+// enum basis_status : int {
+//     basic = 0,
+//     nonbasic_at_lb = 1,
+//     nonbasic_at_ub = 2,
+//     nonbasic_free = 3
+// };
 
-template <typename T>
-concept has_lp_basis_warm_start =
-        requires(T & model, T::variable v, T::constraint c) {
-    { model.get_variable_basis_status(v) } -> std::same_as<basis_status>;
-    { model.set_variable_basis_status(v, basis_status::basic) };
+// template <typename T>
+// concept has_lp_basis_warm_start =
+//         requires(T & model, T::variable v, T::constraint c) {
+//     { model.get_variable_basis_status(v) } -> std::same_as<basis_status>;
+//     { model.set_variable_basis_status(v, basis_status::basic) };
 
-    { model.get_constraint_basis_status(c) } -> std::same_as<basis_status>;
-    { model.set_constraint_basis_status(c, basis_status::basic) };
-};
+//     { model.get_constraint_basis_status(c) } -> std::same_as<basis_status>;
+//     { model.set_constraint_basis_status(c, basis_status::basic) };
+// };
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// MIP start //////////////////////////////////

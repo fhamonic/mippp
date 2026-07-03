@@ -137,8 +137,8 @@ public:
     }
 
 protected:
-    void _add_variable(const HighsInt & var_id, const variable_params & params,
-                       int type) {
+    variable _add_variable(const variable_params & params, int type) {
+        HighsInt var_id = static_cast<HighsInt>(num_variables());
         check(
             Highs.addCol(model, params.obj_coef,
                          params.lower_bound.value_or(-Highs.getInfinity(model)),
@@ -146,6 +146,7 @@ protected:
                          0, NULL, NULL));
         if(type != kHighsVarTypeContinuous)
             check(Highs.changeColIntegrality(model, var_id, type));
+        return variable(var_id);
     }
     void _add_variables(std::size_t offset, std::size_t count,
                         const variable_params & params, int type) {
@@ -173,9 +174,7 @@ protected:
 public:
     variable add_variable(
         const variable_params params = default_variable_params) {
-        HighsInt var_id = static_cast<HighsInt>(num_variables());
-        _add_variable(var_id, params, kHighsVarTypeContinuous);
-        return variable(var_id);
+        return _add_variable(params, kHighsVarTypeContinuous);
     }
     auto add_variables(
         std::size_t count,

@@ -2,6 +2,7 @@
 #define MIPPP_MODEL_ENTITIES_HPP
 
 #include <flat_map>
+#include <memory>
 #include <optional>
 #include <ranges>
 

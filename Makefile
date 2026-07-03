@@ -1,6 +1,7 @@
 BUILD_DIR = build
-# CONAN_PROFILE = debug
+
 CONAN_PROFILE = default_c++26
+# CONAN_PROFILE = debug_c++26
 
 ifeq (test,$(firstword $(MAKECMDGOALS)))
   TEST_FILTER := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))

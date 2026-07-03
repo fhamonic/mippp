@@ -67,6 +67,12 @@ double Clp_getObjValue(Clp_Simplex * model);
 double * Clp_primalColumnSolution(Clp_Simplex * model);
 double * Clp_dualRowSolution(Clp_Simplex * model);
 
+void Clp_loadProblem(Clp_Simplex * model, const int numcols, const int numrows,
+                     const CoinBigIndex * start, const int * index,
+                     const double * value, const double * collb,
+                     const double * colub, const double * obj,
+                     const double * rowlb, const double * rowub);
+
 }  // namespace clp::v1_17
 }  // namespace fhamonic::mippp
 #endif
@@ -114,7 +120,8 @@ namespace clp::v1_17 {
     F(Clp_isProvenDualInfeasible, isProvenDualInfeasible)     \
     F(Clp_getObjValue, getObjValue)                           \
     F(Clp_primalColumnSolution, primalColumnSolution)         \
-    F(Clp_dualRowSolution, dualRowSolution)
+    F(Clp_dualRowSolution, dualRowSolution)                   \
+    F(Clp_loadProblem, loadProblem)
 
 #define DECLARE_CLP_FUN(FULL, SHORT)      \
     using SHORT##_fun_t = decltype(FULL); \
