@@ -53,6 +53,7 @@ formated_test_names = [
     ("TimeLimitTest", "Time limit"),
     ("MipStartTest", "MIP start"),
     ("SudokuTest", "Sudoku example"),
+    ("FuzzyTest", "Fuzzing tested"),
 ]
 
 
