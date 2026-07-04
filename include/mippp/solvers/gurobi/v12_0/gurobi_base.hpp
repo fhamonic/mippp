@@ -15,8 +15,6 @@
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
 
-#include <iostream>
-
 namespace fhamonic::mippp {
 namespace gurobi::v12_0 {
 
@@ -108,7 +106,10 @@ protected:
     }
     void update_gurobi_model() { check(GRB.updatemodel(model)); }
 
-    int _new_var_native_id() { return static_cast<int>(_num_var_native_ids++); }
+    int _new_var_native_id() {
+        if(_remap_ids) _extend_handle_ids_map(1);
+        return static_cast<int>(_num_var_native_ids++);
+    }
 
     void _lazily_remove_variables() {
         if(_var_handles_to_delete.empty()) return;
@@ -119,6 +120,8 @@ protected:
         std::ranges::sort(tmp_indices);
         check(GRB.delvars(model, static_cast<int>(tmp_indices.size()),
                           tmp_indices.data()));
+
+        update_gurobi_model();
 
         const std::size_t new_num_native_ids =
             _num_var_native_ids - tmp_indices.size();
@@ -133,21 +136,24 @@ protected:
                 _remap_ids = true;
             }
 
-            std::vector<int> new_handle_ids_map(new_num_native_ids);
             std::size_t offset = 0;
-            for(int id :
+            for(int old_native_id :
                 std::views::iota(0, static_cast<int>(_num_var_native_ids))) {
-                if(offset < tmp_indices.size() && id == tmp_indices[offset]) {
+                if(offset < tmp_indices.size() &&
+                   old_native_id == tmp_indices[offset]) {
                     ++offset;
                     continue;
                 }
-                const int handle =
-                    _handle_ids_map[static_cast<std::size_t>(id)];
-                const int new_id = id - static_cast<int>(offset);
-                new_handle_ids_map[static_cast<std::size_t>(new_id)] = handle;
-                _native_ids_map[static_cast<std::size_t>(handle)] = new_id;
+                const int handle_id =
+                    _handle_ids_map[static_cast<std::size_t>(old_native_id)];
+                const int new_native_id =
+                    old_native_id - static_cast<int>(offset);
+                _handle_ids_map[static_cast<std::size_t>(new_native_id)] =
+                    handle_id;
+                _native_ids_map[static_cast<std::size_t>(handle_id)] =
+                    new_native_id;
             }
-            _handle_ids_map = std::move(new_handle_ids_map);
+            _shrink_handle_ids_map(_var_handles_to_delete.size());
             _free_var_handles.append_range(_var_handles_to_delete);
         }
         _num_var_native_ids = new_num_native_ids;
@@ -205,11 +211,11 @@ public:
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
-        tmp_indices.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            tmp_indices.emplace_back(_native_id(var));
-            tmp_scalars.emplace_back(get_objective_coefficient(var) + coef);
+        _reset_cache(_num_var_native_ids);
+        _register_entries(le.linear_terms());
+        for(auto && [native_id, coef] :
+            std::views::zip(tmp_indices, tmp_scalars)) {
+            coef += get_objective_coefficient(_var_handle(native_id));
         }
         check(GRB.setdblattrlist(model, GRB_DBL_ATTR_OBJ,
                                  static_cast<int>(tmp_indices.size()),
@@ -250,6 +256,7 @@ protected:
     inline std::size_t _add_variables(const std::size_t & count,
                                       const variable_params & params,
                                       const char & type) {
+        if(_remap_ids) _extend_handle_ids_map(count);
         const int new_native_ids_begin = static_cast<int>(_num_var_native_ids);
         const std::size_t handle_ids_begin =
             _new_var_handle_range(_num_var_native_ids, count);

@@ -905,7 +905,7 @@ private:
     ////////////////////////////////////////////////////////////////////////////
 
 public:
-    void run(std::size_t num_rounds, std::size_t max_mutations_per_round = 8u) {
+    void run(std::size_t num_rounds, std::size_t max_mutations_per_round = 16u) {
         SCOPED_TRACE(std::format("fuzzy run with MIPPP_FUZZ_SEED={}", _seed));
         std::size_t step = 0;
         std::vector<std::size_t> applicable;
