@@ -27,16 +27,16 @@ public:
     auto add_integer_variables(
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, kHighsVarTypeInteger);
+        const std::size_t offset =
+            _add_variables(count, params, kHighsVarTypeInteger);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, kHighsVarTypeInteger);
+        const std::size_t offset =
+            _add_variables(count, params, kHighsVarTypeInteger);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
@@ -102,7 +102,10 @@ public:
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         check(Highs.getSolution(model, solution.get(), NULL, NULL, NULL));
-        return variable_mapping(std::move(solution));
+        return variable_mapping(
+            [this, solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + _native_id(v));
+            });
     }
 };
 

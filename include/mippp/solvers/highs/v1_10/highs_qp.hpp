@@ -40,7 +40,7 @@ public:
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[var.uid()] += coef;
+            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
         }
         check(Highs.changeColsCostByRange(
             model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
@@ -61,10 +61,10 @@ public:
         HighsInt next_row = 0;
         for(auto && [vars_pair, coef] : factorized_terms) {
             auto && [var1, var2] = vars_pair;
-            while(next_row <= var1.id())
+            while(next_row <= _native_id(var1))
                 tmp_begins[static_cast<std::size_t>(next_row++)] =
                     static_cast<HighsInt>(tmp_scalars.size());
-            tmp_indices.emplace_back(var2.id());
+            tmp_indices.emplace_back(_native_id(var2));
             tmp_scalars.emplace_back(2 * coef);
         }
         while(next_row <= static_cast<int>(num_vars))
@@ -118,7 +118,10 @@ public:
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         check(Highs.getSolution(model, solution.get(), NULL, NULL, NULL));
-        return variable_mapping(std::move(solution));
+        return variable_mapping(
+            [this, solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + _native_id(v));
+            });
     }
     auto get_dual_solution() {
         auto num_constrs = num_constraints();

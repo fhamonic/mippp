@@ -14,9 +14,12 @@ INSTANTIATE_TEST(HiGHS_lp, ReadableVariablesBoundsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ModifiableVariablesBoundsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, NamedVariablesTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, AddColumnTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, RemoveVariableTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, ReadableConstraintsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, DualSolutionTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpStatusTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, CuttingStockTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, LpFuzzyTest, highs_lp_test);
 
 struct highs_milp_test : public model_test<highs_api, highs_milp> {
     static void SetUpTestSuite() { construct_api(); }
@@ -29,6 +32,8 @@ INSTANTIATE_TEST(HiGHS_milp, ReadableVariablesBoundsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ModifiableVariablesBoundsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, NamedVariablesTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, AddColumnTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, RemoveVariableTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, ReadableConstraintsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, SudokuTest, highs_milp_test);
 // INSTANTIATE_TEST(HiGHS_milp, MipStartTest, highs_milp_test);
 
@@ -43,6 +48,8 @@ INSTANTIATE_TEST(HiGHS_qp, ReadableVariablesBoundsTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ModifiableVariablesBoundsTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, NamedVariablesTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, AddColumnTest, highs_qp_test);
+INSTANTIATE_TEST(HiGHS_qp, RemoveVariableTest, highs_qp_test);
+INSTANTIATE_TEST(HiGHS_qp, ReadableConstraintsTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, DualSolutionTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, LpStatusTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, CuttingStockTest, highs_qp_test);

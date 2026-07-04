@@ -67,6 +67,11 @@ HighsInt Highs_getColsByRange(const void * highs, const HighsInt from_col,
                               double * costs, double * lower, double * upper,
                               HighsInt * num_nz, HighsInt * matrix_start,
                               HighsInt * matrix_index, double * matrix_value);
+HighsInt Highs_getColsBySet(const void * highs, const HighsInt num_set_entries,
+                            const HighsInt * set, HighsInt * num_col,
+                            double * costs, double * lower, double * upper,
+                            HighsInt * num_nz, HighsInt * matrix_start,
+                            HighsInt * matrix_index, double * matrix_value);
 
 HighsInt Highs_addRow(void * highs, const double lower, const double upper,
                       const HighsInt num_new_nz, const HighsInt * index,
@@ -227,6 +232,7 @@ namespace highs::v1_10 {
     F(Highs_changeColsCostBySet, changeColsCostBySet)                   \
     F(Highs_changeColBounds, changeColBounds)                           \
     F(Highs_getColsByRange, getColsByRange)                             \
+    F(Highs_getColsBySet, getColsBySet)                                 \
     F(Highs_addRow, addRow)                                             \
     F(Highs_addRows, addRows)                                           \
     F(Highs_passHessian, passHessian)                                   \
