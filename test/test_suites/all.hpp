@@ -37,6 +37,7 @@ struct model_test : public ::testing::Test {
 
 #include "add_column.hpp"
 #include "candidate_solution_callback.hpp"
+#include "column_manager.hpp"
 #include "cutting_stock.hpp"
 #include "dual_solution.hpp"
 #include "lp_fuzzy_tests.hpp"

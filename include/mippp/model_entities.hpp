@@ -20,6 +20,7 @@ private:
     Id _id;
 
 public:
+    constexpr model_entity_base() = default;
     template <typename T>
         requires std::constructible_from<Id, T>
     constexpr explicit model_entity_base(T t) : _id(t) {}

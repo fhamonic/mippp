@@ -19,6 +19,7 @@ INSTANTIATE_TEST(Gurobi_lp, ReadableConstraintsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpStatusTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, DualSolutionTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, CuttingStockTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, ColumnManagerTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpFuzzyTest, gurobi_lp_test);
 
 struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {

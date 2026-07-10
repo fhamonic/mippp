@@ -174,6 +174,11 @@ concept has_dual_solution = requires(T & model, T::constraint c) {
     { model.get_dual_solution()[c] } -> std::convertible_to<typename T::scalar>;
 };
 
+template <typename T>
+concept has_reduced_costs = requires(T & model, typename T::variable v) {
+    { model.get_reduced_costs()[v] } -> std::convertible_to<typename T::scalar>;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// Termination reasons /////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////

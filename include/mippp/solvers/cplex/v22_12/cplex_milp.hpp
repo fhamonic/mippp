@@ -171,6 +171,10 @@ public:
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(model->_num_var_native_ids());
             _register_entries(lc.linear_terms());
+            if(model->_remap_ids) {
+                for(auto & id : tmp_indices)
+                    id = model->_native_ids_map[static_cast<std::size_t>(id)];
+            }
             int matbegin = 0;
             const double b = lc.rhs();
             const char sense = constraint_sense_to_cplex_sense(lc.sense());

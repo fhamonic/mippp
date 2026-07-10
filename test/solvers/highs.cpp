@@ -19,6 +19,7 @@ INSTANTIATE_TEST(HiGHS_lp, ReadableConstraintsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, DualSolutionTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpStatusTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, CuttingStockTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, ColumnManagerTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpFuzzyTest, highs_lp_test);
 
 struct highs_milp_test : public model_test<highs_api, highs_milp> {
@@ -53,3 +54,4 @@ INSTANTIATE_TEST(HiGHS_qp, ReadableConstraintsTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, DualSolutionTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, LpStatusTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, CuttingStockTest, highs_qp_test);
+INSTANTIATE_TEST(HiGHS_qp, ColumnManagerTest, highs_qp_test);
