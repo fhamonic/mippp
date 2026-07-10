@@ -80,17 +80,17 @@ public:
     }
 
     void set_continuous(variable v) noexcept {
-        int var_id = v.id();
+        int var_id = _native_id(v);
         char type = CPX_CONTINUOUS;
         check(CPX.chgctype(env, lp, 1, &var_id, &type));
     }
     void set_integer(variable v) noexcept {
-        int var_id = v.id();
+        int var_id = _native_id(v);
         char type = CPX_INTEGER;
         check(CPX.chgctype(env, lp, 1, &var_id, &type));
     }
     void set_binary(variable v) noexcept {
-        int var_id = v.id();
+        int var_id = _native_id(v);
         char type = CPX_BINARY;
         check(CPX.chgctype(env, lp, 1, &var_id, &type));
         char lu[2] = {'L', 'U'};
