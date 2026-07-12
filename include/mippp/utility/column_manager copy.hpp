@@ -18,7 +18,11 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp::column_generation {
+namespace fhamonic::mippp {
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////// Additional concepts /////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// Properties //////////////////////////////////
@@ -140,7 +144,37 @@ constexpr void transfer_common_properties(const properties_base<Ps...> & from,
     (transfer_one.template operator()<Ps>(), ...);
 }
 
+//////////////////////////// property list algebra ////////////////////////////
+
+template <typename List, column_property P>
+struct list_append_unique;
+template <column_property... Ps, column_property P>
+struct list_append_unique<property_list<Ps...>, P>
+    : std::conditional<contains_v<P, Ps...>, property_list<Ps...>,
+                       property_list<Ps..., P>> {};
+
+template <typename Acc, column_property... Ps>
+struct fold_append_unique {
+    using type = Acc;
+};
+template <typename Acc, column_property P, column_property... Ps>
+struct fold_append_unique<Acc, P, Ps...>
+    : fold_append_unique<typename list_append_unique<Acc, P>::type, Ps...> {};
+
+template <typename Acc, typename... Lists>
+struct property_lists_union {
+    using type = Acc;
+};
+template <typename Acc, column_property... Ps, typename... Lists>
+struct property_lists_union<Acc, property_list<Ps...>, Lists...>
+    : property_lists_union<typename fold_append_unique<Acc, Ps...>::type,
+                           Lists...> {};
+
 }  // namespace detail
+
+template <typename... Lists>
+using property_list_union_t =
+    typename detail::property_lists_union<property_list<>, Lists...>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// Common properties //////////////////////////////
@@ -184,7 +218,7 @@ struct reduced_cost_window {
     using value_type = std::array<double, K>;
     static constexpr value_type initial_value() noexcept {
         value_type values;
-        values.fill(-std::numeric_limits<double>::infinity());
+        values.fill(0.0);
         return values;
     }
     static constexpr void on_priced(value_type & values,
@@ -204,7 +238,10 @@ struct in_pool : detail::properties_base<Ps...> {};
 template <typename Variable, column_property... Ps>
 struct in_master : detail::properties_base<Ps...> {
     Variable var;
-    explicit in_master(Variable v) : var(std::move(v)) {}
+    template <typename V, typename... T>
+    in_master(V && v, T &&... args)
+        : detail::properties_base<Ps...>(std::forward<T>(args)...)
+        , var(std::forward<V>(v)) {}
 };
 
 namespace detail {
@@ -223,189 +260,163 @@ struct in_master_state_from_property_list<Variable, property_list<Ps...>> {
     using type = in_master<Variable, Ps...>;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// Strategies
+////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// A strategy is any function object callable with (seed, state), (state) or
+// (seed) returning bool. It may additionally declare:
+//
+//     using required_properties = property_list<...>;
+//         the properties it reads, so that state types can be deduced
+//     std::size_t max_activations() const;   (activation strategies only)
+//         budget of columns added per round; requires priority()
+//     scalar priority(seed, state) / priority(state) const;
+//         ranking used to select within the budget (greater is better)
+
+template <typename S, typename Seed, typename State>
+concept column_predicate =
+    requires(const S & s, const std::pair<Seed, State> & entry) {
+        { s(entry) } -> std::convertible_to<bool>;
+    };
+
+template <typename S, typename Seed, typename State>
+concept column_strategy =
+    requires(const S & s, const std::pair<Seed, State> & entry) {
+        { s.predicate(entry) } -> std::convertible_to<bool>;
+        {
+            s.select(std::views::empty<std::pair<Seed, State>>)
+        } -> std::ranges::range;
+    };
+
 }  // namespace detail
 
-///////////////////////////////////////////////////////////////////////////////
-////////////////////////////////// Strategies /////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-// The activation/eviction candidates are presented to the strategies as
-// entries, i.e. std::pair<const ColumnSeed &, const State &> (see the
-// in_pool_entry/in_master_entry aliases of column_manager). A strategy is a
-// type providing:
-//
-//     Pred predicate;
-//         a member function object callable with an entry, returning whether
-//         the column is a candidate for activation/eviction
-//     auto select(candidates, proj) const;
-//         restricts the candidates (given as a range of node handles) to the
-//         ones to actually activate/evict; proj maps a node handle to its
-//         entry so that comparators/samplers can inspect seeds and states
-//
-// Predicates are plain function objects : a predicate reading a property P
-// simply requires P to be listed in the property_list given to the
-// column_manager for the corresponding state (enforced at compile time by
-// properties_base::get<P>).
-
-namespace detail {
-template <typename S, typename Entry>
-concept column_predicate = requires(const S & s, const Entry & entry) {
-    { s(entry) } -> std::convertible_to<bool>;
-};
-}  // namespace detail
-
-//////////////////////////////// entry predicates /////////////////////////////
+////////////////////////////////
+////////////////////////////////
 
 template <typename P>
 struct below {
+    using required_properties = property_list<P>;
     P::value_type rhs;
     constexpr bool operator()(const auto & entry) const {
-        const auto & state = std::get<1>(entry);
+        const auto state = std::get<1>(entry);
         return state.template get<P>() < rhs;
     }
 };
 
 template <typename P>
 struct above {
+    using required_properties = property_list<P>;
     P::value_type rhs;
     constexpr bool operator()(const auto & entry) const {
-        const auto & state = std::get<1>(entry);
+        const auto state = std::get<1>(entry);
         return state.template get<P>() > rhs;
     }
 };
 
 template <typename P>
 struct negative : below<P> {
-    explicit negative(typename P::value_type tolerance = {1e-10})
+    negative(typename P::value_type tolerance = {1e-10})
         : below<P>(-tolerance) {};
 };
 
 template <typename P>
 struct positive : above<P> {
-    explicit positive(typename P::value_type tolerance = {1e-10})
+    positive(typename P::value_type tolerance = {1e-10})
         : above<P>(tolerance) {};
-};
-
-// the K last reduced costs of the column all stayed above 'threshold'
-template <std::size_t K>
-struct window_above {
-    double threshold = 0.0;
-    constexpr bool operator()(const auto & entry) const {
-        const auto & state = std::get<1>(entry);
-        return std::ranges::all_of(state.template get<reduced_cost_window<K>>(),
-                                   [&](double rc) { return rc > threshold; });
-    }
 };
 
 template <typename... Pr>
 struct conjunction {
+    using required_properties =
+        property_list_union_t<typename Pr::required_properties...>;
     std::tuple<Pr...> predicates;
     template <typename... T>
-        requires std::constructible_from<std::tuple<Pr...>, T &&...>
-    conjunction(T &&... args) : predicates(std::forward<T>(args)...){};
+    conjunction(T &&... args) : predicates(std::forward<T>(args)...) {};
     constexpr bool operator()(const auto & entry) const {
         return std::apply(
             [&](const Pr &... preds) { return (preds(entry) && ...); },
             predicates);
     }
 };
-template <typename... Pr>
-conjunction(Pr...) -> conjunction<Pr...>;
 
 template <typename... Pr>
 struct disjunction {
+    using required_properties =
+        property_list_union_t<typename Pr::required_properties...>;
     std::tuple<Pr...> predicates;
     template <typename... T>
-        requires std::constructible_from<std::tuple<Pr...>, T &&...>
-    disjunction(T &&... args) : predicates(std::forward<T>(args)...){};
+    disjunction(T &&... args) : predicates(std::forward<T>(args)...) {};
     constexpr bool operator()(const auto & entry) const {
         return std::apply(
             [&](const Pr &... preds) { return (preds(entry) || ...); },
             predicates);
     }
 };
-template <typename... Pr>
-disjunction(Pr...) -> disjunction<Pr...>;
 
-///////////////////////////// selection strategies ////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 struct none {
+    using required_properties = property_list<>;
     struct {
-        constexpr bool operator()(const auto &) const { return false; }
+        constexpr bool operator()(const auto &) { return false; }
     } predicate;
     template <std::ranges::range R, typename Proj = std::identity>
-    constexpr auto select(R &&, Proj = {}) const {
+    constexpr auto select(R && candidates, Proj proj = {}) const {
         return std::views::empty<std::ranges::range_value_t<R>>;
     }
 };
 template <typename Pred = conjunction<>>
 struct all {
+    using required_properties = typename Pred::required_properties;
     Pred predicate;
     template <typename... T>
-        requires std::constructible_from<Pred, T &&...>
-    all(T &&... args) : predicate(std::forward<T>(args)...){};
+    all(T &&... args) : predicate(std::forward<T>(args)...) {};
     template <std::ranges::range R, typename Proj = std::identity>
-    constexpr auto select(R && candidates, Proj = {}) const {
-        return std::views::all(std::forward<R>(candidates));
+    constexpr auto select(R && candidates, Proj proj = {}) const {
+        return std::views::all(candidates);
     }
 };
-template <typename Pred>
-all(Pred) -> all<Pred>;
-
-// the first 'count' candidates, in unspecified order
 template <typename Pred>
 struct at_most_k : all<Pred> {
     std::size_t count;
     template <typename... T>
-        requires std::constructible_from<Pred, T &&...>
     at_most_k(const std::size_t & count_, T &&... args)
-        : all<Pred>(std::forward<T>(args)...), count(count_){};
+        : all<Pred>(std::forward<T>(args)...), count(count_) {};
     template <std::ranges::range R, typename Proj = std::identity>
-    constexpr auto select(R && candidates, Proj = {}) const {
-        return std::views::take(std::forward<R>(candidates),
-                                static_cast<std::ptrdiff_t>(count));
+    constexpr auto select(R && candidates, Proj proj = {}) const {
+        return std::views::take(candidates, count);
     }
 };
-template <typename Pred>
-at_most_k(std::size_t, Pred) -> at_most_k<Pred>;
-
-// 'count' candidates drawn uniformly at random
 template <typename Pred, typename Gen>
 struct at_most_k_random : at_most_k<Pred> {
     using at_most_k<Pred>::count;
-    mutable Gen gen;
+    Gen gen;
     template <typename G, typename... T>
-        requires std::constructible_from<Gen, G &&> &&
-                     std::constructible_from<Pred, T &&...>
     at_most_k_random(const std::size_t & count_, G && gen_, T &&... args)
         : at_most_k<Pred>(count_, std::forward<T>(args)...)
-        , gen(std::forward<G>(gen_)){};
+        , gen(std::forward<G>(gen_)) {};
     template <std::ranges::range R, typename Proj = std::identity>
-    auto select(R && candidates, Proj = {}) const {
+    constexpr auto select(R && candidates, Proj proj = {}) const {
         std::vector<std::ranges::range_value_t<R>> selected;
         selected.reserve(count);
-        std::ranges::sample(candidates, std::back_inserter(selected),
-                            static_cast<std::ptrdiff_t>(count), gen);
+        std::ranges::sample(candidates, std::back_inserter(selected), count,
+                            gen);
         return selected;
     }
 };
-template <typename G, typename Pred>
-at_most_k_random(std::size_t, G, Pred) -> at_most_k_random<Pred, G>;
-
-// the 'count' best candidates according to 'cmp' (applied to entries, lesser
-// is better)
 template <typename Pred, typename Comp>
 struct at_most_k_best : at_most_k<Pred> {
     using at_most_k<Pred>::count;
     [[no_unique_address]] Comp cmp;
-    template <typename C, typename... T>
-        requires std::constructible_from<Comp, C &&> &&
-                     std::constructible_from<Pred, T &&...>
-    at_most_k_best(const std::size_t & count_, C && cmp_, T &&... args)
+    template <typename... T>
+    at_most_k_best(const std::size_t & count_, Comp && cmp_, T &&... args)
         : at_most_k<Pred>(count_, std::forward<T>(args)...)
-        , cmp(std::forward<C>(cmp_)){};
+        , cmp(std::forward<Comp>(cmp_)) {};
     template <std::ranges::range R, typename Proj = std::identity>
-    auto select(R && candidates, Proj proj = {}) const {
+    constexpr auto select(R && candidates, Proj proj = {}) const {
         auto selected = std::ranges::to<std::vector>(candidates);
         const std::size_t budget =
             std::min<std::size_t>(count, selected.size());
@@ -416,24 +427,35 @@ struct at_most_k_best : at_most_k<Pred> {
         return selected;
     }
 };
-template <typename C, typename Pred>
-at_most_k_best(std::size_t, C, Pred) -> at_most_k_best<Pred, C>;
 
 using evict_never = none;
 
 // evicts columns whose reduced cost stayed above 'threshold' for their K last
 // pricing rounds in the master
 template <std::size_t K>
-using evict_window_above = all<window_above<K>>;
+struct evict_window_above {
+    double threshold = 0.0;
+    using required_properties = property_list<reduced_cost_window<K>>;
+    template <column_property... Ps>
+    constexpr bool operator()(const in_master<Ps...> & state) const {
+        return std::ranges::all_of(state.template get<reduced_cost_window<K>>(),
+                                   [&](double rc) { return rc > threshold; });
+    }
+};
 
-// evicts columns that are currently unattractive and entered the master at
-// least a given number of pricing rounds ago (protects freshly added columns)
 using evict_unattractive_aged =
     all<conjunction<above<age>, above<reduced_cost>>>;
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Column manager ////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+namespace detail {
+template <typename Seed, class State>
+inline constexpr auto proj_state = [](auto & e) -> std::pair<Seed &, State &> {
+    return {e.first, std::get<State>(e.second)};
+};
+}  // namespace detail
 
 template <typename Model, typename ColumnSeed,
           typename InPoolProperties = property_list<>,
@@ -449,10 +471,6 @@ public:
         InPoolProperties>::type;
     using in_master_state = typename detail::in_master_state_from_property_list<
         variable, InMasterProperties>::type;
-    // the entry types presented to the strategies
-    using in_pool_entry = std::pair<const ColumnSeed &, const in_pool_state &>;
-    using in_master_entry =
-        std::pair<const ColumnSeed &, const in_master_state &>;
 
     struct emplace_columns_result {
         std::size_t num_inserted = 0;
@@ -470,31 +488,17 @@ private:
     using column_entry = std::variant<in_pool_state, in_master_state>;
     using map_value_type = std::pair<const ColumnSeed, column_entry>;
 
-    struct in_pool_entry_proj {
-        in_pool_entry operator()(map_value_type * node) const {
-            return {node->first, std::get<in_pool_state>(node->second)};
-        }
-        in_pool_entry operator()(const map_value_type & node) const {
-            return {node.first, std::get<in_pool_state>(node.second)};
-        }
-    };
-    struct in_master_entry_proj {
-        in_master_entry operator()(map_value_type * node) const {
-            return {node->first, std::get<in_master_state>(node->second)};
-        }
-        in_master_entry operator()(const map_value_type & node) const {
-            return {node.first, std::get<in_master_state>(node.second)};
-        }
-    };
-
     std::unordered_map<ColumnSeed, column_entry, Hash, KeyEqual> _columns;
     std::size_t _num_master_columns = 0;
-    // scratch buffer reused across the pricing rounds; the node pointers stay
-    // valid while selecting/transitioning because manage_columns never
-    // inserts nor erases
-    std::vector<map_value_type *> _tmp_candidates;
 
 public:
+    [[nodiscard]] constexpr column_manager() = default;
+    constexpr column_manager(const column_manager &) = default;
+    constexpr column_manager(column_manager &&) = default;
+
+    constexpr column_manager & operator=(const column_manager &) = default;
+    constexpr column_manager & operator=(column_manager &&) = default;
+
     void reserve(std::size_t num_columns) { _columns.reserve(num_columns); }
     std::size_t num_columns() const noexcept { return _columns.size(); }
     std::size_t num_master_columns() const noexcept {
@@ -564,7 +568,7 @@ public:
     void update_columns(SF && seed_reduced_cost_lambda) {
         for(auto & [seed, entry] : _columns) {
             std::visit(
-                mippp::detail::overloaded{
+                detail::overloaded{
                     [&](in_pool_state & state) {
                         if constexpr(in_pool_state::num_properties() > 0)
                             state.notify_priced(static_cast<scalar>(
@@ -590,7 +594,7 @@ public:
                         VF && var_reduced_cost_lambda) {
         for(auto & [seed, entry] : _columns) {
             std::visit(
-                mippp::detail::overloaded{
+                detail::overloaded{
                     [&](in_pool_state & state) {
                         if constexpr(in_pool_state::num_properties() > 0)
                             state.notify_priced(static_cast<scalar>(
@@ -607,82 +611,71 @@ public:
 
     /////////////////////////////// management ///////////////////////////////
 
-    // Evicts from the master model the columns selected by the eviction
-    // strategy, then adds to the master model the pool columns selected by
-    // the activation strategy. The lambdas materialize the model
-    // modifications because a column is not only its entries but also an
-    // objective coefficient, bounds, a name... e.g.
-    //     [&](auto & model, auto && seed) {
+    // Evicts from the master model the columns matched by the eviction
+    // strategy, then adds to the master model the pool columns matched by the
+    // activation strategy (within its budget if bounded). The lambdas
+    // materialize the model modifications because a column is not only its
+    // entries but also an objective coefficient, bounds, a name... e.g.
+    //     [&](auto && seed) {
     //         return model.add_column(entries(seed), {.obj_coef = 1.0});
     //     },
-    //     [&](auto & model, auto && evicted_entries) {
-    //         model.remove_variables(std::views::transform(
-    //             evicted_entries, [](auto && e) { return e.second.var; }));
-    //     }
+    //     [&](auto && variables) { model.remove_variables(variables); }
     template <typename AS, typename ES, typename AF, typename RF>
-        requires requires(AS & as, ES & es, AF & add, Model & m,
-                          const in_pool_entry & pe, const in_master_entry & me,
-                          std::vector<map_value_type *> & candidates,
-                          const ColumnSeed & seed) {
-            { as.predicate(pe) } -> std::convertible_to<bool>;
-            { es.predicate(me) } -> std::convertible_to<bool>;
-            {
-                as.select(candidates, in_pool_entry_proj{})
-            } -> std::ranges::input_range;
-            {
-                es.select(candidates, in_master_entry_proj{})
-            } -> std::ranges::input_range;
-            { add(m, seed) } -> std::convertible_to<variable>;
-        }
+    // requires detail::column_predicate<AS, ColumnSeed, in_pool_state> &&
+    //          detail::column_predicate<ES, ColumnSeed, in_master_state> &&
+    //          std::invocable<AF &, const ColumnSeed &> &&
+    //          std::convertible_to<
+    //              std::invoke_result_t<AF &, const ColumnSeed &>,
+    //              variable> &&
+    //          std::invocable<RF &, const std::vector<variable> &>
     manage_columns_result manage_columns(Model & model,
                                          AS && activation_strategy,
                                          ES && eviction_strategy,
                                          AF && add_column_lambda,
                                          RF && remove_columns_lambda) {
         manage_columns_result result;
-        // the candidates are materialized as node handles before any
-        // selection or transition : the strategies may thus copy, reorder or
-        // iterate them at will and the transitions below mutate the actual
-        // map nodes instead of going through live filter views
-        _tmp_candidates.resize(0);
-        for(auto & node : _columns) {
-            if(auto * state = std::get_if<in_master_state>(&node.second);
-               state != nullptr &&
-               eviction_strategy.predicate(in_master_entry{node.first, *state}))
-                _tmp_candidates.emplace_back(&node);
-        }
-        auto && evicted =
-            eviction_strategy.select(_tmp_candidates, in_master_entry_proj{});
+
+        auto && eviction_candidates =
+            std::views::filter(_columns, [&eviction_strategy](const auto & e) {
+                auto state_ptr = std::get_if<in_master_state>(&e.second);
+                return state_ptr != nullptr &&
+                       eviction_strategy.predicate(
+                           std::make_pair(e.first, *state_ptr));
+            });
+        auto && eviction_nodes = eviction_strategy.select(
+            eviction_candidates,
+            detail::proj_state<ColumnSeed, in_master_state>);
         remove_columns_lambda(
-            model, std::views::transform(evicted, in_master_entry_proj{}));
-        for(map_value_type * node : evicted) {
+            model, std::views::transform(
+                       eviction_nodes,
+                       detail::proj_state<ColumnSeed, in_master_state>));
+        for(auto & node : eviction_nodes) {
             in_pool_state new_state{};
             detail::transfer_common_properties(
-                std::get<in_master_state>(node->second), new_state);
+                std::get<in_master_state>(node.second), new_state);
             new_state.notify_deactivated();
-            node->second = std::move(new_state);
+            node.second = std::move(new_state);
             ++result.num_evicted;
         }
-        _num_master_columns -= result.num_evicted;
-
-        _tmp_candidates.resize(0);
-        for(auto & node : _columns) {
-            if(auto * state = std::get_if<in_pool_state>(&node.second);
-               state != nullptr &&
-               activation_strategy.predicate(in_pool_entry{node.first, *state}))
-                _tmp_candidates.emplace_back(&node);
-        }
-        auto && activated =
-            activation_strategy.select(_tmp_candidates, in_pool_entry_proj{});
-        for(map_value_type * node : activated) {
-            in_master_state new_state{add_column_lambda(model, node->first)};
+        auto && activation_candidates = std::views::filter(
+            _columns, [&activation_strategy](const auto & e) {
+                auto state_ptr = std::get_if<in_pool_state>(&e.second);
+                return state_ptr != nullptr &&
+                       activation_strategy.predicate(
+                           std::make_pair(e.first, *state_ptr));
+            });
+        auto && activation_nodes = activation_strategy.select(
+            activation_candidates,
+            detail::proj_state<ColumnSeed, in_pool_state>);
+        for(auto & node : activation_nodes) {
+            in_master_state state{add_column_lambda(model, node.first)};
             detail::transfer_common_properties(
-                std::get<in_pool_state>(node->second), new_state);
-            new_state.notify_activated();
-            node->second = std::move(new_state);
+                std::get<in_pool_state>(node.second), state);
+            state.notify_activated();
+            node.second = std::move(state);
             ++result.num_activated;
         }
-        _num_master_columns += result.num_activated;
+        _num_master_columns += result.num_activated - result.num_evicted;
         return result;
     }
     template <typename AS, typename ES, typename AF>
@@ -694,9 +687,9 @@ public:
         return manage_columns(model, std::forward<AS>(activation_strategy),
                               std::forward<ES>(eviction_strategy),
                               std::forward<AF>(add_column_lambda),
-                              [](Model & m, auto && evicted_entries) {
+                              [](Model & m, auto && selected_entries) {
                                   m.remove_variables(std::views::transform(
-                                      evicted_entries, [](const auto & e) {
+                                      selected_entries, [](const auto & e) {
                                           return e.second.var;
                                       }));
                               });
@@ -713,12 +706,11 @@ public:
     // erases from the pool (not the master) the columns matching the given
     // predicate, allowing to bound the memory footprint of the pool
     template <typename F>
-        requires detail::column_predicate<F, in_pool_entry>
+        requires detail::column_predicate<F, ColumnSeed, in_pool_state>
     std::size_t purge_pool(F && predicate) {
         return std::erase_if(_columns, [&](map_value_type & node) {
             auto * state = std::get_if<in_pool_state>(&node.second);
-            return state != nullptr &&
-                   predicate(in_pool_entry{node.first, *state});
+            return state != nullptr && predicate(node.first, *state);
         });
     }
 
@@ -728,16 +720,27 @@ public:
         return _columns | std::views::filter([](const map_value_type & node) {
                    return std::holds_alternative<in_pool_state>(node.second);
                }) |
-               std::views::transform(in_pool_entry_proj{});
+               std::views::transform(
+                   [](const map_value_type & node)
+                       -> std::pair<const ColumnSeed &, const in_pool_state &> {
+                       return {node.first,
+                               std::get<in_pool_state>(node.second)};
+                   });
     }
     auto master_columns() const noexcept {
         return _columns | std::views::filter([](const map_value_type & node) {
                    return std::holds_alternative<in_master_state>(node.second);
                }) |
-               std::views::transform(in_master_entry_proj{});
+               std::views::transform(
+                   [](const map_value_type & node)
+                       -> std::tuple<const ColumnSeed &,
+                                     const in_master_state &> {
+                       return {node.first,
+                               std::get<in_master_state>(node.second)};
+                   });
     }
 };
 
-}  // namespace fhamonic::mippp::column_generation
+}  // namespace fhamonic::mippp
 
 #endif  // MIPPP_COLUMN_GENERATION_HPP

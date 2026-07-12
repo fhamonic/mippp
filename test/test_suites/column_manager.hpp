@@ -26,6 +26,7 @@ struct ColumnManagerTest : public T {
 TYPED_TEST_SUITE_P(ColumnManagerTest);
 
 TYPED_TEST_P(ColumnManagerTest, test) {
+    using namespace column_generation;
     using namespace operators;
     auto model = this->new_model();
 
@@ -48,11 +49,8 @@ TYPED_TEST_P(ColumnManagerTest, test) {
     // adds every column with improving reduced cost, evicts columns that
     // stayed unattractive for their 8 last pricing rounds in the master ;
     // the column states embed exactly the properties these strategies read
-    using activation_strategy = activate_negative_reduced_cost;
-    using eviction_strategy = evict_window_above<8>;
-    column_manager<typename decltype(model)::variable, pattern_t,
-                   in_pool_state_t<activation_strategy>,
-                   in_master_state_t<eviction_strategy>, pattern_hash>
+    column_manager<decltype(model), pattern_t, property_list<reduced_cost>,
+                   property_list<reduced_cost>, pattern_hash>
         columns;
 
     model.set_minimization();
@@ -69,13 +67,13 @@ TYPED_TEST_P(ColumnManagerTest, test) {
             auto && demanded_quantity = orders[order_id].first;
             return xsum(columns.master_columns(),
                         [&, order_id](auto && column) {
-                            auto && [pattern, var, state] = column;
-                            return pattern[order_id] * var;
+                            auto && [pattern, state] = column;
+                            return pattern[order_id] * state.var;
                         }) >= demanded_quantity;
         });
 
-    auto add_pattern_column = [&](const pattern_t & pattern) {
-        return model.add_column(
+    auto add_pattern_column = [&](auto & model_, const pattern_t & pattern) {
+        return model_.add_column(
             std::views::transform(
                 std::views::filter(
                     order_ids,
@@ -90,7 +88,7 @@ TYPED_TEST_P(ColumnManagerTest, test) {
     for(;;) {
         model.solve();
         auto dual_solution = model.get_dual_solution();
-        auto reduced_cost = [&](const pattern_t & pattern) {
+        auto reduced_cost_lambda = [&](const pattern_t & pattern) {
             double value = 1.0;
             for(auto order_id : order_ids)
                 value -= dual_solution[satisfaction_constrs(order_id)] *
@@ -113,10 +111,9 @@ TYPED_TEST_P(ColumnManagerTest, test) {
             columns.emplace_column(std::move(pattern));
         }
 
-        columns.update_columns(reduced_cost);
+        columns.update_columns(reduced_cost_lambda);
         auto result = columns.manage_columns(
-            activation_strategy{}, eviction_strategy{}, add_pattern_column,
-            [&](auto && variables) { model.remove_variables(variables); });
+            model, all<negative<reduced_cost>>{}, add_pattern_column);
         if(result.num_activated == 0) break;
     }
 
@@ -124,8 +121,8 @@ TYPED_TEST_P(ColumnManagerTest, test) {
 
     auto solution = model.get_solution();
     int actual_roll_count = 0;
-    for(auto && [pattern, var, state] : columns.master_columns())
-        actual_roll_count += static_cast<int>(std::ceil(solution[var]));
+    for(auto && [pattern, state] : columns.master_columns())
+        actual_roll_count += static_cast<int>(std::ceil(solution[state.var]));
     ASSERT_EQ(actual_roll_count, 454);
 }
 
