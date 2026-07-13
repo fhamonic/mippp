@@ -2,9 +2,9 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   linux-build:
@@ -12,17 +12,21 @@ jobs:
     container:
       image: ubuntu:25.10
     steps:
-    - uses: actions/checkout@v3
-    - name: Update APT
-      run: apt-get update && apt-get upgrade -y
-    - name: Install GCC-15 an CMake
-      run: apt-get install -y gcc-15 g++-15 cmake
-    - name: Install Conan 2.0
-      run: |
-        apt install -y pipx
-        pipx install conan
-        echo "/github/home/.local/bin" >> $GITHUB_PATH
-    - name: Build and run unit tests
-      run: |
-       conan profile detect --name=default
-       make CONAN_PROFILE=.github/workflows/gcc15_c++26
+      - uses: actions/checkout@v3
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
+      - name: Install GCC-15 an CMake
+        run: apt-get install -y gcc-15 g++-15 cmake
+      - name: Install Conan 2.0
+        run: |
+          apt install -y pipx
+          pipx install conan
+          echo "/github/home/.local/bin" >> $GITHUB_PATH
+      - name: Install Melon
+        run: |
+          git clone https://github.com/fhamonic/melon.git
+          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc15_c++26
+      - name: Build and run unit tests
+        run: |
+          conan profile detect --name=default
+          make CONAN_PROFILE=.github/workflows/gcc15_c++26
