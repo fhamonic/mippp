@@ -9,6 +9,8 @@
 #define TEST_EPSILON 1e-7
 #define TEST_INFINITY 1e20
 
+#include "mippp/utility/license_error.hpp"
+
 template <typename Api, typename Model>
 struct model_test : public ::testing::Test {
     using model_type = Model;
@@ -33,6 +35,15 @@ struct model_test : public ::testing::Test {
         }
     }
     auto new_model() const { return Model(api.value()); }
+
+    template <typename F>
+    void SkipOnLicenseError(F && f) {
+        try {
+            f();
+        } catch(const license_error & e) {
+            GTEST_SKIP() << e.what();
+        }
+    }
 };
 
 #include "add_column.hpp"

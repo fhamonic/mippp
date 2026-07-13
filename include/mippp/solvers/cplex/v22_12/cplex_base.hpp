@@ -43,6 +43,10 @@ protected:
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
+    static void check(const int error) {
+        if(error == 0) return;
+        throw std::runtime_error("CPLEX: error " + std::to_string(error));
+    }
     static constexpr char constraint_sense_to_cplex_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
@@ -83,11 +87,6 @@ public:
     constexpr cplex_base & operator=(cplex_base && other) = delete;
 
 protected:
-    static void check(int error) {
-        if(error == 0) return;
-        throw std::runtime_error("CPLEX: error " + std::to_string(error));
-    }
-
     int _new_var_native_id() {
         if(_remap_ids) _extend_handle_ids_map(1);
         return CPX.getnumcols(env, lp);

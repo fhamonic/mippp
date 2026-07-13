@@ -15,99 +15,113 @@ struct LpStatusTest : public T {
 TYPED_TEST_SUITE_P(LpStatusTest);
 
 TYPED_TEST_P(LpStatusTest, not_solved) {
-    using namespace operators;
-    auto model = this->new_model();
-    ASSERT_FALSE(model.proven_optimal());
-    ASSERT_FALSE(model.proven_infeasible());
-    ASSERT_FALSE(model.proven_unbounded());
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        ASSERT_FALSE(model.proven_optimal());
+        ASSERT_FALSE(model.proven_infeasible());
+        ASSERT_FALSE(model.proven_unbounded());
+    });
 }
 TYPED_TEST_P(LpStatusTest, max_bounded) {
-    using namespace operators;
-    auto model = this->new_model();
-    auto x = model.add_variable({.upper_bound = 3});
-    auto y = model.add_variable({.lower_bound = 1});
-    model.set_maximization();
-    model.set_objective(2 * x + 1.5 * y);
-    auto c = model.add_constraint(x + y <= 5);
-    model.solve();
-    ASSERT_TRUE(model.proven_optimal());
-    ASSERT_FALSE(model.proven_infeasible());
-    ASSERT_FALSE(model.proven_unbounded());
-    ASSERT_DOUBLE_EQ(model.get_solution_value(), 9.0);
-    auto solution = model.get_solution();
-    ASSERT_DOUBLE_EQ(solution[x], 3.0);
-    ASSERT_DOUBLE_EQ(solution[y], 2.0);
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable({.upper_bound = 3});
+        auto y = model.add_variable({.lower_bound = 1});
+        model.set_maximization();
+        model.set_objective(2 * x + 1.5 * y);
+        auto c = model.add_constraint(x + y <= 5);
+        model.solve();
+        ASSERT_TRUE(model.proven_optimal());
+        ASSERT_FALSE(model.proven_infeasible());
+        ASSERT_FALSE(model.proven_unbounded());
+        ASSERT_DOUBLE_EQ(model.get_solution_value(), 9.0);
+        auto solution = model.get_solution();
+        ASSERT_DOUBLE_EQ(solution[x], 3.0);
+        ASSERT_DOUBLE_EQ(solution[y], 2.0);
+    });
 }
 TYPED_TEST_P(LpStatusTest, min_bounded) {
-    using namespace operators;
-    auto model = this->new_model();
-    auto x = model.add_variable({.upper_bound = 3});
-    auto y = model.add_variable({.lower_bound = 1});
-    model.set_minimization();
-    model.set_objective(-2 * x - 1.5 * y);
-    auto c = model.add_constraint(x + y <= 5);
-    model.solve();
-    ASSERT_TRUE(model.proven_optimal());
-    ASSERT_FALSE(model.proven_infeasible());
-    ASSERT_FALSE(model.proven_unbounded());
-    ASSERT_DOUBLE_EQ(model.get_solution_value(), -9.0);
-    auto solution = model.get_solution();
-    ASSERT_DOUBLE_EQ(solution[x], 3.0);
-    ASSERT_DOUBLE_EQ(solution[y], 2.0);
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable({.upper_bound = 3});
+        auto y = model.add_variable({.lower_bound = 1});
+        model.set_minimization();
+        model.set_objective(-2 * x - 1.5 * y);
+        auto c = model.add_constraint(x + y <= 5);
+        model.solve();
+        ASSERT_TRUE(model.proven_optimal());
+        ASSERT_FALSE(model.proven_infeasible());
+        ASSERT_FALSE(model.proven_unbounded());
+        ASSERT_DOUBLE_EQ(model.get_solution_value(), -9.0);
+        auto solution = model.get_solution();
+        ASSERT_DOUBLE_EQ(solution[x], 3.0);
+        ASSERT_DOUBLE_EQ(solution[y], 2.0);
+    });
 }
 TYPED_TEST_P(LpStatusTest, max_unbounded) {
-    using namespace operators;
-    auto model = this->new_model();
-    auto x = model.add_variable({.upper_bound = 3});
-    auto y = model.add_variable({.lower_bound = 1});
-    model.set_maximization();
-    model.set_objective(-2 * x + -1.5 * y);
-    model.add_constraint(x + y <= 5);
-    model.solve();
-    ASSERT_FALSE(model.proven_optimal());
-    ASSERT_FALSE(model.proven_infeasible());
-    ASSERT_TRUE(model.proven_unbounded());
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable({.upper_bound = 3});
+        auto y = model.add_variable({.lower_bound = 1});
+        model.set_maximization();
+        model.set_objective(-2 * x + -1.5 * y);
+        model.add_constraint(x + y <= 5);
+        model.solve();
+        ASSERT_FALSE(model.proven_optimal());
+        ASSERT_FALSE(model.proven_infeasible());
+        ASSERT_TRUE(model.proven_unbounded());
+    });
 }
 TYPED_TEST_P(LpStatusTest, min_unbounded) {
-    using namespace operators;
-    auto model = this->new_model();
-    auto x = model.add_variable({.upper_bound = 3});
-    auto y = model.add_variable({.lower_bound = 1});
-    model.set_minimization();
-    model.set_objective(2 * x + 1.5 * y);
-    model.add_constraint(x + y <= 5);
-    model.solve();
-    ASSERT_FALSE(model.proven_optimal());
-    ASSERT_FALSE(model.proven_infeasible());
-    ASSERT_TRUE(model.proven_unbounded());
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable({.upper_bound = 3});
+        auto y = model.add_variable({.lower_bound = 1});
+        model.set_minimization();
+        model.set_objective(2 * x + 1.5 * y);
+        model.add_constraint(x + y <= 5);
+        model.solve();
+        ASSERT_FALSE(model.proven_optimal());
+        ASSERT_FALSE(model.proven_infeasible());
+        ASSERT_TRUE(model.proven_unbounded());
+    });
 }
 TYPED_TEST_P(LpStatusTest, max_infeasible) {
-    using namespace operators;
-    auto model = this->new_model();
-    auto x = model.add_variable();
-    auto y = model.add_variable({.upper_bound = 1});
-    model.set_maximization();
-    model.set_objective(-2 * x + -1.5 * y);
-    model.add_constraint(y >= -2 + 2 * x);
-    model.add_constraint(y >= 3 - x);
-    model.solve();
-    ASSERT_FALSE(model.proven_optimal());
-    ASSERT_TRUE(model.proven_infeasible());
-    ASSERT_FALSE(model.proven_unbounded());
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable({.upper_bound = 1});
+        model.set_maximization();
+        model.set_objective(-2 * x + -1.5 * y);
+        model.add_constraint(y >= -2 + 2 * x);
+        model.add_constraint(y >= 3 - x);
+        model.solve();
+        ASSERT_FALSE(model.proven_optimal());
+        ASSERT_TRUE(model.proven_infeasible());
+        ASSERT_FALSE(model.proven_unbounded());
+    });
 }
 TYPED_TEST_P(LpStatusTest, min_infeasible) {
-    using namespace operators;
-    auto model = this->new_model();
-    auto x = model.add_variable();
-    auto y = model.add_variable({.upper_bound = 1});
-    model.set_minimization();
-    model.set_objective(-2 * x + -1.5 * y);
-    model.add_constraint(y >= -2 + 2 * x);
-    model.add_constraint(y >= 3 - x);
-    model.solve();
-    ASSERT_FALSE(model.proven_optimal());
-    ASSERT_TRUE(model.proven_infeasible());
-    ASSERT_FALSE(model.proven_unbounded());
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable({.upper_bound = 1});
+        model.set_minimization();
+        model.set_objective(-2 * x + -1.5 * y);
+        model.add_constraint(y >= -2 + 2 * x);
+        model.add_constraint(y >= 3 - x);
+        model.solve();
+        ASSERT_FALSE(model.proven_optimal());
+        ASSERT_TRUE(model.proven_infeasible());
+        ASSERT_FALSE(model.proven_unbounded());
+    });
 }
 
 REGISTER_TYPED_TEST_SUITE_P(LpStatusTest, not_solved, max_bounded, min_bounded,

@@ -11,6 +11,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
@@ -36,6 +37,12 @@ protected:
     GRBenv * env;
     GRBmodel * model;
 
+    void check(const int error) {
+        if(error == 0) return;
+        if(error == 10009) throw license_error(GRB.geterrormsg(env));
+        throw std::runtime_error(std::to_string(error) + " : " +
+                                 GRB.geterrormsg(env));
+    }
     static constexpr char constraint_sense_to_gurobi_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return GRB_LESS_EQUAL;
@@ -99,11 +106,6 @@ public:
     constexpr gurobi_base & operator=(gurobi_base && other) = delete;
 
 protected:
-    void check(int error) {
-        if(error)
-            throw std::runtime_error(std::to_string(error) + ':' +
-                                     GRB.geterrormsg(env));
-    }
     void update_gurobi_model() { check(GRB.updatemodel(model)); }
 
     int _new_var_native_id() {

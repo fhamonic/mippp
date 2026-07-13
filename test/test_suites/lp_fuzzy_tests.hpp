@@ -393,7 +393,8 @@ private:
                     _reference.add_variable(_to_params<dumb_lp>(spec)), label,
                     false);
 
-                // std::cout << "add_variable -> " << _variables.back().tested.id()
+                // std::cout << "add_variable -> " <<
+                // _variables.back().tested.id()
                 //           << " : " << _variables.back().reference.id()
                 //           << std::endl;
             });
@@ -622,7 +623,8 @@ private:
 
                     // std::cout << "add_column -> "
                     //           << _variables.back().tested.id() << " : "
-                    //           << _variables.back().reference.id() << std::endl;
+                    //           << _variables.back().reference.id() <<
+                    //           std::endl;
                 });
         }
         if constexpr(has_remove_variable<Tested>) {
@@ -905,7 +907,8 @@ private:
     ////////////////////////////////////////////////////////////////////////////
 
 public:
-    void run(std::size_t num_rounds, std::size_t max_mutations_per_round = 16u) {
+    void run(std::size_t num_rounds,
+             std::size_t max_mutations_per_round = 16u) {
         SCOPED_TRACE(std::format("fuzzy run with MIPPP_FUZZ_SEED={}", _seed));
         std::size_t step = 0;
         std::vector<std::size_t> applicable;
@@ -970,23 +973,25 @@ struct LpFuzzyTest : public T {
 TYPED_TEST_SUITE_P(LpFuzzyTest);
 
 TYPED_TEST_P(LpFuzzyTest, random_operations) {
-    std::optional<clp_api> reference_api;
-    try {
-        reference_api.emplace();
-    } catch(const std::exception & e) {
-        GTEST_SKIP() << "the dumb_lp reference model requires Clp: "
-                     << e.what();
-    }
-    const unsigned long seed =
-        fuzzy_detail::env_or("MIPPP_FUZZ_SEED", std::random_device{}());
-    const std::size_t num_rounds =
-        fuzzy_detail::env_or("MIPPP_FUZZ_ROUNDS", 40ul);
-    ::testing::Test::RecordProperty("fuzz_seed", std::to_string(seed));
-    std::cout << "[   FUZZ   ] MIPPP_FUZZ_SEED=" << seed
-              << " MIPPP_FUZZ_ROUNDS=" << num_rounds << std::endl;
-    lp_fuzzy_state_machine<typename TestFixture::model_type> machine(
-        this->new_model(), dumb_lp(reference_api.value()), seed);
-    machine.run(num_rounds);
+    this->SkipOnLicenseError([this]() {
+        std::optional<clp_api> reference_api;
+        try {
+            reference_api.emplace();
+        } catch(const std::exception & e) {
+            GTEST_SKIP() << "the dumb_lp reference model requires Clp: "
+                         << e.what();
+        }
+        const unsigned long seed =
+            fuzzy_detail::env_or("MIPPP_FUZZ_SEED", std::random_device{}());
+        const std::size_t num_rounds =
+            fuzzy_detail::env_or("MIPPP_FUZZ_ROUNDS", 40ul);
+        ::testing::Test::RecordProperty("fuzz_seed", std::to_string(seed));
+        std::cout << "[   FUZZ   ] MIPPP_FUZZ_SEED=" << seed
+                  << " MIPPP_FUZZ_ROUNDS=" << num_rounds << std::endl;
+        lp_fuzzy_state_machine<typename TestFixture::model_type> machine(
+            this->new_model(), dumb_lp(reference_api.value()), seed);
+        machine.run(num_rounds);
+    });
 }
 
 REGISTER_TYPED_TEST_SUITE_P(LpFuzzyTest, random_operations);

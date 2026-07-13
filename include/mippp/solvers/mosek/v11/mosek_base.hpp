@@ -12,6 +12,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/mosek/v11/mosek_api.hpp"
@@ -42,11 +43,12 @@ protected:
     std::vector<scalar> tmp_rhs;
     std::vector<MSKvariabletypee> tmp_vartype;
 
-    void check(MSKrescodee error) const {
+    void check(const MSKrescodee error) const {
         if(error == 0) return;
         char str[MSK_MAX_STR_LEN];
         MSK.getcodedesc(error, NULL, str);
-        throw std::runtime_error(str);
+        if(error == 1001) throw license_error(str);
+        throw std::runtime_error(std::to_string(error) + ':' + str);
     }
 
     static constexpr MSKboundkeye constraint_sense_to_mosek_sense(

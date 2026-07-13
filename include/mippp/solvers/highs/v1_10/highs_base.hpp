@@ -37,6 +37,11 @@ protected:
     const highs_api & Highs;
     void * model;
 
+    void check(const int status) {
+        if(status == kHighsStatusError)
+            throw std::runtime_error("highs_base: error");
+    }
+
     std::vector<index> tmp_begins;
     std::vector<scalar> tmp_lower_bounds;
     std::vector<scalar> tmp_upper_bounds;
@@ -65,11 +70,6 @@ public:
     constexpr highs_base & operator=(highs_base && other) = delete;
 
 protected:
-    void check(int status) {
-        if(status == kHighsStatusError)
-            throw std::runtime_error("highs_base: error");
-    }
-
     std::size_t _num_var_native_ids() {
         return static_cast<std::size_t>(Highs.getNumCol(model));
     }

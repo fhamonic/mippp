@@ -32,6 +32,8 @@ add_executable(
     linear_expression.cpp
     linear_constraint.cpp
     quadratic_expression.cpp
+    unordered_dense_map.cpp
+    column_manager.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
@@ -39,3 +41,4 @@ target_link_libraries(mippp_test mippp)
 target_link_libraries(mippp_test GTest::gtest)
 target_link_libraries(mippp_test melon::melon)
 gtest_discover_tests(mippp_test)
+

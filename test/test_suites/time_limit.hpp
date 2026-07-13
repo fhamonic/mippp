@@ -23,16 +23,17 @@ struct TimeLimitTest : public T {
 TYPED_TEST_SUITE_P(TimeLimitTest);
 
 TYPED_TEST_P(TimeLimitTest, quadratic_knapsack) {
-    using namespace operators;
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
 
-    constexpr std::size_t num_items = 26;
-    auto items = std::views::iota(std::size_t{0}, num_items);
-    auto num_items_pairs = num_items * (num_items - 1) / 2;
-    auto items_pairs = std::views::filter(
-        std::views::cartesian_product(items, items),
-        [](auto && p) { return std::get<0>(p) < std::get<1>(p); });
+        constexpr std::size_t num_items = 26;
+        auto items = std::views::iota(std::size_t{0}, num_items);
+        auto num_items_pairs = num_items * (num_items - 1) / 2;
+        auto items_pairs = std::views::filter(
+            std::views::cartesian_product(items, items),
+            [](auto && p) { return std::get<0>(p) < std::get<1>(p); });
 
-    // clang-format off
+        // clang-format off
     // r_100_25_1
     const int values[100] = { 0, 0, 0, 57, 60, 52, 0, 0, 0, 0, 98, 70, 88, 0, 84, 0, 0, 68, 0, 0, 0, 92, 0, 0, 94, 0, 0, 0, 0, 0, 0, 0, 0, 86, 26, 0, 0, 0, 0, 25, 78, 54, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 38, 37, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 27, 0, 87, 0, 0, 0, 0, 61, 0, 40, 0, 0, 0, 0, 0, 0, 0, 0, 91, 0, 84, 96, 0, 0, 0, 0, 0, 52 };
     std::vector<int> qvalues[100 - 1] = {
@@ -137,16 +138,16 @@ TYPED_TEST_P(TimeLimitTest, quadratic_knapsack) {
                                                                                                                                                                                                                                                                                                                                                                                                                 {  0 }};
     const int costs[100] = {28,  8, 24, 38, 26, 47, 46, 23, 18, 18, 34, 36, 12, 33, 32, 29, 35, 10,  2,  1, 37, 35, 12, 36, 33,  8, 34, 36,  2, 36,  3, 44, 42,  9,  7, 32, 12,  5,  4, 50, 48, 30, 39, 46, 26,  5, 44, 28, 21, 24, 45, 11, 20, 45, 21, 24, 37,  8,  7, 49, 25, 44, 16,  9, 37,  8,  1, 17, 42, 12, 32, 49, 20, 42, 48, 47, 11,  1,  9, 16,  3, 48, 27, 18, 23, 38, 30,  3, 48, 20, 36, 46, 20,  8, 16, 50, 32, 49, 12, 14 };
     const int budget = static_cast<int>(6.69 * num_items);
-    // clang-format on
+        // clang-format on
 
-    auto qvalue = [&](auto i, auto j) {
-        if(i > j) std::swap(i, j);
-        return qvalues[i][j - i - 1];
-    };
+        auto qvalue = [&](auto i, auto j) {
+            if(i > j) std::swap(i, j);
+            return qvalues[i][j - i - 1];
+        };
 
-    auto get_running_time =
-        [&, k = 0,
-         parent = this](std::chrono::duration<double> time_limit) mutable {
+        auto get_running_time = [&, k = 0,
+                                 parent = this](std::chrono::duration<double>
+                                                    time_limit) mutable {
             auto model = parent->new_model();
             auto ref_X = model.add_binary_variables(num_items);
             auto ref_Z = model.add_variables(
@@ -187,25 +188,26 @@ TYPED_TEST_P(TimeLimitTest, quadratic_knapsack) {
                 ref_end - ref_start);
         };
 
-    std::chrono::duration<double> ref_time_sum, time_sum;
+        std::chrono::duration<double> ref_time_sum, time_sum;
 
-    for(auto k : std::views::iota(0, 10)) {
-        std::chrono::duration<double> ref_time =
-            get_running_time(std::chrono::seconds(1));
-        ASSERT_LE(ref_time, 1.1 * std::chrono::seconds(1));
+        for(auto k : std::views::iota(0, 10)) {
+            std::chrono::duration<double> ref_time =
+                get_running_time(std::chrono::seconds(1));
+            ASSERT_LE(ref_time, 1.1 * std::chrono::seconds(1));
 
-        auto time_limit = 0.7 * ref_time;
-        auto time = get_running_time(time_limit);
-        ASSERT_LE(time, 1.2 * time_limit);
+            auto time_limit = 0.7 * ref_time;
+            auto time = get_running_time(time_limit);
+            ASSERT_LE(time, 1.2 * time_limit);
 
-        ref_time_sum += ref_time;
-        time_sum += time;
-    }
+            ref_time_sum += ref_time;
+            time_sum += time;
+        }
 
-    std::cout << ref_time_sum << std::endl;
-    std::cout << time_sum << std::endl;
-    // ASSERT_GE(time_sum, 0.5 * ref_time_sum);
-    ASSERT_LE(time_sum, 0.8 * ref_time_sum);
+        std::cout << ref_time_sum << std::endl;
+        std::cout << time_sum << std::endl;
+        // ASSERT_GE(time_sum, 0.5 * ref_time_sum);
+        ASSERT_LE(time_sum, 0.8 * ref_time_sum);
+    });
 }
 
 REGISTER_TYPED_TEST_SUITE_P(TimeLimitTest, quadratic_knapsack);

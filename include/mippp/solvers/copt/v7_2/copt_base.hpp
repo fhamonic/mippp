@@ -11,6 +11,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/copt/v7_2/copt_api.hpp"
 #include "mippp/solvers/model_base.hpp"
@@ -40,8 +41,10 @@ protected:
     std::vector<char> tmp_types;
     std::vector<scalar> tmp_rhs;
 
-    static void check(ret_code error) {
+    static void check(const ret_code error) {
         if(error == COPT_RETCODE_OK) return;
+        if(error == COPT_RETCODE_LICENSE)
+            throw license_error("COPT license error");
         throw std::runtime_error("copt_base error : " + std::to_string(error));
     }
 
@@ -60,8 +63,8 @@ protected:
 public:
     [[nodiscard]] explicit copt_base(const copt_api & api)
         : model_base<int, double>(), COPT(api), env(NULL), prob(NULL) {
-        COPT.CreateEnv(&env);
-        COPT.CreateProb(env, &prob);
+        check(COPT.CreateEnv(&env));
+        check(COPT.CreateProb(env, &prob));
     }
     ~copt_base() {
         if(prob) COPT.DeleteProb(&prob);

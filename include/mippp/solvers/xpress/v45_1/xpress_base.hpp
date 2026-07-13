@@ -11,6 +11,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/xpress/v45_1/xpress_api.hpp"
@@ -39,12 +40,11 @@ protected:
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
-    void check(int error) {
+    void check(const int error) {
         if(error == 0) return;
         char errmsg[512];
         check(XPRS.getlasterror(prob, errmsg));
-        throw std::runtime_error("Xpress: error " + std::to_string(error) +
-                                 ": " + errmsg);
+        throw std::runtime_error(errmsg);
     }
 
     static constexpr char constraint_sense_to_xpress_sense(
@@ -66,7 +66,7 @@ public:
         if(XPRS.init("")) {
             char msg[512];
             XPRS.getlicerrmsg(msg, 512);
-            throw std::runtime_error("XPRSinit: " + std::string(msg));
+            throw license_error(msg);
         }
         XPRS.createprob(&prob);
     }
