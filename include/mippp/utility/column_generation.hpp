@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace fhamonic::mippp::column_generation {
+namespace mippp::column_generation {
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// Properties //////////////////////////////////
@@ -497,6 +497,6 @@ using evict_window_above = all<window_above<K>>;
 using evict_unattractive_aged =
     all<conjunction<above<age>, above<reduced_cost>>>;
 
-}  // namespace fhamonic::mippp::column_generation
+}  // namespace mippp::column_generation
 
 #endif  // MIPPP_COLUMN_GENERATION_HPP

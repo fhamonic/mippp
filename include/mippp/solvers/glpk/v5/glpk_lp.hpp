@@ -9,7 +9,7 @@
 
 #include "mippp/solvers/glpk/v5/glpk_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace glpk::v5 {
 
 class glpk_lp : public glpk_base {
@@ -95,6 +95,6 @@ public:
 };
 
 }  // namespace glpk::v5
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_GLPK_v5_LP_HPP

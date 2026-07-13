@@ -59,7 +59,7 @@
 
 #include "dumb_lp.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename Tested>
 class lp_fuzzy_state_machine {
@@ -1004,4 +1004,4 @@ TYPED_TEST_P(LpFuzzyTest, random_operations) {
 
 REGISTER_TYPED_TEST_SUITE_P(LpFuzzyTest, random_operations);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

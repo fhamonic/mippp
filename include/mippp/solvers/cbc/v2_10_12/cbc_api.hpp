@@ -8,7 +8,7 @@
 #include "coin/CoinFinite.hpp"
 #else
 #include <limits>
-namespace fhamonic::mippp {
+namespace mippp {
 namespace cbc::v2_10_12 {
 
 constexpr double COIN_DBL_MAX = std::numeric_limits<double>::max();
@@ -83,14 +83,14 @@ void OsiCuts_addRowCut(void * osiCuts, int nz, const int * idx,
                        const double * coef, char sense, double rhs);
 
 }  // namespace cbc::v2_10_12
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace cbc::v2_10_12 {
 
 #define CBC_FUNCTIONS(F)                                    \
@@ -154,13 +154,12 @@ public:
     CBC_FUNCTIONS(DECLARE_CBC_FUN)
 
 public:
-    inline cbc_api(const char * lib_path = "", const char * lib_name = "")
-        : lib(load_solver_library("CBC", {"Cbc", "CbcSolver"}, lib_path,
-                                  lib_name))
+    inline cbc_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "CBC", {"Cbc", "CbcSolver"}))
               CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {}
 };
 
 }  // namespace cbc::v2_10_12
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_CBC_v2_10_12_API_HPP

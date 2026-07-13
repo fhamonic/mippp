@@ -5,7 +5,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct AddColumnTest : public T {
@@ -39,4 +39,4 @@ TYPED_TEST_P(AddColumnTest, add_column_entries) {
 
 REGISTER_TYPED_TEST_SUITE_P(AddColumnTest, add_column_entries);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

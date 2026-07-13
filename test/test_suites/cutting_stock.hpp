@@ -12,7 +12,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct CuttingStockTest : public T {
@@ -102,4 +102,4 @@ TYPED_TEST_P(CuttingStockTest, test) {
 
 REGISTER_TYPED_TEST_SUITE_P(CuttingStockTest, test);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

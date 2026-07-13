@@ -5,7 +5,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct LpModelTest : public T {
@@ -501,4 +501,4 @@ REGISTER_TYPED_TEST_SUITE_P(
     solve_lp_objective_redundant_terms, solve_lp_constraint_redundant_terms,
     solve_lp_non_standard_form_max, solve_lp_non_standard_form_min);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

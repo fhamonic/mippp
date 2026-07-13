@@ -9,7 +9,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 /////////////////////////////////// CONCEPT ///////////////////////////////////
 
@@ -322,6 +322,6 @@ template <quadratic_expression QE, linear_expression LE>
 };
 
 }  // namespace operators
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_QUADRATIC_EXPRESSION_HPP

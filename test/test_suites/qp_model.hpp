@@ -6,7 +6,7 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/quadratic_expression.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct QpModelTest : public T {
@@ -34,4 +34,4 @@ TYPED_TEST_P(QpModelTest, test) {
 
 REGISTER_TYPED_TEST_SUITE_P(QpModelTest, test);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

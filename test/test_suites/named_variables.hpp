@@ -7,7 +7,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct NamedVariablesTest : public T {
@@ -96,4 +96,4 @@ REGISTER_TYPED_TEST_SUITE_P(NamedVariablesTest, set_variable_name,
                             add_named_variable, add_named_variables,
                             add_indexed_named_variables);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

@@ -15,7 +15,7 @@
 #include "mippp/utility/column_generation.hpp"
 #include "mippp/utility/unordered_dense_map.hpp"
 
-namespace fhamonic::mippp::column_generation {
+namespace mippp::column_generation {
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Column manager ////////////////////////////////
@@ -340,6 +340,6 @@ public:
     }
 };
 
-}  // namespace fhamonic::mippp::column_generation
+}  // namespace mippp::column_generation
 
 #endif  // MIPPP_COLUMN_MANAGER_HPP

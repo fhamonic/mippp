@@ -4,7 +4,7 @@
 #if INCLUDE_SOPLEX_HEADER
 #include "soplex_interface.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace soplex::v6 {
 
 void * SoPlex_create();
@@ -29,14 +29,14 @@ void SoPlex_getPrimalReal(void * soplex, double * primal, int dim);
 void SoPlex_getDualReal(void * soplex, double * dual, int dim);
 
 }  // namespace soplex::v6
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace soplex::v6 {
 
 #define SOPLEX_FUNCTIONS(F)                \
@@ -68,13 +68,12 @@ public:
     SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUN)
 
 public:
-    inline soplex_api(const char * lib_path = "",
-                      const char * lib_name = "soplexshared")
-        : lib(load_solver_library("SOPLEX", "soplexshared", lib_path, lib_name))
+    inline soplex_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "SOPLEX", "soplexshared"))
               SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUN) {}
 };
 
 }  // namespace soplex::v6
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_SOPLEX_v6_API_HPP

@@ -12,7 +12,7 @@
 
 #include "mippp/solvers/cplex/v22_12/cplex_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace cplex::v22_12 {
 
 class cplex_milp : public cplex_base {
@@ -293,6 +293,6 @@ public:
 };
 
 }  // namespace cplex::v22_12
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_CPLEX_v22_12_MILP_HPP

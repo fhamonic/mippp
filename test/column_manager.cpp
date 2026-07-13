@@ -7,7 +7,7 @@
 
 #include "mippp/utility/column_manager.hpp"
 
-using namespace fhamonic::mippp::column_generation;
+using namespace mippp::column_generation;
 
 namespace {
 

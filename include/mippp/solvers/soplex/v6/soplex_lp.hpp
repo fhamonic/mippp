@@ -13,7 +13,7 @@
 
 #include "mippp/solvers/soplex/v6/soplex_api.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace soplex::v6 {
 
 class soplex_lp {
@@ -253,6 +253,6 @@ public:
 };
 
 }  // namespace soplex::v6
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_SOPLEX_v6_LP_HPP

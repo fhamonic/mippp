@@ -16,7 +16,7 @@
 #include "mippp/solvers/copt/v7_2/copt_api.hpp"
 #include "mippp/solvers/model_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace copt::v7_2 {
 
 class copt_base : public model_base<int, double> {
@@ -399,6 +399,6 @@ protected:
 };
 
 }  // namespace copt::v7_2
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_COPT_v7_2_BASE_HPP

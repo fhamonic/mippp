@@ -12,7 +12,7 @@
 
 #include "mippp/solvers/highs/v1_10/highs_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace highs::v1_10 {
 
 class highs_milp : public highs_base {
@@ -110,6 +110,6 @@ public:
 };
 
 }  // namespace highs::v1_10
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_HIGHS_v1_10_MILP_HPP

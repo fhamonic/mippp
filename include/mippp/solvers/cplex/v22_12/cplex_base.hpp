@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace cplex::v22_12 {
 
 class cplex_base : public remapping_model_base<int, double> {
@@ -513,6 +513,6 @@ public:
 };
 
 }  // namespace cplex::v22_12
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_CPLEX_v22_12_BASE_MODEL_HPP

@@ -17,7 +17,7 @@
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/mosek/v11/mosek_api.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace mosek::v11 {
 
 class mosek_base : public model_base<int, double> {
@@ -408,6 +408,6 @@ public:
 };
 
 }  // namespace mosek::v11
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_MOSEK_v11_BASE_MODEL_HPP

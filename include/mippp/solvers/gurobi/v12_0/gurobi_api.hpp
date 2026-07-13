@@ -4,7 +4,7 @@
 #if INCLUDE_GUROBI_HEADER
 #include "gurobi_c.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace gurobi::v12_0 {
 
 using GRBenv = struct _GRBenv;
@@ -191,14 +191,14 @@ int GRBcbcut(void * cbdata, int cutlen, const int * cutind,
 int GRBcblazy(void * cbdata, int lazylen, const int * lazyind,
               const double * lazyval, char lazysense, double lazyrhs);
 }  // namespace gurobi::v12_0
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace gurobi::v12_0 {
 
 #define GRB_FUNCTIONS(F)                               \
@@ -275,12 +275,12 @@ public:
     GRB_FUNCTIONS(DECLARE_GUROBI_FUN)
 
 public:
-    gurobi_api(const char * lib_path = "", const char * lib_name = "gurobi120")
-        : lib(load_solver_library("GUROBI", "gurobi120", lib_path, lib_name))
+    gurobi_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "GUROBI", "gurobi120"))
               GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUN) {}
 };
 
 }  // namespace gurobi::v12_0
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_GUROBI_v12_0_API_HPP

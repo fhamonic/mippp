@@ -12,7 +12,7 @@
 
 #include "mippp/solvers/copt/v7_2/copt_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace copt::v7_2 {
 
 class copt_milp : public copt_base {
@@ -236,6 +236,6 @@ public:
 };
 
 }  // namespace copt::v7_2
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_COPT_v7_2_MILP_HPP

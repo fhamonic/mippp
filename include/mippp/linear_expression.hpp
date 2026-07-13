@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 /////////////////////////////////// CONCEPT ///////////////////////////////////
 
@@ -290,6 +290,6 @@ linear_expression_scalar_t<E> evaluate(const E & e, const VM & values_map) {
         e.constant(), std::plus<linear_expression_scalar_t<E>>());
 }
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_LINEAR_EXPRESSION_HPP

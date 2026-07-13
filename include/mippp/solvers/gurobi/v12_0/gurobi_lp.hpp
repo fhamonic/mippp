@@ -7,7 +7,7 @@
 
 #include "mippp/solvers/gurobi/v12_0/gurobi_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace gurobi::v12_0 {
 
 class gurobi_lp : public gurobi_base {
@@ -92,6 +92,6 @@ public:
 };
 
 }  // namespace gurobi::v12_0
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_GUROBI_v12_0_LP_HPP

@@ -5,7 +5,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct DualSolutionTest : public T {
@@ -117,4 +117,4 @@ TYPED_TEST_P(DualSolutionTest, arbitrary_min_add_constraints) {
 REGISTER_TYPED_TEST_SUITE_P(DualSolutionTest, standard_form_max, arbitrary_max,
                             arbitrary_min, arbitrary_min_add_constraints);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

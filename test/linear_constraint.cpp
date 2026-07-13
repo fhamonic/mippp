@@ -9,8 +9,8 @@
 
 #include "assert_helper.hpp"
 
-using namespace fhamonic::mippp;
-using namespace fhamonic::mippp::operators;
+using namespace mippp;
+using namespace mippp::operators;
 
 using Var = model_variable<int, double>;
 

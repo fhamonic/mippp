@@ -14,7 +14,7 @@
 
 #include "dylib.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 namespace detail {
 
@@ -69,7 +69,8 @@ inline void append_conf_dirs(std::vector<std::filesystem::path> & dirs,
 inline std::vector<std::filesystem::path> system_library_dirs() {
     std::vector<std::filesystem::path> dirs;
 #if defined(_WIN32)
-    // The Windows loader resolves DLLs through PATH (plus the system directory).
+    // The Windows loader resolves DLLs through PATH (plus the system
+    // directory).
     append_env_dirs(dirs, "PATH");
     if(const char * system_root = std::getenv("SystemRoot");
        system_root != nullptr) {
@@ -110,11 +111,11 @@ inline std::vector<std::filesystem::path> system_library_dirs() {
 // Among versioned matches the lexicographically greatest filename is returned,
 // which usually corresponds to the highest version.
 inline std::optional<std::filesystem::path> find_library_in_dir(
-    const std::filesystem::path & dir,
-    const dylib::decorations & decorations, const char * name) {
+    const std::filesystem::path & dir, const dylib::decorations & decorations,
+    const char * name) {
     const std::string prefix(decorations.prefix);
     const std::string suffix(decorations.suffix);
-    const std::string base = prefix + name;      // libfoo
+    const std::string base = prefix + name;       // libfoo
     const std::string decorated = base + suffix;  // libfoo.so
 
     std::error_code ec;
@@ -153,44 +154,33 @@ inline std::optional<std::filesystem::path> find_library_in_dir(
 //      directories (see `detail::system_library_dirs`).
 //
 // Several `default_names` may be given for solvers whose C API library is named
-// differently across releases (e.g. Cbc ships it as `libCbc` or `libCbcSolver`);
-// they are tried in order. dylib 3.0 requires a path and no longer searches
-// system directories by name, so MIP++ performs that search itself. Set
-// `MIPPP_<key>_LIBRARY` to load a specific file deterministically.
+// differently across releases (e.g. Cbc ships it as `libCbc` or
+// `libCbcSolver`); they are tried in order. dylib 3.0 requires a path and no
+// longer searches system directories by name, so MIP++ performs that search
+// itself. Set `MIPPP_<key>_LIBRARY` to load a specific file deterministically.
 //
 //   key           uppercase solver identifier used in the env var, e.g. "HIGHS"
 //   default_names undecorated candidate names, e.g. "highs" -> libhighs.so
 //   dir           optional directory explicitly requested by the caller
 //   name          optional library name overriding `default_names`
 inline dylib::library load_solver_library(
-    const char * key, std::initializer_list<const char *> default_names,
-    const char * dir = "", const char * name = nullptr) {
+    const char * path, const char * key,
+    std::initializer_list<const char *> names) {
+    if(path != nullptr) return dylib::library(std::filesystem::path(path));
+
     const std::string env_var = std::string("MIPPP_") + key + "_LIBRARY";
     if(const char * full_path = std::getenv(env_var.c_str());
        full_path != nullptr && *full_path != '\0')
         return dylib::library(std::filesystem::path(full_path));
 
-    // An explicit name overrides the built-in candidate list.
-    std::vector<const char *> names;
-    if(name != nullptr && *name != '\0')
-        names.push_back(name);
-    else
-        names.assign(default_names.begin(), default_names.end());
-
     const dylib::decorations decorations = dylib::decorations::os_default();
 
-    if(dir != nullptr && *dir != '\0') {
-        for(const char * n : names)
-            if(auto found = detail::find_library_in_dir(dir, decorations, n))
+    const auto directories = detail::system_library_dirs();
+    for(const char * n : names)
+        for(const auto & directory : directories)
+            if(auto found =
+                   detail::find_library_in_dir(directory, decorations, n))
                 return dylib::library(*found);
-    } else {
-        const auto directories = detail::system_library_dirs();
-        for(const char * n : names)
-            for(const auto & directory : directories)
-                if(auto found =
-                       detail::find_library_in_dir(directory, decorations, n))
-                    return dylib::library(*found);
-    }
 
     std::string tried;
     for(const char * n : names) {
@@ -205,13 +195,11 @@ inline dylib::library load_solver_library(
 }
 
 // Convenience overload for the common single-candidate-name case.
-inline dylib::library load_solver_library(const char * key,
-                                          const char * default_name,
-                                          const char * dir = "",
-                                          const char * name = nullptr) {
-    return load_solver_library(key, {default_name}, dir, name);
+inline dylib::library load_solver_library(const char * path, const char * key,
+                                          const char * default_name) {
+    return load_solver_library(path, key, {default_name});
 }
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_SOLVER_LIBRARY_HPP

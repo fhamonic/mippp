@@ -10,7 +10,7 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <std::integral _Index, std::floating_point _Scalar>
 class model_base {
@@ -127,6 +127,6 @@ protected:
     }
 };
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_MODEL_BASE_HPP

@@ -17,7 +17,7 @@
 #include "mippp/solvers/highs/v1_10/highs_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace highs::v1_10 {
 
 class highs_base : public remapping_model_base<int, double> {
@@ -615,6 +615,6 @@ protected:
 };
 
 }  // namespace highs::v1_10
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_HIGHS_v1_10_BASE_HPP

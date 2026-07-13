@@ -11,7 +11,7 @@
 #include "scip/scip.h"
 #include "scip/struct_cons.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace scip::v8 {
 
 using SCIP_Real = double;
@@ -216,14 +216,14 @@ SCIP_RETCODE SCIPincludeConshdlrBasic(
 SCIP_CONSHDLRDATA * SCIPconshdlrGetData(SCIP_CONSHDLR * conshdlr);
 
 }  // namespace scip::v8
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace scip::v8 {
 
 #define SCIP_FUNCTIONS(F)                               \
@@ -281,12 +281,12 @@ public:
     SCIP_FUNCTIONS(DECLARE_SCIP_FUN)
 
 public:
-    inline scip_api(const char * lib_path = "", const char * lib_name = "scip")
-        : lib(load_solver_library("SCIP", "scip", lib_path, lib_name))
+    inline scip_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "SCIP", "scip"))
               SCIP_FUNCTIONS(CONSTRUCT_SCIP_FUN) {}
 };
 
 }  // namespace scip::v8
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_SCIP_v8_API_HPP

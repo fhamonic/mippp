@@ -4,7 +4,7 @@
 #if INCLUDE_GLPK_HEADER
 #include "glpk.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace glpk::v5 {
 
 using glp_prob = struct glp_prob;
@@ -188,14 +188,14 @@ double glp_mip_obj_val(glp_prob * P);
 double glp_mip_col_val(glp_prob * P, int j);
 
 }  // namespace glpk::v5
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace glpk::v5 {
 
 #define GLPK_FUNCTIONS(F)               \
@@ -255,12 +255,12 @@ public:
     GLPK_FUNCTIONS(DECLARE_GLPK_FUN)
 
 public:
-    inline glpk_api(const char * lib_path = "", const char * lib_name = "glpk")
-        : lib(load_solver_library("GLPK", "glpk", lib_path, lib_name))
+    inline glpk_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "GLPK", "glpk"))
               GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUN) {}
 };
 
 }  // namespace glpk::v5
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_GLPK_v5_API_HPP

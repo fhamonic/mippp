@@ -6,7 +6,7 @@
 
 #include "mippp/linear_expression.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 enum constraint_sense : int { equal = 0, less_equal = -1, greater_equal = 1 };
 
@@ -129,6 +129,6 @@ constexpr auto operator==(linear_expression_scalar_t<E> c, E && e) {
 
 }  // namespace operators
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_LINEAR_CONSTRAINT_HPP

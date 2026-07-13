@@ -2,7 +2,7 @@
 
 #include <optional>
 
-using namespace fhamonic::mippp;
+using namespace mippp;
 
 #include "test_suites/all.hpp"
 

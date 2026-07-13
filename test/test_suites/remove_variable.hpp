@@ -7,7 +7,7 @@
 
 #include "assert_helper.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct RemoveVariableTest : public T {
@@ -300,4 +300,4 @@ REGISTER_TYPED_TEST_SUITE_P(RemoveVariableTest, remove_solve,
                             solve_remove_addcol_solve, remove_addnamedvar_solve,
                             solve_remove_addnamedvar_solve);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

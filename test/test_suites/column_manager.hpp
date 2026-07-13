@@ -13,7 +13,7 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/column_manager.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct ColumnManagerTest : public T {
@@ -136,4 +136,4 @@ TYPED_TEST_P(ColumnManagerTest, test) {
 
 REGISTER_TYPED_TEST_SUITE_P(ColumnManagerTest, test);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

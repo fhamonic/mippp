@@ -16,7 +16,7 @@
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace gurobi::v12_0 {
 
 class gurobi_base : public remapping_model_base<int, double> {
@@ -569,6 +569,6 @@ public:
 };
 
 }  // namespace gurobi::v12_0
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_GUROBI_v12_0_BASE_HPP

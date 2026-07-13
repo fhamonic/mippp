@@ -4,7 +4,7 @@
 #if INCLUDE_CPLEX_HEADER
 #include "ilcplex/cplex.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace cplex::v22_12 {
 
 struct cpxenv;
@@ -208,14 +208,14 @@ int CPXcallbackaddusercuts(CPXCALLBACKCONTEXTptr context, int rcnt, int nzcnt,
 void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
 
 }  // namespace cplex::v22_12
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace cplex::v22_12 {
 
 #define CPLEX_FUNCTIONS(F)                                           \
@@ -292,13 +292,12 @@ public:
     CPLEX_FUNCTIONS(DECLARE_CPLEX_FUN)
 
 public:
-    inline cplex_api(const char * lib_path = "",
-                     const char * lib_name = "cplex2212")
-        : lib(load_solver_library("CPLEX", "cplex2212", lib_path, lib_name))
+    inline cplex_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "CPLEX", "cplex2212"))
               CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {}
 };
 
 }  // namespace cplex::v22_12
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_CPLEX_v22_12_API_HPP

@@ -4,7 +4,7 @@
 
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct ModifiableVariablesBoundsTest : public T {
@@ -95,4 +95,4 @@ TYPED_TEST_P(ModifiableVariablesBoundsTest, set_variable_upper_bound) {
 REGISTER_TYPED_TEST_SUITE_P(ModifiableVariablesBoundsTest,
                             set_variable_lower_bound, set_variable_upper_bound);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

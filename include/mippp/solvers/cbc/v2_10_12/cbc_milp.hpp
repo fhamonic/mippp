@@ -18,7 +18,7 @@
 #include "mippp/solvers/cbc/v2_10_12/cbc_api.hpp"
 #include "mippp/solvers/model_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace cbc::v2_10_12 {
 
 class cbc_milp : public model_base<int, double> {
@@ -502,6 +502,6 @@ public:
 };
 
 }  // namespace cbc::v2_10_12
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_CBC_v2_10_12_MILP_HPP

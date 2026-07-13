@@ -4,13 +4,14 @@ project(
   mippp
   VERSION 1.0
   DESCRIPTION
-    "A modern interface for linear programming solvers using C++20 ranges and concepts."
+    "A modern interface for linear programming solvers using C++26 features."
   LANGUAGES CXX)
 
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # ################### Options ####################
 option(ENABLE_TESTING "Enable Test Builds" OFF)
+option(ENABLE_EXAMPLES "Build Examples" OFF)
 
 # ################### Modules ####################
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -35,4 +36,10 @@ if(${ENABLE_TESTING} AND NOT ${CMAKE_CROSSCOMPILING})
   message("Building Tests.")
   set_project_warnings(mippp)
   add_subdirectory(test)
+endif()
+
+# ################## EXAMPLES ####################
+if(${ENABLE_EXAMPLES} AND NOT ${CMAKE_CROSSCOMPILING})
+  message("Building Examples.")
+  add_subdirectory(examples)
 endif()

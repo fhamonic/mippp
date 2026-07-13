@@ -4,7 +4,7 @@
 #if INCLUDE_XPRESS_HEADER
 #include "xprs.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace xpress::v45_1 {
 
 constexpr double XPRS_PLUSINFINITY = 1.0e+20;
@@ -121,14 +121,14 @@ int XPRSaddcuts(XPRSprob prob, int ncuts, const int cuttype[],
 int XPRSloaddelayedrows(XPRSprob prob, int nrows, const int rowind[]);
 
 }  // namespace xpress::v45_1
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace xpress::v45_1 {
 
 #define XPRESS_FUNCTIONS(F)                     \
@@ -183,13 +183,12 @@ public:
     XPRESS_FUNCTIONS(DECLARE_XPRESS_FUN)
 
 public:
-    inline xpress_api(const char * lib_path = "",
-                      const char * lib_name = "xprs")
-        : lib(load_solver_library("XPRESS", "xprs", lib_path, lib_name))
+    inline xpress_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "XPRESS", "xprs"))
               XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUN) {}
 };
 
 }  // namespace xpress::v45_1
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_XPRESS_v45_1_API_HPP

@@ -6,7 +6,7 @@
 #if INCLUDE_MOSEK_HEADER
 #include "mosek.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace mosek::v11 {
 
 using MSKenv = struct mskenvt;
@@ -321,14 +321,14 @@ MSKrescodee MSK_putcallbackfunc(MSKtask_t task, MSKcallbackfunc func,
                                 MSKuserhandle_t handle);
 
 }  // namespace mosek::v11
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace mosek::v11 {
 
 #define MOSEK_FUNCTIONS(F)                              \
@@ -402,13 +402,12 @@ public:
     MOSEK_FUNCTIONS(DECLARE_MOSEK_FUN)
 
 public:
-    inline mosek_api(const char * lib_path = "",
-                     const char * lib_name = "mosek64")
-        : lib(load_solver_library("MOSEK", "mosek64", lib_path, lib_name))
+    inline mosek_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "MOSEK", "mosek64"))
               MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUN) {}
 };
 
 }  // namespace mosek::v11
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_MOSEK_v11_API_HPP

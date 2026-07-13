@@ -1,6 +1,6 @@
 #include "dumb_lp.hpp"
 
-using namespace fhamonic::mippp;
+using namespace mippp;
 
 #include "test_suites/all.hpp"
 

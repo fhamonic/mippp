@@ -6,7 +6,7 @@
 
 #include "assert_helper.hpp"
 
-using namespace fhamonic::mippp;
+using namespace mippp;
 
 using Var = model_variable<int, double>;
 
@@ -40,7 +40,7 @@ GTEST_TEST(model_variable, add_negative_var) {
         {{Var(3), 1.0}, {Var(12), -1.0}}, 0);
 }
 
-using namespace fhamonic::mippp::operators;
+using namespace mippp::operators;
 
 GTEST_TEST(model_variable_operators, negate_var) {
     ASSERT_LIN_EXPR(-Var(11), {{Var(11), -1.0}}, 0);

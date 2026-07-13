@@ -6,7 +6,7 @@
 #if INCLUDE_HIGHS_HEADER
 #include "interfaces/highs_c_api.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace highs::v1_10 {
 
 using HighsInt = int;
@@ -201,14 +201,14 @@ HighsInt Highs_setCallback(void * highs, HighsCCallbackType user_callback,
 HighsInt Highs_startCallback(void * highs, const int callback_type);
 
 }  // namespace highs::v1_10
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace highs::v1_10 {
 
 #define HIGHS_FUNCTIONS(F)                                              \
@@ -273,13 +273,12 @@ public:
     HIGHS_FUNCTIONS(DECLARE_HIGHS_FUN)
 
 public:
-    inline highs_api(const char * lib_path = "",
-                     const char * lib_name = "highs")
-        : lib(load_solver_library("HIGHS", "highs", lib_path, lib_name))
+    inline highs_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "HIGHS", "highs"))
               HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUN) {}
 };
 
 }  // namespace highs::v1_10
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_HIGHS_v1_10_API_HPP

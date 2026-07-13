@@ -1,6 +1,6 @@
 #include "mippp/solvers/mosek/all.hpp"
 
-using namespace fhamonic::mippp;
+using namespace mippp;
 
 #include "test_suites/all.hpp"
 

@@ -6,7 +6,7 @@
 #if INCLUDE_COPT_HEADER
 #include "copt.h"
 #else
-namespace fhamonic::mippp {
+namespace mippp {
 namespace copt::v7_2 {
 
 constexpr double COPT_INFINITY = 1e30;
@@ -185,14 +185,14 @@ ret_code COPT_AddCallbackLazyConstr(void * cbdata, int nRowMatCnt,
                                     double dRowRhs);
 
 }  // namespace copt::v7_2
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace copt::v7_2 {
 
 #define COPT_FUNCTIONS(F)                            \
@@ -253,12 +253,12 @@ public:
     COPT_FUNCTIONS(DECLARE_COPT_FUN)
 
 public:
-    inline copt_api(const char * lib_path = "", const char * lib_name = "copt")
-        : lib(load_solver_library("COPT", "copt", lib_path, lib_name))
+    inline copt_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "COPT", "copt"))
               COPT_FUNCTIONS(CONSTRUCT_COPT_FUN) {}
 };
 
 }  // namespace copt::v7_2
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_COPT_API_HPP

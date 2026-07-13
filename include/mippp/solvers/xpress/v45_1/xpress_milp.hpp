@@ -10,7 +10,7 @@
 
 #include "mippp/solvers/xpress/v45_1/xpress_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace xpress::v45_1 {
 
 class xpress_milp : public xpress_base {
@@ -216,6 +216,6 @@ public:
 };
 
 }  // namespace xpress::v45_1
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_XPRESS_v45_1_MILP_HPP

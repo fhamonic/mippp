@@ -12,7 +12,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct TimeLimitTest : public T {
@@ -212,4 +212,4 @@ TYPED_TEST_P(TimeLimitTest, quadratic_knapsack) {
 
 REGISTER_TYPED_TEST_SUITE_P(TimeLimitTest, quadratic_knapsack);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

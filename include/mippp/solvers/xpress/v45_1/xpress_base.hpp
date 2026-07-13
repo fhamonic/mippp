@@ -16,7 +16,7 @@
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/xpress/v45_1/xpress_api.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace xpress::v45_1 {
 
 class xpress_base : public model_base<int, double> {
@@ -418,6 +418,6 @@ public:
 };
 
 }  // namespace xpress::v45_1
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_XPRESS_v45_1_BASE_MODEL_HPP

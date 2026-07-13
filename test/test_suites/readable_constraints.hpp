@@ -7,7 +7,7 @@
 
 #include "assert_helper.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct ReadableConstraintsTest : public T {
@@ -91,4 +91,4 @@ REGISTER_TYPED_TEST_SUITE_P(ReadableConstraintsTest, get_constraint_lhs,
                             get_constraint_sense, get_constraint_rhs,
                             get_constraint);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

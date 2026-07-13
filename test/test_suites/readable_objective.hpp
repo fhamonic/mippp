@@ -7,7 +7,7 @@
 
 #include "assert_helper.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct ReadableObjectiveTest : public T {
@@ -52,4 +52,4 @@ TYPED_TEST_P(ReadableObjectiveTest, get_objective) {
 REGISTER_TYPED_TEST_SUITE_P(ReadableObjectiveTest, get_objective_offset,
                             get_objective_coefficient, get_objective);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

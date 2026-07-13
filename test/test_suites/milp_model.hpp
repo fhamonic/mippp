@@ -5,7 +5,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct MilpModelTest : public T {
@@ -446,4 +446,4 @@ REGISTER_TYPED_TEST_SUITE_P(
     set_integer_to_continuous, set_continuous_to_integer,
     set_continuous_to_binary, set_binary_to_continuous);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

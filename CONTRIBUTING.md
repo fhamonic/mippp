@@ -148,7 +148,7 @@ its own `test/solvers/<solver>.cpp` file, for example:
 
 ```cpp
 #include "mippp/solvers/highs/all.hpp"
-using namespace fhamonic::mippp;
+using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct highs_lp_test : public model_test<highs_api, highs_lp> {

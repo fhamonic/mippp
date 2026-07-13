@@ -8,7 +8,7 @@
 
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// Strong types /////////////////////////////////
@@ -304,6 +304,6 @@ constraints_range(KR &&, CR &&)
     -> constraints_range<std::ranges::range_value_t<KR>,
                          std::ranges::range_value_t<CR>>;
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_MODEL_ENTITIES_HPP

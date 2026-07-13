@@ -28,7 +28,7 @@
 #include "mippp/solvers/clp/v1_17/clp_api.hpp"
 #include "mippp/solvers/model_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 // nested in clp::v1_17 so that CoinBigIndex resolves whether the real Clp
 // headers are included or the declarations of clp_api.hpp are used
 namespace clp::v1_17 {
@@ -505,4 +505,4 @@ static_assert(has_add_column<dumb_lp>);
 static_assert(has_remove_variable<dumb_lp>);
 static_assert(has_feasibility_tolerance<dumb_lp>);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

@@ -6,7 +6,7 @@
 #include "coin/CoinFinite.hpp"
 #else
 #include <limits>
-namespace fhamonic::mippp {
+namespace mippp {
 namespace clp::v1_17 {
 
 constexpr double COIN_DBL_MAX = std::numeric_limits<double>::max();
@@ -74,14 +74,14 @@ void Clp_loadProblem(Clp_Simplex * model, const int numcols, const int numrows,
                      const double * rowlb, const double * rowub);
 
 }  // namespace clp::v1_17
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_library.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace clp::v1_17 {
 
 #define CLP_FUNCTIONS(F)                                      \
@@ -139,12 +139,12 @@ public:
     CLP_FUNCTIONS(DECLARE_CLP_FUN)
 
 public:
-    inline clp_api(const char * lib_path = "", const char * lib_name = "Clp")
-        : lib(load_solver_library("CLP", "Clp", lib_path, lib_name))
+    inline clp_api(const char * lib_path = nullptr)
+        : lib(load_solver_library(lib_path, "CLP", "Clp"))
               CLP_FUNCTIONS(CONSTRUCT_CLP_FUN) {}
 };
 
 }  // namespace clp::v1_17
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_CLP_v1_17_API_HPP

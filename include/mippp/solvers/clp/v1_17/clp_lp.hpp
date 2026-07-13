@@ -19,7 +19,7 @@
 #include "mippp/solvers/clp/v1_17/clp_api.hpp"
 #include "mippp/solvers/model_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace clp::v1_17 {
 
 class clp_lp : public model_base<int, double> {
@@ -492,6 +492,6 @@ public:
 };
 
 }  // namespace clp::v1_17
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_CLP_v1_17_LP_HPP

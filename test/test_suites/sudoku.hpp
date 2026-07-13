@@ -10,7 +10,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct SudokuTest : public T {
@@ -119,4 +119,4 @@ TYPED_TEST_P(SudokuTest, test) {
 
 REGISTER_TYPED_TEST_SUITE_P(SudokuTest, test);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

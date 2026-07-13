@@ -14,7 +14,7 @@
 #include "mippp/solvers/glpk/v5/glpk_api.hpp"
 #include "mippp/solvers/model_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace glpk::v5 {
 
 class glpk_base : public model_base<int, double> {
@@ -362,6 +362,6 @@ public:
 };
 
 }  // namespace glpk::v5
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_GLPK_v5_BASE_MODEL_HPP

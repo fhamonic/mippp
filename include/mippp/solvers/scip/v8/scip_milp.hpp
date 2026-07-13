@@ -16,7 +16,7 @@
 #include <format>
 #include <iostream>
 
-namespace fhamonic::mippp {
+namespace mippp {
 namespace scip::v8 {
 
 class scip_milp {
@@ -575,6 +575,6 @@ public:
 };
 
 }  // namespace scip::v8
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_SCIP_v8_MILP_HPP

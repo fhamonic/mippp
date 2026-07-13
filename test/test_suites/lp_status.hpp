@@ -5,7 +5,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <typename T>
 struct LpStatusTest : public T {
@@ -128,4 +128,4 @@ REGISTER_TYPED_TEST_SUITE_P(LpStatusTest, not_solved, max_bounded, min_bounded,
                             max_unbounded, min_unbounded, max_infeasible,
                             min_infeasible);
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp

@@ -8,7 +8,7 @@
 
 #include "mippp/solvers/model_base.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 template <std::integral _Index, std::floating_point _Scalar>
 class remapping_model_base : public model_base<_Index, _Scalar> {
@@ -136,6 +136,6 @@ protected:
     }
 };
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_MODEL_BASE_HPP

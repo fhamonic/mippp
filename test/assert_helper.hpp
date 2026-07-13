@@ -16,13 +16,13 @@ void ASSERT_EQ_RANGES(R1 && r1, R2 && r2) {
 }
 
 template <typename Terms>
-    requires fhamonic::mippp::linear_term<std::ranges::range_value_t<Terms>>
+    requires mippp::linear_term<std::ranges::range_value_t<Terms>>
 void ASSERT_LIN_TERMS(
     Terms && terms,
     std::initializer_list<std::ranges::range_value_t<Terms>> expected_terms) {
     using term = std::ranges::range_value_t<Terms>;
-    using variable = fhamonic::mippp::linear_term_variable_t<term>;
-    using scalar = fhamonic::mippp::linear_term_scalar_t<term>;
+    using variable = mippp::linear_term_variable_t<term>;
+    using scalar = mippp::linear_term_scalar_t<term>;
     std::map<variable, scalar> factorized_terms;
     for(auto && [var, coef] : terms) factorized_terms[var] += coef;
     ASSERT_EQ(factorized_terms.size(), expected_terms.size());
@@ -33,8 +33,8 @@ void ASSERT_LIN_TERMS(
 template <typename Expr>
 void ASSERT_LIN_EXPR(
     Expr && expr,
-    std::initializer_list<fhamonic::mippp::linear_term_t<Expr>> expected_terms,
-    fhamonic::mippp::linear_expression_scalar_t<Expr> expected_constant) {
+    std::initializer_list<mippp::linear_term_t<Expr>> expected_terms,
+    mippp::linear_expression_scalar_t<Expr> expected_constant) {
     ASSERT_LIN_TERMS(expr.linear_terms(), expected_terms);
     ASSERT_EQ(expr.constant(), expected_constant);
 }
@@ -51,13 +51,13 @@ struct variables_pair_cmp {
 };
 
 template <typename Terms>
-    requires fhamonic::mippp::quadratic_term<std::ranges::range_value_t<Terms>>
+    requires mippp::quadratic_term<std::ranges::range_value_t<Terms>>
 void ASSERT_QUAD_TERMS(
     Terms && terms,
     std::initializer_list<std::ranges::range_value_t<Terms>> expected_terms) {
     using term = std::ranges::range_value_t<Terms>;
-    using variable = fhamonic::mippp::quadratic_term_variable_t<term>;
-    using scalar = fhamonic::mippp::quadratic_term_scalar_t<term>;
+    using variable = mippp::quadratic_term_variable_t<term>;
+    using scalar = mippp::quadratic_term_scalar_t<term>;
     std::map<std::pair<variable, variable>, scalar, variables_pair_cmp>
         factorized_terms;
     for(auto && [var1, var2, coef] : terms)
@@ -71,10 +71,10 @@ void ASSERT_QUAD_TERMS(
 template <typename Constr>
 void ASSERT_CONSTRAINT(
     Constr && constr,
-    std::initializer_list<fhamonic::mippp::linear_term_t<Constr>>
+    std::initializer_list<mippp::linear_term_t<Constr>>
         expected_terms,
-    fhamonic::mippp::constraint_sense rel,
-    fhamonic::mippp::linear_constraint_scalar_t<Constr> bound) {
+    mippp::constraint_sense rel,
+    mippp::linear_constraint_scalar_t<Constr> bound) {
     ASSERT_LIN_TERMS(constr.linear_terms(), expected_terms);
     ASSERT_EQ(constr.sense(), rel);
     ASSERT_EQ(constr.rhs(), bound);

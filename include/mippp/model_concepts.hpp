@@ -11,7 +11,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_entities.hpp"
 
-namespace fhamonic::mippp {
+namespace mippp {
 
 namespace detail {
 
@@ -208,7 +208,7 @@ using termination_reason_t =
     std::decay_t<decltype(std::declval<T>().termination_reason())>;
 
 template <typename T>
-concept has_terminaition_reason = requires(T & model) {
+concept has_termination_reason = requires(T & model) {
         { model.termination_reason() };
     };
 
@@ -517,6 +517,6 @@ concept has_integrality_tolerance =
 };
 // clang-format on
 
-}  // namespace fhamonic::mippp
+}  // namespace mippp
 
 #endif  // MIPPP_MODEL_CONCEPTS_HPP
