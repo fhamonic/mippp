@@ -1,4 +1,5 @@
 .vscode
+.github
 /build
 /build_mingw
 *.log
