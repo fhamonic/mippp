@@ -5,6 +5,8 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -101,6 +103,41 @@ inline std::vector<std::filesystem::path> system_library_dirs() {
     return dirs;
 }
 
+// Looks for a library named `name` (undecorated) in `dir`. The OS-decorated
+// name (e.g. libfoo.so) is preferred; if it is absent, version-suffixed
+// variants are accepted so that a runtime-only install exposing only
+// `libfoo.so.1` (without the unversioned developer symlink) is still found.
+// Among versioned matches the lexicographically greatest filename is returned,
+// which usually corresponds to the highest version.
+inline std::optional<std::filesystem::path> find_library_in_dir(
+    const std::filesystem::path & dir,
+    const dylib::decorations & decorations, const char * name) {
+    const std::string prefix(decorations.prefix);
+    const std::string suffix(decorations.suffix);
+    const std::string base = prefix + name;      // libfoo
+    const std::string decorated = base + suffix;  // libfoo.so
+
+    std::error_code ec;
+    const std::filesystem::path exact = dir / decorated;
+    if(std::filesystem::exists(exact, ec)) return exact;
+
+    if(!std::filesystem::is_directory(dir, ec)) return std::nullopt;
+    std::string best;
+    for(const auto & entry : std::filesystem::directory_iterator(dir, ec)) {
+        const std::string f = entry.path().filename().string();
+        // ELF versioned soname, e.g. libfoo.so.1.2.3
+        const bool elf_versioned = f.rfind(decorated + ".", 0) == 0;
+        // Mach-O versioned dylib, e.g. libfoo.1.2.3.dylib
+        const bool macho_versioned =
+            f.size() > decorated.size() && f.rfind(base + ".", 0) == 0 &&
+            f.size() >= suffix.size() &&
+            f.compare(f.size() - suffix.size(), suffix.size(), suffix) == 0;
+        if((elf_versioned || macho_versioned) && f > best) best = f;
+    }
+    if(!best.empty()) return dir / best;
+    return std::nullopt;
+}
+
 }  // namespace detail
 
 // Loads a solver's shared library as a `dylib::library`, applying the
@@ -110,50 +147,69 @@ inline std::vector<std::filesystem::path> system_library_dirs() {
 //   1. the `MIPPP_<key>_LIBRARY` environment variable: used verbatim as the
 //      full path to the exact library file (no decoration), so version-suffixed
 //      sonames such as `libhighs.so.1.10.0` can be named explicitly;
-//   2. an explicit directory passed by the caller (`dir` non-empty): the
-//      OS-decorated default name is looked up in that directory;
-//   3. otherwise the OS-decorated default name is searched across the dynamic
-//      loader's directories (see `detail::system_library_dirs`).
+//   2. an explicit directory passed by the caller (`dir` non-empty): each
+//      candidate name is looked up (decorated, then version-suffixed) there;
+//   3. otherwise each candidate name is searched across the dynamic loader's
+//      directories (see `detail::system_library_dirs`).
 //
-// dylib 3.0 requires a path and no longer searches system directories by name,
-// so MIP++ performs that search itself in case 3. Set `MIPPP_<key>_LIBRARY`
-// to load a specific file deterministically.
+// Several `default_names` may be given for solvers whose C API library is named
+// differently across releases (e.g. Cbc ships it as `libCbc` or `libCbcSolver`);
+// they are tried in order. dylib 3.0 requires a path and no longer searches
+// system directories by name, so MIP++ performs that search itself. Set
+// `MIPPP_<key>_LIBRARY` to load a specific file deterministically.
 //
-//   key          uppercase solver identifier used in the env var, e.g. "HIGHS"
-//   default_name undecorated library name, e.g. "highs" -> libhighs.so
-//   dir          optional directory explicitly requested by the caller
-//   name         optional library name overriding `default_name`
-inline dylib::library load_solver_library(const char * key,
-                                          const char * default_name,
-                                          const char * dir = "",
-                                          const char * name = nullptr) {
-    const char * lib_name =
-        (name != nullptr && *name != '\0') ? name : default_name;
-
+//   key           uppercase solver identifier used in the env var, e.g. "HIGHS"
+//   default_names undecorated candidate names, e.g. "highs" -> libhighs.so
+//   dir           optional directory explicitly requested by the caller
+//   name          optional library name overriding `default_names`
+inline dylib::library load_solver_library(
+    const char * key, std::initializer_list<const char *> default_names,
+    const char * dir = "", const char * name = nullptr) {
     const std::string env_var = std::string("MIPPP_") + key + "_LIBRARY";
     if(const char * full_path = std::getenv(env_var.c_str());
        full_path != nullptr && *full_path != '\0')
         return dylib::library(std::filesystem::path(full_path));
 
+    // An explicit name overrides the built-in candidate list.
+    std::vector<const char *> names;
+    if(name != nullptr && *name != '\0')
+        names.push_back(name);
+    else
+        names.assign(default_names.begin(), default_names.end());
+
     const dylib::decorations decorations = dylib::decorations::os_default();
-    const std::string filename =
-        std::string(decorations.prefix) + lib_name + decorations.suffix;
 
-    if(dir != nullptr && *dir != '\0')
-        return dylib::library(std::filesystem::path(dir) / filename);
-
-    std::error_code ec;
-    for(const auto & directory : detail::system_library_dirs()) {
-        const std::filesystem::path candidate = directory / filename;
-        if(std::filesystem::exists(candidate, ec))
-            return dylib::library(candidate);
+    if(dir != nullptr && *dir != '\0') {
+        for(const char * n : names)
+            if(auto found = detail::find_library_in_dir(dir, decorations, n))
+                return dylib::library(*found);
+    } else {
+        const auto directories = detail::system_library_dirs();
+        for(const char * n : names)
+            for(const auto & directory : directories)
+                if(auto found =
+                       detail::find_library_in_dir(directory, decorations, n))
+                    return dylib::library(*found);
     }
 
+    std::string tried;
+    for(const char * n : names) {
+        if(!tried.empty()) tried += "', '";
+        tried += std::string(decorations.prefix) + n + decorations.suffix;
+    }
     throw std::runtime_error(
         "mippp: could not locate the " + std::string(key) +
-        " solver library '" + filename + "'. Set the environment variable " +
-        env_var +
+        " solver library (tried '" + tried +
+        "'). Set the environment variable " + env_var +
         " to its full path, or add its directory to LD_LIBRARY_PATH.");
+}
+
+// Convenience overload for the common single-candidate-name case.
+inline dylib::library load_solver_library(const char * key,
+                                          const char * default_name,
+                                          const char * dir = "",
+                                          const char * name = nullptr) {
+    return load_solver_library(key, {default_name}, dir, name);
 }
 
 }  // namespace fhamonic::mippp

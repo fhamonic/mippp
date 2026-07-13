@@ -154,8 +154,9 @@ public:
     CBC_FUNCTIONS(DECLARE_CBC_FUN)
 
 public:
-    inline cbc_api(const char * lib_path = "", const char * lib_name = "Cbc")
-        : lib(load_solver_library("CBC", "Cbc", lib_path, lib_name))
+    inline cbc_api(const char * lib_path = "", const char * lib_name = "")
+        : lib(load_solver_library("CBC", {"Cbc", "CbcSolver"}, lib_path,
+                                  lib_name))
               CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {}
 };
 
