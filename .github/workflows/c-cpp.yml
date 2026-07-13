@@ -17,6 +17,8 @@ jobs:
         run: apt-get update && apt-get upgrade -y
       - name: Install GCC-15, CMake and Git
         run: apt-get install -y gcc-15 g++-15 cmake git
+      - name: Install open-source solvers
+        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev highs libhighs1 libglpk-dev 
       - name: Install Conan 2.0
         run: |
           apt install -y pipx
@@ -27,7 +29,7 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc15_c++26
+          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc15_c++26 -c tools.build:skip_test=true
       - name: Build and run unit tests
         run: |
           make CONAN_PROFILE=.github/workflows/gcc15_c++26
