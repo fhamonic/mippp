@@ -34,6 +34,8 @@ void SoPlex_getDualReal(void * soplex, double * dual, int dim);
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace soplex::v6 {
 
@@ -60,7 +62,7 @@ namespace soplex::v6 {
 
 class soplex_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUN)
@@ -68,7 +70,8 @@ public:
 public:
     inline soplex_api(const char * lib_path = "",
                       const char * lib_name = "soplexshared")
-        : lib(lib_path, lib_name) SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUN) {}
+        : lib(load_solver_library("SOPLEX", "soplexshared", lib_path, lib_name))
+              SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUN) {}
 };
 
 }  // namespace soplex::v6

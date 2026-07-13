@@ -196,6 +196,8 @@ int GRBcblazy(void * cbdata, int lazylen, const int * lazyind,
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace gurobi::v12_0 {
 
@@ -267,14 +269,15 @@ namespace gurobi::v12_0 {
 
 class gurobi_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     GRB_FUNCTIONS(DECLARE_GUROBI_FUN)
 
 public:
     gurobi_api(const char * lib_path = "", const char * lib_name = "gurobi120")
-        : lib(lib_path, lib_name) GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUN) {}
+        : lib(load_solver_library("GUROBI", "gurobi120", lib_path, lib_name))
+              GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUN) {}
 };
 
 }  // namespace gurobi::v12_0

@@ -93,9 +93,6 @@ public:
         int var_id = v.id();
         char type = COPT_BINARY;
         check(COPT.SetColType(prob, 1, &var_id, &type));
-        // char lu[2] = {'L', 'U'};
-        // double bd[2] = {0.0, 1.0};
-        // check(COPT.chgbds(env, lp, 2, &var_id, lu, bd));
     }
 
     //////////////////////////////// Callbacks ////////////////////////////////

@@ -213,6 +213,8 @@ void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace cplex::v22_12 {
 
@@ -284,7 +286,7 @@ namespace cplex::v22_12 {
 
 class cplex_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     CPLEX_FUNCTIONS(DECLARE_CPLEX_FUN)
@@ -292,7 +294,8 @@ public:
 public:
     inline cplex_api(const char * lib_path = "",
                      const char * lib_name = "cplex2212")
-        : lib(lib_path, lib_name) CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {}
+        : lib(load_solver_library("CPLEX", "cplex2212", lib_path, lib_name))
+              CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {}
 };
 
 }  // namespace cplex::v22_12

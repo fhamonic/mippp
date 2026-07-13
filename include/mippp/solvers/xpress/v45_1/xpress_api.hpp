@@ -126,6 +126,8 @@ int XPRSloaddelayedrows(XPRSprob prob, int nrows, const int rowind[]);
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace xpress::v45_1 {
 
@@ -175,15 +177,16 @@ namespace xpress::v45_1 {
 
 class xpress_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     XPRESS_FUNCTIONS(DECLARE_XPRESS_FUN)
 
 public:
-    inline xpress_api(const char * lib_name = "xprs",
-                      const char * lib_path = "")
-        : lib(lib_path, lib_name) XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUN) {}
+    inline xpress_api(const char * lib_path = "",
+                      const char * lib_name = "xprs")
+        : lib(load_solver_library("XPRESS", "xprs", lib_path, lib_name))
+              XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUN) {}
 };
 
 }  // namespace xpress::v45_1

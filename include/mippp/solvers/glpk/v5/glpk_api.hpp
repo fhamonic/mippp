@@ -193,6 +193,8 @@ double glp_mip_col_val(glp_prob * P, int j);
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace glpk::v5 {
 
@@ -247,14 +249,15 @@ namespace glpk::v5 {
 
 class glpk_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     GLPK_FUNCTIONS(DECLARE_GLPK_FUN)
 
 public:
     inline glpk_api(const char * lib_path = "", const char * lib_name = "glpk")
-        : lib(lib_path, lib_name) GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUN) {}
+        : lib(load_solver_library("GLPK", "glpk", lib_path, lib_name))
+              GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUN) {}
 };
 
 }  // namespace glpk::v5

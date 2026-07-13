@@ -326,6 +326,8 @@ MSKrescodee MSK_putcallbackfunc(MSKtask_t task, MSKcallbackfunc func,
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace mosek::v11 {
 
@@ -394,7 +396,7 @@ namespace mosek::v11 {
 
 class mosek_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     MOSEK_FUNCTIONS(DECLARE_MOSEK_FUN)
@@ -402,7 +404,8 @@ public:
 public:
     inline mosek_api(const char * lib_path = "",
                      const char * lib_name = "mosek64")
-        : lib(lib_path, lib_name) MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUN) {}
+        : lib(load_solver_library("MOSEK", "mosek64", lib_path, lib_name))
+              MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUN) {}
 };
 
 }  // namespace mosek::v11

@@ -93,9 +93,10 @@ public:
         int var_id = _native_id(v);
         char type = CPX_BINARY;
         check(CPX.chgctype(env, lp, 1, &var_id, &type));
+        int ids[2] = {var_id, var_id};
         char lu[2] = {'L', 'U'};
         double bd[2] = {0.0, 1.0};
-        check(CPX.chgbds(env, lp, 2, &var_id, lu, bd));
+        check(CPX.chgbds(env, lp, 2, ids, lu, bd));
     }
 
     /////////////////////////// Special constraints ///////////////////////////

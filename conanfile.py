@@ -21,7 +21,7 @@ class CompressorRecipe(ConanFile):
     build_policy = "missing"
 
     def requirements(self):
-        self.requires("dylib/2.2.1")
+        self.requires("dylib/3.0.1")
 
     def build_requirements(self):
         self.test_requires("gtest/[>=1.10.0 <cci]")

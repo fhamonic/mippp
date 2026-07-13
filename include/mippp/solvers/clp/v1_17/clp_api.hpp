@@ -79,6 +79,8 @@ void Clp_loadProblem(Clp_Simplex * model, const int numcols, const int numrows,
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace clp::v1_17 {
 
@@ -131,14 +133,15 @@ namespace clp::v1_17 {
 
 class clp_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     CLP_FUNCTIONS(DECLARE_CLP_FUN)
 
 public:
     inline clp_api(const char * lib_path = "", const char * lib_name = "Clp")
-        : lib(lib_path, lib_name) CLP_FUNCTIONS(CONSTRUCT_CLP_FUN) {}
+        : lib(load_solver_library("CLP", "Clp", lib_path, lib_name))
+              CLP_FUNCTIONS(CONSTRUCT_CLP_FUN) {}
 };
 
 }  // namespace clp::v1_17

@@ -206,6 +206,8 @@ HighsInt Highs_startCallback(void * highs, const int callback_type);
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace highs::v1_10 {
 
@@ -265,7 +267,7 @@ namespace highs::v1_10 {
 
 class highs_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     HIGHS_FUNCTIONS(DECLARE_HIGHS_FUN)
@@ -273,7 +275,8 @@ public:
 public:
     inline highs_api(const char * lib_path = "",
                      const char * lib_name = "highs")
-        : lib(lib_path, lib_name) HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUN) {}
+        : lib(load_solver_library("HIGHS", "highs", lib_path, lib_name))
+              HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUN) {}
 };
 
 }  // namespace highs::v1_10

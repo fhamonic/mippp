@@ -88,6 +88,8 @@ void OsiCuts_addRowCut(void * osiCuts, int nz, const int * idx,
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace cbc::v2_10_12 {
 
@@ -146,14 +148,15 @@ namespace cbc::v2_10_12 {
 
 class cbc_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     CBC_FUNCTIONS(DECLARE_CBC_FUN)
 
 public:
     inline cbc_api(const char * lib_path = "", const char * lib_name = "Cbc")
-        : lib(lib_path, lib_name) CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {}
+        : lib(load_solver_library("CBC", "Cbc", lib_path, lib_name))
+              CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {}
 };
 
 }  // namespace cbc::v2_10_12

@@ -190,6 +190,8 @@ ret_code COPT_AddCallbackLazyConstr(void * cbdata, int nRowMatCnt,
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_library.hpp"
+
 namespace fhamonic::mippp {
 namespace copt::v7_2 {
 
@@ -245,14 +247,15 @@ namespace copt::v7_2 {
 
 class copt_api {
 private:
-    dylib lib;
+    dylib::library lib;
 
 public:
     COPT_FUNCTIONS(DECLARE_COPT_FUN)
 
 public:
     inline copt_api(const char * lib_path = "", const char * lib_name = "copt")
-        : lib(lib_path, lib_name) COPT_FUNCTIONS(CONSTRUCT_COPT_FUN) {}
+        : lib(load_solver_library("COPT", "copt", lib_path, lib_name))
+              COPT_FUNCTIONS(CONSTRUCT_COPT_FUN) {}
 };
 
 }  // namespace copt::v7_2
