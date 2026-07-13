@@ -141,7 +141,9 @@ private:
         if(_verbose) std::cout << "[   FUZZ   ] " << line << std::endl;
         _trace.emplace_back(std::move(line));
     }
-    void _print_trace() const {
+
+public:
+    void print_trace() const {
         std::cout << "[   FUZZ   ] failure with MIPPP_FUZZ_SEED=" << _seed
                   << " after the following operations:\n";
         for(const std::string & line : _trace)
@@ -149,6 +151,7 @@ private:
         std::cout << std::flush;
     }
 
+private:
     std::string _new_variable_label() {
         return std::format("x{}", _variable_counter++);
     }
@@ -930,7 +933,7 @@ public:
                 ev.action();
                 ++step;
                 if(::testing::Test::HasFailure()) {
-                    _print_trace();
+                    print_trace();
                     return;
                 }
             }
@@ -945,7 +948,7 @@ public:
                 ev.action();
                 if(::testing::Test::HasFailure()) {
                     _log(std::format("FAILED check '{}'", ev.name));
-                    _print_trace();
+                    print_trace();
                     return;
                 }
             }
@@ -990,7 +993,12 @@ TYPED_TEST_P(LpFuzzyTest, random_operations) {
                   << " MIPPP_FUZZ_ROUNDS=" << num_rounds << std::endl;
         lp_fuzzy_state_machine<typename TestFixture::model_type> machine(
             this->new_model(), dumb_lp(reference_api.value()), seed);
-        machine.run(num_rounds);
+
+        try {
+            machine.run(num_rounds);
+        } catch(const std::exception & e) {
+            machine.print_trace();
+        }
     });
 }
 

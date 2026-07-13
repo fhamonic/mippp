@@ -162,18 +162,17 @@ public:
         _reset_cache(_num_var_native_ids());
         _register_entries(le.linear_terms());
         const std::size_t num_entries = tmp_indices.size();
-        if(_remap_ids) {
-            std::ranges::sort(std::views::zip(tmp_indices, tmp_scalars),
-                              [](const auto & e1, const auto & e2) {
-                                  return std::get<0>(e1) < std::get<0>(e2);
-                              });
-        }
+        std::ranges::sort(std::views::zip(tmp_indices, tmp_scalars),
+                          [](const auto & e1, const auto & e2) {
+                              return std::get<0>(e1) < std::get<0>(e2);
+                          });
         tmp_scalars.resize(2 * num_entries);
         int dummy_int;
         check(Highs.getColsBySet(model, static_cast<HighsInt>(num_entries),
                                  tmp_indices.data(), &dummy_int,
                                  tmp_scalars.data() + num_entries, NULL, NULL,
                                  &dummy_int, NULL, NULL, NULL));
+
         for(std::size_t i = 0; i < num_entries; ++i) {
             tmp_scalars[i] += tmp_scalars[num_entries + i];
         }
