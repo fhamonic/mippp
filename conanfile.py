@@ -8,7 +8,7 @@ from conan.tools.build import check_min_cppstd
 
 class CompressorRecipe(ConanFile):
     name = "mippp"
-    version = "0.2"
+    version = "1.0.0"
     license = "BSL-1.0"
     description = "A modern interface for linear programming solvers using C++20 ranges and concepts."
     homepage = "https://github.com/fhamonic/mippp.git"
@@ -42,7 +42,7 @@ class CompressorRecipe(ConanFile):
         )
 
     def validate(self):
-        check_min_cppstd(self, 23)
+        check_min_cppstd(self, 26)
 
     def build(self):
         if self.conf.get("tools.build:skip_test", default=False):
