@@ -517,7 +517,7 @@ private:
         int nconss, int nusefulconss, SCIP_Bool solinfeasible,
         SCIP_RESULT * result) {
         std::cout << std::format("*ptr = {:p}\n",
-                                 *((void **)conshdlr->conshdlrdata));
+                                 *static_cast<void **>(conshdlr->conshdlrdata));
 
         auto * model = *(static_cast<scip_milp **>(conshdlr->conshdlrdata));
         // candidate_solution_callback_handle handle(model->SCIP, *model,
@@ -533,7 +533,7 @@ public:
         auto ptr = static_cast<scip_milp **>(malloc(sizeof(scip_milp **)));
         *ptr = this;
 
-        std::cout << std::format("this = {:p}\n", (void *)(*ptr));
+        std::cout << std::format("this = {:p}\n", this);
 
         check(SCIP.includeConshdlrBasic(
             model, &candidate_solution_constraint_handler,
