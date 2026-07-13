@@ -22,8 +22,9 @@ jobs:
           apt install -y pipx
           pipx install conan
           echo "/github/home/.local/bin" >> $GITHUB_PATH
-          conan profile detect --name=default
-      - name: Install Melon
+      - name: Detect conan profile
+        run: conan profile detect --name=default
+      - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
           cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc15_c++26
