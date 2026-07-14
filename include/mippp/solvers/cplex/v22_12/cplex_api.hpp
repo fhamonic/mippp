@@ -24,6 +24,7 @@ constexpr int CPXPROB_MILP = 1;
 int CPXgetprobtype(CPXCENVptr env, CPXCLPptr lp);
 int CPXchgprobtype(CPXCENVptr env, CPXLPptr lp, int type);
 int CPXfreeprob(CPXCENVptr env, CPXLPptr * lp_p);
+constexpr int CPXMESSAGEBUFSIZE = 1024;
 const char * CPXgeterrorstring(CPXCENVptr env, int errcode, char * buffer_str);
 
 constexpr int CPX_MAX = -1;

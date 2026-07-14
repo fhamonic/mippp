@@ -12,11 +12,10 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/cplex/v22_12/cplex_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
-
-#include <iostream>
 
 namespace mippp {
 namespace cplex::v22_12 {
@@ -43,9 +42,13 @@ protected:
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
-    static void check(const int error) {
+    void check(const int error) {
         if(error == 0) return;
-        throw std::runtime_error("CPLEX: error " + std::to_string(error));
+        char errmsg[CPXMESSAGEBUFSIZE];
+        CPX.geterrorstring(env, error, errmsg);
+        if(error == 1016)
+            throw license_error(errmsg);
+        throw std::runtime_error(errmsg);
     }
     static constexpr char constraint_sense_to_cplex_sense(
         constraint_sense rel) {

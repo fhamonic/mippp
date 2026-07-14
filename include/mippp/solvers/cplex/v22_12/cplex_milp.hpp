@@ -225,11 +225,11 @@ public:
 
     ///////////////////////////////// Limits //////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        check(CPX.setdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, t.count()));
+        check(CPX.setdblparam(env, CPXPARAM_TimeLimit, t.count()));
     }
     auto get_time_limit() {
         double t;
-        check(CPX.getdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, &t));
+        check(CPX.getdblparam(env, CPXPARAM_TimeLimit, &t));
         return std::chrono::duration<double>(t);
     }
 
