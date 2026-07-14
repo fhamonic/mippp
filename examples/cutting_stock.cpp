@@ -10,7 +10,7 @@
 // Swap the two aliases to use another LP backend exposing dual solutions.
 
 #include <cmath>
-#include <iostream>
+#include <print>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -128,10 +128,9 @@ int main() {
     int rolls = 0;
     for(const auto & var : vars) rolls += static_cast<int>(std::ceil(sol[var]));
 
-    std::cout << "LP relaxation bound : " << model.get_solution_value()
-              << " rolls\n";
-    std::cout << "rounded-up rolls    : " << rolls << '\n';
-    std::cout << "patterns generated  : " << patterns.size() << " (in "
-              << rounds << " master solves)\n";
+    std::println("LP relaxation bound : {} rolls", model.get_solution_value());
+    std::println("rounded-up rolls    : {}", rolls);
+    std::println("patterns generated  : {}  (in {} master solves)",
+                 patterns.size(), rounds);
     return 0;
 }

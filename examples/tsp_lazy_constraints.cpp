@@ -8,7 +8,7 @@
 // CPLEX and COPT. Set the two aliases below to one of those backends; the
 // example defaults to Gurobi.
 
-#include <iostream>
+#include <print>
 #include <ranges>
 #include <vector>
 
@@ -92,9 +92,9 @@ int main() {
 
     model.solve();
 
-    std::cout << "optimal tour length: " << model.get_solution_value() << '\n';
+    std::println("optimal tour length: {}", model.get_solution_value());
     auto sol = model.get_solution();
-    std::cout << "tour: 0";
+    std::print("tour: 0");
     int v = 0;
     for(int step = 0; step < n; ++step) {
         for(int j : cities)
@@ -102,8 +102,8 @@ int main() {
                 v = j;
                 break;
             }
-        std::cout << " -> " << v;
+        std::print(" -> {}", v);
     }
-    std::cout << '\n';
+    std::println();
     return 0;
 }

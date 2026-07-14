@@ -168,7 +168,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             return qvalues[i][j - i - 1];
         };
 
-        auto solve_within = [&, parent = this](std::size_t num_items,
+        auto solve_within = [&, this](std::size_t num_items,
                                                seconds limit) {
             auto items = std::views::iota(std::size_t{0}, num_items);
             auto num_items_pairs = num_items * (num_items - 1) / 2;
@@ -178,7 +178,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             const int budget =
                 static_cast<int>(6.69 * static_cast<double>(num_items));
 
-            auto model = parent->new_model();
+            auto model = this->new_model();
             auto ref_X = model.add_binary_variables(num_items);
             auto ref_Z = model.add_variables(
                 num_items_pairs, [&](std::size_t i, std::size_t j) {

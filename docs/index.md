@@ -16,7 +16,7 @@
 MIP++ is a header-only C++26 library for linear, mixed-integer, and quadratic programming. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API. The same model code targets any of **11 solvers** — you choose the backend at compile time, and its shared library is loaded dynamically at runtime, with no link-time solver dependency.
 
 ```cpp
-#include <iostream>
+#include <print>
 
 #include "mippp/solvers/highs/all.hpp"
 
@@ -25,7 +25,7 @@ using namespace mippp::operators;
 
 int main() {
     highs_api api;        // loads the HiGHS C API at runtime
-    highs_lp model(api);  // swap for gurobi_lp, cplex_lp, clp_lp, ...
+    highs_lp model(api);  // swap for gurobi_*, cplex_*, cbc_*, ...
 
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.upper_bound = 3});
@@ -37,7 +37,10 @@ int main() {
 
     model.solve();
     auto sol = model.get_solution();
-    std::cout << "x1 = " << sol[x1] << ", x2 = " << sol[x2] << "\n";
+
+    std::println("objective = {}", model.get_solution_value());
+    std::println("x1 = {}, x2 = {}", sol[x1], sol[x2]);
+    return 0;
 }
 ```
 

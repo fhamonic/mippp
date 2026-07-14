@@ -8,7 +8,7 @@
 // Swap the two aliases to use another MILP backend.
 
 #include <cstdlib>
-#include <iostream>
+#include <print>
 #include <ranges>
 
 #include "mippp/solvers/highs/all.hpp"
@@ -67,8 +67,8 @@ int main(int argc, char ** argv) {
     auto solution = model.get_solution();
     for(int row : indices) {
         for(int col : indices)
-            std::cout << (solution[X(row, col)] > 0.5 ? " Q" : " .");
-        std::cout << '\n';
+            std::print("{}", solution[X(row, col)] > 0.5 ? " Q" : " .");
+        std::println();
     }
     return 0;
 }

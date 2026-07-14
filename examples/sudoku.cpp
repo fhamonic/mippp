@@ -1,12 +1,12 @@
 // Sudoku as a MILP.
 //
-// Showcases multi-dimensional lambda indexing -- X(i, j, v) is 1 iff cell (i, j)
-// holds value v -- and constraint families composed over cartesian-product
+// Showcases multi-dimensional lambda indexing -- X(i, j, v) is 1 iff cell (i,
+// j) holds value v -- and constraint families composed over cartesian-product
 // ranges.
 //
 // Swap the two aliases to use another MILP backend.
 
-#include <iostream>
+#include <print>
 #include <ranges>
 #include <vector>
 
@@ -41,9 +41,9 @@ int main() {
     api_type api;
     milp_type model(api);
 
-    auto X = model.add_binary_variables(
-        9 * 9 * 9,
-        [](int i, int j, int v) { return (81 * i) + (9 * j) + (v - 1); });
+    auto X = model.add_binary_variables(9 * 9 * 9, [](int i, int j, int v) {
+        return (81 * i) + (9 * j) + (v - 1);
+    });
 
     // Exactly one value per cell. Inner lambdas capture the outer loop values
     // by value ([&, i, j]) because add_constraints registers the xsum
@@ -89,8 +89,8 @@ int main() {
     for(int i : indices) {
         for(int j : indices)
             for(int v : values)
-                if(solution[X(i, j, v)] > 0.5) std::cout << ' ' << v;
-        std::cout << '\n';
+                if(solution[X(i, j, v)] > 0.5) std::print(" {}", v);
+        std::println();
     }
     return 0;
 }

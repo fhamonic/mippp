@@ -37,8 +37,8 @@ int main() {
     model.solve();
     auto sol = model.get_solution();
 
-    std::print("objective = {}\n", model.get_solution_value());
-    std::print("x1 = {}, x2 = {}\n", sol[x1], sol[x2]);
+    std::println("objective = {}", model.get_solution_value());
+    std::println("x1 = {}, x2 = {}", sol[x1], sol[x2]);
     return 0;
 }
 ```

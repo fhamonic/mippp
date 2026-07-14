@@ -1,8 +1,3 @@
-// The smallest possible MIP++ program: build a tiny LP and read its solution.
-//
-// The model is written once against the generic API; pick any backend by
-// changing the two aliases below. Here we use HiGHS (open source).
-
 #include <print>
 
 #include "mippp/solvers/highs/all.hpp"
@@ -10,12 +5,9 @@
 using namespace mippp;
 using namespace mippp::operators;
 
-using api_type = highs_api;
-using lp_type = highs_lp;
-
 int main() {
-    api_type api;        // loads the HiGHS C API at runtime
-    lp_type model(api);
+    highs_api api;        // loads the HiGHS C API at runtime
+    highs_lp model(api);  // swap for gurobi_*, cplex_*, cbc_*, ...
 
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.upper_bound = 3});
@@ -28,7 +20,7 @@ int main() {
     model.solve();
     auto sol = model.get_solution();
 
-    std::print("objective = {}\n", model.get_solution_value());
-    std::print("x1 = {}, x2 = {}\n", sol[x1], sol[x2]);
+    std::println("objective = {}", model.get_solution_value());
+    std::println("x1 = {}, x2 = {}", sol[x1], sol[x2]);
     return 0;
 }

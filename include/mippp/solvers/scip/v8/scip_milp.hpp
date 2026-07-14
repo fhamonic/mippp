@@ -13,8 +13,7 @@
 
 #include "mippp/solvers/scip/v8/scip_api.hpp"
 
-#include <format>
-#include <iostream>
+#include <print>
 
 namespace mippp {
 namespace scip::v8 {
@@ -516,8 +515,8 @@ private:
         struct Scip * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss,
         int nconss, int nusefulconss, SCIP_Bool solinfeasible,
         SCIP_RESULT * result) {
-        std::cout << std::format("*ptr = {:p}\n",
-                                 *static_cast<void **>(conshdlr->conshdlrdata));
+        std::println("*ptr = {:p}",
+                     *static_cast<void **>(conshdlr->conshdlrdata));
 
         auto * model = *(static_cast<scip_milp **>(conshdlr->conshdlrdata));
         // candidate_solution_callback_handle handle(model->SCIP, *model,
@@ -533,7 +532,7 @@ public:
         auto ptr = static_cast<scip_milp **>(malloc(sizeof(scip_milp **)));
         *ptr = this;
 
-        std::cout << std::format("this = {:p}\n", this);
+        std::println("this = {:p}", this);
 
         check(SCIP.includeConshdlrBasic(
             model, &candidate_solution_constraint_handler,
