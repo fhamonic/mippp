@@ -249,10 +249,9 @@ public:
         // Zeroes the column
         const int * col_starts = Clp.getVectorStarts(model);
         const int * row_indices = Clp.getIndices(model);
+
         const int * begin = row_indices + col_starts[v.id()];
-        const int * end = row_indices + (v.id() < Clp.getNumCols(model) - 1
-                                             ? col_starts[v.id() + 1]
-                                             : Clp.getNumElements(model));
+        const int * end = row_indices + col_starts[v.id() + 1];
         for(const int * it = begin; it != end; ++it) {
             Clp.modifyCoefficient(model, *it, v.id(), 0.0, false);
         }
