@@ -6,8 +6,9 @@ MIP++ wraps the solvers' callback machinery behind one uniform interface: the **
 
 ```cpp
 model.set_candidate_solution_callback([&](auto & handle) {
-    auto sol = handle.get_solution();   // the candidate, indexed by variable
-    // inspect it, and if it must be excluded:
+    auto sol = handle.get_solution();  // the candidate, indexed by variable
+    if(/* sol is valid */) return ;
+    // otherwise, sol must be excluded:
     handle.add_lazy_constraint(/* any linear constraint expression */);
 });
 model.solve();
@@ -21,35 +22,21 @@ Backends supporting this are those satisfying the `has_candidate_solution_callba
 
 ## Example: TSP subtour elimination
 
-The heart of [`examples/tsp_lazy_constraints.cpp`](https://github.com/fhamonic/mippp/blob/main/examples/tsp_lazy_constraints.cpp), where `X(i, j)` are binary arc variables constrained so that each city has one incoming and one outgoing arc:
+The heart of [`examples/tsp_lazy_constraints.cpp`](https://github.com/fhamonic/mippp/blob/main/examples/tsp_lazy_constraints.cpp), where `X(a)` are binary arc variables constrained so that each city has one incoming and one outgoing activated arc:
 
 ```cpp
 model.set_candidate_solution_callback([&](auto & handle) {
-    auto sol = handle.get_solution();
-    // successor[i] = the city visited right after i in the candidate.
-    std::vector<int> successor(n);
-    for(int i : cities)
-        for(int j : cities)
-            if(i != j && sol[X(i, j)] > 0.5) successor[i] = j;
+    auto solution = handle.get_solution();
+    auto solution_graph = melon::views::subgraph(
+        graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
 
-    // Walk the successor cycles; each cycle shorter than n is a subtour.
-    std::vector<bool> seen(n, false);
-    for(int start : cities) {
-        if(seen[start]) continue;
-        std::vector<int> subtour;
-        for(int v = start; !seen[v]; v = successor[v]) {
-            seen[v] = true;
-            subtour.push_back(v);
-        }
-        if(int(subtour.size()) == n) return;  // a single tour: accept
-
-        // Arcs inside the subtour must number at most |S| - 1.
+    for(auto && tour : melon::traversal_forest(solution_graph)) {
+        if(tour.size() == graph.num_vertices()) return;
+        auto tour_induced_subgraph =
+            melon::views::induced_subgraph(graph, tour);
         handle.add_lazy_constraint(
-            xsum(std::views::cartesian_product(subtour, subtour),
-                 [&](auto && p) {
-                     auto && [i, j] = p;
-                     return X(i, j);
-                 }) <= int(subtour.size()) - 1);
+            xsum(melon::arcs(tour_induced_subgraph), X_vars) <=
+            static_cast<int>(tour.size()) - 1);
     }
 });
 ```

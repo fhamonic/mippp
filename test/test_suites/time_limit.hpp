@@ -38,25 +38,24 @@ TYPED_TEST_P(TimeLimitTest, set_get_time_limit) {
     });
 }
 
-// Behavioural test: a short time limit must actually interrupt a solve that
-// otherwise keeps the solver busy well past the limit.
+// Behavioural test: the time limit must actually interrupt a solve that would
+// otherwise keep the solver busy well past the limit.
 //
-// We deliberately do NOT assert a proportional relationship between the
-// requested limit and the observed running time (which is inherently noisy:
-// solvers only poll the clock between nodes, and CI machines are loaded).
-// Instead we assert a loose upper bound with a generous absolute overshoot
-// allowance, and we skip the check whenever the solver happens to close the
-// instance before the limit fires -- there is nothing to interrupt then.
+// How long an instance keeps a solver busy depends on the solver and on the
+// machine, so no fixed instance can exercise the interruption everywhere.
+// Instead the instance grows until the interruption becomes observable: while
+// the solver closes an instance before the limit, the next one is harder, so
+// solve times grow with the instance size until the limit clamps them.
+// Observing that clamp on two growing sizes is the interruption signature.
+// Every solve runs with the limit set, so no step can run away and the whole
+// test stays fast on any machine: a solver that ignores its limit trips the
+// overshoot bound at the first size that is hard enough, and a solver that
+// closes even the largest instance before the limit cannot be exercised here
+// and skips.
 TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
-
-        constexpr std::size_t num_items = 60;
-        auto items = std::views::iota(std::size_t{0}, num_items);
-        auto num_items_pairs = num_items * (num_items - 1) / 2;
-        auto items_pairs = std::views::filter(
-            std::views::cartesian_product(items, items),
-            [](auto && p) { return std::get<0>(p) < std::get<1>(p); });
+        using seconds = std::chrono::duration<double>;
 
         // clang-format off
     // r_100_25_1
@@ -162,7 +161,6 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
                                                                                                                                                                                                                                                                                                                                                                                                             {  0,  0 },
                                                                                                                                                                                                                                                                                                                                                                                                                 {  0 }};
     const int costs[100] = {28,  8, 24, 38, 26, 47, 46, 23, 18, 18, 34, 36, 12, 33, 32, 29, 35, 10,  2,  1, 37, 35, 12, 36, 33,  8, 34, 36,  2, 36,  3, 44, 42,  9,  7, 32, 12,  5,  4, 50, 48, 30, 39, 46, 26,  5, 44, 28, 21, 24, 45, 11, 20, 45, 21, 24, 37,  8,  7, 49, 25, 44, 16,  9, 37,  8,  1, 17, 42, 12, 32, 49, 20, 42, 48, 47, 11,  1,  9, 16,  3, 48, 27, 18, 23, 38, 30,  3, 48, 20, 36, 46, 20,  8, 16, 50, 32, 49, 12, 14 };
-    const int budget = static_cast<int>(6.69 * num_items);
         // clang-format on
 
         auto qvalue = [&](auto i, auto j) {
@@ -170,80 +168,90 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             return qvalues[i][j - i - 1];
         };
 
-        auto solve_within =
-            [&, parent = this](std::chrono::duration<double> limit) {
-                auto model = parent->new_model();
-                auto ref_X = model.add_binary_variables(num_items);
-                auto ref_Z = model.add_variables(
-                    num_items_pairs, [&](std::size_t i, std::size_t j) {
-                        assert(i < j);
-                        return j * num_items + i - ((j + 1) * (j + 2)) / 2;
-                    });
-                model.set_maximization();
-                model.set_objective(
-                    xsum(items, [&](auto i) { return values[i] * ref_X(i); }) +
-                    xsum(items_pairs, [&](auto p) {
-                        auto [i, j] = p;
-                        return qvalue(i, j) * ref_Z(i, j);
-                    }));
-                model.add_constraints(items_pairs, [&](auto p) {
-                    auto [i, j] = p;
-                    return ref_Z(i, j) <= 20 * ref_X(i);
+        auto solve_within = [&, parent = this](std::size_t num_items,
+                                               seconds limit) {
+            auto items = std::views::iota(std::size_t{0}, num_items);
+            auto num_items_pairs = num_items * (num_items - 1) / 2;
+            auto items_pairs = std::views::filter(
+                std::views::cartesian_product(items, items),
+                [](auto && p) { return std::get<0>(p) < std::get<1>(p); });
+            const int budget =
+                static_cast<int>(6.69 * static_cast<double>(num_items));
+
+            auto model = parent->new_model();
+            auto ref_X = model.add_binary_variables(num_items);
+            auto ref_Z = model.add_variables(
+                num_items_pairs, [&](std::size_t i, std::size_t j) {
+                    assert(i < j);
+                    return j * num_items + i - ((j + 1) * (j + 2)) / 2;
                 });
-                model.add_constraints(items_pairs, [&](auto p) {
+            model.set_maximization();
+            model.set_objective(
+                xsum(items, [&](auto i) { return values[i] * ref_X(i); }) +
+                xsum(items_pairs, [&](auto p) {
                     auto [i, j] = p;
-                    return ref_Z(i, j) <= 20 * ref_X(j);
-                });
-                model.add_constraints(items_pairs, [&](auto p) {
-                    auto [i, j] = p;
-                    return ref_Z(i, j) >= ref_X(1) + ref_X(j) - 1;
-                });
-                model.add_constraint(xsum(items, [&](auto i) {
-                                         return costs[i] * ref_X(i);
-                                     }) <= budget);
+                    return qvalue(i, j) * ref_Z(i, j);
+                }));
+            model.add_constraints(items_pairs, [&](auto p) {
+                auto [i, j] = p;
+                return ref_Z(i, j) <= 20 * ref_X(i);
+            });
+            model.add_constraints(items_pairs, [&](auto p) {
+                auto [i, j] = p;
+                return ref_Z(i, j) <= 20 * ref_X(j);
+            });
+            model.add_constraints(items_pairs, [&](auto p) {
+                auto [i, j] = p;
+                return ref_Z(i, j) >= ref_X(1) + ref_X(j) - 1;
+            });
+            model.add_constraint(xsum(items, [&](auto i) {
+                                     return costs[i] * ref_X(i);
+                                 }) <= budget);
 
-                model.set_time_limit(limit);
+            model.set_time_limit(limit);
 
-                // steady_clock: monotonic, unaffected by wall-clock adjustments.
-                auto start = std::chrono::steady_clock::now();
-                model.solve();
-                auto end = std::chrono::steady_clock::now();
-                return std::chrono::duration_cast<std::chrono::duration<double>>(
-                    end - start);
-            };
+            // steady_clock: monotonic, unaffected by wall-clock adjustments.
+            auto start = std::chrono::steady_clock::now();
+            model.solve();
+            auto end = std::chrono::steady_clock::now();
+            return std::chrono::duration_cast<seconds>(end - start);
+        };
 
-        using seconds = std::chrono::duration<double>;
+        // The limit must exceed the largest indivisible chunk of solver work on
+        // these instances (the root relaxation and its cut rounds): a time
+        // limit is only honoured at the solver's polling granularity, checked
+        // between branch-and-bound nodes and never in the middle of the root.
+        constexpr seconds limit{1.0};
+        // Absolute allowance for the last, unfinished chunk of work plus
+        // machine/CI-load variance -- absolute rather than proportional on
+        // purpose, proportional bounds being what made the previous version of
+        // this test flaky.
+        constexpr seconds overshoot{1.0};
+        // ~1.26x more items per step, hence ~1.6x more variables and
+        // constraints: difficulty ramps up fast while the number of solves
+        // stays small. 100 items is all the data arrays above hold.
+        constexpr std::size_t sizes[] = {15, 25, 32, 40, 50, 63, 79, 100};
 
-        // A limit chosen comfortably above the solvers' root-relaxation cost: a
-        // time limit is only honoured at the solver's polling granularity (it is
-        // checked between branch-and-bound nodes, never in the middle of the
-        // root), so a limit smaller than one such indivisible chunk cannot be
-        // respected. 5s clears that floor for every supported solver on this
-        // instance while keeping the test short.
-        constexpr seconds limit{5.0};
-        // Overshoot allowance: an *absolute*, generous slack that absorbs the
-        // last (unfinished) chunk of work plus machine/CI-load variance. Using
-        // an absolute band instead of a proportional one is the whole point --
-        // the proportional bounds of the previous version were what randomly
-        // failed under load.
-        constexpr seconds overshoot{2.5};
-
-        const seconds solve_time = solve_within(limit);
-
-        // If the solver closed the instance before the limit fired there was
-        // nothing to interrupt on this machine, so the behaviour cannot be
-        // exercised here -- skip rather than assert on a solve that finished on
-        // its own terms.
-        if(solve_time < limit - overshoot) {
-            GTEST_SKIP() << "solver closed the instance in " << solve_time.count()
-                         << "s, before the " << limit.count()
-                         << "s limit could interrupt it";
+        int interrupted_solves = 0;
+        for(const std::size_t num_items : sizes) {
+            const seconds solve_time = solve_within(num_items, limit);
+            std::cout << num_items << " items: " << solve_time.count() << "s"
+                      << std::endl;
+            // The contract under test: whatever the instance, the limit caps
+            // the running time up to one indivisible chunk of solver work.
+            ASSERT_LE(solve_time.count(), (limit + overshoot).count())
+                << "with " << num_items << " items";
+            // Solved to optimality before the limit could fire: nothing was
+            // interrupted, grow the instance.
+            if(solve_time < 0.9 * limit) continue;
+            // The limit clamped this solve; seeing the clamp on two growing
+            // sizes -- ever harder instances finishing right at the limit --
+            // makes the interruption unambiguous.
+            if(++interrupted_solves == 2) return;
         }
-
-        // The contract under test: the time limit caps the running time (up to
-        // one indivisible chunk of solver work). A solver that ignored the limit
-        // would keep running far past this bound on so hard an instance.
-        ASSERT_LE(solve_time.count(), (limit + overshoot).count());
+        GTEST_SKIP()
+            << "the solver closed even the largest instance before the "
+            << limit.count() << "s limit could interrupt it";
     });
 }
 

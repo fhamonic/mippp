@@ -75,10 +75,11 @@ model.set_candidate_solution_callback([&](auto & handle) {
 for(;;) {
     model.solve();
     auto duals = model.get_dual_solution();
-    auto pattern = solve_pricing(duals);            // your subproblem
-    if(reduced_cost(pattern) >= -epsilon) break;    // no improving column left
-    model.add_column(columns_of(pattern), {.obj_coef = 1});
+    auto && [pattern, reduce_cost] = solve_pricing(duals);  // your subproblem
+    if(reduce_cost >= -epsilon) break;  // no improving column left
+    model.add_column(column_from(pattern), {.obj_coef = 1});
 }
+auto solution = model.get_solution();
 ```
 
 For large-scale pricing, a `column_manager` layers on compile-time *column properties* (reduced-cost windows, age, …) and pluggable activation/eviction strategies. Full runnable versions of all three live in [`examples/`](examples/).

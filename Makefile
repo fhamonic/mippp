@@ -19,6 +19,7 @@ package:
 	conan create . -u -b=missing -pr=${CONAN_PROFILE} -c tools.build:skip_test=true
 
 doc:
+	python docs/assets/features_tables/tested_features_table.py
 	zensical serve
 
 clean:

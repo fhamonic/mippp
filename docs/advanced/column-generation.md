@@ -9,9 +9,9 @@ MIP++ provides the first two as first-class operations (concepts `has_dual_solut
 for(;;) {
     model.solve();
     auto duals = model.get_dual_solution();
-    auto pattern = solve_pricing(duals);            // your subproblem
-    if(reduced_cost(pattern) >= -epsilon) break;    // no improving column left
-    model.add_column(columns_of(pattern), {.obj_coef = 1});
+    auto column = solve_pricing(duals);            // your subproblem
+    if(reduced_cost(column) >= -epsilon) break;    // no improving column left
+    model.add_column(column, {.obj_coef = 1});
 }
 ```
 
@@ -31,31 +31,32 @@ for(;;) {
 [`examples/cutting_stock.cpp`](https://github.com/fhamonic/mippp/blob/main/examples/cutting_stock.cpp) is a complete, runnable implementation — the pricing subproblem (an unbounded knapsack over the current duals) is a small dynamic program, so the example depends only on MIP++. The essential parts:
 
 ```cpp
-// Master: one demand-covering constraint per order, retrievable by order.
-auto demand_constrs = model.add_constraints(orders, [&](int o) {
-    return xsum(std::views::iota(0, int(patterns.size())),
-                [&, o](int p) { return patterns[p][o] * vars[p]; })
-           >= demand[o];
-});
+// Master: one demand-covering constraint per order, retrievable by order_id.
+auto demand_constrs =
+    model.add_constraints(order_ids, [&](auto order_id) {
+        auto && demanded_quantity = orders[order_id].first;
+        return xsum(activated_patterns, [&, order_id](auto && p) {
+                    auto && [var, pattern] = p;
+                    return pattern[order_id] * var;
+                }) >= demanded_quantity;
+    });
 
 for(;;) {
     model.solve();
-    auto duals = model.get_dual_solution();
+    auto dual_solution = model.get_dual_solution();
 
-    for(int o : orders) value[o] = duals[demand_constrs(o)];  // duals by key
+    auto [pattern, reduced_cost] = price(orders, dual_solution, roll_length);
+    if(reduced_cost <= -1e-9) break;  // no column with negative reduced cost
 
-    auto [best, counts] = price(length, value, roll_length);
-    if(best <= 1.0 + 1e-9) break;  // no column with negative reduced cost
-
-    // New pattern: a column with entry counts[o] in each demand row it serves.
-    vars.push_back(model.add_column(
-        orders | std::views::filter([&](int o) { return counts[o] > 0; })
-               | std::views::transform([&](int o) {
-                     return std::make_pair(demand_constrs(o),
-                                           double(counts[o]));
-                 }),
-        {.obj_coef = 1, .lower_bound = 0}));
-    patterns.push_back(std::move(counts));
+    // New pattern: a column with positive entry in each demand row it serves.
+    activated_patterns.emplace_back(
+        model.add_column(std::views::transform(order_ids, [&](auto order_id) {
+                                      return std::make_pair(
+                                          demand_constrs(order_id),
+                                          pattern[order_id]);
+                                  }),
+                        {.obj_coef = 1, .lower_bound = 0}),
+        std::move(pattern));
 }
 ```
 

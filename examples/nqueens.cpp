@@ -29,7 +29,7 @@ int main(int argc, char ** argv) {
     // One binary variable per board cell; X(row, col) is an O(1) lookup.
     auto X = model.add_binary_variables(
         n * n, [n](int row, int col) { return row * n + col; });
-
+        
     // Exactly one queen per row and per column. The inner lambda captures the
     // outer loop parameter *by value* (e.g. [&, row]) because add_constraints
     // registers the xsum expression lazily: capturing it by reference would
@@ -42,19 +42,19 @@ int main(int argc, char ** argv) {
     });
     // At most one queen on each diagonal, in both directions.
     model.add_constraints(std::views::iota(0, n - 1), [&](int top_col) {
-        return xsum(std::views::iota(0, n - top_col),
-                    [&, top_col](int row) { return X(row, top_col + row); }) <=
-               1;
+        return xsum(std::views::iota(0, n - top_col), [&, top_col](int row) {
+                   return X(row, top_col + row);
+               }) <= 1;
     });
     model.add_constraints(std::views::iota(1, n - 1), [&](int left_row) {
-        return xsum(std::views::iota(0, n - left_row),
-                    [&, left_row](int col) { return X(left_row + col, col); }) <=
-               1;
+        return xsum(std::views::iota(0, n - left_row), [&, left_row](int col) {
+                   return X(left_row + col, col);
+               }) <= 1;
     });
     model.add_constraints(std::views::iota(1, n), [&](int left_row) {
-        return xsum(std::views::iota(0, left_row + 1),
-                    [&, left_row](int col) { return X(left_row - col, col); }) <=
-               1;
+        return xsum(std::views::iota(0, left_row + 1), [&, left_row](int col) {
+                   return X(left_row - col, col);
+               }) <= 1;
     });
     model.add_constraints(std::views::iota(1, n - 1), [&](int bottom_col) {
         return xsum(std::views::iota(bottom_col, n), [&, bottom_col](int col) {
