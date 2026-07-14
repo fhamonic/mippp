@@ -100,6 +100,16 @@ public:
                            NULL));
         return constraint_mapping(std::move(dual_solution));
     }
+    auto get_reduced_costs() {
+        auto reduced_costs =
+            std::make_unique_for_overwrite<double[]>(num_variables());
+        check(CPX.solution(env, lp, NULL, NULL, NULL, NULL, NULL,
+                           reduced_costs.get()));
+        return variable_mapping([this, reduced_costs = std::move(
+                                           reduced_costs)](const variable & v) {
+            return *(reduced_costs.get() + _native_id(v));
+        });
+    }
 };
 
 }  // namespace cplex::v22_12

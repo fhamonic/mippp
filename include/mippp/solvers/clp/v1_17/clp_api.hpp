@@ -66,6 +66,7 @@ int Clp_isProvenDualInfeasible(Clp_Simplex * model);
 double Clp_getObjValue(Clp_Simplex * model);
 double * Clp_primalColumnSolution(Clp_Simplex * model);
 double * Clp_dualRowSolution(Clp_Simplex * model);
+double * Clp_dualColumnSolution(Clp_Simplex * model);
 
 void Clp_loadProblem(Clp_Simplex * model, const int numcols, const int numrows,
                      const CoinBigIndex * start, const int * index,
@@ -123,6 +124,7 @@ namespace clp::v1_17 {
     F(Clp_getObjValue, getObjValue)                           \
     F(Clp_primalColumnSolution, primalColumnSolution)         \
     F(Clp_dualRowSolution, dualRowSolution)                   \
+    F(Clp_dualColumnSolution, dualColumnSolution)             \
     F(Clp_loadProblem, loadProblem)
 
 #define DECLARE_CLP_FUN(FULL, SHORT)      \

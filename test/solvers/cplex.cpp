@@ -17,6 +17,7 @@ INSTANTIATE_TEST(CPLEX_lp, AddColumnTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, RemoveVariableTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ReadableConstraintsTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, DualSolutionTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, ReducedCostsTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, LpStatusTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, CuttingStockTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ColumnManagerTest, cplex_lp_test);

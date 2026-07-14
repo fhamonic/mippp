@@ -15,6 +15,7 @@ INSTANTIATE_TEST(COPT_lp, ModifiableVariablesBoundsTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, NamedVariablesTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, AddColumnTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, DualSolutionTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_lp, ReducedCostsTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, LpStatusTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, CuttingStockTest, copt_lp_test);
 

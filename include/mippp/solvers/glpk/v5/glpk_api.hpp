@@ -132,6 +132,7 @@ int glp_get_dual_stat(glp_prob * P);
 double glp_get_obj_val(glp_prob * P);
 double glp_get_col_prim(glp_prob * P, int j);
 double glp_get_row_dual(glp_prob * P, int i);
+double glp_get_col_dual(glp_prob * P, int j);
 
 constexpr int GLP_BR_FFV = 1;  // br_tech: first fractional variable
 constexpr int GLP_BR_LFV = 2;  // br_tech: last fractional variable
@@ -236,6 +237,7 @@ namespace glpk::v5 {
     F(glp_get_obj_val, get_obj_val)     \
     F(glp_get_col_prim, get_col_prim)   \
     F(glp_get_row_dual, get_row_dual)   \
+    F(glp_get_col_dual, get_col_dual)   \
     F(glp_intopt, intopt)               \
     F(glp_intfeas1, intfeas1)           \
     F(glp_mip_obj_val, mip_obj_val)     \

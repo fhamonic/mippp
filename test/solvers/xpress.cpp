@@ -15,6 +15,7 @@ INSTANTIATE_TEST(Xpress_lp, ModifiableVariablesBoundsTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, NamedVariablesTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, AddColumnTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, DualSolutionTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_lp, ReducedCostsTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, LpStatusTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, CuttingStockTest, xpress_lp_test);
 

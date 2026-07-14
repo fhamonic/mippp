@@ -15,6 +15,7 @@ INSTANTIATE_TEST(GLPK_lp, ModifiableVariablesBoundsTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, NamedVariablesTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, AddColumnTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, DualSolutionTest, glpk_lp_test);
+INSTANTIATE_TEST(GLPK_lp, ReducedCostsTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, LpStatusTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, CuttingStockTest, glpk_lp_test);
 

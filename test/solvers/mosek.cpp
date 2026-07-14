@@ -15,6 +15,7 @@ INSTANTIATE_TEST(MOSEK_lp, ModifiableVariablesBoundsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, NamedVariablesTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, AddColumnTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, DualSolutionTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, ReducedCostsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, CuttingStockTest, mosek_lp_test);
 

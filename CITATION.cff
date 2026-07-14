@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use MIP++ in academic work, please cite it as below."
+type: software
+title: "MIP++"
+abstract: >-
+  Header-only C++26 library for linear, mixed-integer and quadratic
+  programming — one model, any solver, at raw C API speed.
+authors:
+  - family-names: Hamonic
+    given-names: François
+    email: francois.hamonic@gmail.com
+repository-code: "https://github.com/fhamonic/mippp"
+license: BSL-1.0
+version: 1.0.0

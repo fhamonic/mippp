@@ -201,6 +201,10 @@ MSKrescodee MSK_getsolution(MSKtask_t task, MSKsoltypee whichsol,
                             MSKrealt * slx, MSKrealt * sux, MSKrealt * snx);
 MSKrescodee MSK_deletesolution(MSKtask_t task, MSKsoltypee whichsol);
 
+MSKrescodee MSK_getreducedcosts(MSKtask_t task, MSKsoltypee whichsol,
+                                MSKint32t first, MSKint32t last,
+                                MSKrealt * redcosts);
+
 enum MSKcallbackcodee : int {
     MSK_CALLBACK_BEGIN_BI = 0,
     MSK_CALLBACK_BEGIN_CONIC = 1,
@@ -386,7 +390,8 @@ namespace mosek::v11 {
     F(MSK_putxxslice, putxxslice)                       \
     F(MSK_getxx, getxx)                                 \
     F(MSK_getsolution, getsolution)                     \
-    F(MSK_deletesolution, deletesolution)
+    F(MSK_deletesolution, deletesolution)               \
+    F(MSK_getreducedcosts, getreducedcosts)
 
 #define DECLARE_MOSEK_FUN(FULL, SHORT)    \
     using SHORT##_fun_t = decltype(FULL); \

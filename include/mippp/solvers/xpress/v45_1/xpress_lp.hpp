@@ -76,6 +76,13 @@ public:
                             static_cast<int>(num_constrs) - 1));
         return constraint_mapping(std::move(dual_solution));
     }
+    auto get_reduced_costs() {
+        const auto num_vars = num_variables();
+        auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
+        check(XPRS.getredcosts(prob, NULL, reduced_costs.get(), 0,
+                               static_cast<int>(num_vars) - 1));
+        return variable_mapping(std::move(reduced_costs));
+    }
 };
 
 }  // namespace xpress::v45_1

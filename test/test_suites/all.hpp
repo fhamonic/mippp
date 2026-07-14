@@ -63,6 +63,7 @@ struct model_test : public ::testing::Test {
 #include "readable_constraints.hpp"
 #include "readable_objective.hpp"
 #include "readable_variables_bounds.hpp"
+#include "reduced_costs.hpp"
 #include "remove_variable.hpp"
 #include "sudoku.hpp"
 #include "time_limit.hpp"

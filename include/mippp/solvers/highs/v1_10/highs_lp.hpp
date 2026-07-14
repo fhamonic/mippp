@@ -73,6 +73,15 @@ public:
         check(Highs.getSolution(model, NULL, NULL, NULL, solution.get()));
         return constraint_mapping(std::move(solution));
     }
+    auto get_reduced_costs() {
+        auto num_vars = num_variables();
+        auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
+        check(Highs.getSolution(model, NULL, reduced_costs.get(), NULL, NULL));
+        return variable_mapping([this, reduced_costs = std::move(
+                                           reduced_costs)](const variable & v) {
+            return *(reduced_costs.get() + _native_id(v));
+        });
+    }
 };
 
 }  // namespace highs::v1_10

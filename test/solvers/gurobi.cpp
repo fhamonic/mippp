@@ -18,6 +18,7 @@ INSTANTIATE_TEST(Gurobi_lp, RemoveVariableTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableConstraintsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpStatusTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, DualSolutionTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, ReducedCostsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, CuttingStockTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ColumnManagerTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpFuzzyTest, gurobi_lp_test);

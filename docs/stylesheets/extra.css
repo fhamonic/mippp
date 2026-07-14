@@ -1,0 +1,68 @@
+/* MIP++ brand palette (from the logo):
+   MIP_blue1  #004580   MIP_blue2  #36709E
+   MIP_yellow #949C26   MIP_red    #A63D29 */
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #004580;
+  --md-primary-fg-color--light: #36709E;
+  --md-primary-fg-color--dark: #003059;
+  --md-accent-fg-color: #A63D29;
+  --md-accent-fg-color--transparent: #a63d291a;
+  --md-typeset-a-color: #36709E;
+  --mip-yellow: #6B7119; /* darkened for contrast on light */
+  --mip-hero-title: #004580;
+}
+
+[data-md-color-scheme="slate"] {
+  /* shift the dark background hue towards the brand blue */
+  --md-hue: 210;
+  --md-primary-fg-color: #004580;
+  --md-primary-fg-color--light: #36709E;
+  --md-primary-fg-color--dark: #003059;
+  /* lightened tints of MIP_red / MIP_blue2 to keep contrast on dark */
+  --md-accent-fg-color: #D07A66;
+  --md-accent-fg-color--transparent: #d07a661a;
+  --md-typeset-a-color: #7FB0D6;
+  --mip-yellow: #B5BE3F;
+  --mip-hero-title: #7FB0D6;
+}
+
+/* outline buttons default to primary-colored text, unreadable on dark */
+[data-md-color-scheme="slate"] .md-typeset .md-button:not(.md-button--primary) {
+  color: var(--md-typeset-a-color);
+}
+
+/* yellow as a discreet structural accent */
+.md-typeset table:not([class]) th {
+  border-bottom: 0.12rem solid var(--mip-yellow);
+}
+.md-typeset blockquote {
+  border-left-color: var(--mip-yellow);
+}
+
+/* landing page hero */
+.mip-hero {
+  text-align: center;
+  margin: 0.5rem 0 2rem;
+}
+.mip-hero img {
+  width: min(17rem, 60vw);
+  margin-bottom: 0.5rem;
+}
+.mip-hero h1 {
+  margin: 0 0 0.4rem;
+  color: var(--mip-hero-title);
+}
+.mip-hero p {
+  max-width: 34rem;
+  margin: 0.6rem auto 1.2rem;
+}
+.mip-hero hr {
+  width: 4rem;
+  margin: 1.2rem auto 0;
+  border: none;
+  border-top: 0.2rem solid var(--mip-yellow);
+}
+.mip-hero .md-button {
+  margin: 0.25rem 0.35rem;
+}

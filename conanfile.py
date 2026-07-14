@@ -10,7 +10,7 @@ class CompressorRecipe(ConanFile):
     name = "mippp"
     version = "1.0.0"
     license = "BSL-1.0"
-    description = "A modern interface for linear programming solvers using C++20 ranges and concepts."
+    description = "A modern interface for linear programming solvers using C++26 ranges and concepts."
     homepage = "https://github.com/fhamonic/mippp.git"
     # url = ""
     settings = "os", "compiler", "arch", "build_type"

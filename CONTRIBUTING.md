@@ -188,7 +188,7 @@ layout of an existing backend such as
 
 Then add a `test/solvers/<name>.cpp` file that instantiates the shared test
 suites (see above) and register it in [test/CMakeLists.txt](test/CMakeLists.txt).
-Update the feature tables in [misc/features_tables/](misc/features_tables/) and
+Update the feature tables in [docs/assets/features_tables/](docs/assets/features_tables/) and
 the solver list in the README.
 
 ## Submitting changes

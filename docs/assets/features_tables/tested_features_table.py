@@ -10,6 +10,8 @@ def find_cpp_files(root_folder):
     cpp_files = []
     for root, _, files in os.walk(root_folder):
         for file in files:
+            if file == "dumb.cpp":
+                continue
             if file.endswith(".cpp"):
                 cpp_files.append(os.path.join(root, file))
     return cpp_files
@@ -47,6 +49,7 @@ formated_test_names = [
     ("AddColumnTest", "Add column"),
     ("RemoveVariableTest", "Remove variable"),
     ("DualSolutionTest", "Dual solution"),
+    ("ReducedCostsTest", "Reduced costs"),
     ("CuttingStockTest", "Cutting stock example"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),
     ("TravellingSalesmanTest", "Travelling Salesman example"),
@@ -226,7 +229,7 @@ def compute_width(table, res):
 
 def main():
     root_path = os.path.dirname(sys.argv[0])
-    tests_folder = f"{root_path}/../../test/solvers"
+    tests_folder = f"{root_path}/../../../test/solvers"
     cpp_files = find_cpp_files(tests_folder)
     lp_table, milp_table = parse_instantiate_lines(cpp_files)
 

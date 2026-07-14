@@ -83,6 +83,17 @@ public:
                                   solution.get()));
         return constraint_mapping(std::move(solution));
     }
+    auto get_reduced_costs() {
+        auto reduced_costs =
+            std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
+        check(GRB.getdblattrarray(model, GRB_DBL_ATTR_RC, 0,
+                                  static_cast<int>(_num_var_native_ids),
+                                  reduced_costs.get()));
+        return variable_mapping([this, reduced_costs = std::move(
+                                           reduced_costs)](const variable & v) {
+            return *(reduced_costs.get() + _native_id(v));
+        });
+    }
 
     // void set_basic(variable v);
     // void set_non_basic(variable v);

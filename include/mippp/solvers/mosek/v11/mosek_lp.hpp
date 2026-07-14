@@ -28,7 +28,9 @@ public:
             throw std::runtime_error("Mosek : problem ill posed.");
     }
 
-    bool proven_optimal() { return lp_status == MSK_PRO_STA_PRIM_AND_DUAL_FEAS; }
+    bool proven_optimal() {
+        return lp_status == MSK_PRO_STA_PRIM_AND_DUAL_FEAS;
+    }
     bool proven_infeasible() {
         return lp_status == MSK_PRO_STA_PRIM_INFEAS ||
                lp_status == MSK_PRO_STA_PRIM_AND_DUAL_INFEAS;
@@ -53,6 +55,14 @@ public:
                               NULL, NULL, dual_solution.get(), NULL, NULL, NULL,
                               NULL, NULL));
         return constraint_mapping(std::move(dual_solution));
+    }
+    auto get_reduced_costs() {
+        const auto num_vars = num_variables();
+        auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
+        check(MSK.getreducedcosts(task, MSK_SOL_BAS, 0,
+                                  static_cast<int>(num_vars),
+                                  reduced_costs.get()));
+        return variable_mapping(std::move(reduced_costs));
     }
 };
 

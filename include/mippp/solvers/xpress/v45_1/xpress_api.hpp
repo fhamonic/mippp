@@ -72,6 +72,8 @@ int XPRSgetsolution(XPRSprob prob, int * status, double x[], int first,
                     int last);
 int XPRSgetduals(XPRSprob prob, int * status, double duals[], int first,
                  int last);
+int XPRSgetredcosts(XPRSprob prob, int * status, double djs[], int first,
+                    int last);
 
 enum LPStatus : int {
     XPRS_LP_UNSTARTED = 0,
@@ -159,6 +161,7 @@ namespace xpress::v45_1 {
     F(XPRSmipoptimize, mipoptimize)             \
     F(XPRSgetsolution, getsolution)             \
     F(XPRSgetduals, getduals)                   \
+    F(XPRSgetredcosts, getredcosts)             \
     F(XPRSsetdblcontrol, setdblcontrol)         \
     F(XPRSgetdblcontrol, getdblcontrol)         \
     F(XPRSaddmipsol, addmipsol)                 \

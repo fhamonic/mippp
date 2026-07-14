@@ -1,0 +1,76 @@
+# Documentation site (Zensical, successor of Material for MkDocs).
+# Preview locally with:  pip install zensical && zensical serve
+
+[project]
+site_name = "MIP++"
+site_description = "Header-only C++26 library for linear, mixed-integer and quadratic programming — one model, any solver, at raw C API speed."
+site_url = "https://fhamonic.github.io/mippp/"
+repo_url = "https://github.com/fhamonic/mippp"
+repo_name = "fhamonic/mippp"
+edit_uri = "edit/main/docs/"
+
+extra_css = ["stylesheets/extra.css"]
+
+nav = [
+  { "Home" = "index.md" },
+  { "Getting started" = [
+    { "Why MIP++" = "getting-started/index.md" },
+    { "Installation" = "getting-started/installation.md" },
+    { "A first model" = "getting-started/first-model.md" },
+    { "Expressions and constraints" = "getting-started/expressions.md" },
+    { "Choosing a solver" = "getting-started/solvers.md" },
+  ] },
+  { "Advanced topics" = [
+    { "Branch-and-cut callbacks" = "advanced/callbacks.md" },
+    { "Column generation" = "advanced/column-generation.md" },
+  ] },
+  { "Reference" = [
+    { "Model concepts" = "reference/concepts.md" },
+  ] },
+]
+
+[project.validation.links]
+anchors = "warn"
+
+[project.theme]
+# Keep the traditional Material for MkDocs look.
+variant = "classic"
+logo = "assets/logo.png"
+favicon = "assets/logo.png"
+features = [
+  "navigation.sections",
+  "navigation.top",
+  "navigation.footer",
+  "content.code.copy",
+  "search.suggest",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "material/weather-night"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "material/weather-sunny"
+toggle.name = "Switch to light mode"
+
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.md_in_html]
+[project.markdown_extensions.tables]
+[project.markdown_extensions.toc]
+permalink = true
+[project.markdown_extensions.pymdownx.details]
+[project.markdown_extensions.pymdownx.superfences]
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true

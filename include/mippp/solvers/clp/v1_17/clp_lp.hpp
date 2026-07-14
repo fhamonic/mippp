@@ -489,6 +489,9 @@ public:
     auto get_dual_solution() {
         return constraint_mapping(Clp.dualRowSolution(model));
     }
+    auto get_reduced_costs() {
+        return variable_mapping(Clp.dualColumnSolution(model));
+    }
 };
 
 }  // namespace clp::v1_17

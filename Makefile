@@ -18,6 +18,9 @@ test:
 package:
 	conan create . -u -b=missing -pr=${CONAN_PROFILE} -c tools.build:skip_test=true
 
+doc:
+	zensical serve
+
 clean:
 	@rm -rf CMakeUserPresets.json
 	@rm -rf $(BUILD_DIR)

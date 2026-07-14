@@ -40,10 +40,16 @@ public:
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
-        auto solution =
+        auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(COPT.GetLpSolution(prob, NULL, NULL, solution.get(), NULL));
-        return constraint_mapping(std::move(solution));
+        check(COPT.GetLpSolution(prob, NULL, NULL, dual_solution.get(), NULL));
+        return constraint_mapping(std::move(dual_solution));
+    }
+    auto get_reduced_costs() {
+        auto reduced_costs =
+            std::make_unique_for_overwrite<double[]>(num_variables());
+        check(COPT.GetLpSolution(prob, NULL, NULL, NULL, reduced_costs.get()));
+        return variable_mapping(std::move(reduced_costs));
     }
 };
 

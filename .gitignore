@@ -1,4 +1,5 @@
 .vscode
+.cache
 /build
 /build_mingw
 *.log
@@ -8,3 +9,4 @@ CMakeUserPresets.json
 *.tex
 *.pdf
 *.blend1
+/site

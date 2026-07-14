@@ -3,8 +3,7 @@
 // The model is written once against the generic API; pick any backend by
 // changing the two aliases below. Here we use HiGHS (open source).
 
-#include <format>
-#include <iostream>
+#include <print>
 
 #include "mippp/solvers/highs/all.hpp"
 
@@ -29,7 +28,7 @@ int main() {
     model.solve();
     auto sol = model.get_solution();
 
-    std::cout << std::format("objective = {}\n", model.get_solution_value());
-    std::cout << std::format("x1 = {}, x2 = {}\n", sol[x1], sol[x2]);
+    std::print("objective = {}\n", model.get_solution_value());
+    std::print("x1 = {}, x2 = {}\n", sol[x1], sol[x2]);
     return 0;
 }

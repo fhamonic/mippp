@@ -17,6 +17,7 @@ INSTANTIATE_TEST(HiGHS_lp, AddColumnTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, RemoveVariableTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ReadableConstraintsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, DualSolutionTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, ReducedCostsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpStatusTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, CuttingStockTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ColumnManagerTest, highs_lp_test);

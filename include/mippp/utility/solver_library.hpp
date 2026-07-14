@@ -145,24 +145,23 @@ inline std::optional<std::filesystem::path> find_library_in_dir(
 // resolution precedence shared by every `<solver>_api` backend (first match
 // wins):
 //
-//   1. the `MIPPP_<key>_LIBRARY` environment variable: used verbatim as the
+//   1. an explicit path passed by the caller (`path` non-null): used verbatim
+//      as the full path of the exact library file;
+//   2. the `MIPPP_<key>_LIBRARY` environment variable: used verbatim as the
 //      full path to the exact library file (no decoration), so version-suffixed
 //      sonames such as `libhighs.so.1.10.0` can be named explicitly;
-//   2. an explicit directory passed by the caller (`dir` non-empty): each
-//      candidate name is looked up (decorated, then version-suffixed) there;
 //   3. otherwise each candidate name is searched across the dynamic loader's
 //      directories (see `detail::system_library_dirs`).
 //
-// Several `default_names` may be given for solvers whose C API library is named
+// Several `names` may be given for solvers whose C API library is named
 // differently across releases (e.g. Cbc ships it as `libCbc` or
 // `libCbcSolver`); they are tried in order. dylib 3.0 requires a path and no
 // longer searches system directories by name, so MIP++ performs that search
 // itself. Set `MIPPP_<key>_LIBRARY` to load a specific file deterministically.
 //
-//   key           uppercase solver identifier used in the env var, e.g. "HIGHS"
-//   default_names undecorated candidate names, e.g. "highs" -> libhighs.so
-//   dir           optional directory explicitly requested by the caller
-//   name          optional library name overriding `default_names`
+//   path  optional full path of the library file requested by the caller
+//   key   uppercase solver identifier used in the env var, e.g. "HIGHS"
+//   names undecorated candidate names, e.g. "highs" -> libhighs.so
 inline dylib::library load_solver_library(
     const char * path, const char * key,
     std::initializer_list<const char *> names) {

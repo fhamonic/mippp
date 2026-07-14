@@ -16,6 +16,7 @@ INSTANTIATE_TEST(Clp, NamedVariablesTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, AddColumnTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, RemoveVariableTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, DualSolutionTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, ReducedCostsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, LpStatusTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, CuttingStockTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ColumnManagerTest, clp_lp_test);

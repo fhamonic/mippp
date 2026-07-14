@@ -92,6 +92,15 @@ public:
         }
         return constraint_mapping(std::move(solution));
     }
+    auto get_reduced_costs() {
+        auto num_vars = num_variables();
+        auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
+        for(std::size_t var = 0u; var < num_vars; ++var) {
+            reduced_costs[var] =
+                glp.get_col_dual(model, static_cast<int>(var) + 1);
+        }
+        return variable_mapping(std::move(reduced_costs));
+    }
 };
 
 }  // namespace glpk::v5
