@@ -67,7 +67,7 @@ public:
             tmp_indices.emplace_back(_native_id(var2));
             tmp_scalars.emplace_back(2 * coef);
         }
-        while(next_row <= static_cast<int>(num_vars))
+        while(next_row < static_cast<int>(num_vars))
             tmp_begins[static_cast<std::size_t>(next_row++)] =
                 static_cast<HighsInt>(tmp_scalars.size());
         check(Highs.passHessian(
