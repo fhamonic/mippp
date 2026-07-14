@@ -60,24 +60,30 @@ For complete, runnable programs (N-Queens, TSP with lazy constraints, cutting-st
 | --- | :-: | :-: | :-: |
 | HiGHS | ✓ | ✓ | ✓ |
 | Gurobi, CPLEX, Xpress, COPT, MOSEK, GLPK | ✓ | ✓ | |
-| SCIP, Cbc | | ✓ | |
+| Cbc, SCIP | | ✓ | |
 | Clp, SoPlex | ✓ | | |
 
-Per-feature support (duals, callbacks, MIP starts, …) varies by backend and is detailed in [Choosing a solver](getting-started/solvers.md).
+<sub>Per-feature support (duals, callbacks, MIP starts, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/getting-started/solvers/).</sub>
 
 ## Performance
 
-Model-creation time for the N-Queens problem (`N²` binary variables, `6N−6` constraints), relative to the raw Gurobi C API — lower is better, 1.0× = C speed:
+Model-creation time for the N-Queens problem (`N²` binary variables, `6N−6` constraints), relative to the Gurobi C API — **lower is better, 1.0× = C speed**:
 
 | N | C | **MIP++** | gurobipy | Python-MIP | JuMP (warm) |
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 500 | 1.0× | **1.1×** | 289× | 305× | 14.5× |
 | 1000 | 1.0× | **1.1×** | 552× | 542× | 24.1× |
 
-Benchmark code, setup, and raw per-solver timings: [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
+Benchmark code, setup, and raw per-solver timings:
+[mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
 
-## License and citing
+## Acknowledgements
 
-MIP++ is distributed under the [Boost Software License 1.0](https://github.com/fhamonic/mippp/blob/main/LICENSE).
-If you use it in academic work, please cite it — see [`CITATION.cff`](https://github.com/fhamonic/mippp/blob/main/CITATION.cff).
-Contributions are welcome: [CONTRIBUTING.md](https://github.com/fhamonic/mippp/blob/main/CONTRIBUTING.md).
+This work is grounded in the PhD thesis and postdoctoral positions of François Hamonic, funded by Région Sud and Natural Solutions (PhD grant), the ERC project SCALED (grant n°949812), the PEPR VDBI project RESILIENCE, and Aix-Marseille University's ITEM institute (postdoctoral positions).
+
+## Documentation, citing, license
+
+- 📖 Documentation: [fhamonic.github.io/mippp](https://fhamonic.github.io/mippp/) — sources live under [`docs/`](docs/).
+- 📄 If you use MIP++ in academic work, please cite it — see [`CITATION.cff`](CITATION.cff).
+- ⚖️ Licensed under the [Boost Software License 1.0](LICENSE).
+

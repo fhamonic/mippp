@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="200" height="200" src="docs/assets/mippp.png" alt=" MIP++ ">
+  <img width="256" height="238" src="docs/assets/mippp.png" alt=" MIP++ ">
 </p>
 
 #
