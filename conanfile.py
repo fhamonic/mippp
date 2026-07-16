@@ -47,11 +47,14 @@ class CompressorRecipe(ConanFile):
     def build(self):
         if self.conf.get("tools.build:skip_test", default=False):
             return
+        test_source = os.environ.get("TEST_SOURCE")
         test_filter = os.environ.get("TEST_FILTER")
 
         cmake = CMake(self)
 
         variables = {"ENABLE_TESTING": "ON"}
+        if test_source:
+            variables["TEST_SOURCE"] = test_source
         if test_filter:
             variables["TEST_FILTER"] = test_filter
         cmake.configure(variables=variables)

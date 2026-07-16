@@ -42,10 +42,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Update APT
         run: apt-get update && apt-get upgrade -y
-      - name: Install GCC-15, CMake and Git
+      - name: Install GCC-14, CMake and Git
         run: apt-get install -y gcc-14 g++-14 cmake git
       - name: Install open-source solvers
-        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev highs libhighs1 libglpk-dev 
+        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev 
       - name: Install Conan 2.0
         run: |
           apt install -y pipx
