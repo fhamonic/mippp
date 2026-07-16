@@ -6,16 +6,16 @@ from conan.tools.files import copy
 from conan.tools.build import check_min_cppstd
 
 
-class CompressorRecipe(ConanFile):
+class MipppRecipe(ConanFile):
     name = "mippp"
     version = "1.0.0"
     license = "BSL-1.0"
     description = "A modern interface for linear programming solvers using C++23 ranges and concepts."
-    homepage = "https://github.com/fhamonic/mippp.git"
-    # url = ""
+    homepage = "https://github.com/fhamonic/mippp"
+    url = "https://github.com/fhamonic/mippp"
     settings = "os", "compiler", "arch", "build_type"
     package_type = "header-library"
-    exports_sources = "include/*", "cmake/*", "CMakeLists.txt", "test/*"
+    exports_sources = "include/*", "cmake/*", "CMakeLists.txt", "test/*", "LICENSE.md"
     no_copy_source = True
     generators = "CMakeToolchain", "CMakeDeps"
     build_policy = "missing"
@@ -67,6 +67,8 @@ class CompressorRecipe(ConanFile):
 
     def package(self):
         copy(self, "*.hpp", self.source_folder, self.package_folder)
+        copy(self, "LICENSE.md", self.source_folder,
+             os.path.join(self.package_folder, "licenses"))
 
     def package_info(self):
         self.cpp_info.bindirs = []

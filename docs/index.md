@@ -85,5 +85,5 @@ This work is grounded in the PhD thesis and postdoctoral positions of François 
 
 - 📖 Documentation: [fhamonic.github.io/mippp](https://fhamonic.github.io/mippp/) — sources live under [`docs/`](https://github.com/fhamonic/mippp/tree/main/docs).
 - 📄 If you use MIP++ in academic work, please cite it — see [`CITATION.cff`](https://github.com/fhamonic/mippp/tree/main/CITATION.cff).
-- ⚖️ Licensed under the [Boost Software License 1.0](https://github.com/fhamonic/mippp/tree/main/LICENSE).
+- ⚖️ Licensed under the [Boost Software License 1.0](https://github.com/fhamonic/mippp/tree/main/LICENSE.md).
 
