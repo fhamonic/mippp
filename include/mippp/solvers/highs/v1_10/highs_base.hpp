@@ -225,7 +225,6 @@ protected:
                                const variable_params & params, int type) {
         if(_remap_ids) _extend_handle_ids_map(count);
         const std::size_t offset = _num_var_native_ids();
-        const int new_native_ids_begin = static_cast<int>(offset);
         const std::size_t handle_ids_begin =
             _new_var_handle_range(offset, count);
 
@@ -418,7 +417,7 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _register_constraint(const HighsInt & constr_id, const LC & lc) {
+    void _register_constraint(const LC & lc) {
         tmp_begins.emplace_back(static_cast<HighsInt>(tmp_indices.size()));
         const scalar b = lc.rhs();
         tmp_lower_bounds.emplace_back(
@@ -433,10 +432,9 @@ private:
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
-    void _register_first_valued_constraint(const HighsInt & constr_id,
-                                           const Key & key,
+    void _register_first_valued_constraint(const Key & key,
                                            const LastConstrLambda & lc_lambda) {
-        _register_constraint(constr_id, lc_lambda(key));
+        _register_constraint(lc_lambda(key));
     }
     template <typename Key, typename OptConstrLambda, typename... Tail>
         requires detail::optional_type<
@@ -444,13 +442,13 @@ private:
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
     void _register_first_valued_constraint(
-        const HighsInt & constr_id, const Key & key,
-        const OptConstrLambda & opt_lc_lambda, const Tail &... tail) {
+        const Key & key, const OptConstrLambda & opt_lc_lambda,
+        const Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _register_constraint(constr_id, opt_lc.value());
+            _register_constraint(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(constr_id, key, tail...);
+        _register_first_valued_constraint(key, tail...);
     }
 
 public:
@@ -463,8 +461,7 @@ public:
         const HighsInt offset = static_cast<HighsInt>(num_constraints());
         HighsInt constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(constr_id, key,
-                                              constraint_lambdas...);
+            _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
         check(Highs.addRows(model, static_cast<HighsInt>(tmp_begins.size()),

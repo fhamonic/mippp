@@ -206,9 +206,9 @@ private:
     std::function<void(candidate_solution_callback_handle &)>
         candidate_solution_callback;
 
-    static int candidate_solution_callback_fun(CPXCALLBACKCONTEXTptr context,
-                                               CPXLONG contextid,
-                                               void * userhandle) {
+    static int candidate_solution_callback_fun(
+        CPXCALLBACKCONTEXTptr context, [[maybe_unused]] CPXLONG contextid,
+        void * userhandle) {
         auto * model = static_cast<cplex_milp *>(userhandle);
         candidate_solution_callback_handle handle(model->CPX, context, model);
         model->candidate_solution_callback(handle);

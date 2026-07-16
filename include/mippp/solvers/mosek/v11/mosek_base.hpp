@@ -350,7 +350,7 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _register_constraint(const int & constr_id, const LC & lc) {
+    void _register_constraint(const LC & lc) {
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         tmp_boundkeye.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
@@ -358,10 +358,9 @@ private:
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
-    void _register_first_valued_constraint(const int & constr_id,
-                                           const Key & key,
+    void _register_first_valued_constraint(const Key & key,
                                            const LastConstrLambda & lc_lambda) {
-        _register_constraint(constr_id, lc_lambda(key));
+        _register_constraint(lc_lambda(key));
     }
     template <typename Key, typename OptConstrLambda, typename... Tail>
         requires detail::optional_type<
@@ -369,13 +368,13 @@ private:
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
     void _register_first_valued_constraint(
-        const int & constr_id, const Key & key,
-        const OptConstrLambda & opt_lc_lambda, const Tail &... tail) {
+        const Key & key, const OptConstrLambda & opt_lc_lambda,
+        const Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _register_constraint(constr_id, opt_lc.value());
+            _register_constraint(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(constr_id, key, tail...);
+        _register_first_valued_constraint(key, tail...);
     }
 
 public:
@@ -388,8 +387,7 @@ public:
         const indice offset = static_cast<indice>(num_constraints());
         indice constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(constr_id, key,
-                                              constraint_lambdas...);
+            _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
         check(MSK.appendcons(task, constr_id - offset));

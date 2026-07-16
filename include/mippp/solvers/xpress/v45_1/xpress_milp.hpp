@@ -111,16 +111,16 @@ private:
 public:
     class candidate_solution_callback_handle : public callback_handle_base {
     private:
-        int * reject;
+        int * _reject;
 
     public:
         candidate_solution_callback_handle(const xpress_api & api,
                                            XPRSprob prob_,
                                            const double obj_offset,
-                                           int * reject_)
-            : callback_handle_base(api, prob_, obj_offset) {}
+                                           int * reject)
+            : callback_handle_base(api, prob_, obj_offset), _reject(reject) {}
 
-        void reject_solution() { *reject = 1; }
+        void reject_solution() { *_reject = 1; }
 
         double get_solution_value() {
             double val;
@@ -141,8 +141,8 @@ private:
         candidate_solution_callback;
 
     static int candidate_solution_callback_fun(XPRSprob cbprob, void * cbdata,
-                                               int soltype, int * p_reject,
-                                               double * p_cutoff) {
+                                               [[maybe_unused]] int soltype, int * p_reject,
+                                               [[maybe_unused]] double * p_cutoff) {
         auto * model = static_cast<xpress_milp *>(cbdata);
         candidate_solution_callback_handle handle(
             model->XPRS, cbprob, model->objective_offset, p_reject);

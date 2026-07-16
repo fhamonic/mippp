@@ -25,9 +25,9 @@ TYPED_TEST_P(RemoveVariableTest, remove_solve) {
         auto x3 = model.add_variable();
         model.set_minimization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
 
         model.remove_variable(x2);
         ASSERT_EQ(model.num_variables(), 2);
@@ -51,9 +51,9 @@ TYPED_TEST_P(RemoveVariableTest, solve_remove_solve) {
         auto x3 = model.add_variable();
         model.set_minimization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 12.0, TEST_EPSILON);
         {
@@ -85,9 +85,9 @@ TYPED_TEST_P(RemoveVariableTest, remove_addvar_solve) {
         auto x3 = model.add_variable();
         model.set_minimization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
 
         model.remove_variable(x2);
         ASSERT_EQ(model.num_variables(), 2);
@@ -116,9 +116,9 @@ TYPED_TEST_P(RemoveVariableTest, solve_remove_addvar_solve) {
         auto x3 = model.add_variable();
         model.set_minimization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 12.0, TEST_EPSILON);
         {
@@ -228,9 +228,9 @@ TYPED_TEST_P(RemoveVariableTest, remove_addnamedvar_solve) {
         auto x3 = model.add_variable();
         model.set_minimization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
 
         model.remove_variable(x2);
         ASSERT_EQ(model.num_variables(), 2);
@@ -262,9 +262,9 @@ TYPED_TEST_P(RemoveVariableTest, solve_remove_addnamedvar_solve) {
         auto x3 = model.add_variable();
         model.set_minimization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 12.0, TEST_EPSILON);
         {

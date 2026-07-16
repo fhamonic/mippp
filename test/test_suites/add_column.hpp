@@ -25,7 +25,7 @@ TYPED_TEST_P(AddColumnTest, add_column_entries) {
         std::vector<std::pair<decltype(c1), double>> col = {
             std::make_pair(c1, 1.0), std::make_pair(c2, 2.0)};
         auto x3 = model.add_column(col);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
         model.set_maximization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
         model.solve();

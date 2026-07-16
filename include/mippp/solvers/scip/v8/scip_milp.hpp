@@ -512,13 +512,16 @@ private:
         candidate_solution_callback;
 
     static SCIP_RETCODE candidate_solution_callback_fun(
-        struct Scip * scip, SCIP_CONSHDLR * conshdlr, SCIP_CONS ** conss,
-        int nconss, int nusefulconss, SCIP_Bool solinfeasible,
-        SCIP_RESULT * result) {
+        [[maybe_unused]] struct Scip * scip,
+        [[maybe_unused]] SCIP_CONSHDLR * conshdlr,
+        [[maybe_unused]] SCIP_CONS ** conss, [[maybe_unused]] int nconss,
+        [[maybe_unused]] int nusefulconss,
+        [[maybe_unused]] SCIP_Bool solinfeasible,
+        [[maybe_unused]] SCIP_RESULT * result) {
         std::println("*ptr = {:p}",
                      *static_cast<void **>(conshdlr->conshdlrdata));
 
-        auto * model = *(static_cast<scip_milp **>(conshdlr->conshdlrdata));
+        // auto * model = *(static_cast<scip_milp **>(conshdlr->conshdlrdata));
         // candidate_solution_callback_handle handle(model->SCIP, *model,
         // result); model->candidate_solution_callback(handle);
         return SCIP_OKAY;

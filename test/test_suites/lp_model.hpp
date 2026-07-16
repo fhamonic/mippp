@@ -226,9 +226,9 @@ TYPED_TEST_P(LpModelTest, add_opt_constraints) {
         auto c1 = model.add_constraint(x + y >= 1);
         auto c = model.add_constraints(
             std::views::iota(0, 3),
-            [&](auto i) { return OPT((i == 0), 3 * x <= 5); },
-            [&](auto i) { return OPT((i == 1), 2 * x + y <= 5); },
-            [&](auto i) { return x + 2 * y <= 5; });
+            [&](int i) { return OPT((i == 0), 3 * x <= 5); },
+            [&](int i) { return OPT((i == 1), 2 * x + y <= 5); },
+            [&](int) { return x + 2 * y <= 5; });
         ASSERT_EQ(model.num_variables(), 2);
         ASSERT_EQ(model.num_constraints(), 4);
         ASSERT_EQ(c1.id(), 0);
@@ -244,7 +244,7 @@ TYPED_TEST_P(LpModelTest, solve_empty_no_sense) {
         auto model = this->new_model();
         model.solve();
         ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
-        auto solution = model.get_solution();
+        [[maybe_unused]] auto solution = model.get_solution();
     });
 }
 TYPED_TEST_P(LpModelTest, solve_empty_max) {
@@ -253,7 +253,7 @@ TYPED_TEST_P(LpModelTest, solve_empty_max) {
         model.set_maximization();
         model.solve();
         ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
-        auto solution = model.get_solution();
+        [[maybe_unused]] auto solution = model.get_solution();
     });
 }
 TYPED_TEST_P(LpModelTest, solve_empty_min) {
@@ -262,7 +262,7 @@ TYPED_TEST_P(LpModelTest, solve_empty_min) {
         model.set_minimization();
         model.solve();
         ASSERT_DOUBLE_EQ(model.get_solution_value(), 0.0);
-        auto solution = model.get_solution();
+        [[maybe_unused]] auto solution = model.get_solution();
     });
 }
 TYPED_TEST_P(LpModelTest, solve_bounded_variables_max) {
@@ -312,9 +312,9 @@ TYPED_TEST_P(LpModelTest, solve_lp) {
         auto x3 = model.add_variable();
         model.set_maximization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+        model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 13.0, TEST_EPSILON);
         auto solution = model.get_solution();
@@ -336,7 +336,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_add_constraints) {
             std::views::iota(0, 3),
             [&](int i) { return OPT((i == 0), 2 * x1 + 3 * x2 + x3 <= 5); },
             [&](int i) { return OPT((i == 1), 4 * x1 + x2 + 2 * x3 <= 11); },
-            [&](int i) { return 3 * x1 + 4 * x2 + 2 * x3 <= 8; });
+            [&](int) { return 3 * x1 + 4 * x2 + 2 * x3 <= 8; });
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 13.0, TEST_EPSILON);
         auto solution = model.get_solution();
@@ -354,9 +354,9 @@ TYPED_TEST_P(LpModelTest, solve_lp_with_objective_offset_min) {
         auto x3 = model.add_variable();
         model.set_minimization();
         model.set_objective(15 - 5 * x1 - 4 * x2 - 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+        model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
         auto solution = model.get_solution();
@@ -374,9 +374,9 @@ TYPED_TEST_P(LpModelTest, solve_lp_with_objective_offset_max) {
         auto x3 = model.add_variable();
         model.set_maximization();
         model.set_objective(15 + 5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+        model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 28.0, TEST_EPSILON);
         auto solution = model.get_solution();
@@ -395,9 +395,9 @@ TYPED_TEST_P(LpModelTest, solve_lp_set_objective_offset) {
         model.set_minimization();
         model.set_objective(15 - 5 * x1 - 4 * x2 - 3 * x3);
         model.set_objective_offset(9);
-        auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+        model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), -4.0, TEST_EPSILON);
         auto solution = model.get_solution();
@@ -415,9 +415,9 @@ TYPED_TEST_P(LpModelTest, solve_lp_objective_redundant_terms) {
         auto x3 = model.add_variable();
         model.set_maximization();
         model.set_objective(2 * x1 + 4 * x2 + 3 * x1 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+        model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 13.0, TEST_EPSILON);
         auto solution = model.get_solution();
@@ -435,9 +435,9 @@ TYPED_TEST_P(LpModelTest, solve_lp_constraint_redundant_terms) {
         auto x3 = model.add_variable();
         model.set_maximization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(3 * x1 - x1 + 3 * x2 + x3 <= 5);
-        auto c2 = model.add_constraint(4 * x1 + x3 + x2 + x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+        model.add_constraint(3 * x1 - x1 + 3 * x2 + x3 <= 5);
+        model.add_constraint(4 * x1 + x3 + x2 + x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 13.0, TEST_EPSILON);
         auto solution = model.get_solution();
@@ -455,9 +455,9 @@ TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_max) {
         auto x3 = model.add_variable();
         model.set_maximization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 13.3333333333, TEST_EPSILON);
         auto solution = model.get_solution();
@@ -475,9 +475,9 @@ TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_min) {
         auto x3 = model.add_variable();
         model.set_minimization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 12.0, TEST_EPSILON);
         auto solution = model.get_solution();

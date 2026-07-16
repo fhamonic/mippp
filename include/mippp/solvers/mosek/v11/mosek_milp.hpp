@@ -87,7 +87,7 @@ private:
         for(auto && [var, coef] : entries) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(MSK.putxx(task,MSK_SOL_ITG, tmp_scalars.data()));
+        check(MSK.putxx(task, MSK_SOL_ITG, tmp_scalars.data()));
     }
 
 public:

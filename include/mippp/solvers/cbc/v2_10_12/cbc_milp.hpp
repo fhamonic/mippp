@@ -301,7 +301,7 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _add_constraint(const int & constr_id, const LC & lc) {
+    void _add_constraint(const LC & lc) {
         tmp_indices.resize(0);
         tmp_scalars.resize(0);
         _register_entries(lc.linear_terms());
@@ -315,30 +315,30 @@ public:
     constraint add_constraint(linear_constraint auto && lc) {
         tmp_entry_index_cache.resize(_lazy_num_variables);
         int constr_id = static_cast<int>(_lazy_num_constraints);
-        _add_constraint(constr_id, lc);
+        _add_constraint(lc);
         return constraint(constr_id);
     }
 
 private:
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
-    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+    void _add_first_valued_constraint(const Key & key,
                                       const LastConstrLambda & lc_lambda) {
-        _add_constraint(constr_id, lc_lambda(key));
+        _add_constraint(lc_lambda(key));
     }
     template <typename Key, typename OptConstrLambda, typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
-    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+    void _add_first_valued_constraint(const Key & key,
                                       const OptConstrLambda & opt_lc_lambda,
                                       const Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _add_constraint(constr_id, opt_lc.value());
+            _add_constraint(opt_lc.value());
             return;
         }
-        _add_first_valued_constraint(constr_id, key, tail...);
+        _add_first_valued_constraint(key, tail...);
     }
 
 public:
@@ -349,7 +349,7 @@ public:
         const int offset = static_cast<int>(_lazy_num_constraints);
         int constr_id = offset;
         for(const key_t & key : keys) {
-            _add_first_valued_constraint(constr_id, key, constraint_lambdas...);
+            _add_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
         if constexpr(std::strict_weak_order<std::less<key_t>, key_t, key_t>) {
@@ -423,9 +423,6 @@ public:
         return Cbc.getRowRHS(model, constr.id());
     }
     auto get_constraint(constraint constr) {
-        const int num_nz = Cbc.getRowNz(model, constr.id());
-        const int * ids = Cbc.getRowIndices(model, constr.id());
-        const double * coeffs = Cbc.getRowCoeffs(model, constr.id());
         return linear_constraint_view(
             linear_expression_view(get_constraint_lhs(constr),
                                    -get_constraint_rhs(constr)),

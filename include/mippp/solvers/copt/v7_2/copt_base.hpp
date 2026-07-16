@@ -164,8 +164,8 @@ protected:
                           params.upper_bound.value_or(+COPT_INFINITY), name));
         return variable(var_id);
     }
-    void _add_variables(std::size_t offset, std::size_t count,
-                        const variable_params & params, const char type) {
+    void _add_variables(std::size_t count, const variable_params & params,
+                        const char type) {
         std::optional<std::size_t> dbl_offset_1, dbl_offset_2;
         tmp_scalars.resize(count);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), params.obj_coef);
@@ -203,7 +203,7 @@ public:
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, COPT_CONTINUOUS);
+        _add_variables(count, params, COPT_CONTINUOUS);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
@@ -211,7 +211,7 @@ public:
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, COPT_CONTINUOUS);
+        _add_variables(count, params, COPT_CONTINUOUS);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
@@ -226,7 +226,7 @@ public:
         std::size_t count, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, COPT_CONTINUOUS);
+        _add_variables(count, params, COPT_CONTINUOUS);
         return _make_named_variables_range(offset, count,
                                            std::forward<NL>(name_lambda), this);
     }
@@ -235,7 +235,7 @@ public:
         std::size_t count, IL && id_lambda, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, COPT_CONTINUOUS);
+        _add_variables(count, params, COPT_CONTINUOUS);
         return _make_indexed_named_variables_range(
             offset, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
@@ -327,7 +327,7 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _register_constraint(const int & constr_id, const LC & lc) {
+    void _register_constraint(const LC & lc) {
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_copt_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
@@ -335,10 +335,9 @@ private:
     }
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
-    void _register_first_valued_constraint(const int & constr_id,
-                                           const Key & key,
+    void _register_first_valued_constraint(const Key & key,
                                            const LastConstrLambda & lc_lambda) {
-        _register_constraint(constr_id, lc_lambda(key));
+        _register_constraint(lc_lambda(key));
     }
     template <typename Key, typename OptConstrLambda, typename... Tail>
         requires detail::optional_type<
@@ -346,13 +345,13 @@ private:
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
     void _register_first_valued_constraint(
-        const int & constr_id, const Key & key,
-        const OptConstrLambda & opt_lc_lambda, const Tail &... tail) {
+        const Key & key, const OptConstrLambda & opt_lc_lambda,
+        const Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _register_constraint(constr_id, opt_lc.value());
+            _register_constraint(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(constr_id, key, tail...);
+        _register_first_valued_constraint(key, tail...);
     }
 
 public:
@@ -365,8 +364,7 @@ public:
         const indice offset = static_cast<indice>(num_constraints());
         indice constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(constr_id, key,
-                                              constraint_lambdas...);
+            _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));

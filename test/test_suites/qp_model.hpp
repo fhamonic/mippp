@@ -23,7 +23,7 @@ TYPED_TEST_P(QpModelTest, test) {
         auto x2 = model.add_variable();
         model.set_minimization();
         model.set_objective(2 * x1 * x1 + 2 * x2 * x2 - 4 * x1 - 6 * x2);
-        auto c1 = model.add_constraint(x1 + x2 >= 3);
+        model.add_constraint(x1 + x2 >= 3);
         model.solve();
         EXPECT_NEAR(model.get_solution_value(), -6.25, TEST_EPSILON);
         auto solution = model.get_solution();

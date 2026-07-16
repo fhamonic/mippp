@@ -30,7 +30,7 @@ public:
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, COPT_INTEGER);
+        _add_variables(count, params, COPT_INTEGER);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
@@ -38,14 +38,13 @@ public:
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, COPT_INTEGER);
+        _add_variables(count, params, COPT_INTEGER);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
 private:
-    inline void _add_binary_variables(const std::size_t & offset,
-                                      const std::size_t & count) {
+    inline void _add_binary_variables(const std::size_t & count) {
         tmp_scalars.resize(2 * count);
         std::fill(tmp_scalars.begin(),
                   tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count), 0);
@@ -68,13 +67,13 @@ public:
     }
     auto add_binary_variables(std::size_t count) noexcept {
         const std::size_t offset = num_variables();
-        _add_binary_variables(offset, count);
+        _add_binary_variables(count);
         return _make_variables_range(offset, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
         const std::size_t offset = num_variables();
-        _add_binary_variables(offset, count);
+        _add_binary_variables(count);
         return _make_indexed_variables_range(offset, count,
                                              std::forward<IL>(id_lambda));
     }
@@ -145,6 +144,7 @@ private:
 
     static int candidate_solution_callback_func(copt_prob * prob, void * cbdata,
                                                 int cbctx, void * userdata) {
+        if(cbctx != COPT_CBCONTEXT_MIPSOL) return 0;
         auto * model = static_cast<copt_milp *>(userdata);
         candidate_solution_callback_handle handle(model->COPT, prob, cbdata);
         model->solution_callback(handle);

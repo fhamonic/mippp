@@ -41,7 +41,6 @@ public:
 
 private:
     inline std::size_t _add_binary_variables(const std::size_t & count) {
-        const std::size_t offset = _num_var_native_ids;
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), GRB_BINARY);
         check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,

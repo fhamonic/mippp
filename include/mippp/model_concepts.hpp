@@ -523,7 +523,7 @@ template <typename T>
 concept has_candidate_solution_callback =
         requires(T & model, T::candidate_solution_callback_handle) {
     { model.set_candidate_solution_callback(
-        [](T::candidate_solution_callback_handle & h) {}) };
+        [](T::candidate_solution_callback_handle &) {}) };
 };
 
 // template <typename T>

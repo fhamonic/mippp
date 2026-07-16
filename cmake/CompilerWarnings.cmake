@@ -65,9 +65,6 @@ function(set_project_warnings project_name)
       -Wduplicated-branches # warn if if / else branches have duplicated code
       -Wlogical-op # warn about logical operations being used where bitwise were probably wanted
       -Wuseless-cast # warn if you perform a cast to the same type
-      -Wno-unused-variable
-      -Wno-unused-parameter
-      -Wno-unused-but-set-variable
   )
 
   if(MSVC)

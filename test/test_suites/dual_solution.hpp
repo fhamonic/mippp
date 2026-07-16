@@ -100,7 +100,7 @@ TYPED_TEST_P(DualSolutionTest, arbitrary_min_add_constraints) {
             std::views::iota(0, 3),
             [&](int i) { return OPT((i == 0), 2 * x1 + 2 * x2 - x3 >= 5); },
             [&](int i) { return OPT((i == 1), 4 * x1 + x2 + 2 * x3 <= 11); },
-            [&](int i) { return 3 * x1 + 4 * x2 + 2 * x3 == 8; });
+            [&](int) { return 3 * x1 + 4 * x2 + 2 * x3 == 8; });
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 12.0, TEST_EPSILON);
         auto solution = model.get_solution();

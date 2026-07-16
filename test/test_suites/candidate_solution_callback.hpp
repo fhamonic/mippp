@@ -23,10 +23,10 @@ TYPED_TEST_P(CandidateSolutionCallbackTest, lp_behavior) {
         auto x3 = model.add_variable();
         model.set_maximization();
         model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        auto c1 = model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        auto c2 = model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
-        model.set_candidate_solution_callback([](auto & handle) {
+        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
+        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
+        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
+        model.set_candidate_solution_callback([](auto &) {
 
         });
         try {

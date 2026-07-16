@@ -31,7 +31,7 @@ TYPED_TEST_P(LpStatusTest, max_bounded) {
         auto y = model.add_variable({.lower_bound = 1});
         model.set_maximization();
         model.set_objective(2 * x + 1.5 * y);
-        auto c = model.add_constraint(x + y <= 5);
+        model.add_constraint(x + y <= 5);
         model.solve();
         ASSERT_TRUE(model.proven_optimal());
         ASSERT_FALSE(model.proven_infeasible());
@@ -50,7 +50,7 @@ TYPED_TEST_P(LpStatusTest, min_bounded) {
         auto y = model.add_variable({.lower_bound = 1});
         model.set_minimization();
         model.set_objective(-2 * x - 1.5 * y);
-        auto c = model.add_constraint(x + y <= 5);
+        model.add_constraint(x + y <= 5);
         model.solve();
         ASSERT_TRUE(model.proven_optimal());
         ASSERT_FALSE(model.proven_infeasible());
