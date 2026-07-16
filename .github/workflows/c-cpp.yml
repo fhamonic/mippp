@@ -70,4 +70,4 @@ jobs:
       - name: Autodetect a default conan profile
         run: conan profile detect --name=default
       - name: Build and run unit tests
-        run: conan build . -of=build -b=missing -pr=.github/workflows/mingw15_c++26
+        run: conan build . -of=build -b=missing "-pr=.github/workflows/mingw15_c++26"
