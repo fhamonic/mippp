@@ -56,7 +56,7 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc14_c++23 -c tools.build:skip_test=true
+          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc14_c++23 -c tools.build:skip_test=true -c melon/*:gcc14_compat=True
       - name: Build and run unit tests
         run: |
           conan build . -of=build -b=missing -pr=.github/workflows/gcc14_c++23 -c melon/*:gcc14_compat=True
