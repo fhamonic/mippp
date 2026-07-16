@@ -10,3 +10,6 @@ CMakeUserPresets.json
 *.pdf
 *.blend1
 /site
+
+Makefile
+MakeW64.bat

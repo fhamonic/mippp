@@ -21,7 +21,7 @@ backends, additional test suites, and feature work.
 MIP++ is a header-only C++ library. Building is only required to run the test
 suite. You will need:
 
-- **GCC 14/15** (`g++-15`) — the codebase relies on C++23 with some C++26 features that are implemented to allow targtetting GCC 14. However GCC 15 is recommended if you have it.
+- **GCC 14/15** (`g++-14` or `g++-15`) — the codebase relies on C++23 with a few C++26 features for which fallbacks are provided so it can be built with GCC 14. GCC 15 / C++26 remains the recommended (and original) target if you have it.
 - **CMake ≥ 3.12**
 - **Conan 2.0** for dependency management
 - Open-source solvers for local testing (at minimum HiGHS, Clp/Cbc, GLPK, or

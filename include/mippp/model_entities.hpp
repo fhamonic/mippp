@@ -97,7 +97,7 @@ private:
 public:
     entity_mapping(Map && t) : _map(std::move(t)) {}
 
-    double operator[](const Entity & x) const {
+    auto operator[](const Entity & x) const {
         if constexpr(requires(Map & m) { m[static_cast<std::size_t>(x.id())]; })
             return _map[static_cast<std::size_t>(x.id())];
         else if constexpr(requires(Map & m) { m(x); })
@@ -281,7 +281,7 @@ using optional_type_value_t = typename T::value_type;
 ////////////////////////////// Constraints range //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-#if defined__cpp_lib_flat_map
+#if __cpp_lib_flat_map
 
 template <typename Key, typename Constraint>
 class constraints_range {
@@ -311,7 +311,6 @@ public:
         return _constraints_map.at(k);
     }
 };
-
 #else
 template <typename Key, typename Constraint>
 class constraints_range {
