@@ -27,7 +27,6 @@ TYPED_TEST_SUITE_P(ColumnManagerTest);
 
 TYPED_TEST_P(ColumnManagerTest, test) {
     this->SkipOnLicenseError([this]() {
-        using namespace column_generation;
         using namespace operators;
         auto model = this->new_model();
 

@@ -3,11 +3,12 @@
 
 #include <optional>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "mippp/utility/column_manager.hpp"
 
-using namespace mippp::column_generation;
+using namespace mippp;
 
 namespace {
 
@@ -22,7 +23,14 @@ struct fake_model {
     int new_variable() { return next_variable++; }
 };
 
-enum class basis_status { basic, at_lower, at_upper };
+// the status variant a solver's basis returns through get_status (see
+// has_lp_basis in model_concepts.hpp), spelled out over the leaf statuses
+// since the fake model carries no real basis
+using fake_basis_status =
+    std::variant<basis_status::basic, basis_status::nonbasic_free,
+                 basis_status::nonbasic_at_lower_bound,
+                 basis_status::nonbasic_at_upper_bound,
+                 basis_status::nonbasic_fixed>;
 
 // times_activated is listed in both states so that it survives the
 // pool <-> master transitions (see transfer_common_properties)
@@ -30,7 +38,7 @@ using manager =
     column_manager<fake_model, int,
                    property_list<reduced_cost, age, times_activated>,
                    property_list<reduced_cost, age, variable_value,
-                                 variable_status<basis_status>,
+                                 variable_status<fake_basis_status>,
                                  times_activated>>;
 
 // reads a single column's property from the views (the states are only
@@ -85,14 +93,17 @@ TEST(ColumnManager, MasterRefreshedUpdatesValueAndBasisStatus) {
     columns.emplace_column(20);  // stays in the pool
 
     columns.update_master_columns([&](const int &, const int & var) {
-        return master_refreshed<basis_status>{-4.0, 2.5 * var,
-                                               basis_status::at_upper};
+        return master_refreshed<fake_basis_status>{
+            -4.0, 2.5 * var, basis_status::nonbasic_at_upper_bound{}};
     });
 
     EXPECT_EQ(master_get<reduced_cost>(columns, 10), -4.0);
     EXPECT_EQ(master_get<variable_value>(columns, 10), 0.0);  // var == 0
-    EXPECT_EQ(master_get<variable_status<basis_status>>(columns, 10),
-              basis_status::at_upper);
+    const auto status =
+        master_get<variable_status<fake_basis_status>>(columns, 10);
+    ASSERT_TRUE(status.has_value());
+    EXPECT_TRUE(std::holds_alternative<basis_status::nonbasic_at_upper_bound>(
+        *status));
     EXPECT_EQ(master_get<age>(columns, 10), 1u);
 
     // the pool column was not touched by update_master_columns

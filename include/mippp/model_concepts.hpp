@@ -6,10 +6,12 @@
 #include <optional>
 #include <ranges>
 #include <string>
+#include <variant>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/variadic_helper.hpp"
 
 namespace mippp {
 
@@ -64,15 +66,8 @@ constexpr bool operator<(dummy_type, dummy_type) { return true; }
 template <typename M>
 using model_variable_t = typename M::variable;
 
-// template <typename M, typename... A>
-// using model_variable_range_t = decltype(std::declval<M>().add_variables(
-//     std::size_t{1u}, [](A, ...) { return 0; }));
-
 template <typename M>
 using model_constraint_t = typename M::constraint;
-
-// template <typename M, typename K>
-// using model_constraint_range_t = constraints_range<model_constraint_t<M>, K>;
 
 template <typename M, typename K>
 using model_constraints_range_t =
@@ -183,50 +178,50 @@ concept has_reduced_costs = requires(T & model, typename T::variable v) {
 ///////////////////////////// Termination reasons /////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace detail {
-template <class... Ts>
-struct overloaded : Ts... {
-    using Ts::operator()...;
-};
-template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
-}  // namespace detail
-
 namespace reason {
-struct optimal {};
-struct infeasible {};
-struct unbounded {};
-struct infeasible_or_unbounded {};
-struct numerical_failure {};
-struct time_limit {};
-struct node_limit {};
-struct unknown {};
+struct completed {};
+struct optimal : completed {};
+struct infeasible_or_unbounded : completed {};
+struct infeasible : infeasible_or_unbounded {};
+struct unbounded : infeasible_or_unbounded {};
+struct stopped {};
+struct interrupted : stopped {};
+struct numerical_failure : stopped {};
+struct reached_limit : stopped {};
+struct time_limit : reached_limit {};
+struct node_limit : reached_limit {};
+struct unknown : stopped {};
 }  // namespace reason
 
 template <typename T>
-using termination_reason_t =
+using model_termination_reason_t =
     std::decay_t<decltype(std::declval<T>().termination_reason())>;
 
 template <typename T>
 concept has_termination_reason = requires(T & model) {
-        { model.termination_reason() };
+    { std::visit(detail::overloaded{
+                           [](reason::completed) {},
+                           [](reason::stopped) {}
+                       },
+                       model.termination_reason()) };
     };
 
 template <typename T>
 concept has_time_limit =
-        requires(T & model, std::chrono::seconds s) {
-    { model.set_time_limit(s) };
-    { model.get_time_limit() } -> std::common_with<std::chrono::seconds>;
-    // { model.reached_time_limit() } -> std::convertible_to<bool>;
-};
+    requires(T & model, std::chrono::seconds s) {
+        { model.set_time_limit(s) };
+        { model.get_time_limit() } -> std::common_with<std::chrono::seconds>;
+    } && (!has_termination_reason<T> ||
+          detail::variant_contains_v<reason::time_limit,
+                                     model_termination_reason_t<T>>);
 
 template <typename T>
-concept has_node_limit =
-        requires(T & model, std::size_t n) {
+concept has_node_limit = requires(T & model, std::size_t n) {
     { model.set_node_limit(n) };
-    { model.get_node_limit() }-> std::same_as<std::size_t>;
-    // { model.reached_node_limit() } -> std::convertible_to<bool>;
-};
+    { model.get_node_limit() } -> std::same_as<std::size_t>;
+    } && (!has_termination_reason<T> ||
+          detail::variant_contains_v<reason::node_limit, 
+                                     model_termination_reason_t<T>>);
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Names ////////////////////////////////////
@@ -425,22 +420,72 @@ concept has_remove_variable = requires(T & model, T::variable v) {
 ///////////////////////////////// Warm start //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// enum basis_status : int {
-//     basic = 0,
-//     nonbasic_at_lb = 1,
-//     nonbasic_at_ub = 2,
-//     nonbasic_free = 3
-// };
+namespace basis_status {
+struct basic {};
+struct nonbasic {};
+struct nonbasic_free : nonbasic {};
+struct nonbasic_at_bound : nonbasic {};
+struct nonbasic_at_lower_bound : nonbasic_at_bound {};
+struct nonbasic_at_upper_bound : nonbasic_at_bound {};
+struct nonbasic_fixed : nonbasic_at_bound {};
+}  // namespace basis_status
 
-// template <typename T>
-// concept has_lp_basis_warm_start =
-//         requires(T & model, T::variable v, T::constraint c) {
-//     { model.get_variable_basis_status(v) } -> std::same_as<basis_status>;
-//     { model.set_variable_basis_status(v, basis_status::basic) };
+template <typename S>
+concept lp_basis_status = requires(const S & status) {
+    { std::visit(detail::overloaded{
+                       [](basis_status::basic) {},
+                       [](basis_status::nonbasic) {}
+                   },
+                   status) };
+};
 
-//     { model.get_constraint_basis_status(c) } -> std::same_as<basis_status>;
-//     { model.set_constraint_basis_status(c, basis_status::basic) };
-// };
+template <typename T>
+using model_basis_t = std::decay_t<decltype(std::declval<T>().get_basis())>;
+
+template <typename T>
+concept has_lp_basis =
+    requires(T & model, typename T::basis b, T::variable v, T::constraint c) {
+        { model.get_basis() } -> std::same_as<typename T::basis>;
+        // variables
+        { b.is_basic(v) } -> std::same_as<bool>;
+        { b.get_status(v) } -> lp_basis_status;
+        // constraints
+        { b.is_basic(c) } -> std::same_as<bool>;
+        { b.get_status(c) } -> lp_basis_status;
+    };
+
+template <typename T>
+using model_variable_basis_status_t =
+    std::decay_t<decltype(std::declval<T>().get_basis().get_status(
+        std::declval<model_variable_t<T>>()))>;
+
+template <typename T>
+using model_constraint_basis_status_t =
+    std::decay_t<decltype(std::declval<T>().get_basis().get_status(
+        std::declval<model_constraint_t<T>>()))>;
+
+template <typename T>
+concept has_lp_basis_warm_start =
+    has_lp_basis<T> && requires(T & model, typename T::basis b, T::variable v,
+                                T::constraint c, T::scalar s) {
+        { model.set_basis(b) };
+        // variables
+        { b.set_basic(v) };
+        { b.set_nonbasic(v, s) };  // snaps to lower/upper/free within tolerance
+        { b.set_status(v, basis_status::basic{}) };
+        { b.set_status(v, basis_status::nonbasic_free{}) };
+        { b.set_status(v, basis_status::nonbasic_at_lower_bound{}) };
+        { b.set_status(v, basis_status::nonbasic_at_upper_bound{}) };
+        { b.set_status(v, basis_status::nonbasic_fixed{}) };
+        // constraints
+        { b.set_basic(c) };
+        { b.set_nonbasic(c, s) };  // s: row activity (a·x) to compare w/ bounds
+        { b.set_status(c, basis_status::basic{}) };
+        { b.set_status(c, basis_status::nonbasic_free{}) };
+        { b.set_status(c, basis_status::nonbasic_at_lower_bound{}) };
+        { b.set_status(c, basis_status::nonbasic_at_upper_bound{}) };
+        { b.set_status(c, basis_status::nonbasic_fixed{}) };
+    };
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// MIP start //////////////////////////////////

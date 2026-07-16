@@ -152,7 +152,7 @@ public:
     [[nodiscard]] constexpr decltype(auto) linear_expression()
         const & noexcept {
         return linear_expression_view(
-            std::views::concat(
+            unordered_concat(
                 std::views::transform(
                     _linear_expression_1.linear_terms(),
                     [c = _linear_expression_2.constant()](auto && t) {
@@ -178,7 +178,7 @@ linear_expression_mul_view(E1 &&, E2 &&)
 template <quadratic_expression E1, quadratic_expression E2>
 constexpr auto quadratic_expression_add(E1 && e1, E2 && e2) {
     return quadratic_expression_view(
-        std::views::concat(std::forward<E1>(e1).quadratic_terms(),
+        unordered_concat(std::forward<E1>(e1).quadratic_terms(),
                            std::forward<E2>(e2).quadratic_terms()),
         linear_expression_add(std::forward<E1>(e1).linear_expression(),
                               std::forward<E2>(e2).linear_expression()));

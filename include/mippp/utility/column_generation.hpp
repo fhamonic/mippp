@@ -11,7 +11,10 @@
 #include <type_traits>
 #include <vector>
 
-namespace mippp::column_generation {
+#include "mippp/model_concepts.hpp"
+#include "mippp/utility/variadic_helper.hpp"
+
+namespace mippp {
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// Properties //////////////////////////////////
@@ -56,17 +59,6 @@ template <column_property... Ps>
 struct property_list {};
 
 namespace detail {
-
-template <typename T, typename... Ts>
-inline constexpr bool contains_v = (std::is_same_v<T, Ts> || ...);
-
-template <typename T, typename... Ts>
-    requires contains_v<T, Ts...>
-inline constexpr std::size_t index_of_v = []() {
-    constexpr std::array<bool, sizeof...(Ts)> matches{std::is_same_v<T, Ts>...};
-    return static_cast<std::size_t>(std::ranges::find(matches, true) -
-                                    matches.begin());
-}();
 
 template <column_property P>
 constexpr auto property_initial_value() {
@@ -177,8 +169,7 @@ struct deactivated {};
 ////////////////////////////// Common properties //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// last known reduced cost of the column (from pricing for pool columns, from
-// the restricted master for master columns)
+// last known reduced cost of the column
 struct reduced_cost : property<double> {
     static constexpr void on(double & value,
                              const carries<reduced_cost> auto & e) noexcept {
@@ -194,19 +185,18 @@ struct variable_value : property<double> {
     }
 };
 
-// last known basis status of a master column; Status is the solver's status
-// type, carried by the event
-template <typename Status>
+// last known basis status of a master column
+template <lp_basis_status Status>
 struct variable_status : property<Status> {
     static constexpr void on(
         Status & value,
-        const carries<variable_status<Status>> auto & e) noexcept {
+        const carries<variable_status<Status>> auto &
+            e) noexcept(std::is_nothrow_copy_assignable_v<Status>) {
         value = e.template get<variable_status<Status>>();
     }
 };
 
-// number of pricing rounds spent in the current state (pool or master); every
-// per-round event carries a reduced cost, which marks that a round elapsed
+// number of pricing rounds spent in the current state (pool or master)
 struct age : property<std::size_t> {
     static constexpr void on(std::size_t & value,
                              const carries<reduced_cost> auto &) noexcept {
@@ -222,24 +212,18 @@ struct age : property<std::size_t> {
 };
 
 // number of times the column entered the master model
-// (list it in both states so that it survives transitions)
+// (has to be listed it in both states so that it survives transitions)
 struct times_activated : property<std::size_t> {
     static constexpr void on(std::size_t & value, const activated &) noexcept {
         ++value;
     }
 };
 
-// the K last reduced costs of the column, most recent first, initialized to
-// -inf so that "all above threshold" predicates hold only once K real values
-// have been observed
+// the K last reduced costs of the column, most recent first
+// (initialized at 0 to enable max/min senses, use with age)
 template <std::size_t K>
 struct reduced_cost_window {
     using value_type = std::array<double, K>;
-    static constexpr value_type initial_value() noexcept {
-        value_type values;
-        values.fill(-std::numeric_limits<double>::infinity());
-        return values;
-    }
     static constexpr void on(value_type & values,
                              const carries<reduced_cost> auto & e) noexcept {
         std::shift_right(values.begin(), values.end(), 1);
@@ -256,7 +240,7 @@ using priced = event<reduced_cost>;
 
 // a restricted master solve refreshed a master column, exposing its LP primal
 // value and basis status alongside its reduced cost
-template <typename Status>
+template <lp_basis_status Status>
 using master_refreshed =
     event<reduced_cost, variable_value, variable_status<Status>>;
 
@@ -343,13 +327,13 @@ struct above {
 template <typename P>
 struct negative : below<P> {
     explicit negative(typename P::value_type tolerance = {1e-10})
-        : below<P>(-tolerance) {};
+        : below<P>(-tolerance) {}
 };
 
 template <typename P>
 struct positive : above<P> {
     explicit positive(typename P::value_type tolerance = {1e-10})
-        : above<P>(tolerance) {};
+        : above<P>(tolerance) {}
 };
 
 // the K last reduced costs of the column all stayed above 'threshold'
@@ -368,7 +352,7 @@ struct conjunction {
     std::tuple<Pr...> predicates;
     template <typename... T>
         requires std::constructible_from<std::tuple<Pr...>, T &&...>
-    conjunction(T &&... args) : predicates(std::forward<T>(args)...){};
+    conjunction(T &&... args) : predicates(std::forward<T>(args)...) {}
     constexpr bool operator()(const auto & entry) const {
         return std::apply(
             [&](const Pr &... preds) { return (preds(entry) && ...); },
@@ -383,7 +367,7 @@ struct disjunction {
     std::tuple<Pr...> predicates;
     template <typename... T>
         requires std::constructible_from<std::tuple<Pr...>, T &&...>
-    disjunction(T &&... args) : predicates(std::forward<T>(args)...){};
+    disjunction(T &&... args) : predicates(std::forward<T>(args)...) {}
     constexpr bool operator()(const auto & entry) const {
         return std::apply(
             [&](const Pr &... preds) { return (preds(entry) || ...); },
@@ -409,7 +393,7 @@ struct all {
     Pred predicate;
     template <typename... T>
         requires std::constructible_from<Pred, T &&...>
-    all(T &&... args) : predicate(std::forward<T>(args)...){};
+    all(T &&... args) : predicate(std::forward<T>(args)...) {}
     template <std::ranges::range R, typename Proj = std::identity>
     constexpr auto select(R && candidates, Proj = {}) const {
         return std::views::all(std::forward<R>(candidates));
@@ -425,7 +409,7 @@ struct at_most_k : all<Pred> {
     template <typename... T>
         requires std::constructible_from<Pred, T &&...>
     at_most_k(const std::size_t & count_, T &&... args)
-        : all<Pred>(std::forward<T>(args)...), count(count_){};
+        : all<Pred>(std::forward<T>(args)...), count(count_) {}
     template <std::ranges::range R, typename Proj = std::identity>
     constexpr auto select(R && candidates, Proj = {}) const {
         return std::views::take(std::forward<R>(candidates),
@@ -445,7 +429,7 @@ struct at_most_k_random : at_most_k<Pred> {
                      std::constructible_from<Pred, T &&...>
     at_most_k_random(const std::size_t & count_, G && gen_, T &&... args)
         : at_most_k<Pred>(count_, std::forward<T>(args)...)
-        , gen(std::forward<G>(gen_)){};
+        , gen(std::forward<G>(gen_)) {}
     template <std::ranges::range R, typename Proj = std::identity>
     auto select(R && candidates, Proj = {}) const {
         std::vector<std::ranges::range_value_t<R>> selected;
@@ -469,7 +453,7 @@ struct at_most_k_best : at_most_k<Pred> {
                      std::constructible_from<Pred, T &&...>
     at_most_k_best(const std::size_t & count_, C && cmp_, T &&... args)
         : at_most_k<Pred>(count_, std::forward<T>(args)...)
-        , cmp(std::forward<C>(cmp_)){};
+        , cmp(std::forward<C>(cmp_)) {}
     template <std::ranges::range R, typename Proj = std::identity>
     auto select(R && candidates, Proj proj = {}) const {
         auto selected = std::ranges::to<std::vector>(candidates);
@@ -497,6 +481,6 @@ using evict_window_above = all<window_above<K>>;
 using evict_unattractive_aged =
     all<conjunction<above<age>, above<reduced_cost>>>;
 
-}  // namespace mippp::column_generation
+}  // namespace mippp
 
 #endif  // MIPPP_COLUMN_GENERATION_HPP

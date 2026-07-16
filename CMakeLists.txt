@@ -4,7 +4,7 @@ project(
   mippp
   VERSION 1.0
   DESCRIPTION
-    "A modern interface for linear programming solvers using C++26 features."
+    "A modern interface for linear programming solvers using C++23 features."
   LANGUAGES CXX)
 
 # set(CMAKE_VERBOSE_MAKEFILE ON)

@@ -120,7 +120,7 @@ double y = duals[some_constraint];
 With the Conan or CMake setup from the [Installation](installation.md) page, there is nothing solver-specific to do — no `-lgurobi`, no `-lhighs`:
 
 ```bash
-g++-15 -std=c++26 -O3 -I<mippp>/include -I<dylib>/include simple_lp.cpp -o simple_lp
+g++-14 -std=c++23 -O3 -I<mippp>/include -I<dylib>/include simple_lp.cpp -o simple_lp
 ./simple_lp   # libhighs.so must be discoverable at *run* time
 ```
 

@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **GCC 15 / C++26.** MIP++ uses C++26 features (such as `std::views::concat`) currently available only in GCC 15.
+- **GCC 14 / C++23.** MIP++ uses C++23 features (such as `std::views::concat`) currently available only in GCC 15.
 - [**dylib**](https://github.com/martin-olivier/dylib) **3.0** — the only library dependency, used to load solver shared libraries at runtime. It is pulled in automatically when using Conan.
 - At least one solver installed on the machine that *runs* your program (see [below](#making-solver-libraries-discoverable)). Nothing is needed at compile time.
 

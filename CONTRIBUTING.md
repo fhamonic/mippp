@@ -11,7 +11,7 @@ backends, additional test suites, and feature work.
   or an issue with the `question` label.
 - **Bugs:** open a [GitHub issue](https://github.com/fhamonic/mippp/issues). Please include:
   - the solver backend and its version (e.g. `highs 1.10`),
-  - your compiler and version (MIP++ currently targets **GCC 15 / C++26**),
+  - your compiler and version (MIP++ currently targets **GCC 14 / C++23** but **GCC 15 / C++26** is recommended),
   - a minimal reproducing snippet and the actual vs. expected behavior.
 - **Feature requests:** open an issue describing the use case. Items already on the
   radar are listed in the *Roadmap* section of the [README](README.md).
@@ -21,8 +21,7 @@ backends, additional test suites, and feature work.
 MIP++ is a header-only C++ library. Building is only required to run the test
 suite. You will need:
 
-- **GCC 15** (`g++-15`) — the codebase relies on C++26 features currently only
-  available in GCC 15.
+- **GCC 14/15** (`g++-15`) — the codebase relies on C++23 with some C++26 features that are implemented to allow targtetting GCC 14. However GCC 15 is recommended if you have it.
 - **CMake ≥ 3.12**
 - **Conan 2.0** for dependency management
 - Open-source solvers for local testing (at minimum HiGHS, Clp/Cbc, GLPK, or
@@ -40,9 +39,9 @@ cd melon && conan create . -u -b=missing -pr=<your_conan_profile> -c tools.build
 
 Ready-to-use Conan profiles are provided:
 
-- [.github/workflows/gcc15_c++26](.github/workflows/gcc15_c++26) — Linux, GCC 15,
+- [.github/workflows/gcc15_c++23](.github/workflows/gcc15_c++23) — Linux, GCC 15,
   matching the CI.
-- [.github/workflows/mingw15_c++26](.github/workflows/mingw15_c++26) — Windows,
+- [.github/workflows/mingw15_c++23](.github/workflows/mingw15_c++23) — Windows,
   MinGW (GCC 15). There is no Windows CI yet (installing the solver libraries on
   Windows is cumbersome), so please build and test locally with this profile
   before submitting Windows-related changes.
@@ -170,7 +169,7 @@ backend supporting it gets coverage, rather than duplicating logic per solver.
   file take precedence over personal preference.
 - Keep the library **header-only**. Solver libraries are loaded at runtime via
   `dylib`; do not add link-time dependencies on solver SDKs.
-- Target C++26 as used elsewhere in the codebase.
+- Target C++23 as used elsewhere in the codebase.
 
 ## Adding a new solver backend
 

@@ -1,7 +1,12 @@
 #ifndef MIPPP_MODEL_ENTITIES_HPP
 #define MIPPP_MODEL_ENTITIES_HPP
 
+#if __cpp_lib_flat_map
 #include <flat_map>
+#else
+#include <map>
+#endif
+
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -11,7 +16,8 @@
 namespace mippp {
 
 ///////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// Strong types /////////////////////////////////
+//////////////////////////////// Strong types
+////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename Id>
@@ -79,7 +85,8 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-//////////////////////////// Strong types mappings ////////////////////////////
+//////////////////////////// Strong types mappings
+///////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename Entity, typename Map>
@@ -101,7 +108,8 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-/////////////////////////// Function traits detail ////////////////////////////
+/////////////////////////// Function traits detail
+///////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace detail {
@@ -121,7 +129,8 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
 }  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Variables range ///////////////////////////////
+/////////////////////////////// Variables range
+//////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <std::ranges::random_access_range Vars, typename IdLambda,
@@ -246,7 +255,8 @@ lazily_named_variables_range(detail::pack<Args...>, VR &&, IL &&, NL &&, M *)
     -> lazily_named_variables_range<std::views::all_t<VR>, IL, NL, M, Args...>;
 
 ///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Optional helper ///////////////////////////////
+/////////////////////////////// Optional helper
+//////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace detail {
@@ -271,6 +281,8 @@ using optional_type_value_t = typename T::value_type;
 ////////////////////////////// Constraints range //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+#if defined__cpp_lib_flat_map
+
 template <typename Key, typename Constraint>
 class constraints_range {
 protected:
@@ -279,7 +291,7 @@ protected:
 public:
     template <typename KR, typename CR>
     constexpr constraints_range(KR && keys, CR && constraints) noexcept
-        : _constraints_map(std::from_range_t{},
+        : _constraints_map(std::from_range,
                            std::views::zip(std::forward<KR>(keys),
                                            std::forward<CR>(constraints))) {}
 
@@ -287,6 +299,7 @@ public:
     constexpr constraints_range(constraints_range &&) = default;
 
     constexpr auto size() const noexcept { return _constraints_map.size(); }
+
     constexpr auto begin() const noexcept {
         return _constraints_map.values().begin();
     }
@@ -298,6 +311,39 @@ public:
         return _constraints_map.at(k);
     }
 };
+
+#else
+template <typename Key, typename Constraint>
+class constraints_range {
+protected:
+    std::map<Key, Constraint> _constraints_map;
+
+public:
+    template <typename KR, typename CR>
+    constexpr constraints_range(KR && keys, CR && constraints) noexcept
+        : _constraints_map() {
+        for(auto && [key, constraint] : std::views::zip(
+                std::forward<KR>(keys), std::forward<CR>(constraints))) {
+            _constraints_map[key] = constraint;
+        }
+    }
+
+    constexpr constraints_range(const constraints_range &) = default;
+    constexpr constraints_range(constraints_range &&) = default;
+
+    constexpr auto size() const noexcept { return _constraints_map.size(); }
+
+    constexpr auto begin() const noexcept {
+        return std::views::values(_constraints_map).begin();
+    }
+    constexpr auto end() const noexcept {
+        return std::views::values(_constraints_map).end();
+    }
+    constexpr auto operator()(const Key & k) const {
+        return _constraints_map.at(k);
+    }
+};
+#endif
 
 template <typename KR, typename CR>
 constraints_range(KR &&, CR &&)

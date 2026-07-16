@@ -3,7 +3,7 @@ message: "If you use MIP++ in academic work, please cite it as below."
 type: software
 title: "MIP++"
 abstract: >-
-  Header-only C++26 library for linear, mixed-integer and quadratic
+  Header-only C++23 library for linear, mixed-integer and quadratic
   programming — one model, any solver, at raw C API speed.
 authors:
   - family-names: Hamonic

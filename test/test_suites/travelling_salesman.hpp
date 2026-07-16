@@ -94,7 +94,7 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
         auto solution_graph = melon::views::subgraph(
             graph, {}, [&](auto a) { return solution[X_vars(a)] > 0.5; });
 
-        auto tour = std::ranges::to<std::vector<char>>(std::views::transform(
+        auto tour = std::ranges::to<std::vector>(std::views::transform(
             melon::breadth_first_search(solution_graph, 0u),
             [&](auto && v) { return vertex_names[v]; }));
 

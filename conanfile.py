@@ -10,7 +10,7 @@ class CompressorRecipe(ConanFile):
     name = "mippp"
     version = "1.0.0"
     license = "BSL-1.0"
-    description = "A modern interface for linear programming solvers using C++26 ranges and concepts."
+    description = "A modern interface for linear programming solvers using C++23 ranges and concepts."
     homepage = "https://github.com/fhamonic/mippp.git"
     # url = ""
     settings = "os", "compiler", "arch", "build_type"
@@ -25,7 +25,7 @@ class CompressorRecipe(ConanFile):
 
     def build_requirements(self):
         self.test_requires("gtest/[>=1.10.0 <cci]")
-        self.test_requires("melon/1.0.0-alpha.1")
+        self.test_requires("melon/1.0.0-alpha.1", options={"gcc14_compat": True})
 
     def generate(self):
         print(
@@ -42,7 +42,7 @@ class CompressorRecipe(ConanFile):
         )
 
     def validate(self):
-        check_min_cppstd(self, 26)
+        check_min_cppstd(self, 23)
 
     def build(self):
         if self.conf.get("tools.build:skip_test", default=False):

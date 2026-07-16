@@ -120,7 +120,13 @@ protected:
                     new_native_id;
             }
             _shrink_handle_ids_map(_var_handles_to_delete.size());
+#ifdef __cpp_lib_containers_ranges
             _free_var_handles.append_range(_var_handles_to_delete);
+#else
+            _free_var_handles.insert(_free_var_handles.end(),
+                                     _var_handles_to_delete.cbegin(),
+                                     _var_handles_to_delete.cend());
+#endif
         }
         _var_handles_to_delete.clear();
     }
@@ -327,7 +333,12 @@ public:
     }
     template <std::ranges::range VR>
     void remove_variables(VR && variables) {
+#ifdef __cpp_lib_containers_ranges
         _var_handles_to_delete.append_range(variables);
+#else
+        _var_handles_to_delete.insert(_var_handles_to_delete.end(),
+                                      variables.cbegin(), variables.cend());
+#endif
         _lazily_remove_variables();
     }
 

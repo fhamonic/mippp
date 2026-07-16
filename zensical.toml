@@ -3,7 +3,7 @@
 
 [project]
 site_name = "MIP++"
-site_description = "Header-only C++26 library for linear, mixed-integer and quadratic programming — one model, any solver, at raw C API speed."
+site_description = "Header-only C++23 library for linear, mixed-integer and quadratic programming — one model, any solver, at raw C API speed."
 site_url = "https://fhamonic.github.io/mippp/"
 repo_url = "https://github.com/fhamonic/mippp"
 repo_name = "fhamonic/mippp"

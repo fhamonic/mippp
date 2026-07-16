@@ -108,7 +108,7 @@ public:
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return variables_range(
-            std::from_range_t{},
+            std::from_range,
             std::views::transform(
                 std::views::iota(static_cast<variable_id>(offset),
                                  static_cast<variable_id>(offset + count)),

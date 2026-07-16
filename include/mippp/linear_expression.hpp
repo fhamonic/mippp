@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/utility/concat.hpp"
+
 namespace mippp {
 
 /////////////////////////////////// CONCEPT ///////////////////////////////////
@@ -84,6 +86,7 @@ linear_expression_view(T &&, S) -> linear_expression_view<std::views::all_t<T>>;
 
 ///////////////////////////////// OPERATIONS //////////////////////////////////
 
+#if defined(__cpp_lib_ranges_concat)
 // probably required until GCC 15.2
 template <std::ranges::range R1, std::ranges::range R2>
 constexpr auto unordered_concat(R1 && r1, R2 && r2) {
@@ -94,6 +97,12 @@ constexpr auto unordered_concat(R1 && r1, R2 && r2) {
         return std::views::concat(std::forward<R2>(r2), std::forward<R1>(r1));
     }
 }
+#else
+template <std::ranges::range R1, std::ranges::range R2>
+constexpr auto unordered_concat(R1 && r1, R2 && r2) {
+    return detail::concat(std::forward<R1>(r1), std::forward<R2>(r2));
+}
+#endif
 
 template <linear_expression E1, linear_expression E2>
 constexpr auto linear_expression_add(E1 && e1, E2 && e2) {

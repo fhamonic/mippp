@@ -15,7 +15,7 @@
 #include "mippp/utility/column_generation.hpp"
 #include "mippp/utility/unordered_dense_map.hpp"
 
-namespace mippp::column_generation {
+namespace mippp {
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Column manager ////////////////////////////////
@@ -165,11 +165,12 @@ public:
 
     // broadcasts to every master column the event produced by
     // make_event(seed, var), typically the restricted master solution, e.g.
+    //     auto solution = model.get_solution();
+    //     auto reduced_costs = model.get_reduced_costs();
+    //     auto basis = model.get_basis();
     //     mgr.update_master_columns([&](const auto &, const auto & var) {
-    //         return master_refreshed<status_t>{
-    //             model.get_variable_reduced_cost(var),
-    //             model.get_variable_value(var),
-    //             model.get_variable_status(var)};
+    //         return master_refreshed<model_variable_basis_status_t<M>>{
+    //             reduced_costs[var], solution[var], basis.get_status(var)};
     //     });
     template <typename F>
         requires std::invocable<F &, const ColumnSeed &, const variable &>
@@ -340,6 +341,6 @@ public:
     }
 };
 
-}  // namespace mippp::column_generation
+}  // namespace mippp
 
 #endif  // MIPPP_COLUMN_MANAGER_HPP

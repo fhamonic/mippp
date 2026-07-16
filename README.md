@@ -6,11 +6,11 @@
 
 **One model, any solver — at raw C API speed.**
 
-MIP++ is a header-only C++26 library for linear, mixed-integer, and quadratic programming. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API. The same model code targets any of **11 solvers** — you choose the backend at compile time, and its shared library is loaded dynamically at runtime, with no link-time solver dependency.
+MIP++ is a header-only C++23 library for linear, mixed-integer, and quadratic programming. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API. The same model code targets any of **11 solvers** — you choose the backend at compile time, and its shared library is loaded dynamically at runtime, with no link-time solver dependency.
 
 📖 **[Documentation](https://fhamonic.github.io/mippp/)** — start with the [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/).
 
-[![C++26](https://img.shields.io/badge/C++-26-blue.svg?style=flat&logo=c%2B%2B)](https://en.cppreference.com/w/cpp/26)
+[![C++23](https://img.shields.io/badge/C++-23-blue.svg?style=flat&logo=c%2B%2B)](https://en.cppreference.com/w/cpp/26)
 [![Conan](https://img.shields.io/badge/Conan-2.0+-blue.svg?style=flat)](https://conan.io)
 [![License](https://img.shields.io/badge/license-Boost%20Software%20License-blue)](https://www.boost.org/users/license.html)
 
@@ -79,7 +79,7 @@ Benchmark code, setup, and raw per-solver timings:
 
 ## Installation
 
-MIP++ requires **GCC 15 / C++26**. Install via Conan or as a CMake subdirectory:
+MIP++ targets **GCC 14 / C++23** but **GCC 15 / C++26** is recommended. Install via Conan or as a CMake subdirectory:
 
 ```bash
 git clone https://github.com/fhamonic/mippp && cd mippp

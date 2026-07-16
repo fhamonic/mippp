@@ -43,7 +43,7 @@ protected:
     inline auto _make_variables_range(const std::size_t & offset,
                                       const std::size_t & count) {
         return variables_range(
-            std::from_range_t{},
+            std::from_range,
             std::views::transform(
                 std::views::iota(static_cast<_Index>(offset),
                                  static_cast<_Index>(offset + count)),
