@@ -1,0 +1,14 @@
+# Normalize all text files to LF in the repository.
+# Editors/IDEs on Windows still get their preferred endings via core.autocrlf.
+* text=auto eol=lf
+
+# Files that must keep platform-specific endings
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets: never touch
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary

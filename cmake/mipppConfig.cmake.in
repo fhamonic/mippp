@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(dylib)
+
+include("${CMAKE_CURRENT_LIST_DIR}/mipppTargets.cmake")
+
+check_required_components(mippp)

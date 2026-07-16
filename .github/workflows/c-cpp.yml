@@ -61,6 +61,77 @@ jobs:
         run: |
           conan build . -of=build -b=missing -pr=.github/workflows/gcc14_c++23
 
+  linux-cmake-install:
+    # Verifies the plain-CMake (non-Conan) consumer workflow:
+    # `cmake --install` of mippp, then an out-of-tree project using
+    # `find_package(mippp CONFIG)` and the mippp::mippp target.
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:25.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
+      - name: Install GCC-14, CMake and Git
+        run: apt-get install -y gcc-14 g++-14 cmake git
+      - name: Install the HiGHS solver
+        run: apt-get install -y highs libhighs1
+      - name: Build and install dylib
+        run: |
+          git clone --depth 1 --branch v3.0.1 https://github.com/martin-olivier/dylib.git
+          cmake -S dylib -B dylib/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_STANDARD=17 \
+            -DBUILD_TESTS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
+          cmake --build dylib/build -j
+          cmake --install dylib/build
+      - name: Install mippp
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/prefix" \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
+          cmake --install build
+      - name: Configure an out-of-tree consumer using find_package(mippp)
+        run: |
+          mkdir -p consumer
+          cat > consumer/CMakeLists.txt << 'EOF'
+          cmake_minimum_required(VERSION 3.23)
+          project(consumer LANGUAGES CXX)
+          find_package(mippp 1.0 CONFIG REQUIRED)
+          add_executable(app main.cpp)
+          target_link_libraries(app PRIVATE mippp::mippp)
+          EOF
+          cat > consumer/main.cpp << 'EOF'
+          #include <print>
+          #include "mippp/solvers/highs/all.hpp"
+          using namespace mippp;
+          using namespace mippp::operators;
+          int main() {
+              highs_api api;
+              highs_lp model(api);
+              auto x1 = model.add_variable();
+              auto x2 = model.add_variable({.upper_bound = 3});
+              model.set_maximization();
+              model.set_objective(4 * x1 + 5 * x2);
+              model.add_constraint(x1 <= 4);
+              model.add_constraint(2 * x1 + x2 <= 9);
+              model.solve();
+              std::println("objective = {}", model.get_solution_value());
+              return 0;
+          }
+          EOF
+      - name: Build the consumer
+        run: |
+          cmake -S consumer -B consumer/build \
+            -DCMAKE_CXX_COMPILER=g++-14 \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/prefix"
+          cmake --build consumer/build -j
+      - name: Run the consumer and test output
+        run: |
+          ./consumer/build/app | tee output.txt
+          grep -q "objective = 27" output.txt
+
   windows-mingw15-build:
     runs-on: windows-latest
     steps:
