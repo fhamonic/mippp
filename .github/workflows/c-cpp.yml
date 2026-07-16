@@ -69,5 +69,9 @@ jobs:
         run: pip install conan highspy
       - name: Autodetect a default conan profile
         run: conan profile detect --name=default
+      - name: Fetch Melon
+        run: |
+          git clone https://github.com/fhamonic/melon.git
+          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc14_c++23 -c tools.build:skip_test=true
       - name: Build and run unit tests
         run: conan build . -of=build -b=missing "-pr=.github/workflows/mingw15_c++26"
