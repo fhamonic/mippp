@@ -26,8 +26,8 @@ Every model type also exposes the member types used throughout the interface:
 
 ## Model concepts
 
-| Concept | Requires |
-| --- | --- |
+| Concept           | Requires |
+| :---------------- | :------- |
 | `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params` and id-lambdas); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `get_solution` / `get_solution_value`. |
 | `milp_model` | `lp_model`, plus `add_integer_variable(s)`, `add_binary_variable(s)`, and per-variable type changes `set_continuous` / `set_integer` / `set_binary`. |
 | `qp_model` | `lp_model`, plus `set_objective` accepting a quadratic expression. |
@@ -35,8 +35,8 @@ Every model type also exposes the member types used throughout the interface:
 
 ## Solve status and limits
 
-| Concept | Provides |
-| --- | --- |
+| Concept           | Provides |
+| :---------- | --- |
 | `has_lp_status` | `proven_optimal()`, `proven_infeasible()`, `proven_unbounded()`. |
 | `has_termination_reason` | `termination_reason()`, returning one of the tag types in namespace `reason` (`optimal`, `infeasible`, `unbounded`, `infeasible_or_unbounded`, `numerical_failure`, `time_limit`, `node_limit`, `unknown`). |
 | `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()`. |
@@ -44,15 +44,15 @@ Every model type also exposes the member types used throughout the interface:
 
 ## Solution information
 
-| Concept | Provides |
+|      Concept      | Provides |
 | --- | --- |
 | `has_dual_solution` | `get_dual_solution()`, indexed by constraint handles. |
 | `has_reduced_costs` | `get_reduced_costs()`, indexed by variable handles. |
 
 ## Reading and modifying the model
 
-| Concept | Provides |
-| --- | --- |
+|      Concept      | Provides |
+| :--- | :--- |
 | `has_readable_objective` | `get_objective()`, `get_objective_coefficient(v)`, `get_objective_offset()`. |
 | `has_modifiable_objective` | `set_objective_coefficient(v, s)`, `add_objective(expr)`. |
 | `has_readable_variables_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
@@ -62,8 +62,8 @@ Every model type also exposes the member types used throughout the interface:
 
 ## Names
 
-| Concept | Provides |
-| --- | --- |
+| Concept                                | Provides |
+| :--- | :--- |
 | `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../getting-started/expressions.md#lambda-indexed-variables) id-lambda + name-lambda form). |
 | `has_named_constraints` | `set_constraint_name` / `get_constraint_name`. |
 

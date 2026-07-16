@@ -1,12 +1,12 @@
-#ifndef MIPPP_CONCAT_HPP
-#define MIPPP_CONCAT_HPP
+#ifndef MIPPP_DETAIL_CONCAT_VIEW_HPP
+#define MIPPP_DETAIL_CONCAT_VIEW_HPP
 
 #include <iterator>
 #include <ranges>
 #include <type_traits>
 #include <utility>
 
-namespace mippp::detail {
+namespace mippp::detail::views {
 
 #if defined(__cpp_lib_ranges_concat)
 
@@ -53,15 +53,11 @@ private:
         }
 
     public:
-        // forward_iterator when possible: the cartesian products of
-        // quadratic expressions require forward ranges.
         using iterator_concept =
             std::conditional_t<std::ranges::forward_range<FirstBase> &&
                                    std::ranges::forward_range<SecondBase>,
                                std::forward_iterator_tag,
                                std::input_iterator_tag>;
-        // stays input: reference may be a prvalue, which C++17
-        // forward iterators do not allow.
         using iterator_category = std::input_iterator_tag;
         using difference_type = std::ptrdiff_t;
         using value_type =
@@ -163,6 +159,6 @@ inline constexpr concat_fn concat{};
 
 #endif
 
-}  // namespace mippp::detail
+}  // namespace mippp::detail::views
 
-#endif  // MIPPP_CONCAT_HPP
+#endif  // MIPPP_DETAIL_CONCAT_VIEW_HPP

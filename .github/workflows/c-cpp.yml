@@ -18,7 +18,7 @@ jobs:
       - name: Install GCC-15, CMake and Git
         run: apt-get install -y gcc-15 g++-15 cmake git
       - name: Install open-source solvers
-        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev highs libhighs1 libglpk-dev 
+        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev highs libhighs1 libglpk-dev
       - name: Install Conan 2.0
         run: |
           apt install -y pipx
@@ -45,7 +45,7 @@ jobs:
       - name: Install GCC-14, CMake and Git
         run: apt-get install -y gcc-14 g++-14 cmake git
       - name: Install open-source solvers
-        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev 
+        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev
       - name: Install Conan 2.0
         run: |
           apt install -y pipx
@@ -56,7 +56,18 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc14_c++23 -c tools.build:skip_test=true
+          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc14_c++23
       - name: Build and run unit tests
         run: |
-          conan build . -of=build -b=missing -pr=.github/workflows/gcc14_c++23 -c melon/*:gcc14_compat=True
+          conan build . -of=build -b=missing -pr=.github/workflows/gcc14_c++23
+
+  windows-mingw15-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Conan 2.0
+        run: pip install conan highspy
+      - name: Autodetect a default conan profile
+        run: conan profile detect --name=default
+      - name: Build and run unit tests
+        run: conan build . -of=build -b=missing -pr=.github/workflows/mingw15_c++26

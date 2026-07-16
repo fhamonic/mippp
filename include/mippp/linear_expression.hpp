@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include "mippp/utility/concat.hpp"
+#include "mippp/detail/concat_view.hpp"
 
 namespace mippp {
 
@@ -100,7 +100,7 @@ constexpr auto unordered_concat(R1 && r1, R2 && r2) {
 #else
 template <std::ranges::range R1, std::ranges::range R2>
 constexpr auto unordered_concat(R1 && r1, R2 && r2) {
-    return detail::concat(std::forward<R1>(r1), std::forward<R2>(r2));
+    return detail::views::concat(std::forward<R1>(r1), std::forward<R2>(r2));
 }
 #endif
 
