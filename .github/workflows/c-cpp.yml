@@ -68,6 +68,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:25.04
+    env:
+      # The gcc-14/g++-14 packages ship only versioned binaries (no
+      # /usr/bin/g++), so CMake's compiler detection needs these hints.
+      CC: gcc-14
+      CXX: g++-14
     steps:
       - uses: actions/checkout@v3
       - name: Update APT
@@ -81,7 +86,6 @@ jobs:
           git clone --depth 1 --branch v3.0.1 https://github.com/martin-olivier/dylib.git
           cmake -S dylib -B dylib/build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=g++-14 \
             -DCMAKE_CXX_STANDARD=17 \
             -DBUILD_TESTS=OFF \
             -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
