@@ -20,7 +20,7 @@ public:
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
-        return _add_variable(params, GRB_INTEGER, NULL);
+        return _add_variable(params, GRB_INTEGER, nullptr);
     }
     auto add_integer_variables(
         std::size_t count,
@@ -43,8 +43,8 @@ private:
     inline std::size_t _add_binary_variables(const std::size_t & count) {
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), GRB_BINARY);
-        check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
-                          NULL, NULL, NULL, tmp_types.data(), NULL));
+        check(GRB.addvars(model, static_cast<int>(count), 0, nullptr, nullptr, nullptr,
+                          nullptr, nullptr, nullptr, tmp_types.data(), nullptr));
 
         const std::size_t handle_ids_begin =
             _new_var_handle_range(_num_var_native_ids, count);
@@ -57,7 +57,7 @@ public:
     variable add_binary_variable() {
         return _add_variable(
             {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-            GRB_BINARY, NULL);
+            GRB_BINARY, nullptr);
     }
     auto add_binary_variables(std::size_t count) noexcept {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
@@ -92,7 +92,7 @@ public:
         _reset_cache(_num_var_native_ids);
         _register_entries(lc.linear_terms());
         check(GRB.addgenconstrIndicator(
-            model, NULL, x.id(), static_cast<int>(val),
+            model, nullptr, x.id(), static_cast<int>(val),
             static_cast<int>(tmp_indices.size()), tmp_indices.data(),
             tmp_scalars.data(), constraint_sense_to_gurobi_sense(lc.sense()),
             lc.rhs()));

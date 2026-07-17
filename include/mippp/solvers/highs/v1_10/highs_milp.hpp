@@ -101,7 +101,8 @@ public:
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(Highs.getSolution(model, solution.get(), NULL, NULL, NULL));
+        check(Highs.getSolution(model, solution.get(), nullptr, nullptr,
+                                nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));

@@ -128,6 +128,7 @@ int XPRSloaddelayedrows(XPRSprob prob, int nrows, const int rowind[]);
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/solver_library.hpp"
 
 namespace mippp {
@@ -187,8 +188,23 @@ public:
 
 public:
     inline xpress_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "XPRESS", "xprs"))
-              XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUN) {}
+        : lib(load_solver_library(lib_path, "XPRESS", {"xprs"}))
+              XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUN) {
+        if(init("")) {
+            char msg[512];
+            getlicerrmsg(msg, 512);
+            throw license_error(msg);
+        }
+    }
+
+    inline ~xpress_api() { free(); }
+
+    void _check(XPRSprob prob, const int error) const {
+        if(error == 0) return;
+        char errmsg[512];
+        getlasterror(prob, errmsg);
+        throw solver_error(errmsg);
+    }
 };
 
 }  // namespace xpress::v45_1

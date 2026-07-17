@@ -12,7 +12,6 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
-#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/mosek/v11/mosek_api.hpp"
@@ -43,14 +42,7 @@ protected:
     std::vector<scalar> tmp_rhs;
     std::vector<MSKvariabletypee> tmp_vartype;
 
-    void check(const MSKrescodee error) const {
-        if(error == 0) return;
-        char str[MSK_MAX_STR_LEN];
-        MSK.getcodedesc(error, NULL, str);
-        if(error == 1001) throw license_error(str);
-        throw std::runtime_error(std::to_string(error) + ':' + str);
-    }
-
+    void check(const MSKrescodee error) const { MSK._check(error); }
     static constexpr MSKboundkeye constraint_sense_to_mosek_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return MSK_BK_UP;
@@ -66,7 +58,7 @@ protected:
 
 public:
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
-        : model_base<int, double>(), MSK(api), env(NULL), task(NULL) {
+        : model_base<int, double>(), MSK(api), env(nullptr), task(nullptr) {
         const auto env_path_str =
             (std::filesystem::temp_directory_path() / "mosek_").string();
         check(MSK.makeenv(&env, env_path_str.c_str()));

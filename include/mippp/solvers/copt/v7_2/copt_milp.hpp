@@ -53,10 +53,10 @@ private:
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), COPT_BINARY);
         check(COPT.AddCols(
-            prob, static_cast<int>(count), tmp_scalars.data(), NULL, NULL, NULL,
-            NULL, tmp_types.data(), NULL,
-            NULL /*tmp_scalars.data() + static_cast<std::ptrdiff_t>(count)*/,
-            NULL));
+            prob, static_cast<int>(count), tmp_scalars.data(), nullptr, nullptr,
+            nullptr, nullptr, tmp_types.data(), nullptr,
+            nullptr /*tmp_scalars.data() + static_cast<std::ptrdiff_t>(count)*/,
+            nullptr));
     }
 
 public:
@@ -108,6 +108,8 @@ public:
             , COPT(api)
             , prob(prob_)
             , cbdata(cbdata_) {}
+
+        void check(const ret_code error) { COPT._check(nullptr, error); }
 
         std::size_t num_variables() {
             int num;
@@ -230,7 +232,8 @@ public:
         if(_is_mip)
             check(COPT.GetSolution(prob, solution.get()));
         else
-            check(COPT.GetLpSolution(prob, solution.get(), NULL, NULL, NULL));
+            check(COPT.GetLpSolution(prob, solution.get(), nullptr, nullptr,
+                                     nullptr));
         return variable_mapping(std::move(solution));
     }
 };

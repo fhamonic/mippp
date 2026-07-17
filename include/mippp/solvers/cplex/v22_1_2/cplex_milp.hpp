@@ -1,5 +1,5 @@
-#ifndef MIPPP_CPLEX_v22_12_MILP_HPP
-#define MIPPP_CPLEX_v22_12_MILP_HPP
+#ifndef MIPPP_CPLEX_v22_1_2_MILP_HPP
+#define MIPPP_CPLEX_v22_1_2_MILP_HPP
 
 #include <numeric>
 #include <optional>
@@ -10,10 +10,10 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/cplex/v22_12/cplex_base.hpp"
+#include "mippp/solvers/cplex/v22_1_2/cplex_base.hpp"
 
 namespace mippp {
-namespace cplex::v22_12 {
+namespace cplex::v22_1_2 {
 
 class cplex_milp : public cplex_base {
 public:
@@ -55,9 +55,9 @@ private:
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), CPX_BINARY);
         check(CPX.newcols(
-            env, lp, static_cast<int>(count), NULL, tmp_scalars.data(),
+            env, lp, static_cast<int>(count), nullptr, tmp_scalars.data(),
             tmp_scalars.data() + static_cast<std::ptrdiff_t>(count),
-            tmp_types.data(), NULL));
+            tmp_types.data(), nullptr));
         return handle_ids_begin;
     }
 
@@ -107,7 +107,7 @@ public:
         check(CPX.addindconstr(env, lp, x.id(), static_cast<int>(!val),
                                static_cast<int>(tmp_indices.size()), lc.rhs(),
                                constraint_sense_to_cplex_sense(lc.sense()),
-                               tmp_indices.data(), tmp_scalars.data(), NULL));
+                               tmp_indices.data(), tmp_scalars.data(), nullptr));
     }
 
     //////////////////////////////// MIP start ////////////////////////////////
@@ -120,7 +120,7 @@ private:
         int effort_level = CPX_MIPSTART_SOLVEMIP;
         check(CPX.addmipstarts(env, lp, 1, static_cast<int>(tmp_indices.size()),
                                &beg, tmp_indices.data(), tmp_scalars.data(),
-                               &effort_level, NULL));
+                               &effort_level, nullptr));
     }
 
 public:
@@ -186,7 +186,7 @@ public:
 
         double get_solution_value() {
             double obj;
-            cbcheck(CPX.callbackgetcandidatepoint(context, NULL, 0, 0, &obj));
+            cbcheck(CPX.callbackgetcandidatepoint(context, nullptr, 0, 0, &obj));
             return obj;
         }
         auto get_solution() {
@@ -194,7 +194,7 @@ public:
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
             cbcheck(CPX.callbackgetcandidatepoint(
                 context, solution.get(), 0, static_cast<int>(num_vars) - 1,
-                NULL));
+                nullptr));
             return variable_mapping(
                 [this, solution = std::move(solution)](const variable & v) {
                     return *(solution.get() + model->_native_id(v));
@@ -274,7 +274,7 @@ public:
 
     double get_solution_value() {
         double val;
-        check(CPX.solution(env, lp, NULL, &val, NULL, NULL, NULL, NULL));
+        check(CPX.solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr, nullptr));
         return val;
         // double val;
         // check(CPX.getbestobjval(env, lp, &val));
@@ -283,8 +283,8 @@ public:
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids());
-        check(CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL,
-                           NULL));
+        check(CPX.solution(env, lp, nullptr, nullptr, solution.get(), nullptr, nullptr,
+                           nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
@@ -292,7 +292,7 @@ public:
     }
 };
 
-}  // namespace cplex::v22_12
+}  // namespace cplex::v22_1_2
 }  // namespace mippp
 
-#endif  // MIPPP_CPLEX_v22_12_MILP_HPP
+#endif  // MIPPP_CPLEX_v22_1_2_MILP_HPP

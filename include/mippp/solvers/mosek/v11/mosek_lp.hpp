@@ -51,9 +51,9 @@ public:
     auto get_dual_solution() {
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
-        check(MSK.getsolution(task, MSK_SOL_BAS, NULL, NULL, NULL, NULL, NULL,
-                              NULL, NULL, dual_solution.get(), NULL, NULL, NULL,
-                              NULL, NULL));
+        check(MSK.getsolution(task, MSK_SOL_BAS, nullptr, nullptr, nullptr, nullptr, nullptr,
+                              nullptr, nullptr, dual_solution.get(), nullptr, nullptr, nullptr,
+                              nullptr, nullptr));
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {

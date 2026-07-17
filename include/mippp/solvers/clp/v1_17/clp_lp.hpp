@@ -121,8 +121,8 @@ private:
     std::size_t _add_variables(std::size_t count,
                                const variable_params & params) {
         const std::size_t offset = num_native_ids_variables();
-        Clp.addColumns(model, static_cast<int>(count), NULL, NULL, NULL, NULL,
-                       NULL, NULL);
+        Clp.addColumns(model, static_cast<int>(count), nullptr, nullptr, nullptr, nullptr,
+                       nullptr, nullptr);
         if(auto obj = params.obj_coef; obj != 0.0) {
             scalar * objective = Clp.objective(model);
             std::fill(objective + offset, objective + offset + count, obj);
@@ -162,7 +162,7 @@ public:
             static_cast<variable_id>(num_native_ids_variables());
         const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
         const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
-        Clp.addColumns(model, 1, &lb, &ub, &params.obj_coef, NULL, NULL, NULL);
+        Clp.addColumns(model, 1, &lb, &ub, &params.obj_coef, nullptr, nullptr, nullptr);
         return variable(var_id);
     }
     auto add_variables(
@@ -303,8 +303,8 @@ public:
         const scalar b = lc.rhs();
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
         Clp.addRows(model, 1,
-                    (lc.sense() == constraint_sense::less_equal) ? NULL : &b,
-                    (lc.sense() == constraint_sense::greater_equal) ? NULL : &b,
+                    (lc.sense() == constraint_sense::less_equal) ? nullptr : &b,
+                    (lc.sense() == constraint_sense::greater_equal) ? nullptr : &b,
                     starts, tmp_indices.data(), tmp_scalars.data());
         return constraint(constr_id);
     }

@@ -62,15 +62,10 @@ jobs:
           conan build . -of=build -b=missing -pr=.github/workflows/gcc14_c++23
 
   linux-cmake-install:
-    # Verifies the plain-CMake (non-Conan) consumer workflow:
-    # `cmake --install` of mippp, then an out-of-tree project using
-    # `find_package(mippp CONFIG)` and the mippp::mippp target.
     runs-on: ubuntu-latest
     container:
       image: ubuntu:25.04
     env:
-      # The gcc-14/g++-14 packages ship only versioned binaries (no
-      # /usr/bin/g++), so CMake's compiler detection needs these hints.
       CC: gcc-14
       CXX: g++-14
     steps:

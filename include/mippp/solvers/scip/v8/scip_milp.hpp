@@ -154,7 +154,7 @@ public:
 private:
     void _add_variable(const variable_params & params, SCIP_VARTYPE type,
                        const char * name = "") {
-        SCIP_VAR * var = NULL;
+        SCIP_VAR * var = nullptr;
         check(SCIP.createVarBasic(
             model, &var, name,
             params.lower_bound.value_or(-SCIP.infinity(model)),
@@ -350,10 +350,10 @@ public:
 
 private:
     SCIP_CONS * _add_constraint(linear_constraint auto && lc) {
-        SCIP_CONS * constr = NULL;
+        SCIP_CONS * constr = nullptr;
         const double b = lc.rhs();
         check(SCIP.createConsBasicLinear(
-            model, &constr, "", 0, NULL, NULL,
+            model, &constr, "", 0, nullptr, nullptr,
             (lc.sense() == constraint_sense::less_equal) ? -SCIP.infinity(model)
                                                          : b,
             (lc.sense() == constraint_sense::greater_equal)
@@ -431,7 +431,7 @@ public:
     //     check(SCIP.addrangeconstr(model,
     //     static_cast<int>(tmp_indices.size()),
     //                               tmp_indices.data(), tmp_scalars.data(),
-    //                               lb, ub, NULL));
+    //                               lb, ub, nullptr));
     //     return constr_id;
     // }
     // void set_constraint_name(constraint c, auto && name);
@@ -493,7 +493,7 @@ public:
 
         // double get_solution_value() {
         //     double obj;
-        //     check(SCIP.callbackgetcandidatepoint(context, NULL, 0, 0, &obj));
+        //     check(SCIP.callbackgetcandidatepoint(context, nullptr, 0, 0, &obj));
         //     return obj;
         // }
         auto get_solution() {
@@ -540,7 +540,7 @@ public:
         check(SCIP.includeConshdlrBasic(
             model, &candidate_solution_constraint_handler,
             "candidate_solution_callback", "candidate_solution_callback", -1,
-            -1, -1, false, NULL, NULL, NULL, NULL,
+            -1, -1, false, nullptr, nullptr, nullptr, nullptr,
             reinterpret_cast<SCIP_CONSHDLRDATA *>(ptr)));
     }
 

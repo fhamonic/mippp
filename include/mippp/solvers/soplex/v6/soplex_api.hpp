@@ -69,7 +69,7 @@ public:
 
 public:
     inline soplex_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "SOPLEX", "soplexshared"))
+        : lib(load_solver_library(lib_path, "SOPLEX", {"soplexshared"}))
               SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUN) {}
 };
 

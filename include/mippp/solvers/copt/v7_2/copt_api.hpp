@@ -31,6 +31,10 @@ ret_code COPT_DeleteEnv(copt_env ** p_env);
 ret_code COPT_CreateProb(copt_env * env, copt_prob ** p_prob);
 ret_code COPT_DeleteProb(copt_prob ** p_prob);
 
+constexpr int COPT_BUFFSIZE = 1000;
+int COPT_GetRetcodeMsg(int code, char * buff, int buffSize);
+int COPT_GetLicenseMsg(copt_env * env, char * buff, int buffSize);
+
 constexpr const char * COPT_DBLPARAM_TIMELIMIT = "TimeLimit";
 constexpr const char * COPT_DBLPARAM_SOLTIMELIMIT = "SolTimeLimit";
 constexpr const char * COPT_DBLPARAM_MATRIXTOL = "MatrixTol";
@@ -190,6 +194,7 @@ ret_code COPT_AddCallbackLazyConstr(void * cbdata, int nRowMatCnt,
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/solver_library.hpp"
 
 namespace mippp {
@@ -200,6 +205,8 @@ namespace copt::v7_2 {
     F(COPT_DeleteEnv, DeleteEnv)                     \
     F(COPT_CreateProb, CreateProb)                   \
     F(COPT_DeleteProb, DeleteProb)                   \
+    F(COPT_GetRetcodeMsg, GetRetcodeMsg)             \
+    F(COPT_GetLicenseMsg, GetLicenseMsg)             \
     F(COPT_SetDblParam, SetDblParam)                 \
     F(COPT_GetDblParam, GetDblParam)                 \
     F(COPT_GetIntAttr, GetIntAttr)                   \
@@ -254,8 +261,19 @@ public:
 
 public:
     inline copt_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "COPT", "copt"))
+        : lib(load_solver_library(lib_path, "COPT", {"copt"}))
               COPT_FUNCTIONS(CONSTRUCT_COPT_FUN) {}
+
+    void _check(copt_env * env, const ret_code error) const {
+        if(error == COPT_RETCODE_OK) return;
+        char buffer[COPT_BUFFSIZE];
+        if(error == COPT_RETCODE_LICENSE) {
+            GetLicenseMsg(env, buffer, COPT_BUFFSIZE);
+            throw license_error(buffer);
+        }
+        GetRetcodeMsg(error, buffer, COPT_BUFFSIZE);
+        throw solver_error(buffer);
+    }
 };
 
 }  // namespace copt::v7_2

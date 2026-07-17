@@ -1,11 +1,11 @@
-#ifndef MIPPP_CPLEX_v22_12_API_HPP
-#define MIPPP_CPLEX_v22_12_API_HPP
+#ifndef MIPPP_CPLEX_v22_1_2_API_HPP
+#define MIPPP_CPLEX_v22_1_2_API_HPP
 
 #if INCLUDE_CPLEX_HEADER
 #include "ilcplex/cplex.h"
 #else
 namespace mippp {
-namespace cplex::v22_12 {
+namespace cplex::v22_1_2 {
 
 struct cpxenv;
 using CPXENVptr = struct cpxenv *;
@@ -13,10 +13,14 @@ using CPXCENVptr = const struct cpxenv *;
 struct cpxlp;
 using CPXLPptr = struct cpxlp *;
 using CPXCLPptr = const struct cpxlp *;
+using CPXCCHARptr = const char *;
 
 constexpr double CPX_INFBOUND = 1e20;
 
 CPXENVptr CPXopenCPLEX(int * status_p);
+int CPXcloseCPLEX(CPXENVptr * env_p);
+CPXCCHARptr CPXversion(CPXCENVptr env);
+int CPXversionnumber(CPXCENVptr env, int * version_p);
 CPXLPptr CPXcreateprob(CPXCENVptr env, int * status_p,
                        char const * probname_str);
 constexpr int CPXPROB_LP = 0;
@@ -208,19 +212,23 @@ int CPXcallbackaddusercuts(CPXCALLBACKCONTEXTptr context, int rcnt, int nzcnt,
 
 void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
 
-}  // namespace cplex::v22_12
+}  // namespace cplex::v22_1_2
 }  // namespace mippp
 #endif
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/solver_library.hpp"
 
 namespace mippp {
-namespace cplex::v22_12 {
+namespace cplex::v22_1_2 {
 
 #define CPLEX_FUNCTIONS(F)                                           \
     F(CPXopenCPLEX, openCPLEX)                                       \
+    F(CPXcloseCPLEX, closeCPLEX)                                     \
+    F(CPXversion, version)                                           \
+    F(CPXversionnumber, versionnumber)                               \
     F(CPXcreateprob, createprob)                                     \
     F(CPXgetprobtype, getprobtype)                                   \
     F(CPXchgprobtype, chgprobtype)                                   \
@@ -294,11 +302,41 @@ public:
 
 public:
     inline cplex_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "CPLEX", "cplex2212"))
-              CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {}
+        : lib(load_solver_library(lib_path, "CPLEX", {"cplex2212"}))
+              CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {
+        CPXENVptr env = _create_env();
+        int version_;
+        _check(env, versionnumber(env, &version_));
+        warn_on_version_mismatch("CPLEX", 2212, version_);
+        _close_env(env);
+    }
+
+    CPXENVptr _create_env() const {
+        int status;
+        CPXENVptr env = openCPLEX(&status);
+        if(status != 0) throw solver_error("CPXopenCPLEX");
+        return env;
+    }
+    CPXLPptr _create_prob(CPXENVptr env) const {
+        int status;
+        CPXLPptr prob = createprob(env, &status, "cplex_base");
+        if(status != 0) throw solver_error("CPXcreateprob");
+        return prob;
+    }
+    void _close_env(CPXENVptr & env) const {
+        if(closeCPLEX(&env) != 0) throw solver_error("CPXcloseCPLEX");
+    }
+
+    void _check(CPXENVptr env, const int error) const {
+        if(error == 0) return;
+        char errmsg[CPXMESSAGEBUFSIZE];
+        geterrorstring(env, error, errmsg);
+        if(error == 1016) throw license_error(errmsg);
+        throw solver_error(errmsg);
+    }
 };
 
-}  // namespace cplex::v22_12
+}  // namespace cplex::v22_1_2
 }  // namespace mippp
 
-#endif  // MIPPP_CPLEX_v22_12_API_HPP
+#endif  // MIPPP_CPLEX_v22_1_2_API_HPP

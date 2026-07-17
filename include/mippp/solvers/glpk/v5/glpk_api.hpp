@@ -258,7 +258,7 @@ public:
 
 public:
     inline glpk_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "GLPK", "glpk"))
+        : lib(load_solver_library(lib_path, "GLPK", {"glpk"}))
               GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUN) {}
 };
 

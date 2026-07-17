@@ -192,7 +192,7 @@ using SCIP_CONSHDLRDATA = struct SCIP_ConshdlrData;
 SCIP_RETCODE SCIPincludeConshdlrBasic(
     SCIP * scip, /**< SCIP data structure */
     SCIP_CONSHDLR **
-        conshdlrptr, /**< reference to a constraint handler pointer, or NULL */
+        conshdlrptr, /**< reference to a constraint handler pointer, or nullptr */
     const char * name,   /**< name of constraint handler */
     const char * desc,   /**< description of constraint handler */
     int enfopriority,    /**< priority of the constraint handler for constraint
@@ -282,7 +282,7 @@ public:
 
 public:
     inline scip_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "SCIP", "scip"))
+        : lib(load_solver_library(lib_path, "SCIP", {"scip"}))
               SCIP_FUNCTIONS(CONSTRUCT_SCIP_FUN) {}
 };
 

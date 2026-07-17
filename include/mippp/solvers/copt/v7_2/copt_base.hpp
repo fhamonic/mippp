@@ -11,7 +11,6 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
-#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/copt/v7_2/copt_api.hpp"
 #include "mippp/solvers/model_base.hpp"
@@ -41,13 +40,7 @@ protected:
     std::vector<char> tmp_types;
     std::vector<scalar> tmp_rhs;
 
-    static void check(const ret_code error) {
-        if(error == COPT_RETCODE_OK) return;
-        if(error == COPT_RETCODE_LICENSE)
-            throw license_error("COPT license error");
-        throw std::runtime_error("copt_base error : " + std::to_string(error));
-    }
-
+    void check(const ret_code error) { COPT._check(env, error); }
     static constexpr char constraint_sense_to_copt_sense(constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return COPT_LESS_EQUAL;
         if(rel == constraint_sense::equal) return COPT_EQUAL;
@@ -62,13 +55,13 @@ protected:
 
 public:
     [[nodiscard]] explicit copt_base(const copt_api & api)
-        : model_base<int, double>(), COPT(api), env(NULL), prob(NULL) {
+        : model_base<int, double>(), COPT(api), env(nullptr), prob(nullptr) {
         check(COPT.CreateEnv(&env));
         check(COPT.CreateProb(env, &prob));
     }
     ~copt_base() {
-        if(prob) COPT.DeleteProb(&prob);
-        if(env) COPT.DeleteEnv(&env);
+        if(prob) check(COPT.DeleteProb(&prob));
+        if(env) check(COPT.DeleteEnv(&env));
     }
 
     constexpr copt_base(const copt_base &) = delete;
@@ -157,9 +150,9 @@ public:
 
 protected:
     variable _add_variable(const variable_params & params, const char type,
-                           const char * name = NULL) {
+                           const char * name = nullptr) {
         int var_id = static_cast<int>(num_variables());
-        check(COPT.AddCol(prob, params.obj_coef, 0, NULL, NULL, type,
+        check(COPT.AddCol(prob, params.obj_coef, 0, nullptr, nullptr, type,
                           params.lower_bound.value_or(-COPT_INFINITY),
                           params.upper_bound.value_or(+COPT_INFINITY), name));
         return variable(var_id);
@@ -181,17 +174,17 @@ protected:
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), type);
         check(COPT.AddCols(
-            prob, static_cast<int>(count), tmp_scalars.data(), NULL, NULL, NULL,
-            NULL, tmp_types.data(),
+            prob, static_cast<int>(count), tmp_scalars.data(), nullptr, nullptr,
+            nullptr, nullptr, tmp_types.data(),
             dbl_offset_1.has_value()
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_1.value()))
-                : NULL,
+                : nullptr,
             dbl_offset_2.has_value()
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_2.value()))
-                : NULL,
-            NULL));
+                : nullptr,
+            nullptr));
     }
 
 public:
@@ -248,11 +241,11 @@ private:
         const int var_id = static_cast<int>(num_variables());
         _reset_raw_cache();
         _register_raw_entries(entries);
-        check(COPT.AddCol(prob, params.obj_coef,
-                          static_cast<int>(tmp_indices.size()),
-                          tmp_indices.data(), tmp_scalars.data(), type,
-                          params.lower_bound.value_or(-COPT_INFINITY),
-                          params.upper_bound.value_or(+COPT_INFINITY), NULL));
+        check(COPT.AddCol(
+            prob, params.obj_coef, static_cast<int>(tmp_indices.size()),
+            tmp_indices.data(), tmp_scalars.data(), type,
+            params.lower_bound.value_or(-COPT_INFINITY),
+            params.upper_bound.value_or(+COPT_INFINITY), nullptr));
         return variable(var_id);
     }
 
@@ -306,9 +299,9 @@ public:
     }
     std::string get_variable_name(variable v) {
         int size;
-        check(COPT.GetColName(prob, v.id(), NULL, 0, &size));
+        check(COPT.GetColName(prob, v.id(), nullptr, 0, &size));
         std::string name(static_cast<std::size_t>(size), '\0');
-        COPT.GetColName(prob, v.id(), name.data(), size, NULL);
+        check(COPT.GetColName(prob, v.id(), name.data(), size, nullptr));
         name.pop_back();
         return name;
     }
@@ -321,7 +314,7 @@ public:
         check(COPT.AddRow(prob, static_cast<int>(tmp_indices.size()),
                           tmp_indices.data(), tmp_scalars.data(),
                           constraint_sense_to_copt_sense(lc.sense()), b,
-                          COPT_INFINITY, NULL));
+                          COPT_INFINITY, nullptr));
         return constraint(constr_id);
     }
 
@@ -369,9 +362,9 @@ public:
         }
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         check(COPT.AddRows(prob, static_cast<int>(tmp_rhs.size()),
-                           tmp_begins.data(), NULL, tmp_indices.data(),
+                           tmp_begins.data(), nullptr, tmp_indices.data(),
                            tmp_scalars.data(), tmp_types.data(), tmp_rhs.data(),
-                           NULL, NULL));
+                           nullptr, nullptr));
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),

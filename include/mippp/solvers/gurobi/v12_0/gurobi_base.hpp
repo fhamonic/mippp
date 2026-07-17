@@ -11,7 +11,6 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
-#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
@@ -37,12 +36,7 @@ protected:
     GRBenv * env;
     GRBmodel * model;
 
-    void check(const int error) {
-        if(error == 0) return;
-        if(error == 10009) throw license_error(GRB.geterrormsg(env));
-        throw std::runtime_error(std::to_string(error) + " : " +
-                                 GRB.geterrormsg(env));
-    }
+    void check(const int error) { GRB._check(env, error); }
     static constexpr char constraint_sense_to_gurobi_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return GRB_LESS_EQUAL;
@@ -74,11 +68,11 @@ public:
         check(GRB.emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
                                    GRB_VERSION_TECHNICAL));
         check(GRB.startenv(env));
-        check(GRB.newmodel(env, &model, "GUROBI", 0, NULL, NULL, NULL, NULL,
-                           NULL));
+        check(GRB.newmodel(env, &model, "GUROBI", 0, nullptr, nullptr, nullptr,
+                           nullptr, nullptr));
         GRB.freeenv(env);
         env = GRB.getenv(model);
-        if(env == NULL)
+        if(env == nullptr)
             throw std::runtime_error(
                 "gurobi_base: Could not retrieve model environement.");
     }
@@ -255,7 +249,7 @@ public:
 protected:
     inline variable _add_variable(const variable_params & params,
                                   const char & type, const char * name_str) {
-        check(GRB.addvar(model, 0, NULL, NULL, params.obj_coef,
+        check(GRB.addvar(model, 0, nullptr, nullptr, params.obj_coef,
                          params.lower_bound.value_or(-GRB_INFINITY),
                          params.upper_bound.value_or(GRB_INFINITY), type,
                          name_str));
@@ -268,8 +262,9 @@ protected:
         const int new_native_ids_begin = static_cast<int>(_num_var_native_ids);
         const std::size_t handle_ids_begin =
             _new_var_handle_range(_num_var_native_ids, count);
-        check(GRB.addvars(model, static_cast<int>(count), 0, NULL, NULL, NULL,
-                          NULL, NULL, NULL, NULL, NULL));
+        check(GRB.addvars(model, static_cast<int>(count), 0, nullptr, nullptr,
+                          nullptr, nullptr, nullptr, nullptr, nullptr,
+                          nullptr));
         if(double obj = params.obj_coef; obj != 0.0) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
@@ -306,7 +301,7 @@ protected:
 public:
     variable add_variable(
         const variable_params params = default_variable_params) {
-        return _add_variable(params, GRB_CONTINUOUS, NULL);
+        return _add_variable(params, GRB_CONTINUOUS, nullptr);
     }
     auto add_variables(
         std::size_t count,
@@ -356,11 +351,11 @@ private:
                                 const char & type) {
         _reset_raw_cache();
         _register_raw_entries(entries);
-        check(
-            GRB.addvar(model, static_cast<int>(tmp_indices.size()),
-                       tmp_indices.data(), tmp_scalars.data(), params.obj_coef,
-                       params.lower_bound.value_or(-GRB_INFINITY),
-                       params.upper_bound.value_or(GRB_INFINITY), type, NULL));
+        check(GRB.addvar(
+            model, static_cast<int>(tmp_indices.size()), tmp_indices.data(),
+            tmp_scalars.data(), params.obj_coef,
+            params.lower_bound.value_or(-GRB_INFINITY),
+            params.upper_bound.value_or(GRB_INFINITY), type, nullptr));
         return _new_var_handle(_new_var_native_id());
     }
 
@@ -444,7 +439,7 @@ public:
         check(GRB.addconstr(model, static_cast<int>(tmp_indices.size()),
                             tmp_indices.data(), tmp_scalars.data(),
                             constraint_sense_to_gurobi_sense(lc.sense()),
-                            lc.rhs(), NULL));
+                            lc.rhs(), nullptr));
         return constraint(constr_id);
     }
 
@@ -494,7 +489,7 @@ public:
         check(GRB.addconstrs(
             model, constr_id - offset, static_cast<int>(tmp_indices.size()),
             tmp_begins.data(), tmp_indices.data(), tmp_scalars.data(),
-            tmp_types.data(), tmp_rhs.data(), NULL));
+            tmp_types.data(), tmp_rhs.data(), nullptr));
         _lazy_num_constraints += static_cast<std::size_t>(constr_id - offset);
         return constraints_range(
             std::forward<IR>(keys),
@@ -517,7 +512,7 @@ public:
         _register_entries(le.linear_terms());
         check(GRB.addrangeconstr(model, static_cast<int>(tmp_indices.size()),
                                  tmp_indices.data(), tmp_scalars.data(), lb, ub,
-                                 NULL));
+                                 nullptr));
         _new_var_handle(_new_var_native_id());  // added_slack variable
         return constraint(constr_id);
     }
@@ -526,7 +521,8 @@ public:
     auto get_constraint_lhs(constraint constr) {
         int num_nz, beg;
         update_gurobi_model();
-        check(GRB.getconstrs(model, &num_nz, NULL, NULL, NULL, constr.id(), 1));
+        check(GRB.getconstrs(model, &num_nz, nullptr, nullptr, nullptr,
+                             constr.id(), 1));
         auto indices = std::make_shared_for_overwrite<int[]>(
             static_cast<std::size_t>(num_nz));
         auto coefs = std::make_shared_for_overwrite<double[]>(

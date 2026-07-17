@@ -1,5 +1,5 @@
-#ifndef MIPPP_CPLEX_v22_12_BASE_MODEL_HPP
-#define MIPPP_CPLEX_v22_12_BASE_MODEL_HPP
+#ifndef MIPPP_CPLEX_v22_1_2_BASE_MODEL_HPP
+#define MIPPP_CPLEX_v22_1_2_BASE_MODEL_HPP
 
 #include <cassert>
 #include <memory>
@@ -12,13 +12,12 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
-#include "mippp/utility/license_error.hpp"
 
-#include "mippp/solvers/cplex/v22_12/cplex_api.hpp"
+#include "mippp/solvers/cplex/v22_1_2/cplex_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
 
 namespace mippp {
-namespace cplex::v22_12 {
+namespace cplex::v22_1_2 {
 
 class cplex_base : public remapping_model_base<int, double> {
 public:
@@ -33,7 +32,6 @@ public:
     using constraint_mapping = entity_mapping<constraint, Map>;
 
 protected:
-    int cplex_status;
     const cplex_api & CPX;
     CPXENVptr env;
     CPXLPptr lp;
@@ -42,13 +40,7 @@ protected:
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
-    void check(const int error) {
-        if(error == 0) return;
-        char errmsg[CPXMESSAGEBUFSIZE];
-        CPX.geterrorstring(env, error, errmsg);
-        if(error == 1016) throw license_error(errmsg);
-        throw std::runtime_error(errmsg);
-    }
+    void check(const int error) { CPX._check(env, error); }
     static constexpr char constraint_sense_to_cplex_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
@@ -66,10 +58,11 @@ public:
     [[nodiscard]] explicit cplex_base(const cplex_api & api)
         : remapping_model_base<int, double>()
         , CPX(api)
-        , env(CPX.openCPLEX(&cplex_status))
-        , lp(CPX.createprob(env, &cplex_status, "cplex_base")) {}
+        , env(CPX._create_env())
+        , lp(CPX._create_prob(env)) {}
     ~cplex_base() {
         if(lp) check(CPX.freeprob(env, &lp));
+        if(env) CPX._close_env(env);
     }
 
     constexpr cplex_base(const cplex_base &) = delete;
@@ -204,12 +197,12 @@ public:
 
 protected:
     variable _add_variable(const variable_params & params, char type,
-                           char * name = NULL) {
+                           char * name = nullptr) {
         const int var_id = _new_var_native_id();
         const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
         const double ub = params.upper_bound.value_or(CPX_INFBOUND);
         check(CPX.newcols(env, lp, 1, &params.obj_coef, &lb, &ub,
-                          (type != CPX_CONTINUOUS) ? &type : NULL, &name));
+                          (type != CPX_CONTINUOUS) ? &type : nullptr, &name));
         return _new_var_handle(var_id);
     }
     std::size_t _add_variables(std::size_t count,
@@ -241,16 +234,16 @@ protected:
             dbl_offset_1.has_value()
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_1.value()))
-                : NULL,
+                : nullptr,
             dbl_offset_2.has_value()
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_2.value()))
-                : NULL,
+                : nullptr,
             dbl_offset_3.has_value()
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_3.value()))
-                : NULL,
-            (type != CPX_CONTINUOUS) ? tmp_types.data() : NULL, NULL));
+                : nullptr,
+            (type != CPX_CONTINUOUS) ? tmp_types.data() : nullptr, nullptr));
         return handle_ids_begin;
     }
 
@@ -321,7 +314,7 @@ private:
         const double ub = params.upper_bound.value_or(CPX_INFBOUND);
         check(CPX.addcols(env, lp, 1, static_cast<int>(tmp_indices.size()),
                           &params.obj_coef, &cmatbeg, tmp_indices.data(),
-                          tmp_scalars.data(), &lb, &ub, NULL));
+                          tmp_scalars.data(), &lb, &ub, nullptr));
         return _new_var_handle(var_id);
     }
 
@@ -417,7 +410,7 @@ public:
         const char sense = constraint_sense_to_cplex_sense(lc.sense());
         check(CPX.addrows(env, lp, 0, 1, static_cast<int>(tmp_indices.size()),
                           &b, &sense, &matbegin, tmp_indices.data(),
-                          tmp_scalars.data(), NULL, NULL));
+                          tmp_scalars.data(), nullptr, nullptr));
         return constraint(constr_id);
     }
 
@@ -466,7 +459,7 @@ public:
         check(CPX.addrows(env, lp, 0, static_cast<int>(tmp_begins.size()),
                           static_cast<int>(tmp_indices.size()), tmp_rhs.data(),
                           tmp_types.data(), tmp_begins.data(),
-                          tmp_indices.data(), tmp_scalars.data(), NULL, NULL));
+                          tmp_indices.data(), tmp_scalars.data(), nullptr, nullptr));
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
@@ -485,7 +478,7 @@ public:
 
     auto get_constraint_lhs(constraint constr) {
         int palceholder, surplus, beg;
-        if(int error = CPX.getrows(env, lp, &palceholder, NULL, NULL, NULL, 0,
+        if(int error = CPX.getrows(env, lp, &palceholder, nullptr, nullptr, nullptr, 0,
                                    &surplus, constr.id(), constr.id());
            error != 1207 && error != 0)
             throw std::runtime_error("CPLEX: error " + std::to_string(error));
@@ -523,7 +516,7 @@ public:
     }
 };
 
-}  // namespace cplex::v22_12
+}  // namespace cplex::v22_1_2
 }  // namespace mippp
 
-#endif  // MIPPP_CPLEX_v22_12_BASE_MODEL_HPP
+#endif  // MIPPP_CPLEX_v22_1_2_BASE_MODEL_HPP

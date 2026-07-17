@@ -37,10 +37,7 @@ protected:
     const highs_api & Highs;
     void * model;
 
-    void check(const int status) {
-        if(status == kHighsStatusError)
-            throw std::runtime_error("highs_base: error");
-    }
+    void check(const int status) { Highs._check(status); }
 
     std::vector<index> tmp_begins;
     std::vector<scalar> tmp_lower_bounds;
@@ -174,10 +171,10 @@ public:
                           });
         tmp_scalars.resize(2 * num_entries);
         int dummy_int;
-        check(Highs.getColsBySet(model, static_cast<HighsInt>(num_entries),
-                                 tmp_indices.data(), &dummy_int,
-                                 tmp_scalars.data() + num_entries, NULL, NULL,
-                                 &dummy_int, NULL, NULL, NULL));
+        check(Highs.getColsBySet(
+            model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
+            &dummy_int, tmp_scalars.data() + num_entries, nullptr, nullptr,
+            &dummy_int, nullptr, nullptr, nullptr));
 
         for(std::size_t i = 0; i < num_entries; ++i) {
             tmp_scalars[i] += tmp_scalars[num_entries + i];
@@ -196,9 +193,10 @@ public:
         const auto num_vars = _num_var_native_ids();
         auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
         int dummy_int;
-        check(Highs.getColsByRange(
-            model, 0, static_cast<HighsInt>(num_vars) - 1, &dummy_int,
-            coefs.get(), NULL, NULL, &dummy_int, NULL, NULL, NULL));
+        check(Highs.getColsByRange(model, 0,
+                                   static_cast<HighsInt>(num_vars) - 1,
+                                   &dummy_int, coefs.get(), nullptr, nullptr,
+                                   &dummy_int, nullptr, nullptr, nullptr));
         return linear_expression_view(
             std::views::transform(
                 std::views::iota(variable_id{0},
@@ -216,7 +214,7 @@ protected:
             Highs.addCol(model, params.obj_coef,
                          params.lower_bound.value_or(-Highs.getInfinity(model)),
                          params.upper_bound.value_or(Highs.getInfinity(model)),
-                         0, NULL, NULL));
+                         0, nullptr, nullptr));
         if(type != kHighsVarTypeContinuous)
             check(Highs.changeColIntegrality(model, var_id, type));
         return _new_var_handle(var_id);
@@ -237,9 +235,10 @@ protected:
                   params.lower_bound.value_or(-Highs.getInfinity(model)));
         std::fill(tmp_scalars.begin() + 2 * diff_count, tmp_scalars.end(),
                   params.upper_bound.value_or(Highs.getInfinity(model)));
-        Highs.addCols(model, static_cast<HighsInt>(count), tmp_scalars.data(),
-                      tmp_scalars.data() + diff_count,
-                      tmp_scalars.data() + 2 * diff_count, 0, NULL, NULL, NULL);
+        check(Highs.addCols(model, static_cast<HighsInt>(count),
+                            tmp_scalars.data(), tmp_scalars.data() + diff_count,
+                            tmp_scalars.data() + 2 * diff_count, 0, nullptr,
+                            nullptr, nullptr));
         if(type != kHighsVarTypeContinuous) {
             tmp_indices.resize(count);
             std::fill(tmp_indices.begin(), tmp_indices.end(), type);
@@ -367,7 +366,7 @@ public:
         const int native_id = _native_id(v);
         check(Highs.getColsByRange(model, native_id, native_id, &dummy_int,
                                    &coef, &dummy_dbl, &dummy_dbl, &dummy_int,
-                                   NULL, NULL, NULL));
+                                   nullptr, nullptr, nullptr));
         return coef;
     }
     scalar get_variable_lower_bound(variable v) {
@@ -377,7 +376,7 @@ public:
         const int native_id = _native_id(v);
         check(Highs.getColsByRange(model, native_id, native_id, &dummy_int,
                                    &dummy_dbl, &lb, &dummy_dbl, &dummy_int,
-                                   NULL, NULL, NULL));
+                                   nullptr, nullptr, nullptr));
         return lb;
     }
     scalar get_variable_upper_bound(variable v) {
@@ -387,7 +386,7 @@ public:
         const int native_id = _native_id(v);
         check(Highs.getColsByRange(model, native_id, native_id, &dummy_int,
                                    &dummy_dbl, &dummy_dbl, &ub, &dummy_int,
-                                   NULL, NULL, NULL));
+                                   nullptr, nullptr, nullptr));
         return ub;
     }
     std::string get_variable_name(variable v) {
@@ -480,14 +479,15 @@ private:
         double lower, upper;
         int dummy_int;
         check(Highs.getRowsByRange(model, constr.id(), constr.id(), &dummy_int,
-                                   &lower, &upper, &dummy_int, NULL, NULL,
-                                   NULL));
+                                   &lower, &upper, &dummy_int, nullptr, nullptr,
+                                   nullptr));
         return std::make_pair(lower, upper);
     }
     auto _row_lhs_bounds(const constraint & constr) {
         int dummy_int, num_nz;
         check(Highs.getRowsByRange(model, constr.id(), constr.id(), &dummy_int,
-                                   NULL, NULL, &num_nz, NULL, NULL, NULL));
+                                   nullptr, nullptr, &num_nz, nullptr, nullptr,
+                                   nullptr));
         double lower, upper;
         auto indices = std::make_shared_for_overwrite<int[]>(
             static_cast<std::size_t>(num_nz));

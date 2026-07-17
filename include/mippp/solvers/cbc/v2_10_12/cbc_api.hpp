@@ -155,8 +155,11 @@ public:
 
 public:
     inline cbc_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "CBC", {"Cbc", "CbcSolver"}))
-              CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {}
+        : lib(load_solver_library(lib_path, "CBC", {"CbcSolver", "Cbc"},
+                                  {"Cbc_getVersion"}))
+              CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {
+        warn_on_version_mismatch("CBC", "2.10.12", getVersion());
+    }
 };
 
 }  // namespace cbc::v2_10_12

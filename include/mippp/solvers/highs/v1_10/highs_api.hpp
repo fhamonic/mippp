@@ -12,6 +12,11 @@ namespace highs::v1_10 {
 using HighsInt = int;
 double Highs_getInfinity(const void * highs);
 
+const char * Highs_version(void);
+HighsInt Highs_versionMajor(void);
+HighsInt Highs_versionMinor(void);
+HighsInt Highs_versionPatch(void);
+
 void * Highs_create(void);
 void Highs_destroy(void * highs);
 
@@ -206,6 +211,7 @@ HighsInt Highs_startCallback(void * highs, const int callback_type);
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/solver_library.hpp"
 
 namespace mippp {
@@ -213,6 +219,10 @@ namespace highs::v1_10 {
 
 #define HIGHS_FUNCTIONS(F)                                              \
     F(Highs_getInfinity, getInfinity)                                   \
+    F(Highs_version, version)                                           \
+    F(Highs_versionMajor, versionMajor)                                 \
+    F(Highs_versionMinor, versionMinor)                                 \
+    F(Highs_versionPatch, versionPatch)                                 \
     F(Highs_create, create)                                             \
     F(Highs_destroy, destroy)                                           \
     F(Highs_setHighsDoubleOptionValue, setHighsDoubleOptionValue)       \
@@ -274,8 +284,16 @@ public:
 
 public:
     inline highs_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "HIGHS", "highs"))
+        : lib(load_solver_library(lib_path, "HIGHS", {"highs"}))
               HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUN) {}
+
+    void _check(const int status) const {
+        if(status == kHighsStatusOk) return;
+        if(status == kHighsStatusError)
+            throw solver_error("HiGHS kHighsStatusError");
+        if(status == kHighsStatusWarning)
+            throw solver_error("HiGHS kHighsStatusWarning");
+    }
 };
 
 }  // namespace highs::v1_10

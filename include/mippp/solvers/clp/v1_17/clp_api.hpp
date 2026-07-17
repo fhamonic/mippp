@@ -142,7 +142,7 @@ public:
 
 public:
     inline clp_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "CLP", "Clp"))
+        : lib(load_solver_library(lib_path, "CLP", {"Clp"}))
               CLP_FUNCTIONS(CONSTRUCT_CLP_FUN) {}
 };
 

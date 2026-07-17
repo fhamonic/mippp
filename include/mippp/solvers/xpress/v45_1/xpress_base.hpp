@@ -11,7 +11,6 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
-#include "mippp/utility/license_error.hpp"
 
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/xpress/v45_1/xpress_api.hpp"
@@ -40,13 +39,7 @@ protected:
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
-    void check(const int error) {
-        if(error == 0) return;
-        char errmsg[512];
-        check(XPRS.getlasterror(prob, errmsg));
-        throw std::runtime_error(errmsg);
-    }
-
+    void check(const int error) { XPRS._check(prob, error); }
     static constexpr char constraint_sense_to_xpress_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
@@ -63,17 +56,11 @@ protected:
 public:
     [[nodiscard]] explicit xpress_base(const xpress_api & api)
         : model_base<int, double>(), XPRS(api), objective_offset(0.0) {
-        if(XPRS.init("")) {
-            char msg[512];
-            XPRS.getlicerrmsg(msg, 512);
-            throw license_error(msg);
-        }
-        XPRS.createprob(&prob);
+        check(XPRS.createprob(&prob));
     }
     ~xpress_base() {
         if(!prob) return;
-        XPRS.destroyprob(prob);
-        XPRS.free();
+        check(XPRS.destroyprob(prob));
     }
 
     constexpr xpress_base(const xpress_base &) = delete;
@@ -166,8 +153,8 @@ protected:
         const int var_id = static_cast<int>(num_variables());
         const double lb = params.lower_bound.value_or(XPRS_MINUSINFINITY);
         const double ub = params.upper_bound.value_or(XPRS_PLUSINFINITY);
-        check(XPRS.addcols(prob, 1, 0, &params.obj_coef, NULL, NULL, NULL, &lb,
-                           &ub));
+        check(XPRS.addcols(prob, 1, 0, &params.obj_coef, nullptr, nullptr,
+                           nullptr, &lb, &ub));
         if(type != 'C') check(XPRS.chgcoltype(prob, 1, &var_id, &type));
         return variable(var_id);
     }
@@ -194,16 +181,16 @@ protected:
             dbl_offset_1.has_value()
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_1.value()))
-                : NULL,
-            NULL, NULL, NULL,
+                : nullptr,
+            nullptr, nullptr, nullptr,
             dbl_offset_2.has_value()
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_2.value()))
-                : NULL,
+                : nullptr,
             dbl_offset_3.has_value()
                 ? (tmp_scalars.data() +
                    static_cast<std::ptrdiff_t>(dbl_offset_3.value()))
-                : NULL));
+                : nullptr));
 
         if(type != 'C') {
             tmp_indices.resize(count);
@@ -331,11 +318,11 @@ public:
     }
     std::string get_variable_name(variable v) noexcept {
         int nbytes;
-        check(XPRS.getnamelist(prob, XPRS_NAMES_COLUMN, NULL, 0, &nbytes,
+        check(XPRS.getnamelist(prob, XPRS_NAMES_COLUMN, nullptr, 0, &nbytes,
                                v.id(), v.id()));
         std::string name(static_cast<std::size_t>(nbytes - 1), '\0');
         check(XPRS.getnamelist(prob, XPRS_NAMES_COLUMN, name.data(), nbytes,
-                               NULL, v.id(), v.id()));
+                               nullptr, v.id(), v.id()));
         return name;
     }
 
@@ -347,7 +334,7 @@ public:
         const double b = lc.rhs();
         const char sense = constraint_sense_to_xpress_sense(lc.sense());
         check(XPRS.addrows(prob, 1, static_cast<int>(tmp_indices.size()),
-                           &sense, &b, NULL, &matbegin, tmp_indices.data(),
+                           &sense, &b, nullptr, &matbegin, tmp_indices.data(),
                            tmp_scalars.data()));
         return constraint(constr_id);
     }
@@ -396,7 +383,7 @@ public:
         }
         check(XPRS.addrows(prob, static_cast<int>(tmp_begins.size()),
                            static_cast<int>(tmp_indices.size()),
-                           tmp_types.data(), tmp_rhs.data(), NULL,
+                           tmp_types.data(), tmp_rhs.data(), nullptr,
                            tmp_begins.data(), tmp_indices.data(),
                            tmp_scalars.data()));
         return constraints_range(

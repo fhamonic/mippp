@@ -130,7 +130,7 @@ public:
         auto get_solution() {
             const auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            check(XPRS.getsolution(prob, NULL, solution.get(), 0,
+            check(XPRS.getsolution(prob, nullptr, solution.get(), 0,
                                    static_cast<int>(num_vars) - 1));
             return variable_mapping(std::move(solution));
         }
@@ -165,7 +165,7 @@ private:
         _reset_raw_cache();
         _register_raw_entries(entries);
         check(XPRS.addmipsol(prob, static_cast<int>(tmp_indices.size()),
-                             tmp_scalars.data(), tmp_indices.data(), NULL));
+                             tmp_scalars.data(), tmp_indices.data(), nullptr));
     }
 
 public:
@@ -199,7 +199,7 @@ public:
     }
 
     ////////////////////////////////// Solve //////////////////////////////////
-    void solve() { check(XPRS.mipoptimize(prob, NULL)); }
+    void solve() { check(XPRS.mipoptimize(prob, nullptr)); }
 
     double get_solution_value() {
         double val;
@@ -209,7 +209,7 @@ public:
     auto get_solution() {
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(XPRS.getsolution(prob, NULL, solution.get(), 0,
+        check(XPRS.getsolution(prob, nullptr, solution.get(), 0,
                                static_cast<int>(num_vars) - 1));
         return variable_mapping(std::move(solution));
     }

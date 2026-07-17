@@ -141,7 +141,7 @@ private:
                          const char * name = "") {
         Cbc.addCol(model, name, p.lower_bound.value_or(-COIN_DBL_MAX),
                    p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, is_integer,
-                   0, NULL, NULL);
+                   0, nullptr, nullptr);
         ++_lazy_num_variables;
     }
 

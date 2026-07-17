@@ -61,7 +61,7 @@ public:
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(Highs.getSolution(model, solution.get(), NULL, NULL, NULL));
+        check(Highs.getSolution(model, solution.get(), nullptr, nullptr, nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
@@ -70,13 +70,13 @@ public:
     auto get_dual_solution() {
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
-        check(Highs.getSolution(model, NULL, NULL, NULL, solution.get()));
+        check(Highs.getSolution(model, nullptr, nullptr, nullptr, solution.get()));
         return constraint_mapping(std::move(solution));
     }
     auto get_reduced_costs() {
         auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(Highs.getSolution(model, NULL, reduced_costs.get(), NULL, NULL));
+        check(Highs.getSolution(model, nullptr, reduced_costs.get(), nullptr, nullptr));
         return variable_mapping([this, reduced_costs = std::move(
                                            reduced_costs)](const variable & v) {
             return *(reduced_costs.get() + _native_id(v));

@@ -330,6 +330,7 @@ MSKrescodee MSK_putcallbackfunc(MSKtask_t task, MSKcallbackfunc func,
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/solver_library.hpp"
 
 namespace mippp {
@@ -408,8 +409,16 @@ public:
 
 public:
     inline mosek_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "MOSEK", "mosek64"))
+        : lib(load_solver_library(lib_path, "MOSEK", {"mosek64"}))
               MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUN) {}
+
+    void _check(const MSKrescodee error) const {
+        if(error == 0) return;
+        char str[MSK_MAX_STR_LEN];
+        getcodedesc(error, nullptr, str);
+        if(error == 1001) throw license_error(str);
+        throw solver_error(str);
+    }
 };
 
 }  // namespace mosek::v11

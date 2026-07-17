@@ -1,5 +1,5 @@
-#ifndef MIPPP_CPLEX_v22_12_LP_HPP
-#define MIPPP_CPLEX_v22_12_LP_HPP
+#ifndef MIPPP_CPLEX_v22_1_2_LP_HPP
+#define MIPPP_CPLEX_v22_1_2_LP_HPP
 
 #include <numeric>
 #include <optional>
@@ -8,10 +8,10 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/cplex/v22_12/cplex_base.hpp"
+#include "mippp/solvers/cplex/v22_1_2/cplex_base.hpp"
 
 namespace mippp {
-namespace cplex::v22_12 {
+namespace cplex::v22_1_2 {
 
 class cplex_lp : public cplex_base {
 private:
@@ -80,14 +80,14 @@ public:
 
     double get_solution_value() {
         double val;
-        check(CPX.solution(env, lp, NULL, &val, NULL, NULL, NULL, NULL));
+        check(CPX.solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr, nullptr));
         return val;
     }
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(CPX.solution(env, lp, NULL, NULL, solution.get(), NULL, NULL,
-                           NULL));
+        check(CPX.solution(env, lp, nullptr, nullptr, solution.get(), nullptr, nullptr,
+                           nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
@@ -96,14 +96,14 @@ public:
     auto get_dual_solution() {
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
-        check(CPX.solution(env, lp, NULL, NULL, NULL, dual_solution.get(), NULL,
-                           NULL));
+        check(CPX.solution(env, lp, nullptr, nullptr, nullptr, dual_solution.get(), nullptr,
+                           nullptr));
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
         auto reduced_costs =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(CPX.solution(env, lp, NULL, NULL, NULL, NULL, NULL,
+        check(CPX.solution(env, lp, nullptr, nullptr, nullptr, nullptr, nullptr,
                            reduced_costs.get()));
         return variable_mapping([this, reduced_costs = std::move(
                                            reduced_costs)](const variable & v) {
@@ -112,7 +112,7 @@ public:
     }
 };
 
-}  // namespace cplex::v22_12
+}  // namespace cplex::v22_1_2
 }  // namespace mippp
 
-#endif  // MIPPP_CPLEX_v22_12_LP_HPP
+#endif  // MIPPP_CPLEX_v22_1_2_LP_HPP

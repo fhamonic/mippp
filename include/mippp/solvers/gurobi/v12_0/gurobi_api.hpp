@@ -197,6 +197,7 @@ int GRBcblazy(void * cbdata, int lazylen, const int * lazyind,
 
 #include "dylib.hpp"
 
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/solver_library.hpp"
 
 namespace mippp {
@@ -277,8 +278,18 @@ public:
 
 public:
     gurobi_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "GUROBI", "gurobi120"))
-              GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUN) {}
+        : lib(load_solver_library(lib_path, "GUROBI", {"gurobi120"}))
+              GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUN) {
+        int major, minor, technical;
+        version(&major, &minor, &technical);
+        warn_on_version_mismatch("GUROBI", GRB_VERSION_MAJOR, major);
+    }
+
+    void _check(GRBenv * env, const int error) const {
+        if(error == 0) return;
+        if(error == 10009) throw license_error(geterrormsg(env));
+        throw solver_error(geterrormsg(env));
+    }
 };
 
 }  // namespace gurobi::v12_0
