@@ -292,6 +292,8 @@ public:
         return Cbc.getColUpper(model)[v.id()];
     }
     std::string get_variable_name(variable v) {
+        // getNumIntegers flushes Cbc internal buffers to update maxNameLength
+        [[maybe_unused]] auto n = Cbc.getNumIntegers(model);
         auto max_length = Cbc.maxNameLength(model);
         std::string name(max_length + 1, '\0');
         Cbc.getColName(model, v.id(), name.data(), max_length + 1);
