@@ -493,9 +493,13 @@ public:
         return objective_offset +
                (_lazy_num_variables == 0u ? 0.0 : Cbc.getObjValue(model));
     }
-    // auto get_solution() { return variable_mapping(Cbc.getColSolution(model));
-    // }
-    auto get_solution() { return variable_mapping(Cbc.bestSolution(model)); }
+    // auto get_solution() { return variable_mapping(Cbc.bestSolution(model)); }
+    auto get_solution() {
+        const double * sol =
+            Cbc.bestSolution(model);  // NULL is no integer variables
+        if(sol == nullptr) sol = Cbc.getColSolution(model);
+        return variable_mapping(std::move(sol));
+    }
 };
 
 }  // namespace cbc::v2_10_12
