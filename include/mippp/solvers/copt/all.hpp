@@ -1,5 +1,4 @@
-#ifndef MIPPP_COPT_ALL_HPP
-#define MIPPP_COPT_ALL_HPP
+#pragma once
 
 #include "mippp/solvers/copt/v7_2/copt_api.hpp"
 #include "mippp/solvers/copt/v7_2/copt_lp.hpp"
@@ -12,5 +11,3 @@ using copt_lp = copt::v7_2::copt_lp;
 using copt_milp = copt::v7_2::copt_milp;
 
 }  // namespace mippp
-
-#endif  // MIPPP_COPT_ALL_HPP

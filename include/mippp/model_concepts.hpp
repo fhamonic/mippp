@@ -1,159 +1,174 @@
-#ifndef MIPPP_MODEL_CONCEPTS_HPP
-#define MIPPP_MODEL_CONCEPTS_HPP
+#pragma once
 
 #include <chrono>
 #include <concepts>
+#include <cstddef>
+#include <initializer_list>
 #include <optional>
 #include <ranges>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <variant>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
-#include "mippp/model_entities.hpp"
-#include "mippp/utility/variadic_helper.hpp"
+#include "mippp/quadratic_expression.hpp"
+#include "mippp/utility/memory_size.hpp"
+#include "mippp/detail/variadic_helper.hpp"
 
 namespace mippp {
-
-namespace detail {
-
-///////////////////////////////////////////////////////////////////////////////
-////////////////////////// Dummy types for concepts ///////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template <typename T>
-auto dummy_range() {
-    return std::views::empty<T>;
-};
-
-template <typename M>
-struct dummy_linear_expression {
-    auto linear_terms() const {
-        return dummy_range<
-            std::pair<typename M::variable, typename M::scalar>>();
-    }
-    auto constant() const { return typename M::scalar{}; }
-};
-template <typename M>
-struct dummy_linear_constraint {
-    auto linear_terms() const {
-        return dummy_range<
-            std::pair<typename M::variable, typename M::scalar>>();
-    }
-    auto sense() const { return constraint_sense::equal; }
-    auto rhs() const { return typename M::scalar{0}; }
-};
-
-template <typename M>
-struct dummy_quadratic_expression {
-    auto quadratic_terms() const {
-        return dummy_range<std::tuple<
-            typename M::variable, typename M::variable, typename M::scalar>>();
-    }
-    auto linear_expression() const { return dummy_linear_expression<M>(); }
-};
-
-struct dummy_type {};
-
-constexpr bool operator<(dummy_type, dummy_type) { return true; }
-
-}  // namespace detail
-
-///////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////// Model ////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
 
 template <typename M>
 using model_variable_t = typename M::variable;
 
 template <typename M>
+using model_variable_params_t = typename M::variable_params;
+
+template <typename M>
+using model_scalar_t = typename M::scalar;
+
+template <typename M>
 using model_constraint_t = typename M::constraint;
 
-template <typename M, typename K>
-using model_constraints_range_t =
-    decltype(std::declval<M>().add_constraints(detail::dummy_range<K>(), [](K) {
-        return detail::dummy_linear_constraint<M>();
-    }));
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////// Dummy types for concepts ///////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-// clang-format off
+namespace archetype {
 template <typename T>
-concept lp_model = requires(T & model, T::variable v, 
-                    T::variable_params vparams, T::constraint c, T::scalar s) {
-    { model.set_maximization() };
-    { model.set_minimization() };
+auto range() {
+    return std::views::empty<T>;
+}
+template <typename M>
+struct linear_expression {
+    auto linear_terms() const {
+        return range<std::pair<model_variable_t<M>, model_scalar_t<M>>>();
+    }
+    auto constant() const { return model_scalar_t<M>{}; }
+};
+template <typename M>
+struct linear_constraint {
+    auto linear_terms() const {
+        return range<std::pair<model_variable_t<M>, model_scalar_t<M>>>();
+    }
+    auto sense() const { return constraint_sense::equal; }
+    auto rhs() const { return model_scalar_t<M>{}; }
+};
+template <typename M>
+struct quadratic_expression {
+    auto quadratic_terms() const {
+        return range<std::tuple<model_variable_t<M>, model_variable_t<M>,
+                                model_scalar_t<M>>>();
+    }
+    auto linear_expression() const { return archetype::linear_expression<M>(); }
+};
+struct any_type {};
+constexpr bool operator<(any_type, any_type) { return bool{}; }
+struct model {
+    using variable = any_type;
+    using variable_params = any_type;
+    using scalar = any_type;
+    using constraint = any_type;
+};
+}  // namespace archetype
+static_assert(
+    linear_expression<archetype::linear_expression<archetype::model>>);
+static_assert(
+    linear_constraint<archetype::linear_constraint<archetype::model>>);
+static_assert(
+    quadratic_expression<archetype::quadratic_expression<archetype::model>>);
 
-    { model.add_variable() } -> std::same_as<typename T::variable>;
-    { model.add_variable({.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> std::same_as<typename T::variable>;    
-    { model.add_variables(std::size_t{1u}) } ->std::ranges::random_access_range;
-    { model.add_variables(std::size_t{1u},
-                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            ->std::ranges::random_access_range;
-    { model.add_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; }) }
-            ->std::ranges::random_access_range;
-    { model.add_variables(std::size_t{1u}, [](detail::dummy_type) { return 0; },
-                         {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            ->std::ranges::random_access_range;
-
-    { model.set_objective_offset(0.0) };
-    { model.set_objective(detail::dummy_linear_expression<T>()) };
-
-    { model.add_constraint(detail::dummy_linear_constraint<T>()) }
-            -> std::same_as<typename T::constraint>;
-    { model.add_constraints(detail::dummy_range<detail::dummy_type>(),
-                              [](detail::dummy_type) {
-                                  return detail::dummy_linear_constraint<T>();
-                              }) } 
-            -> std::ranges::range;
-
-    { model.num_variables() } -> std::same_as<std::size_t>;
-    { model.num_constraints() } -> std::same_as<std::size_t>;
-
-    { model.solve() };
-    { model.get_solution_value() } -> std::same_as<typename T::scalar>;
-    { model.get_solution()[v] } -> std::convertible_to<typename T::scalar>;
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// Model ////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// clang-format off
+template <typename VP, typename T>
+concept variable_params = requires(VP & vparams, model_scalar_t<T> s) {
+    { vparams.obj_coef } -> std::same_as<model_scalar_t<T> &>;
+    { vparams.lower_bound } -> std::same_as<std::optional<model_scalar_t<T>> &>;
+    { vparams.upper_bound } -> std::same_as<std::optional<model_scalar_t<T>> &>;
+    { vparams = {.obj_coef = s, .lower_bound = s, .upper_bound = s} };
 };
 
+template <typename VR, typename T>
+concept variables_range =
+    std::ranges::random_access_range<VR> &&
+    std::same_as<std::ranges::range_value_t<VR>, model_variable_t<T>>;
+
+template <typename T>
+concept lp_model =
+    linear_expression<model_variable_t<T>> &&
+    variable_params<model_variable_params_t<T>, T> &&
+    requires(T & model, model_variable_t<T> v,
+             model_variable_params_t<T> vparams, model_scalar_t<T> s) {
+        { model.set_maximization() };
+        { model.set_minimization() };
+
+        { model.add_variable() } -> std::same_as<model_variable_t<T>>;
+        { model.add_variable(vparams) } -> std::same_as<model_variable_t<T>>;
+        { model.add_variables(std::size_t{1u}) } -> variables_range<T>;
+        { model.add_variables(std::size_t{1u}, vparams) } -> variables_range<T>;
+        { model.add_variables(std::size_t{1u},
+                                [](archetype::any_type) { return 0; }) } 
+                -> variables_range<T>;
+        { model.add_variables(std::size_t{1u}, 
+                                [](archetype::any_type) { return 0; }, vparams) }
+                -> variables_range<T>;
+
+        { model.set_objective_offset(s) };
+        { model.set_objective(archetype::linear_expression<T>()) };
+
+        { model.add_constraint(archetype::linear_constraint<T>()) } 
+                -> std::same_as<model_constraint_t<T>>;
+        { model.add_constraints(archetype::range<archetype::any_type>(),
+                                [](archetype::any_type) {
+                                    return archetype::linear_constraint<T>();
+                                }) }
+                -> std::ranges::range;
+        { model.num_variables() } -> std::same_as<std::size_t>;
+        { model.num_constraints() } -> std::same_as<std::size_t>;
+        { model.solve() };
+        { model.get_solution_value() } -> std::same_as<model_scalar_t<T>>;
+        { model.get_solution()[v] } -> std::convertible_to<model_scalar_t<T>>;
+    };
 
 template <typename T>
 concept qp_model = lp_model<T> && requires(T & model) {
-    { model.set_objective(detail::dummy_quadratic_expression<T>()) };
+    { model.set_objective(archetype::quadratic_expression<T>()) };
 };
 
 template <typename T>
-concept milp_model = lp_model<T> && requires(T & model, T::variable v,
-                            T::variable_params vparams, T::scalar s) {
-    { model.add_integer_variable() } -> std::same_as<typename T::variable>;
-    { model.add_integer_variable(
-                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> std::same_as<typename T::variable>;
-    { model.add_integer_variables(std::size_t{1u}) }
-            ->std::ranges::random_access_range;
-    { model.add_integer_variables(std::size_t{1u},
-                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            ->std::ranges::random_access_range;
+concept milp_model =
+    lp_model<T> && requires(T & model, model_variable_t<T> v,
+                            model_variable_params_t<T> vparams) {
+    { model.add_integer_variable() } -> std::same_as<model_variable_t<T>>;
+    { model.add_integer_variable(vparams) }
+            -> std::same_as<model_variable_t<T>>;
+    { model.add_integer_variables(std::size_t{1u}) } -> variables_range<T>;
+    { model.add_integer_variables(std::size_t{1u}, vparams) }
+            -> variables_range<T>;
     { model.add_integer_variables(std::size_t{1u}, 
-                                  [](detail::dummy_type) { return 0; }) }
-            ->std::ranges::random_access_range;
+                                  [](archetype::any_type) { return 0; }) }
+            -> variables_range<T>;
     { model.add_integer_variables(std::size_t{1u}, 
-                        [](detail::dummy_type) { return 0; },
-                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            ->std::ranges::random_access_range;
+                        [](archetype::any_type) { return 0; },
+                        vparams) }
+            -> variables_range<T>;
 
-    { model.add_binary_variable() } -> std::same_as<typename T::variable>;
-    { model.add_binary_variables(std::size_t{1u}) }
-            ->std::ranges::random_access_range;
+    { model.add_binary_variable() } -> std::same_as<model_variable_t<T>>;
+    { model.add_binary_variables(std::size_t{1u}) } -> variables_range<T>;
     { model.add_binary_variables(std::size_t{1u}, 
-                                 [](detail::dummy_type) { return 0; }) }
-            ->std::ranges::random_access_range;
+                                 [](archetype::any_type) { return 0; }) }
+            -> variables_range<T>;
 
     { model.set_continuous(v) };
     { model.set_integer(v) };
     { model.set_binary(v) };
 };
-
+// clang-format on
 template <typename T>
-concept sized_model = lp_model<T> && requires(T & model) {
+concept sized_model = requires(T & model) {
     { model.num_entries() } -> std::same_as<std::size_t>;
 };
 
@@ -165,13 +180,13 @@ concept has_lp_status = lp_model<T> && requires(T & model) {
 };
 
 template <typename T>
-concept has_dual_solution = requires(T & model, T::constraint c) {
-    { model.get_dual_solution()[c] } -> std::convertible_to<typename T::scalar>;
+concept has_dual_solution = requires(T & model, model_constraint_t<T> c) {
+    { model.get_dual_solution()[c] } -> std::convertible_to<model_scalar_t<T>>;
 };
 
 template <typename T>
-concept has_reduced_costs = requires(T & model, typename T::variable v) {
-    { model.get_reduced_costs()[v] } -> std::convertible_to<typename T::scalar>;
+concept has_reduced_costs = requires(T & model, model_variable_t<T> v) {
+    { model.get_reduced_costs()[v] } -> std::convertible_to<model_scalar_t<T>>;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -179,32 +194,66 @@ concept has_reduced_costs = requires(T & model, typename T::variable v) {
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace reason {
-struct completed {};
-struct optimal : completed {};
-struct infeasible_or_unbounded : completed {};
+struct any {
+    bool solution_available;
+    explicit constexpr any(bool available = false)
+        : solution_available(available) {}
+};
+
+struct completed : any {
+    using any::any;
+};
+struct optimal : completed {
+    constexpr optimal() : completed(true) {}
+};
+struct optimal_face_unbounded : optimal {};  // infinite number of solutions
+struct optimal_infeasible_unscaled : optimal {};  // infeasible once unscaled
+struct infeasible_or_unbounded : completed {
+    constexpr infeasible_or_unbounded() : completed(false) {}
+};
 struct infeasible : infeasible_or_unbounded {};
 struct unbounded : infeasible_or_unbounded {};
-struct stopped {};
-struct interrupted : stopped {};
-struct numerical_failure : stopped {};
-struct reached_limit : stopped {};
-struct time_limit : reached_limit {};
-struct node_limit : reached_limit {};
-struct unknown : stopped {};
+
+// clang-format off
+struct stopped : any { using any::any; };
+struct interrupted : stopped { using stopped::stopped; };
+struct failed : stopped { using stopped::stopped; };
+struct numerical_failure : failed { using failed::failed; };
+struct out_of_memory : failed { using failed::failed; };
+struct limit_reached : stopped { using stopped::stopped; };
+struct time_limit : limit_reached { using limit_reached::limit_reached; };
+struct iteration_limit : limit_reached { using limit_reached::limit_reached; };
+struct node_limit : limit_reached { using limit_reached::limit_reached; };
+struct solution_limit : limit_reached { using limit_reached::limit_reached; };
+struct memory_limit : limit_reached { using limit_reached::limit_reached; };
+struct unknown : stopped { using stopped::stopped; };
+}  // namespace reason
+
+template <typename R>
+concept termination_reason = requires(const R & r) {
+    { std::visit(detail::overloaded{[](reason::any) {}}, r) };
+};
+// clang-format on
+namespace reason {
+template <typename R>
+[[nodiscard]] constexpr bool is(const termination_reason auto & r) noexcept {
+    return std::visit(
+        []<typename A>(const A &) { return std::derived_from<A, R>; }, r);
+}
+template <termination_reason TR>
+[[nodiscard]] constexpr bool solution_available(const TR & r) noexcept {
+    return std::visit([](any a) { return a.solution_available; }, r);
+}
 }  // namespace reason
 
 template <typename T>
 using model_termination_reason_t =
-    std::decay_t<decltype(std::declval<T>().termination_reason())>;
+    std::decay_t<decltype(std::declval<T &>().termination_reason())>;
 
 template <typename T>
 concept has_termination_reason = requires(T & model) {
-    { std::visit(detail::overloaded{
-                           [](reason::completed) {},
-                           [](reason::stopped) {}
-                       },
-                       model.termination_reason()) };
-    };
+    { model.termination_reason() } -> termination_reason;
+};
 
 template <typename T>
 concept has_time_limit =
@@ -216,51 +265,78 @@ concept has_time_limit =
                                      model_termination_reason_t<T>>);
 
 template <typename T>
-concept has_node_limit = requires(T & model, std::size_t n) {
-    { model.set_node_limit(n) };
-    { model.get_node_limit() } -> std::same_as<std::size_t>;
+concept has_iteration_limit =
+    requires(T & model, std::size_t n) {
+        { model.set_iteration_limit(n) };
+        { model.get_iteration_limit() } -> std::same_as<std::size_t>;
     } && (!has_termination_reason<T> ||
-          detail::variant_contains_v<reason::node_limit, 
+          detail::variant_contains_v<reason::iteration_limit,
+                                     model_termination_reason_t<T>>);
+
+template <typename T>
+concept has_node_limit =
+    requires(T & model, std::size_t n) {
+        { model.set_node_limit(n) };
+        { model.get_node_limit() } -> std::same_as<std::size_t>;
+    } && (!has_termination_reason<T> ||
+          detail::variant_contains_v<reason::node_limit,
+                                     model_termination_reason_t<T>>);
+
+template <typename T>
+concept has_solution_limit =
+    requires(T & model, std::size_t n) {
+        { model.set_solution_limit(n) };
+        { model.get_solution_limit() } -> std::same_as<std::size_t>;
+    } && (!has_termination_reason<T> ||
+          detail::variant_contains_v<reason::solution_limit,
+                                     model_termination_reason_t<T>>);
+
+template <typename T>
+concept has_memory_limit =
+    requires(T & model) {
+        { model.set_memory_limit(mebibytes{128u}) };
+        { model.set_memory_limit(gigabytes{4u}) };  // any memory_size<>
+        { model.get_memory_limit() } -> std::common_with<bytes>;
+    } && (!has_termination_reason<T> ||
+          detail::variant_contains_v<reason::memory_limit,
                                      model_termination_reason_t<T>>);
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Names ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
+// clang-format off
 template <typename T>
-concept has_named_variables = lp_model<T> && requires(T & model, T::variable v,
-                    T::variable_params vparams, T::scalar s, std::string nm) {
-    { model.set_variable_name(v, nm) };
-    { model.get_variable_name(v) };
+concept has_named_variables = requires(T & model, model_variable_t<T> v,
+             model_variable_params_t<T> vparams, std::string name) {
+        { model.set_variable_name(v, name) };
+        { model.get_variable_name(v) } -> std::convertible_to<std::string>;
 
-    { model.add_named_variable(nm) } -> std::same_as<typename T::variable>;
-    { model.add_named_variable(nm,
-                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> std::same_as<typename T::variable>;
-    { model.add_named_variables(std::size_t{1u},
-                        [](std::size_t) -> std::string { return ""; }) }
-            ->std::ranges::random_access_range;
-    { model.add_named_variables(std::size_t{1u},
-                        [](std::size_t) -> std::string { return ""; },
-                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            ->std::ranges::random_access_range;  
-    { model.add_named_variables(std::size_t{1u},
-                        [](detail::dummy_type) { return 0; },
-                        [](detail::dummy_type) -> std::string { return ""; }) }
-            ->std::ranges::random_access_range;
-    { model.add_named_variables(std::size_t{1u},
-                        [](detail::dummy_type) { return 0; },
-                        [](detail::dummy_type) -> std::string { return ""; },
-                        {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            ->std::ranges::random_access_range; 
-};
-
+        { model.add_named_variable(name) } -> std::same_as<model_variable_t<T>>;
+        { model.add_named_variable(name, vparams) } 
+                -> std::same_as<model_variable_t<T>>;
+        { model.add_named_variables(
+                std::size_t{1u}, [](std::size_t) -> std::string { return ""; })
+        } -> variables_range<T>;
+        { model.add_named_variables(
+                std::size_t{1u}, [](std::size_t) -> std::string { return ""; },
+                vparams)
+        } -> variables_range<T>;
+        { model.add_named_variables(
+                std::size_t{1u}, [](archetype::any_type) { return 0; },
+                [](archetype::any_type) -> std::string { return ""; })
+        } -> variables_range<T>;
+        { model.add_named_variables(
+                std::size_t{1u}, [](archetype::any_type) { return 0; },
+                [](archetype::any_type) -> std::string { return ""; }, vparams)
+        } -> variables_range<T>;
+    };
+// clang-format on
 template <typename T>
 concept has_named_constraints =
-        requires(T & model, T::constraint v, std::string s) {
-    { model.set_constraint_name(v, s) };
-    { model.get_constraint_name(v) };
-};
+    requires(T & model, model_constraint_t<T> c, std::string name) {
+        { model.set_constraint_name(c, name) };
+        { model.get_constraint_name(c) } -> std::convertible_to<std::string>;
+    };
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Objective //////////////////////////////////
@@ -268,124 +344,135 @@ concept has_named_constraints =
 
 template <typename T>
 using objective_expression_t = decltype(std::declval<T &>().get_objective());
-
+// clang-format off
 template <typename T>
-concept has_readable_objective = requires(T & model, T::variable v) {
+concept has_readable_objective = requires(T & model, model_variable_t<T> v) {
         { model.get_objective_offset() }
-                -> std::same_as<typename T::scalar>;
+                -> std::same_as<model_scalar_t<T>>;
         { model.get_objective_coefficient(v) }
-                -> std::same_as<typename T::scalar>;
+                -> std::same_as<model_scalar_t<T>>;
         { model.get_objective() } -> linear_expression;
     } && std::same_as<std::decay_t<
                 linear_expression_variable_t<objective_expression_t<T>>>,
-                typename T::variable>
+                model_variable_t<T>>
       && std::same_as<std::decay_t<
                 linear_expression_scalar_t<objective_expression_t<T>>>,
-                typename T::scalar>;
-
+                model_scalar_t<T>>;
+// clang-format on
 template <typename T>
 concept has_modifiable_objective =
-        requires(T & model, T::variable v, T::scalar s) {
-    { model.set_objective_coefficient(v, s) };
-    { model.add_objective(detail::dummy_linear_expression<T>()) };
-};
-    
+    requires(T & model, model_variable_t<T> v, model_scalar_t<T> s) {
+        { model.set_objective_coefficient(v, s) };
+        { model.add_objective(archetype::linear_expression<T>()) };
+    };
+
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Variables //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-       
+// clang-format off
 template <typename T>
 concept has_readable_variables_bounds =
-        requires(T & model, T::variable v) {
-    { model.get_variable_lower_bound(v) }
-            -> std::same_as<typename T::scalar>;
-    { model.get_variable_upper_bound(v) }
-            -> std::same_as<typename T::scalar>;
-};
-
+    requires(T & model, model_variable_t<T> v) {
+        { model.get_variable_lower_bound(v) }
+            -> std::same_as<model_scalar_t<T>>;
+        { model.get_variable_upper_bound(v) } 
+            -> std::same_as<model_scalar_t<T>>;
+    };
+// clang-format on
 template <typename T>
 concept has_modifiable_variables_bounds =
-        requires(T & model, T::variable v, T::scalar s) {
-    { model.set_variable_lower_bound(v, s) };
-    { model.set_variable_upper_bound(v, s) };
-};
-    
+    requires(T & model, model_variable_t<T> v, model_scalar_t<T> s) {
+        { model.set_variable_lower_bound(v, s) };
+        { model.set_variable_upper_bound(v, s) };
+    };
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// Constraints /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
 using constraint_lhs_range_t = decltype(std::declval<T &>().get_constraint_lhs(
-    std::declval<typename T::constraint &>()));
+    std::declval<model_constraint_t<T> &>()));
 
 template <typename T>
-concept has_readable_constraint_lhs = requires(T & model, T::constraint c) {
-        { model.get_constraint_lhs(c) } ->std::ranges::range;
-    } && std::same_as<
-            std::decay_t<std::ranges::range_value_t<constraint_lhs_range_t<T>>>,
-            std::pair<typename T::variable, typename T::scalar>>;
+concept has_readable_constraint_lhs =
+    requires(T & model, model_constraint_t<T> c) {
+        { model.get_constraint_lhs(c) } -> std::ranges::range;
+    } && linear_term<std::ranges::range_value_t<constraint_lhs_range_t<T>>> &&
+    std::same_as<model_variable_t<T>,
+                 linear_term_variable_t<
+                     std::ranges::range_value_t<constraint_lhs_range_t<T>>>> &&
+    std::same_as<model_scalar_t<T>,
+                 linear_term_scalar_t<
+                     std::ranges::range_value_t<constraint_lhs_range_t<T>>>>;
+// clang-format off
+template <typename T>
+concept has_modifiable_constraint_lhs =
+    requires(T & model, model_constraint_t<T> c) {
+        { model.set_constraint_lhs(
+                c, archetype::range<
+                       std::pair<model_variable_t<T>, model_scalar_t<T>>>()) };
+    };
+// clang-format on
+template <typename T>
+concept has_readable_constraint_sense =
+    requires(T & model, model_constraint_t<T> c) {
+        { model.get_constraint_sense(c) } -> std::same_as<constraint_sense>;
+    };
 
 template <typename T>
-concept has_modifiable_constraint_lhs = requires(T & model, T::constraint c) {
-    { model.set_constraint_lhs(c, detail::dummy_range<
-                   std::pair<typename T::variable, typename T::scalar>>()) };
-};
+concept has_modifiable_constraint_sense =
+    requires(T & model, model_constraint_t<T> c) {
+        { model.set_constraint_sense(c, constraint_sense::equal) };
+    };
 
 template <typename T>
-concept has_readable_constraint_sense = requires(T & model, T::constraint c) {
-    { model.get_constraint_sense(c) } -> std::same_as<constraint_sense>;
-};
-
-template <typename T>
-concept has_modifiable_constraint_sense = requires(T & model, T::constraint c) {
-    { model.set_constraint_sense(c, constraint_sense::equal) };
-};
-
-template <typename T>
-concept has_readable_constraint_rhs = requires(T & model, T::constraint c) {
-    { model.get_constraint_rhs(c) } -> std::same_as<typename T::scalar>;
-};
+concept has_readable_constraint_rhs =
+    requires(T & model, model_constraint_t<T> c) {
+        { model.get_constraint_rhs(c) } -> std::same_as<model_scalar_t<T>>;
+    };
 
 template <typename T>
 concept has_modifiable_constraint_rhs =
-    requires(T & model, T::constraint c, T::scalar s) {
+    requires(T & model, model_constraint_t<T> c, model_scalar_t<T> s) {
         { model.set_constraint_rhs(c, s) };
     };
 
 template <typename T>
 concept has_readable_constraints =
     has_readable_constraint_lhs<T> && has_readable_constraint_sense<T> &&
-    has_readable_constraint_rhs<T> && requires(T & model, T::constraint c) {
+    has_readable_constraint_rhs<T> &&
+    requires(T & model, model_constraint_t<T> c) {
         { model.get_constraint(c) } -> linear_constraint;
     };
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// Special constraints /////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
+// clang-format off
 template <typename T>
 concept has_sos1_constraints = requires(
-    T & model, std::initializer_list<typename T::variable> init_variables) {
-    { model.add_sos1_constraint(detail::dummy_range<typename T::variable>()) }
-            -> std::same_as<typename T::constraint>;
+    T & model, std::initializer_list<model_variable_t<T>> init_variables) {
+    { model.add_sos1_constraint(archetype::range<model_variable_t<T>>()) }
+            -> std::same_as<model_constraint_t<T>>;
     { model.add_sos1_constraint(init_variables) }
-            -> std::same_as<typename T::constraint>;
+            -> std::same_as<model_constraint_t<T>>;
 };
 
 template <typename T>
 concept has_sos2_constraints = requires(
-    T & model, std::initializer_list<typename T::variable> init_variables) {
-    { model.add_sos2_constraint(detail::dummy_range<typename T::variable>()) }
-            -> std::same_as<typename T::constraint>;
+    T & model, std::initializer_list<model_variable_t<T>> init_variables) {
+    { model.add_sos2_constraint(archetype::range<model_variable_t<T>>()) }
+            -> std::same_as<model_constraint_t<T>>;
     { model.add_sos2_constraint(init_variables) }
-            -> std::same_as<typename T::constraint>;
+            -> std::same_as<model_constraint_t<T>>;
 };
 
 template <typename T>
-concept has_indicator_constraints = requires(T & model, T::variable v) {
+concept has_indicator_constraints = requires(T & model, model_variable_t<T> v) {
     { model.add_indicator_constraint(v, true, 
-                                     detail::dummy_linear_constraint<T>()) }
-            -> std::same_as<typename T::constraint>;
+                                     archetype::linear_constraint<T>()) }
+            -> std::same_as<model_constraint_t<T>>;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -394,26 +481,26 @@ concept has_indicator_constraints = requires(T & model, T::variable v) {
 
 template <typename T>
 concept has_add_column = requires(
-    T & model, T::scalar s,
-    std::initializer_list<std::pair<typename T::constraint, typename T::scalar>>
+    T & model, model_variable_params_t<T> vparams, model_scalar_t<T> s,
+    std::initializer_list<std::pair<model_constraint_t<T>, model_scalar_t<T>>>
         init_entries) {
-    { model.add_column(detail::dummy_range<
-                std::pair<typename T::constraint, typename T::scalar>>()) }
-            -> std::same_as<typename T::variable>;
-    { model.add_column(detail::dummy_range<
-                std::pair<typename T::constraint, typename T::scalar>>(),
-                       {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> std::same_as<typename T::variable>;
-    { model.add_column(init_entries) } -> std::same_as<typename T::variable>;
+    { model.add_column(archetype::range<
+                std::pair<model_constraint_t<T>, model_scalar_t<T>>>()) }
+            -> std::same_as<model_variable_t<T>>;
+    { model.add_column(archetype::range<
+                std::pair<model_constraint_t<T>, model_scalar_t<T>>>(),
+                       vparams) }
+            -> std::same_as<model_variable_t<T>>;
+    { model.add_column(init_entries) } -> std::same_as<model_variable_t<T>>;
     { model.add_column(init_entries,
-                       {.obj_coef = s, .lower_bound = s, .upper_bound = s}) }
-            -> std::same_as<typename T::variable>;
+                       vparams) }
+            -> std::same_as<model_variable_t<T>>;
 };
-
+// clang-format on
 template <typename T>
-concept has_remove_variable = requires(T & model, T::variable v) {
+concept has_remove_variable = requires(T & model, model_variable_t<T> v) {
     { model.remove_variable(v) };
-    { model.remove_variables(detail::dummy_range<typename T::variable>()) };
+    { model.remove_variables(archetype::range<model_variable_t<T>>()) };
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -430,6 +517,7 @@ struct nonbasic_at_upper_bound : nonbasic_at_bound {};
 struct nonbasic_fixed : nonbasic_at_bound {};
 }  // namespace basis_status
 
+// clang-format off
 template <typename S>
 concept lp_basis_status = requires(const S & status) {
     { std::visit(detail::overloaded{
@@ -438,21 +526,23 @@ concept lp_basis_status = requires(const S & status) {
                    },
                    status) };
 };
-
-template <typename T>
-using model_basis_t = std::decay_t<decltype(std::declval<T>().get_basis())>;
-
-template <typename T>
-concept has_lp_basis =
-    requires(T & model, typename T::basis b, T::variable v, T::constraint c) {
-        { model.get_basis() } -> std::same_as<typename T::basis>;
+// clang-format on
+template <typename B, typename T>
+concept lp_basis =
+    requires(B & basis, model_variable_t<T> v, model_constraint_t<T> c) {
         // variables
-        { b.is_basic(v) } -> std::same_as<bool>;
-        { b.get_status(v) } -> lp_basis_status;
+        { basis.is_basic(v) } -> std::same_as<bool>;
+        { basis.get_status(v) } -> lp_basis_status;
         // constraints
-        { b.is_basic(c) } -> std::same_as<bool>;
-        { b.get_status(c) } -> lp_basis_status;
+        { basis.is_basic(c) } -> std::same_as<bool>;
+        { basis.get_status(c) } -> lp_basis_status;
     };
+
+template <typename T>
+using model_basis_t = std::decay_t<decltype(std::declval<T &>().get_basis())>;
+
+template <typename T>
+concept has_lp_basis = lp_basis<model_basis_t<T>, T>;
 
 template <typename T>
 using model_variable_basis_status_t =
@@ -466,8 +556,9 @@ using model_constraint_basis_status_t =
 
 template <typename T>
 concept has_lp_basis_warm_start =
-    has_lp_basis<T> && requires(T & model, typename T::basis b, T::variable v,
-                                T::constraint c, T::scalar s) {
+    has_lp_basis<T> &&
+    requires(T & model, model_basis_t<T> b, model_variable_t<T> v,
+             model_constraint_t<T> c, model_scalar_t<T> s) {
         { model.set_basis(b) };
         // variables
         { b.set_basic(v) };
@@ -490,78 +581,61 @@ concept has_lp_basis_warm_start =
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// MIP start //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
+// clang-format off
 template <typename T>
-concept has_mip_start =
-        requires(T & model,
-    std::initializer_list<std::pair<typename T::variable, typename T::scalar>>
+concept has_mip_start = requires(
+    T & model,
+    std::initializer_list<std::pair<model_variable_t<T>, model_scalar_t<T>>>
         init_entries) {
-    { model.add_mip_start(detail::dummy_range<
-                std::pair<typename T::variable, typename T::scalar>>()) };
+    { model.add_mip_start(
+            archetype::range<
+                std::pair<model_variable_t<T>, model_scalar_t<T>>>()) };
     { model.add_mip_start(init_entries) };
 };
-
-// template <typename T>
-// concept has_multiple_mip_starts =
-//         requires(T & model,
-//     std::initializer_list<std::pair<typename T::variable, typename T::scalar>>
-//         init_entries, std::size_t i) {
-//     { model.add_mip_start(detail::dummy_range<
-//                 std::pair<typename T::variable, typename T::scalar>>()) } -> std::same_as<std::size_t>;
-//     { model.add_mip_start(init_entries) } -> std::same_as<std::size_t>;
-//     { model.num_mip_starts() } -> std::same_as<std::size_t>;
-//     { model.set_mip_start(i, detail::dummy_range<
-//                 std::pair<typename T::variable, typename T::scalar>>()) };
-//     { model.set_mip_start(i, init_entries) };
-// };
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Callbacks //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-concept has_candidate_solution_callback =
-        requires(T & model, T::candidate_solution_callback_handle) {
+using candidate_solution_callback_handle_t =
+    typename T::candidate_solution_callback_handle;
+
+template <typename T>
+concept has_candidate_solution_callback = requires(T & model) {
     { model.set_candidate_solution_callback(
-        [](T::candidate_solution_callback_handle &) {}) };
+            [](candidate_solution_callback_handle_t<T> &) {}) };
 };
 
-// template <typename T>
-// concept has_node_relaxation_callback =
-//     requires(T & model, T::node_relaxation_callback_handle) {
-//         { model.set_node_relaxation_callback(
-//             [](T::node_relaxation_callback_handle & h) {}) };
-//     };
+template <typename T>
+using node_relaxation_callback_handle_t =
+    typename T::node_relaxation_callback_handle;
 
+template <typename T>
+concept has_node_relaxation_callback = requires(T & model) {
+    { model.set_node_relaxation_callback(
+            [](node_relaxation_callback_handle_t<T> &) {}) };
+};
+// clang-format on
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////// Tolerance parameters /////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-concept has_feasibility_tolerance =
-        requires(T & model, T::variable v, T::constraint c, T::scalar s) {
-    { model.get_feasibility_tolerance() }
-            -> std::same_as<typename T::scalar>;
+concept has_feasibility_tolerance = requires(T & model, model_scalar_t<T> s) {
+    { model.get_feasibility_tolerance() } -> std::same_as<model_scalar_t<T>>;
     { model.set_feasibility_tolerance(s) };
 };
 
 template <typename T>
-concept has_optimality_tolerance =
-        requires(T & model, T::variable v, T::constraint c, T::scalar s) {
-    { model.get_optimality_tolerance() }
-            -> std::same_as<typename T::scalar>;
+concept has_optimality_tolerance = requires(T & model, model_scalar_t<T> s) {
+    { model.get_optimality_tolerance() } -> std::same_as<model_scalar_t<T>>;
     { model.set_optimality_tolerance(s) };
 };
 
 template <typename T>
-concept has_integrality_tolerance =
-        requires(T & model, T::variable v, T::constraint c, T::scalar s) {
-    { model.get_integrality_tolerance() } 
-            -> std::same_as<typename T::scalar>;
+concept has_integrality_tolerance = requires(T & model, model_scalar_t<T> s) {
+    { model.get_integrality_tolerance() } -> std::same_as<model_scalar_t<T>>;
     { model.set_integrality_tolerance(s) };
 };
-// clang-format on
-
 }  // namespace mippp
-
-#endif  // MIPPP_MODEL_CONCEPTS_HPP

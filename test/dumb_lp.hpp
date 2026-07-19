@@ -179,13 +179,13 @@ public:
     auto add_variables(std::size_t count,
                        variable_params params = default_variable_params) {
         const std::size_t offset = _append_variables(count, params);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_variables(std::size_t count, IL && id_lambda,
                        variable_params params = default_variable_params) {
         const std::size_t offset = _append_variables(count, params);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -199,7 +199,7 @@ public:
         std::size_t count, NL && name_lambda,
         variable_params params = default_variable_params) {
         const std::size_t offset = _append_variables(count, params);
-        return _make_named_variables_range(offset, count,
+        return _make_named_variables_view(offset, count,
                                            std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
@@ -207,7 +207,7 @@ public:
         std::size_t count, IL && id_lambda, NL && name_lambda,
         variable_params params = default_variable_params) {
         const std::size_t offset = _append_variables(count, params);
-        return _make_indexed_named_variables_range(
+        return _make_indexed_named_variables_view(
             offset, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }

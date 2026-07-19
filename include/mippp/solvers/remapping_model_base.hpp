@@ -1,5 +1,4 @@
-#ifndef MIPPP_remapping_model_base_HPP
-#define MIPPP_remapping_model_base_HPP
+#pragma once
 
 #include <concepts>
 #include <optional>
@@ -137,5 +136,3 @@ protected:
 };
 
 }  // namespace mippp
-
-#endif  // MIPPP_MODEL_BASE_HPP

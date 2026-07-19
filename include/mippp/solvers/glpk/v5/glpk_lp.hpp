@@ -1,5 +1,4 @@
-#ifndef MIPPP_GLPK_v5_LP_HPP
-#define MIPPP_GLPK_v5_LP_HPP
+#pragma once
 
 #include <limits>
 #include <optional>
@@ -105,5 +104,3 @@ public:
 
 }  // namespace glpk::v5
 }  // namespace mippp
-
-#endif  // MIPPP_GLPK_v5_LP_HPP

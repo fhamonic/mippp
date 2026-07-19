@@ -1,5 +1,4 @@
-#ifndef MIPPP_SOPLEX_v6_LP_HPP
-#define MIPPP_SOPLEX_v6_LP_HPP
+#pragma once
 
 #include <limits>
 #include <optional>
@@ -107,7 +106,7 @@ public:
                        const variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
-        return variables_range(
+        return variables_view(
             std::from_range,
             std::views::transform(
                 std::views::iota(static_cast<variable_id>(offset),
@@ -120,7 +119,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
-        return variables_range(
+        return variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
                 std::views::iota(static_cast<variable_id>(offset),
@@ -253,5 +252,3 @@ public:
 
 }  // namespace soplex::v6
 }  // namespace mippp
-
-#endif  // MIPPP_SOPLEX_v6_LP_HPP

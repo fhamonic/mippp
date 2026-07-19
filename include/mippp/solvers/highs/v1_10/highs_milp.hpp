@@ -1,5 +1,4 @@
-#ifndef MIPPP_HIGHS_v1_10_MILP_HPP
-#define MIPPP_HIGHS_v1_10_MILP_HPP
+#pragma once
 
 #include <limits>
 #include <optional>
@@ -29,7 +28,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeInteger);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_integer_variables(
@@ -37,7 +36,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeInteger);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -89,6 +88,50 @@ public:
         _add_mip_start(entries);
     }
 
+    /////////////////////////// Termination reason ////////////////////////////
+    // clang-format off
+    using termination_reasons = std::variant<
+            reason::optimal,
+            reason::infeasible_or_unbounded,
+            reason::infeasible,
+            reason::unbounded,
+            reason::interrupted,
+            reason::failed,
+            reason::time_limit,
+            reason::iteration_limit,
+            reason::solution_limit,
+            reason::unknown>;
+
+    termination_reasons termination_reason() {
+        using namespace reason;
+        int psolstatus;
+        check(Highs.getIntInfoValue(model, "primal_solution_status", &psolstatus));
+        const bool has_sol = psolstatus == kHighsSolutionStatusFeasible;
+        switch (Highs.getModelStatus(model)) {         
+            case kHighsModelStatusOptimal:        return optimal{};
+            case kHighsModelStatusUnboundedOrInfeasible: 
+                                                  return infeasible_or_unbounded{};
+            case kHighsModelStatusInfeasible:     return infeasible{};
+            case kHighsModelStatusUnbounded:      return unbounded{};
+            case kHighsModelStatusInterrupt:      return interrupted{has_sol};
+            case kHighsModelStatusLoadError:
+            case kHighsModelStatusModelError:
+            case kHighsModelStatusPresolveError:
+            case kHighsModelStatusSolveError:
+            case kHighsModelStatusPostsolveError: return failed{has_sol};
+            case kHighsModelStatusObjectiveBound:
+            case kHighsModelStatusObjectiveTarget:
+            case kHighsModelStatusTimeLimit:      return time_limit{has_sol};
+            case kHighsModelStatusSolutionLimit:  return solution_limit{has_sol};
+            case kHighsModelStatusModelEmpty:
+            case kHighsModelStatusNotset:
+            case kHighsModelStatusUnknown:        return unknown{has_sol};        
+            default:
+                return unknown{has_sol};
+        }
+    }
+    // clang-format on
+
     ////////////////////////////////// Solve //////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
@@ -112,5 +155,3 @@ public:
 
 }  // namespace highs::v1_10
 }  // namespace mippp
-
-#endif  // MIPPP_HIGHS_v1_10_MILP_HPP

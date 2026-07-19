@@ -1,7 +1,8 @@
-#ifndef MIPPP_SOLVER_EXCEPTIONS_HPP
-#define MIPPP_SOLVER_EXCEPTIONS_HPP
+#pragma once
 
 #include <stdexcept>
+
+namespace mippp {
 
 class solver_error : public std::runtime_error {
 public:
@@ -13,4 +14,4 @@ public:
     license_error(char const * const message) : solver_error(message) {}
 };
 
-#endif  // MIPPP_SOLVER_EXCEPTIONS_HPP
+}  // namespace mippp

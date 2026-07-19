@@ -1,5 +1,4 @@
-#ifndef MIPPP_CPLEX_v22_1_2_BASE_MODEL_HPP
-#define MIPPP_CPLEX_v22_1_2_BASE_MODEL_HPP
+#pragma once
 
 #include <cassert>
 #include <memory>
@@ -259,7 +258,7 @@ public:
                            .upper_bound = std::nullopt}) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
-        return _make_variables_range(handle_ids_begin, count);
+        return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_variables(std::size_t count, IL && id_lambda,
@@ -269,7 +268,7 @@ public:
                            .upper_bound = std::nullopt}) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
-        return _make_indexed_variables_range(handle_ids_begin, count,
+        return _make_indexed_variables_view(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -289,7 +288,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
-        return _make_named_variables_range(handle_ids_begin, count,
+        return _make_named_variables_view(handle_ids_begin, count,
                                            std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
@@ -298,7 +297,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
-        return _make_indexed_named_variables_range(
+        return _make_indexed_named_variables_view(
             handle_ids_begin, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }
@@ -459,7 +458,8 @@ public:
         check(CPX.addrows(env, lp, 0, static_cast<int>(tmp_begins.size()),
                           static_cast<int>(tmp_indices.size()), tmp_rhs.data(),
                           tmp_types.data(), tmp_begins.data(),
-                          tmp_indices.data(), tmp_scalars.data(), nullptr, nullptr));
+                          tmp_indices.data(), tmp_scalars.data(), nullptr,
+                          nullptr));
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
@@ -478,8 +478,9 @@ public:
 
     auto get_constraint_lhs(constraint constr) {
         int palceholder, surplus, beg;
-        if(int error = CPX.getrows(env, lp, &palceholder, nullptr, nullptr, nullptr, 0,
-                                   &surplus, constr.id(), constr.id());
+        if(int error =
+               CPX.getrows(env, lp, &palceholder, nullptr, nullptr, nullptr, 0,
+                           &surplus, constr.id(), constr.id());
            error != 1207 && error != 0)
             throw std::runtime_error("CPLEX: error " + std::to_string(error));
 
@@ -514,9 +515,17 @@ public:
                                    -get_constraint_rhs(constr)),
             get_constraint_sense(constr));
     }
+
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(CPX.setdblparam(env, CPXPARAM_TimeLimit, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(CPX.getdblparam(env, CPXPARAM_TimeLimit, &t));
+        return std::chrono::duration<double>(t);
+    }
 };
 
 }  // namespace cplex::v22_1_2
 }  // namespace mippp
-
-#endif  // MIPPP_CPLEX_v22_1_2_BASE_MODEL_HPP

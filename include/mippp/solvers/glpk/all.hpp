@@ -1,5 +1,4 @@
-#ifndef MIPPP_GLPK_ALL_HPP
-#define MIPPP_GLPK_ALL_HPP
+#pragma once
 
 #include "mippp/solvers/glpk/v5/glpk_api.hpp"
 #include "mippp/solvers/glpk/v5/glpk_lp.hpp"
@@ -12,5 +11,3 @@ using glpk_lp = glpk::v5::glpk_lp;
 using glpk_milp = glpk::v5::glpk_milp;
 
 }  // namespace mippp
-
-#endif  // MIPPP_GLPK_ALL_HPP

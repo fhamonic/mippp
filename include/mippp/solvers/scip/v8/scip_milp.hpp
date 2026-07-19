@@ -1,5 +1,4 @@
-#ifndef MIPPP_SCIP_v8_MILP_HPP
-#define MIPPP_SCIP_v8_MILP_HPP
+#pragma once
 
 #include <limits>
 #include <optional>
@@ -164,9 +163,9 @@ private:
         variables.emplace_back(var);
     }
 
-    inline auto _make_variables_range(const std::size_t & offset,
+    inline auto _make_variables_view(const std::size_t & offset,
                                       const std::size_t & count) {
-        return variables_range(
+        return variables_view(
             std::from_range,
             std::views::transform(
                 std::views::iota(static_cast<variable_id>(offset),
@@ -174,10 +173,10 @@ private:
                 [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
+    inline auto _make_indexed_variables_view(const std::size_t & offset,
                                               const std::size_t & count,
                                               IL && id_lambda) {
-        return variables_range(
+        return variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
                 std::views::iota(static_cast<variable_id>(offset),
@@ -186,11 +185,11 @@ private:
             std::forward<IL>(id_lambda));
     }
     template <typename IL, typename NL>
-    inline auto _make_indexed_named_variables_range(const std::size_t & offset,
+    inline auto _make_indexed_named_variables_view(const std::size_t & offset,
                                                     const std::size_t & count,
                                                     IL && id_lambda,
                                                     NL && name_lambda) {
-        return lazily_named_variables_range(
+        return lazily_named_variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
                 std::views::iota(static_cast<variable_id>(offset),
@@ -212,7 +211,7 @@ public:
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_variables(
@@ -221,7 +220,7 @@ public:
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -237,7 +236,7 @@ public:
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_INTEGER);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_integer_variables(
@@ -246,7 +245,7 @@ public:
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_INTEGER);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -262,7 +261,7 @@ public:
             _add_variable(
                 {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
                 SCIP_VARTYPE_BINARY);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
@@ -271,7 +270,7 @@ public:
             _add_variable(
                 {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
                 SCIP_VARTYPE_BINARY);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -290,7 +289,7 @@ public:
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS,
                           name_lambda(i).c_str());
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -299,7 +298,7 @@ public:
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
-        return _make_indexed_named_variables_range(
+        return _make_indexed_named_variables_view(
             offset, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda));
     }
@@ -578,5 +577,3 @@ public:
 
 }  // namespace scip::v8
 }  // namespace mippp
-
-#endif  // MIPPP_SCIP_v8_MILP_HPP

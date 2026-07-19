@@ -1,5 +1,4 @@
-#ifndef MIPPP_SOLVER_LIBRARY_HPP
-#define MIPPP_SOLVER_LIBRARY_HPP
+#pragma once
 
 #include <algorithm>
 #include <cstdio>
@@ -17,9 +16,7 @@
 
 #include "dylib.hpp"
 
-namespace mippp {
-
-namespace detail {
+namespace mippp::detail {
 
 #if defined(_WIN32)
 inline constexpr char path_list_separator = ';';
@@ -161,8 +158,6 @@ inline std::optional<std::filesystem::path> find_library_in_dir(
     return std::nullopt;
 }
 
-}  // namespace detail
-
 // Loads a solver's shared library as a `dylib::library`, resolving it with
 // the precedence shared by every `<solver>_api` backend (first match wins):
 //
@@ -278,6 +273,4 @@ inline void warn_on_version_mismatch(const char * key, int wrapped_major,
                  key, wrapped_major, loaded_major, key);
 }
 
-}  // namespace mippp
-
-#endif  // MIPPP_SOLVER_LIBRARY_HPP
+}  // namespace mippp::detail

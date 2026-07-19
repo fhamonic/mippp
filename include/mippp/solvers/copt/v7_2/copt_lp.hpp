@@ -1,5 +1,4 @@
-#ifndef MIPPP_COPT_v7_2_LP_HPP
-#define MIPPP_COPT_v7_2_LP_HPP
+#pragma once
 
 #include <optional>
 
@@ -55,5 +54,3 @@ public:
 
 }  // namespace copt::v7_2
 }  // namespace mippp
-
-#endif  // MIPPP_COPT_v7_2_LP_HPP

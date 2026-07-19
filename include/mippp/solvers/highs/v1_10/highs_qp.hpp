@@ -1,5 +1,4 @@
-#ifndef MIPPP_HIGHS_v1_10_QP_HPP
-#define MIPPP_HIGHS_v1_10_QP_HPP
+#pragma once
 
 #include <iostream>
 #include <map>
@@ -76,6 +75,17 @@ public:
             tmp_begins.data(), tmp_indices.data(), tmp_scalars.data()));
     }
 
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_iteration_limit(std::size_t n) {
+        check(Highs.setIntOptionValue(model, "qp_iteration_limit",
+                                      static_cast<int>(n)));
+    }
+    std::size_t get_iteration_limit() {
+        int n;
+        check(Highs.getIntOptionValue(model, "qp_iteration_limit", &n));
+        return static_cast<std::size_t>(n);
+    }
+
     void solve() {
         if(num_variables() == 0u) {
             qp_status = kHighsModelStatusModelEmpty;
@@ -117,7 +127,8 @@ public:
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(Highs.getSolution(model, solution.get(), nullptr, nullptr, nullptr));
+        check(Highs.getSolution(model, solution.get(), nullptr, nullptr,
+                                nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
@@ -126,12 +137,11 @@ public:
     auto get_dual_solution() {
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
-        check(Highs.getSolution(model, nullptr, nullptr, nullptr, solution.get()));
+        check(Highs.getSolution(model, nullptr, nullptr, nullptr,
+                                solution.get()));
         return constraint_mapping(std::move(solution));
     }
 };
 
 }  // namespace highs::v1_10
 }  // namespace mippp
-
-#endif  // MIPPP_HIGHS_v1_10_QP_HPP

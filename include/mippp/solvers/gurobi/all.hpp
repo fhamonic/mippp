@@ -1,5 +1,4 @@
-#ifndef MIPPP_GUROBI_ALL_HPP
-#define MIPPP_GUROBI_ALL_HPP
+#pragma once
 
 #include "mippp/solvers/gurobi/v12_0/gurobi_api.hpp"
 #include "mippp/solvers/gurobi/v12_0/gurobi_lp.hpp"
@@ -12,5 +11,3 @@ using gurobi_lp = gurobi::v12_0::gurobi_lp;
 using gurobi_milp = gurobi::v12_0::gurobi_milp;
 
 }  // namespace mippp
-
-#endif  // MIPPP_GUROBI_ALL_HPP

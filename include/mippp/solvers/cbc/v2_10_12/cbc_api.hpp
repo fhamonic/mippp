@@ -1,5 +1,4 @@
-#ifndef MIPPP_CBC_v2_10_12_API_HPP
-#define MIPPP_CBC_v2_10_12_API_HPP
+#pragma once
 
 #include <cstddef>
 
@@ -88,7 +87,7 @@ void OsiCuts_addRowCut(void * osiCuts, int nz, const int * idx,
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace cbc::v2_10_12 {
@@ -155,14 +154,12 @@ public:
 
 public:
     inline cbc_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "CBC", {"CbcSolver", "Cbc"},
-                                  {"Cbc_getVersion"}))
+        : lib(detail::load_solver_library(lib_path, "CBC", {"CbcSolver", "Cbc"},
+                                          {"Cbc_getVersion"}))
               CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {
-        warn_on_version_mismatch("CBC", "2.10.12", getVersion());
+        detail::warn_on_version_mismatch("CBC", "2.10.12", getVersion());
     }
 };
 
 }  // namespace cbc::v2_10_12
 }  // namespace mippp
-
-#endif  // MIPPP_CBC_v2_10_12_API_HPP

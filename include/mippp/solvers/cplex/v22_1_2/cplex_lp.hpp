@@ -1,5 +1,4 @@
-#ifndef MIPPP_CPLEX_v22_1_2_LP_HPP
-#define MIPPP_CPLEX_v22_1_2_LP_HPP
+#pragma once
 
 #include <numeric>
 #include <optional>
@@ -114,5 +113,3 @@ public:
 
 }  // namespace cplex::v22_1_2
 }  // namespace mippp
-
-#endif  // MIPPP_CPLEX_v22_1_2_LP_HPP

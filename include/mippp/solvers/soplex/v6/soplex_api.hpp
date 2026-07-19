@@ -1,5 +1,4 @@
-#ifndef MIPPP_SOPLEX_v6_API_HPP
-#define MIPPP_SOPLEX_v6_API_HPP
+#pragma once
 
 #if INCLUDE_SOPLEX_HEADER
 #include "soplex_interface.h"
@@ -34,7 +33,7 @@ void SoPlex_getDualReal(void * soplex, double * dual, int dim);
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace soplex::v6 {
@@ -69,11 +68,9 @@ public:
 
 public:
     inline soplex_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "SOPLEX", {"soplexshared"}))
+        : lib(detail::load_solver_library(lib_path, "SOPLEX", {"soplexshared"}))
               SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUN) {}
 };
 
 }  // namespace soplex::v6
 }  // namespace mippp
-
-#endif  // MIPPP_SOPLEX_v6_API_HPP

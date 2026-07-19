@@ -1,5 +1,4 @@
-#ifndef MIPPP_XPRESS_v45_1_API_HPP
-#define MIPPP_XPRESS_v45_1_API_HPP
+#pragma once
 
 #if INCLUDE_XPRESS_HEADER
 #include "xprs.h"
@@ -129,7 +128,7 @@ int XPRSloaddelayedrows(XPRSprob prob, int nrows, const int rowind[]);
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_exceptions.hpp"
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace xpress::v45_1 {
@@ -188,7 +187,7 @@ public:
 
 public:
     inline xpress_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "XPRESS", {"xprs"}))
+        : lib(detail::load_solver_library(lib_path, "XPRESS", {"xprs"}))
               XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUN) {
         if(init("")) {
             char msg[512];
@@ -209,5 +208,3 @@ public:
 
 }  // namespace xpress::v45_1
 }  // namespace mippp
-
-#endif  // MIPPP_XPRESS_v45_1_API_HPP

@@ -1,5 +1,4 @@
-#ifndef MIPPP_GUROBI_v12_0_LP_HPP
-#define MIPPP_GUROBI_v12_0_LP_HPP
+#pragma once
 
 #include <optional>
 
@@ -58,12 +57,67 @@ public:
         return lp_status == GRB_UNBOUNDED;
     }
 
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_iteration_limit(std::size_t n) {
+        check(GRB.setdblparam(env, GRB_DBL_PAR_ITERATIONLIMIT,
+                              static_cast<double>(n)));
+    }
+    std::size_t get_iteration_limit() {
+        double n;
+        check(GRB.getdblparam(env, GRB_DBL_PAR_ITERATIONLIMIT, &n));
+        return static_cast<std::size_t>(n);
+    }
+
+    /////////////////////////// Termination reason ////////////////////////////
+    // clang-format off
+    using termination_reasons = std::variant<
+            reason::optimal,
+            reason::infeasible_or_unbounded,
+            reason::infeasible,
+            reason::unbounded,
+            reason::interrupted,
+            reason::failed,
+            reason::numerical_failure,
+            reason::limit_reached,
+            reason::time_limit,
+            reason::iteration_limit,
+            reason::memory_limit,
+            reason::unknown>;
+
+    termination_reasons termination_reason() {
+        using namespace reason;
+        int status;
+        check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status));
+        switch(status) {
+            case GRB_OPTIMAL:         return optimal{};
+            case GRB_INF_OR_UNBD:     return infeasible_or_unbounded{};
+            case GRB_INFEASIBLE:      return infeasible{};
+            case GRB_UNBOUNDED:       return unbounded{};
+        }
+        int sol_count;
+        check(GRB.getintattr(model, GRB_INT_ATTR_SOLCOUNT, &sol_count));
+        const bool sol_available = sol_count > 0;
+        switch(status) {
+            case GRB_INTERRUPTED:     return interrupted{sol_available};
+            case GRB_SUBOPTIMAL:      return failed{sol_available};
+            case GRB_NUMERIC:         return numerical_failure{sol_available};
+            case GRB_TIME_LIMIT:      return time_limit{sol_available};
+            case GRB_ITERATION_LIMIT: return iteration_limit{sol_available};
+            case GRB_MEM_LIMIT:       return memory_limit{sol_available};
+            case GRB_USER_OBJ_LIMIT:
+            case GRB_WORK_LIMIT:      return limit_reached{sol_available};
+            default:
+                return unknown{sol_available}; 
+        }// TODO: what for GRB_CUTOFF ?
+    }
+    // clang-format on
+
+    //////////////////////////////// Solution /////////////////////////////////
     double get_solution_value() {
         double value;
         check(GRB.getdblattr(model, GRB_DBL_ATTR_OBJVAL, &value));
         return value;
     }
-
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
@@ -104,5 +158,3 @@ public:
 
 }  // namespace gurobi::v12_0
 }  // namespace mippp
-
-#endif  // MIPPP_GUROBI_v12_0_LP_HPP

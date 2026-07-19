@@ -1,5 +1,4 @@
-#ifndef MIPPP_COPT_v7_2_MILP_HPP
-#define MIPPP_COPT_v7_2_MILP_HPP
+#pragma once
 
 #include <numeric>
 #include <optional>
@@ -31,7 +30,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(count, params, COPT_INTEGER);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_integer_variables(
@@ -39,7 +38,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(count, params, COPT_INTEGER);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -68,13 +67,13 @@ public:
     auto add_binary_variables(std::size_t count) noexcept {
         const std::size_t offset = num_variables();
         _add_binary_variables(count);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
         const std::size_t offset = num_variables();
         _add_binary_variables(count);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -240,5 +239,3 @@ public:
 
 }  // namespace copt::v7_2
 }  // namespace mippp
-
-#endif  // MIPPP_COPT_v7_2_MILP_HPP

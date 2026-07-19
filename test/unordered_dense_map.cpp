@@ -6,7 +6,9 @@
 #include <string_view>
 #include <vector>
 
-#include "mippp/utility/unordered_dense_map.hpp"
+#include "mippp/container/unordered_dense_map.hpp"
+
+using mippp::unordered_dense_map;
 
 using map_t = unordered_dense_map<int, int>;
 
@@ -142,7 +144,7 @@ GTEST_TEST(unordered_dense_map, insert_returns_pair) {
     ASSERT_EQ(it->second, 10);
 
     auto [it2, ok2] = m.insert({1, 99});
-    ASSERT_FALSE(ok2);       // key already present
+    ASSERT_FALSE(ok2);           // key already present
     ASSERT_EQ(it2->second, 10);  // value not overwritten
     ASSERT_EQ(m.size(), 1u);
 }
@@ -188,7 +190,7 @@ GTEST_TEST(unordered_dense_map, insert_or_assign) {
     ASSERT_EQ(it->second, 10);
 
     auto [it2, ok2] = m.insert_or_assign(1, 99);
-    ASSERT_FALSE(ok2);          // existed
+    ASSERT_FALSE(ok2);           // existed
     ASSERT_EQ(it2->second, 99);  // but value replaced
     ASSERT_EQ(m.at(1), 99);
     ASSERT_EQ(m.size(), 1u);

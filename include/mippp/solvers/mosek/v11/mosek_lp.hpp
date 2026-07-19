@@ -1,5 +1,4 @@
-#ifndef MIPPP_MOSEK_v11_LP_HPP
-#define MIPPP_MOSEK_v11_LP_HPP
+#pragma once
 
 #include <iostream>
 #include <optional>
@@ -68,5 +67,3 @@ public:
 
 }  // namespace mosek::v11
 }  // namespace mippp
-
-#endif  // MIPPP_MOSEK_v11_LP_HPP

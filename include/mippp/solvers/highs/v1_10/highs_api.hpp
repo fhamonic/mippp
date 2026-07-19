@@ -1,5 +1,4 @@
-#ifndef MIPPP_HIGHS_v1_10_API_HPP
-#define MIPPP_HIGHS_v1_10_API_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -19,15 +18,6 @@ HighsInt Highs_versionPatch(void);
 
 void * Highs_create(void);
 void Highs_destroy(void * highs);
-
-HighsInt Highs_setHighsDoubleOptionValue(void * highs, const char * option,
-                                         const double value);
-HighsInt Highs_getHighsDoubleOptionValue(const void * highs,
-                                         const char * option, double * value);
-HighsInt Highs_setHighsStringOptionValue(void * highs, const char * option,
-                                         const char * value);
-HighsInt Highs_getHighsStringOptionValue(const void * highs,
-                                         const char * option, char * value);
 
 // return status
 constexpr HighsInt kHighsStatusError = -1;
@@ -127,6 +117,39 @@ HighsInt Highs_getNumCol(const void * highs);
 HighsInt Highs_getNumRow(const void * highs);
 HighsInt Highs_getNumNz(const void * highs);
 
+HighsInt Highs_getNumOptions(const void * highs);
+HighsInt Highs_getOptionName(const void * highs, const HighsInt index,
+                             char ** name);
+HighsInt Highs_setBoolOptionValue(void * highs, const char * option,
+                                  const HighsInt value);
+HighsInt Highs_setIntOptionValue(void * highs, const char * option,
+                                 const HighsInt value);
+HighsInt Highs_setDoubleOptionValue(void * highs, const char * option,
+                                    const double value);
+HighsInt Highs_setStringOptionValue(void * highs, const char * option,
+                                    const char * value);
+HighsInt Highs_getBoolOptionValue(const void * highs, const char * option,
+                                  HighsInt * value);
+HighsInt Highs_getIntOptionValue(const void * highs, const char * option,
+                                 HighsInt * value);
+HighsInt Highs_getDoubleOptionValue(const void * highs, const char * option,
+                                    double * value);
+HighsInt Highs_getStringOptionValue(const void * highs, const char * option,
+                                    char * value);
+
+enum SolutionStatus : HighsInt {
+    kHighsSolutionStatusNone = 0,
+    kHighsSolutionStatusInfeasible = 1,
+    kHighsSolutionStatusFeasible = 2
+};
+
+HighsInt Highs_getIntInfoValue(const void * highs, const char * info,
+                               HighsInt * value);
+HighsInt Highs_getInt64InfoValue(const void * highs, const char * info,
+                                 int64_t * value);
+HighsInt Highs_getDoubleInfoValue(const void * highs, const char * info,
+                                  double * value);
+
 HighsInt Highs_run(void * highs);
 enum ModelStatus : HighsInt {
     kHighsModelStatusNotset = 0,
@@ -212,7 +235,7 @@ HighsInt Highs_startCallback(void * highs, const int callback_type);
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_exceptions.hpp"
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace highs::v1_10 {
@@ -225,10 +248,6 @@ namespace highs::v1_10 {
     F(Highs_versionPatch, versionPatch)                                 \
     F(Highs_create, create)                                             \
     F(Highs_destroy, destroy)                                           \
-    F(Highs_setHighsDoubleOptionValue, setHighsDoubleOptionValue)       \
-    F(Highs_getHighsDoubleOptionValue, getHighsDoubleOptionValue)       \
-    F(Highs_setHighsStringOptionValue, setHighsStringOptionValue)       \
-    F(Highs_getHighsStringOptionValue, getHighsStringOptionValue)       \
     F(Highs_changeObjectiveSense, changeObjectiveSense)                 \
     F(Highs_getObjectiveSense, getObjectiveSense)                       \
     F(Highs_changeObjectiveOffset, changeObjectiveOffset)               \
@@ -260,6 +279,19 @@ namespace highs::v1_10 {
     F(Highs_getNumCol, getNumCol)                                       \
     F(Highs_getNumRow, getNumRow)                                       \
     F(Highs_getNumNz, getNumNz)                                         \
+    F(Highs_getNumOptions, getNumOptions)                               \
+    F(Highs_getOptionName, getOptionName)                               \
+    F(Highs_setBoolOptionValue, setBoolOptionValue)                     \
+    F(Highs_setIntOptionValue, setIntOptionValue)                       \
+    F(Highs_setDoubleOptionValue, setDoubleOptionValue)                 \
+    F(Highs_setStringOptionValue, setStringOptionValue)                 \
+    F(Highs_getBoolOptionValue, getBoolOptionValue)                     \
+    F(Highs_getIntOptionValue, getIntOptionValue)                       \
+    F(Highs_getDoubleOptionValue, getDoubleOptionValue)                 \
+    F(Highs_getStringOptionValue, getStringOptionValue)                 \
+    F(Highs_getIntInfoValue, getIntInfoValue)                           \
+    F(Highs_getInt64InfoValue, getInt64InfoValue)                       \
+    F(Highs_getDoubleInfoValue, getDoubleInfoValue)                     \
     F(Highs_run, run)                                                   \
     F(Highs_getModelStatus, getModelStatus)                             \
     F(Highs_getObjectiveValue, getObjectiveValue)                       \
@@ -284,7 +316,7 @@ public:
 
 public:
     inline highs_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "HIGHS", {"highs"}))
+        : lib(detail::load_solver_library(lib_path, "HIGHS", {"highs"}))
               HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUN) {}
 
     void _check(const int status) const {
@@ -298,5 +330,3 @@ public:
 
 }  // namespace highs::v1_10
 }  // namespace mippp
-
-#endif  // MIPPP_HIGHS_v1_10_API_HPP

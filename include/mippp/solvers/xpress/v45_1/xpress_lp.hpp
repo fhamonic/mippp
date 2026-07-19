@@ -1,5 +1,4 @@
-#ifndef MIPPP_XPRESS_v45_1_LP_HPP
-#define MIPPP_XPRESS_v45_1_LP_HPP
+#pragma once
 
 #include <numeric>
 #include <optional>
@@ -87,5 +86,3 @@ public:
 
 }  // namespace xpress::v45_1
 }  // namespace mippp
-
-#endif  // MIPPP_XPRESS_v45_1_LP_HPP

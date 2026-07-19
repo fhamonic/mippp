@@ -1,5 +1,4 @@
-#ifndef MIPPP_GUROBI_v12_0_BASE_HPP
-#define MIPPP_GUROBI_v12_0_BASE_HPP
+#pragma once
 
 #include <memory>
 #include <numeric>
@@ -308,7 +307,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
-        return _make_variables_range(handle_ids_begin, count);
+        return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_variables(
@@ -316,7 +315,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
-        return _make_indexed_variables_range(handle_ids_begin, count,
+        return _make_indexed_variables_view(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -331,7 +330,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
-        return _make_named_variables_range(handle_ids_begin, count,
+        return _make_named_variables_view(handle_ids_begin, count,
                                            std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
@@ -340,7 +339,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
-        return _make_indexed_named_variables_range(
+        return _make_indexed_named_variables_view(
             handle_ids_begin, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }
@@ -573,9 +572,26 @@ public:
         check(GRB.getdblparam(env, GRB_DBL_PAR_FEASIBILITYTOL, &tol));
         return tol;
     }
+
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(GRB.setdblparam(env, GRB_DBL_PAR_TIMELIMIT, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(GRB.getdblparam(env, GRB_DBL_PAR_TIMELIMIT, &t));
+        return std::chrono::duration<double>(t);
+    }
+
+    void set_memory_limit(memory_size<double, std::giga> gb) {
+        check(GRB.setdblparam(env, GRB_DBL_PAR_SOFTMEMLIMIT, gb.count));
+    }
+    auto get_memory_limit() {
+        double gb;
+        check(GRB.getdblparam(env, GRB_DBL_PAR_SOFTMEMLIMIT, &gb));
+        return static_cast<std::size_t>(gb);
+    }
 };
 
 }  // namespace gurobi::v12_0
 }  // namespace mippp
-
-#endif  // MIPPP_GUROBI_v12_0_BASE_HPP

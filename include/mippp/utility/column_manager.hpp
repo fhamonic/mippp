@@ -1,5 +1,4 @@
-#ifndef MIPPP_COLUMN_MANAGER_HPP
-#define MIPPP_COLUMN_MANAGER_HPP
+#pragma once
 
 #include <algorithm>
 #include <concepts>
@@ -11,9 +10,9 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/container/unordered_dense_map.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/column_generation.hpp"
-#include "mippp/utility/unordered_dense_map.hpp"
 
 namespace mippp {
 
@@ -342,5 +341,3 @@ public:
 };
 
 }  // namespace mippp
-
-#endif  // MIPPP_COLUMN_MANAGER_HPP

@@ -1,5 +1,4 @@
-#ifndef MIPPP_MODEL_BASE_HPP
-#define MIPPP_MODEL_BASE_HPP
+#pragma once
 
 #include <optional>
 #include <ranges>
@@ -40,9 +39,9 @@ protected:
     constexpr model_base & operator=(const model_base &) = default;
     constexpr model_base & operator=(model_base && other) = default;
 
-    inline auto _make_variables_range(const std::size_t & offset,
+    inline auto _make_variables_view(const std::size_t & offset,
                                       const std::size_t & count) {
-        return variables_range(
+        return variables_view(
             std::from_range,
             std::views::transform(
                 std::views::iota(static_cast<_Index>(offset),
@@ -50,10 +49,10 @@ protected:
                 [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    inline auto _make_indexed_variables_range(const std::size_t & offset,
+    inline auto _make_indexed_variables_view(const std::size_t & offset,
                                               const std::size_t & count,
                                               IL && id_lambda) {
-        return variables_range(
+        return variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
                 std::views::iota(static_cast<_Index>(offset),
@@ -65,25 +64,25 @@ protected:
         requires requires(M & model, typename M::variable v, std::string n) {
             model.set_variable_name(v, n);
         }
-    inline auto _make_named_variables_range(const std::size_t & offset,
+    inline auto _make_named_variables_view(const std::size_t & offset,
                                             const std::size_t & count,
                                             NL && name_lambda, M * model) {
         for(std::size_t i = 0; i < count; ++i) {
             model->set_variable_name(variable(static_cast<int>(offset + i)),
                                      name_lambda(i));
         }
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL, typename NL, typename M>
         requires requires(M & model, typename M::variable v, std::string n) {
             model.set_variable_name(v, n);
         }
-    inline auto _make_indexed_named_variables_range(const std::size_t & offset,
+    inline auto _make_indexed_named_variables_view(const std::size_t & offset,
                                                     const std::size_t & count,
                                                     IL && id_lambda,
                                                     NL && name_lambda,
                                                     M * model) {
-        return lazily_named_variables_range(
+        return lazily_named_variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
                 std::views::iota(static_cast<_Index>(offset),
@@ -128,5 +127,3 @@ protected:
 };
 
 }  // namespace mippp
-
-#endif  // MIPPP_MODEL_BASE_HPP

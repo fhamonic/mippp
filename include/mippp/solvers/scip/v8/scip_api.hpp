@@ -1,5 +1,4 @@
-#ifndef MIPPP_SCIP_v8_API_HPP
-#define MIPPP_SCIP_v8_API_HPP
+#pragma once
 
 #include <cstddef>
 #include <limits>
@@ -221,7 +220,7 @@ SCIP_CONSHDLRDATA * SCIPconshdlrGetData(SCIP_CONSHDLR * conshdlr);
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace scip::v8 {
@@ -282,11 +281,9 @@ public:
 
 public:
     inline scip_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "SCIP", {"scip"}))
+        : lib(detail::load_solver_library(lib_path, "SCIP", {"scip"}))
               SCIP_FUNCTIONS(CONSTRUCT_SCIP_FUN) {}
 };
 
 }  // namespace scip::v8
 }  // namespace mippp
-
-#endif  // MIPPP_SCIP_v8_API_HPP

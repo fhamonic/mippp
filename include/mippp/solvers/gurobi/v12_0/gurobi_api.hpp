@@ -1,5 +1,4 @@
-#ifndef MIPPP_GUROBI_v12_0_API_HPP
-#define MIPPP_GUROBI_v12_0_API_HPP
+#pragma once
 
 #if INCLUDE_GUROBI_HEADER
 #include "gurobi_c.h"
@@ -71,8 +70,11 @@ constexpr const char * GRB_INT_PAR_DUALREDUCTIONS = "DualReductions";
 constexpr const char * GRB_INT_PAR_LAZYCONSTRAINTS = "LazyConstraints";
 int GRBsetintparam(GRBenv * env, const char * paramname, int value);
 int GRBgetintparam(GRBenv * env, const char * paramname, int * valueP);
-constexpr const char * GRB_DBL_PAR_NODELIMIT = "NodeLimit";
 constexpr const char * GRB_DBL_PAR_TIMELIMIT = "TimeLimit";
+constexpr const char * GRB_DBL_PAR_ITERATIONLIMIT = "IterationLimit";
+constexpr const char * GRB_DBL_PAR_NODELIMIT = "NodeLimit";
+constexpr const char * GRB_INT_PAR_SOLUTIONLIMIT = "SolutionLimit";
+constexpr const char * GRB_DBL_PAR_SOFTMEMLIMIT = "SoftMemLimit";
 constexpr const char * GRB_DBL_PAR_FEASIBILITYTOL = "FeasibilityTol";
 constexpr const char * GRB_DBL_PAR_OPTIMALITYTOL = "OptimalityTol";
 constexpr const char * GRB_DBL_PAR_MIPGAP = "MIPGap";
@@ -85,6 +87,7 @@ constexpr const char * GRB_INT_ATTR_NUMCONSTRS = "NumConstrs";
 constexpr const char * GRB_INT_ATTR_NUMNZS = "NumNZs";
 // Model statuses
 constexpr const char * GRB_INT_ATTR_STATUS = "Status";
+constexpr const char * GRB_INT_ATTR_SOLCOUNT = "SolCount";
 enum ModelStatus : int {
     GRB_LOADED = 1,
     GRB_OPTIMAL = 2,
@@ -198,7 +201,7 @@ int GRBcblazy(void * cbdata, int lazylen, const int * lazyind,
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_exceptions.hpp"
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace gurobi::v12_0 {
@@ -278,11 +281,11 @@ public:
 
 public:
     gurobi_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "GUROBI", {"gurobi120"}))
+        : lib(detail::load_solver_library(lib_path, "GUROBI", {"gurobi120"}))
               GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUN) {
         int major, minor, technical;
         version(&major, &minor, &technical);
-        warn_on_version_mismatch("GUROBI", GRB_VERSION_MAJOR, major);
+        detail::warn_on_version_mismatch("GUROBI", GRB_VERSION_MAJOR, major);
     }
 
     void _check(GRBenv * env, const int error) const {
@@ -294,5 +297,3 @@ public:
 
 }  // namespace gurobi::v12_0
 }  // namespace mippp
-
-#endif  // MIPPP_GUROBI_v12_0_API_HPP

@@ -1,5 +1,4 @@
-#ifndef MIPPP_HIGHS_ALL_HPP
-#define MIPPP_HIGHS_ALL_HPP
+#pragma once
 
 #include "mippp/solvers/highs/v1_10/highs_api.hpp"
 #include "mippp/solvers/highs/v1_10/highs_lp.hpp"
@@ -14,5 +13,3 @@ using highs_milp = highs::v1_10::highs_milp;
 using highs_qp = highs::v1_10::highs_qp;
 
 }  // namespace mippp
-
-#endif  // MIPPP_HIGHS_ALL_HPP

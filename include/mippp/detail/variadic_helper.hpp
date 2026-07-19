@@ -1,5 +1,4 @@
-#ifndef MIPPP_VARIADIC_HELPER_HPP
-#define MIPPP_VARIADIC_HELPER_HPP
+#pragma once
 
 #include <array>
 #include <concepts>
@@ -35,5 +34,3 @@ template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 }  // namespace mippp::detail
-
-#endif  // MIPPP_VARIADIC_HELPER_HPP

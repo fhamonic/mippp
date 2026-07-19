@@ -1,5 +1,4 @@
-#ifndef MIPPP_MODEL_ENTITIES_HPP
-#define MIPPP_MODEL_ENTITIES_HPP
+#pragma once
 
 #if __cpp_lib_flat_map
 #include <flat_map>
@@ -11,13 +10,13 @@
 #include <optional>
 #include <ranges>
 
+#include "mippp/utility/zero.hpp"
 #include "mippp/model_concepts.hpp"
 
 namespace mippp {
 
 ///////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// Strong types
-////////////////////////////////////
+//////////////////////////////// Strong types /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename Id>
@@ -67,7 +66,7 @@ public:
         return std::views::single(
             std::pair<model_variable<Id, Scalar>, Scalar>(*this, Scalar{1}));
     }
-    constexpr Scalar constant() const noexcept { return Scalar{0}; }
+    constexpr zero_t constant() const noexcept { return {}; }
 };
 
 template <typename Id>
@@ -85,8 +84,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-//////////////////////////// Strong types mappings
-///////////////////////////////
+//////////////////////////// Strong types mappings ////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename Entity, typename Map>
@@ -108,8 +106,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-/////////////////////////// Function traits detail
-///////////////////////////////
+/////////////////////////// Function traits detail ////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace detail {
@@ -129,15 +126,14 @@ struct function_traits<ReturnType (ClassType::*)(Args...) const> {
 }  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Variables range
-//////////////////////////////////
+/////////////////////////////// Variables range ///////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 template <std::ranges::random_access_range Vars, typename IdLambda,
           typename... Args>
     requires std::integral<
         std::decay_t<std::invoke_result_t<IdLambda, Args...>>>
-class variables_range {
+class variables_view {
 protected:
     using variable = std::ranges::range_value_t<Vars>;
     using scalar = linear_expression_scalar_t<variable>;
@@ -147,17 +143,17 @@ protected:
 
 public:
     template <typename VR>
-    constexpr variables_range(std::from_range_t, VR && variables) noexcept
+    constexpr variables_view(std::from_range_t, VR && variables) noexcept
         : _variables(std::views::all(std::forward<VR>(variables)))
         , _id_lambda() {}
 
     template <typename AP, typename VR, typename IL>
-    constexpr variables_range(AP, VR && variables, IL && id_lambda) noexcept
+    constexpr variables_view(AP, VR && variables, IL && id_lambda) noexcept
         : _variables(std::views::all(std::forward<VR>(variables)))
         , _id_lambda(std::forward<IL>(id_lambda)) {}
 
-    constexpr variables_range(const variables_range &) = default;
-    constexpr variables_range(variables_range &&) = default;
+    constexpr variables_view(const variables_view &) = default;
+    constexpr variables_view(variables_view &&) = default;
 
     constexpr auto size() const noexcept {
         return std::ranges::size(_variables);
@@ -186,7 +182,7 @@ public:
         return std::views::transform(
             _variables, [](auto && i) { return std::make_pair(i, scalar{1}); });
     }
-    constexpr scalar constant() const noexcept { return scalar{0}; }
+    constexpr zero_t constant() const noexcept { return {}; }
 };
 
 template <std::ranges::random_access_range Vars, typename IdLambda,
@@ -195,8 +191,8 @@ template <std::ranges::random_access_range Vars, typename IdLambda,
                  std::decay_t<std::invoke_result_t<IdLambda, Args...>>> &&
              std::convertible_to<std::invoke_result_t<NameLambda, Args...>,
                                  std::string>
-class lazily_named_variables_range
-    : public variables_range<Vars, IdLambda, Args...> {
+class lazily_named_variables_view
+    : public variables_view<Vars, IdLambda, Args...> {
 private:
     [[no_unique_address]] mutable NameLambda _name_lambda;
     std::unique_ptr<bool[]> _name_set_map;
@@ -204,18 +200,18 @@ private:
 
 public:
     template <typename VR, typename NL, typename M>
-    constexpr lazily_named_variables_range(VR && variables, NL && name_lambda,
+    constexpr lazily_named_variables_view(VR && variables, NL && name_lambda,
                                            M * model) noexcept
-        : variables_range<Vars, IdLambda, Args...>(std::forward<VR>(variables))
+        : variables_view<Vars, IdLambda, Args...>(std::forward<VR>(variables))
         , _name_lambda(std::forward<NL>(name_lambda))
         , _name_set_map(std::make_unique<bool[]>(this->size()))
         , _model(model) {}
 
     template <typename AP, typename VR, typename IL, typename NL, typename M>
-    constexpr lazily_named_variables_range(AP p, VR && variables,
+    constexpr lazily_named_variables_view(AP p, VR && variables,
                                            IL && id_lambda, NL && name_lambda,
                                            M * model) noexcept
-        : variables_range<Vars, IdLambda, Args...>(
+        : variables_view<Vars, IdLambda, Args...>(
               p, std::forward<VR>(variables), std::forward<IL>(id_lambda))
         , _name_lambda(std::forward<NL>(name_lambda))
         , _name_set_map(std::make_unique<bool[]>(this->size()))
@@ -237,26 +233,25 @@ public:
 };
 
 template <std::ranges::viewable_range VR>
-variables_range(std::from_range_t, VR &&)
-    -> variables_range<std::views::all_t<VR>, std::identity, std::size_t>;
+variables_view(std::from_range_t, VR &&)
+    -> variables_view<std::views::all_t<VR>, std::identity, std::size_t>;
 
 template <std::ranges::viewable_range VR, typename IL, typename... Args>
-variables_range(detail::pack<Args...>, VR &&, IL &&)
-    -> variables_range<std::views::all_t<VR>, IL, Args...>;
+variables_view(detail::pack<Args...>, VR &&, IL &&)
+    -> variables_view<std::views::all_t<VR>, IL, Args...>;
 
 template <std::ranges::viewable_range VR, typename NL, typename M>
-lazily_named_variables_range(VR &&, NL &&, M *)
-    -> lazily_named_variables_range<std::views::all_t<VR>, std::identity, NL, M,
+lazily_named_variables_view(VR &&, NL &&, M *)
+    -> lazily_named_variables_view<std::views::all_t<VR>, std::identity, NL, M,
                                     std::size_t>;
 
 template <std::ranges::viewable_range VR, typename IL, typename NL, typename M,
           typename... Args>
-lazily_named_variables_range(detail::pack<Args...>, VR &&, IL &&, NL &&, M *)
-    -> lazily_named_variables_range<std::views::all_t<VR>, IL, NL, M, Args...>;
+lazily_named_variables_view(detail::pack<Args...>, VR &&, IL &&, NL &&, M *)
+    -> lazily_named_variables_view<std::views::all_t<VR>, IL, NL, M, Args...>;
 
 ///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Optional helper
-//////////////////////////////////
+/////////////////////////////// Optional helper ///////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace detail {
@@ -350,5 +345,3 @@ constraints_range(KR &&, CR &&)
                          std::ranges::range_value_t<CR>>;
 
 }  // namespace mippp
-
-#endif  // MIPPP_MODEL_ENTITIES_HPP

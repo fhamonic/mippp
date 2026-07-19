@@ -1,6 +1,4 @@
-#ifndef MIPPP_COPT_API_HPP
-#define MIPPP_COPT_API_HPP
-
+#pragma once
 // #define INCLUDE_COPT_HEADER 1
 
 #if INCLUDE_COPT_HEADER
@@ -195,7 +193,7 @@ ret_code COPT_AddCallbackLazyConstr(void * cbdata, int nRowMatCnt,
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_exceptions.hpp"
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace copt::v7_2 {
@@ -261,7 +259,7 @@ public:
 
 public:
     inline copt_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "COPT", {"copt"}))
+        : lib(detail::load_solver_library(lib_path, "COPT", {"copt"}))
               COPT_FUNCTIONS(CONSTRUCT_COPT_FUN) {}
 
     void _check(copt_env * env, const ret_code error) const {
@@ -278,5 +276,3 @@ public:
 
 }  // namespace copt::v7_2
 }  // namespace mippp
-
-#endif  // MIPPP_COPT_API_HPP

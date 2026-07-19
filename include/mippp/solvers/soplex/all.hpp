@@ -1,5 +1,4 @@
-#ifndef MIPPP_SOPLEX_ALL_HPP
-#define MIPPP_SOPLEX_ALL_HPP
+#pragma once
 
 #include "mippp/solvers/soplex/v6/soplex_api.hpp"
 #include "mippp/solvers/soplex/v6/soplex_lp.hpp"
@@ -10,5 +9,3 @@ using soplex_api = soplex::v6::soplex_api;
 using soplex_lp = soplex::v6::soplex_lp;
 
 }  // namespace mippp
-
-#endif  // MIPPP_SOPLEX_ALL_HPP

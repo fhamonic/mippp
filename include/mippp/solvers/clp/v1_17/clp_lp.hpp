@@ -1,5 +1,4 @@
-#ifndef MIPPP_CLP_v1_17_LP_HPP
-#define MIPPP_CLP_v1_17_LP_HPP
+#pragma once
 
 #include <algorithm>
 #include <cstring>
@@ -169,14 +168,14 @@ public:
         std::size_t count,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = _add_variables(count, params);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = _add_variables(count, params);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -195,7 +194,7 @@ public:
         std::size_t count, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = _add_variables(count, params);
-        return _make_named_variables_range(offset, count,
+        return _make_named_variables_view(offset, count,
                                            std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
@@ -203,7 +202,7 @@ public:
         std::size_t count, IL && id_lambda, NL && name_lambda,
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = _add_variables(count, params);
-        return _make_indexed_named_variables_range(
+        return _make_indexed_named_variables_view(
             offset, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }
@@ -492,5 +491,3 @@ public:
 
 }  // namespace clp::v1_17
 }  // namespace mippp
-
-#endif  // MIPPP_CLP_v1_17_LP_HPP

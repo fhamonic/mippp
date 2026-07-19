@@ -1,5 +1,4 @@
-#ifndef MIPPP_XPRESS_v45_1_BASE_MODEL_HPP
-#define MIPPP_XPRESS_v45_1_BASE_MODEL_HPP
+#pragma once
 
 #include <memory>
 #include <numeric>
@@ -214,7 +213,7 @@ public:
                            .upper_bound = std::nullopt}) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_variables(std::size_t count, IL && id_lambda,
@@ -224,7 +223,7 @@ public:
                            .upper_bound = std::nullopt}) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -241,7 +240,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
-        return _make_named_variables_range(offset, count,
+        return _make_named_variables_view(offset, count,
                                            std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
@@ -250,7 +249,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
-        return _make_indexed_named_variables_range(
+        return _make_indexed_named_variables_view(
             offset, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }
@@ -404,5 +403,3 @@ public:
 
 }  // namespace xpress::v45_1
 }  // namespace mippp
-
-#endif  // MIPPP_XPRESS_v45_1_BASE_MODEL_HPP

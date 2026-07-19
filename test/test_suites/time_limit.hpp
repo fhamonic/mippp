@@ -1,4 +1,5 @@
 #pragma once
+
 #undef NDEBUG
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -168,8 +169,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             return qvalues[i][j - i - 1];
         };
 
-        auto solve_within = [&, this](std::size_t num_items,
-                                               seconds limit) {
+        auto solve_within = [&, this](std::size_t num_items, seconds limit) {
             auto items = std::views::iota(std::size_t{0}, num_items);
             auto num_items_pairs = num_items * (num_items - 1) / 2;
             auto items_pairs = std::views::filter(
@@ -214,40 +214,36 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             auto start = std::chrono::steady_clock::now();
             model.solve();
             auto end = std::chrono::steady_clock::now();
-            return std::chrono::duration_cast<seconds>(end - start);
+            auto duration = std::chrono::duration_cast<seconds>(end - start);
+
+            if constexpr(has_termination_reason<decltype(model)>) {
+                return std::make_pair(duration, model.termination_reason());
+            } else {
+                return std::make_pair(duration, std::monostate{});
+            }
         };
 
-        // The limit must exceed the largest indivisible chunk of solver work on
-        // these instances (the root relaxation and its cut rounds): a time
-        // limit is only honoured at the solver's polling granularity, checked
-        // between branch-and-bound nodes and never in the middle of the root.
         constexpr seconds limit{1.0};
-        // Absolute allowance for the last, unfinished chunk of work plus
-        // machine/CI-load variance -- absolute rather than proportional on
-        // purpose, proportional bounds being what made the previous version of
-        // this test flaky.
         constexpr seconds overshoot{1.0};
-        // ~1.26x more items per step, hence ~1.6x more variables and
-        // constraints: difficulty ramps up fast while the number of solves
-        // stays small. 100 items is all the data arrays above hold.
         constexpr std::size_t sizes[] = {15, 25, 32, 40, 50, 63, 79, 100};
 
         int interrupted_solves = 0;
         for(const std::size_t num_items : sizes) {
-            const seconds solve_time = solve_within(num_items, limit);
+            const auto result = solve_within(num_items, limit);
+            const seconds solve_time = result.first;
             std::cout << num_items << " items: " << solve_time.count() << "s"
                       << std::endl;
-            // The contract under test: whatever the instance, the limit caps
-            // the running time up to one indivisible chunk of solver work.
+
             ASSERT_LE(solve_time.count(), (limit + overshoot).count())
                 << "with " << num_items << " items";
-            // Solved to optimality before the limit could fire: nothing was
-            // interrupted, grow the instance.
             if(solve_time < 0.9 * limit) continue;
-            // The limit clamped this solve; seeing the clamp on two growing
-            // sizes -- ever harder instances finishing right at the limit --
-            // makes the interruption unambiguous.
-            if(++interrupted_solves == 2) return;
+            if(++interrupted_solves == 2) {
+                using Model = decltype(this->new_model());
+                if constexpr(has_termination_reason<Model>) {
+                    ASSERT_TRUE(reason::is<reason::time_limit>(result.second));
+                }
+                return;
+            }
         }
         GTEST_SKIP()
             << "the solver closed even the largest instance before the "

@@ -1,5 +1,4 @@
-#ifndef MIPPP_COLUMN_GENERATION_HPP
-#define MIPPP_COLUMN_GENERATION_HPP
+#pragma once
 
 #include <algorithm>
 #include <array>
@@ -12,7 +11,7 @@
 #include <vector>
 
 #include "mippp/model_concepts.hpp"
-#include "mippp/utility/variadic_helper.hpp"
+#include "mippp/detail/variadic_helper.hpp"
 
 namespace mippp {
 
@@ -482,5 +481,3 @@ using evict_unattractive_aged =
     all<conjunction<above<age>, above<reduced_cost>>>;
 
 }  // namespace mippp
-
-#endif  // MIPPP_COLUMN_GENERATION_HPP

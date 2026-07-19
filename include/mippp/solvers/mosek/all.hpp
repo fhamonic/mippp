@@ -1,5 +1,4 @@
-#ifndef MIPPP_MOSEK_ALL_HPP
-#define MIPPP_MOSEK_ALL_HPP
+#pragma once
 
 #include "mippp/solvers/mosek/v11/mosek_api.hpp"
 #include "mippp/solvers/mosek/v11/mosek_lp.hpp"
@@ -12,5 +11,3 @@ using mosek_lp = mosek::v11::mosek_lp;
 using mosek_milp = mosek::v11::mosek_milp;
 
 }  // namespace mippp
-
-#endif  // MIPPP_MOSEK_ALL_HPP

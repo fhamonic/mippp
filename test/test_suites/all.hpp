@@ -1,4 +1,5 @@
 #pragma once
+
 #undef NDEBUG
 #include <gtest/gtest.h>
 
@@ -40,7 +41,7 @@ struct model_test : public ::testing::Test {
     void SkipOnLicenseError(F && f) {
         try {
             f();
-        } catch(const license_error & e) {
+        } catch(const mippp::license_error & e) {
             GTEST_SKIP() << e.what();
         }
     }

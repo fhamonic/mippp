@@ -34,6 +34,7 @@ add_executable(
     quadratic_expression.cpp
     unordered_dense_map.cpp
     column_manager.cpp
+    zero.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)

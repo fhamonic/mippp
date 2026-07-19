@@ -1,5 +1,4 @@
-#ifndef MIPPP_GLPK_v5_MILP_HPP
-#define MIPPP_GLPK_v5_MILP_HPP
+#pragma once
 
 #include <cmath>
 #include <limits>
@@ -52,7 +51,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_IV);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_integer_variables(
@@ -60,7 +59,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_IV);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -84,13 +83,13 @@ public:
     auto add_binary_variables(std::size_t count) noexcept {
         const std::size_t offset = num_variables();
         _add_binary_variables(offset, count);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
         const std::size_t offset = num_variables();
         _add_binary_variables(offset, count);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -134,5 +133,3 @@ public:
 
 }  // namespace glpk::v5
 }  // namespace mippp
-
-#endif  // MIPPP_GLPK_v5_MILP_HPP

@@ -1,5 +1,4 @@
-#ifndef MIPPP_CLP_v1_17_API_HPP
-#define MIPPP_CLP_v1_17_API_HPP
+#pragma once
 
 #if INCLUDE_CLP_HEADER
 #include "coin/Clp_C_Interface.h"
@@ -80,7 +79,7 @@ void Clp_loadProblem(Clp_Simplex * model, const int numcols, const int numrows,
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace clp::v1_17 {
@@ -142,11 +141,9 @@ public:
 
 public:
     inline clp_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "CLP", {"Clp"}))
+        : lib(detail::load_solver_library(lib_path, "CLP", {"Clp"}))
               CLP_FUNCTIONS(CONSTRUCT_CLP_FUN) {}
 };
 
 }  // namespace clp::v1_17
 }  // namespace mippp
-
-#endif  // MIPPP_CLP_v1_17_API_HPP

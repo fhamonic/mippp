@@ -1,4 +1,5 @@
 #pragma once
+
 #undef NDEBUG
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

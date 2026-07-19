@@ -1,5 +1,4 @@
-#ifndef MIPPP_CPLEX_v22_1_2_MILP_HPP
-#define MIPPP_CPLEX_v22_1_2_MILP_HPP
+#pragma once
 
 #include <numeric>
 #include <optional>
@@ -31,7 +30,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_INTEGER);
-        return _make_variables_range(handle_ids_begin, count);
+        return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_integer_variables(
@@ -39,7 +38,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_INTEGER);
-        return _make_indexed_variables_range(handle_ids_begin, count,
+        return _make_indexed_variables_view(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -70,12 +69,12 @@ public:
     }
     auto add_binary_variables(std::size_t count) noexcept {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
-        return _make_variables_range(handle_ids_begin, count);
+        return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
-        return _make_indexed_variables_range(handle_ids_begin, count,
+        return _make_indexed_variables_view(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -107,7 +106,8 @@ public:
         check(CPX.addindconstr(env, lp, x.id(), static_cast<int>(!val),
                                static_cast<int>(tmp_indices.size()), lc.rhs(),
                                constraint_sense_to_cplex_sense(lc.sense()),
-                               tmp_indices.data(), tmp_scalars.data(), nullptr));
+                               tmp_indices.data(), tmp_scalars.data(),
+                               nullptr));
     }
 
     //////////////////////////////// MIP start ////////////////////////////////
@@ -186,7 +186,8 @@ public:
 
         double get_solution_value() {
             double obj;
-            cbcheck(CPX.callbackgetcandidatepoint(context, nullptr, 0, 0, &obj));
+            cbcheck(
+                CPX.callbackgetcandidatepoint(context, nullptr, 0, 0, &obj));
             return obj;
         }
         auto get_solution() {
@@ -224,13 +225,32 @@ public:
     }
 
     ///////////////////////////////// Limits //////////////////////////////////
-    void set_time_limit(std::chrono::duration<double> t) {
-        check(CPX.setdblparam(env, CPXPARAM_TimeLimit, t.count()));
+    void set_node_limit(std::chrono::duration<double> t) {
+        check(CPX.setdblparam(env, CPXPARAM_MIP_Limits_Nodes, t.count()));
     }
-    auto get_time_limit() {
+    auto get_node_limit() {
         double t;
-        check(CPX.getdblparam(env, CPXPARAM_TimeLimit, &t));
+        check(CPX.getdblparam(env, CPXPARAM_MIP_Limits_Nodes, &t));
         return std::chrono::duration<double>(t);
+    }
+
+    void set_solution_limit(std::size_t count) {
+        check(CPX.setintparam(env, CPXPARAM_MIP_Limits_Solutions,
+                              static_cast<int>(count)));
+    }
+    auto get_solution_limit() {
+        int count;
+        check(CPX.getintparam(env, CPXPARAM_MIP_Limits_Solutions, &count));
+        return static_cast<std::size_t>(count);
+    }
+
+    void set_memory_limit(memory_size<double, mebi> mb) {
+        check(CPX.setdblparam(env, CPXPARAM_MIP_Limits_TreeMemory, mb.count));
+    }
+    auto get_memory_limit() {
+        double mb;
+        check(CPX.getdblparam(env, CPXPARAM_MIP_Limits_TreeMemory, &mb));
+        return memory_size<double, mebi>(mb);
     }
 
     ////////////////////////// Tolerance parameters ///////////////////////////
@@ -274,7 +294,8 @@ public:
 
     double get_solution_value() {
         double val;
-        check(CPX.solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr, nullptr));
+        check(CPX.solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,
+                           nullptr));
         return val;
         // double val;
         // check(CPX.getbestobjval(env, lp, &val));
@@ -283,16 +304,88 @@ public:
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids());
-        check(CPX.solution(env, lp, nullptr, nullptr, solution.get(), nullptr, nullptr,
-                           nullptr));
+        check(CPX.solution(env, lp, nullptr, nullptr, solution.get(), nullptr,
+                           nullptr, nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
             });
     }
+
+    /////////////////////////// Termination reason ////////////////////////////
+    // clang-format off
+    using termination_reasons = std::variant<
+            reason::optimal,
+            reason::optimal_face_unbounded,
+            reason::optimal_infeasible_unscaled,
+            reason::infeasible_or_unbounded,
+            reason::infeasible,
+            reason::unbounded,
+            reason::interrupted,
+            reason::failed,
+            reason::numerical_failure,
+            reason::out_of_memory,
+            reason::limit_reached,
+            reason::time_limit,
+            reason::iteration_limit,
+            reason::node_limit, 
+            reason::solution_limit,
+            reason::memory_limit,
+            reason::unknown>;
+
+    termination_reasons termination_reason() {
+        using namespace reason;
+        int status = CPX.getstat(env, lp);
+        if(status == CPX_STAT_UNKNOWN) return unknown{};
+        int pfeasind;
+        check(CPX.solninfo(env, lp, nullptr, nullptr, &pfeasind, nullptr));
+        const bool has_sol = pfeasind != 0;
+        switch(status) {
+            // MIP
+            case CPXMIP_OPTIMAL:
+            case CPXMIP_OPTIMAL_TOL:     return optimal{};
+            case CPXMIP_OPTIMAL_INFEAS:  return optimal_infeasible_unscaled{};
+            case CPXMIP_INForUNBD:       return infeasible_or_unbounded{};
+            case CPXMIP_UNBOUNDED:       return unbounded{};
+            case CPXMIP_INFEASIBLE:      return infeasible{};
+            case CPXMIP_ABORT_FEAS:      
+            case CPXMIP_ABORT_INFEAS:    return interrupted{has_sol};
+            case CPXMIP_FAIL_FEAS:       
+            case CPXMIP_FAIL_INFEAS:     return failed{has_sol};
+            case CPXMIP_FAIL_FEAS_NO_TREE:
+            case CPXMIP_FAIL_INFEAS_NO_TREE: return out_of_memory{has_sol};
+            case CPXMIP_TIME_LIM_FEAS:
+            case CPXMIP_TIME_LIM_INFEAS: return time_limit{has_sol};
+            case CPXMIP_NODE_LIM_FEAS:
+            case CPXMIP_NODE_LIM_INFEAS: return node_limit{has_sol};
+            case CPXMIP_SOL_LIM:         return solution_limit{has_sol};
+            // unimplemented limits for now
+            case CPXMIP_MEM_LIM_FEAS:
+            case CPXMIP_MEM_LIM_INFEAS:     return memory_limit{has_sol};
+            case CPXMIP_DETTIME_LIM_FEAS:
+            case CPXMIP_DETTIME_LIM_INFEAS: return limit_reached{has_sol};
+            // LP
+            case CPX_STAT_OPTIMAL:        return optimal{};
+            case CPX_STAT_OPTIMAL_FACE_UNBOUNDED: return optimal_face_unbounded{};
+            case CPX_STAT_OPTIMAL_INFEAS: return optimal_infeasible_unscaled{};
+            case CPX_STAT_INForUNBD:      return infeasible_or_unbounded{};
+            case CPX_STAT_INFEASIBLE:     return infeasible{};
+            case CPX_STAT_UNBOUNDED:      return unbounded{};
+            case CPX_STAT_NUM_BEST:       return numerical_failure{true};
+            case CPX_STAT_ABORT_TIME_LIM: return time_limit{};
+            case CPX_STAT_ABORT_IT_LIM:   return iteration_limit{};
+            case CPX_STAT_ABORT_USER:     return interrupted{};
+            // unimplemented limits for now
+            case CPX_STAT_ABORT_OBJ_LIM:      return limit_reached{true};
+            case CPX_STAT_ABORT_PRIM_OBJ_LIM: return limit_reached{};
+            case CPX_STAT_ABORT_DUAL_OBJ_LIM: return limit_reached{};
+            case CPX_STAT_ABORT_DETTIME_LIM:  return limit_reached{};
+            default:
+                return unknown{};
+        }
+        // clang-format on
+    }
 };
 
 }  // namespace cplex::v22_1_2
 }  // namespace mippp
-
-#endif  // MIPPP_CPLEX_v22_1_2_MILP_HPP

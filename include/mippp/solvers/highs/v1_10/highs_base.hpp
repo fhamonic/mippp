@@ -1,5 +1,4 @@
-#ifndef MIPPP_HIGHS_v1_10_BASE_HPP
-#define MIPPP_HIGHS_v1_10_BASE_HPP
+#pragma once
 
 #include <cstring>
 #include <limits>
@@ -259,7 +258,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_variables(
@@ -267,7 +266,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -284,7 +283,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
-        return _make_named_variables_range(offset, count,
+        return _make_named_variables_view(offset, count,
                                            std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
@@ -293,7 +292,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
-        return _make_indexed_named_variables_range(
+        return _make_indexed_named_variables_view(
             offset, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }
@@ -582,6 +581,16 @@ public:
         return std::string(name);
     }
 
+    ///////////////////////////////// Limits //////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(Highs.setDoubleOptionValue(model, "time_limit", t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(Highs.getDoubleOptionValue(model, "time_limit", &t));
+        return std::chrono::duration<double>(t);
+    }
+
 protected:
     static void check_model_status(int status) {
         if(status >= 7 && status <= 10) return;
@@ -624,5 +633,3 @@ protected:
 
 }  // namespace highs::v1_10
 }  // namespace mippp
-
-#endif  // MIPPP_HIGHS_v1_10_BASE_HPP

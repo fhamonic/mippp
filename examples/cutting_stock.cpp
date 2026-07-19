@@ -66,7 +66,7 @@ int main() {
 
     api_type api;
     lp_type model(api);
-    using variable_t = lp_type::variable;
+    using var_t = lp_type::variable;
 
     model.set_minimization();
 
@@ -74,7 +74,7 @@ int main() {
     // single length). patterns[p][o] = how many pieces of order o pattern p
     // yields.
     std::vector<std::vector<int>> patterns;
-    std::vector<variable_t> vars;
+    std::vector<var_t> vars;
     for(int o : orders) {
         std::vector<int> pattern(static_cast<std::size_t>(m), 0);
         pattern[static_cast<std::size_t>(o)] =

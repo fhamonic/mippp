@@ -1,5 +1,4 @@
-#ifndef MIPPP_CPLEX_v22_1_2_API_HPP
-#define MIPPP_CPLEX_v22_1_2_API_HPP
+#pragma once
 
 #if INCLUDE_CPLEX_HEADER
 #include "ilcplex/cplex.h"
@@ -112,6 +111,10 @@ constexpr int CPXPARAM_Simplex_Tolerances_Feasibility = 1016;
 // constexpr int CPXPARAM_Simplex_Tolerances_Markowitz = 1013;
 constexpr int CPXPARAM_Simplex_Tolerances_Optimality = 1014;
 constexpr int CPXPARAM_TimeLimit = 1039;
+constexpr int CPXPARAM_Simplex_Limits_Iterations = 1020;
+constexpr int CPXPARAM_MIP_Limits_Nodes = 2017;
+constexpr int CPXPARAM_MIP_Limits_Solutions = 2015;
+constexpr int CPXPARAM_MIP_Limits_TreeMemory = 2027;
 constexpr int CPXPARAM_MIP_Tolerances_MIPGap = 2009;
 constexpr int CPXPARAM_MIP_Tolerances_Linearization = 2068;
 // constexpr int CPXPARAM_MIP_Tolerances_Integrality = 2010;
@@ -171,7 +174,48 @@ constexpr int CPX_STAT_ABORT_DETTIME_LIM = 25;
 // constexpr int CPX_STAT_CONFLICT_ABORT_USER = 38;
 // constexpr int CPX_STAT_CONFLICT_ABORT_DETTIME_LIM = 39;
 
+constexpr int CPXMIP_OPTIMAL = 101;
+constexpr int CPXMIP_OPTIMAL_TOL = 102;
+constexpr int CPXMIP_OPTIMAL_INFEAS = 115;
+constexpr int CPXMIP_OPTIMAL_POPULATED = 129;      // after CPXpopulate
+constexpr int CPXMIP_OPTIMAL_POPULATED_TOL = 130;  // after CPXpopulate
+
+constexpr int CPXMIP_INForUNBD = 119;
+constexpr int CPXMIP_UNBOUNDED = 118;
+constexpr int CPXMIP_INFEASIBLE = 103;
+// for the statuses below: *_FEAS/*_INFEAS = a solution is/isn't available
+constexpr int CPXMIP_ABORT_FEAS = 113;
+constexpr int CPXMIP_ABORT_INFEAS = 114;
+constexpr int CPXMIP_ABORT_RELAXATION_UNBOUNDED = 133;  // only (MI)QP
+constexpr int CPXMIP_ABORT_RELAXED = 126;               // after CPXfeasopt
+// Errors
+constexpr int CPXMIP_FAIL_FEAS = 109;
+constexpr int CPXMIP_FAIL_FEAS_NO_TREE = 116;  // out of memory
+constexpr int CPXMIP_FAIL_INFEAS = 110;
+constexpr int CPXMIP_FAIL_INFEAS_NO_TREE = 117;  // out of memory
+// Feasibility
+constexpr int CPXMIP_FEASIBLE = 127;               // after CPXfeasopt
+constexpr int CPXMIP_FEASIBLE_RELAXED_INF = 122;   // after CPXfeasopt
+constexpr int CPXMIP_FEASIBLE_RELAXED_QUAD = 124;  // after CPXfeasopt
+constexpr int CPXMIP_FEASIBLE_RELAXED_SUM = 120;   // after CPXfeasopt
+constexpr int CPXMIP_OPTIMAL_RELAXED_INF = 123;    // after CPXfeasopt
+constexpr int CPXMIP_OPTIMAL_RELAXED_QUAD = 125;   // after CPXfeasopt
+constexpr int CPXMIP_OPTIMAL_RELAXED_SUM = 121;    // after CPXfeasopt
+// Limits
+constexpr int CPXMIP_MEM_LIM_FEAS = 111;
+constexpr int CPXMIP_MEM_LIM_INFEAS = 112;
+constexpr int CPXMIP_NODE_LIM_FEAS = 105;
+constexpr int CPXMIP_NODE_LIM_INFEAS = 106;
+constexpr int CPXMIP_POPULATESOL_LIM = 128;  // after CPXpopulate
+constexpr int CPXMIP_SOL_LIM = 104;
+constexpr int CPXMIP_TIME_LIM_FEAS = 107;
+constexpr int CPXMIP_TIME_LIM_INFEAS = 108;
+constexpr int CPXMIP_DETTIME_LIM_FEAS = 131;
+constexpr int CPXMIP_DETTIME_LIM_INFEAS = 132;
+
 int CPXgetstat(CPXCENVptr env, CPXLPptr lp);
+int CPXsolninfo(CPXCENVptr env, CPXCLPptr lp, int * solnmethod_p,
+                int * solntype_p, int * pfeasind_p, int * dfeasind_p);
 
 int CPXgetobjval(CPXCENVptr env, CPXCLPptr lp, double * objval_p);
 int CPXgetbestobjval(CPXCENVptr env, CPXCLPptr lp, double * objval_p);
@@ -219,7 +263,7 @@ void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_exceptions.hpp"
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace cplex::v22_1_2 {
@@ -275,6 +319,7 @@ namespace cplex::v22_1_2 {
     F(CPXmipopt, mipopt)                                             \
     F(CPXbendersopt, bendersopt)                                     \
     F(CPXgetstat, getstat)                                           \
+    F(CPXsolninfo, solninfo)                                         \
     F(CPXgetobjval, getobjval)                                       \
     F(CPXgetbestobjval, getbestobjval)                               \
     F(CPXgetx, getx)                                                 \
@@ -302,12 +347,12 @@ public:
 
 public:
     inline cplex_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "CPLEX", {"cplex2212"}))
+        : lib(detail::load_solver_library(lib_path, "CPLEX", {"cplex2212"}))
               CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {
         CPXENVptr env = _create_env();
         int version_;
         _check(env, versionnumber(env, &version_));
-        warn_on_version_mismatch("CPLEX", 2212, version_);
+        detail::warn_on_version_mismatch("CPLEX", 2212, version_);
         _close_env(env);
     }
 
@@ -338,5 +383,3 @@ public:
 
 }  // namespace cplex::v22_1_2
 }  // namespace mippp
-
-#endif  // MIPPP_CPLEX_v22_1_2_API_HPP

@@ -1,4 +1,5 @@
 #pragma once
+
 #undef NDEBUG
 #include <gtest/gtest.h>
 #include "assert_helper.hpp"

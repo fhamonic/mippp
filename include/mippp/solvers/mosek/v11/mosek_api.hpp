@@ -1,5 +1,4 @@
-#ifndef MIPPP_MOSEK_v11_API_HPP
-#define MIPPP_MOSEK_v11_API_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -331,7 +330,7 @@ MSKrescodee MSK_putcallbackfunc(MSKtask_t task, MSKcallbackfunc func,
 #include "dylib.hpp"
 
 #include "mippp/utility/solver_exceptions.hpp"
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace mosek::v11 {
@@ -409,7 +408,7 @@ public:
 
 public:
     inline mosek_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "MOSEK", {"mosek64"}))
+        : lib(detail::load_solver_library(lib_path, "MOSEK", {"mosek64"}))
               MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUN) {}
 
     void _check(const MSKrescodee error) const {
@@ -423,5 +422,3 @@ public:
 
 }  // namespace mosek::v11
 }  // namespace mippp
-
-#endif  // MIPPP_MOSEK_v11_API_HPP

@@ -1,5 +1,4 @@
-#ifndef MIPPP_GLPK_v5_API_HPP
-#define MIPPP_GLPK_v5_API_HPP
+#pragma once
 
 #if INCLUDE_GLPK_HEADER
 #include "glpk.h"
@@ -194,7 +193,7 @@ double glp_mip_col_val(glp_prob * P, int j);
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_library.hpp"
+#include "mippp/detail/solver_library.hpp"
 
 namespace mippp {
 namespace glpk::v5 {
@@ -258,11 +257,9 @@ public:
 
 public:
     inline glpk_api(const char * lib_path = nullptr)
-        : lib(load_solver_library(lib_path, "GLPK", {"glpk"}))
+        : lib(detail::load_solver_library(lib_path, "GLPK", {"glpk"}))
               GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUN) {}
 };
 
 }  // namespace glpk::v5
 }  // namespace mippp
-
-#endif  // MIPPP_GLPK_v5_API_HPP

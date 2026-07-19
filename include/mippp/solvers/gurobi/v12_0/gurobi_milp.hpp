@@ -1,5 +1,4 @@
-#ifndef MIPPP_GUROBI_v12_0_MILP_HPP
-#define MIPPP_GUROBI_v12_0_MILP_HPP
+#pragma once
 
 #include <functional>
 
@@ -27,7 +26,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_INTEGER);
-        return _make_variables_range(handle_ids_begin, count);
+        return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_integer_variables(
@@ -35,7 +34,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_INTEGER);
-        return _make_indexed_variables_range(handle_ids_begin, count,
+        return _make_indexed_variables_view(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -43,8 +42,9 @@ private:
     inline std::size_t _add_binary_variables(const std::size_t & count) {
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), GRB_BINARY);
-        check(GRB.addvars(model, static_cast<int>(count), 0, nullptr, nullptr, nullptr,
-                          nullptr, nullptr, nullptr, tmp_types.data(), nullptr));
+        check(GRB.addvars(model, static_cast<int>(count), 0, nullptr, nullptr,
+                          nullptr, nullptr, nullptr, nullptr, tmp_types.data(),
+                          nullptr));
 
         const std::size_t handle_ids_begin =
             _new_var_handle_range(_num_var_native_ids, count);
@@ -61,12 +61,12 @@ public:
     }
     auto add_binary_variables(std::size_t count) noexcept {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
-        return _make_variables_range(handle_ids_begin, count);
+        return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
-        return _make_indexed_variables_range(handle_ids_begin, count,
+        return _make_indexed_variables_view(handle_ids_begin, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -212,15 +212,6 @@ public:
     }
 
     ///////////////////////////////// Limits //////////////////////////////////
-    void set_time_limit(std::chrono::duration<double> t) {
-        check(GRB.setdblparam(env, GRB_DBL_PAR_TIMELIMIT, t.count()));
-    }
-    auto get_time_limit() {
-        double t;
-        check(GRB.getdblparam(env, GRB_DBL_PAR_TIMELIMIT, &t));
-        return std::chrono::duration<double>(t);
-    }
-
     void set_node_limit(std::size_t n) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_NODELIMIT,
                               static_cast<double>(n)));
@@ -230,6 +221,62 @@ public:
         check(GRB.getdblparam(env, GRB_DBL_PAR_NODELIMIT, &n));
         return static_cast<std::size_t>(n);
     }
+
+    void set_solution_limit(std::size_t n) {
+        check(GRB.setintparam(env, GRB_INT_PAR_SOLUTIONLIMIT,
+                              static_cast<int>(n)));
+    }
+    std::size_t get_solution_limit() {
+        int n;
+        check(GRB.getintparam(env, GRB_INT_PAR_SOLUTIONLIMIT, &n));
+        return static_cast<std::size_t>(n);
+    }
+
+    /////////////////////////// Termination reason ////////////////////////////
+    // clang-format off
+    using termination_reasons = std::variant<
+            reason::optimal,
+            reason::infeasible_or_unbounded,
+            reason::infeasible,
+            reason::unbounded,
+            reason::interrupted,
+            reason::failed,
+            reason::numerical_failure,
+            reason::limit_reached,
+            reason::time_limit,
+            reason::node_limit,
+            reason::solution_limit,
+            reason::memory_limit,
+            reason::unknown>;
+
+    termination_reasons termination_reason() {
+        using namespace reason;
+        int status;
+        check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status));
+        switch(status) {
+            case GRB_OPTIMAL:         return optimal{};
+            case GRB_INF_OR_UNBD:     return infeasible_or_unbounded{};
+            case GRB_INFEASIBLE:      return infeasible{};
+            case GRB_UNBOUNDED:       return unbounded{};
+        }
+        int sol_count;
+        check(GRB.getintattr(model, GRB_INT_ATTR_SOLCOUNT, &sol_count));
+        const bool sol_available = sol_count > 0;
+        switch(status) {
+            case GRB_INTERRUPTED:     return interrupted{sol_available};
+            case GRB_SUBOPTIMAL:      return failed{sol_available};
+            case GRB_NUMERIC:         return numerical_failure{sol_available};
+            case GRB_TIME_LIMIT:      return time_limit{sol_available};
+            case GRB_NODE_LIMIT:      return node_limit{sol_available};
+            case GRB_SOLUTION_LIMIT:  return solution_limit{sol_available};
+            case GRB_MEM_LIMIT:       return memory_limit{sol_available};
+            case GRB_USER_OBJ_LIMIT:
+            case GRB_WORK_LIMIT:      return limit_reached{sol_available};
+            default:
+                return unknown{sol_available}; 
+        }// TODO: what for GRB_CUTOFF ?
+    }
+    // clang-format on
 
     ////////////////////////////////// Solve //////////////////////////////////
     void solve() { check(GRB.optimize(model)); }
@@ -251,28 +298,7 @@ public:
                 return *(solution.get() + _native_id(x));
             });
     }
-
-    /////////////////////////// Termination reason ////////////////////////////
-    std::variant<reason::optimal, reason::infeasible, reason::unbounded,
-                 reason::infeasible_or_unbounded, reason::time_limit,
-                 reason::node_limit, reason::numerical_failure, reason::unknown>
-    termination_reason() {
-        using namespace reason;
-        int status;
-        check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status));
-        if(status == GRB_OPTIMAL) return optimal{};
-        if(status == GRB_INFEASIBLE) return infeasible{};
-        if(status == GRB_UNBOUNDED) return unbounded{};
-        if(status == GRB_INF_OR_UNBD) return infeasible_or_unbounded{};
-        if(status == GRB_NUMERIC || status == GRB_SUBOPTIMAL)
-            return numerical_failure{};
-        if(status == GRB_TIME_LIMIT) return time_limit{};
-        if(status == GRB_NODE_LIMIT) return node_limit{};
-        return unknown{};
-    }
 };
 
 }  // namespace gurobi::v12_0
 }  // namespace mippp
-
-#endif  // MIPPP_GUROBI_v12_0_MILP_HPP

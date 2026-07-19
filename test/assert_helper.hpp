@@ -1,5 +1,4 @@
-#ifndef ASSERT_HELPER_HPP
-#define ASSERT_HELPER_HPP
+#pragma once
 
 #include <initializer_list>
 #include <ranges>
@@ -79,5 +78,3 @@ void ASSERT_CONSTRAINT(
     ASSERT_EQ(constr.sense(), rel);
     ASSERT_EQ(constr.rhs(), bound);
 }
-
-#endif  // ASSERT_HELPER_HPP

@@ -44,6 +44,8 @@
 #include <utility>
 #include <vector>
 
+namespace mippp {
+
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename KeyEqual = std::equal_to<Key>>
 class unordered_dense_map {
@@ -391,3 +393,5 @@ private:
         }
     }
 };
+
+}  // namespace mippp

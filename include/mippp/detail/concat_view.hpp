@@ -1,17 +1,24 @@
-#ifndef MIPPP_DETAIL_CONCAT_VIEW_HPP
-#define MIPPP_DETAIL_CONCAT_VIEW_HPP
+#pragma once
 
 #include <iterator>
 #include <ranges>
 #include <type_traits>
 #include <utility>
 
-namespace mippp::detail::views {
+namespace mippp::detail {
 
 #if defined(__cpp_lib_ranges_concat)
-
-inline constexpr auto concat = std::views::concat;
-
+// unordered_concat is required for GCC 15.1, fixed for GCC 15.2
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120934
+template <std::ranges::range R1, std::ranges::range R2>
+constexpr auto unordered_concat(R1 && r1, R2 && r2) {
+    if constexpr(std::ranges::range<decltype(std::views::concat(
+                     std::forward<R1>(r1), std::forward<R2>(r2)))>) {
+        return std::views::concat(std::forward<R1>(r1), std::forward<R2>(r2));
+    } else {
+        return std::views::concat(std::forward<R2>(r2), std::forward<R1>(r1));
+    }
+}
 #else
 
 template <typename V1, typename V2>
@@ -95,8 +102,8 @@ private:
         constexpr void operator++(int) { ++(*this); }
         constexpr iterator operator++(int)
             requires std::forward_iterator<
-                         std::ranges::iterator_t<FirstBase>> &&
-                     std::forward_iterator<std::ranges::iterator_t<SecondBase>>
+                         std::ranges::iterator_t<FirstBase> > &&
+                     std::forward_iterator<std::ranges::iterator_t<SecondBase> >
         {
             auto tmp = *this;
             ++(*this);
@@ -111,9 +118,9 @@ private:
         friend constexpr bool operator==(const iterator & lhs,
                                          const iterator & rhs)
             requires std::equality_comparable<
-                         std::ranges::iterator_t<FirstBase>> &&
+                         std::ranges::iterator_t<FirstBase> > &&
                      std::equality_comparable<
-                         std::ranges::iterator_t<SecondBase>>
+                         std::ranges::iterator_t<SecondBase> >
         {
             return lhs._first_it == rhs._first_it &&
                    lhs._second_it == rhs._second_it;
@@ -145,20 +152,10 @@ template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
 concat_view(std::views::all_t<R1>, std::views::all_t<R2>)
     -> concat_view<std::views::all_t<R1>, std::views::all_t<R2> >;
 
-struct concat_fn {
-    template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
-        requires concat_view_compatible<std::views::all_t<R1>,
-                                        std::views::all_t<R2> >
-    constexpr auto operator()(R1 && r1, R2 && r2) const {
-        return concat_view(std::views::all(std::forward<R1>(r1)),
-                           std::views::all(std::forward<R2>(r2)));
-    }
-};
-
-inline constexpr concat_fn concat{};
-
+template <std::ranges::range R1, std::ranges::range R2>
+constexpr auto unordered_concat(R1 && r1, R2 && r2) {
+    return concat_view(std::forward<R1>(r1), std::forward<R2>(r2));
+}
 #endif
 
-}  // namespace mippp::detail::views
-
-#endif  // MIPPP_DETAIL_CONCAT_VIEW_HPP
+}  // namespace mippp::detail

@@ -1,5 +1,4 @@
-#ifndef MIPPP_XPRESS_v45_1_MILP_HPP
-#define MIPPP_XPRESS_v45_1_MILP_HPP
+#pragma once
 
 #include <numeric>
 #include <optional>
@@ -32,7 +31,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'I');
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_integer_variables(
@@ -40,7 +39,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'I');
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -52,13 +51,13 @@ public:
     auto add_binary_variables(std::size_t count) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, {}, 'B');
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, {}, 'B');
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -217,5 +216,3 @@ public:
 
 }  // namespace xpress::v45_1
 }  // namespace mippp
-
-#endif  // MIPPP_XPRESS_v45_1_MILP_HPP

@@ -1,5 +1,4 @@
-#ifndef MIPPP_CBC_v2_10_12_MILP_HPP
-#define MIPPP_CBC_v2_10_12_MILP_HPP
+#pragma once
 
 #include <algorithm>
 #include <chrono>
@@ -156,7 +155,7 @@ public:
                        const variable_params params = default_variable_params) {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_variables(
@@ -164,7 +163,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
     variable add_integer_variable(
@@ -177,7 +176,7 @@ public:
                                                       default_variable_params) {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_integer_variables(
@@ -185,7 +184,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
     variable add_binary_variable() {
@@ -197,14 +196,14 @@ public:
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i)
             _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i)
             _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
-        return _make_indexed_variables_range(offset, count,
+        return _make_indexed_variables_view(offset, count,
                                              std::forward<IL>(id_lambda));
     }
 
@@ -222,7 +221,7 @@ public:
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_var(params, false, name_lambda(i).c_str());
-        return _make_variables_range(offset, count);
+        return _make_variables_view(offset, count);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -230,7 +229,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
-        return _make_indexed_named_variables_range(
+        return _make_indexed_named_variables_view(
             offset, count, std::forward<IL>(id_lambda),
             std::forward<NL>(name_lambda), this);
     }
@@ -506,5 +505,3 @@ public:
 
 }  // namespace cbc::v2_10_12
 }  // namespace mippp
-
-#endif  // MIPPP_CBC_v2_10_12_MILP_HPP
