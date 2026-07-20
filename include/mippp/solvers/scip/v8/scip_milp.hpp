@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <limits>
 #include <optional>
 #include <ranges>
@@ -164,7 +165,7 @@ private:
     }
 
     inline auto _make_variables_view(const std::size_t & offset,
-                                      const std::size_t & count) {
+                                     const std::size_t & count) {
         return variables_view(
             std::from_range,
             std::views::transform(
@@ -174,8 +175,8 @@ private:
     }
     template <typename IL>
     inline auto _make_indexed_variables_view(const std::size_t & offset,
-                                              const std::size_t & count,
-                                              IL && id_lambda) {
+                                             const std::size_t & count,
+                                             IL && id_lambda) {
         return variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
@@ -186,9 +187,9 @@ private:
     }
     template <typename IL, typename NL>
     inline auto _make_indexed_named_variables_view(const std::size_t & offset,
-                                                    const std::size_t & count,
-                                                    IL && id_lambda,
-                                                    NL && name_lambda) {
+                                                   const std::size_t & count,
+                                                   IL && id_lambda,
+                                                   NL && name_lambda) {
         return lazily_named_variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
@@ -221,7 +222,7 @@ public:
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_integer_variable(
@@ -246,7 +247,7 @@ public:
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_INTEGER);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_binary_variable() {
@@ -271,7 +272,7 @@ public:
                 {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
                 SCIP_VARTYPE_BINARY);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -492,8 +493,8 @@ public:
 
         // double get_solution_value() {
         //     double obj;
-        //     check(SCIP.callbackgetcandidatepoint(context, nullptr, 0, 0, &obj));
-        //     return obj;
+        //     check(SCIP.callbackgetcandidatepoint(context, nullptr, 0, 0,
+        //     &obj)); return obj;
         // }
         auto get_solution() {
             auto num_vars = num_variables();

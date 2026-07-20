@@ -11,11 +11,11 @@
 #include <utility>
 #include <variant>
 
+#include "mippp/detail/variadic_helper.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/quadratic_expression.hpp"
 #include "mippp/utility/memory_size.hpp"
-#include "mippp/detail/variadic_helper.hpp"
 
 namespace mippp {
 
@@ -61,7 +61,7 @@ struct quadratic_expression {
         return range<std::tuple<model_variable_t<M>, model_variable_t<M>,
                                 model_scalar_t<M>>>();
     }
-    auto linear_expression() const { return archetype::linear_expression<M>(); }
+    auto linear_part() const { return archetype::linear_expression<M>(); }
 };
 struct any_type {};
 constexpr bool operator<(any_type, any_type) { return bool{}; }

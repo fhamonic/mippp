@@ -48,7 +48,7 @@ public:
     template <quadratic_expression QE>
     void set_objective(QE && qe) {
         const auto num_vars = num_variables();
-        set_objective(qe.linear_expression());
+        set_objective(qe.linear_part());
         std::map<std::pair<variable, variable>, scalar, variables_pair_cmp>
             factorized_terms;
         for(auto && [var1, var2, coef] : qe.quadratic_terms()) {

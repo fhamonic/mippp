@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <numeric>
 #include <optional>
 #include <vector>
@@ -40,7 +41,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'I');
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_binary_variable() {
@@ -58,7 +59,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(offset, count, {}, 'B');
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     void set_continuous(variable v) noexcept {
@@ -139,9 +140,9 @@ private:
     std::function<void(candidate_solution_callback_handle &)>
         candidate_solution_callback;
 
-    static int candidate_solution_callback_fun(XPRSprob cbprob, void * cbdata,
-                                               [[maybe_unused]] int soltype, int * p_reject,
-                                               [[maybe_unused]] double * p_cutoff) {
+    static int candidate_solution_callback_fun(
+        XPRSprob cbprob, void * cbdata, [[maybe_unused]] int soltype,
+        int * p_reject, [[maybe_unused]] double * p_cutoff) {
         auto * model = static_cast<xpress_milp *>(cbdata);
         candidate_solution_callback_handle handle(
             model->XPRS, cbprob, model->objective_offset, p_reject);
