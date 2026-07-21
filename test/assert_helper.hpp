@@ -1,6 +1,7 @@
 #pragma once
 
 #include <initializer_list>
+#include <map>
 #include <ranges>
 
 #include "mippp/linear_expression.hpp"
@@ -65,6 +66,18 @@ void ASSERT_QUAD_TERMS(
     for(auto && [var1, var2, coef] : expected_terms)
         ASSERT_NEAR(factorized_terms.at(std::make_pair(var1, var2)), coef,
                     1e-7);
+}
+
+template <typename QExpr>
+void ASSERT_QUAD_EXPR(
+    QExpr && expr,
+    std::initializer_list<mippp::quadratic_term_t<QExpr>> expected_quad_terms,
+    std::initializer_list<mippp::quadratic_expression_linear_term_t<QExpr>>
+        expected_linear_terms,
+    mippp::quadratic_expression_scalar_t<QExpr> expected_constant) {
+    ASSERT_QUAD_TERMS(expr.quadratic_terms(), expected_quad_terms);
+    ASSERT_LIN_EXPR(expr.linear_part(), expected_linear_terms,
+                    expected_constant);
 }
 
 template <typename Constr>

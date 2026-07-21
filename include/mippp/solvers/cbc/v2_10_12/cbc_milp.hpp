@@ -302,7 +302,7 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _add_constraint(const LC & lc) {
+    void _add_constraint(LC && lc) {
         tmp_indices.resize(0);
         tmp_scalars.resize(0);
         _register_entries(lc.linear_terms());

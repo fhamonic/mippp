@@ -341,7 +341,7 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _register_constraint(const LC & lc) {
+    void _register_constraint(LC && lc) {
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         tmp_boundkeye.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());

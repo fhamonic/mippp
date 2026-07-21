@@ -444,7 +444,7 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _register_constraint(const LC & lc) {
+    void _register_constraint(LC && lc) {
         ++register_count;
         tmp_begins.emplace_back(static_cast<int>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_gurobi_sense(lc.sense()));

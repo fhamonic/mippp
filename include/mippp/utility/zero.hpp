@@ -112,14 +112,21 @@ struct zero_t {
         return {};
     }
 
+    // `*` and `/` fold to zero_t, discarding the other operand, so
+    // `convertible_to<int, S>` restricts them to scalars: without it
+    // `zero * expr` would silently swallow a whole expression (and be
+    // ISO-ambiguous with the expression operators, whose scalar overloads
+    // also match through the zero_t -> scalar conversion). A zero
+    // coefficient on an expression goes through the expression operators
+    // instead and keeps its terms, spelled `0.0 * expr`.
     template <typename S>
-        requires(!statically_zero<S>)
+        requires(!statically_zero<S>) && std::convertible_to<int, S>
     [[nodiscard]] friend constexpr zero_t operator*(zero_t,
                                                     const S &) noexcept {
         return {};
     }
     template <typename S>
-        requires(!statically_zero<S>)
+        requires(!statically_zero<S>) && std::convertible_to<int, S>
     [[nodiscard]] friend constexpr zero_t operator*(const S &,
                                                     zero_t) noexcept {
         return {};
@@ -127,7 +134,7 @@ struct zero_t {
 
     // note: `s / zero` and `zero / zero` are intentionally not provided.
     template <typename S>
-        requires(!statically_zero<S>)
+        requires(!statically_zero<S>) && std::convertible_to<int, S>
     [[nodiscard]] friend constexpr zero_t operator/(zero_t,
                                                     const S &) noexcept {
         return {};

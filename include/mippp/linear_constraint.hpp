@@ -25,7 +25,7 @@ using linear_constraint_rhs_t =
 
 template <typename T>
 concept linear_constraint =
-    requires(const T & t) {
+    requires(T && t) {
         t.linear_terms();
         { t.sense() } -> std::same_as<constraint_sense>;
         t.rhs();
@@ -37,14 +37,7 @@ concept linear_constraint =
 //////////////////////////////////// Views ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// `const_readable_linear_terms` is enforced on the view type itself, not just
-// at the operators: a constraint is read through a `const &` (see the concept
-// above), so an expression owning a move-only term range cannot back one. Were
-// the type constructible anyway, probing `linear_constraint` on it would
-// instantiate `linear_terms()` and hard-error outside the immediate context --
-// the concept would be ill-formed instead of simply `false`.
 template <linear_expression LExpr>
-    requires const_readable_linear_terms<LExpr>
 class linear_constraint_view {
 private:
     LExpr _expression;
@@ -56,13 +49,39 @@ public:
     constexpr linear_constraint_view(E && e, constraint_sense rel)
         : _expression(std::forward<E>(e)), _constraint_sense(rel) {}
 
-    constexpr auto linear_terms() const noexcept {
+    // A constraint does not own terms, it wraps an expression that does, so
+    // each overload just forwards to the matching one of the wrapped
+    // expression. `decltype(auto)` propagates whatever that returns: a view
+    // by value, an lvalue reference or an xvalue.
+    [[nodiscard]] constexpr decltype(auto) linear_terms() const & noexcept(
+        noexcept(_expression.linear_terms()))
+        requires const_readable_linear_terms<LExpr>
+    {
         return _expression.linear_terms();
     }
-    constexpr constraint_sense sense() const noexcept {
+    [[nodiscard]] constexpr decltype(auto) linear_terms() & noexcept(
+        noexcept(_expression.linear_terms())) {
+        return _expression.linear_terms();
+    }
+    [[nodiscard]] constexpr decltype(auto) linear_terms() && noexcept(
+        noexcept(std::move(_expression).linear_terms())) {
+        return std::move(_expression).linear_terms();
+    }
+
+    [[nodiscard]] constexpr constraint_sense sense() const noexcept {
         return _constraint_sense;
     }
-    constexpr auto rhs() const noexcept { return -_expression.constant(); }
+
+    // The `linear_expression` concept only checks `constant()` on non-const
+    // lvalues, so a const-callable overload is required here explicitly --
+    // without the guard, an expression lacking one would fail inside the body
+    // instead of making the constraint SFINAE-visibly lack `rhs()`.
+    [[nodiscard]] constexpr auto rhs() const
+        noexcept(noexcept(-_expression.constant()))
+        requires requires(const LExpr & e) { -e.constant(); }
+    {
+        return -_expression.constant();
+    }
 };
 
 template <typename LE>
@@ -76,81 +95,72 @@ linear_constraint_view(LE &&, constraint_sense)
 namespace operators {
 
 template <linear_expression E1, linear_expression E2>
-    requires compatible_linear_expressions<E1, E2>
-constexpr auto operator<=(E1 && e1, E2 && e2) {
-    detail::assert_constrainable_linear_expressions<E1, E2>();
+[[nodiscard]] constexpr auto operator<=(E1 && e1, E2 && e2) {
+    detail::assert_compatible_linear_expressions<E1, E2>();
     return linear_constraint_view(
         linear_expression_add(std::forward<E1>(e1),
                               linear_expression_negate(std::forward<E2>(e2))),
         constraint_sense::less_equal);
-};
+}
 template <linear_expression E1, linear_expression E2>
-    requires compatible_linear_expressions<E1, E2>
-constexpr auto operator>=(E1 && e1, E2 && e2) {
-    detail::assert_constrainable_linear_expressions<E1, E2>();
+[[nodiscard]] constexpr auto operator>=(E1 && e1, E2 && e2) {
+    detail::assert_compatible_linear_expressions<E1, E2>();
     return linear_constraint_view(
         linear_expression_add(std::forward<E1>(e1),
                               linear_expression_negate(std::forward<E2>(e2))),
         constraint_sense::greater_equal);
-};
+}
 
 template <linear_expression E1, linear_expression E2>
-    requires compatible_linear_expressions<E1, E2>
-constexpr auto operator==(E1 && e1, E2 && e2) {
-    detail::assert_constrainable_linear_expressions<E1, E2>();
+[[nodiscard]] constexpr auto operator==(E1 && e1, E2 && e2) {
+    detail::assert_compatible_linear_expressions<E1, E2>();
     return linear_constraint_view(
         linear_expression_add(std::forward<E1>(e1),
                               linear_expression_negate(std::forward<E2>(e2))),
         constraint_sense::equal);
-};
+}
 
 template <linear_expression E>
-constexpr auto operator<=(linear_expression_scalar_t<E> c, E && e) {
-    detail::assert_constrainable_linear_expressions<E>();
+[[nodiscard]] constexpr auto operator<=(linear_expression_scalar_t<E> c, E && e) {
     return linear_constraint_view(
         linear_expression_scalar_add(
             linear_expression_negate(std::forward<E>(e)), c),
         constraint_sense::less_equal);
-};
+}
 template <linear_expression E>
-constexpr auto operator<=(E && e, linear_expression_scalar_t<E> c) {
-    detail::assert_constrainable_linear_expressions<E>();
+[[nodiscard]] constexpr auto operator<=(E && e, linear_expression_scalar_t<E> c) {
     return linear_constraint_view(
         linear_expression_scalar_add(std::forward<E>(e), -c),
         constraint_sense::less_equal);
-};
+}
 
 template <linear_expression E>
-constexpr auto operator>=(linear_expression_scalar_t<E> c, E && e) {
-    detail::assert_constrainable_linear_expressions<E>();
+[[nodiscard]] constexpr auto operator>=(linear_expression_scalar_t<E> c, E && e) {
     return linear_constraint_view(
         linear_expression_scalar_add(
             linear_expression_negate(std::forward<E>(e)), c),
         constraint_sense::greater_equal);
-};
+}
 template <linear_expression E>
-constexpr auto operator>=(E && e, linear_expression_scalar_t<E> c) {
-    detail::assert_constrainable_linear_expressions<E>();
+[[nodiscard]] constexpr auto operator>=(E && e, linear_expression_scalar_t<E> c) {
     return linear_constraint_view(
         linear_expression_scalar_add(std::forward<E>(e), -c),
         constraint_sense::greater_equal);
-};
+}
 
 template <linear_expression E>
-constexpr auto operator==(E && e, linear_expression_scalar_t<E> c) {
-    detail::assert_constrainable_linear_expressions<E>();
+[[nodiscard]] constexpr auto operator==(E && e, linear_expression_scalar_t<E> c) {
     return linear_constraint_view(
         linear_expression_scalar_add(std::forward<E>(e), -c),
         constraint_sense::equal);
-};
+}
 template <linear_expression E>
-constexpr auto operator==(linear_expression_scalar_t<E> c, E && e) {
-    detail::assert_constrainable_linear_expressions<E>();
+[[nodiscard]] constexpr auto operator==(linear_expression_scalar_t<E> c, E && e) {
     return linear_constraint_view(
         linear_expression_scalar_add(
             linear_expression_negate(std::forward<E>(e)), c),
         constraint_sense::equal);
-};
+}
 
 }  // namespace operators
 

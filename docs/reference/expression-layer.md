@@ -81,7 +81,7 @@ auto x = model.add_variable();
 static_assert(statically_zero<linear_expression_constant_t<decltype(x)>>);
 ```
 
-`zero_t` converts implicitly to any scalar, so consumers expecting a runtime number keep working, and its arithmetic operators are **hidden friends** — found by ADL only, so they are candidates exactly when an operand *is* a `zero_t` and never pollute unqualified lookup. They propagate the zero-ness through the algebra: `zero + zero`, `-zero`, `zero * s` and `zero / s` are all still `zero_t`, while `zero + s` collapses to plain `s`. Comparison is covered by a single `operator==`: `s == zero` uses the reversed candidate, and `!=` is rewritten from it.
+`zero_t` converts implicitly to any scalar, so consumers expecting a runtime number keep working, and its arithmetic operators are **hidden friends** — found by ADL only, so they are candidates exactly when an operand *is* a `zero_t` and never pollute unqualified lookup. They propagate the zero-ness through the algebra: `zero + zero`, `-zero`, `zero * s` and `zero / s` are all still `zero_t`, while `zero + s` collapses to plain `s`. The `*` and `/` folds are restricted to scalar operands: `zero * expr` would otherwise silently swallow a whole expression (and be ambiguous with the expression operators, whose scalar overloads also match through the `zero_t` conversion), so a zero coefficient on an expression is spelled `0.0 * expr` and keeps its terms. Comparison is covered by a single `operator==`: `s == zero` uses the reversed candidate, and `!=` is rewritten from it.
 
 Compound assignment onto a runtime scalar (`s += zero`, `s -= zero`) is provided too, and needs its own hidden friends for a subtle reason: the built-in candidates are `operator+=(S &, R)` for *every* promoted arithmetic `R`, and the conversion operator above — being a template — satisfies all of them equally well. Without an exact match to outrank them the call is ambiguous, even though `s + zero` and `double d = zero` both work. This is what lets `runtime_linear_expression` accumulate constant-free expressions; see below.
 
@@ -107,7 +107,7 @@ Expressions are views, and views differ in what you may do with them. Two orthog
 | `const_readable_linear_terms<E>` | Can the terms be reached through a `const &`, i.e. does reading *not* consume the expression? | the expression **owns** a move-only term range (it was built over an rvalue range, so `views::all` produced an `owning_view`) |
 | `multipass_linear_terms<E>` | Const-readable **and** restartable (`forward_range`)? | additionally when the range is single-pass — typically a `join_view` over ranges materialized on the fly, which is exactly what `xsum` produces |
 
-Both are properties of the **type**; references and cv-qualification make no difference. A third, `detail::forwardable_linear_terms`, is the only value-category-dependent one: it constrains the *argument*, since an rvalue may always be gutted whatever its term range looks like.
+Both are properties of the **type**; references and cv-qualification make no difference. A third, `detail::forwardable_linear_expression`, is the only value-category-dependent one: it constrains the *argument* — an rvalue may always be gutted whatever its term range looks like, while an lvalue may only be handed to a consuming operation if it is const-readable (reading it doesn't consume it).
 
 Four representative expressions separate the axes cleanly (they are the ones the [test suite](https://github.com/fhamonic/mippp/blob/main/test/linear_expression.cpp) pins down):
 
@@ -232,6 +232,18 @@ square(materialize(e));  // ✓
 ```
 
 These two views expose **only `const &`** accessors, precisely because they read their operands repeatedly.
+
+### Products store operands `views::all`-style
+
+The two product views hold whole *expressions*, not term ranges, so they mirror what range adaptors do with `views::all`: an **rvalue** operand is moved into the view, which then owns it, while a **named** operand is only referenced, through `detail::linear_expression_ref` — the expression-level analog of `ranges::ref_view`. `detail::expression_all_t` picks between the two, in the operators and in the deduction guides alike:
+
+```cpp
+auto e = materialize(xsum(vars));
+auto q1 = square(e);                      // references e: no copy of its term vector
+auto q2 = square(materialize(xsum(vars)));  // owns the materialized operand
+```
+
+Referencing is safe here because `multipass_linear_terms` implies const-readable — reading the operand never consumes it — and it means a named `runtime_linear_expression` used in several products is never deep-copied. The usual view contract follows: a product built over a named operand must not outlive it, exactly like a `ref_view` over a named container.
 
 !!! warning "Custom quadratic types: the `&&` accessors must partition the state"
     MIP++ forwards the same expression to `quadratic_terms()` *and* `linear_part()` within a single operation (see `quadratic_expression_add`). That is well-defined only if the two accessors consume **disjoint** subobjects: if one `&&` overload may move from a member, no other accessor may read it.

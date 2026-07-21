@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <memory>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
@@ -83,19 +84,20 @@ consteval void assert_compatible_linear_expressions() {
                   "cast one side explicitly.");
 }
 
-// An lvalue expression can only be consumed if its term range is copyable.
-// Owning expressions (rvalue-range-backed) must be forwarded as rvalues.
+// An operand may be handed to a consuming operation either because it is an
+// rvalue we are allowed to gut, or because reading it doesn't consume it.
+// Value-category dependent -- it constrains the argument, not the expression
+// type. Mirrored by `forwardable_quadratic_expression`.
 template <typename E>
-concept forwardable_linear_terms =
+concept forwardable_linear_expression =
     (!std::is_lvalue_reference_v<E> &&
      !std::is_const_v<std::remove_reference_t<E>>) ||
-    std::copy_constructible<
-        std::remove_cvref_t<linear_terms_range_t<std::remove_reference_t<E>>>>;
+    const_readable_linear_terms<E>;
 
 template <typename... Es>
-consteval void assert_forwardable_linear_terms() {
+consteval void assert_forwardable_linear_expressions() {
     static_assert(
-        (forwardable_linear_terms<Es> && ...),
+        (forwardable_linear_expression<Es> && ...),
         "MIP++: this expression owns its term range (it was built from an "
         "rvalue range) and is single-use. Either pass it as an rvalue "
         "(std::move) if this is its last use, build it over a named range "
@@ -103,20 +105,41 @@ consteval void assert_forwardable_linear_terms() {
         "runtime_linear_expression for reuse.");
 }
 
-// A constraint is read through a `const &` (see the `linear_constraint`
-// concept), so `linear_constraint_view` constrains its template parameter on
-// const-readability. Without this assert the comparison operators would fail
-// with a class-template-argument-deduction error naming no cause.
-template <typename... Es>
-consteval void assert_constrainable_linear_expressions() {
-    static_assert(
-        (const_readable_linear_terms<Es> && ...),
-        "MIP++: this expression owns a move-only term range (it was built from "
-        "an rvalue range), so it cannot back a constraint: reading a "
-        "constraint must not consume it. Build the expression over a named "
-        "range so it only references the terms, or materialize it into a "
-        "runtime_linear_expression.");
-}
+// Expression-level analog of `std::ranges::ref_view`: lets a view hold a
+// *named* linear expression by reference instead of copying it. Reading always
+// goes through `const &`, which is why only const-readable expressions can be
+// wrapped. The wrapped expression must outlive the wrapper -- the same
+// contract as the term ranges referenced by `views::all` in the linear layer.
+template <linear_expression E>
+    requires const_readable_linear_terms<E>
+class linear_expression_ref {
+private:
+    const E * _expression;
+
+public:
+    constexpr explicit linear_expression_ref(const E & e) noexcept
+        : _expression(std::addressof(e)) {}
+    constexpr explicit linear_expression_ref(const E && e) = delete;
+
+    [[nodiscard]] constexpr decltype(auto) linear_terms() const
+        noexcept(noexcept(_expression->linear_terms())) {
+        return _expression->linear_terms();
+    }
+    [[nodiscard]] constexpr decltype(auto) constant() const
+        noexcept(noexcept(_expression->constant())) {
+        return _expression->constant();
+    }
+};
+
+// Mirror of `std::views::all_t` at the expression level: an rvalue operand is
+// stored by value (the view takes ownership of it), a named operand is stored
+// by reference through `linear_expression_ref`.
+template <typename E>
+using expression_all_t =
+    std::conditional_t<std::is_lvalue_reference_v<E>,
+                       linear_expression_ref<std::remove_cvref_t<E>>,
+                       std::decay_t<E>>;
+
 }  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -185,7 +208,7 @@ constexpr auto empty_linear_expression =
 template <linear_expression E1, linear_expression E2>
 constexpr auto linear_expression_add(E1 && e1, E2 && e2) {
     detail::assert_compatible_linear_expressions<E1, E2>();
-    detail::assert_forwardable_linear_terms<E1, E2>();
+    detail::assert_forwardable_linear_expressions<E1, E2>();
     auto constant = e1.constant() + e2.constant();
     return linear_expression_view(
         detail::unordered_concat(std::forward<E1>(e1).linear_terms(),
@@ -195,7 +218,7 @@ constexpr auto linear_expression_add(E1 && e1, E2 && e2) {
 
 template <linear_expression E>
 constexpr auto linear_expression_negate(E && e) {
-    detail::assert_forwardable_linear_terms<E>();
+    detail::assert_forwardable_linear_expressions<E>();
     auto constant = -e.constant();
     return linear_expression_view(
         std::views::transform(std::forward<E>(e).linear_terms(),
@@ -208,7 +231,7 @@ constexpr auto linear_expression_negate(E && e) {
 
 template <linear_expression E, typename S>
 constexpr auto linear_expression_scalar_add(E && e, const S c) {
-    detail::assert_forwardable_linear_terms<E>();
+    detail::assert_forwardable_linear_expressions<E>();
     auto constant = e.constant() + c;
     return linear_expression_view(std::forward<E>(e).linear_terms(),
                                   std::move(constant));
@@ -216,7 +239,7 @@ constexpr auto linear_expression_scalar_add(E && e, const S c) {
 
 template <linear_expression E, typename S>
 constexpr auto linear_expression_scalar_mul(E && e, const S c) {
-    detail::assert_forwardable_linear_terms<E>();
+    detail::assert_forwardable_linear_expressions<E>();
     auto constant = c * e.constant();
     return linear_expression_view(
         std::views::transform(std::forward<E>(e).linear_terms(),
@@ -229,7 +252,7 @@ constexpr auto linear_expression_scalar_mul(E && e, const S c) {
 
 template <linear_expression E, typename S>
 constexpr auto linear_expression_scalar_div(E && e, const S c) {
-    detail::assert_forwardable_linear_terms<E>();
+    detail::assert_forwardable_linear_expressions<E>();
     auto constant = e.constant() / c;
     return linear_expression_view(
         std::views::transform(std::forward<E>(e).linear_terms(),
@@ -245,7 +268,7 @@ template <std::ranges::input_range R>
 constexpr auto linear_expressions_sum(R && r) {
     using expression_t = std::ranges::range_reference_t<R>;
     using constant_t = linear_expression_constant_t<expression_t>;
-    detail::assert_forwardable_linear_terms<expression_t>();
+    detail::assert_forwardable_linear_expressions<expression_t>();
     auto terms_of = [](auto && e) {
         return std::views::all(std::forward<decltype(e)>(e).linear_terms());
     };
@@ -272,7 +295,6 @@ constexpr auto linear_expressions_sum(R && r) {
 namespace operators {
 
 template <linear_expression E1, linear_expression E2>
-    requires compatible_linear_expressions<E1, E2>
 [[nodiscard]] constexpr auto operator+(E1 && e1, E2 && e2) {
     return linear_expression_add(std::forward<E1>(e1), std::forward<E2>(e2));
 }
@@ -283,7 +305,6 @@ template <linear_expression E>
 }
 
 template <linear_expression E1, linear_expression E2>
-    requires compatible_linear_expressions<E1, E2>
 [[nodiscard]] constexpr auto operator-(E1 && e1, E2 && e2) {
     return linear_expression_add(
         std::forward<E1>(e1), linear_expression_negate(std::forward<E2>(e2)));
@@ -384,10 +405,14 @@ public:
                                          linear_expression_scalar_t<E>> &&
                  std::convertible_to<linear_expression_constant_t<E>, Constant>
     constexpr runtime_linear_expression & operator+=(E && e) {
+        detail::assert_forwardable_linear_expressions<E>();
         _constant += e.constant();
-        auto terms = std::forward<E>(e).linear_terms();
-        if constexpr(std::ranges::sized_range<linear_terms_range_t<E>>) {
-            _terms.reserve(_terms.size() + terms.size());
+        // `auto &&`, not `auto`: an lvalue expression hands out its terms by
+        // reference and they must not be copied (the range may be move-only).
+        auto && terms = std::forward<E>(e).linear_terms();
+        if constexpr(std::ranges::sized_range<
+                         std::remove_reference_t<decltype(terms)>>) {
+            _terms.reserve(_terms.size() + std::ranges::size(terms));
         }
         for(auto && [var, coef] : terms) {
             _terms.emplace_back(var, coef);

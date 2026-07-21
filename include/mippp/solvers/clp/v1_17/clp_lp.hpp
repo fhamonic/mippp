@@ -310,7 +310,7 @@ public:
 
 private:
     template <linear_constraint LC>
-    void _register_constraint(const LC & lc) {
+    void _register_constraint(LC && lc) {
         tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
         const scalar b = lc.rhs();
         tmp_lower_bounds.emplace_back(

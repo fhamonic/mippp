@@ -104,7 +104,6 @@ consteval void assert_compatible_quadratic_expressions() {
                   "cast one side explicitly.");
 }
 
-// Same check across the quadratic/linear boundary, for `qexpr + lexpr`.
 template <typename QE, typename LE>
 consteval void assert_compatible_qexpr_lexpr() {
     static_assert(std::same_as<quadratic_expression_variable_t<QE>,
@@ -116,10 +115,10 @@ consteval void assert_compatible_qexpr_lexpr() {
                   "cast one side explicitly.");
 }
 
-// Mirror of forwardable_linear_terms: an operand may be handed to a consuming
-// operation either because it is an rvalue we are allowed to gut, or because
-// reading it doesn't consume it. Value-category dependent -- it constrains the
-// argument, not the expression type.
+// Mirror of forwardable_linear_expression: an operand may be handed to a
+// consuming operation either because it is an rvalue we are allowed to gut, or
+// because reading it doesn't consume it. Value-category dependent -- it
+// constrains the argument, not the expression type.
 template <typename E>
 concept forwardable_quadratic_expression =
     (!std::is_lvalue_reference_v<E> &&
@@ -251,8 +250,11 @@ public:
     }
 };
 
+// `expression_all_t` mirrors the `views::all_t` guides of the range adaptors:
+// an rvalue operand is moved into the view, a named operand is referenced.
 template <typename LE>
-linear_expression_square(LE &&) -> linear_expression_square<std::decay_t<LE>>;
+linear_expression_square(LE &&)
+    -> linear_expression_square<detail::expression_all_t<LE>>;
 
 template <linear_expression LExpr1, linear_expression LExpr2>
     requires compatible_linear_expressions<LExpr1, LExpr2> &&
@@ -318,7 +320,8 @@ public:
 
 template <typename E1, typename E2>
 linear_expression_mul_view(E1 &&, E2 &&)
-    -> linear_expression_mul_view<std::decay_t<E1>, std::decay_t<E2>>;
+    -> linear_expression_mul_view<detail::expression_all_t<E1>,
+                                  detail::expression_all_t<E2>>;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// Operations //////////////////////////////////
@@ -400,17 +403,24 @@ constexpr auto quadratic_expression_lexpr_add(E1 && e1, E2 && e2) {
 
 namespace operators {
 
+// Products store their operands `views::all`-style (`expression_all_t`): an
+// rvalue is moved into the view, a named operand is only referenced -- reading
+// it is non-consuming (`multipass` implies const-readable) and referencing
+// avoids deep-copying e.g. a named runtime_linear_expression's terms. The
+// operand must then outlive the view, as with any range referenced by a view.
 template <linear_expression E>
 [[nodiscard]] constexpr auto square(E && e) {
     detail::assert_multipliable_linear_expressions<E>();
-    return linear_expression_square<std::decay_t<E>>(std::forward<E>(e));
+    return linear_expression_square<detail::expression_all_t<E>>(
+        std::forward<E>(e));
 }
 
 template <linear_expression E1, linear_expression E2>
 [[nodiscard]] constexpr auto operator*(E1 && e1, E2 && e2) {
     detail::assert_compatible_linear_expressions<E1, E2>();
     detail::assert_multipliable_linear_expressions<E1, E2>();
-    return linear_expression_mul_view<std::decay_t<E1>, std::decay_t<E2>>(
+    return linear_expression_mul_view<detail::expression_all_t<E1>,
+                                      detail::expression_all_t<E2>>(
         std::forward<E1>(e1), std::forward<E2>(e2));
 }
 

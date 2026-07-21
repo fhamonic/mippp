@@ -1,6 +1,10 @@
 #undef NDEBUG
 #include <gtest/gtest.h>
 
+#include <concepts>
+#include <utility>
+#include <vector>
+
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_entities.hpp"
 
@@ -11,102 +15,50 @@ using namespace mippp::operators;
 
 using Var = model_variable<int, double>;
 
-GTEST_TEST(linear_expression_operators, negate_term) {
+///////////////////////////////////////////////////////////////////////////////
+///////////////////// Operators build lazy expressions ////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// a variable is the smallest linear expression
+static_assert(linear_expression<Var>);
+
+GTEST_TEST(linear_expression_operators, negate) {
     ASSERT_LIN_EXPR((-Var(11)) * 3.2 + 13, {{Var(11), -3.2}}, 13);
     ASSERT_LIN_EXPR(-(Var(11) * 3.2 + 13), {{Var(11), -3.2}}, -13);
 }
 
 GTEST_TEST(linear_expression_operators, scalar_add) {
     ASSERT_LIN_EXPR(Var(11) * 3.2 + 5, {{Var(11), 3.2}}, 5);
-}
-GTEST_TEST(linear_expression_operators, scalar_add2) {
     ASSERT_LIN_EXPR(5 + Var(11) * 3.2, {{Var(11), 3.2}}, 5);
 }
 
-GTEST_TEST(linear_expression_operators, scalar_mul) {
+GTEST_TEST(linear_expression_operators, scalar_mul_div) {
     ASSERT_LIN_EXPR((Var(11) * 3.2) * -2, {{Var(11), -6.4}}, 0);
-}
-GTEST_TEST(linear_expression_operators, scalar_mul2) {
     ASSERT_LIN_EXPR(-2 * (Var(11) * 3.2), {{Var(11), -6.4}}, 0);
-}
-GTEST_TEST(linear_expression_operators, scalar_div) {
     ASSERT_LIN_EXPR((Var(11) * 3.2) / (-0.5), {{Var(11), -6.4}}, 0);
 }
 
-GTEST_TEST(linear_expression_operators, add_terms) {
+GTEST_TEST(linear_expression_operators, add_subtract_expressions) {
     ASSERT_LIN_EXPR(Var(1) * 3.2 + Var(2) * 1.5, {{Var(1), 3.2}, {Var(2), 1.5}},
                     0);
-}
-GTEST_TEST(linear_expression_operators, substract_terms) {
     ASSERT_LIN_EXPR(Var(1) * 3.2 - Var(2) * 1.5,
                     {{Var(1), 3.2}, {Var(2), -1.5}}, 0);
 }
 
-GTEST_TEST(linear_expression_operators, lvalues_tests) {
+GTEST_TEST(linear_expression_operators, named_operands) {
     Var x = Var(27);
     Var y = Var(11);
     auto s = x + y;
     ASSERT_LIN_EXPR(3 * s, {{Var(27), 3.0}, {Var(11), 3.0}}, 0);
 }
 
-GTEST_TEST(linear_expression_operators, xsum_test) {
+GTEST_TEST(linear_expression_operators, xsum) {
     std::vector<Var> vars = {Var(3)};
-    auto e = xsum(vars);
-    static_assert(linear_expression<decltype(e)>);
-    static_assert(linear_expression<decltype(Var(2))>);
-    auto e1 = e + 2 * Var(13);
-    ASSERT_LIN_EXPR(e1, {{Var(3), 1.0}, {Var(13), 2.0}}, 0);
-}
-
-GTEST_TEST(linear_expression_operators, xsum_test2) {
-    std::vector<Var> vars = {Var(3)};
-    auto e = xsum(vars);
-    static_assert(linear_expression<decltype(e)>);
-    static_assert(linear_expression<decltype(Var(2))>);
-    auto e1 = 2 * Var(13) + e;
-    ASSERT_LIN_EXPR(e1, {{Var(3), 1.0}, {Var(13), 2.0}}, 0);
-}
-
-GTEST_TEST(runtime_linear_expression, test) {
-    runtime_linear_expression<Var, double> e;
-    e += Var(13) - 2;
-    e += 4.5;
-    static_assert(linear_expression<decltype(e)>);
-    ASSERT_LIN_EXPR(e, {{Var(13), 1.0}}, 2.5);
-}
-
-// regression: adding two materialized expressions feeds unordered_concat two
-// plain containers (`const std::vector &`) rather than views. The fallback
-// concat_view used to deduce V1 = std::vector and fail its `view<V1>`
-// constraint, so this did not compile without std::views::concat.
-GTEST_TEST(runtime_linear_expression, add_two_materialized) {
-    auto a = materialize(Var(1) * 3.2 + Var(2) * 1.5);
-    auto b = materialize(Var(2) * 2.0 - 4.0);
-    static_assert(linear_expression<decltype(a)>);
-    static_assert(linear_expression<decltype(b)>);
-    auto e = a + b;
-    static_assert(linear_expression<decltype(e)>);
-    ASSERT_LIN_EXPR(e, {{Var(1), 3.2}, {Var(2), 3.5}}, -4.0);
-    // the operands are only referenced, so they stay usable afterwards
-    ASSERT_LIN_EXPR(a, {{Var(1), 3.2}, {Var(2), 1.5}}, 0);
-    ASSERT_LIN_EXPR(b, {{Var(2), 2.0}}, -4.0);
-}
-
-// the same sum built over rvalues: linear_terms() && hands the container over
-// and unordered_concat must own it (std::views::all -> owning_view)
-GTEST_TEST(runtime_linear_expression, add_two_materialized_rvalues) {
-    auto a = materialize(Var(1) * 3.2 + Var(2) * 1.5);
-    auto b = materialize(Var(2) * 2.0 - 4.0);
-    auto e = std::move(a) + std::move(b);
-    ASSERT_LIN_EXPR(e, {{Var(1), 3.2}, {Var(2), 3.5}}, -4.0);
-}
-
-// mixing a materialized (container-backed) operand with a lazy view operand
-GTEST_TEST(runtime_linear_expression, add_materialized_and_view) {
-    auto a = materialize(Var(1) * 3.2 + 1.0);
-    ASSERT_LIN_EXPR(a + Var(2) * 1.5, {{Var(1), 3.2}, {Var(2), 1.5}}, 1.0);
-    ASSERT_LIN_EXPR(Var(2) * 1.5 + a, {{Var(1), 3.2}, {Var(2), 1.5}}, 1.0);
-    ASSERT_LIN_EXPR(a - Var(2) * 1.5, {{Var(1), 3.2}, {Var(2), -1.5}}, 1.0);
+    auto e1 = xsum(vars);
+    static_assert(linear_expression<decltype(e1)>);
+    ASSERT_LIN_EXPR(e1 + 2 * Var(13), {{Var(3), 1.0}, {Var(13), 2.0}}, 0);
+    auto e2 = xsum(vars);
+    ASSERT_LIN_EXPR(2 * Var(13) + e2, {{Var(3), 1.0}, {Var(13), 2.0}}, 0);
 }
 
 GTEST_TEST(empty_linear_expression, test) {
@@ -116,20 +68,61 @@ GTEST_TEST(empty_linear_expression, test) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+//////////////// Materialized (container-backed) expressions //////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+GTEST_TEST(runtime_linear_expression, accumulate) {
+    runtime_linear_expression<Var, double> e;
+    e += Var(13) - 2;
+    e += 4.5;
+    static_assert(linear_expression<decltype(e)>);
+    ASSERT_LIN_EXPR(e, {{Var(13), 1.0}}, 2.5);
+}
+
+GTEST_TEST(runtime_linear_expression, add_two_materialized) {
+    // regression: unordered_concat must accept two plain containers
+    // (`const std::vector &`), not only views
+    auto a = materialize(Var(1) * 3.2 + Var(2) * 1.5);
+    auto b = materialize(Var(2) * 2.0 - 4.0);
+    auto e = a + b;
+    static_assert(linear_expression<decltype(e)>);
+    ASSERT_LIN_EXPR(e, {{Var(1), 3.2}, {Var(2), 3.5}}, -4.0);
+    // the operands are only referenced, so they stay usable afterwards
+    ASSERT_LIN_EXPR(a, {{Var(1), 3.2}, {Var(2), 1.5}}, 0);
+    ASSERT_LIN_EXPR(b, {{Var(2), 2.0}}, -4.0);
+}
+
+GTEST_TEST(runtime_linear_expression, add_two_materialized_rvalues) {
+    // linear_terms() && hands the containers over: the sum must own them
+    auto a = materialize(Var(1) * 3.2 + Var(2) * 1.5);
+    auto b = materialize(Var(2) * 2.0 - 4.0);
+    auto e = std::move(a) + std::move(b);
+    ASSERT_LIN_EXPR(e, {{Var(1), 3.2}, {Var(2), 3.5}}, -4.0);
+}
+
+GTEST_TEST(runtime_linear_expression, add_materialized_and_view) {
+    auto a = materialize(Var(1) * 3.2 + 1.0);
+    ASSERT_LIN_EXPR(a + Var(2) * 1.5, {{Var(1), 3.2}, {Var(2), 1.5}}, 1.0);
+    ASSERT_LIN_EXPR(Var(2) * 1.5 + a, {{Var(1), 3.2}, {Var(2), 1.5}}, 1.0);
+    ASSERT_LIN_EXPR(a - Var(2) * 1.5, {{Var(1), 3.2}, {Var(2), -1.5}}, 1.0);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// Term-range concepts /////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 // Two independent properties of an expression's term range, plus one property
 // of how an operand was passed:
 //
-//   const_readable_linear_terms    terms reachable through `const &`, so reading
-//                            them cannot consume the expression
-//   multipass_linear_terms   readable, and the range is restartable
-//   forwardable_linear_terms the operand may be handed to a consuming
-//                            operation; the only value-category dependent one
+//   const_readable_linear_terms      terms reachable through `const &`, so
+//                                    reading them cannot consume the expression
+//   multipass_linear_terms           readable, and the range is restartable
+//   forwardable_linear_expression    the operand may be handed to a consuming
+//                                    operation; the only value-category
+//                                    dependent one
 //
-// "owns its terms" and "is single-pass" are independent axes, so the
-// representatives below isolate one each.
+// "owns its terms" and "is single-pass" are independent axes; each
+// representative below isolates one.
 
 namespace {
 using term = std::pair<Var, double>;
@@ -145,8 +138,8 @@ using owned_expr = decltype(materialize(std::declval<lazy_expr>()));
 }  // namespace
 
 GTEST_TEST(linear_expression_concepts, representatives) {
-    // all four are linear expressions; the concepts below are what separates
-    // them, so none of the negative assertions are vacuous
+    // all four model linear_expression: the negative assertions below are
+    // about the concepts that separate them, never vacuous
     static_assert(linear_expression<eager_expr>);
     static_assert(linear_expression<owning_expr>);
     static_assert(linear_expression<lazy_expr>);
@@ -189,32 +182,34 @@ GTEST_TEST(linear_expression_concepts, multipass_linear_terms) {
     static_assert(!multipass_linear_terms<lazy_expr &>);
 }
 
-GTEST_TEST(linear_expression_concepts, forwardable_linear_terms) {
+GTEST_TEST(linear_expression_concepts, forwardable_linear_expression) {
     // an rvalue may always be gutted, whatever its term range looks like
-    static_assert(detail::forwardable_linear_terms<owning_expr>);
-    static_assert(detail::forwardable_linear_terms<owning_expr &&>);
+    static_assert(detail::forwardable_linear_expression<owning_expr>);
+    static_assert(detail::forwardable_linear_expression<owning_expr &&>);
     // ...but the same expression as an lvalue is single-use: it must be moved
-    static_assert(!detail::forwardable_linear_terms<owning_expr &>);
-    static_assert(!detail::forwardable_linear_terms<const owning_expr &>);
+    static_assert(!detail::forwardable_linear_expression<owning_expr &>);
+    static_assert(!detail::forwardable_linear_expression<const owning_expr &>);
 
     // expressions that only reference their terms survive repeated use
-    static_assert(detail::forwardable_linear_terms<eager_expr &>);
-    static_assert(detail::forwardable_linear_terms<lazy_expr &>);
-    static_assert(detail::forwardable_linear_terms<owned_expr &>);
+    static_assert(detail::forwardable_linear_expression<eager_expr &>);
+    static_assert(detail::forwardable_linear_expression<lazy_expr &>);
+    static_assert(detail::forwardable_linear_expression<owned_expr &>);
 }
 
 namespace {
-// forwardable's lvalue branch *is* const_readable_linear_terms -- the two must not
-// drift apart again into `copy_constructible` vs `const &`-callable spellings
+// forwardable's lvalue branch is *defined as* const_readable_linear_terms;
+// keep asserting the equivalence so a rewrite cannot make them drift apart
 template <typename E>
 constexpr bool lvalue_branch_is_readable =
-    detail::forwardable_linear_terms<E &> == const_readable_linear_terms<E> &&
-    detail::forwardable_linear_terms<const E &> == const_readable_linear_terms<E>;
+    detail::forwardable_linear_expression<E &> ==
+        const_readable_linear_terms<E> &&
+    detail::forwardable_linear_expression<const E &> ==
+        const_readable_linear_terms<E>;
 
 template <typename E>
 constexpr bool rvalue_is_always_forwardable =
-    detail::forwardable_linear_terms<E> &&
-    detail::forwardable_linear_terms<E &&>;
+    detail::forwardable_linear_expression<E> &&
+    detail::forwardable_linear_expression<E &&>;
 
 template <typename E>
 constexpr bool multipass_implies_readable =
@@ -237,18 +232,22 @@ GTEST_TEST(linear_expression_concepts, concept_ordering) {
     static_assert(multipass_implies_readable<lazy_expr>);
     static_assert(multipass_implies_readable<owned_expr>);
 
-    // multipass is *strictly* stronger than readable, and so also strictly
-    // stronger than forwardable-for-lvalues -- lazy_expr witnesses both
+    // multipass is *strictly* stronger than readable, hence also than
+    // forwardable-for-lvalues -- lazy_expr witnesses both
     static_assert(const_readable_linear_terms<lazy_expr> &&
                   !multipass_linear_terms<lazy_expr>);
-    static_assert(detail::forwardable_linear_terms<lazy_expr &> &&
+    static_assert(detail::forwardable_linear_expression<lazy_expr &> &&
                   !multipass_linear_terms<lazy_expr>);
 
-    // but it is *incomparable* with forwardable-for-rvalues: owning_expr is
+    // but *incomparable* with forwardable-for-rvalues: owning_expr is
     // forwardable as an rvalue yet never multipass
-    static_assert(detail::forwardable_linear_terms<owning_expr &&> &&
+    static_assert(detail::forwardable_linear_expression<owning_expr &&> &&
                   !multipass_linear_terms<owning_expr>);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// Evaluate ///////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 GTEST_TEST(evaluate_linear_expression, test) {
     auto e = Var(1) * 3.2 - Var(2) * 1.5 + 9;
