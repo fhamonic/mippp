@@ -23,6 +23,7 @@ nav = [
   { "Advanced topics" = [
     { "Branch-and-cut callbacks" = "advanced/callbacks.md" },
     { "Column generation" = "advanced/column-generation.md" },
+    { "Inside the expression layer" = "advanced/expression-layer.md" },
   ] },
   { "Reference" = [
     { "Model concepts" = "reference/concepts.md" },

@@ -17,7 +17,9 @@ namespace mippp {
 
 template <typename T>
 concept quadratic_term = requires { typename std::tuple_size<T>::type; } &&
-                         (std::tuple_size_v<T> == 3);
+                         (std::tuple_size_v<T> == 3) &&
+                         std::same_as<std::decay_t<std::tuple_element_t<0, T>>,
+                                      std::decay_t<std::tuple_element_t<1, T>>>;
 
 template <typename QT>
 using quadratic_term_variable_t = std::decay_t<std::tuple_element_t<0, QT>>;
@@ -34,20 +36,24 @@ using quadratic_term_t =
     std::ranges::range_value_t<quadratic_terms_range_t<QE>>;
 
 template <typename QE>
-using quadratic_expression_scalar_t =
-    quadratic_term_scalar_t<quadratic_term_t<QE>>;
-
-template <typename QE>
-using quadratic_expression_variable_t =
-    quadratic_term_variable_t<quadratic_term_t<QE>>;
-
-template <typename QE>
 using quadratic_expression_linear_part_t =
     decltype(std::declval<QE &>().linear_part());
 
 template <typename QE>
 using quadratic_expression_linear_term_t =
     linear_term_t<quadratic_expression_linear_part_t<QE>>;
+
+template <typename QE>
+using quadratic_expression_variable_t =
+    quadratic_term_variable_t<quadratic_term_t<QE>>;
+
+template <typename QE>
+using quadratic_expression_scalar_t =
+    quadratic_term_scalar_t<quadratic_term_t<QE>>;
+
+template <typename QE>
+using quadratic_expression_constant_t =
+    linear_expression_constant_t<quadratic_expression_linear_part_t<QE>>;
 
 // Requirement on types modeling `quadratic_expression`:
 // the `&&` accessors must partition the object's state — if one may move from a
@@ -59,7 +65,97 @@ using quadratic_expression_linear_term_t =
 template <typename QE>
 concept quadratic_expression =
     quadratic_term<quadratic_term_t<QE>> &&
-    linear_expression<quadratic_expression_linear_part_t<QE>>;
+    linear_expression<quadratic_expression_linear_part_t<QE>> &&
+    std::same_as<
+        linear_expression_variable_t<quadratic_expression_linear_part_t<QE>>,
+        quadratic_expression_variable_t<QE>> &&
+    std::convertible_to<
+        linear_expression_scalar_t<quadratic_expression_linear_part_t<QE>>,
+        quadratic_expression_scalar_t<QE>>;
+
+template <typename E1, typename E2>
+concept compatible_quadratic_expressions =
+    quadratic_expression<E1> && quadratic_expression<E2> &&
+    std::same_as<quadratic_expression_variable_t<E1>,
+                 quadratic_expression_variable_t<E2>> &&
+    std::same_as<quadratic_expression_scalar_t<E1>,
+                 quadratic_expression_scalar_t<E2>>;
+
+// Reading a quadratic expression does not consume it: quadratic terms and
+// linear part both accessors are are reachable through a `const &`, which by
+// construction cannot move out of it. An expression that owns a move-only term
+// range fails this.
+template <typename E>
+concept const_readable_quadratic_expression =
+    requires(const std::remove_cvref_t<E> & e) {
+        e.quadratic_terms();
+        e.linear_part();
+    };
+
+namespace detail {
+template <typename E1, typename E2>
+consteval void assert_compatible_quadratic_expressions() {
+    static_assert(std::same_as<quadratic_expression_variable_t<E1>,
+                               quadratic_expression_variable_t<E2>>,
+                  "MIP++: these expressions use different variable types.");
+    static_assert(std::same_as<quadratic_expression_scalar_t<E1>,
+                               quadratic_expression_scalar_t<E2>>,
+                  "MIP++: these expressions use different scalar types; "
+                  "cast one side explicitly.");
+}
+
+// Same check across the quadratic/linear boundary, for `qexpr + lexpr`.
+template <typename QE, typename LE>
+consteval void assert_compatible_qexpr_lexpr() {
+    static_assert(std::same_as<quadratic_expression_variable_t<QE>,
+                               linear_expression_variable_t<LE>>,
+                  "MIP++: these expressions use different variable types.");
+    static_assert(std::same_as<quadratic_expression_scalar_t<QE>,
+                               linear_expression_scalar_t<LE>>,
+                  "MIP++: these expressions use different scalar types; "
+                  "cast one side explicitly.");
+}
+
+// Mirror of forwardable_linear_terms: an operand may be handed to a consuming
+// operation either because it is an rvalue we are allowed to gut, or because
+// reading it doesn't consume it. Value-category dependent -- it constrains the
+// argument, not the expression type.
+template <typename E>
+concept forwardable_quadratic_expression =
+    (!std::is_lvalue_reference_v<E> &&
+     !std::is_const_v<std::remove_reference_t<E>>) ||
+    const_readable_quadratic_expression<E>;
+
+template <typename... Es>
+consteval void assert_forwardable_quadratic_expressions() {
+    static_assert(
+        (forwardable_quadratic_expression<Es> && ...),
+        "MIP++: this quadratic expression owns one of its term ranges (the "
+        "quadratic terms or the linear part were built from an rvalue range) "
+        "and is single-use. Either pass it as an rvalue (std::move) if this is "
+        "its last use, or build it over named ranges so it only references the "
+        "terms.");
+}
+
+// Products need `multipass_linear_terms` on both operands: the quadratic views
+// expose only `const &` accessors (see the note above), and a cartesian product
+// walks one operand once per term of the other.
+template <typename... Es>
+consteval void assert_multipliable_linear_expressions() {
+    static_assert(
+        (const_readable_linear_terms<Es> && ...),
+        "MIP++: this expression owns a move-only term range, so a product "
+        "cannot read it (products read their operands through `const &`). "
+        "Materialize it into a runtime_linear_expression first.");
+    static_assert(
+        (multipass_linear_terms<Es> && ...),
+        "MIP++: this expression's term range is single-pass, but a product "
+        "traverses each operand once per term of the other and so needs a "
+        "forward_range. This usually means the expression comes from xsum(), "
+        "whose terms are a join of temporary ranges. Materialize it first: "
+        "square(materialize(e)), or materialize(e1) * materialize(e2).");
+}
+}  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Views ////////////////////////////////////
@@ -87,7 +183,7 @@ public:
     {
         return _quadratic_terms;
     }
-    // lvalue access must not copy: Terms may be move-only
+    // lvalue access must not copy: QTerms may be move-only
     [[nodiscard]] constexpr QTerms & quadratic_terms() & noexcept {
         return _quadratic_terms;
     }
@@ -115,6 +211,7 @@ quadratic_expression_view(QT &&, LE &&)
     -> quadratic_expression_view<std::views::all_t<QT>, std::decay_t<LE>>;
 
 template <linear_expression LExpr>
+    requires multipass_linear_terms<LExpr>
 class linear_expression_square {
 private:
     LExpr _linear_expression;
@@ -158,7 +255,8 @@ template <typename LE>
 linear_expression_square(LE &&) -> linear_expression_square<std::decay_t<LE>>;
 
 template <linear_expression LExpr1, linear_expression LExpr2>
-    requires compatible_linear_expressions<LExpr1, LExpr2>
+    requires compatible_linear_expressions<LExpr1, LExpr2> &&
+             multipass_linear_terms<LExpr1> && multipass_linear_terms<LExpr2>
 class linear_expression_mul_view {
 private:
     LExpr1 _linear_expression_1;
@@ -228,6 +326,8 @@ linear_expression_mul_view(E1 &&, E2 &&)
 
 template <quadratic_expression E1, quadratic_expression E2>
 constexpr auto quadratic_expression_add(E1 && e1, E2 && e2) {
+    detail::assert_compatible_quadratic_expressions<E1, E2>();
+    detail::assert_forwardable_quadratic_expressions<E1, E2>();
     return quadratic_expression_view(
         detail::unordered_concat(std::forward<E1>(e1).quadratic_terms(),
                                  std::forward<E2>(e2).quadratic_terms()),
@@ -237,6 +337,7 @@ constexpr auto quadratic_expression_add(E1 && e1, E2 && e2) {
 
 template <quadratic_expression E>
 constexpr auto quadratic_expression_negate(E && e) {
+    detail::assert_forwardable_quadratic_expressions<E>();
     return quadratic_expression_view(
         std::views::transform(std::forward<E>(e).quadratic_terms(),
                               [](auto && t) {
@@ -249,6 +350,7 @@ constexpr auto quadratic_expression_negate(E && e) {
 
 template <quadratic_expression E, typename S>
 constexpr auto quadratic_expression_scalar_add(E && e, const S c) {
+    detail::assert_forwardable_quadratic_expressions<E>();
     return quadratic_expression_view(
         std::forward<E>(e).quadratic_terms(),
         linear_expression_scalar_add(std::forward<E>(e).linear_part(), c));
@@ -256,6 +358,7 @@ constexpr auto quadratic_expression_scalar_add(E && e, const S c) {
 
 template <quadratic_expression E, typename S>
 constexpr auto quadratic_expression_scalar_mul(E && e, const S c_) {
+    detail::assert_forwardable_quadratic_expressions<E>();
     const auto c = static_cast<quadratic_expression_scalar_t<E>>(c_);
     return quadratic_expression_view(
         std::views::transform(std::forward<E>(e).quadratic_terms(),
@@ -269,6 +372,7 @@ constexpr auto quadratic_expression_scalar_mul(E && e, const S c_) {
 
 template <quadratic_expression E, typename S>
 constexpr auto quadratic_expression_scalar_div(E && e, const S c_) {
+    detail::assert_forwardable_quadratic_expressions<E>();
     const auto c = static_cast<quadratic_expression_scalar_t<E>>(c_);
     return quadratic_expression_view(
         std::views::transform(std::forward<E>(e).quadratic_terms(),
@@ -281,9 +385,9 @@ constexpr auto quadratic_expression_scalar_div(E && e, const S c_) {
 }
 
 template <quadratic_expression E1, linear_expression E2>
-    requires std::same_as<quadratic_term_variable_t<quadratic_term_t<E1>>,
-                          linear_term_variable_t<linear_term_t<E2>>>
 constexpr auto quadratic_expression_lexpr_add(E1 && e1, E2 && e2) {
+    detail::assert_compatible_qexpr_lexpr<E1, E2>();
+    detail::assert_forwardable_quadratic_expressions<E1>();
     return quadratic_expression_view(
         std::forward<E1>(e1).quadratic_terms(),
         linear_expression_add(std::forward<E1>(e1).linear_part(),
@@ -298,22 +402,26 @@ namespace operators {
 
 template <linear_expression E>
 [[nodiscard]] constexpr auto square(E && e) {
-    return linear_expression_square(std::forward<E>(e));
+    detail::assert_multipliable_linear_expressions<E>();
+    return linear_expression_square<std::decay_t<E>>(std::forward<E>(e));
 }
 
 template <linear_expression E1, linear_expression E2>
-    requires compatible_linear_expressions<E1, E2>
 [[nodiscard]] constexpr auto operator*(E1 && e1, E2 && e2) {
-    return linear_expression_mul_view(std::forward<E1>(e1),
-                                      std::forward<E2>(e2));
+    detail::assert_compatible_linear_expressions<E1, E2>();
+    detail::assert_multipliable_linear_expressions<E1, E2>();
+    return linear_expression_mul_view<std::decay_t<E1>, std::decay_t<E2>>(
+        std::forward<E1>(e1), std::forward<E2>(e2));
 }
 
 template <quadratic_expression E1, quadratic_expression E2>
 [[nodiscard]] constexpr auto operator+(E1 && e1, E2 && e2) {
+    detail::assert_compatible_quadratic_expressions<E1, E2>();
     return quadratic_expression_add(std::forward<E1>(e1), std::forward<E2>(e2));
 }
 template <quadratic_expression E1, quadratic_expression E2>
 [[nodiscard]] constexpr auto operator-(E1 && e1, E2 && e2) {
+    detail::assert_compatible_quadratic_expressions<E1, E2>();
     return quadratic_expression_add(
         std::forward<E1>(e1),
         quadratic_expression_negate(std::forward<E2>(e2)));

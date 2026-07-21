@@ -10,7 +10,7 @@ namespace mippp::detail {
 #if defined(__cpp_lib_ranges_concat)
 // unordered_concat is required for GCC 15.1, fixed for GCC 15.2
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120934
-template <std::ranges::range R1, std::ranges::range R2>
+template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
 constexpr auto unordered_concat(R1 && r1, R2 && r2) {
     if constexpr(std::ranges::range<decltype(std::views::concat(
                      std::forward<R1>(r1), std::forward<R2>(r2)))>) {
@@ -21,16 +21,16 @@ constexpr auto unordered_concat(R1 && r1, R2 && r2) {
 }
 #else
 
-template <typename V1, typename V2>
+template <typename R1, typename R2>
 concept concat_view_compatible =
-    std::ranges::view<V1> && std::ranges::view<V2> &&
-    std::ranges::input_range<V1> && std::ranges::input_range<V2> &&
-    std::common_reference_with<std::ranges::range_reference_t<V1>,
-                               std::ranges::range_reference_t<V2> > &&
-    std::common_reference_with<std::ranges::range_reference_t<V1>,
-                               std::ranges::range_value_t<V2> &> &&
-    std::common_reference_with<std::ranges::range_reference_t<V2>,
-                               std::ranges::range_value_t<V1> &>;
+    std::ranges::view<R1> && std::ranges::view<R2> &&
+    std::ranges::input_range<R1> && std::ranges::input_range<R2> &&
+    std::common_reference_with<std::ranges::range_reference_t<R1>,
+                               std::ranges::range_reference_t<R2> > &&
+    std::common_reference_with<std::ranges::range_reference_t<R1>,
+                               std::ranges::range_value_t<R2> &> &&
+    std::common_reference_with<std::ranges::range_reference_t<R2>,
+                               std::ranges::range_value_t<R1> &>;
 
 template <std::ranges::view V1, std::ranges::view V2>
     requires concat_view_compatible<V1, V2>
@@ -148,11 +148,10 @@ public:
     constexpr auto end() noexcept { return std::default_sentinel; }
 };
 
-template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
-concat_view(std::views::all_t<R1>, std::views::all_t<R2>)
-    -> concat_view<std::views::all_t<R1>, std::views::all_t<R2> >;
+template <typename... _Rs>
+concat_view(_Rs &&...) -> concat_view<std::views::all_t<_Rs>...>;
 
-template <std::ranges::range R1, std::ranges::range R2>
+template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
 constexpr auto unordered_concat(R1 && r1, R2 && r2) {
     return concat_view(std::forward<R1>(r1), std::forward<R2>(r2));
 }

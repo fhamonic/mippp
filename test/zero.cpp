@@ -82,6 +82,46 @@ static_assert(noexcept(zero_t{} + zero_t{}));
 static_assert(noexcept(3.2 * zero_t{}));
 static_assert(noexcept(static_cast<double>(zero_t{})));
 
+// Compound assignment onto a runtime scalar. The built-in candidates are
+// `operator+=(S &, R)` for every promoted arithmetic R, and the conversion
+// operator -- being a template -- satisfies all of them equally well, so
+// without the exact-match hidden friends `s += zero` is ambiguous even though
+// `s + zero` and `S s = zero` both work.
+namespace {
+template <typename S>
+concept plus_assignable_by_zero = requires(S s) { s += zero_t{}; };
+template <typename S>
+concept minus_assignable_by_zero = requires(S s) { s -= zero_t{}; };
+template <typename S>
+concept times_assignable_by_zero = requires(S s) { s *= zero_t{}; };
+}  // namespace
+
+static_assert(plus_assignable_by_zero<double>);
+static_assert(plus_assignable_by_zero<float>);
+static_assert(plus_assignable_by_zero<int>);
+static_assert(minus_assignable_by_zero<double>);
+static_assert(minus_assignable_by_zero<int>);
+// zero_t itself keeps using its member overloads
+static_assert(plus_assignable_by_zero<zero_t>);
+static_assert(times_assignable_by_zero<zero_t>);
+// note: `s *= zero` is deliberately not provided for scalars, like `s / zero`.
+// That absence is not asserted here: it rests on the built-in candidates being
+// mutually ambiguous rather than on anything this header guarantees.
+// the `convertible_to<int, S>` constraint keeps class types out, so a type
+// with its own `+=` is never hijacked by the friend
+static_assert(!plus_assignable_by_zero<not_zeroable>);
+
+GTEST_TEST(zero_t_algebra, compound_assignment_onto_scalar) {
+    double d = 1.5;
+    d += zero_t{};
+    ASSERT_EQ(d, 1.5);
+    d -= zero_t{};
+    ASSERT_EQ(d, 1.5);
+    int i = 3;
+    i += zero_t{};
+    ASSERT_EQ(i, 3);
+}
+
 GTEST_TEST(zero_t_algebra, addition_values) {
     ASSERT_EQ(zero_t{} + 3.2, 3.2);
     ASSERT_EQ(3.2 + zero_t{}, 3.2);
@@ -179,6 +219,21 @@ GTEST_TEST(zero_t_propagation, xsum_fold_branch_rvalue_range_regression) {
                   [](Var v) { return 2.0 * v + 1.5; });
     ASSERT_EQ(e.constant(), 4.5);
     ASSERT_EQ(std::ranges::distance(e.linear_terms()), 3);
+}
+
+GTEST_TEST(zero_t_propagation, runtime_expression_accumulates_zero_constant) {
+    // regression: `runtime_linear_expression::operator+=` folds the added
+    // expression's constant with `_constant += e.constant()`. With the default
+    // `Constant = Scalar` that is `double += zero_t`, which did not compile --
+    // breaking incremental construction for constant-free terms, the common
+    // case. materialize() hid the bug by deducing Constant from the operand.
+    std::vector<Var> vars = {Var(1), Var(2)};
+    runtime_linear_expression<Var, double> row;
+    for(auto && v : vars) row += 2.0 * v;
+    row += 4.5;            // scalar overload
+    row += zero;           // scalar overload, statically zero
+    row += 3.0 * Var(3);   // expression overload, statically-zero constant
+    ASSERT_LIN_EXPR(row, {{Var(1), 2.0}, {Var(2), 2.0}, {Var(3), 3.0}}, 4.5);
 }
 
 GTEST_TEST(zero_t_propagation, empty_expression_is_statically_zero) {

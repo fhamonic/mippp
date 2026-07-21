@@ -48,6 +48,77 @@ concept linear_expression =
     std::convertible_to<linear_expression_constant_t<LE>,
                         linear_expression_scalar_t<LE>>;
 
+template <typename E1, typename E2>
+concept compatible_linear_expressions =
+    linear_expression<E1> && linear_expression<E2> &&
+    std::same_as<linear_expression_variable_t<E1>,
+                 linear_expression_variable_t<E2>> &&
+    std::same_as<linear_expression_scalar_t<E1>,
+                 linear_expression_scalar_t<E2>>;
+
+// Reading the terms does not consume the expression: they are reachable through
+// a `const &`, which by construction cannot move out of it. An expression that
+// owns a move-only term range fails this.
+template <typename E>
+concept const_readable_linear_terms =
+    requires(const std::remove_cvref_t<E> & e) { e.linear_terms(); };
+
+// Const-readable *and* restartable. Everything that walks the terms more than
+// once needs this (e.g., lazily joined ranges built by `xsum()` fails this).
+template <typename E>
+concept multipass_linear_terms =
+    const_readable_linear_terms<E> &&
+    std::ranges::forward_range<
+        linear_terms_range_t<const std::remove_cvref_t<E>>>;
+
+namespace detail {
+template <typename E1, typename E2>
+consteval void assert_compatible_linear_expressions() {
+    static_assert(std::same_as<linear_expression_variable_t<E1>,
+                               linear_expression_variable_t<E2>>,
+                  "MIP++: these expressions use different variable types.");
+    static_assert(std::same_as<linear_expression_scalar_t<E1>,
+                               linear_expression_scalar_t<E2>>,
+                  "MIP++: these expressions use different scalar types; "
+                  "cast one side explicitly.");
+}
+
+// An lvalue expression can only be consumed if its term range is copyable.
+// Owning expressions (rvalue-range-backed) must be forwarded as rvalues.
+template <typename E>
+concept forwardable_linear_terms =
+    (!std::is_lvalue_reference_v<E> &&
+     !std::is_const_v<std::remove_reference_t<E>>) ||
+    std::copy_constructible<
+        std::remove_cvref_t<linear_terms_range_t<std::remove_reference_t<E>>>>;
+
+template <typename... Es>
+consteval void assert_forwardable_linear_terms() {
+    static_assert(
+        (forwardable_linear_terms<Es> && ...),
+        "MIP++: this expression owns its term range (it was built from an "
+        "rvalue range) and is single-use. Either pass it as an rvalue "
+        "(std::move) if this is its last use, build it over a named range "
+        "so it only references the terms, or materialize it into a "
+        "runtime_linear_expression for reuse.");
+}
+
+// A constraint is read through a `const &` (see the `linear_constraint`
+// concept), so `linear_constraint_view` constrains its template parameter on
+// const-readability. Without this assert the comparison operators would fail
+// with a class-template-argument-deduction error naming no cause.
+template <typename... Es>
+consteval void assert_constrainable_linear_expressions() {
+    static_assert(
+        (const_readable_linear_terms<Es> && ...),
+        "MIP++: this expression owns a move-only term range (it was built from "
+        "an rvalue range), so it cannot back a constraint: reading a "
+        "constraint must not consume it. Build the expression over a named "
+        "range so it only references the terms, or materialize it into a "
+        "runtime_linear_expression.");
+}
+}  // namespace detail
+
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Views ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,13 +133,15 @@ private:
     [[no_unique_address]] Constant _constant;
 
 public:
-    template <std::ranges::viewable_range T>
-    constexpr linear_expression_view(T && terms)
-        : _terms(std::views::all(std::forward<T>(terms))), _constant{} {}
+    template <std::ranges::viewable_range R>
+        requires std::constructible_from<Terms, std::views::all_t<R &&>>
+    constexpr explicit linear_expression_view(R && terms)
+        : _terms(std::views::all(std::forward<R>(terms))), _constant{} {}
 
-    template <std::ranges::viewable_range T, std::convertible_to<Constant> S>
-    constexpr linear_expression_view(T && terms, S constant)
-        : _terms(std::views::all(std::forward<T>(terms)))
+    template <std::ranges::viewable_range R, std::convertible_to<Constant> C>
+        requires std::constructible_from<Terms, std::views::all_t<R &&>>
+    constexpr linear_expression_view(R && terms, C constant)
+        : _terms(std::views::all(std::forward<R>(terms)))
         , _constant(static_cast<Constant>(constant)) {}
 
     [[nodiscard]] constexpr Terms linear_terms() const & noexcept(
@@ -109,50 +182,9 @@ constexpr auto empty_linear_expression =
 ///////////////////////////////// Operations //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename E1, typename E2>
-concept compatible_linear_expressions =
-    linear_expression<E1> && linear_expression<E2> &&
-    std::same_as<linear_expression_variable_t<E1>,
-                 linear_expression_variable_t<E2>> &&
-    std::same_as<linear_expression_scalar_t<E1>,
-                 linear_expression_scalar_t<E2>>;
-
-namespace detail {
-template <typename E1, typename E2>
-consteval void assert_compatible_linear_expressions() {
-    static_assert(std::same_as<linear_expression_variable_t<E1>,
-                               linear_expression_variable_t<E2>>,
-                  "MIP++: these expressions use different variable types.");
-    static_assert(std::same_as<linear_expression_scalar_t<E1>,
-                               linear_expression_scalar_t<E2>>,
-                  "MIP++: these expressions use different scalar types; "
-                  "cast one side explicitly.");
-}
-
-// An lvalue expression can only be consumed if its term range is copyable.
-// Owning expressions (rvalue-range-backed) must be forwarded as rvalues.
-template <typename E>
-concept forwardable_linear_terms =
-    (!std::is_lvalue_reference_v<E> &&
-     !std::is_const_v<std::remove_reference_t<E>>) ||
-    std::copy_constructible<
-        std::remove_cvref_t<linear_terms_range_t<std::remove_reference_t<E>>>>;
-
-template <typename... Es>
-consteval void assert_forwardable_linear_terms() {
-    static_assert(
-        (forwardable_linear_terms<Es> && ...),
-        "MIP++: this expression owns its term range (it was built from an "
-        "rvalue range) and is single-use. Either pass it as an rvalue "
-        "(std::move) if this is its last use, build it over a named range "
-        "so it only references the terms, or materialize it into a "
-        "runtime_linear_expression for reuse.");
-}
-}  // namespace detail
-
 template <linear_expression E1, linear_expression E2>
-    requires compatible_linear_expressions<E1, E2>
 constexpr auto linear_expression_add(E1 && e1, E2 && e2) {
+    detail::assert_compatible_linear_expressions<E1, E2>();
     detail::assert_forwardable_linear_terms<E1, E2>();
     auto constant = e1.constant() + e2.constant();
     return linear_expression_view(
@@ -353,10 +385,11 @@ public:
                  std::convertible_to<linear_expression_constant_t<E>, Constant>
     constexpr runtime_linear_expression & operator+=(E && e) {
         _constant += e.constant();
+        auto terms = std::forward<E>(e).linear_terms();
         if constexpr(std::ranges::sized_range<linear_terms_range_t<E>>) {
-            _terms.reserve(_terms.size() + e.linear_terms().size());
+            _terms.reserve(_terms.size() + terms.size());
         }
-        for(auto && [var, coef] : e.linear_terms()) {
+        for(auto && [var, coef] : terms) {
             _terms.emplace_back(var, coef);
         }
         return *this;
@@ -384,7 +417,7 @@ template <linear_expression E>
 ///////////////////////////////////////////////////////////////////////////////
 
 // `LE &&` (not `const LE &`): `linear_expression_view::linear_terms() const &`
-// returns a copy of the view, and doesn't exist at all when Terms is move-only
+// returns a copy of the view, and doesn't exist at all when Terms is move-only.
 template <linear_expression LE, typename VM>
 constexpr auto evaluate(LE && e, const VM & values_map) {
     using scalar = linear_expression_scalar_t<LE>;

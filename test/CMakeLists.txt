@@ -34,6 +34,7 @@ add_executable(
     quadratic_expression.cpp
     unordered_dense_map.cpp
     column_manager.cpp
+    concat_view.cpp
     zero.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}
     )
