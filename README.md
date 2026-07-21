@@ -17,9 +17,9 @@ MIP++ is a header-only C++23 library for linear, mixed-integer, and quadratic pr
 ## Highlights
 
 - **One model, every solver.** Benchmarking Gurobi vs. CPLEX vs. HiGHS vs. SCIP is a two-line change and a recompile — no `#ifdef` soup, no linking against a solver SDK. ([Why MIP++](https://fhamonic.github.io/mippp/getting-started/))
-- **No modeling tax.** Model building within **10–20% of hand-written C**, where Python layers (gurobipy, Python-MIP, PuLP) are **40–550× slower**. [See the benchmark ↓](#performance)
-- **Built for algorithms, not just models.** [Branch-and-cut callbacks](https://fhamonic.github.io/mippp/advanced/callbacks/) with lazy constraints, [column generation](https://fhamonic.github.io/mippp/advanced/column-generation/), dual values, reduced costs, MIP starts, and SOS/indicator constraints.
-- **A functional, zero-copy expression system.** Objectives and constraint families are composed from C++ ranges with `xsum`; expressions are lazy views that allocate nothing. ([Expressions and constraints](https://fhamonic.github.io/mippp/getting-started/expressions/))
+- **No modeling tax.** A million-variable model built in **73 ms** — **2.2–5.2× faster than the OR-Tools C++ API**, 6–15× faster than JuMP, and orders of magnitude ahead of the Python layers. [See the benchmark ↓](#performance)
+- **Built for algorithms, not just models.** [Branch-and-cut callbacks](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) with lazy constraints, [column generation](https://fhamonic.github.io/mippp/algorithms/column-generation/), dual values, reduced costs, MIP starts, and indicator constraints.
+- **A functional, zero-copy expression system.** Objectives and constraint families are composed from C++ ranges with `xsum`; expressions are lazy views that allocate nothing. ([Expressions and constraints](https://fhamonic.github.io/mippp/modeling/expressions/))
 
 ## A first model
 
@@ -52,7 +52,7 @@ int main() {
 }
 ```
 
-The [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/) walks through this model, the expression system, and solver selection; [advanced topics](https://fhamonic.github.io/mippp/advanced/callbacks/) cover branch-and-cut callbacks and column generation. Runnable examples (N-Queens, sudoku, TSP with lazy constraints, cutting stock) live in [`examples/`](examples/).
+The [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/) walks through this model, the expression system, and solver selection; [the algorithms guides](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) cover branch-and-cut callbacks and column generation. Runnable examples (N-Queens, sudoku, TSP with lazy constraints, cutting stock) live in [`examples/`](examples/).
 
 ## Supported solvers
 
@@ -63,19 +63,21 @@ The [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/) w
 | Cbc, SCIP | | ✓ | |
 | Clp, SoPlex | ✓ | | |
 
-<sub>Per-feature support (duals, callbacks, MIP starts, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/getting-started/solvers/).</sub>
+<sub>Per-feature support (duals, callbacks, MIP starts, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).</sub>
 
 ## Performance
 
-Model-creation time for the N-Queens problem (`N²` binary variables, `6N−6` constraints), relative to the Gurobi C API — **lower is better, 1.0× = C speed**:
+Time to *build* the N-Queens model (`N²` binary variables, `6N−6` constraints) — MIP++ in milliseconds, the other interfaces as a multiple of it **on the same backend**, lower is better:
 
-| N | C | **MIP++** | gurobipy | Python-MIP | JuMP (warm) |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 500 | 1.0× | **1.1×** | 289× | 305× | 14.5× |
-| 1000 | 1.0× | **1.1×** | 552× | 542× | 24.1× |
+| N | **MIP++** Cbc | **MIP++** HiGHS | OR-tools Cbc | OR-tools HiGHS | JuMP Cbc | JuMP HiGHS |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 | **0.9 ms** | **1.5 ms** | 4.0× | 2.3× | 14.3× | 43.9× |
+| 500 | **18.9 ms** | **36.6 ms** | 4.8× | 2.4× | 13.6× | 7.4× |
+| 1000 | **72.8 ms** | **146.2 ms** | 5.2× | 2.6× | 13.7× | 6.5× |
 
-Benchmark code, setup, and raw per-solver timings:
-[mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
+Only model construction is timed, never the resolution. The Python layers (Python-MIP, PuLP) land two to three orders of magnitude above MIP++ under CPython. Note that OR-Tools' `MPSolver` and JuMP fill their own backend-independent structures and defer the native model build to `Solve()`, while the MIP++ timings include it — which is also why OR-Tools comes out ahead with SCIP.
+
+Full tables, methodology and setup: [Performance](https://fhamonic.github.io/mippp/performance/) — benchmark code and raw per-solver timings in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
 
 ## Installation
 

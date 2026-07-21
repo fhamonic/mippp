@@ -38,20 +38,7 @@ using milp_type = highs_milp;
 
 Change those to `gurobi`/`gurobi_api`/`gurobi_milp` and recompile: the rest of the program is untouched. There is no linking step to adjust, because solver libraries are loaded at runtime.
 
-To choose the solver at *runtime* — for a `--solver` command-line flag, say — write the model-building code once as a template over the backend:
-
-```cpp
-template <typename Api, typename Model>
-double solve_instance(const instance & data) {
-    Api api;
-    Model model(api);
-    // ... build, solve, return objective ...
-}
-
-// dispatch:
-if(solver == "highs")       return solve_instance<highs_api, highs_milp>(data);
-else if(solver == "gurobi") return solve_instance<gurobi_api, gurobi_milp>(data);
-```
+To choose the solver at *runtime* — for a `--solver` command-line flag, say — write the model-building code once as a template over the backend and dispatch on the flag; that pattern, and the capability checks that go with it, are the subject of [Writing solver-generic code](generic-code.md).
 
 Only the solvers actually installed on the machine need to be present: a backend fails at api-construction time (with a descriptive exception), not at program startup.
 
@@ -63,7 +50,7 @@ Constructing the api object loads the solver's shared library through[dylib](htt
 2. the `MIPPP_<SOLVER>_LIBRARY` environment variable, holding the full path of the exact file to load;
 3. a search of the dynamic loader's directories (`LD_LIBRARY_PATH` and system library paths) for the conventional name, accepting version-suffixed sonames (`libhighs.so.1.10.0`) when the plain name is absent.
 
-See [Installation](installation.md#making-solver-libraries-discoverable) for per-solver environment setup.
+See [Installation](../getting-started/installation.md#making-solver-libraries-discoverable) for per-solver environment setup.
 
 ## Feature support
 
@@ -83,6 +70,13 @@ The matrices below record which features are implemented **and tested** per back
 
 Notable current limitations (see the
 [roadmap](https://github.com/fhamonic/mippp#roadmap) for what's planned):
-candidate-solution callbacks are validated on Gurobi, CPLEX, and COPT; rich
-`termination_reason()` is available on Gurobi (other backends expose the
-`proven_optimal` / `proven_infeasible` / `proven_unbounded` status queries).
+
+- **Callbacks** — candidate-solution callbacks are implemented on Gurobi, CPLEX, COPT, SCIP and Xpress, and validated on Gurobi, CPLEX and COPT. Node-relaxation (user-cut) callbacks are specified but not yet implemented.
+- **Termination reasons** — the rich `termination_reason()` is available on Gurobi, CPLEX and HiGHS; every other backend exposes the `proven_optimal` / `proven_infeasible` / `proven_unbounded` queries. See [Status, limits and tolerances](../solving/status-and-limits.md).
+- **Quadratic objectives** — HiGHS only. Quadratic constraints: none yet.
+- **SOS constraints and LP basis warm starts** — specified as concepts, not yet implemented by any backend.
+- **Indicator constraints** — usable on Gurobi and CPLEX by calling `add_indicator_constraint` directly, but `has_indicator_constraints` is `false` everywhere because those implementations return `void` where the concept expects a constraint handle ([details](../modeling/special-constraints.md#one-model-both-encodings)).
+
+## Next
+
+[Writing solver-generic code](generic-code.md) — one model builder, every backend, with capability differences resolved at compile time.

@@ -46,13 +46,24 @@ int main() {
 
 ## Where to start
 
+The documentation follows the path of a modeling study: build a model, solve it, read the results, then wrap an algorithm around it.
+
+**1. Getting started** — read in order, about half an hour.
+
 - [**Why MIP++**](getting-started/index.md) — the design choices behind the library, and why they matter for operations-research work. **Start here.**
 - [**Installation**](getting-started/installation.md) — requirements, Conan or CMake setup, and making solver libraries discoverable.
 - [**A first model**](getting-started/first-model.md) — a guided tour of the program above.
-- [**Expressions and constraints**](getting-started/expressions.md) — `xsum`, lambda-indexed variables, and constraint families over ranges.
-- [**Choosing a solver**](getting-started/solvers.md) — the 11 backends and what each supports.
+- [**Coming from gurobipy, JuMP or PuLP**](getting-started/coming-from.md) — a translation table, and the six things that differ.
 
-For complete, runnable programs (N-Queens, TSP with lazy constraints, cutting-stock by column generation, Sudoku), see the [`examples/`](https://github.com/fhamonic/mippp/tree/main/examples) directory.
+**2. Modeling** — [variables and index sets](modeling/variables.md), [expressions and constraint families](modeling/expressions.md), [objectives](modeling/objectives.md) (including quadratic), [special constraints](modeling/special-constraints.md).
+
+**3. Solving** — [status, limits and tolerances](solving/status-and-limits.md), [solutions, duals and reduced costs](solving/solutions.md), [re-solving and model updates](solving/updates.md).
+
+**4. Algorithms** — [branch-and-cut with lazy constraints](algorithms/branch-and-cut.md), [column generation](algorithms/column-generation.md).
+
+**5. Solvers** — [choosing a solver](solvers/index.md) among the 11 backends, and [writing solver-generic code](solvers/generic-code.md) for cross-solver experiments.
+
+Complete runnable programs — N-Queens, Sudoku, TSP with lazy constraints, cutting stock by column generation — are indexed in [Worked examples](examples.md).
 
 ## Supported solvers
 
@@ -63,19 +74,19 @@ For complete, runnable programs (N-Queens, TSP with lazy constraints, cutting-st
 | Cbc, SCIP | | ✓ | |
 | Clp, SoPlex | ✓ | | |
 
-<sub>Per-feature support (duals, callbacks, MIP starts, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/getting-started/solvers/).</sub>
+<sub>Per-feature support (duals, callbacks, MIP starts, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).</sub>
 
 ## Performance
 
-Model-creation time for the N-Queens problem (`N²` binary variables, `6N−6` constraints), relative to the Gurobi C API — **lower is better, 1.0× = C speed**:
+Time to *build* the N-Queens model (`N²` binary variables, `6N−6` constraints) — MIP++ in milliseconds, the other interfaces as a multiple of it **on the same backend**:
 
-| N | C | **MIP++** | gurobipy | Python-MIP | JuMP (warm) |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 500 | 1.0× | **1.1×** | 289× | 305× | 14.5× |
-| 1000 | 1.0× | **1.1×** | 552× | 542× | 24.1× |
+| N | **MIP++** Cbc | **MIP++** HiGHS | OR-tools Cbc | OR-tools HiGHS | JuMP Cbc | JuMP HiGHS |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 | **0.9 ms** | **1.5 ms** | 4.0× | 2.3× | 14.3× | 43.9× |
+| 500 | **18.9 ms** | **36.6 ms** | 4.8× | 2.4× | 13.6× | 7.4× |
+| 1000 | **72.8 ms** | **146.2 ms** | 5.2× | 2.6× | 13.7× | 6.5× |
 
-Benchmark code, setup, and raw per-solver timings:
-[mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
+A million binary variables in 73 ms; the Python layers land two to three orders of magnitude above that. Full tables, the case where MIP++ *loses* (SCIP), and the methodology: [Performance](performance.md) — benchmark code and raw per-solver timings in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
 
 ## Acknowledgements
 

@@ -1,6 +1,6 @@
 # Inside the expression layer
 
-[Expressions and constraints](../getting-started/expressions.md) shows *how* to build models; this page explains *what* the expression layer actually is — the concepts it is written against, the ownership rules that make lazy views safe, and the compile-time diagnostics that fire when those rules are broken.
+[Expressions and constraints](../modeling/expressions.md) shows *how* to build models; this page explains *what* the expression layer actually is — the concepts it is written against, the ownership rules that make lazy views safe, and the compile-time diagnostics that fire when those rules are broken.
 
 Read it if you want to plug your own expression types into MIP++, write generic code over expressions, or understand a `static_assert` you just hit.
 
@@ -253,4 +253,4 @@ It takes its expression by **forwarding reference** rather than `const &`, on pu
 
 ## What's next
 
-The concepts on the model side — what a backend must provide for `add_constraint` and friends to exist at all — are listed in [Model concepts](../reference/concepts.md).
+The concepts on the model side — what a backend must provide for `add_constraint` and friends to exist at all — are listed in [Model concepts](concepts.md).

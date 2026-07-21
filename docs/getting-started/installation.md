@@ -57,8 +57,8 @@ export HIGHS_HOME="/path/to/solvers/HiGHS"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HIGHS_HOME/lib"
 
 # CPLEX
-export CPLEX_HOME="/path/to/solvers/cplex-community/cplex"
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CPLEX_HOME/bin/x86-64_linux"
+export CPLEX_STUDIO_BINARIES="/path/to/solvers/cplex-community/cplex/bin/x86-64_linux"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CPLEX_STUDIO_BINARIES"
 
 # FICO Xpress (also needs its license variable)
 export XPRESS_HOME="/path/to/solvers/xpressmp"
@@ -72,4 +72,8 @@ Only export the solvers you actually have. If a library cannot be located, the a
 
 ## Checking that everything works
 
-Build and run any of the [examples](https://github.com/fhamonic/mippp/tree/main/examples) — the smallest is `simple_lp.cpp`, which uses HiGHS. If you cloned the repository, the test suite can also be run with `make CONAN_PROFILE=<your_profile>`, and restricted to one backend with `make test highs CONAN_PROFILE=<your_profile>`; backends whose runtime library is missing are skipped automatically.
+Build and run any of the [examples](../examples.md) — the smallest is `simple_lp.cpp`, which uses HiGHS. If you cloned the repository, the test suite can also be run with `make CONAN_PROFILE=<your_profile>`, and restricted to one backend with `make test highs CONAN_PROFILE=<your_profile>`; backends whose runtime library is missing are skipped automatically.
+
+## Next
+
+[A first model](first-model.md) — the two-variable LP, line by line.

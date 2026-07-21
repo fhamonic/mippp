@@ -27,7 +27,7 @@ MIP++ avoids the tax with a **functional, zero-copy expression system**:
 - When a constraint is registered, its terms are streamed **once** into a small buffer that the model reuses for every row (coefficients of repeated variables are merged on the fly), then passed to the solver's C function.
 - Variables are trivially-copyable strongly-typed handles (an integer id), and variable *names* can be assigned lazily, so you never pay for strings you don't use.
 
-The result: building an N-Queens model is within **10–20% of hand-written C API calls**, where Python layers are **40–550× slower** and JuMP 14–24× (see the [benchmark](https://github.com/fhamonic/mippp_nqueens)).
+The result: an N-Queens model with **one million binary variables** is filled in **73 ms** through Cbc, where the OR-Tools `MPSolver` C++ API takes 5.2× longer, JuMP 13.7×, and the CPython layers some three orders of magnitude more. Full tables and methodology: [Performance](../performance.md).
 
 ## Index variables by *your* problem's coordinates
 
@@ -56,21 +56,25 @@ double price_of_o = duals[demand(o)];
 Most research codes are not "build model, call solve": they are branch-and-cut, column generation, decomposition, or parameter studies. The MIP++ interface exposes the building blocks these methods need, uniformly across the backends that support them:
 
 - **candidate-solution callbacks** with `add_lazy_constraint` for
-  branch-and-cut ([guide](../advanced/callbacks.md)),
+  branch-and-cut ([guide](../algorithms/branch-and-cut.md)),
 - **dual solutions** and **`add_column`** for column generation
-  ([guide](../advanced/column-generation.md)), plus a `column_manager` utility
+  ([guide](../algorithms/column-generation.md)), plus a `column_manager` utility
   for large-scale pricing,
-- **MIP starts**, **SOS1/SOS2** and **indicator constraints**,
+- **MIP starts** and **indicator constraints**
+  ([guide](../modeling/special-constraints.md)),
 - readable and modifiable objectives, bounds, and constraint rows for
-  in-place model updates between solves,
-- time/node limits and tolerance parameters for reproducible experiments.
+  [in-place model updates](../solving/updates.md) between solves,
+- time, node, iteration, solution and memory limits, plus tolerance
+  parameters, for [reproducible experiments](../solving/status-and-limits.md).
 
 Each of these is itself a concept (`has_candidate_solution_callback`, `has_add_column`, …), so a generic algorithm can state its requirements in its template signature and fail at *compile time* — with a clear diagnostic — if you instantiate it with a backend that lacks a capability, rather than at hour three of a run.
 
 ## Header-only, solvers loaded at runtime
 
-MIP++ itself is header-only, and solver libraries are **not linked** — each `<solver>_api` object loads the solver's shared library dynamically when constructed. Your binary has no link-time dependency on any solver SDK; only the backends you actually instantiate need to be installed on the machine running it. Details and the library-resolution rules are in [Choosing a solver](solvers.md).
+MIP++ itself is header-only, and solver libraries are **not linked** — each `<solver>_api` object loads the solver's shared library dynamically when constructed. Your binary has no link-time dependency on any solver SDK; only the backends you actually instantiate need to be installed on the machine running it. Details and the library-resolution rules are in [Choosing a solver](../solvers/index.md).
 
 ## Next steps
 
 Head to [Installation](installation.md), then walk through [A first model](first-model.md).
+
+If you already model in Python or Julia, [Coming from gurobipy, JuMP or PuLP](coming-from.md) maps your vocabulary onto this one in a single table.

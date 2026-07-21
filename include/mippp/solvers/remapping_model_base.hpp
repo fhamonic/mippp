@@ -22,8 +22,8 @@ protected:
 
     std::vector<variable> _var_handles_to_delete;
     std::vector<variable> _free_var_handles;
-    std::vector<int> _native_ids_map;
-    std::vector<int> _handle_ids_map;
+    std::vector<_Index> _native_ids_map;
+    std::vector<_Index> _handle_ids_map;
     bool _remap_ids;
 
     [[nodiscard]] explicit remapping_model_base()
@@ -37,11 +37,11 @@ protected:
     constexpr remapping_model_base & operator=(remapping_model_base && other) =
         default;
 
-    int _native_id(const variable variable_handle) const {
+    _Index _native_id(const variable variable_handle) const {
         if(!_remap_ids) return variable_handle.id();
         return _native_ids_map[static_cast<std::size_t>(variable_handle.id())];
     }
-    variable _var_handle(const int native_id) const {
+    variable _var_handle(const _Index native_id) const {
         if(!_remap_ids) return variable(native_id);
         return variable(_handle_ids_map[static_cast<std::size_t>(native_id)]);
     }
@@ -53,11 +53,11 @@ protected:
         _handle_ids_map.resize(_handle_ids_map.size() - count);
     }
 
-    variable _new_var_handle(const int new_native_id) {
+    variable _new_var_handle(const _Index new_native_id) {
         if(!_remap_ids) return variable(new_native_id);
-        int new_handle_id;
+        _Index new_handle_id;
         if(_free_var_handles.empty()) {
-            new_handle_id = static_cast<int>(_native_ids_map.size());
+            new_handle_id = static_cast<_Index>(_native_ids_map.size());
             _native_ids_map.push_back(new_native_id);
         } else {
             new_handle_id = _free_var_handles.back().id();
@@ -76,7 +76,7 @@ protected:
         for(std::size_t i = 0; i < count; ++i) {
             _native_ids_map.emplace_back(num_native_ids + i);
             _handle_ids_map[num_native_ids + i] =
-                static_cast<int>(new_handle_ids_begin + i);
+                static_cast<_Index>(new_handle_ids_begin + i);
         }
         return new_handle_ids_begin;
     }

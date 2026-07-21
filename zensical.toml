@@ -17,16 +17,32 @@ nav = [
     { "Why MIP++" = "getting-started/index.md" },
     { "Installation" = "getting-started/installation.md" },
     { "A first model" = "getting-started/first-model.md" },
-    { "Expressions and constraints" = "getting-started/expressions.md" },
-    { "Choosing a solver" = "getting-started/solvers.md" },
+    { "Coming from gurobipy, JuMP or PuLP" = "getting-started/coming-from.md" },
   ] },
-  { "Advanced topics" = [
-    { "Branch-and-cut callbacks" = "advanced/callbacks.md" },
-    { "Column generation" = "advanced/column-generation.md" },
-    { "Inside the expression layer" = "advanced/expression-layer.md" },
+  { "Modeling" = [
+    { "Variables and index sets" = "modeling/variables.md" },
+    { "Expressions and constraints" = "modeling/expressions.md" },
+    { "Objectives" = "modeling/objectives.md" },
+    { "Special constraints" = "modeling/special-constraints.md" },
   ] },
+  { "Solving" = [
+    { "Status, limits and tolerances" = "solving/status-and-limits.md" },
+    { "Solutions, duals and reduced costs" = "solving/solutions.md" },
+    { "Re-solving and model updates" = "solving/updates.md" },
+  ] },
+  { "Algorithms" = [
+    { "Branch-and-cut with lazy constraints" = "algorithms/branch-and-cut.md" },
+    { "Column generation" = "algorithms/column-generation.md" },
+  ] },
+  { "Solvers" = [
+    { "Choosing a solver" = "solvers/index.md" },
+    { "Writing solver-generic code" = "solvers/generic-code.md" },
+  ] },
+  { "Worked examples" = "examples.md" },
+  { "Performance" = "performance.md" },
   { "Reference" = [
     { "Model concepts" = "reference/concepts.md" },
+    { "Inside the expression layer" = "reference/expression-layer.md" },
   ] },
 ]
 

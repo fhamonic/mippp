@@ -75,7 +75,7 @@ Every field is optional, with one subtlety. A bare `add_variable()` creates the 
 
 MILP model classes (`highs_milp`, `gurobi_milp`, …) additionally provide `add_integer_variable(s)` and `add_binary_variable(s)`, as well as `set_integer` / `set_binary` / `set_continuous` to change a variable's type afterwards.
 
-Variables are usually created in bulk with `add_variables(count, id_lambda)`, which is where MIP++'s lambda-indexing shines — that is the subject of the [next page](expressions.md).
+Variables are usually created in bulk with `add_variables(count, id_lambda)`, which is where MIP++'s lambda-indexing shines — that is the subject of [Variables and index sets](../modeling/variables.md).
 
 ## Objective and constraints
 
@@ -106,7 +106,7 @@ else if(model.proven_infeasible()) { /* ... */ }
 else if(model.proven_unbounded())  { /* ... */ }
 ```
 
-(On Gurobi a richer `termination_reason()` is available; time limits, tolerances, and other controls are listed in the [concepts reference](../reference/concepts.md).)
+(A richer `termination_reason()` is available on some backends; time limits, tolerances and the rest are covered in [Status, limits and tolerances](../solving/status-and-limits.md).)
 
 LP backends supporting dual solutions expose them the same way, indexed by constraint handles:
 
@@ -114,6 +114,8 @@ LP backends supporting dual solutions expose them the same way, indexed by const
 auto duals = model.get_dual_solution();
 double y = duals[some_constraint];
 ```
+
+More on reading results — snapshots, reduced costs, evaluating expressions at a solution — in [Solutions, duals and reduced costs](../solving/solutions.md).
 
 ## Compiling
 
@@ -124,4 +126,7 @@ g++-14 -std=c++23 -O3 -I<mippp>/include -I<dylib>/include simple_lp.cpp -o simpl
 ./simple_lp   # libhighs.so must be discoverable at *run* time
 ```
 
-Next: [Expressions and constraints](expressions.md), where models stop being toy-sized.
+## Next
+
+- [Variables and index sets](../modeling/variables.md) — where models stop being toy-sized: whole families of variables indexed by *your* coordinates.
+- [Coming from gurobipy, JuMP or PuLP](coming-from.md) — if the program above looked familiar but the spelling did not.
