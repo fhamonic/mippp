@@ -63,7 +63,7 @@ MIP++ has a deliberate niche, and it is worth being honest about where its edges
 - **Build-bound iterative methods in C++** — column generation, cutting planes, decomposition. In-place updates, `add_column`, and lazy-constraint callbacks are here today; LP basis warm starts and user-cut callbacks are still on the [roadmap](#roadmap), and they matter in precisely this regime — watch the project if you need them.
 - **Everyday modeling in Python or Julia, heavy solver-specific parameter tuning, CP or scheduling** — stay with gurobipy, JuMP, or OR-Tools CP-SAT. They are mature, their communities are large, and for a one-shot solve where solver time dominates, the modeling tax rarely matters.
 
-Two adoption realities to weigh: MIP++ requires **GCC 14+ / C++23** and assumes comfort with modern C++ (ranges, concepts, template diagnostics); and it is a young, single-maintainer project — pin a version if you build long-lived research code on it.
+Two adoption realities to weigh: MIP++ requires **GCC 14+ / C++23** and assumes comfort with modern C++ (ranges, concepts, template diagnostics). It is a young, single-maintainer project — contributions welcome ! — thus, pin a version if you build long-lived research code on it.
 
 ## Supported solvers
 

@@ -31,7 +31,7 @@ void SoPlex_getDualReal(void * soplex, double * dual, int dim);
 
 namespace mippp::soplex::v6 {
 enum Status {
-    ERROR = -15,
+    ERROR_ = -15,  // ERROR clashes with a macro imported by <windows.h>...
     NO_RATIOTESTER = -14,
     NO_PRICER = -13,
     NO_SOLVER = -12,

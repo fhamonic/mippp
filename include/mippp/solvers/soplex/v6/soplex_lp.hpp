@@ -272,7 +272,7 @@ public:
             case UNBOUNDED:
                 _status.emplace<unbounded>();
                 return;
-            case ERROR:
+            case ERROR_:
             case NO_RATIOTESTER:
             case NO_PRICER:
             case NO_SOLVER:
