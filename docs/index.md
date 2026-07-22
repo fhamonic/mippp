@@ -13,7 +13,7 @@
 
 </div>
 
-MIP++ is a header-only C++23 library for linear, mixed-integer, and quadratic programming. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API. The same model code targets any of **11 solvers** — you choose the backend at compile time, and its shared library is loaded dynamically at runtime, with no link-time solver dependency.
+MIP++ is a header-only C++23 library for linear, mixed-integer, and quadratic programming — the fastest way to write portable, solver-agnostic optimization models in modern C++. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API. The same model code targets any of **11 solvers** — you choose the backend at compile time, and its shared library is loaded dynamically at runtime, with no link-time solver dependency.
 
 ```cpp
 #include <print>
@@ -50,7 +50,7 @@ The documentation follows the path of a modeling study: build a model, solve it,
 
 **1. Getting started** — read in order, about half an hour.
 
-- [**Why MIP++**](getting-started/index.md) — the design choices behind the library, and why they matter for operations-research work. **Start here.**
+- [**Why MIP++**](getting-started/index.md) — the design choices behind the library, why they matter for operations-research work, and who the library is (and is not) for. **Start here.**
 - [**Installation**](getting-started/installation.md) — requirements, Conan or CMake setup, and making solver libraries discoverable.
 - [**A first model**](getting-started/first-model.md) — a guided tour of the program above.
 - [**Coming from gurobipy, JuMP or PuLP**](getting-started/coming-from.md) — a translation table, and the six things that differ.
@@ -86,7 +86,7 @@ Time to *build* the N-Queens model (`N²` binary variables, `6N−6` constraints
 | 500 | **18.9 ms** | **36.6 ms** | 4.8× | 2.4× | 13.6× | 7.4× |
 | 1000 | **72.8 ms** | **146.2 ms** | 5.2× | 2.6× | 13.7× | 6.5× |
 
-A million binary variables in 73 ms; the Python layers land two to three orders of magnitude above that. Full tables, the case where MIP++ *loses* (SCIP), and the methodology: [Performance](performance.md) — benchmark code and raw per-solver timings in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
+A million binary variables in 73 ms; the Python layers land two to three orders of magnitude above that. Build time is noise when a single solve runs for hours — it matters on very large models and in loops that touch the model constantly, and the [Performance](performance.md) page is explicit about that scope. Full tables, the case where MIP++ *loses* (SCIP), and the methodology are there too — benchmark code and raw per-solver timings in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
 
 ## Acknowledgements
 

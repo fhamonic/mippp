@@ -1,8 +1,11 @@
 # Performance
 
-The cost of an algebraic modeling layer is invisible for a one-shot solve of a small model, and dominant in exactly the situations research code cares about: large instances, column generation, row generation, and repeated re-solves in a benchmark loop. This page collects what is actually measured, on which the "no modeling tax" claim rests.
+The cost of an algebraic modeling layer is invisible for a one-shot solve where solver time dominates — a two-second build in front of a two-hour solve is noise, whatever layer produced it. It becomes real in two regimes: very large models, where construction is a nontrivial fraction of wall-clock time, and iterative methods — column generation, row generation, repeated re-solves in a benchmark loop — that touch the model thousands of times. The numbers below quantify what MIP++ buys you in those regimes, and only those; this page collects what is actually measured, on which the "no modeling tax" claim rests.
 
 All numbers below come from [**mippp_nqueens**](https://github.com/fhamonic/mippp_nqueens), which times the *filling* of an N-Queens MILP — `N²` binary variables, `6N−6` constraints — through MIP++, the OR-Tools `MPSolver` C++ API, JuMP, Python-MIP and PuLP. **Only model construction is timed, never the resolution.**
+
+!!! note "What the N-Queens shape does and does not stress"
+    N-Queens is variable-heavy and constraint-light: a million variables against ~6000 rows, each row a plain sum of existing variables. The benchmark therefore chiefly measures **variable creation and short-row streaming** — a shape that favours a zero-copy expression system. It says nothing yet about models dominated by dense, structured constraints; a companion benchmark with that shape is planned. Read the multiples as evidence for the build-bound regimes described above, not as a universal speedup.
 
 ## MIP++ vs the other C++ and Julia interfaces
 

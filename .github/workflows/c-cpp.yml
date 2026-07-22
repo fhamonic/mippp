@@ -13,10 +13,8 @@ jobs:
       image: ubuntu:25.04
     steps:
       - uses: actions/checkout@v3
-      - name: Update APT
-        run: apt-get update && apt-get upgrade -y
       - name: Install GCC-15, CMake and Git
-        run: apt-get install -y gcc-15 g++-15 cmake git
+        run: apt-get update && apt-get install -y gcc-15 g++-15 cmake git
       - name: Install open-source solvers
         run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev highs libhighs1 libglpk-dev
       - name: Install Conan 2.0
@@ -40,10 +38,8 @@ jobs:
       image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v3
-      - name: Update APT
-        run: apt-get update && apt-get upgrade -y
       - name: Install GCC-14, CMake and Git
-        run: apt-get install -y gcc-14 g++-14 cmake git
+        run: apt-get update && apt-get install -y gcc-14 g++-14 cmake git
       - name: Install open-source solvers
         run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev
       - name: Install Conan 2.0
@@ -67,10 +63,8 @@ jobs:
       image: ubuntu:24.04
     steps:
       - uses: actions/checkout@v3
-      - name: Update APT
-        run: apt-get update && apt-get upgrade -y
       - name: Install Clang-18, listdc++-14, CMake and Git
-        run: apt-get install -y clang-18 clang++-18 libstdc++-14-dev cmake git
+        run: apt-get update && apt-get install -y clang-18 clang++-18 libstdc++-14-dev cmake git
       - name: Install open-source solvers
         run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev
       - name: Install Conan 2.0
@@ -97,10 +91,8 @@ jobs:
       CXX: g++-14
     steps:
       - uses: actions/checkout@v3
-      - name: Update APT
-        run: apt-get update && apt-get upgrade -y
       - name: Install GCC-14, CMake and Git
-        run: apt-get install -y gcc-14 g++-14 cmake git
+        run: apt-get update && apt-get install -y gcc-14 g++-14 cmake git
       - name: Install the HiGHS solver
         run: apt-get install -y highs libhighs1
       - name: Build and install dylib
@@ -170,6 +162,6 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing "-p./.github/workflows/mingw15_c++26" -c tools.build:skip_test=true
+          conan create melon -u -b=missing "-pr=.github/workflows/mingw15_c++26" -c tools.build:skip_test=true
       - name: Build and run unit tests
         run: conan build . -of=build -b=missing "-pr=.github/workflows/mingw15_c++26"

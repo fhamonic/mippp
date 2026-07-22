@@ -76,6 +76,7 @@ Notable current limitations (see the
 - **Quadratic objectives** — HiGHS only. Quadratic constraints: none yet.
 - **SOS constraints and LP basis warm starts** — specified as concepts, not yet implemented by any backend.
 - **Indicator constraints** — usable on Gurobi and CPLEX by calling `add_indicator_constraint` directly, but `has_indicator_constraints` is `false` everywhere because those implementations return `void` where the concept expects a constraint handle ([details](../modeling/special-constraints.md#one-model-both-encodings)).
+- **Solver-specific parameters** — the uniform interface covers [limits and tolerances](../solving/status-and-limits.md), but there is no passthrough yet for solver-specific knobs such as Gurobi's `MIPFocus` or CPLEX's emphasis settings. The `*_api` object you construct exposes every raw C function it loads, so the *functions* are reachable — but the model classes keep their native model and environment handles `protected`, so there is currently **no supported escape hatch** to call them on your model. A public native-handle accessor is on the roadmap; until it lands, a uniform interface is all you get, and research that depends on solver-specific tuning should account for that.
 
 ## Next
 

@@ -19,7 +19,7 @@ For a researcher this matters beyond convenience: reviewers increasingly ask for
 
 ## No modeling tax
 
-The convenience of algebraic modeling usually costs one or two orders of magnitude in model-building time. That cost is invisible for a one-shot solve of a small model, but it dominates in exactly the situations research code cares about: large instances, column generation, row generation, and repeated re-solves in a benchmark loop.
+The convenience of algebraic modeling usually costs one or two orders of magnitude in model-building time. Let's scope that claim honestly: if the build takes two seconds and the solve takes two hours, the tax is noise, and no modeling layer is your bottleneck. The tax bites in two regimes — very large models, where construction is a nontrivial fraction of wall-clock time, and iterative methods (column generation, row generation, decomposition, benchmark loops) that touch the model thousands of times. Those regimes are what MIP++ is optimized for. And in the iterative regime the right move is usually to *modify* the model, not rebuild it — which MIP++ also serves directly: because the model lives in the solver from the start, [in-place updates](../solving/updates.md) and re-solves never re-extract anything.
 
 MIP++ avoids the tax with a **functional, zero-copy expression system**:
 
@@ -72,6 +72,20 @@ Each of these is itself a concept (`has_candidate_solution_callback`, `has_add_c
 ## Header-only, solvers loaded at runtime
 
 MIP++ itself is header-only, and solver libraries are **not linked** — each `<solver>_api` object loads the solver's shared library dynamically when constructed. Your binary has no link-time dependency on any solver SDK; only the backends you actually instantiate need to be installed on the machine running it. Details and the library-resolution rules are in [Choosing a solver](../solvers/index.md).
+
+## Is MIP++ right for you?
+
+The design decisions above define a niche, and the honest answer to "should I use this?" depends on where you stand relative to it.
+
+**MIP++ is a strong fit if:**
+
+- you are **embedding optimization inside a larger C++ system** — a simulator, a planning service, a real-time context — or shipping a binary that must run against whatever solver the user has installed, without recompiling per solver;
+- you need **cross-solver experiments** — the same study on Gurobi, CPLEX, and an open solver — without maintaining per-solver code paths;
+- you write **build-bound iterative methods in C++** — column generation, cutting planes — and want the model-handling overhead out of your measurements.
+
+**Know what is not built yet.** LP basis warm starts and user-cut callbacks are specified as concepts but not yet implemented by any backend, and heuristic-solution injection is still on the [roadmap](https://github.com/fhamonic/mippp#roadmap) — and those are precisely the features the build-bound, re-solve-heavy researcher needs most. Column generation without basis warm starts leaves performance on the table; cutting-plane research needs user cuts, not just lazy constraints. There is also no supported way yet to reach the raw solver handle for solver-specific parameters (Gurobi's `MIPFocus`, CPLEX emphasis settings) — see [the limitations list](../solvers/index.md#feature-support). If your work depends on these today, a mature layer serves you better until they land.
+
+**Stay with the incumbents if** you model comfortably in Python or Julia (gurobipy and JuMP are mature, fully featured, and fast enough that build time rarely bottlenecks a one-shot solve), if your work is heavy solver-parameter tuning, or if it is CP/scheduling (OR-Tools CP-SAT). MIP++ requires GCC 14+ / C++23 and assumes fluency with modern C++ — ranges, concepts, and the template errors that come with them. And it is a young, single-maintainer project: pin a version before building a dissertation's worth of code on it.
 
 ## Next steps
 
