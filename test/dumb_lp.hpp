@@ -41,9 +41,15 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
     template <typename Map>
-    using variable_mapping = entity_mapping<variable, Map>;
+    struct variable_mapping : entity_mapping<variable, Map> {
+        variable_mapping(Map && t)
+            : entity_mapping<variable, Map>(std::move(t)) {}
+    };
     template <typename Map>
-    using constraint_mapping = entity_mapping<constraint, Map>;
+    struct constraint_mapping : entity_mapping<constraint, Map> {
+        constraint_mapping(Map && t)
+            : entity_mapping<constraint, Map>(std::move(t)) {}
+    };
 
     static constexpr scalar infinity = std::numeric_limits<double>::max();
 
@@ -62,7 +68,8 @@ private:
         std::string name;
     };
 
-    enum class model_status { unsolved, optimal, infeasible, unbounded, other };
+    using status_variant = std::variant<status::unknown, status::optimal,
+                                        status::infeasible, status::unbounded>;
 
     const clp_api & Clp;
 
@@ -73,7 +80,7 @@ private:
     std::vector<variable_id> _free_variable_ids;
     scalar _feasibility_tolerance = 1e-7;
 
-    model_status _status = model_status::unsolved;
+    status_variant _status;
     scalar _solution_value = 0.0;
     std::vector<scalar> _primal_solution;
     std::vector<scalar> _dual_solution;
@@ -162,12 +169,12 @@ private:
                                   const variable_params & params) {
         const std::size_t offset = _cols.size();
         for(std::size_t i = 0; i < count; ++i)
-            _cols.emplace_back(
-                column_data{.obj_coef = params.obj_coef,
-                            .lower_bound = params.lower_bound.value_or(-infinity),
-                            .upper_bound = params.upper_bound.value_or(infinity),
-                            .name = {},
-                            .removed = false});
+            _cols.emplace_back(column_data{
+                .obj_coef = params.obj_coef,
+                .lower_bound = params.lower_bound.value_or(-infinity),
+                .upper_bound = params.upper_bound.value_or(infinity),
+                .name = {},
+                .removed = false});
         return offset;
     }
 
@@ -186,7 +193,7 @@ public:
                        variable_params params = default_variable_params) {
         const std::size_t offset = _append_variables(count, params);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -195,17 +202,16 @@ public:
         return _new_variable(params, name);
     }
     template <typename NL>
-    auto add_named_variables(
-        std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = _append_variables(count, params);
         return _make_named_variables_view(offset, count,
-                                           std::forward<NL>(name_lambda), this);
+                                          std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
-    auto add_named_variables(
-        std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, IL && id_lambda,
+                             NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = _append_variables(count, params);
         return _make_indexed_named_variables_view(
             offset, count, std::forward<IL>(id_lambda),
@@ -305,8 +311,7 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        const constraint_id offset =
-            static_cast<constraint_id>(_rows.size());
+        const constraint_id offset = static_cast<constraint_id>(_rows.size());
         constraint_id constr_id = offset;
         for(auto && key : keys) {
             _add_first_valued_constraint(key, constraint_lambdas...);
@@ -325,7 +330,8 @@ public:
         for(auto && [var, coef] : entries) coefs[var.id()] += coef;
     }
     void set_constraint_lhs(
-        constraint c, std::initializer_list<std::pair<variable, scalar>> entries) {
+        constraint c,
+        std::initializer_list<std::pair<variable, scalar>> entries) {
         set_constraint_lhs(c, std::views::all(entries));
     }
     void set_constraint_sense(constraint c, constraint_sense s) {
@@ -364,9 +370,7 @@ public:
     // Parameters
     ////////////////////////////////////////////////////////////////////////////
 
-    void set_feasibility_tolerance(scalar tol) {
-        _feasibility_tolerance = tol;
-    }
+    void set_feasibility_tolerance(scalar tol) { _feasibility_tolerance = tol; }
     scalar get_feasibility_tolerance() { return _feasibility_tolerance; }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -387,6 +391,7 @@ private:
     }
 
 public:
+    const status_variant & solve_status() const { return _status; }
     void solve() {
         const std::size_t num_cols = _cols.size();
         const std::size_t num_rows = _rows.size();
@@ -395,10 +400,10 @@ public:
         _solution_value = _obj_offset;
         if(num_cols == 0u) {
             // no column was ever created, so every row lhs evaluates to 0
-            _status = model_status::optimal;
+            _status.emplace<status::optimal>();
             for(const row_data & row : _rows) {
                 if(_violated_by_zero_lhs(row)) {
-                    _status = model_status::infeasible;
+                    _status.emplace<status::infeasible>();
                     break;
                 }
             }
@@ -438,26 +443,25 @@ public:
                                     : row.rhs);
         }
         auto * model = Clp.newModel();
-        Clp.loadProblem(model, static_cast<int>(num_cols),
-                        static_cast<int>(num_rows), col_starts.data(),
-                        row_indices.data(), values.data(), col_lb.data(),
-                        col_ub.data(), obj.data(), row_lb.data(),
-                        row_ub.data());
+        Clp.loadProblem(
+            model, static_cast<int>(num_cols), static_cast<int>(num_rows),
+            col_starts.data(), row_indices.data(), values.data(), col_lb.data(),
+            col_ub.data(), obj.data(), row_lb.data(), row_ub.data());
         Clp.setObjSense(model, _maximize ? -1 : 1);
         Clp.setPrimalTolerance(model, _feasibility_tolerance);
         Clp.primal(model, 0);
         switch(Clp.status(model)) {
             case 0:
-                _status = model_status::optimal;
+                _status.emplace<status::optimal>();
                 break;
             case 1:
-                _status = model_status::infeasible;
+                _status.emplace<status::infeasible>();
                 break;
             case 2:
-                _status = model_status::unbounded;
+                _status.emplace<status::unbounded>();
                 break;
             default:
-                _status = model_status::other;
+                _status.emplace<status::unknown>();
         }
         const scalar * primal = Clp.primalColumnSolution(model);
         std::copy(primal, primal + num_cols, _primal_solution.begin());
@@ -467,10 +471,6 @@ public:
             _solution_value += _cols[j].obj_coef * _primal_solution[j];
         Clp.deleteModel(model);
     }
-
-    bool proven_optimal() { return _status == model_status::optimal; }
-    bool proven_infeasible() { return _status == model_status::infeasible; }
-    bool proven_unbounded() { return _status == model_status::unbounded; }
 
     scalar get_solution_value() { return _solution_value; }
 

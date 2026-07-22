@@ -35,7 +35,7 @@ public:
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_INTEGER);
         return _make_indexed_variables_view(handle_ids_begin, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
 private:
@@ -67,9 +67,8 @@ public:
     auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
         return _make_indexed_variables_view(handle_ids_begin, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
-
     void set_continuous(variable v) noexcept {
         check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
                                      GRB_CONTINUOUS));
@@ -82,11 +81,11 @@ public:
         check(GRB.setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
                                      GRB_BINARY));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     /////////////////////////// Special constraints ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     // void add_sos1_constraint(VR && variables)
     // void add_sos2_constraint(VR && variables)
-
     void add_indicator_constraint(variable x, bool val,
                                   linear_constraint auto && lc) {
         _reset_cache(_num_var_native_ids);
@@ -97,8 +96,9 @@ public:
             tmp_scalars.data(), constraint_sense_to_gurobi_sense(lc.sense()),
             lc.rhs()));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Callbacks ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     class callback_handle_base {
     protected:
@@ -167,7 +167,6 @@ private:
         }
         return 0;
     }
-
     void _enable_callbacks() {
         check(GRB.setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
         check(GRB.setcallbackfunc(model, main_callback, this));
@@ -179,8 +178,9 @@ public:
         _enable_callbacks();
         candidate_solution_callback = std::forward<F>(f);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
@@ -200,8 +200,9 @@ public:
         std::initializer_list<std::pair<variable, scalar>> entries) {
         _add_mip_start(entries);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_optimality_tolerance(double tol) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_MIPGAP, tol));
     }
@@ -210,8 +211,9 @@ public:
         check(GRB.getdblparam(env, GRB_DBL_PAR_MIPGAP, &tol));
         return tol;
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_node_limit(std::size_t n) {
         check(GRB.setdblparam(env, GRB_DBL_PAR_NODELIMIT,
                               static_cast<double>(n)));
@@ -221,7 +223,6 @@ public:
         check(GRB.getdblparam(env, GRB_DBL_PAR_NODELIMIT, &n));
         return static_cast<std::size_t>(n);
     }
-
     void set_solution_limit(std::size_t n) {
         check(GRB.setintparam(env, GRB_INT_PAR_SOLUTIONLIMIT,
                               static_cast<int>(n)));
@@ -231,29 +232,33 @@ public:
         check(GRB.getintparam(env, GRB_INT_PAR_SOLUTIONLIMIT, &n));
         return static_cast<std::size_t>(n);
     }
-
-    /////////////////////////// Termination reason ////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     // clang-format off
-    using termination_reasons = std::variant<
-            reason::optimal,
-            reason::infeasible_or_unbounded,
-            reason::infeasible,
-            reason::unbounded,
-            reason::interrupted,
-            reason::failed,
-            reason::numerical_failure,
-            reason::limit_reached,
-            reason::time_limit,
-            reason::node_limit,
-            reason::solution_limit,
-            reason::memory_limit,
-            reason::unknown>;
+private:
+    using status_variant = std::variant<
+            status::unknown, // default value
+            status::optimal,
+            status::infeasible_or_unbounded,
+            status::infeasible,
+            status::unbounded,
+            status::limit_reached,
+            status::time_limit,
+            status::node_limit,
+            status::solution_limit,
+            status::memory_limit,
+            status::failed,
+            status::numerical_failure,
+            status::interrupted>;
 
-    termination_reasons termination_reason() {
-        using namespace reason;
-        int status;
-        check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status));
-        switch(status) {
+    status_variant _status;
+
+    status_variant _get_status() {
+        using namespace status;
+        int status_;
+        check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status_));
+        switch(status_) {
             case GRB_OPTIMAL:         return optimal{};
             case GRB_INF_OR_UNBD:     return infeasible_or_unbounded{};
             case GRB_INFEASIBLE:      return infeasible{};
@@ -262,7 +267,7 @@ public:
         int sol_count;
         check(GRB.getintattr(model, GRB_INT_ATTR_SOLCOUNT, &sol_count));
         const bool sol_available = sol_count > 0;
-        switch(status) {
+        switch(status_) {
             case GRB_INTERRUPTED:     return interrupted{sol_available};
             case GRB_SUBOPTIMAL:      return failed{sol_available};
             case GRB_NUMERIC:         return numerical_failure{sol_available};
@@ -277,16 +282,20 @@ public:
         }// TODO: what for GRB_CUTOFF ?
     }
     // clang-format on
-
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
-    void solve() { check(GRB.optimize(model)); }
-
+    ///////////////////////////////////////////////////////////////////////////
+    void solve() {
+        check(GRB.optimize(model));
+        _status = _get_status();
+    }
     double get_solution_value() {
         double value;
         check(GRB.getdblattr(model, GRB_DBL_ATTR_OBJVAL, &value));
         return value;
     }
-
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);

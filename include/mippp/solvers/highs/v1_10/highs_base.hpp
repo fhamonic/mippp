@@ -28,9 +28,15 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
     template <typename Map>
-    using variable_mapping = entity_mapping<variable, Map>;
+    struct variable_mapping : entity_mapping<variable, Map> {
+        variable_mapping(Map && t)
+            : entity_mapping<variable, Map>(std::move(t)) {}
+    };
     template <typename Map>
-    using constraint_mapping = entity_mapping<constraint, Map>;
+    struct constraint_mapping : entity_mapping<constraint, Map> {
+        constraint_mapping(Map && t)
+            : entity_mapping<constraint, Map>(std::move(t)) {}
+    };
 
 protected:
     const highs_api & Highs;
@@ -581,7 +587,9 @@ public:
         return std::string(name);
     }
 
+    ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
         check(Highs.setDoubleOptionValue(model, "time_limit", t.count()));
     }
@@ -589,45 +597,6 @@ public:
         double t;
         check(Highs.getDoubleOptionValue(model, "time_limit", &t));
         return std::chrono::duration<double>(t);
-    }
-
-protected:
-    static void check_model_status(int status) {
-        if(status >= 7 && status <= 10) return;
-        if(status == kHighsModelStatusNotset)
-            throw std::runtime_error("highs_lp: kHighsModelStatusNotset.");
-        if(status == kHighsModelStatusLoadError)
-            throw std::runtime_error("highs_lp: kHighsModelStatusLoadError.");
-        if(status == kHighsModelStatusModelError)
-            throw std::runtime_error("highs_lp: kHighsModelStatusModelError.");
-        if(status == kHighsModelStatusPresolveError)
-            throw std::runtime_error(
-                "highs_lp: kHighsModelStatusPresolveError.");
-        if(status == kHighsModelStatusSolveError)
-            throw std::runtime_error("highs_lp: kHighsModelStatusSolveError.");
-        if(status == kHighsModelStatusPostsolveError)
-            throw std::runtime_error(
-                "highs_lp: kHighsModelStatusPostsolveError.");
-        if(status == kHighsModelStatusModelEmpty)
-            throw std::runtime_error("highs_lp: kHighsModelStatusModelEmpty.");
-        if(status == kHighsModelStatusObjectiveBound)
-            throw std::runtime_error(
-                "highs_lp: kHighsModelStatusObjectiveBound.");
-        if(status == kHighsModelStatusObjectiveTarget)
-            throw std::runtime_error(
-                "highs_lp: kHighsModelStatusObjectiveTarget.");
-        if(status == kHighsModelStatusTimeLimit)
-            throw std::runtime_error("highs_lp: kHighsModelStatusTimeLimit.");
-        if(status == kHighsModelStatusIterationLimit)
-            throw std::runtime_error(
-                "highs_lp: kHighsModelStatusIterationLimit.");
-        if(status == kHighsModelStatusUnknown)
-            throw std::runtime_error("highs_lp: kHighsModelStatusUnknown.");
-        if(status == kHighsModelStatusSolutionLimit)
-            throw std::runtime_error(
-                "highs_lp: kHighsModelStatusSolutionLimit.");
-        if(status == kHighsModelStatusInterrupt)
-            throw std::runtime_error("highs_lp: kHighsModelStatusInterrupt.");
     }
 };
 

@@ -1,19 +1,28 @@
 #undef NDEBUG
 #include <gtest/gtest.h>
 
+#include <cstddef>
+#include <functional>
+#include <initializer_list>
+#include <iterator>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "mippp/container/unordered_dense_map.hpp"
 
-using mippp::unordered_dense_map;
+using namespace mippp;
+
+namespace {
 
 using map_t = unordered_dense_map<int, int>;
 
-// Transparent functors so heterogeneous lookup on a std::string map can be
-// driven by a std::string_view without materialising a std::string.
+// transparent functors so heterogeneous lookup on a std::string map can be
+// driven by a std::string_view without materializing a std::string
 struct sv_hash {
     using is_transparent = void;
     std::size_t operator()(std::string_view s) const {
@@ -28,12 +37,27 @@ struct sv_eq {
 };
 using string_map_t = unordered_dense_map<std::string, int, sv_hash, sv_eq>;
 
-// --------------------------------------------------------------------------
-// member typedefs
-// --------------------------------------------------------------------------
+// the map holds exactly these entries, whatever their order
+template <typename M>
+void ASSERT_MAP_ENTRIES(
+    const M & m, std::initializer_list<typename M::value_type> entries) {
+    ASSERT_EQ(m.size(), entries.size());
+    for(const auto & [k, v] : entries) {
+        ASSERT_TRUE(m.contains(k));
+        ASSERT_EQ(m.at(k), v);
+    }
+}
+
+}  // namespace
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////// Member typedefs mirror std::unordered_map ////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 GTEST_TEST(unordered_dense_map, member_typedefs) {
     static_assert(std::is_same_v<map_t::key_type, int>);
     static_assert(std::is_same_v<map_t::mapped_type, int>);
+    // deliberate deviation: value_type has a mutable key (dense vector store)
     static_assert(std::is_same_v<map_t::value_type, std::pair<int, int>>);
     static_assert(std::is_same_v<map_t::size_type, std::size_t>);
     static_assert(std::is_same_v<map_t::difference_type, std::ptrdiff_t>);
@@ -44,9 +68,10 @@ GTEST_TEST(unordered_dense_map, member_typedefs) {
         std::is_same_v<map_t::const_reference, const std::pair<int, int> &>);
 }
 
-// --------------------------------------------------------------------------
-// construction
-// --------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+///////////// Construction, assignment and swap preserve entries //////////////
+///////////////////////////////////////////////////////////////////////////////
+
 GTEST_TEST(unordered_dense_map, default_ctor) {
     map_t m;
     ASSERT_TRUE(m.empty());
@@ -56,25 +81,19 @@ GTEST_TEST(unordered_dense_map, default_ctor) {
 
 GTEST_TEST(unordered_dense_map, initializer_list_ctor) {
     map_t m{{1, 10}, {2, 20}, {3, 30}};
-    ASSERT_EQ(m.size(), 3u);
-    ASSERT_EQ(m.at(1), 10);
-    ASSERT_EQ(m.at(2), 20);
-    ASSERT_EQ(m.at(3), 30);
+    ASSERT_MAP_ENTRIES(m, {{1, 10}, {2, 20}, {3, 30}});
 }
 
 GTEST_TEST(unordered_dense_map, initializer_list_ctor_dedups) {
     // first occurrence of a key wins (try_emplace semantics)
     map_t m{{1, 10}, {1, 99}};
-    ASSERT_EQ(m.size(), 1u);
-    ASSERT_EQ(m.at(1), 10);
+    ASSERT_MAP_ENTRIES(m, {{1, 10}});
 }
 
 GTEST_TEST(unordered_dense_map, range_ctor) {
     std::vector<std::pair<int, int>> v{{1, 10}, {2, 20}};
     map_t m(v.begin(), v.end());
-    ASSERT_EQ(m.size(), 2u);
-    ASSERT_EQ(m.at(1), 10);
-    ASSERT_EQ(m.at(2), 20);
+    ASSERT_MAP_ENTRIES(m, {{1, 10}, {2, 20}});
 }
 
 GTEST_TEST(unordered_dense_map, copy_ctor_is_independent) {
@@ -91,16 +110,14 @@ GTEST_TEST(unordered_dense_map, copy_ctor_is_independent) {
 GTEST_TEST(unordered_dense_map, move_ctor) {
     map_t a{{1, 10}, {2, 20}};
     map_t b(std::move(a));
-    ASSERT_EQ(b.size(), 2u);
-    ASSERT_EQ(b.at(2), 20);
+    ASSERT_MAP_ENTRIES(b, {{1, 10}, {2, 20}});
 }
 
 GTEST_TEST(unordered_dense_map, copy_assign_is_independent) {
     map_t a{{1, 10}};
     map_t b{{5, 50}, {6, 60}};
     b = a;
-    ASSERT_EQ(b.size(), 1u);
-    ASSERT_EQ(b.at(1), 10);
+    ASSERT_MAP_ENTRIES(b, {{1, 10}});
     b[1] = 999;
     ASSERT_EQ(a.at(1), 10);
 }
@@ -109,33 +126,30 @@ GTEST_TEST(unordered_dense_map, move_assign) {
     map_t a{{1, 10}, {2, 20}};
     map_t b;
     b = std::move(a);
-    ASSERT_EQ(b.size(), 2u);
-    ASSERT_EQ(b.at(1), 10);
+    ASSERT_MAP_ENTRIES(b, {{1, 10}, {2, 20}});
 }
 
 GTEST_TEST(unordered_dense_map, initializer_list_assign) {
     map_t m{{9, 90}};
     m = {{1, 10}, {2, 20}};
-    ASSERT_EQ(m.size(), 2u);
     ASSERT_FALSE(m.contains(9));
-    ASSERT_EQ(m.at(1), 10);
+    ASSERT_MAP_ENTRIES(m, {{1, 10}, {2, 20}});
 }
 
 GTEST_TEST(unordered_dense_map, swap) {
     map_t a{{1, 10}};
     map_t b{{2, 20}, {3, 30}};
     a.swap(b);
-    ASSERT_EQ(a.size(), 2u);
-    ASSERT_EQ(b.size(), 1u);
-    ASSERT_TRUE(a.contains(2));
-    ASSERT_TRUE(b.contains(1));
+    ASSERT_MAP_ENTRIES(a, {{2, 20}, {3, 30}});
+    ASSERT_MAP_ENTRIES(b, {{1, 10}});
     // lookup still works after swap -> internal store pointers stayed valid
     ASSERT_EQ(a.at(3), 30);
 }
 
-// --------------------------------------------------------------------------
-// insertion
-// --------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+//////////// Insertion inserts a key once ; *_assign overwrites ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
 GTEST_TEST(unordered_dense_map, insert_returns_pair) {
     map_t m;
     auto [it, ok] = m.insert({1, 10});
@@ -172,15 +186,13 @@ GTEST_TEST(unordered_dense_map, range_insert) {
     std::vector<std::pair<int, int>> v{{1, 10}, {2, 20}, {2, 99}};
     map_t m;
     m.insert(v.begin(), v.end());
-    ASSERT_EQ(m.size(), 2u);
-    ASSERT_EQ(m.at(2), 20);
+    ASSERT_MAP_ENTRIES(m, {{1, 10}, {2, 20}});
 }
 
 GTEST_TEST(unordered_dense_map, initializer_list_insert) {
     map_t m{{1, 10}};
     m.insert({{2, 20}, {3, 30}});
-    ASSERT_EQ(m.size(), 3u);
-    ASSERT_EQ(m.at(3), 30);
+    ASSERT_MAP_ENTRIES(m, {{1, 10}, {2, 20}, {3, 30}});
 }
 
 GTEST_TEST(unordered_dense_map, insert_or_assign) {
@@ -192,8 +204,7 @@ GTEST_TEST(unordered_dense_map, insert_or_assign) {
     auto [it2, ok2] = m.insert_or_assign(1, 99);
     ASSERT_FALSE(ok2);           // existed
     ASSERT_EQ(it2->second, 99);  // but value replaced
-    ASSERT_EQ(m.at(1), 99);
-    ASSERT_EQ(m.size(), 1u);
+    ASSERT_MAP_ENTRIES(m, {{1, 99}});
 }
 
 GTEST_TEST(unordered_dense_map, subscript_inserts_and_accesses) {
@@ -209,9 +220,10 @@ GTEST_TEST(unordered_dense_map, subscript_inserts_and_accesses) {
     ASSERT_EQ(m.at(2), 0);
 }
 
-// --------------------------------------------------------------------------
-// lookup
-// --------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+/////////////////// Lookup reaches exactly the stored keys ////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 GTEST_TEST(unordered_dense_map, find) {
     map_t m{{1, 10}, {2, 20}};
     ASSERT_NE(m.find(1), m.end());
@@ -258,20 +270,17 @@ GTEST_TEST(unordered_dense_map, equal_range) {
     ASSERT_EQ(cr.first->second, 20);
 }
 
-// --------------------------------------------------------------------------
-// erasure (swap-and-pop)
-// --------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+//////////// Erasure is swap-and-pop : O(1), order not preserved //////////////
+///////////////////////////////////////////////////////////////////////////////
+
 GTEST_TEST(unordered_dense_map, erase_by_key) {
     map_t m{{1, 10}, {2, 20}, {3, 30}};
     ASSERT_EQ(m.erase(2), 1u);
     ASSERT_EQ(m.erase(2), 0u);  // already gone
     ASSERT_EQ(m.erase(99), 0u);
-    ASSERT_EQ(m.size(), 2u);
     ASSERT_FALSE(m.contains(2));
-    ASSERT_TRUE(m.contains(1));
-    ASSERT_TRUE(m.contains(3));
-    ASSERT_EQ(m.at(1), 10);
-    ASSERT_EQ(m.at(3), 30);
+    ASSERT_MAP_ENTRIES(m, {{1, 10}, {3, 30}});
 }
 
 GTEST_TEST(unordered_dense_map, erase_last_element) {
@@ -307,8 +316,11 @@ GTEST_TEST(unordered_dense_map, erase_iterator_returns_erased_slot) {
     ASSERT_EQ(m.size(), 2u);
     ASSERT_FALSE(m.contains(1));
     // flat-map convention: returns iterator to the same slot (now the
-    // swapped-in element), or end() if the last element was erased.
+    // swapped-in element)...
     ASSERT_EQ(next, m.begin() + static_cast<std::ptrdiff_t>(slot));
+    // ...or end() when the erased slot was the last: nothing swaps in
+    auto after_last = m.erase(std::prev(m.end()));
+    ASSERT_EQ(after_last, m.end());
 }
 
 GTEST_TEST(unordered_dense_map, erase_all_via_iterator_idiom) {
@@ -326,6 +338,18 @@ GTEST_TEST(unordered_dense_map, erase_all_via_iterator_idiom) {
         ASSERT_EQ(m.contains(i), (i % 3 != 0)) << "key " << i;
 }
 
+GTEST_TEST(unordered_dense_map, erase_if_reports_num_erased) {
+    // the erase_if free function applies the idiom above (column_manager's
+    // purge_pool relies on it: std::erase_if has no overload for this map)
+    map_t m;
+    for(int i = 0; i < 20; ++i) m[i] = i;
+    auto erased = erase_if(m, [](const auto & e) { return e.first % 3 == 0; });
+    ASSERT_EQ(erased, 7u);
+    ASSERT_EQ(m.size(), 13u);
+    for(int i = 0; i < 20; ++i)
+        ASSERT_EQ(m.contains(i), (i % 3 != 0)) << "key " << i;
+}
+
 GTEST_TEST(unordered_dense_map, erase_const_iterator) {
     map_t m{{1, 10}, {2, 20}};
     map_t::const_iterator cit = m.cbegin();
@@ -335,9 +359,10 @@ GTEST_TEST(unordered_dense_map, erase_const_iterator) {
     ASSERT_FALSE(m.contains(key));
 }
 
-// --------------------------------------------------------------------------
-// capacity / iteration / values
-// --------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+//////////// Dense storage : iteration walks the backing vector ///////////////
+///////////////////////////////////////////////////////////////////////////////
+
 GTEST_TEST(unordered_dense_map, clear) {
     map_t m{{1, 10}, {2, 20}};
     m.clear();
@@ -385,10 +410,12 @@ GTEST_TEST(unordered_dense_map, iterator_mutates_value) {
     ASSERT_EQ(m.at(1), 42);
 }
 
-// --------------------------------------------------------------------------
-// move-only mapped type -> exercises single-key / piecewise construction
-// --------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+///////////////////// Move-only mapped types are supported ////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
 GTEST_TEST(unordered_dense_map, move_only_value) {
+    // exercises the single-key / piecewise construction paths
     unordered_dense_map<int, std::unique_ptr<int>> m;
     m.try_emplace(1, std::make_unique<int>(10));
     m[2] = std::make_unique<int>(20);
@@ -403,9 +430,10 @@ GTEST_TEST(unordered_dense_map, move_only_value) {
     ASSERT_EQ(*m.at(3), 30);
 }
 
-// --------------------------------------------------------------------------
-// heterogeneous lookup (only when Hash & KeyEqual are transparent)
-// --------------------------------------------------------------------------
+///////////////////////////////////////////////////////////////////////////////
+///////// Heterogeneous lookup requires transparent Hash and KeyEqual /////////
+///////////////////////////////////////////////////////////////////////////////
+
 GTEST_TEST(unordered_dense_map, heterogeneous_lookup) {
     string_map_t m;
     m["hello"] = 1;
@@ -430,19 +458,22 @@ GTEST_TEST(unordered_dense_map, heterogeneous_lookup) {
     ASSERT_FALSE(m.contains(std::string_view{"world"}));
 }
 
-// A non-transparent map must NOT expose heterogeneous overloads.
+namespace {
+// probes whether M exposes find(K) -- the heterogeneous overloads must be
+// SFINAE'd away on non-transparent maps
 template <typename M, typename K, typename = void>
 struct has_hetero_find : std::false_type {};
 template <typename M, typename K>
 struct has_hetero_find<
     M, K, std::void_t<decltype(std::declval<M &>().find(std::declval<K>()))>>
     : std::true_type {};
+}  // namespace
 
 GTEST_TEST(unordered_dense_map, no_heterogeneous_lookup_by_default) {
     // std::hash<std::string> is not transparent -> find(string_view) disabled
     using plain = unordered_dense_map<std::string, int>;
     static_assert(has_hetero_find<plain, std::string>::value);
     static_assert(!has_hetero_find<plain, std::string_view>::value);
-    // transparent map does expose it
+    // transparent map does expose it: the negative above is not vacuous
     static_assert(has_hetero_find<string_map_t, std::string_view>::value);
 }

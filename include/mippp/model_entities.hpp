@@ -9,7 +9,9 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <type_traits>
 
+#include "mippp/mapping.hpp"
 #include "mippp/utility/zero.hpp"
 #include "mippp/model_concepts.hpp"
 
@@ -87,21 +89,39 @@ public:
 //////////////////////////// Strong types mappings ////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// Adapts any mapping storage into one keyed by a model entity. The storage
+// is lifted through views::mapping_all (reference semantics for lvalues,
+// ownership for rvalues); a lookup passes the entity itself when the storage
+// understands it (callables, associative maps keyed by the entity) and falls
+// back to the entity's uid() (arrays, vectors).
 template <typename Entity, typename Map>
-class entity_mapping {
+class entity_mapping : public mapping_view_base {
 private:
-    Map _map;
+    [[no_unique_address]] views::mapping_all_t<Map> _map;
+
+    // what a const access reaches: ref views are shallow-const (constness
+    // carried by Map itself), owning views are deep-const
+    using const_probe = std::conditional_t<std::is_reference_v<Map>,
+                                           std::remove_reference_t<Map>,
+                                           const Map>;
 
 public:
-    entity_mapping(Map && t) : _map(std::move(t)) {}
+    constexpr entity_mapping(Map && map)
+        : _map(views::mapping_all(std::forward<Map>(map))) {}
 
-    auto operator[](const Entity & x) const {
-        if constexpr(requires(Map & m) { m[static_cast<std::size_t>(x.id())]; })
-            return _map[static_cast<std::size_t>(x.id())];
-        else if constexpr(requires(Map & m) { m(x); })
-            return _map(x);
-        else if constexpr(requires(Map & m) { m.at(x); })
-            return _map.at(x);
+    [[nodiscard]] constexpr decltype(auto) operator[](const Entity & e) {
+        if constexpr(detail::mapping_subscriptable<
+                         std::remove_reference_t<Map>, const Entity &>)
+            return _map[e];
+        else
+            return _map[e.uid()];
+    }
+    [[nodiscard]] constexpr decltype(auto) operator[](const Entity & e) const {
+        if constexpr(detail::mapping_subscriptable<const_probe,
+                                                   const Entity &>)
+            return _map[e];
+        else
+            return _map[e.uid()];
     }
 };
 

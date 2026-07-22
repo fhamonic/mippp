@@ -17,6 +17,7 @@ using MSKint32t = int32_t;
 using MSKint64t = int64_t;
 using MSKrealt = double;
 using MSKstring_t = char *;
+using MSKbooleant = int;
 
 using MSKrescodee = int;
 
@@ -149,7 +150,28 @@ MSKrescodee MSK_getdouparam(MSKtask_t task, MSKdparame param,
                             MSKrealt * parvalue);
 
 enum MSKsoltypee : int { MSK_SOL_ITR = 0, MSK_SOL_BAS = 1, MSK_SOL_ITG = 2 };
+
 MSKrescodee MSK_optimize(MSKtask_t task);
+enum MSKrestrmcode : MSKrescodee {
+    MSK_RES_OK = 0,
+    MSK_RES_TRM_MAX_ITERATIONS = 100000,
+    MSK_RES_TRM_MAX_TIME = 100001,
+    MSK_RES_TRM_OBJECTIVE_RANGE = 100002,
+    MSK_RES_TRM_STALL = 100006,
+    MSK_RES_TRM_USER_CALLBACK = 100007,
+    MSK_RES_TRM_MIO_NUM_RELAXS = 100008,
+    MSK_RES_TRM_MIO_NUM_BRANCHES = 100009,
+    MSK_RES_TRM_NUM_MAX_NUM_INT_SOLUTIONS = 100015,
+    MSK_RES_TRM_MAX_NUM_SETBACKS = 100020,
+    MSK_RES_TRM_NUMERICAL_PROBLEM = 100025,
+    MSK_RES_TRM_LOST_RACE = 100027,
+    MSK_RES_TRM_INTERNAL = 100030,
+    MSK_RES_TRM_INTERNAL_STOP = 100031,
+    MSK_RES_TRM_SERVER_MAX_TIME = 100032,
+    MSK_RES_TRM_SERVER_MAX_MEMORY = 100033
+};
+MSKrescodee MSK_optimizetrm(MSKtask_t task, MSKrestrmcode * trmcode);
+
 enum MSKprostae : int {
     MSK_PRO_STA_UNKNOWN = 0,
     MSK_PRO_STA_PRIM_AND_DUAL_FEAS = 1,
@@ -180,6 +202,9 @@ enum MSKstakeye : int {
     MSK_SK_FIX = 5,
     MSK_SK_INF = 6
 };
+
+MSKrescodee MSK_solutiondef(MSKtask_t task, MSKsoltypee whichsol,
+                            MSKbooleant * isdef);
 enum MSKsolstae : int {
     MSK_SOL_STA_UNKNOWN = 0,
     MSK_SOL_STA_OPTIMAL = 1,
@@ -192,6 +217,8 @@ enum MSKsolstae : int {
     MSK_SOL_STA_DUAL_ILLPOSED_CER = 8,
     MSK_SOL_STA_INTEGER_OPTIMAL = 9
 };
+MSKrescodee MSK_getsolsta(MSKtask_t task, MSKsoltypee whichsol,
+                          MSKsolstae * solutionsta);
 MSKrescodee MSK_getsolution(MSKtask_t task, MSKsoltypee whichsol,
                             MSKprostae * problemsta, MSKsolstae * solutionsta,
                             MSKstakeye * skc, MSKstakeye * skx,
@@ -329,8 +356,8 @@ MSKrescodee MSK_putcallbackfunc(MSKtask_t task, MSKcallbackfunc func,
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace mosek::v11 {
@@ -384,11 +411,14 @@ namespace mosek::v11 {
     F(MSK_putdouparam, putdouparam)                     \
     F(MSK_getdouparam, getdouparam)                     \
     F(MSK_optimize, optimize)                           \
+    F(MSK_optimizetrm, optimizetrm)                     \
     F(MSK_getprosta, getprosta)                         \
     F(MSK_getprimalobj, getprimalobj)                   \
     F(MSK_putxx, putxx)                                 \
     F(MSK_putxxslice, putxxslice)                       \
     F(MSK_getxx, getxx)                                 \
+    F(MSK_solutiondef, solutiondef)                     \
+    F(MSK_getsolsta, getsolsta)                         \
     F(MSK_getsolution, getsolution)                     \
     F(MSK_deletesolution, deletesolution)               \
     F(MSK_getreducedcosts, getreducedcosts)

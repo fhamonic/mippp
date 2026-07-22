@@ -23,9 +23,15 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
     template <typename Map>
-    using variable_mapping = entity_mapping<variable, Map>;
+    struct variable_mapping : entity_mapping<variable, Map> {
+        variable_mapping(Map && t)
+            : entity_mapping<variable, Map>(std::move(t)) {}
+    };
     template <typename Map>
-    using constraint_mapping = entity_mapping<constraint, Map>;
+    struct constraint_mapping : entity_mapping<constraint, Map> {
+        constraint_mapping(Map && t)
+            : entity_mapping<constraint, Map>(std::move(t)) {}
+    };
 
     struct variable_params {
         scalar obj_coef = scalar{0};
@@ -224,14 +230,68 @@ public:
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown,  // default value
+            status::optimal,
+            status::optimal_infeasible_unscaled,
+            status::infeasible_or_unbounded,
+            status::infeasible,
+            status::unbounded,
+            status::failed>;
 
+    status_variant _status;
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        using namespace status;
         if(num_variables() == 0u) {
             return;
         }
-        SoPlex.optimize(model);
+        switch(SoPlex.optimize(model)) {
+            case OPTIMAL:
+                _status.emplace<optimal>();
+                return;
+            case OPTIMAL_UNSCALED_VIOLATIONS:
+                _status.emplace<optimal_infeasible_unscaled>();
+                return;
+            case INForUNBD:
+                _status.emplace<infeasible_or_unbounded>();
+                return;
+            case INFEASIBLE:
+                _status.emplace<infeasible>();
+                return;
+            case UNBOUNDED:
+                _status.emplace<unbounded>();
+                return;
+            case ERROR:
+            case NO_RATIOTESTER:
+            case NO_PRICER:
+            case NO_SOLVER:
+            case NOT_INIT:
+            case ABORT_CYCLING:
+            case ABORT_TIME:
+            case ABORT_ITER:
+            case ABORT_VALUE:
+                _status.emplace<failed>();
+                return;
+            case SINGULAR:
+            case NO_PROBLEM:
+            case REGULAR:
+            case RUNNING:
+            case UNKNOWN:
+            default:
+                _status.emplace<unknown>();
+        }
     }
-
     double get_solution_value() {
         return objective_offset + SoPlex.objValueReal(model);
     }

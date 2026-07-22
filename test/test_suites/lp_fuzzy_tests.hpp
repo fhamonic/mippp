@@ -697,11 +697,15 @@ private:
 
     template <typename M>
     static std::string _status_str(M & model) {
-        if(model.proven_optimal())
+        if constexpr(has_refinable_lp_status<M>) {
+            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+                model.refine_lp_status();
+        }
+        if(is_a<status::optimal>(model.solve_status()))
             return std::format("optimal (value={})",
                                model.get_solution_value());
-        if(model.proven_infeasible()) return "infeasible";
-        if(model.proven_unbounded()) return "unbounded";
+        if(is_a<status::infeasible>(model.solve_status())) return "infeasible";
+        if(is_a<status::unbounded>(model.solve_status())) return "unbounded";
         return "unknown";
     }
 
@@ -711,10 +715,13 @@ private:
         _reference.solve();
         _log(std::format("    -> tested: {}, reference: {}",
                          _status_str(_tested), _status_str(_reference)));
-        EXPECT_EQ(_tested.proven_optimal(), _reference.proven_optimal());
+        EXPECT_EQ(is_a<status::optimal>(_tested.solve_status()),
+                  is_a<status::optimal>(_reference.solve_status()));
         // infeasible vs unbounded is not compared strictly: solvers and
         // presolves may not always distinguish the two
-        if(!_tested.proven_optimal() || !_reference.proven_optimal()) return;
+        if(!is_a<status::optimal>(_tested.solve_status()) ||
+           !is_a<status::optimal>(_reference.solve_status()))
+            return;
         const double reference_value = _reference.get_solution_value();
         const double value_tolerance =
             solution_tolerance * (1.0 + std::fabs(reference_value));

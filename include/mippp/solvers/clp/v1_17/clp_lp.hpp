@@ -30,9 +30,15 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
     template <typename Map>
-    using variable_mapping = entity_mapping<variable, Map>;
+    struct variable_mapping : entity_mapping<variable, Map> {
+        variable_mapping(Map && t)
+            : entity_mapping<variable, Map>(std::move(t)) {}
+    };
     template <typename Map>
-    using constraint_mapping = entity_mapping<constraint, Map>;
+    struct constraint_mapping : entity_mapping<constraint, Map> {
+        constraint_mapping(Map && t)
+            : entity_mapping<constraint, Map>(std::move(t)) {}
+    };
 
 private:
     const clp_api & Clp;
@@ -453,31 +459,51 @@ public:
     }
     // auto get_constraint(const constraint constr) const;
 
-    // void set_basic(variable v);
-    // void set_non_basic(variable v);
-
-    // void set_basic(constraint v);
-    // void set_non_basic(constraint v);
-
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(scalar tol) {
         Clp.setPrimalTolerance(model, tol);
     }
     scalar get_feasibility_tolerance() { return Clp.primalTolerance(model); }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown, // default value
+            status::optimal,
+            status::infeasible,
+            status::unbounded>;
 
+    status_variant _status;
+
+    status_variant _get_status() {
+        using namespace status;
+        switch(Clp.status(model)) {
+            case 0: return optimal{};
+            case 1: return infeasible{};
+            case 2: return unbounded{};
+            default:
+                return unknown{};
+        }
+    }    
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
-            add_variable();
+            // _status.emplace<status::optimal>() ?
             return;
         }
         Clp.primal(model, 0);
+        _status = _get_status();
     }
-
-    bool proven_optimal() { return Clp.status(model) == 0; }
-    bool proven_infeasible() { return Clp.status(model) == 1; }
-    bool proven_unbounded() { return Clp.status(model) == 2; }
-
     scalar get_solution_value() { return Clp.getObjValue(model); }
-
     auto get_solution() {
         return variable_mapping(Clp.primalColumnSolution(model));
     }

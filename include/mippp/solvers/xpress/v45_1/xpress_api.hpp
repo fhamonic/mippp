@@ -51,7 +51,46 @@ enum IntergerAttribute : int {
     XPRS_COLS = 1018,
     XPRS_ROWS = 1001,
     XPRS_ELEMS = 1006,
-    XPRS_LPSTATUS = 1010
+    XPRS_LPSTATUS = 1010,
+    XPRS_MIPSTATUS = 1011,
+    XPRS_STOPSTATUS = 1179
+};
+enum LPStatus : int {
+    XPRS_LP_UNSTARTED = 0,
+    XPRS_LP_OPTIMAL = 1,
+    XPRS_LP_INFEAS = 2,
+    XPRS_LP_CUTOFF = 3,
+    XPRS_LP_UNFINISHED = 4,
+    XPRS_LP_UNBOUNDED = 5,
+    XPRS_LP_CUTOFF_IN_DUAL = 6,
+    XPRS_LP_UNSOLVED = 7,
+    XPRS_LP_NONCONVEX = 8
+};
+enum MIPStatus : int {
+    XPRS_MIP_NOT_LOADED = 0,
+    XPRS_MIP_LP_NOT_OPTIMAL = 1,
+    XPRS_MIP_LP_OPTIMAL = 2,
+    XPRS_MIP_NO_SOL_FOUND = 3,
+    XPRS_MIP_SOLUTION = 4,
+    XPRS_MIP_INFEAS = 5,
+    XPRS_MIP_OPTIMAL = 6,
+    XPRS_MIP_UNBOUNDED = 7
+};
+enum STOPStatus : int {
+    XPRS_STOP_NONE = 0,
+    XPRS_STOP_TIMELIMIT = 1,
+    XPRS_STOP_CTRLC = 2,
+    XPRS_STOP_NODELIMIT = 3,
+    XPRS_STOP_ITERLIMIT = 4,
+    XPRS_STOP_MIPGAP = 5,
+    XPRS_STOP_SOLLIMIT = 6,
+    XPRS_STOP_GENERICERROR = 7,
+    XPRS_STOP_MEMORYERROR = 8,
+    XPRS_STOP_USER = 9,
+    XPRS_STOP_SOLVECOMPLETE = 10,
+    XPRS_STOP_LICENSELOST = 11,
+    XPRS_STOP_NUMERICALERROR = 13,
+    XPRS_STOP_WORKLIMIT = 14
 };
 int XPRSgetintattrib(XPRSprob prob, int attrib, int * p_value);
 int XPRSgetstrattrib(XPRSprob prob, int attrib, char * value);
@@ -73,18 +112,6 @@ int XPRSgetduals(XPRSprob prob, int * status, double duals[], int first,
                  int last);
 int XPRSgetredcosts(XPRSprob prob, int * status, double djs[], int first,
                     int last);
-
-enum LPStatus : int {
-    XPRS_LP_UNSTARTED = 0,
-    XPRS_LP_OPTIMAL = 1,
-    XPRS_LP_INFEAS = 2,
-    XPRS_LP_CUTOFF = 3,
-    XPRS_LP_UNFINISHED = 4,
-    XPRS_LP_UNBOUNDED = 5,
-    XPRS_LP_CUTOFF_IN_DUAL = 6,
-    XPRS_LP_UNSOLVED = 7,
-    XPRS_LP_NONCONVEX = 8
-};
 
 enum DblCtrlPar : int {
     XPRS_FEASTOL = 7003,
@@ -127,8 +154,8 @@ int XPRSloaddelayedrows(XPRSprob prob, int nrows, const int rowind[]);
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace xpress::v45_1 {

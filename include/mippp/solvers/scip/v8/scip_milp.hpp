@@ -26,9 +26,15 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
     template <typename Map>
-    using variable_mapping = entity_mapping<variable, Map>;
+    struct variable_mapping : entity_mapping<variable, Map> {
+        variable_mapping(Map && t)
+            : entity_mapping<variable, Map>(std::move(t)) {}
+    };
     template <typename Map>
-    using constraint_mapping = entity_mapping<constraint, Map>;
+    struct constraint_mapping : entity_mapping<constraint, Map> {
+        constraint_mapping(Map && t)
+            : entity_mapping<constraint, Map>(std::move(t)) {}
+    };
 
     struct variable_params {
         scalar obj_coef = scalar{0};
@@ -63,7 +69,7 @@ public:
     }
 
     constexpr scip_milp(const scip_milp &) = delete;
-    constexpr scip_milp(scip_milp && other) noexcept
+    scip_milp(scip_milp && other) noexcept
         : SCIP(other.SCIP)
         , model(other.model)
         , variables(std::move(other.variables))
@@ -96,8 +102,8 @@ private:
         "no branching could be created",               // SCIP_BRANCHERROR
         "function not implemented"};                   // SCIP_NOTIMPLEMENTED
 
-    static constexpr int check(int retval) {
-        if(retval > 0) return retval;
+    static constexpr void check(int retval) {
+        if(retval > 0) return;
         throw std::runtime_error(std::string("scip_milp: ") +
                                  error_messages[-retval]);
     }
@@ -321,7 +327,6 @@ public:
         check(SCIP.chgVarType(model, variables[v.uid()], SCIP_VARTYPE_BINARY,
                               &infeas));
     }
-
     void set_objective_coefficient(variable v, double c) {
         check(SCIP.chgVarObj(model, variables[v.uid()], c));
     }
@@ -334,7 +339,6 @@ public:
     void set_variable_name(variable v, std::string name) {
         check(SCIP.chgVarName(model, variables[v.uid()], name.c_str()));
     }
-
     double get_objective_coefficient(variable v) {
         return SCIP.varGetObj(variables[v.uid()]);
     }
@@ -459,6 +463,9 @@ public:
     //     return std::string(name);
     // }
 
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Callbacks ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     class callback_handle_base {
     protected:
@@ -485,12 +492,10 @@ public:
         }
 
         void reject_solution() { *result = SCIP_INFEASIBLE; }
-
         void add_lazy_constraint(linear_constraint auto && lc) {
             milp.add_constraint(lc);
             *result = SCIP_CONSADDED;
         }
-
         // double get_solution_value() {
         //     double obj;
         //     check(SCIP.callbackgetcandidatepoint(context, nullptr, 0, 0,
@@ -535,7 +540,7 @@ public:
         auto ptr = static_cast<scip_milp **>(malloc(sizeof(scip_milp **)));
         *ptr = this;
 
-        std::println("this = {:p}", this);
+        std::println("this = {:p}", static_cast<void *>(this));
 
         check(SCIP.includeConshdlrBasic(
             model, &candidate_solution_constraint_handler,
@@ -543,7 +548,9 @@ public:
             -1, -1, false, nullptr, nullptr, nullptr, nullptr,
             reinterpret_cast<SCIP_CONSHDLRDATA *>(ptr)));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
         check(SCIPsetRealParam(model, "numerics/feastol", tol));
     }
@@ -552,7 +559,6 @@ public:
         check(SCIPgetRealParam(model, "numerics/feastol", &tol));
         return tol;
     }
-
     void set_optimality_tolerance(double tol) {
         check(SCIPsetRealParam(model, "limits/gap", tol));
     }
@@ -561,11 +567,64 @@ public:
         check(SCIPgetRealParam(model, "limits/gap", &tol));
         return tol;
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown,
+            status::optimal,
+            status::infeasible_or_unbounded,
+            status::infeasible,
+            status::unbounded,
+            status::limit_reached,
+            status::time_limit,
+            status::memory_limit,
+            status::node_limit, 
+            status::solution_limit,
+            status::failed,
+            status::numerical_failure,
+            status::interrupted>;
 
-    void solve() { check(SCIP.solve(model)); }
+    status_variant _status;
 
+    status_variant _get_status() {
+        using namespace status;
+        switch(SCIP.getStatus(model)) {
+            case SCIP_STATUS_OPTIMAL:       return optimal{};
+            case SCIP_STATUS_INFORUNBD:     return infeasible_or_unbounded{};
+            case SCIP_STATUS_INFEASIBLE:    return infeasible{};
+            case SCIP_STATUS_UNBOUNDED:     return unbounded{};
+            case SCIP_STATUS_TIMELIMIT:     return time_limit{};
+            case SCIP_STATUS_MEMLIMIT:      return memory_limit{};
+            case SCIP_STATUS_NODELIMIT:     return node_limit{};
+            case SCIP_STATUS_SOLLIMIT:      return solution_limit{};
+            case SCIP_STATUS_TOTALNODELIMIT:
+            case SCIP_STATUS_GAPLIMIT:
+            case SCIP_STATUS_PRIMALLIMIT:
+            case SCIP_STATUS_DUALLIMIT:
+            case SCIP_STATUS_BESTSOLLIMIT:
+            case SCIP_STATUS_RESTARTLIMIT:   return limit_reached{};
+            case SCIP_STATUS_STALLNODELIMIT: return numerical_failure{};
+            case SCIP_STATUS_TERMINATE:
+            case SCIP_STATUS_USERINTERRUPT:  return interrupted{};
+            case SCIP_STATUS_UNKNOWN:
+            default:
+                return unknown{};
+        }
+    }
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void solve() {
+        check(SCIP.solve(model));
+        _status = _get_status();
+    }
     double get_solution_value() { return SCIP.getPrimalbound(model); }
-
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);

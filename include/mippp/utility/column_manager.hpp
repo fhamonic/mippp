@@ -317,7 +317,7 @@ public:
     template <typename F>
         requires detail::column_predicate<F, in_pool_entry>
     std::size_t purge_pool(F && predicate) {
-        return std::erase_if(_columns, [&](map_value_type & node) {
+        return erase_if(_columns, [&](map_value_type & node) {
             auto * state = std::get_if<in_pool_state>(&node.second);
             return state != nullptr &&
                    predicate(in_pool_entry{node.first, *state});

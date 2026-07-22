@@ -72,7 +72,7 @@ If you already write models in Python or Julia, almost everything transfers: MIP
 | one constraint | `addConstr` | `@constraint` | `prob += lhs <= rhs` | `add_constraint(lhs <= rhs)` |
 | constraint family | `addConstrs(... for i in I)` | `@constraint(m, [i in I], ...)` | loop | `add_constraints(I, generator)` |
 | solve | `optimize()` | `optimize!` | `solve()` | `solve()` |
-| status | `model.Status` | `termination_status` | `LpStatus` | `proven_optimal()`, `termination_reason()` |
+| status | `model.Status` | `termination_status` | `LpStatus` | `is_a<status::optimal>(model.solve_status())` |
 | a value | `x.X` | `value(x)` | `x.varValue` | `sol[x]` after `auto sol = model.get_solution();` |
 | dual | `constr.Pi` | `dual(c)` | `c.pi` | `duals[c]` after `get_dual_solution()` |
 | reduced cost | `x.RC` | `reduced_cost(x)` | `x.dj` | `rc[x]` after `get_reduced_costs()` |

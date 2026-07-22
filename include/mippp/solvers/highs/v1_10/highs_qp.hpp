@@ -16,9 +16,6 @@ namespace mippp {
 namespace highs::v1_10 {
 
 class highs_qp : public highs_base {
-private:
-    int qp_status;
-
 public:
     [[nodiscard]] explicit highs_qp(const highs_api & api) : highs_base(api) {}
 
@@ -74,8 +71,9 @@ public:
             static_cast<int>(tmp_scalars.size()), kHighsHessianFormatTriangular,
             tmp_begins.data(), tmp_indices.data(), tmp_scalars.data()));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_iteration_limit(std::size_t n) {
         check(Highs.setIntOptionValue(model, "qp_iteration_limit",
                                       static_cast<int>(n)));
@@ -85,44 +83,62 @@ public:
         check(Highs.getIntOptionValue(model, "qp_iteration_limit", &n));
         return static_cast<std::size_t>(n);
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown,
+            status::optimal,
+            status::infeasible_or_unbounded,
+            status::infeasible,
+            status::unbounded,
+            status::time_limit,
+            status::iteration_limit,
+            status::failed,
+            status::interrupted>;
 
+    status_variant _status;
+
+    status_variant _get_status() {
+        using namespace status;
+        switch (Highs.getModelStatus(model)) {            
+            case kHighsModelStatusOptimal:        return optimal{};
+            case kHighsModelStatusUnboundedOrInfeasible: 
+                                                  return infeasible_or_unbounded{};
+            case kHighsModelStatusInfeasible:     return infeasible{};
+            case kHighsModelStatusUnbounded:      return unbounded{};
+            case kHighsModelStatusInterrupt:      return interrupted{};
+            case kHighsModelStatusLoadError:
+            case kHighsModelStatusModelError:
+            case kHighsModelStatusPresolveError:
+            case kHighsModelStatusSolveError:
+            case kHighsModelStatusPostsolveError: return failed{};
+            case kHighsModelStatusObjectiveBound:
+            case kHighsModelStatusObjectiveTarget:
+            case kHighsModelStatusTimeLimit:      return time_limit{};
+            case kHighsModelStatusIterationLimit: return iteration_limit{};
+            case kHighsModelStatusModelEmpty:
+            case kHighsModelStatusNotset:
+            case kHighsModelStatusUnknown:        return unknown{};        
+            default:
+                return unknown{};
+        }
+    }
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
-            qp_status = kHighsModelStatusModelEmpty;
             return;
         }
         check(Highs.run(model));
-        qp_status = Highs.getModelStatus(model);
-        check_model_status(qp_status);
+        _status = _get_status();
     }
-
-    // private:
-    //     void _refine_qp_status() {
-    //         char tmp_presolve[4];
-    //         check(Highs.getHighsStringOptionValue(model, "presolve",
-    //         tmp_presolve)); check(Highs.setHighsStringOptionValue(model,
-    //         "presolve", "off")); check(Highs.run(model)); qp_status =
-    //         Highs.getModelStatus(model);
-    //         check(Highs.setHighsStringOptionValue(model, "presolve",
-    //         tmp_presolve)); check_model_status(qp_status);
-    //     }
-
-    // public:
-    bool proven_optimal() {
-        return qp_status == kHighsModelStatusModelEmpty ||
-               qp_status == kHighsModelStatusOptimal;
-    }
-    bool proven_infeasible() {
-        // if(qp_status == kHighsModelStatusUnboundedOrInfeasible)
-        //     _refine_qp_status();
-        return qp_status == kHighsModelStatusInfeasible;
-    }
-    bool proven_unbounded() {
-        // if(qp_status == kHighsModelStatusUnboundedOrInfeasible)
-        //     _refine_qp_status();
-        return qp_status == kHighsModelStatusUnbounded;
-    }
-
     double get_solution_value() { return Highs.getObjectiveValue(model); }
     auto get_solution() {
         auto num_vars = num_variables();

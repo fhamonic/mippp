@@ -254,7 +254,7 @@ The named operations are `quadratic_expression_add`, `_negate`, `_scalar_add`, `
 
 ## Evaluating
 
-`evaluate(expr, values_map)` folds an expression against anything indexable by variable handles — a solution, or your own `entity_mapping`:
+`evaluate(expr, values_map)` folds an expression against any [`input_mapping`](mappings.md) readable by the expression's variable handles — a solution, an `entity_mapping`, or raw storage lifted with `views::mapping_all`. A values map that isn't one is rejected by a `static_assert` naming that remedy, before any template noise:
 
 ```cpp
 auto sol = model.get_solution();

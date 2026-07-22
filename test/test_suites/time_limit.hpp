@@ -216,11 +216,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             auto end = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<seconds>(end - start);
 
-            if constexpr(has_termination_reason<decltype(model)>) {
-                return std::make_pair(duration, model.termination_reason());
-            } else {
-                return std::make_pair(duration, std::monostate{});
-            }
+            return std::make_pair(duration, model.solve_status());
         };
 
         constexpr seconds limit{1.0};
@@ -238,10 +234,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
                 << "with " << num_items << " items";
             if(solve_time < 0.9 * limit) continue;
             if(++interrupted_solves == 2) {
-                using Model = decltype(this->new_model());
-                if constexpr(has_termination_reason<Model>) {
-                    ASSERT_TRUE(reason::is<reason::time_limit>(result.second));
-                }
+                ASSERT_TRUE(is_a<status::time_limit>(result.second));
                 return;
             }
         }

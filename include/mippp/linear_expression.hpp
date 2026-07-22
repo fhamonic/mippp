@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "mippp/detail/concat_view.hpp"
+#include "mippp/mapping.hpp"
 #include "mippp/utility/zero.hpp"
 
 namespace mippp {
@@ -445,6 +446,11 @@ template <linear_expression E>
 // returns a copy of the view, and doesn't exist at all when Terms is move-only.
 template <linear_expression LE, typename VM>
 constexpr auto evaluate(LE && e, const VM & values_map) {
+    static_assert(
+        input_mapping<const VM, linear_expression_variable_t<LE>>,
+        "MIP++: evaluate needs a values map readable by the expression's "
+        "variables; adapt raw storage or a callable with views::mapping_all "
+        "or an entity_mapping.");
     using scalar = linear_expression_scalar_t<LE>;
     scalar acc = static_cast<scalar>(e.constant());
     for(auto && [var, coef] : e.linear_terms()) acc += values_map[var] * coef;

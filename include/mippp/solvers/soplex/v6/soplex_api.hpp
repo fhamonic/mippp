@@ -3,8 +3,7 @@
 #if INCLUDE_SOPLEX_HEADER
 #include "soplex_interface.h"
 #else
-namespace mippp {
-namespace soplex::v6 {
+namespace mippp::soplex::v6 {
 
 void * SoPlex_create();
 void SoPlex_free(void * soplex);
@@ -27,9 +26,32 @@ double SoPlex_objValueReal(void * soplex);
 void SoPlex_getPrimalReal(void * soplex, double * primal, int dim);
 void SoPlex_getDualReal(void * soplex, double * dual, int dim);
 
-}  // namespace soplex::v6
-}  // namespace mippp
+}  // namespace mippp::soplex::v6
 #endif
+
+namespace mippp::soplex::v6 {
+enum Status {
+    ERROR = -15,
+    NO_RATIOTESTER = -14,
+    NO_PRICER = -13,
+    NO_SOLVER = -12,
+    NOT_INIT = -11,
+    ABORT_CYCLING = -8,
+    ABORT_TIME = -7,
+    ABORT_ITER = -6,
+    ABORT_VALUE = -5,
+    SINGULAR = -4,
+    NO_PROBLEM = -3,
+    REGULAR = -2,
+    RUNNING = -1,
+    UNKNOWN = 0,
+    OPTIMAL = 1,
+    UNBOUNDED = 2,
+    INFEASIBLE = 3,
+    INForUNBD = 4,
+    OPTIMAL_UNSCALED_VIOLATIONS = 5
+};
+}  // namespace mippp::soplex::v6
 
 #include "dylib.hpp"
 

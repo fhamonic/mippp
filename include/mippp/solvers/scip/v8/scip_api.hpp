@@ -9,6 +9,7 @@
 #include "scip/retcode.h"
 #include "scip/scip.h"
 #include "scip/struct_cons.h"
+#include "scip/type_stat.h"
 #else
 namespace mippp {
 namespace scip::v8 {
@@ -113,6 +114,28 @@ SCIP_RETCODE SCIPsetRealParam(SCIP * scip, const char * name, SCIP_Real value);
 SCIP_RETCODE SCIPgetRealParam(SCIP * scip, const char * name,
                               SCIP_Real * value);
 
+enum SCIP_STATUS : int {
+    SCIP_STATUS_UNKNOWN = 0,
+    SCIP_STATUS_USERINTERRUPT = 1,
+    SCIP_STATUS_NODELIMIT = 2,
+    SCIP_STATUS_TOTALNODELIMIT = 3,  // including restarts
+    SCIP_STATUS_STALLNODELIMIT = 4,
+    SCIP_STATUS_TIMELIMIT = 5,
+    SCIP_STATUS_MEMLIMIT = 6,
+    SCIP_STATUS_GAPLIMIT = 7,
+    SCIP_STATUS_PRIMALLIMIT = 16,
+    SCIP_STATUS_DUALLIMIT = 17,
+    SCIP_STATUS_SOLLIMIT = 8,
+    SCIP_STATUS_BESTSOLLIMIT = 9,  // number of incumbents
+    SCIP_STATUS_RESTARTLIMIT = 10,
+    SCIP_STATUS_OPTIMAL = 11,
+    SCIP_STATUS_INFEASIBLE = 12,
+    SCIP_STATUS_UNBOUNDED = 13,
+    SCIP_STATUS_INFORUNBD = 14,
+    SCIP_STATUS_TERMINATE = 15
+};
+SCIP_STATUS SCIPgetStatus(SCIP * scip);
+
 SCIP_RETCODE SCIPsolve(SCIP * scip);
 SCIP_Real SCIPgetPrimalbound(SCIP * scip);
 SCIP_SOL * SCIPgetBestSol(SCIP * scip);
@@ -189,11 +212,11 @@ using SCIP_CONSLOCK = SCIP_RETCODE(SCIP * scip, SCIP_CONSHDLR * conshdlr,
 using SCIP_CONSHDLRDATA = struct SCIP_ConshdlrData;
 
 SCIP_RETCODE SCIPincludeConshdlrBasic(
-    SCIP * scip, /**< SCIP data structure */
-    SCIP_CONSHDLR **
-        conshdlrptr, /**< reference to a constraint handler pointer, or nullptr */
-    const char * name,   /**< name of constraint handler */
-    const char * desc,   /**< description of constraint handler */
+    SCIP * scip,                  /**< SCIP data structure */
+    SCIP_CONSHDLR ** conshdlrptr, /**< reference to a constraint handler
+                                     pointer, or nullptr */
+    const char * name,            /**< name of constraint handler */
+    const char * desc,            /**< description of constraint handler */
     int enfopriority,    /**< priority of the constraint handler for constraint
                             enforcing */
     int chckpriority,    /**< priority of the constraint handler for checking
@@ -258,6 +281,7 @@ namespace scip::v8 {
     F(SCIPgetNBinVars, getNBinVars)                     \
     F(SCIPgetNConss, getNConss)                         \
     F(SCIPgetNNZs, getNNZs)                             \
+    F(SCIPgetStatus, getStatus)                         \
     F(SCIPsolve, solve)                                 \
     F(SCIPgetPrimalbound, getPrimalbound)               \
     F(SCIPgetBestSol, getBestSol)                       \

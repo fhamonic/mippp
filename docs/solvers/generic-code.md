@@ -61,10 +61,9 @@ if constexpr(has_mip_start<Model>)      model.add_mip_start(greedy_solution);
 if constexpr(has_optimality_tolerance<Model>)
     model.set_optimality_tolerance(1e-6);
 
-if constexpr(has_termination_reason<Model>)
-    record(model.termination_reason());
-else if constexpr(has_lp_status<Model>)
-    record(model.proven_optimal());
+// resolve infeasible_or_unbounded where the backend can, before recording
+if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
+record(model.solve_status());
 ```
 
 This is the idiom to prefer over `#ifdef`s or per-solver overloads: the feature test lives next to the feature use, and the set of backends a function supports is deduced rather than maintained by hand.

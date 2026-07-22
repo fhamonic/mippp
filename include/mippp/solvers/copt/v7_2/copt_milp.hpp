@@ -40,7 +40,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(count, params, COPT_INTEGER);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
 private:
@@ -75,9 +75,8 @@ public:
         const std::size_t offset = num_variables();
         _add_binary_variables(count);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
-
     void set_continuous(variable v) noexcept {
         int var_id = v.id();
         char type = COPT_CONTINUOUS;
@@ -93,8 +92,9 @@ public:
         char type = COPT_BINARY;
         check(COPT.SetColType(prob, 1, &var_id, &type));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Callbacks ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     class candidate_solution_callback_handle : public model_base<int, double> {
     private:
         const copt_api & COPT;
@@ -116,7 +116,6 @@ public:
             check(COPT.GetIntAttr(prob, COPT_INTATTR_COLS, &num));
             return static_cast<std::size_t>(num);
         }
-
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
             _register_entries(lc.linear_terms());
@@ -125,13 +124,11 @@ public:
                 tmp_indices.data(), tmp_scalars.data(),
                 constraint_sense_to_copt_sense(lc.sense()), lc.rhs()));
         }
-
         double get_solution_value() {
             double obj;
             check(COPT.GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDOBJ, &obj));
             return obj;
         }
-
         auto get_solution() {
             auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
@@ -160,8 +157,9 @@ public:
         check(COPT.SetCallback(prob, candidate_solution_callback_func,
                                COPT_CBCONTEXT_MIPSOL, this));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
@@ -180,8 +178,9 @@ public:
         std::initializer_list<std::pair<variable, scalar>> entries) {
         _add_mip_start(entries);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
         check(COPT.SetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, t.count()));
     }
@@ -190,8 +189,9 @@ public:
         check(COPT.GetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, &t));
         return std::chrono::duration<double>(t);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_optimality_tolerance(double tol) {
         check(COPT.SetDblParam(prob, COPT_DBLPARAM_RELGAP, tol));
     }
@@ -200,7 +200,6 @@ public:
         check(COPT.GetDblParam(prob, COPT_DBLPARAM_RELGAP, &tol));
         return tol;
     }
-
     void set_feasibility_tolerance(double tol) {
         check(COPT.SetDblParam(prob, COPT_DBLPARAM_FEASTOL, tol));
     }
@@ -209,13 +208,74 @@ public:
         check(COPT.GetDblParam(prob, COPT_DBLPARAM_FEASTOL, &tol));
         return tol;
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown,
+            status::optimal,
+            status::infeasible_or_unbounded,
+            status::infeasible,
+            status::unbounded,
+            status::time_limit,
+            status::node_limit,
+            status::numerical_failure,
+            status::interrupted>;
 
+    status_variant _status;
+
+    status_variant _get_status_lp() {
+        using namespace status;
+        int status_;
+        check(COPT.GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &status_));
+        switch(status_) {
+            case COPT_LPSTATUS_OPTIMAL:     return optimal{};
+            case COPT_LPSTATUS_INFEASIBLE:  return infeasible{};
+            case COPT_LPSTATUS_UNBOUNDED:   return unbounded{};
+            case COPT_LPSTATUS_TIMEOUT:     return time_limit{};
+            case COPT_LPSTATUS_NUMERICAL:
+            case COPT_LPSTATUS_IMPRECISE:
+            case COPT_LPSTATUS_UNFINISHED:  return numerical_failure{};
+            case COPT_LPSTATUS_INTERRUPTED: return interrupted{};
+            case COPT_LPSTATUS_UNSTARTED:   return unknown{};
+            default:
+                return unknown{};
+        }
+    }
+    status_variant _get_status_milp() {
+        using namespace status;
+        int status_;
+        check(COPT.GetIntAttr(prob, COPT_INTATTR_MIPSTATUS, &status_));
+        switch(status_) {
+            case COPT_MIPSTATUS_OPTIMAL:     return optimal{};
+            case COPT_MIPSTATUS_INF_OR_UNB:  return infeasible_or_unbounded{};
+            case COPT_MIPSTATUS_INFEASIBLE:  return infeasible{};
+            case COPT_MIPSTATUS_UNBOUNDED:   return unbounded{};
+            case COPT_MIPSTATUS_TIMEOUT:     return time_limit{};
+            case COPT_MIPSTATUS_NODELIMIT:   return node_limit{};
+            case COPT_MIPSTATUS_UNFINISHED:  return numerical_failure{};
+            case COPT_MIPSTATUS_INTERRUPTED: return interrupted{};
+            default:
+                return unknown{};
+        }
+    }
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
         check(COPT.GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
-        if(_is_mip)
+        if(_is_mip) {
             check(COPT.Solve(prob));
-        else
+            _status = _get_status_milp();
+        } else {
             check(COPT.SolveLp(prob));
+            _status = _get_status_lp();
+        }
     }
 
     double get_solution_value() {

@@ -29,7 +29,7 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc15_c++26 -c tools.build:skip_test=true
+          conan create melon -u -b=missing -pr=.github/workflows/gcc15_c++26 -c tools.build:skip_test=true
       - name: Build and run unit tests
         run: |
           conan build . -of=build -b=missing -pr=.github/workflows/gcc15_c++26
@@ -56,10 +56,37 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          cd melon && conan create . -u -b=missing -pr=../.github/workflows/gcc14_c++23 -c tools.build:skip_test=true
+          conan create melon -u -b=missing -pr=.github/workflows/gcc14_c++23 -c tools.build:skip_test=true
       - name: Build and run unit tests
         run: |
           conan build . -of=build -b=missing -pr=.github/workflows/gcc14_c++23
+
+  linux-clang18-build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
+      - name: Install Clang-18, listdc++-14, CMake and Git
+        run: apt-get install -y clang-18 clang++-18 libstdc++-14-dev cmake git
+      - name: Install open-source solvers
+        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev
+      - name: Install Conan 2.0
+        run: |
+          apt install -y pipx
+          pipx install conan
+          echo "/github/home/.local/bin" >> $GITHUB_PATH
+      - name: Detect conan profile
+        run: conan profile detect --name=default
+      - name: Fetch Melon
+        run: |
+          git clone https://github.com/fhamonic/melon.git
+          conan create melon -u -b=missing -pr=.github/workflows/clang18_c++23 -c tools.build:skip_test=true
+      - name: Build and run unit tests
+        run: |
+          conan build . -of=build -b=missing -pr=.github/workflows/clang18_c++23
 
   linux-cmake-install:
     runs-on: ubuntu-latest
@@ -143,6 +170,6 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          cd melon && conan create . -u -b=missing "-pr=../.github/workflows/mingw15_c++26" -c tools.build:skip_test=true
+          conan create melon -u -b=missing "-p./.github/workflows/mingw15_c++26" -c tools.build:skip_test=true
       - name: Build and run unit tests
         run: conan build . -of=build -b=missing "-pr=.github/workflows/mingw15_c++26"

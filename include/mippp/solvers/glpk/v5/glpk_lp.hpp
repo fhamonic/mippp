@@ -14,8 +14,6 @@ namespace glpk::v5 {
 class glpk_lp : public glpk_base {
 private:
     glp_smcp model_params;
-    int lp_status;
-    enum status : int { unknown, optimal, infeasible, unbounded };
 
 public:
     [[nodiscard]] explicit glpk_lp(const glpk_api & api)
@@ -36,41 +34,55 @@ public:
         model_params.shift = 0;
         model_params.aorn = GLP_USE_AT;
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
         model_params.tol_bnd = model_params.tol_dj = tol;
         model_params.tol_piv = tol / 100;
     }
     double get_feasibility_tolerance() { return model_params.tol_bnd; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown, // default value
+            status::optimal,
+            status::infeasible,
+            status::unbounded>;
 
+    status_variant _status;
+
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
         switch(glp.simplex(model, &model_params)) {
             case GLP_ENOPFS:
-                lp_status = unbounded;
+                _status.emplace<status::unbounded>();
                 return;
             case GLP_ENODFS:
-                lp_status = infeasible;
+                _status.emplace<status::infeasible>();
                 return;
         }
         const int primal_status = glp.get_status(model);
         if(primal_status == GLP_UNBND || !std::isfinite(get_solution_value())) {
-            lp_status = unbounded;
+                _status.emplace<status::unbounded>();
             return;
         }
         if(primal_status == GLP_OPT) {
-            lp_status = optimal;
+                _status.emplace<status::optimal>();
             return;
         }
         if(primal_status == GLP_INFEAS || primal_status == GLP_NOFEAS) {
-            lp_status = infeasible;
+                _status.emplace<status::infeasible>();
             return;
         }
     }
-
-    bool proven_optimal() { return lp_status == optimal; }
-    bool proven_infeasible() { return lp_status == infeasible; }
-    bool proven_unbounded() { return lp_status == unbounded; }
-
     double get_solution_value() {
         return objective_offset + glp.get_obj_val(model);
     }

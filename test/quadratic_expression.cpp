@@ -307,3 +307,48 @@ GTEST_TEST(quadratic_expression_concepts, compatible_quadratic_expressions) {
     static_assert(!compatible_quadratic_expressions<quad, quad_float_coef>);
     static_assert(!compatible_quadratic_expressions<quad, quad_long_id>);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// Evaluation ///////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// no type models both expression concepts, so the linear and quadratic
+// `evaluate` overloads never compete
+static_assert(!linear_expression<decltype(base_product())>);
+static_assert(!quadratic_expression<Var>);
+
+namespace {
+auto base_product_values() {
+    // x5 = 1, x7 = 3, x11 = 2
+    std::vector<double> values(12, 0.0);
+    values[5] = 1.0;
+    values[7] = 3.0;
+    values[11] = 2.0;
+    return entity_mapping<Var, std::vector<double>>(std::move(values));
+}
+}  // namespace
+
+GTEST_TEST(evaluate_quadratic_expression, product_of_linear_expressions) {
+    auto values = base_product_values();
+    // (13 - 3.2 * 2) * (3 + 1 + 2)
+    ASSERT_NEAR(evaluate(base_product(), values), 39.6, 1e-12);
+}
+
+GTEST_TEST(evaluate_quadratic_expression, lvalue_expression_and_map) {
+    const auto values = base_product_values();
+    const auto e = base_product();
+    ASSERT_NEAR(evaluate(e, values), 39.6, 1e-12);
+}
+
+GTEST_TEST(evaluate_quadratic_expression, square_sums_symmetric_terms) {
+    auto values = base_product_values();
+    // (x5 + x7 - 1)^2 = (1 + 3 - 1)^2 ; however the symmetric cross terms
+    // are stored, evaluation must reproduce the square
+    ASSERT_NEAR(evaluate(square(Var(5) + Var(7) - 1), values), 9.0, 1e-12);
+}
+
+GTEST_TEST(evaluate_quadratic_expression, pure_product_no_linear_part) {
+    auto values = base_product_values();
+    ASSERT_NEAR(evaluate(Var(5) * Var(7), values), 3.0, 1e-12);
+    ASSERT_NEAR(evaluate(Var(11) * Var(11), values), 4.0, 1e-12);
+}

@@ -13,48 +13,79 @@ namespace mippp {
 namespace xpress::v45_1 {
 
 class xpress_lp : public xpress_base {
-private:
-    int lp_status;
-
 public:
     [[nodiscard]] explicit xpress_lp(const xpress_api & api)
         : xpress_base(api) {}
 
-    // void set_optimality_tolerance(double tol) {
-    //     check(
-    //         CPX.setdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality,
-    //         tol));
-    // }
-    // double get_optimality_tolerance() {
-    //     double tol;
-    //     check(
-    //         CPX.getdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality,
-    //         &tol));
-    //     return tol;
-    // }
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 
-    // void set_feasibility_tolerance(double tol) {
-    //     check(
-    //         CPX.setdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
-    //         tol));
-    // }
-    // double get_feasibility_tolerance() {
-    //     double tol;
-    //     check(CPX.getdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
-    //                           &tol));
-    //     return tol;
-    // }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown,
+            status::optimal,
+            status::infeasible,
+            status::unbounded,
+            status::limit_reached,
+            status::time_limit,
+            status::iteration_limit,
+            status::failed,
+            status::numerical_failure,
+            status::out_of_memory,
+            status::interrupted>;
 
+    status_variant _status;
+
+    status_variant _get_status() {
+        using namespace status;
+        int stop_status;
+        check(XPRS.getintattrib(prob, XPRS_STOPSTATUS, &stop_status));    
+        switch(stop_status) {
+            case XPRS_STOP_NONE:
+            case XPRS_STOP_SOLVECOMPLETE: {
+                int lp_status;
+                check(XPRS.getintattrib(prob, XPRS_LPSTATUS, &lp_status));    
+                switch(lp_status) {
+                    case XPRS_LP_OPTIMAL:    return optimal{};
+                    case XPRS_LP_INFEAS:     return infeasible{};
+                    case XPRS_LP_UNBOUNDED:  return unbounded{};
+                    case XPRS_LP_CUTOFF_IN_DUAL:
+                    case XPRS_LP_CUTOFF:     return limit_reached{};
+                    case XPRS_LP_UNSOLVED:   return failed{};
+                    case XPRS_LP_UNFINISHED: return interrupted{};
+                    case XPRS_LP_UNSTARTED:
+                    default:
+                        return unknown{};
+                } 
+            }
+            case XPRS_STOP_TIMELIMIT:      return time_limit{};
+            case XPRS_STOP_ITERLIMIT:      return iteration_limit{};
+            case XPRS_STOP_WORKLIMIT:      return limit_reached{};
+            case XPRS_STOP_MEMORYERROR:    return out_of_memory{};
+            case XPRS_STOP_NUMERICALERROR: return numerical_failure{};
+            case XPRS_STOP_GENERICERROR:   return failed{};
+            case XPRS_STOP_USER:
+            case XPRS_STOP_LICENSELOST:
+            case XPRS_STOP_CTRLC:          return interrupted{};
+            default:
+                return unknown{};
+        }        
+    }
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
         check(XPRS.lpoptimize(prob, nullptr));
-        check(XPRS.getintattrib(prob, XPRS_LPSTATUS, &lp_status));
+        _status = _get_status();
     }
-
-    bool proven_optimal() { return lp_status == XPRS_LP_OPTIMAL; }
-    bool proven_infeasible() { return lp_status == XPRS_LP_INFEAS; }
-    bool proven_unbounded() { return lp_status == XPRS_LP_UNBOUNDED; }
-
     double get_solution_value() {
         double val;
         check(XPRS.getdblattrib(prob, XPRS_LPOBJVAL, &val));

@@ -13,50 +13,12 @@ namespace mippp {
 namespace highs::v1_10 {
 
 class highs_lp : public highs_base {
-private:
-    int lp_status;
-
 public:
     [[nodiscard]] explicit highs_lp(const highs_api & api) : highs_base(api) {}
 
-    void solve() {
-        if(num_variables() == 0u) {
-            lp_status = kHighsModelStatusModelEmpty;
-            return;
-        }
-        check(Highs.run(model));
-        lp_status = Highs.getModelStatus(model);
-        check_model_status(lp_status);
-    }
-
-    // private:
-    //     void _refine_lp_status() {
-    //         char tmp_presolve[4];
-    //         check(Highs.getHighsStringOptionValue(model, "presolve",
-    //         tmp_presolve)); check(Highs.setHighsStringOptionValue(model,
-    //         "presolve", "off")); check(Highs.run(model)); lp_status =
-    //         Highs.getModelStatus(model);
-    //         check(Highs.setHighsStringOptionValue(model, "presolve",
-    //         tmp_presolve)); check_model_status(lp_status);
-    //     }
-
-    // public:
-    bool proven_optimal() {
-        return lp_status == kHighsModelStatusModelEmpty ||
-               lp_status == kHighsModelStatusOptimal;
-    }
-    bool proven_infeasible() {
-        // if(lp_status == kHighsModelStatusUnboundedOrInfeasible)
-        //     _refine_lp_status();
-        return lp_status == kHighsModelStatusInfeasible;
-    }
-    bool proven_unbounded() {
-        // if(lp_status == kHighsModelStatusUnboundedOrInfeasible)
-        //     _refine_lp_status();
-        return lp_status == kHighsModelStatusUnbounded;
-    }
-
+    ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_iteration_limit(std::size_t n) {
         check(Highs.setIntOptionValue(model, "simplex_iteration_limit",
                                       static_cast<int>(n)));
@@ -66,24 +28,28 @@ public:
         check(Highs.getIntOptionValue(model, "simplex_iteration_limit", &n));
         return static_cast<std::size_t>(n);
     }
-
-    /////////////////////////// Termination reason ////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     // clang-format off
-    using termination_reasons = std::variant<
-            reason::optimal,
-            reason::infeasible_or_unbounded,
-            reason::infeasible,
-            reason::unbounded,
-            reason::interrupted,
-            reason::failed,
-            reason::time_limit,
-            reason::iteration_limit,
-            reason::solution_limit,
-            reason::unknown>;
+private:
+    using status_variant = std::variant<
+            status::unknown,
+            status::optimal,
+            status::infeasible_or_unbounded,
+            status::infeasible,
+            status::unbounded,
+            status::time_limit,
+            status::iteration_limit,
+            status::solution_limit,
+            status::failed,
+            status::interrupted>;
 
-    termination_reasons termination_reason() {
-        using namespace reason;
-        switch (lp_status) {            
+    status_variant _status;
+
+    status_variant _get_status() {
+        using namespace status;
+        switch (Highs.getModelStatus(model)) {            
             case kHighsModelStatusOptimal:        return optimal{};
             case kHighsModelStatusUnboundedOrInfeasible: 
                                                   return infeasible_or_unbounded{};
@@ -107,8 +73,18 @@ public:
         }
     }
     // clang-format on
-
-    //////////////////////////////// Solution /////////////////////////////////
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void solve() {
+        if(num_variables() == 0u) {
+            return;
+        }
+        check(Highs.run(model));
+        _status = _get_status();
+    }
     double get_solution_value() { return Highs.getObjectiveValue(model); }
     auto get_solution() {
         auto num_vars = num_variables();

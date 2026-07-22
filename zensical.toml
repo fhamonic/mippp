@@ -43,6 +43,7 @@ nav = [
   { "Reference" = [
     { "Model concepts" = "reference/concepts.md" },
     { "Inside the expression layer" = "reference/expression-layer.md" },
+    { "Mappings" = "reference/mappings.md" },
   ] },
 ]
 

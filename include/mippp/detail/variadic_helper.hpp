@@ -19,18 +19,4 @@ inline constexpr std::size_t index_of_v = []() {
                                     matches.begin());
 }();
 
-template <typename T, typename Variant>
-inline constexpr bool variant_contains_v = false;
-
-template <typename T, typename... Ts>
-inline constexpr bool variant_contains_v<T, std::variant<Ts...>> =
-    contains_v<T, Ts...>;
-
-template <class... Ts>
-struct overloaded : Ts... {
-    using Ts::operator()...;
-};
-template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
-
 }  // namespace mippp::detail

@@ -64,12 +64,25 @@ void Cbc_setParameter(Cbc_Model * model, const char * name, const char * value);
 double Cbc_getAllowableFractionGap(Cbc_Model * model);
 void Cbc_setAllowableFractionGap(Cbc_Model * model, double allowedFracionGap);
 
+void Cbc_setMaximumSeconds(Cbc_Model * model, double maxSeconds);
+double Cbc_getMaximumSeconds(Cbc_Model * model);
+void Cbc_setMaximumNodes(Cbc_Model * model, int maxNodes);
+int Cbc_getMaximumNodes(Cbc_Model * model);
+void Cbc_setMaximumSolutions(Cbc_Model * model, int maxSolutions);
+int Cbc_getMaximumSolutions(Cbc_Model * model);
+
 int Cbc_solve(Cbc_Model * model);
 int Cbc_status(Cbc_Model * model);
+int Cbc_secondaryStatus(Cbc_Model * model);
+
+int Cbc_isAbandoned(Cbc_Model * model);
+
 int Cbc_isProvenOptimal(Cbc_Model * model);
 int Cbc_isProvenInfeasible(Cbc_Model * model);
 int Cbc_isContinuousUnbounded(Cbc_Model * model);
+
 double Cbc_getObjValue(Cbc_Model * model);
+double Cbc_getBestPossibleObjValue(Cbc_Model * model);
 const double * Cbc_getColSolution(Cbc_Model * model);
 double * Cbc_bestSolution(Cbc_Model * model);
 
@@ -130,8 +143,16 @@ namespace cbc::v2_10_12 {
     F(Cbc_setParameter, setParameter)                       \
     F(Cbc_getAllowableFractionGap, getAllowableFractionGap) \
     F(Cbc_setAllowableFractionGap, setAllowableFractionGap) \
+    F(Cbc_setMaximumSeconds, setMaximumSeconds)             \
+    F(Cbc_getMaximumSeconds, getMaximumSeconds)             \
+    F(Cbc_setMaximumNodes, setMaximumNodes)                 \
+    F(Cbc_getMaximumNodes, getMaximumNodes)                 \
+    F(Cbc_setMaximumSolutions, setMaximumSolutions)         \
+    F(Cbc_getMaximumSolutions, getMaximumSolutions)         \
     F(Cbc_solve, solve)                                     \
     F(Cbc_status, status)                                   \
+    F(Cbc_secondaryStatus, secondaryStatus)                 \
+    F(Cbc_isAbandoned, isAbandoned)                         \
     F(Cbc_isProvenOptimal, isProvenOptimal)                 \
     F(Cbc_isProvenInfeasible, isProvenInfeasible)           \
     F(Cbc_isContinuousUnbounded, isContinuousUnbounded)     \

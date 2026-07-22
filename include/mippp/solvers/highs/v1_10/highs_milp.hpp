@@ -37,9 +37,8 @@ public:
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeInteger);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
-
     variable add_binary_variable() {
         return add_integer_variable(
             {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
@@ -54,7 +53,6 @@ public:
             count, std::forward<IL>(id_lambda),
             {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
     }
-
     void set_continuous(variable v) noexcept {
         check(
             Highs.changeColIntegrality(model, v.id(), kHighsVarTypeContinuous));
@@ -66,8 +64,9 @@ public:
         _set_variable_bounds(v, 0.0, 1.0);
         check(Highs.changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
@@ -87,32 +86,39 @@ public:
         std::initializer_list<std::pair<variable, scalar>> entries) {
         _add_mip_start(entries);
     }
-
-    /////////////////////////// Termination reason ////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     // clang-format off
-    using termination_reasons = std::variant<
-            reason::optimal,
-            reason::infeasible_or_unbounded,
-            reason::infeasible,
-            reason::unbounded,
-            reason::interrupted,
-            reason::failed,
-            reason::time_limit,
-            reason::iteration_limit,
-            reason::solution_limit,
-            reason::unknown>;
+private:
+    using status_variant = std::variant<
+            status::unknown,
+            status::optimal,
+            status::infeasible_or_unbounded,
+            status::infeasible,
+            status::unbounded,
+            status::time_limit,
+            status::iteration_limit,
+            status::solution_limit,
+            status::failed,
+            status::interrupted>;
 
-    termination_reasons termination_reason() {
-        using namespace reason;
-        int psolstatus;
-        check(Highs.getIntInfoValue(model, "primal_solution_status", &psolstatus));
-        const bool has_sol = psolstatus == kHighsSolutionStatusFeasible;
-        switch (Highs.getModelStatus(model)) {         
+    status_variant _status;
+
+    status_variant _get_status() {
+        using namespace status;
+        const int status_ = Highs.getModelStatus(model);
+        switch (status_) {         
             case kHighsModelStatusOptimal:        return optimal{};
             case kHighsModelStatusUnboundedOrInfeasible: 
                                                   return infeasible_or_unbounded{};
             case kHighsModelStatusInfeasible:     return infeasible{};
             case kHighsModelStatusUnbounded:      return unbounded{};
+        }
+        int psolstatus;
+        check(Highs.getIntInfoValue(model, "primal_solution_status", &psolstatus));
+        const bool has_sol = (psolstatus == kHighsSolutionStatusFeasible);
+        switch (status_) { 
             case kHighsModelStatusInterrupt:      return interrupted{has_sol};
             case kHighsModelStatusLoadError:
             case kHighsModelStatusModelError:
@@ -131,15 +137,18 @@ public:
         }
     }
     // clang-format on
-
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
             return;
         }
         check(Highs.run(model));
+        _status = _get_status();
     }
-
     double get_solution_value() { return Highs.getObjectiveValue(model); }
     auto get_solution() {
         auto num_vars = num_variables();

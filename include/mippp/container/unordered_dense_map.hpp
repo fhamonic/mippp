@@ -394,4 +394,23 @@ private:
     }
 };
 
+// erasure is swap-and-pop, so the loop must not advance past a just-erased
+// slot : the swapped-in element lands there and has yet to be tested
+template <typename Key, typename Value, typename Hash, typename KeyEqual,
+          typename Pred>
+typename unordered_dense_map<Key, Value, Hash, KeyEqual>::size_type erase_if(
+    unordered_dense_map<Key, Value, Hash, KeyEqual> & map, Pred pred) {
+    typename unordered_dense_map<Key, Value, Hash, KeyEqual>::size_type
+        num_erased = 0;
+    for(auto it = map.begin(); it != map.end();) {
+        if(pred(*it)) {
+            it = map.erase(it);
+            ++num_erased;
+        } else {
+            ++it;
+        }
+    }
+    return num_erased;
+}
+
 }  // namespace mippp

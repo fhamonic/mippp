@@ -40,17 +40,19 @@ Every model type also exposes the member types used throughout the interface:
 
 | Concept           | Requires |
 | :---------------- | :------- |
-| `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params` and id-lambdas); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `get_solution` / `get_solution_value`. |
+| `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params` and id-lambdas); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `solve_status`; `get_solution` / `get_solution_value`. |
 | `milp_model` | `lp_model`, plus `add_integer_variable(s)`, `add_binary_variable(s)`, and per-variable type changes `set_continuous` / `set_integer` / `set_binary`. |
 | `qp_model` | `lp_model`, plus `set_objective` accepting a quadratic expression. |
 | `sized_model` | `num_entries()` (number of nonzeros). |
 
 ## Solve status
 
+`solve_status()` is required by `lp_model` itself: every model class returns a `std::variant` over the tag hierarchy of namespace `status` (`optimal` and its refinements, `infeasible_or_unbounded` with its refinements `infeasible` and `unbounded`, `interrupted`, `failed`, `numerical_failure`, `out_of_memory`, `limit_reached` and its five refinements, `unknown`). Query it with `is<S>(r)` (exact tag), `is_a<S>(r)` (whole branch) and `status::solution_available(r)`; the variant type is `model_solve_status_t<M>`. Two concepts refine what a given model class can report:
+
 | Concept           | Provides |
 | :---------- | --- |
-| `has_lp_status` | `proven_optimal()`, `proven_infeasible()`, `proven_unbounded()`. |
-| `has_termination_reason` | `termination_reason()`, returning a `std::variant` over the tag hierarchy of namespace `reason` (`optimal`, `infeasible`, `unbounded`, `infeasible_or_unbounded`, `interrupted`, `failed`, `numerical_failure`, `out_of_memory`, `limit_reached` and its five refinements, `unknown`). Query it with `reason::is<R>(r)` and `reason::solution_available(r)`; the variant type is `model_termination_reason_t<M>`. |
+| `has_lp_status` | The status variant can report `infeasible` and `unbounded` as distinct tags, not only the coarse `infeasible_or_unbounded`. |
+| `has_refinable_lp_status` | The variant carries the exact `infeasible_or_unbounded` tag and the model provides `refine_lp_status()` to resolve it into `infeasible` or `unbounded` — possibly by re-solving; a no-op on any other status. |
 
 See [Status, limits and tolerances](../solving/status-and-limits.md) for the
 hierarchy and how to branch on it.
@@ -65,9 +67,9 @@ hierarchy and how to branch on it.
 | `has_solution_limit` | `set_solution_limit(n)`, `get_solution_limit()`. |
 | `has_memory_limit` | `set_memory_limit(size)` for any `memory_size` unit, `get_memory_limit()`. |
 
-Each limit concept additionally requires that, when the backend reports
-termination reasons, the matching `reason::*_limit` tag is among those it can
-return — a limit you can set is a limit you can detect.
+Each limit concept additionally requires that the matching `status::*_limit`
+tag is among those the backend's `solve_status()` can return — a limit you can
+set is a limit you can detect.
 
 ## Solution information
 

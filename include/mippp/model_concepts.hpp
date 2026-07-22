@@ -16,6 +16,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/quadratic_expression.hpp"
 #include "mippp/utility/memory_size.hpp"
+#include "mippp/utility/solve_status.hpp"
 
 namespace mippp {
 
@@ -110,10 +111,10 @@ concept lp_model =
         { model.add_variables(std::size_t{1u}) } -> variables_range<T>;
         { model.add_variables(std::size_t{1u}, vparams) } -> variables_range<T>;
         { model.add_variables(std::size_t{1u},
-                                [](archetype::any_type) { return 0; }) } 
+                              [](archetype::any_type) { return 0; }) } 
                 -> variables_range<T>;
         { model.add_variables(std::size_t{1u}, 
-                                [](archetype::any_type) { return 0; }, vparams) }
+                              [](archetype::any_type) { return 0; }, vparams) }
                 -> variables_range<T>;
 
         { model.set_objective_offset(s) };
@@ -129,9 +130,11 @@ concept lp_model =
         { model.num_variables() } -> std::same_as<std::size_t>;
         { model.num_constraints() } -> std::same_as<std::size_t>;
         { model.solve() };
+        { model.solve_status() } -> variant_of<status::any>;
         { model.get_solution_value() } -> std::same_as<model_scalar_t<T>>;
         { model.get_solution()[v] } -> std::convertible_to<model_scalar_t<T>>;
-    };
+    } && variant_with_alternative<model_solve_status_t<T>, status::unknown>
+      && variant_containing_a<model_solve_status_t<T>, status::optimal>;
 
 template <typename T>
 concept qp_model = lp_model<T> && requires(T & model) {
@@ -152,8 +155,8 @@ concept milp_model =
                                   [](archetype::any_type) { return 0; }) }
             -> variables_range<T>;
     { model.add_integer_variables(std::size_t{1u}, 
-                        [](archetype::any_type) { return 0; },
-                        vparams) }
+                                  [](archetype::any_type) { return 0; },
+                                  vparams) }
             -> variables_range<T>;
 
     { model.add_binary_variable() } -> std::same_as<model_variable_t<T>>;
@@ -173,11 +176,15 @@ concept sized_model = requires(T & model) {
 };
 
 template <typename T>
-concept has_lp_status = lp_model<T> && requires(T & model) {
-    { model.proven_optimal() } -> std::same_as<bool>;
-    { model.proven_infeasible() } -> std::same_as<bool>;
-    { model.proven_unbounded() } -> std::same_as<bool>;
-};
+concept has_lp_status =
+    variant_containing_a<model_solve_status_t<T>, status::infeasible> &&
+    variant_containing_a<model_solve_status_t<T>, status::unbounded>;
+
+template <typename T>
+concept has_refinable_lp_status =
+    variant_with_alternative<model_solve_status_t<T>,
+                             status::infeasible_or_unbounded> &&
+    requires(T & model) { model.refine_lp_status(); };
 
 template <typename T>
 concept has_dual_solution = requires(T & model, model_constraint_t<T> c) {
@@ -190,121 +197,52 @@ concept has_reduced_costs = requires(T & model, model_variable_t<T> v) {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////// Termination reasons /////////////////////////////
+/////////////////////////////////// Limits ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace reason {
-struct any {
-    bool solution_available;
-    explicit constexpr any(bool available = false)
-        : solution_available(available) {}
+template <typename T>
+concept has_time_limit = requires(T & model, std::chrono::seconds s) {
+    { model.set_time_limit(s) };
+    { model.get_time_limit() } -> std::common_with<std::chrono::seconds>;
+    { model.solve_status() } -> variant_containing_a<status::time_limit>;
 };
-
-struct completed : any {
-    using any::any;
-};
-struct optimal : completed {
-    constexpr optimal() : completed(true) {}
-};
-struct optimal_face_unbounded : optimal {};  // infinite number of solutions
-struct optimal_infeasible_unscaled : optimal {};  // infeasible once unscaled
-struct infeasible_or_unbounded : completed {
-    constexpr infeasible_or_unbounded() : completed(false) {}
-};
-struct infeasible : infeasible_or_unbounded {};
-struct unbounded : infeasible_or_unbounded {};
-
 // clang-format off
-struct stopped : any { using any::any; };
-struct interrupted : stopped { using stopped::stopped; };
-struct failed : stopped { using stopped::stopped; };
-struct numerical_failure : failed { using failed::failed; };
-struct out_of_memory : failed { using failed::failed; };
-struct limit_reached : stopped { using stopped::stopped; };
-struct time_limit : limit_reached { using limit_reached::limit_reached; };
-struct iteration_limit : limit_reached { using limit_reached::limit_reached; };
-struct node_limit : limit_reached { using limit_reached::limit_reached; };
-struct solution_limit : limit_reached { using limit_reached::limit_reached; };
-struct memory_limit : limit_reached { using limit_reached::limit_reached; };
-struct unknown : stopped { using stopped::stopped; };
-}  // namespace reason
-
-template <typename R>
-concept termination_reason = requires(const R & r) {
-    { std::visit(detail::overloaded{[](reason::any) {}}, r) };
-};
-// clang-format on
-namespace reason {
-template <typename R>
-[[nodiscard]] constexpr bool is(const termination_reason auto & r) noexcept {
-    return std::visit(
-        []<typename A>(const A &) { return std::derived_from<A, R>; }, r);
-}
-template <termination_reason TR>
-[[nodiscard]] constexpr bool solution_available(const TR & r) noexcept {
-    return std::visit([](any a) { return a.solution_available; }, r);
-}
-}  // namespace reason
-
 template <typename T>
-using model_termination_reason_t =
-    std::decay_t<decltype(std::declval<T &>().termination_reason())>;
-
-template <typename T>
-concept has_termination_reason = requires(T & model) {
-    { model.termination_reason() } -> termination_reason;
+concept has_iteration_limit = requires(T & model, std::size_t n) {
+    { model.set_iteration_limit(n) };
+    { model.get_iteration_limit() } -> std::same_as<std::size_t>;
+    { model.solve_status() } 
+            -> variant_containing_a<status::iteration_limit>;
 };
 
 template <typename T>
-concept has_time_limit =
-    requires(T & model, std::chrono::seconds s) {
-        { model.set_time_limit(s) };
-        { model.get_time_limit() } -> std::common_with<std::chrono::seconds>;
-    } && (!has_termination_reason<T> ||
-          detail::variant_contains_v<reason::time_limit,
-                                     model_termination_reason_t<T>>);
+concept has_node_limit = requires(T & model, std::size_t n) {
+    { model.set_node_limit(n) };
+    { model.get_node_limit() } -> std::same_as<std::size_t>;
+    { model.solve_status() } -> variant_containing_a<status::node_limit>;
+};
 
 template <typename T>
-concept has_iteration_limit =
-    requires(T & model, std::size_t n) {
-        { model.set_iteration_limit(n) };
-        { model.get_iteration_limit() } -> std::same_as<std::size_t>;
-    } && (!has_termination_reason<T> ||
-          detail::variant_contains_v<reason::iteration_limit,
-                                     model_termination_reason_t<T>>);
+concept has_solution_limit = requires(T & model, std::size_t n) {
+    { model.set_solution_limit(n) };
+    { model.get_solution_limit() } -> std::same_as<std::size_t>;
+    { model.solve_status() }
+            -> variant_containing_a<status::solution_limit>;
+};
 
 template <typename T>
-concept has_node_limit =
-    requires(T & model, std::size_t n) {
-        { model.set_node_limit(n) };
-        { model.get_node_limit() } -> std::same_as<std::size_t>;
-    } && (!has_termination_reason<T> ||
-          detail::variant_contains_v<reason::node_limit,
-                                     model_termination_reason_t<T>>);
-
-template <typename T>
-concept has_solution_limit =
-    requires(T & model, std::size_t n) {
-        { model.set_solution_limit(n) };
-        { model.get_solution_limit() } -> std::same_as<std::size_t>;
-    } && (!has_termination_reason<T> ||
-          detail::variant_contains_v<reason::solution_limit,
-                                     model_termination_reason_t<T>>);
-
-template <typename T>
-concept has_memory_limit =
-    requires(T & model) {
-        { model.set_memory_limit(mebibytes{128u}) };
-        { model.set_memory_limit(gigabytes{4u}) };  // any memory_size<>
-        { model.get_memory_limit() } -> std::common_with<bytes>;
-    } && (!has_termination_reason<T> ||
-          detail::variant_contains_v<reason::memory_limit,
-                                     model_termination_reason_t<T>>);
+concept has_memory_limit = requires(T & model) {
+    { model.set_memory_limit(mebibytes{128u}) };
+    { model.set_memory_limit(gigabytes{4u}) };  // any memory_size<>
+    { model.get_memory_limit() } -> std::common_with<bytes>;
+    { model.solve_status() }
+            -> variant_containing_a<status::memory_limit>;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Names ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-// clang-format off
+
 template <typename T>
 concept has_named_variables = requires(T & model, model_variable_t<T> v,
              model_variable_params_t<T> vparams, std::string name) {
@@ -347,17 +285,14 @@ using objective_expression_t = decltype(std::declval<T &>().get_objective());
 // clang-format off
 template <typename T>
 concept has_readable_objective = requires(T & model, model_variable_t<T> v) {
-        { model.get_objective_offset() }
-                -> std::same_as<model_scalar_t<T>>;
+        { model.get_objective_offset() } -> std::same_as<model_scalar_t<T>>;
         { model.get_objective_coefficient(v) }
                 -> std::same_as<model_scalar_t<T>>;
         { model.get_objective() } -> linear_expression;
-    } && std::same_as<std::decay_t<
-                linear_expression_variable_t<objective_expression_t<T>>>,
-                model_variable_t<T>>
-      && std::same_as<std::decay_t<
-                linear_expression_scalar_t<objective_expression_t<T>>>,
-                model_scalar_t<T>>;
+    } && std::same_as<linear_expression_variable_t<objective_expression_t<T>>,
+                      model_variable_t<T>>
+      && std::same_as<linear_expression_scalar_t<objective_expression_t<T>>,
+                      model_scalar_t<T>>;
 // clang-format on
 template <typename T>
 concept has_modifiable_objective =
@@ -374,9 +309,9 @@ template <typename T>
 concept has_readable_variables_bounds =
     requires(T & model, model_variable_t<T> v) {
         { model.get_variable_lower_bound(v) }
-            -> std::same_as<model_scalar_t<T>>;
+                -> std::same_as<model_scalar_t<T>>;
         { model.get_variable_upper_bound(v) } 
-            -> std::same_as<model_scalar_t<T>>;
+                -> std::same_as<model_scalar_t<T>>;
     };
 // clang-format on
 template <typename T>
@@ -523,8 +458,8 @@ concept lp_basis_status = requires(const S & status) {
     { std::visit(detail::overloaded{
                        [](basis_status::basic) {},
                        [](basis_status::nonbasic) {}
-                   },
-                   status) };
+                 },
+                 status) };
 };
 // clang-format on
 template <typename B, typename T>
@@ -587,9 +522,8 @@ concept has_mip_start = requires(
     T & model,
     std::initializer_list<std::pair<model_variable_t<T>, model_scalar_t<T>>>
         init_entries) {
-    { model.add_mip_start(
-            archetype::range<
-                std::pair<model_variable_t<T>, model_scalar_t<T>>>()) };
+    { model.add_mip_start(archetype::range<std::pair<model_variable_t<T>, 
+                                                     model_scalar_t<T>>>()) };
     { model.add_mip_start(init_entries) };
 };
 

@@ -144,7 +144,19 @@ enum LpStatus : int {
     COPT_LPSTATUS_UNFINISHED = 9,
     COPT_LPSTATUS_INTERRUPTED = 10
 };
+enum MipStatus : int {
+    COPT_MIPSTATUS_UNSTARTED = 0,
+    COPT_MIPSTATUS_OPTIMAL = 1,
+    COPT_MIPSTATUS_INFEASIBLE = 2,
+    COPT_MIPSTATUS_UNBOUNDED = 3,
+    COPT_MIPSTATUS_INF_OR_UNB = 4,
+    COPT_MIPSTATUS_NODELIMIT = 6,
+    COPT_MIPSTATUS_TIMEOUT = 8,
+    COPT_MIPSTATUS_UNFINISHED = 9,
+    COPT_MIPSTATUS_INTERRUPTED = 10
+};
 constexpr const char * COPT_INTATTR_LPSTATUS = "LpStatus";
+constexpr const char * COPT_INTATTR_MIPSTATUS = "MipStatus";
 constexpr const char * COPT_DBLATTR_LPOBJVAL = "LpObjval";
 constexpr const char * COPT_DBLATTR_BESTOBJ = "BestObj";
 ret_code COPT_GetSolution(copt_prob * prob, double * colVal);
@@ -192,8 +204,8 @@ ret_code COPT_AddCallbackLazyConstr(void * cbdata, int nRowMatCnt,
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace copt::v7_2 {

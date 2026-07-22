@@ -11,65 +11,71 @@ double obj = model.get_solution_value();
 
 `solve()` runs the solver synchronously and can be called any number of times on the same model; what the solver reuses between calls is discussed in [Re-solving and model updates](updates.md).
 
-## The coarse status
+## The solve status
 
-Model classes satisfying `has_lp_status` answer the three classical questions:
-
-```cpp
-model.solve();
-if(model.proven_optimal())         { /* solution is optimal */ }
-else if(model.proven_infeasible()) { /* the model has no feasible point */ }
-else if(model.proven_unbounded())  { /* the objective is unbounded */ }
-```
-
-These are *proofs*, not a partition: a solve stopped by a time limit answers `false` to all three. Never treat `!proven_infeasible()` as "feasible".
-
-!!! note "Which classes provide it"
-    `has_lp_status` is currently satisfied by the **LP (and QP) model classes** — Clp, COPT, CPLEX, GLPK, Gurobi, HiGHS, MOSEK, Xpress. The **MILP classes** report their outcome through `termination_reason()` below, available on `gurobi_milp`, `cplex_milp` and `highs_milp`; the remaining MILP backends (Cbc, COPT, GLPK, MOSEK, SCIP, Xpress) expose no status query yet — broadening this is on the [roadmap](https://github.com/fhamonic/mippp#roadmap). Write status handling behind `if constexpr` so it degrades cleanly (see below).
-
-## The precise reason: `termination_reason()`
-
-Backends satisfying `has_termination_reason` — currently **Gurobi**, **CPLEX** and **HiGHS** — return a `std::variant` of tag types from `namespace reason`, and the tags form a **hierarchy**, so you can ask questions at whatever granularity you need:
+`solve_status()` is part of the `lp_model` concept itself, so **every** model class reports how its last solve ended. It returns a `std::variant` of tag types from `namespace status`, and the tags form a **hierarchy**, so you can ask questions at whatever granularity you need:
 
 ```text
 any
+├── unknown            (also the status before the first solve())
 ├── completed
 │   ├── optimal
 │   │   ├── optimal_face_unbounded          (infinitely many optima)
 │   │   └── optimal_infeasible_unscaled
 │   └── infeasible_or_unbounded
-│       ├── infeasible
+│       ├── infeasible → primal_and_dual_infeasible
 │       └── unbounded
 └── stopped
     ├── interrupted
     ├── failed → numerical_failure, out_of_memory
-    ├── limit_reached → time_limit, iteration_limit,
-    │                   node_limit, solution_limit, memory_limit
-    └── unknown
+    └── limit_reached → time_limit, iteration_limit,
+                        node_limit, solution_limit, memory_limit
 ```
 
-`reason::is<R>(r)` tests membership in a whole branch of that tree, which is what experiment drivers usually want:
+Two query functions mirror the two questions you can ask of a hierarchy:
+
+- `is_a<S>(r)` — is the status in the branch rooted at `S`? This is what experiment drivers usually want.
+- `is<S>(r)` — is the status *exactly* the tag `S`? Needed when a parent tag carries meaning of its own, as `infeasible_or_unbounded` does below.
 
 ```cpp
-auto r = model.termination_reason();
+model.solve();
+const auto & r = model.solve_status();
 
-if(reason::is<reason::optimal>(r))            record_optimal(model);
-else if(reason::is<reason::limit_reached>(r)) record_timeout(model);
-else if(reason::is<reason::failed>(r))        record_failure(model);
+if(is_a<status::optimal>(r))            record_optimal(model);
+else if(is_a<status::limit_reached>(r)) record_timeout(model);
+else if(is_a<status::failed>(r))        record_failure(model);
 ```
+
+These are *proofs*, not a partition: a solve stopped by a time limit is in none of the `completed` branches. Never treat `!is_a<status::infeasible>(r)` as "feasible".
 
 Crucially, a stopped solve may or may not leave an incumbent behind, and that is reported separately:
 
 ```cpp
-if(reason::solution_available(r)) {
+if(status::solution_available(r)) {
     auto sol = model.get_solution();     // safe: values exist
     record_bound(model.get_solution_value());
 }
 ```
 
-Reading a solution when no solution is available is a solver-level error — always gate on `proven_optimal()` or `reason::solution_available()` in code that runs under limits.
+Reading a solution when no solution is available is a solver-level error — always gate on `is_a<status::optimal>(r)` or `status::solution_available(r)` in code that runs under limits.
 
-Which tags a backend can return is part of its type (`model_termination_reason_t<M>`, a `std::variant`), so exhaustive handling with `std::visit` is checkable at compile time; and a limit setter only exists on a backend whose `termination_reason()` can actually report that limit — the concepts require it.
+Which tags a backend can return is part of its type (`model_solve_status_t<M>`, a `std::variant`), so exhaustive handling with `std::visit` is checkable at compile time; and a limit setter only exists on a backend whose `solve_status()` can actually report that limit — the concepts require it.
+
+## `infeasible_or_unbounded` and `refine_lp_status()`
+
+Solvers whose presolve applies dual reductions can terminate knowing the model is infeasible *or* unbounded without knowing which; backends where this happens carry the exact `status::infeasible_or_unbounded` tag in their variant. The test for this undecided outcome is the exact `is<status::infeasible_or_unbounded>(r)` — `is_a` would also match the decided `infeasible` and `unbounded` tags, which derive from it.
+
+Two concepts describe what a model class can tell you:
+
+- `has_lp_status<Model>` — the status variant can report `infeasible` and `unbounded` as distinct tags. Every model class satisfies it except `glpk_milp`, which cannot report `infeasible`.
+- `has_refinable_lp_status<Model>` — the model provides `refine_lp_status()`: if the current status is exactly `infeasible_or_unbounded`, it re-solves with the offending reductions disabled, so that `solve_status()` afterwards reports `infeasible` or `unbounded`; on any other status it is a no-op. Currently satisfied by `gurobi_lp` and `cplex_lp`.
+
+Because refining may mean a full re-solve, it never happens behind your back — the cost is only paid where the call is written:
+
+```cpp
+model.solve();
+if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
+```
 
 ## Limits
 
@@ -124,17 +130,10 @@ run_record run(Model & model, std::chrono::seconds budget) {
     const auto elapsed = std::chrono::steady_clock::now() - start;
 
     run_record rec{.seconds = std::chrono::duration<double>(elapsed).count()};
-    if constexpr(has_termination_reason<Model>) {
-        auto r = model.termination_reason();
-        rec.optimal = reason::is<reason::optimal>(r);
-        rec.stopped = reason::is<reason::limit_reached>(r);
-        rec.has_solution = reason::solution_available(r);
-    } else if constexpr(has_lp_status<Model>) {
-        rec.optimal = model.proven_optimal();
-        rec.has_solution = rec.optimal;
-    } else {
-        rec.has_solution = true;  // backend reports no status: assume a solve
-    }
+    const auto & r = model.solve_status();
+    rec.optimal = is_a<status::optimal>(r);
+    rec.stopped = is_a<status::limit_reached>(r);
+    rec.has_solution = status::solution_available(r);
     if(rec.has_solution) rec.objective = model.get_solution_value();
     return rec;
 }

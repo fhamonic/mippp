@@ -25,9 +25,15 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
     template <typename Map>
-    using variable_mapping = entity_mapping<variable, Map>;
+    struct variable_mapping : entity_mapping<variable, Map> {
+        variable_mapping(Map && t)
+            : entity_mapping<variable, Map>(std::move(t)) {}
+    };
     template <typename Map>
-    using constraint_mapping = entity_mapping<constraint, Map>;
+    struct constraint_mapping : entity_mapping<constraint, Map> {
+        constraint_mapping(Map && t)
+            : entity_mapping<constraint, Map>(std::move(t)) {}
+    };
 
 protected:
     const xpress_api & XPRS;
@@ -224,7 +230,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -241,7 +247,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
         return _make_named_variables_view(offset, count,
-                                           std::forward<NL>(name_lambda), this);
+                                          std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -390,7 +396,9 @@ public:
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
         check(XPRS.setdblcontrol(prob, XPRS_FEASTOL, tol));
     }
@@ -398,6 +406,17 @@ public:
         double tol;
         check(XPRS.getdblcontrol(prob, XPRS_FEASTOL, &tol));
         return tol;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(XPRS.setdblcontrol(prob, XPRS_TIMELIMIT, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(XPRS.getdblcontrol(prob, XPRS_TIMELIMIT, &t));
+        return std::chrono::duration<double>(t);
     }
 };
 

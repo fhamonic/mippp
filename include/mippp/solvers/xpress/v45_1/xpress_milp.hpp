@@ -14,9 +14,6 @@ namespace mippp {
 namespace xpress::v45_1 {
 
 class xpress_milp : public xpress_base {
-private:
-    int lp_status;
-
 public:
     [[nodiscard]] explicit xpress_milp(const xpress_api & api)
         : xpress_base(api) {}
@@ -140,14 +137,13 @@ private:
     std::function<void(candidate_solution_callback_handle &)>
         candidate_solution_callback;
 
-    static int candidate_solution_callback_fun(
+    static void candidate_solution_callback_fun(
         XPRSprob cbprob, void * cbdata, [[maybe_unused]] int soltype,
         int * p_reject, [[maybe_unused]] double * p_cutoff) {
         auto * model = static_cast<xpress_milp *>(cbdata);
         candidate_solution_callback_handle handle(
             model->XPRS, cbprob, model->objective_offset, p_reject);
         model->candidate_solution_callback(handle);
-        return 0;
     }
 
 public:
@@ -178,7 +174,9 @@ public:
         _add_mip_start(entries);
     }
 
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_optimality_tolerance(double tol) {
         check(XPRS.setdblcontrol(prob, XPRS_MIPTOL, tol));
     }
@@ -197,8 +195,69 @@ public:
         check(XPRS.getdblcontrol(prob, XPRS_TIMELIMIT, &t));
         return std::chrono::duration<double>(t);
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown,
+            status::optimal,
+            status::infeasible,
+            status::unbounded,
+            status::limit_reached,
+            status::time_limit,
+            status::iteration_limit,
+            status::node_limit, 
+            status::solution_limit,
+            status::failed,
+            status::numerical_failure,
+            status::out_of_memory,
+            status::interrupted>;
 
+    status_variant _status;
+
+    status_variant _get_status() {
+        using namespace status;
+        int stop_status;
+        check(XPRS.getintattrib(prob, XPRS_STOPSTATUS, &stop_status));
+        int lp_status;
+        check(XPRS.getintattrib(prob, XPRS_MIPSTATUS, &lp_status)); 
+        const bool has_sol = (lp_status ==  XPRS_MIP_SOLUTION);  
+        switch(stop_status) {
+            case XPRS_STOP_NONE:
+            case XPRS_STOP_MIPGAP:
+            case XPRS_STOP_SOLVECOMPLETE: {   
+                switch(lp_status) {
+                    case XPRS_MIP_OPTIMAL:  return optimal{};
+                    case XPRS_MIP_INFEAS:   return infeasible{};
+                    case XPRS_MIP_UNBOUNDED:    return unbounded{};
+                    case XPRS_MIP_NOT_LOADED:
+                    default:
+                        return unknown{has_sol};
+                } 
+            }
+            case XPRS_STOP_TIMELIMIT:      return time_limit{has_sol};
+            case XPRS_STOP_ITERLIMIT:      return iteration_limit{has_sol};
+            case XPRS_STOP_NODELIMIT:      return node_limit{has_sol};
+            case XPRS_STOP_SOLLIMIT:       return solution_limit{has_sol};
+            case XPRS_STOP_WORKLIMIT:      return limit_reached{has_sol};
+            case XPRS_STOP_MEMORYERROR:    return out_of_memory{has_sol};
+            case XPRS_STOP_NUMERICALERROR: return numerical_failure{has_sol};
+            case XPRS_STOP_GENERICERROR:   return failed{has_sol};
+            case XPRS_STOP_USER:
+            case XPRS_STOP_LICENSELOST:
+            case XPRS_STOP_CTRLC:          return interrupted{has_sol};
+            default:
+                return unknown{has_sol};
+        }        
+    }
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() { check(XPRS.mipoptimize(prob, nullptr)); }
 
     double get_solution_value() {

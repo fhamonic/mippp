@@ -60,7 +60,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_IV);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
 private:
@@ -90,9 +90,8 @@ public:
         const std::size_t offset = num_variables();
         _add_binary_variables(offset, count);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
-
     void set_continuous(variable v) noexcept {
         glp.set_col_kind(model, v.id() + 1, GLP_CV);
     }
@@ -102,22 +101,62 @@ public:
     void set_binary(variable v) noexcept {
         glp.set_col_kind(model, v.id() + 1, GLP_BV);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////// Special constraints ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     // add_sos1_constraint
     // add_sos2_constraint
     // add_indicator_constraint
-
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
         model_params.tol_int = tol;
         model_params.tol_obj = tol / 10;
     }
     double get_feasibility_tolerance() { return model_params.tol_int; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown, // default value
+            status::optimal,
+            status::unbounded,
+            status::time_limit,
+            status::failed,
+            status::interrupted>;
 
+    status_variant _status;
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        glp.intopt(model, &model_params);
-        // glp.intfeas1(model, 0, 0);
+        switch(glp.intopt(model, &model_params)) {
+            case 0:
+            case GLP_EMIPGAP:
+                _status.emplace<status::optimal>();
+                return;
+            case GLP_ENODFS:
+                _status.emplace<status::unbounded>();
+                return;
+            case GLP_ETMLIM:
+                _status.emplace<status::time_limit>();
+                return;
+            case GLP_EFAIL:
+                _status.emplace<status::failed>();
+                return;
+            case GLP_ESTOP:
+                _status.emplace<status::interrupted>();
+                return;
+            default:
+                _status.emplace<status::unknown>();
+        }
     }
-
     double get_solution_value() {
         return objective_offset + glp.mip_obj_val(model);
     }

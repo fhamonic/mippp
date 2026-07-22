@@ -503,4 +503,26 @@ template <quadratic_expression QE, linear_expression LE>
 }
 
 }  // namespace operators
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// Evaluate ///////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// `QE &&` (not `const QE &`): `quadratic_expression_view::quadratic_terms()
+// const &` returns a copy of the view, and doesn't exist at all when QTerms is
+// move-only.
+template <quadratic_expression QE, typename VM>
+constexpr auto evaluate(QE && e, const VM & values_map) {
+    static_assert(
+        input_mapping<const VM, quadratic_expression_variable_t<QE>>,
+        "MIP++: evaluate needs a values map readable by the expression's "
+        "variables; adapt raw storage or a callable with views::mapping_all "
+        "or an entity_mapping.");
+    using scalar = quadratic_expression_scalar_t<QE>;
+    scalar acc = static_cast<scalar>(evaluate(e.linear_part(), values_map));
+    for(auto && [var1, var2, coef] : e.quadratic_terms())
+        acc += values_map[var1] * values_map[var2] * coef;
+    return acc;
+}
+
 }  // namespace mippp

@@ -101,12 +101,13 @@ double v1  = sol[x1];
 
 ```cpp
 model.solve();
-if(model.proven_optimal())         { /* ... */ }
-else if(model.proven_infeasible()) { /* ... */ }
-else if(model.proven_unbounded())  { /* ... */ }
+const auto & r = model.solve_status();
+if(is_a<status::optimal>(r))         { /* ... */ }
+else if(is_a<status::infeasible>(r)) { /* ... */ }
+else if(is_a<status::unbounded>(r))  { /* ... */ }
 ```
 
-(A richer `termination_reason()` is available on some backends; time limits, tolerances and the rest are covered in [Status, limits and tolerances](../solving/status-and-limits.md).)
+`solve_status()` returns a `std::variant` of tag types organized in a hierarchy, and `is_a` tests a whole branch of it. (The full hierarchy, time limits, tolerances and the rest are covered in [Status, limits and tolerances](../solving/status-and-limits.md).)
 
 LP backends supporting dual solutions expose them the same way, indexed by constraint handles:
 

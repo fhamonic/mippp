@@ -372,11 +372,11 @@ public:
         if(closeCPLEX(&env) != 0) throw solver_error("CPXcloseCPLEX");
     }
 
-    void _check(CPXENVptr env, const int error) const {
-        if(error == 0) return;
+    void _check(CPXENVptr env, const int retcode) const {
+        if(retcode == 0) return;
         char errmsg[CPXMESSAGEBUFSIZE];
-        geterrorstring(env, error, errmsg);
-        if(error == 1016) throw license_error(errmsg);
+        geterrorstring(env, retcode, errmsg);
+        if(retcode == 1016) throw license_error(errmsg);
         throw solver_error(errmsg);
     }
 };

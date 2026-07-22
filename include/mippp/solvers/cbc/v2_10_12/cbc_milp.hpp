@@ -28,9 +28,15 @@ public:
     using variable = model_variable<variable_id, scalar>;
     using constraint = model_constraint<constraint_id>;
     template <typename Map>
-    using variable_mapping = entity_mapping<variable, Map>;
+    struct variable_mapping : entity_mapping<variable, Map> {
+        variable_mapping(Map && t)
+            : entity_mapping<variable, Map>(std::move(t)) {}
+    };
     template <typename Map>
-    using constraint_mapping = entity_mapping<constraint, Map>;
+    struct constraint_mapping : entity_mapping<constraint, Map> {
+        constraint_mapping(Map && t)
+            : entity_mapping<constraint, Map>(std::move(t)) {}
+    };
 
 private:
     const cbc_api & Cbc;
@@ -164,7 +170,7 @@ public:
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
@@ -185,7 +191,7 @@ public:
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
     variable add_binary_variable() {
         int var_id = static_cast<int>(_lazy_num_variables);
@@ -204,7 +210,7 @@ public:
         for(std::size_t i = 0; i < count; ++i)
             _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -429,7 +435,6 @@ public:
                                    -get_constraint_rhs(constr)),
             get_constraint_sense(constr));
     }
-
     auto get_constraint_name(constraint constr) {
         auto max_length = Cbc.maxNameLength(model);
         std::string name(max_length, '\0');
@@ -437,8 +442,9 @@ public:
         name.resize(std::strlen(name.c_str()));
         return name;
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
@@ -457,16 +463,30 @@ public:
         std::initializer_list<std::pair<variable, scalar>> entries) {
         _add_mip_start(entries);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        time_limit = t;
-        auto t_s = std::to_string(t.count());
-        Cbc.setParameter(model, "seconds", t_s.c_str());
+        Cbc.setMaximumSeconds(model, t.count());
     }
-    auto get_time_limit() { return time_limit; }
-
+    auto get_time_limit() {
+        return std::chrono::duration<double>(Cbc.getMaximumSeconds(model));
+    }
+    void set_node_limit(const std::size_t count) {
+        Cbc.setMaximumNodes(model, static_cast<int>(count));
+    }
+    auto get_node_limit() {
+        return static_cast<std::size_t>(Cbc.getMaximumNodes(model));
+    }
+    void set_solution_limit(std::size_t count) {
+        Cbc.setMaximumSolutions(model, static_cast<int>(count));
+    }
+    auto get_solution_limit() {
+        return static_cast<std::size_t>(Cbc.getMaximumSolutions(model));
+    }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
         feasibility_tol = tol;
         auto tol_s = std::to_string(tol);
@@ -474,22 +494,87 @@ public:
         Cbc.setParameter(model, "dualTolerance", tol_s.c_str());
     }
     double get_feasibility_tolerance() { return feasibility_tol; }
-
     void set_optimality_tolerance(double tol) {
         Cbc.setAllowableFractionGap(model, tol);
     }
     double get_optimality_tolerance() {
         return Cbc.getAllowableFractionGap(model);
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown, // default value
+            status::optimal,
+            status::infeasible,
+            status::unbounded,
+            status::limit_reached,
+            status::time_limit,
+            status::node_limit,
+            status::solution_limit,
+            status::numerical_failure,
+            status::interrupted>;
 
+    status_variant _status;
+
+    status_variant _get_status() {
+        using namespace status;
+        if (Cbc.getNumIntegers(model) == 0) {
+            if (Cbc.isProvenOptimal(model)) {
+                return status::optimal{};
+            } else if (Cbc.isProvenInfeasible(model)) {
+                return status::infeasible{};
+            } else if (Cbc.isContinuousUnbounded(model)) {
+                return status::unbounded{};
+            } else if (Cbc.isAbandoned(model)) {
+                return status::numerical_failure{};
+            }
+            return status::unknown{};
+        } else {
+            switch (Cbc.status(model)) {
+                case -1: return status::unknown{};
+                case 0: {
+                    if(Cbc.isProvenOptimal(model)) return status::optimal{};
+                    if(Cbc.isProvenInfeasible(model)) return status::infeasible{};
+                    return status::unbounded{};
+                }
+                case 1: {
+                    const bool has_sol = Cbc.bestSolution(model) != NULL;
+                    switch (Cbc.secondaryStatus(model)) {
+                        case 1: return status::infeasible{};
+                        case 2: return status::unknown{has_sol};
+                        case 3: return status::node_limit{has_sol};
+                        case 4: return status::time_limit{has_sol};
+                        case 5: return status::interrupted{has_sol};
+                        case 6: return status::solution_limit{has_sol};
+                        case 7: return status::unbounded{};
+                        case 8: return status::limit_reached{has_sol};                    
+                        default:
+                            return status::unknown{has_sol};
+                    }
+                }
+                case 2: return status::numerical_failure{};
+                case 5: return status::interrupted{};
+                default:
+                    return status::unknown{};
+            }
+        }    
+    }
+    // clang-format on
+public:
+    const status_variant & solve_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Solve ///////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void solve() {
         if(_lazy_num_variables == 0u) {
-            using namespace operators;
-            add_variable();
+            add_variable();  // ?
         };
         Cbc.solve(model);
+        _status = _get_status();
     }
-
     double get_solution_value() {
         return objective_offset +
                (_lazy_num_variables == 0u ? 0.0 : Cbc.getObjValue(model));

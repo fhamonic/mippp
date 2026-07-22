@@ -44,7 +44,7 @@ double transport_cost = evaluate(
     xsum(arcs, [&](auto a) { return cost[a] * F(a); }), sol);
 ```
 
-It works with any map indexable by variable handles, not just solutions — including a heuristic's own assignment.
+It works with any map indexable by variable handles, not just solutions — including a heuristic's own assignment: wrap raw storage in an `entity_mapping`, or a lambda with `views::mapping_all` (see [Mappings](../reference/mappings.md)).
 
 ## Dual values
 

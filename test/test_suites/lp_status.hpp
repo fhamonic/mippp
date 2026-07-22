@@ -19,9 +19,7 @@ TYPED_TEST_P(LpStatusTest, not_solved) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
-        ASSERT_FALSE(model.proven_optimal());
-        ASSERT_FALSE(model.proven_infeasible());
-        ASSERT_FALSE(model.proven_unbounded());
+        ASSERT_TRUE(is<status::unknown>(model.solve_status()));
     });
 }
 TYPED_TEST_P(LpStatusTest, max_bounded) {
@@ -34,9 +32,7 @@ TYPED_TEST_P(LpStatusTest, max_bounded) {
         model.set_objective(2 * x + 1.5 * y);
         model.add_constraint(x + y <= 5);
         model.solve();
-        ASSERT_TRUE(model.proven_optimal());
-        ASSERT_FALSE(model.proven_infeasible());
-        ASSERT_FALSE(model.proven_unbounded());
+        ASSERT_TRUE(is_a<status::optimal>(model.solve_status()));
         ASSERT_DOUBLE_EQ(model.get_solution_value(), 9.0);
         auto solution = model.get_solution();
         ASSERT_DOUBLE_EQ(solution[x], 3.0);
@@ -53,9 +49,7 @@ TYPED_TEST_P(LpStatusTest, min_bounded) {
         model.set_objective(-2 * x - 1.5 * y);
         model.add_constraint(x + y <= 5);
         model.solve();
-        ASSERT_TRUE(model.proven_optimal());
-        ASSERT_FALSE(model.proven_infeasible());
-        ASSERT_FALSE(model.proven_unbounded());
+        ASSERT_TRUE(is_a<status::optimal>(model.solve_status()));
         ASSERT_DOUBLE_EQ(model.get_solution_value(), -9.0);
         auto solution = model.get_solution();
         ASSERT_DOUBLE_EQ(solution[x], 3.0);
@@ -72,9 +66,11 @@ TYPED_TEST_P(LpStatusTest, max_unbounded) {
         model.set_objective(-2 * x + -1.5 * y);
         model.add_constraint(x + y <= 5);
         model.solve();
-        ASSERT_FALSE(model.proven_optimal());
-        ASSERT_FALSE(model.proven_infeasible());
-        ASSERT_TRUE(model.proven_unbounded());
+        if constexpr(has_refinable_lp_status<decltype(model)>) {
+            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+                model.refine_lp_status();
+        }
+        ASSERT_TRUE(is_a<status::unbounded>(model.solve_status()));
     });
 }
 TYPED_TEST_P(LpStatusTest, min_unbounded) {
@@ -87,9 +83,11 @@ TYPED_TEST_P(LpStatusTest, min_unbounded) {
         model.set_objective(2 * x + 1.5 * y);
         model.add_constraint(x + y <= 5);
         model.solve();
-        ASSERT_FALSE(model.proven_optimal());
-        ASSERT_FALSE(model.proven_infeasible());
-        ASSERT_TRUE(model.proven_unbounded());
+        if constexpr(has_refinable_lp_status<decltype(model)>) {
+            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+                model.refine_lp_status();
+        }
+        ASSERT_TRUE(is_a<status::unbounded>(model.solve_status()));
     });
 }
 TYPED_TEST_P(LpStatusTest, max_infeasible) {
@@ -103,9 +101,11 @@ TYPED_TEST_P(LpStatusTest, max_infeasible) {
         model.add_constraint(y >= -2 + 2 * x);
         model.add_constraint(y >= 3 - x);
         model.solve();
-        ASSERT_FALSE(model.proven_optimal());
-        ASSERT_TRUE(model.proven_infeasible());
-        ASSERT_FALSE(model.proven_unbounded());
+        if constexpr(has_refinable_lp_status<decltype(model)>) {
+            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+                model.refine_lp_status();
+        }
+        ASSERT_TRUE(is_a<status::infeasible>(model.solve_status()));
     });
 }
 TYPED_TEST_P(LpStatusTest, min_infeasible) {
@@ -119,9 +119,11 @@ TYPED_TEST_P(LpStatusTest, min_infeasible) {
         model.add_constraint(y >= -2 + 2 * x);
         model.add_constraint(y >= 3 - x);
         model.solve();
-        ASSERT_FALSE(model.proven_optimal());
-        ASSERT_TRUE(model.proven_infeasible());
-        ASSERT_FALSE(model.proven_unbounded());
+        if constexpr(has_refinable_lp_status<decltype(model)>) {
+            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+                model.refine_lp_status();
+        }
+        ASSERT_TRUE(is_a<status::infeasible>(model.solve_status()));
     });
 }
 
