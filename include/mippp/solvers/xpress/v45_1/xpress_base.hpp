@@ -36,7 +36,7 @@ public:
     };
 
 protected:
-    const xpress_api & XPRS;
+    const xpress_api * XPRS;
     XPRSprob prob;
     double objective_offset;
 
@@ -44,7 +44,7 @@ protected:
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
-    void check(const int error) { XPRS._check(prob, error); }
+    void check(const int error) { XPRS->_check(prob, error); }
     static constexpr char constraint_sense_to_xpress_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
@@ -60,12 +60,12 @@ protected:
 
 public:
     [[nodiscard]] explicit xpress_base(const xpress_api & api)
-        : model_base<int, double>(), XPRS(api), objective_offset(0.0) {
-        check(XPRS.createprob(&prob));
+        : model_base<int, double>(), XPRS(&api), objective_offset(0.0) {
+        check(XPRS->createprob(&prob));
     }
     ~xpress_base() {
         if(!prob) return;
-        check(XPRS.destroyprob(prob));
+        check(XPRS->destroyprob(prob));
     }
 
     constexpr xpress_base(const xpress_base &) = delete;
@@ -85,25 +85,25 @@ public:
 
     std::size_t num_variables() {
         int num_vars;
-        check(XPRS.getintattrib(prob, XPRS_COLS, &num_vars));
+        check(XPRS->getintattrib(prob, XPRS_COLS, &num_vars));
         return static_cast<std::size_t>(num_vars);
     }
     std::size_t num_constraints() {
         int num_constrs;
-        check(XPRS.getintattrib(prob, XPRS_ROWS, &num_constrs));
+        check(XPRS->getintattrib(prob, XPRS_ROWS, &num_constrs));
         return static_cast<std::size_t>(num_constrs);
     }
     std::size_t num_entries() {
         int num_entries;
-        check(XPRS.getintattrib(prob, XPRS_ELEMS, &num_entries));
+        check(XPRS->getintattrib(prob, XPRS_ELEMS, &num_entries));
         return static_cast<std::size_t>(num_entries);
     }
 
     void set_maximization() {
-        check(XPRS.chgobjsense(prob, XPRS_OBJ_MAXIMIZE));
+        check(XPRS->chgobjsense(prob, XPRS_OBJ_MAXIMIZE));
     }
     void set_minimization() {
-        check(XPRS.chgobjsense(prob, XPRS_OBJ_MINIMIZE));
+        check(XPRS->chgobjsense(prob, XPRS_OBJ_MINIMIZE));
     }
 
     void set_objective_offset(double constant) { objective_offset = constant; }
@@ -117,8 +117,8 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(XPRS.chgobj(prob, static_cast<int>(num_vars), tmp_indices.data(),
-                          tmp_scalars.data()));
+        check(XPRS->chgobj(prob, static_cast<int>(num_vars), tmp_indices.data(),
+                           tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
@@ -127,13 +127,13 @@ public:
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
-        check(XPRS.getobj(prob, tmp_scalars.data(), 0,
-                          static_cast<int>(num_vars) - 1));
+        check(XPRS->getobj(prob, tmp_scalars.data(), 0,
+                           static_cast<int>(num_vars) - 1));
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(XPRS.chgobj(prob, static_cast<int>(num_vars), tmp_indices.data(),
-                          tmp_scalars.data()));
+        check(XPRS->chgobj(prob, static_cast<int>(num_vars), tmp_indices.data(),
+                           tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
 
@@ -142,7 +142,7 @@ public:
         const auto num_vars = num_variables();
         auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
         check(
-            XPRS.getobj(prob, coefs.get(), 0, static_cast<int>(num_vars) - 1));
+            XPRS->getobj(prob, coefs.get(), 0, static_cast<int>(num_vars) - 1));
         return linear_expression_view(
             std::views::transform(
                 std::views::iota(variable_id{0},
@@ -158,9 +158,9 @@ protected:
         const int var_id = static_cast<int>(num_variables());
         const double lb = params.lower_bound.value_or(XPRS_MINUSINFINITY);
         const double ub = params.upper_bound.value_or(XPRS_PLUSINFINITY);
-        check(XPRS.addcols(prob, 1, 0, &params.obj_coef, nullptr, nullptr,
-                           nullptr, &lb, &ub));
-        if(type != 'C') check(XPRS.chgcoltype(prob, 1, &var_id, &type));
+        check(XPRS->addcols(prob, 1, 0, &params.obj_coef, nullptr, nullptr,
+                            nullptr, &lb, &ub));
+        if(type != 'C') check(XPRS->chgcoltype(prob, 1, &var_id, &type));
         return variable(var_id);
     }
     void _add_variables(std::size_t offset, std::size_t count,
@@ -181,7 +181,7 @@ protected:
             dbl_offset_3.emplace(tmp_scalars.size());
             tmp_scalars.resize(tmp_scalars.size() + count, ub);
         }
-        check(XPRS.addcols(
+        check(XPRS->addcols(
             prob, static_cast<int>(count), 0,
             dbl_offset_1.has_value()
                 ? (tmp_scalars.data() +
@@ -202,8 +202,8 @@ protected:
             std::iota(tmp_indices.begin(), tmp_indices.end(), offset);
             tmp_types.resize(count);
             std::fill(tmp_types.begin(), tmp_types.end(), type);
-            check(XPRS.chgcoltype(prob, static_cast<int>(count),
-                                  tmp_indices.data(), tmp_types.data()));
+            check(XPRS->chgcoltype(prob, static_cast<int>(count),
+                                   tmp_indices.data(), tmp_types.data()));
         }
     }
 
@@ -269,9 +269,9 @@ private:
         _register_raw_entries(entries);
         const double lb = params.lower_bound.value_or(XPRS_MINUSINFINITY);
         const double ub = params.upper_bound.value_or(XPRS_PLUSINFINITY);
-        check(XPRS.addcols(prob, 1, static_cast<int>(tmp_indices.size()),
-                           &params.obj_coef, &cmatbeg, tmp_indices.data(),
-                           tmp_scalars.data(), &lb, &ub));
+        check(XPRS->addcols(prob, 1, static_cast<int>(tmp_indices.size()),
+                            &params.obj_coef, &cmatbeg, tmp_indices.data(),
+                            tmp_scalars.data(), &lb, &ub));
         return variable(var_id);
     }
 
@@ -289,45 +289,45 @@ public:
 
     void set_objective_coefficient(variable v, double c) {
         int var_id = v.id();
-        check(XPRS.chgobj(prob, 1, &var_id, &c));
+        check(XPRS->chgobj(prob, 1, &var_id, &c));
     }
     void set_variable_lower_bound(variable v, double lb) noexcept {
         int var_id = v.id();
         char bt = 'L';
-        check(XPRS.chgbounds(prob, 1, &var_id, &bt, &lb));
+        check(XPRS->chgbounds(prob, 1, &var_id, &bt, &lb));
     }
     void set_variable_upper_bound(variable v, double ub) noexcept {
         int var_id = v.id();
         char bt = 'U';
-        check(XPRS.chgbounds(prob, 1, &var_id, &bt, &ub));
+        check(XPRS->chgbounds(prob, 1, &var_id, &bt, &ub));
     }
     void set_variable_name(variable v, const std::string & name) noexcept {
-        check(XPRS.addnames(prob, XPRS_NAMES_COLUMN, name.data(), v.id(),
-                            v.id()));
+        check(XPRS->addnames(prob, XPRS_NAMES_COLUMN, name.data(), v.id(),
+                             v.id()));
     }
 
     double get_objective_coefficient(variable v) {
         double coef;
-        check(XPRS.getobj(prob, &coef, v.id(), v.id()));
+        check(XPRS->getobj(prob, &coef, v.id(), v.id()));
         return coef;
     }
     double get_variable_lower_bound(variable v) noexcept {
         double b;
-        check(XPRS.getlb(prob, &b, v.id(), v.id()));
+        check(XPRS->getlb(prob, &b, v.id(), v.id()));
         return b;
     }
     double get_variable_upper_bound(variable v) noexcept {
         double b;
-        check(XPRS.getub(prob, &b, v.id(), v.id()));
+        check(XPRS->getub(prob, &b, v.id(), v.id()));
         return b;
     }
     std::string get_variable_name(variable v) noexcept {
         int nbytes;
-        check(XPRS.getnamelist(prob, XPRS_NAMES_COLUMN, nullptr, 0, &nbytes,
-                               v.id(), v.id()));
+        check(XPRS->getnamelist(prob, XPRS_NAMES_COLUMN, nullptr, 0, &nbytes,
+                                v.id(), v.id()));
         std::string name(static_cast<std::size_t>(nbytes - 1), '\0');
-        check(XPRS.getnamelist(prob, XPRS_NAMES_COLUMN, name.data(), nbytes,
-                               nullptr, v.id(), v.id()));
+        check(XPRS->getnamelist(prob, XPRS_NAMES_COLUMN, name.data(), nbytes,
+                                nullptr, v.id(), v.id()));
         return name;
     }
 
@@ -338,9 +338,9 @@ public:
         int matbegin = 0;
         const double b = lc.rhs();
         const char sense = constraint_sense_to_xpress_sense(lc.sense());
-        check(XPRS.addrows(prob, 1, static_cast<int>(tmp_indices.size()),
-                           &sense, &b, nullptr, &matbegin, tmp_indices.data(),
-                           tmp_scalars.data()));
+        check(XPRS->addrows(prob, 1, static_cast<int>(tmp_indices.size()),
+                            &sense, &b, nullptr, &matbegin, tmp_indices.data(),
+                            tmp_scalars.data()));
         return constraint(constr_id);
     }
 
@@ -386,11 +386,11 @@ public:
             _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
-        check(XPRS.addrows(prob, static_cast<int>(tmp_begins.size()),
-                           static_cast<int>(tmp_indices.size()),
-                           tmp_types.data(), tmp_rhs.data(), nullptr,
-                           tmp_begins.data(), tmp_indices.data(),
-                           tmp_scalars.data()));
+        check(XPRS->addrows(prob, static_cast<int>(tmp_begins.size()),
+                            static_cast<int>(tmp_indices.size()),
+                            tmp_types.data(), tmp_rhs.data(), nullptr,
+                            tmp_begins.data(), tmp_indices.data(),
+                            tmp_scalars.data()));
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
@@ -400,22 +400,22 @@ public:
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
-        check(XPRS.setdblcontrol(prob, XPRS_FEASTOL, tol));
+        check(XPRS->setdblcontrol(prob, XPRS_FEASTOL, tol));
     }
     double get_feasibility_tolerance() {
         double tol;
-        check(XPRS.getdblcontrol(prob, XPRS_FEASTOL, &tol));
+        check(XPRS->getdblcontrol(prob, XPRS_FEASTOL, &tol));
         return tol;
     }
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        check(XPRS.setdblcontrol(prob, XPRS_TIMELIMIT, t.count()));
+        check(XPRS->setdblcontrol(prob, XPRS_TIMELIMIT, t.count()));
     }
     auto get_time_limit() {
         double t;
-        check(XPRS.getdblcontrol(prob, XPRS_TIMELIMIT, &t));
+        check(XPRS->getdblcontrol(prob, XPRS_TIMELIMIT, &t));
         return std::chrono::duration<double>(t);
     }
 };

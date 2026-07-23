@@ -200,8 +200,8 @@ int GRBcblazy(void * cbdata, int lazylen, const int * lazyind,
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace gurobi::v12_0 {
@@ -266,10 +266,10 @@ namespace gurobi::v12_0 {
     F(GRBcbcut, cbcut)                                 \
     F(GRBcblazy, cblazy)
 
-#define DECLARE_GUROBI_FUN(FULL, SHORT)   \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_GUROBI_FUN(FULL, SHORT) \
+#define DECLARE_GUROBI_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);     \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_GUROBI_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class gurobi_api {
@@ -277,12 +277,12 @@ private:
     dylib::library lib;
 
 public:
-    GRB_FUNCTIONS(DECLARE_GUROBI_FUN)
+    GRB_FUNCTIONS(DECLARE_GUROBI_FUNCTIONS)
 
 public:
     gurobi_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "GUROBI", {"gurobi120"}))
-              GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUN) {
+              GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUNCTIONS) {
         int major, minor, technical;
         version(&major, &minor, &technical);
         detail::warn_on_version_mismatch("GUROBI", GRB_VERSION_MAJOR, major);
@@ -294,6 +294,10 @@ public:
         throw solver_error(geterrormsg(env));
     }
 };
+
+#undef CONSTRUCT_GUROBI_FUNCTIONS
+#undef DECLARE_GUROBI_FUNCTIONS
+#undef GUROBI_FUNCTIONS
 
 }  // namespace gurobi::v12_0
 }  // namespace mippp

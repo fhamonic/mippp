@@ -42,15 +42,15 @@ private:
     status_variant _get_status() {
         using namespace status;
         MSKrestrmcode trm;
-        check(MSK.optimizetrm(task, &trm));
+        check(MSK->optimizetrm(task, &trm));
         switch(trm) {
             case MSK_RES_OK: {
                 MSKprostae prosta;
-                check(MSK.getprosta(task, MSK_SOL_BAS, &prosta));
+                check(MSK->getprosta(task, MSK_SOL_BAS, &prosta));
                 switch(prosta) {
                     case MSK_PRO_STA_PRIM_AND_DUAL_FEAS: {
                         MSKsolstae solsta;
-                        check(MSK.getsolsta(task, MSK_SOL_BAS, &solsta));
+                        check(MSK->getsolsta(task, MSK_SOL_BAS, &solsta));
                         switch (solsta) {
                             case MSK_SOL_STA_OPTIMAL:
                             case MSK_SOL_STA_INTEGER_OPTIMAL:  return optimal{};
@@ -93,36 +93,36 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(MSK.optimize(task));
-        check(MSK.getprosta(task, MSK_SOL_BAS, &lp_status));
+        check(MSK->optimize(task));
+        check(MSK->getprosta(task, MSK_SOL_BAS, &lp_status));
         _status = _get_status();
     }
     double get_solution_value() {
         double val;
-        check(MSK.getprimalobj(task, MSK_SOL_BAS, &val));
+        check(MSK->getprimalobj(task, MSK_SOL_BAS, &val));
         return val;
     }
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(MSK.getxx(task, MSK_SOL_BAS, solution.get()));
+        check(MSK->getxx(task, MSK_SOL_BAS, solution.get()));
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
-        check(MSK.getsolution(task, MSK_SOL_BAS, nullptr, nullptr, nullptr,
-                              nullptr, nullptr, nullptr, nullptr,
-                              dual_solution.get(), nullptr, nullptr, nullptr,
-                              nullptr, nullptr));
+        check(MSK->getsolution(task, MSK_SOL_BAS, nullptr, nullptr, nullptr,
+                               nullptr, nullptr, nullptr, nullptr,
+                               dual_solution.get(), nullptr, nullptr, nullptr,
+                               nullptr, nullptr));
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
         const auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(MSK.getreducedcosts(task, MSK_SOL_BAS, 0,
-                                  static_cast<int>(num_vars),
-                                  reduced_costs.get()));
+        check(MSK->getreducedcosts(task, MSK_SOL_BAS, 0,
+                                   static_cast<int>(num_vars),
+                                   reduced_costs.get()));
         return variable_mapping(std::move(reduced_costs));
     }
 };

@@ -41,7 +41,7 @@ public:
     };
 
 private:
-    const clp_api & Clp;
+    const clp_api * Clp;
     Clp_Simplex * model;
 
     std::vector<index> tmp_begins;
@@ -51,10 +51,10 @@ private:
     std::vector<int> _free_variable_ids;
 
 public:
-    [[nodiscard]] explicit clp_lp(const clp_api & api)
-        : model_base<int, double>(), Clp(api), model(Clp.newModel()) {}
+    explicit clp_lp(const clp_api & api)
+        : model_base<int, double>(), Clp(&api), model(Clp->newModel()) {}
     ~clp_lp() {
-        if(model) Clp.deleteModel(model);
+        if(model) Clp->deleteModel(model);
     }
 
     constexpr clp_lp(const clp_lp &) = delete;
@@ -73,25 +73,25 @@ public:
     constexpr clp_lp & operator=(clp_lp && other) = delete;
 
     std::size_t num_variables() {
-        return static_cast<std::size_t>(Clp.getNumCols(model)) -
+        return static_cast<std::size_t>(Clp->getNumCols(model)) -
                _free_variable_ids.size();
     }
     std::size_t num_constraints() {
-        return static_cast<std::size_t>(Clp.getNumRows(model));
+        return static_cast<std::size_t>(Clp->getNumRows(model));
     }
     std::size_t num_entries() {
-        return static_cast<std::size_t>(Clp.getNumElements(model));
+        return static_cast<std::size_t>(Clp->getNumElements(model));
     }
 
-    void set_maximization() { Clp.setObjSense(model, -1); }
-    void set_minimization() { Clp.setObjSense(model, 1); }
+    void set_maximization() { Clp->setObjSense(model, -1); }
+    void set_minimization() { Clp->setObjSense(model, 1); }
 
     void set_objective_offset(scalar constant) {
-        Clp.setObjectiveOffset(model, -constant);
+        Clp->setObjectiveOffset(model, -constant);
     }
     void set_objective(linear_expression auto && le) {
         auto num_vars = num_native_ids_variables();
-        scalar * objective = Clp.objective(model);
+        scalar * objective = Clp->objective(model);
         std::fill(objective, objective + num_vars, 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
             objective[var.id()] += coef;
@@ -99,16 +99,16 @@ public:
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
-        scalar * objective = Clp.objective(model);
+        scalar * objective = Clp->objective(model);
         for(auto && [var, coef] : le.linear_terms()) {
             objective[var.id()] += coef;
         }
         set_objective_offset(get_objective_offset() + le.constant());
     }
-    scalar get_objective_offset() { return -Clp.objectiveOffset(model); }
+    scalar get_objective_offset() { return -Clp->objectiveOffset(model); }
     auto get_objective() {
         auto num_vars = num_native_ids_variables();
-        const scalar * objective = Clp.objective(model);
+        const scalar * objective = Clp->objective(model);
         return linear_expression_view(
             std::views::transform(
                 std::views::iota(variable_id{0},
@@ -121,24 +121,24 @@ public:
 
 private:
     std::size_t num_native_ids_variables() {
-        return static_cast<std::size_t>(Clp.getNumCols(model));
+        return static_cast<std::size_t>(Clp->getNumCols(model));
     }
     std::size_t _add_variables(std::size_t count,
                                const variable_params & params) {
         const std::size_t offset = num_native_ids_variables();
-        Clp.addColumns(model, static_cast<int>(count), nullptr, nullptr, nullptr, nullptr,
-                       nullptr, nullptr);
+        Clp->addColumns(model, static_cast<int>(count), nullptr, nullptr,
+                        nullptr, nullptr, nullptr, nullptr);
         if(auto obj = params.obj_coef; obj != 0.0) {
-            scalar * objective = Clp.objective(model);
+            scalar * objective = Clp->objective(model);
             std::fill(objective + offset, objective + offset + count, obj);
         }
         if(auto lb = params.lower_bound.value_or(-COIN_DBL_MAX); lb != 0.0) {
-            scalar * lower_bounds = Clp.columnLower(model);
+            scalar * lower_bounds = Clp->columnLower(model);
             std::fill(lower_bounds + offset, lower_bounds + offset + count, lb);
         }
         if(auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
            ub != COIN_DBL_MAX) {
-            scalar * upper_bounds = Clp.columnUpper(model);
+            scalar * upper_bounds = Clp->columnUpper(model);
             std::fill(upper_bounds + offset, upper_bounds + offset + count, ub);
         }
         return offset;
@@ -167,7 +167,8 @@ public:
             static_cast<variable_id>(num_native_ids_variables());
         const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
         const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
-        Clp.addColumns(model, 1, &lb, &ub, &params.obj_coef, nullptr, nullptr, nullptr);
+        Clp->addColumns(model, 1, &lb, &ub, &params.obj_coef, nullptr, nullptr,
+                        nullptr);
         return variable(var_id);
     }
     auto add_variables(
@@ -182,7 +183,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = _add_variables(count, params);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -201,7 +202,7 @@ public:
         variable_params params = default_variable_params) noexcept {
         const std::size_t offset = _add_variables(count, params);
         return _make_named_variables_view(offset, count,
-                                           std::forward<NL>(name_lambda), this);
+                                          std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -219,8 +220,8 @@ private:
         if(!_free_variable_ids.empty()) {
             variable v = _recylcle_variable(params);
             for(auto && [constr, coef] : entries) {
-                Clp.modifyCoefficient(model, constr.id(), v.id(),
-                                      static_cast<double>(coef), false);
+                Clp->modifyCoefficient(model, constr.id(), v.id(),
+                                       static_cast<double>(coef), false);
             }
             return v;
         }
@@ -230,8 +231,8 @@ private:
         const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
         const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
-        Clp.addColumns(model, 1, &lb, &ub, &params.obj_coef, starts,
-                       tmp_indices.data(), tmp_scalars.data());
+        Clp->addColumns(model, 1, &lb, &ub, &params.obj_coef, starts,
+                        tmp_indices.data(), tmp_scalars.data());
         return variable(var_id);
     }
 
@@ -252,13 +253,13 @@ public:
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 0);
         // Zeroes the column
-        const int * col_starts = Clp.getVectorStarts(model);
-        const int * row_indices = Clp.getIndices(model);
+        const int * col_starts = Clp->getVectorStarts(model);
+        const int * row_indices = Clp->getIndices(model);
 
         const int * begin = row_indices + col_starts[v.id()];
         const int * end = row_indices + col_starts[v.id() + 1];
         for(const int * it = begin; it != end; ++it) {
-            Clp.modifyCoefficient(model, *it, v.id(), 0.0, false);
+            Clp->modifyCoefficient(model, *it, v.id(), 0.0, false);
         }
 
         _free_variable_ids.emplace_back(v.id());
@@ -269,34 +270,34 @@ public:
     }
 
     void set_objective_coefficient(variable v, scalar c) {
-        Clp.objective(model)[v.id()] = c;
+        Clp->objective(model)[v.id()] = c;
     }
     void set_variable_lower_bound(variable v, scalar lb) {
-        Clp.columnLower(model)[v.id()] = lb;
+        Clp->columnLower(model)[v.id()] = lb;
     }
     void set_variable_upper_bound(variable v, scalar ub) {
-        Clp.columnUpper(model)[v.id()] = ub;
+        Clp->columnUpper(model)[v.id()] = ub;
     }
     void set_variable_name(variable v, const char * name) {
-        Clp.setColumnName(model, v.id(), const_cast<char *>(name));
+        Clp->setColumnName(model, v.id(), const_cast<char *>(name));
     }
     void set_variable_name(variable v, std::string name) {
         set_variable_name(v, name.c_str());
     }
 
     scalar get_objective_coefficient(variable v) {
-        return Clp.objective(model)[v.id()];
+        return Clp->objective(model)[v.id()];
     }
     scalar get_variable_lower_bound(variable v) {
-        return Clp.columnLower(model)[v.id()];
+        return Clp->columnLower(model)[v.id()];
     }
     scalar get_variable_upper_bound(variable v) {
-        return Clp.columnUpper(model)[v.id()];
+        return Clp->columnUpper(model)[v.id()];
     }
     std::string get_variable_name(variable v) {
-        auto max_length = static_cast<std::size_t>(Clp.lengthNames(model));
+        auto max_length = static_cast<std::size_t>(Clp->lengthNames(model));
         std::string name(max_length, '\0');
-        Clp.columnName(model, v.id(), name.data());
+        Clp->columnName(model, v.id(), name.data());
         name.resize(std::strlen(name.c_str()));
         return name;
     }
@@ -307,10 +308,11 @@ public:
         _register_raw_entries(lc.linear_terms());
         const scalar b = lc.rhs();
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
-        Clp.addRows(model, 1,
-                    (lc.sense() == constraint_sense::less_equal) ? nullptr : &b,
-                    (lc.sense() == constraint_sense::greater_equal) ? nullptr : &b,
-                    starts, tmp_indices.data(), tmp_scalars.data());
+        Clp->addRows(
+            model, 1,
+            (lc.sense() == constraint_sense::less_equal) ? nullptr : &b,
+            (lc.sense() == constraint_sense::greater_equal) ? nullptr : &b,
+            starts, tmp_indices.data(), tmp_scalars.data());
         return constraint(constr_id);
     }
 
@@ -365,9 +367,9 @@ public:
             ++constr_id;
         }
         tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
-        Clp.addRows(model, static_cast<int>(tmp_begins.size()) - 1,
-                    tmp_lower_bounds.data(), tmp_upper_bounds.data(),
-                    tmp_begins.data(), tmp_indices.data(), tmp_scalars.data());
+        Clp->addRows(model, static_cast<int>(tmp_begins.size()) - 1,
+                     tmp_lower_bounds.data(), tmp_upper_bounds.data(),
+                     tmp_begins.data(), tmp_indices.data(), tmp_scalars.data());
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
@@ -377,14 +379,14 @@ public:
     void set_constraint_rhs(constraint constr, scalar rhs) {
         switch(get_constraint_sense(constr)) {
             case constraint_sense::equal:
-                Clp.rowLower(model)[constr.id()] =
-                    Clp.rowUpper(model)[constr.id()] = rhs;
+                Clp->rowLower(model)[constr.id()] =
+                    Clp->rowUpper(model)[constr.id()] = rhs;
                 return;
             case constraint_sense::less_equal:
-                Clp.rowUpper(model)[constr.id()] = rhs;
+                Clp->rowUpper(model)[constr.id()] = rhs;
                 return;
             case constraint_sense::greater_equal:
-                Clp.rowLower(model)[constr.id()] = rhs;
+                Clp->rowLower(model)[constr.id()] = rhs;
                 return;
         }
     }
@@ -394,16 +396,16 @@ public:
         if(old_r == r) return;
         switch(r) {
             case constraint_sense::equal:
-                Clp.rowLower(model)[constr.id()] =
-                    Clp.rowUpper(model)[constr.id()] = old_rhs;
+                Clp->rowLower(model)[constr.id()] =
+                    Clp->rowUpper(model)[constr.id()] = old_rhs;
                 return;
             case constraint_sense::less_equal:
-                Clp.rowLower(model)[constr.id()] = -COIN_DBL_MAX;
-                Clp.rowUpper(model)[constr.id()] = old_rhs;
+                Clp->rowLower(model)[constr.id()] = -COIN_DBL_MAX;
+                Clp->rowUpper(model)[constr.id()] = old_rhs;
                 return;
             case constraint_sense::greater_equal:
-                Clp.rowLower(model)[constr.id()] = old_rhs;
-                Clp.rowUpper(model)[constr.id()] = COIN_DBL_MAX;
+                Clp->rowLower(model)[constr.id()] = old_rhs;
+                Clp->rowUpper(model)[constr.id()] = COIN_DBL_MAX;
                 return;
         }
     }
@@ -419,24 +421,24 @@ public:
         lb -= le.constant();
         ub -= le.constant();
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
-        Clp.addRows(model, 1, &lb, &ub, starts, tmp_indices.data(),
-                    tmp_scalars.data());
+        Clp->addRows(model, 1, &lb, &ub, starts, tmp_indices.data(),
+                     tmp_scalars.data());
         return constraint(constr_id);
     }
     void set_constraint_name(constraint constr, auto && name) {
-        Clp.setRowName(model, constr.id(), const_cast<char *>(name.c_str()));
+        Clp->setRowName(model, constr.id(), const_cast<char *>(name.c_str()));
     }
 
     // auto get_constraint_lhs(constraint constr) {} // Clp C API only has
     // column-major accessors
     scalar get_constraint_rhs(constraint constr) {
         if(get_constraint_sense(constr) == constraint_sense::greater_equal)
-            return Clp.rowLower(model)[constr.id()];
-        return Clp.rowUpper(model)[constr.id()];
+            return Clp->rowLower(model)[constr.id()];
+        return Clp->rowUpper(model)[constr.id()];
     }
     constraint_sense get_constraint_sense(constraint constr) {
-        const scalar lb = Clp.rowLower(model)[constr.id()];
-        const scalar ub = Clp.rowUpper(model)[constr.id()];
+        const scalar lb = Clp->rowLower(model)[constr.id()];
+        const scalar ub = Clp->rowUpper(model)[constr.id()];
         if(lb == ub) return constraint_sense::equal;
         if(lb == -COIN_DBL_MAX) return constraint_sense::less_equal;
         if(ub == COIN_DBL_MAX) return constraint_sense::greater_equal;
@@ -451,9 +453,9 @@ public:
     // }
 
     auto get_constraint_name(constraint constr) {
-        auto max_length = static_cast<std::size_t>(Clp.lengthNames(model));
+        auto max_length = static_cast<std::size_t>(Clp->lengthNames(model));
         std::string name(max_length, '\0');
-        Clp.rowName(model, constr.id(), name.data());
+        Clp->rowName(model, constr.id(), name.data());
         name.resize(std::strlen(name.c_str()));
         return name;
     }
@@ -463,9 +465,9 @@ public:
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(scalar tol) {
-        Clp.setPrimalTolerance(model, tol);
+        Clp->setPrimalTolerance(model, tol);
     }
-    scalar get_feasibility_tolerance() { return Clp.primalTolerance(model); }
+    scalar get_feasibility_tolerance() { return Clp->primalTolerance(model); }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -481,14 +483,14 @@ private:
 
     status_variant _get_status() {
         using namespace status;
-        switch(Clp.status(model)) {
+        switch(Clp->status(model)) {
             case 0: return optimal{};
             case 1: return infeasible{};
             case 2: return unbounded{};
             default:
                 return unknown{};
         }
-    }    
+    }
     // clang-format on
 public:
     const status_variant & solve_status() const { return _status; }
@@ -500,18 +502,18 @@ public:
             // _status.emplace<status::optimal>() ?
             return;
         }
-        Clp.primal(model, 0);
+        Clp->primal(model, 0);
         _status = _get_status();
     }
-    scalar get_solution_value() { return Clp.getObjValue(model); }
+    scalar get_solution_value() { return Clp->getObjValue(model); }
     auto get_solution() {
-        return variable_mapping(Clp.primalColumnSolution(model));
+        return variable_mapping(Clp->primalColumnSolution(model));
     }
     auto get_dual_solution() {
-        return constraint_mapping(Clp.dualRowSolution(model));
+        return constraint_mapping(Clp->dualRowSolution(model));
     }
     auto get_reduced_costs() {
-        return variable_mapping(Clp.dualColumnSolution(model));
+        return variable_mapping(Clp->dualColumnSolution(model));
     }
 };
 

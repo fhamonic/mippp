@@ -20,12 +20,12 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_iteration_limit(std::size_t n) {
-        check(Highs.setIntOptionValue(model, "simplex_iteration_limit",
-                                      static_cast<int>(n)));
+        check(Highs->setIntOptionValue(model, "simplex_iteration_limit",
+                                       static_cast<int>(n)));
     }
     std::size_t get_iteration_limit() {
         int n;
-        check(Highs.getIntOptionValue(model, "simplex_iteration_limit", &n));
+        check(Highs->getIntOptionValue(model, "simplex_iteration_limit", &n));
         return static_cast<std::size_t>(n);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -49,7 +49,7 @@ private:
 
     status_variant _get_status() {
         using namespace status;
-        switch (Highs.getModelStatus(model)) {            
+        switch (Highs->getModelStatus(model)) {            
             case kHighsModelStatusOptimal:        return optimal{};
             case kHighsModelStatusUnboundedOrInfeasible: 
                                                   return infeasible_or_unbounded{};
@@ -82,15 +82,15 @@ public:
         if(num_variables() == 0u) {
             return;
         }
-        check(Highs.run(model));
+        check(Highs->run(model));
         _status = _get_status();
     }
-    double get_solution_value() { return Highs.getObjectiveValue(model); }
+    double get_solution_value() { return Highs->getObjectiveValue(model); }
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(Highs.getSolution(model, solution.get(), nullptr, nullptr,
-                                nullptr));
+        check(Highs->getSolution(model, solution.get(), nullptr, nullptr,
+                                 nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
@@ -99,15 +99,15 @@ public:
     auto get_dual_solution() {
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
-        check(Highs.getSolution(model, nullptr, nullptr, nullptr,
-                                solution.get()));
+        check(Highs->getSolution(model, nullptr, nullptr, nullptr,
+                                 solution.get()));
         return constraint_mapping(std::move(solution));
     }
     auto get_reduced_costs() {
         auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(Highs.getSolution(model, nullptr, reduced_costs.get(), nullptr,
-                                nullptr));
+        check(Highs->getSolution(model, nullptr, reduced_costs.get(), nullptr,
+                                 nullptr));
         return variable_mapping([this, reduced_costs = std::move(
                                            reduced_costs)](const variable & v) {
             return *(reduced_costs.get() + _native_id(v));

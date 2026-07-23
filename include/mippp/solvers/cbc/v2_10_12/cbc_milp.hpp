@@ -39,7 +39,7 @@ public:
     };
 
 private:
-    const cbc_api & Cbc;
+    const cbc_api * Cbc;
     Cbc_Model * model;
     std::chrono::duration<double> time_limit;
     double objective_offset;
@@ -62,16 +62,16 @@ private:
     std::size_t _lazy_num_constraints;
 
 public:
-    [[nodiscard]] explicit cbc_milp(const cbc_api & api)
+    explicit cbc_milp(const cbc_api & api)
         : model_base<int, double>()
-        , Cbc(api)
-        , model(Cbc.newModel())
+        , Cbc(&api)
+        , model(Cbc->newModel())
         , objective_offset(0.0)
         , feasibility_tol(1e-4)
         , _lazy_num_variables(0)
         , _lazy_num_constraints(0) {}
     ~cbc_milp() {
-        if(model) Cbc.deleteModel(model);
+        if(model) Cbc->deleteModel(model);
     }
 
     constexpr cbc_milp(const cbc_milp &) = delete;
@@ -90,31 +90,31 @@ public:
     constexpr cbc_milp & operator=(cbc_milp && other) = delete;
 
     std::size_t num_variables() {
-        if(static_cast<std::size_t>(Cbc.getNumCols(model)) !=
+        if(static_cast<std::size_t>(Cbc->getNumCols(model)) !=
            _lazy_num_variables)
             throw std::runtime_error(
                 "cbc_milp : _lazy_num_variables differs from Cbc one.");
         return _lazy_num_variables;
     }
     std::size_t num_constraints() {
-        if(static_cast<std::size_t>(Cbc.getNumRows(model)) !=
+        if(static_cast<std::size_t>(Cbc->getNumRows(model)) !=
            _lazy_num_constraints)
             throw std::runtime_error(
                 "cbc_milp : _lazy_num_constraints differs from Cbc one.");
         return _lazy_num_constraints;
     }
     std::size_t num_entries() {
-        return static_cast<std::size_t>(Cbc.getNumElements(model));
+        return static_cast<std::size_t>(Cbc->getNumElements(model));
     }
 
-    void set_maximization() { Cbc.setObjSense(model, -1); }
-    void set_minimization() { Cbc.setObjSense(model, 1); }
+    void set_maximization() { Cbc->setObjSense(model, -1); }
+    void set_minimization() { Cbc->setObjSense(model, 1); }
 
     void set_objective_offset(double offset) { objective_offset = offset; }
     void set_objective(linear_expression auto && le) {
         for(auto && v :
             std::views::iota(0, static_cast<int>(_lazy_num_variables))) {
-            Cbc.setObjCoeff(model, v, 0.0);
+            Cbc->setObjCoeff(model, v, 0.0);
         }
         for(auto && [var, coef] : le.linear_terms()) {
             set_objective_coefficient(var,
@@ -135,7 +135,7 @@ public:
             std::views::transform(
                 std::views::iota(variable_id{0},
                                  static_cast<variable_id>(_lazy_num_variables)),
-                [coefs = Cbc.getObjCoefficients(model)](auto i) {
+                [coefs = Cbc->getObjCoefficients(model)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
             get_objective_offset());
@@ -144,9 +144,9 @@ public:
 private:
     inline void _add_var(const variable_params & p, const bool is_integer,
                          const char * name = "") {
-        Cbc.addCol(model, name, p.lower_bound.value_or(-COIN_DBL_MAX),
-                   p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef, is_integer,
-                   0, nullptr, nullptr);
+        Cbc->addCol(model, name, p.lower_bound.value_or(-COIN_DBL_MAX),
+                    p.upper_bound.value_or(COIN_DBL_MAX), p.obj_coef,
+                    is_integer, 0, nullptr, nullptr);
         ++_lazy_num_variables;
     }
 
@@ -245,10 +245,10 @@ private:
     inline variable _add_column(ER && entries, const variable_params & params) {
         _reset_raw_cache();
         _register_raw_entries(entries);
-        Cbc.addCol(model, "", params.lower_bound.value_or(-COIN_DBL_MAX),
-                   params.upper_bound.value_or(COIN_DBL_MAX), params.obj_coef,
-                   false, static_cast<int>(tmp_indices.size()),
-                   tmp_indices.data(), tmp_scalars.data());
+        Cbc->addCol(model, "", params.lower_bound.value_or(-COIN_DBL_MAX),
+                    params.upper_bound.value_or(COIN_DBL_MAX), params.obj_coef,
+                    false, static_cast<int>(tmp_indices.size()),
+                    tmp_indices.data(), tmp_scalars.data());
         return variable(static_cast<int>(_lazy_num_variables++));
     }
 
@@ -265,9 +265,9 @@ public:
     }
 
     void set_continuous(variable v) noexcept {
-        Cbc.setContinuous(model, v.id());
+        Cbc->setContinuous(model, v.id());
     }
-    void set_integer(variable v) noexcept { Cbc.setInteger(model, v.id()); }
+    void set_integer(variable v) noexcept { Cbc->setInteger(model, v.id()); }
     void set_binary(variable v) noexcept {
         set_integer(v);
         set_variable_lower_bound(v, 0);
@@ -275,33 +275,33 @@ public:
     }
 
     void set_objective_coefficient(variable v, double c) {
-        Cbc.setObjCoeff(model, v.id(), c);
+        Cbc->setObjCoeff(model, v.id(), c);
     }
     void set_variable_lower_bound(variable v, double lb) {
-        Cbc.setColLower(model, v.id(), lb);
+        Cbc->setColLower(model, v.id(), lb);
     }
     void set_variable_upper_bound(variable v, double ub) {
-        Cbc.setColUpper(model, v.id(), ub);
+        Cbc->setColUpper(model, v.id(), ub);
     }
     void set_variable_name(variable v, std::string name) {
-        Cbc.setColName(model, v.id(), const_cast<char *>(name.c_str()));
+        Cbc->setColName(model, v.id(), const_cast<char *>(name.c_str()));
     }
 
     double get_objective_coefficient(variable v) {
-        return Cbc.getObjCoefficients(model)[v.id()];
+        return Cbc->getObjCoefficients(model)[v.id()];
     }
     double get_variable_lower_bound(variable v) {
-        return Cbc.getColLower(model)[v.id()];
+        return Cbc->getColLower(model)[v.id()];
     }
     double get_variable_upper_bound(variable v) {
-        return Cbc.getColUpper(model)[v.id()];
+        return Cbc->getColUpper(model)[v.id()];
     }
     std::string get_variable_name(variable v) {
         // getNumIntegers flushes Cbc internal buffers to update maxNameLength
-        [[maybe_unused]] auto n = Cbc.getNumIntegers(model);
-        auto max_length = Cbc.maxNameLength(model);
+        [[maybe_unused]] auto n = Cbc->getNumIntegers(model);
+        auto max_length = Cbc->maxNameLength(model);
         std::string name(max_length + 1, '\0');
-        Cbc.getColName(model, v.id(), name.data(), max_length + 1);
+        Cbc->getColName(model, v.id(), name.data(), max_length + 1);
         name.resize(std::strlen(name.c_str()));
         return name;
     }
@@ -312,9 +312,9 @@ private:
         tmp_indices.resize(0);
         tmp_scalars.resize(0);
         _register_entries(lc.linear_terms());
-        Cbc.addRow(model, "", static_cast<int>(tmp_indices.size()),
-                   tmp_indices.data(), tmp_scalars.data(),
-                   constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
+        Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
+                    tmp_indices.data(), tmp_scalars.data(),
+                    constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
         ++_lazy_num_constraints;
     }
 
@@ -400,26 +400,26 @@ public:
         tmp_scalars.resize(0);
         _register_entries(le.linear_terms());
         const double c = le.constant();
-        Cbc.addRow(model, "", static_cast<int>(tmp_indices.size()),
-                   tmp_indices.data(), tmp_scalars.data(), 'L', ub - c);
-        Cbc.setRowLower(model, constr_id, lb - c);
+        Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
+                    tmp_indices.data(), tmp_scalars.data(), 'L', ub - c);
+        Cbc->setRowLower(model, constr_id, lb - c);
         ++_lazy_num_constraints;
         return constraint(constr_id);
     }
     // void set_constraint_name(constraint constr, auto && name);
 
     auto get_constraint_lhs(constraint constr) {
-        const int num_nz = Cbc.getRowNz(model, constr.id());
-        const int * ids = Cbc.getRowIndices(model, constr.id());
-        const double * coeffs = Cbc.getRowCoeffs(model, constr.id());
+        const int num_nz = Cbc->getRowNz(model, constr.id());
+        const int * ids = Cbc->getRowIndices(model, constr.id());
+        const double * coeffs = Cbc->getRowCoeffs(model, constr.id());
         return std::views::transform(
             std::views::iota(0, num_nz), [ids, coeffs](int i) {
                 return std::make_pair(variable(ids[i]), coeffs[i]);
             });
     }
     constraint_sense get_constraint_sense(constraint constr) {
-        const double lb = Cbc.getRowLower(model)[constr.id()];
-        const double ub = Cbc.getRowUpper(model)[constr.id()];
+        const double lb = Cbc->getRowLower(model)[constr.id()];
+        const double ub = Cbc->getRowUpper(model)[constr.id()];
         if(lb == ub) return constraint_sense::equal;
         if(lb == -COIN_DBL_MAX) return constraint_sense::less_equal;
         if(ub == COIN_DBL_MAX) return constraint_sense::greater_equal;
@@ -427,7 +427,7 @@ public:
             "Tried to get the sense of a ranged constraint");
     }
     double get_constraint_rhs(constraint constr) {
-        return Cbc.getRowRHS(model, constr.id());
+        return Cbc->getRowRHS(model, constr.id());
     }
     auto get_constraint(constraint constr) {
         return linear_constraint_view(
@@ -436,9 +436,9 @@ public:
             get_constraint_sense(constr));
     }
     auto get_constraint_name(constraint constr) {
-        auto max_length = Cbc.maxNameLength(model);
+        auto max_length = Cbc->maxNameLength(model);
         std::string name(max_length, '\0');
-        Cbc.getRowName(model, constr.id(), name.data(), max_length);
+        Cbc->getRowName(model, constr.id(), name.data(), max_length);
         name.resize(std::strlen(name.c_str()));
         return name;
     }
@@ -450,8 +450,8 @@ private:
     inline void _add_mip_start(ER && entries) {
         _reset_raw_cache();
         _register_raw_entries(entries);
-        Cbc.setMIPStartI(model, static_cast<int>(tmp_indices.size()),
-                         tmp_indices.data(), tmp_scalars.data());
+        Cbc->setMIPStartI(model, static_cast<int>(tmp_indices.size()),
+                          tmp_indices.data(), tmp_scalars.data());
     }
 
 public:
@@ -467,22 +467,22 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        Cbc.setMaximumSeconds(model, t.count());
+        Cbc->setMaximumSeconds(model, t.count());
     }
     auto get_time_limit() {
-        return std::chrono::duration<double>(Cbc.getMaximumSeconds(model));
+        return std::chrono::duration<double>(Cbc->getMaximumSeconds(model));
     }
     void set_node_limit(const std::size_t count) {
-        Cbc.setMaximumNodes(model, static_cast<int>(count));
+        Cbc->setMaximumNodes(model, static_cast<int>(count));
     }
     auto get_node_limit() {
-        return static_cast<std::size_t>(Cbc.getMaximumNodes(model));
+        return static_cast<std::size_t>(Cbc->getMaximumNodes(model));
     }
     void set_solution_limit(std::size_t count) {
-        Cbc.setMaximumSolutions(model, static_cast<int>(count));
+        Cbc->setMaximumSolutions(model, static_cast<int>(count));
     }
     auto get_solution_limit() {
-        return static_cast<std::size_t>(Cbc.getMaximumSolutions(model));
+        return static_cast<std::size_t>(Cbc->getMaximumSolutions(model));
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
@@ -490,15 +490,15 @@ public:
     void set_feasibility_tolerance(double tol) {
         feasibility_tol = tol;
         auto tol_s = std::to_string(tol);
-        Cbc.setParameter(model, "primalTolerance", tol_s.c_str());
-        Cbc.setParameter(model, "dualTolerance", tol_s.c_str());
+        Cbc->setParameter(model, "primalTolerance", tol_s.c_str());
+        Cbc->setParameter(model, "dualTolerance", tol_s.c_str());
     }
     double get_feasibility_tolerance() { return feasibility_tol; }
     void set_optimality_tolerance(double tol) {
-        Cbc.setAllowableFractionGap(model, tol);
+        Cbc->setAllowableFractionGap(model, tol);
     }
     double get_optimality_tolerance() {
-        return Cbc.getAllowableFractionGap(model);
+        return Cbc->getAllowableFractionGap(model);
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
@@ -521,28 +521,28 @@ private:
 
     status_variant _get_status() {
         using namespace status;
-        if (Cbc.getNumIntegers(model) == 0) {
-            if (Cbc.isProvenOptimal(model)) {
+        if (Cbc->getNumIntegers(model) == 0) {
+            if (Cbc->isProvenOptimal(model)) {
                 return status::optimal{};
-            } else if (Cbc.isProvenInfeasible(model)) {
+            } else if (Cbc->isProvenInfeasible(model)) {
                 return status::infeasible{};
-            } else if (Cbc.isContinuousUnbounded(model)) {
+            } else if (Cbc->isContinuousUnbounded(model)) {
                 return status::unbounded{};
-            } else if (Cbc.isAbandoned(model)) {
+            } else if (Cbc->isAbandoned(model)) {
                 return status::numerical_failure{};
             }
             return status::unknown{};
         } else {
-            switch (Cbc.status(model)) {
+            switch (Cbc->status(model)) {
                 case -1: return status::unknown{};
                 case 0: {
-                    if(Cbc.isProvenOptimal(model)) return status::optimal{};
-                    if(Cbc.isProvenInfeasible(model)) return status::infeasible{};
+                    if(Cbc->isProvenOptimal(model)) return status::optimal{};
+                    if(Cbc->isProvenInfeasible(model)) return status::infeasible{};
                     return status::unbounded{};
                 }
                 case 1: {
-                    const bool has_sol = Cbc.bestSolution(model) != NULL;
-                    switch (Cbc.secondaryStatus(model)) {
+                    const bool has_sol = Cbc->bestSolution(model) != NULL;
+                    switch (Cbc->secondaryStatus(model)) {
                         case 1: return status::infeasible{};
                         case 2: return status::unknown{has_sol};
                         case 3: return status::node_limit{has_sol};
@@ -572,18 +572,19 @@ public:
         if(_lazy_num_variables == 0u) {
             add_variable();  // ?
         };
-        Cbc.solve(model);
+        Cbc->solve(model);
         _status = _get_status();
     }
     double get_solution_value() {
         return objective_offset +
-               (_lazy_num_variables == 0u ? 0.0 : Cbc.getObjValue(model));
+               (_lazy_num_variables == 0u ? 0.0 : Cbc->getObjValue(model));
     }
-    // auto get_solution() { return variable_mapping(Cbc.bestSolution(model)); }
+    // auto get_solution() { return variable_mapping(Cbc->bestSolution(model));
+    // }
     auto get_solution() {
         const double * sol =
-            Cbc.bestSolution(model);  // NULL is no integer variables
-        if(sol == nullptr) sol = Cbc.getColSolution(model);
+            Cbc->bestSolution(model);  // NULL is no integer variables
+        if(sol == nullptr) sol = Cbc->getColSolution(model);
         return variable_mapping(std::move(sol));
     }
 };

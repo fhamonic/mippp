@@ -256,10 +256,10 @@ namespace copt::v7_2 {
     F(COPT_AddCallbackUserCut, AddCallbackUserCut)   \
     F(COPT_AddCallbackLazyConstr, AddCallbackLazyConstr)
 
-#define DECLARE_COPT_FUN(FULL, SHORT)     \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_COPT_FUN(FULL, SHORT) \
+#define DECLARE_COPT_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);   \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_COPT_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class copt_api {
@@ -267,12 +267,12 @@ private:
     dylib::library lib;
 
 public:
-    COPT_FUNCTIONS(DECLARE_COPT_FUN)
+    COPT_FUNCTIONS(DECLARE_COPT_FUNCTIONS)
 
 public:
     inline copt_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "COPT", {"copt"}))
-              COPT_FUNCTIONS(CONSTRUCT_COPT_FUN) {}
+              COPT_FUNCTIONS(CONSTRUCT_COPT_FUNCTIONS) {}
 
     void _check(copt_env * env, const ret_code error) const {
         if(error == COPT_RETCODE_OK) return;
@@ -285,6 +285,10 @@ public:
         throw solver_error(buffer);
     }
 };
+
+#undef CONSTRUCT_COPT_FUNCTIONS
+#undef DECLARE_COPT_FUNCTIONS
+#undef COPT_FUNCTIONS
 
 }  // namespace copt::v7_2
 }  // namespace mippp

@@ -55,7 +55,7 @@ private:
                   tmp_scalars.end(), 1);
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), CPX_BINARY);
-        check(CPX.newcols(
+        check(CPX->newcols(
             env, lp, static_cast<int>(count), nullptr, tmp_scalars.data(),
             tmp_scalars.data() + static_cast<std::ptrdiff_t>(count),
             tmp_types.data(), nullptr));
@@ -82,21 +82,21 @@ public:
     void set_continuous(variable v) noexcept {
         int var_id = _native_id(v);
         char type = CPX_CONTINUOUS;
-        check(CPX.chgctype(env, lp, 1, &var_id, &type));
+        check(CPX->chgctype(env, lp, 1, &var_id, &type));
     }
     void set_integer(variable v) noexcept {
         int var_id = _native_id(v);
         char type = CPX_INTEGER;
-        check(CPX.chgctype(env, lp, 1, &var_id, &type));
+        check(CPX->chgctype(env, lp, 1, &var_id, &type));
     }
     void set_binary(variable v) noexcept {
         int var_id = _native_id(v);
         char type = CPX_BINARY;
-        check(CPX.chgctype(env, lp, 1, &var_id, &type));
+        check(CPX->chgctype(env, lp, 1, &var_id, &type));
         int ids[2] = {var_id, var_id};
         char lu[2] = {'L', 'U'};
         double bd[2] = {0.0, 1.0};
-        check(CPX.chgbds(env, lp, 2, ids, lu, bd));
+        check(CPX->chgbds(env, lp, 2, ids, lu, bd));
     }
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////// Special constraints ///////////////////////////
@@ -105,11 +105,11 @@ public:
                                   linear_constraint auto && lc) {
         _reset_cache(_num_var_native_ids());
         _register_entries(lc.linear_terms());
-        check(CPX.addindconstr(env, lp, x.id(), static_cast<int>(!val),
-                               static_cast<int>(tmp_indices.size()), lc.rhs(),
-                               constraint_sense_to_cplex_sense(lc.sense()),
-                               tmp_indices.data(), tmp_scalars.data(),
-                               nullptr));
+        check(CPX->addindconstr(env, lp, x.id(), static_cast<int>(!val),
+                                static_cast<int>(tmp_indices.size()), lc.rhs(),
+                                constraint_sense_to_cplex_sense(lc.sense()),
+                                tmp_indices.data(), tmp_scalars.data(),
+                                nullptr));
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Callbacks ////////////////////////////////
@@ -117,17 +117,17 @@ public:
 private:
     class callback_handle_base : public model_base<int, double> {
     protected:
-        const cplex_api & CPX;
+        const cplex_api * CPX;
         CPXCALLBACKCONTEXTptr context;
         cplex_milp * model;
 
         void cbcheck(int error) {
             if(error == 0) return;
-            CPX.callbackabort(context);
+            CPX->callbackabort(context);
         }
 
     public:
-        callback_handle_base(const cplex_api & api,
+        callback_handle_base(const cplex_api * api,
                              CPXCALLBACKCONTEXTptr context_,
                              cplex_milp * model_)
             : model_base<int, double>()
@@ -137,14 +137,14 @@ private:
 
         std::size_t num_variables() {
             return static_cast<std::size_t>(
-                CPX.getnumcols(model->env, model->lp));
+                CPX->getnumcols(model->env, model->lp));
         }
     };
 
 public:
     class candidate_solution_callback_handle : public callback_handle_base {
     public:
-        candidate_solution_callback_handle(const cplex_api & api,
+        candidate_solution_callback_handle(const cplex_api * api,
                                            CPXCALLBACKCONTEXTptr context_,
                                            cplex_milp * model_)
             : callback_handle_base(api, context_, model_) {}
@@ -159,20 +159,20 @@ public:
             int matbegin = 0;
             const double b = lc.rhs();
             const char sense = constraint_sense_to_cplex_sense(lc.sense());
-            cbcheck(CPX.callbackrejectcandidate(
+            cbcheck(CPX->callbackrejectcandidate(
                 context, 1, static_cast<int>(tmp_indices.size()), &b, &sense,
                 &matbegin, tmp_indices.data(), tmp_scalars.data()));
         }
         double get_solution_value() {
             double obj;
             cbcheck(
-                CPX.callbackgetcandidatepoint(context, nullptr, 0, 0, &obj));
+                CPX->callbackgetcandidatepoint(context, nullptr, 0, 0, &obj));
             return obj;
         }
         auto get_solution() {
             auto num_vars = model->_num_var_native_ids();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            cbcheck(CPX.callbackgetcandidatepoint(
+            cbcheck(CPX->callbackgetcandidatepoint(
                 context, solution.get(), 0, static_cast<int>(num_vars) - 1,
                 nullptr));
             return variable_mapping(
@@ -199,8 +199,8 @@ public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
         candidate_solution_callback = std::forward<F>(f);
-        check(CPX.callbacksetfunc(env, lp, CPX_CALLBACKCONTEXT_CANDIDATE,
-                                  candidate_solution_callback_fun, this));
+        check(CPX->callbacksetfunc(env, lp, CPX_CALLBACKCONTEXT_CANDIDATE,
+                                   candidate_solution_callback_fun, this));
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -212,9 +212,9 @@ private:
         _register_raw_entries(entries);
         int beg = 0;
         int effort_level = CPX_MIPSTART_SOLVEMIP;
-        check(CPX.addmipstarts(env, lp, 1, static_cast<int>(tmp_indices.size()),
-                               &beg, tmp_indices.data(), tmp_scalars.data(),
-                               &effort_level, nullptr));
+        check(CPX->addmipstarts(
+            env, lp, 1, static_cast<int>(tmp_indices.size()), &beg,
+            tmp_indices.data(), tmp_scalars.data(), &effort_level, nullptr));
     }
 
 public:
@@ -230,49 +230,50 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_node_limit(std::size_t count) {
-        check(CPX.setintparam(env, CPXPARAM_MIP_Limits_Nodes,
-                              static_cast<int>(count)));
+        check(CPX->setintparam(env, CPXPARAM_MIP_Limits_Nodes,
+                               static_cast<int>(count)));
     }
     auto get_node_limit() {
         int count;
-        check(CPX.getintparam(env, CPXPARAM_MIP_Limits_Nodes, &count));
+        check(CPX->getintparam(env, CPXPARAM_MIP_Limits_Nodes, &count));
         return static_cast<std::size_t>(count);
     }
     void set_solution_limit(std::size_t count) {
-        check(CPX.setintparam(env, CPXPARAM_MIP_Limits_Solutions,
-                              static_cast<int>(count)));
+        check(CPX->setintparam(env, CPXPARAM_MIP_Limits_Solutions,
+                               static_cast<int>(count)));
     }
     auto get_solution_limit() {
         int count;
-        check(CPX.getintparam(env, CPXPARAM_MIP_Limits_Solutions, &count));
+        check(CPX->getintparam(env, CPXPARAM_MIP_Limits_Solutions, &count));
         return static_cast<std::size_t>(count);
     }
     void set_memory_limit(memory_size<double, mebi> mb) {
-        check(CPX.setdblparam(env, CPXPARAM_MIP_Limits_TreeMemory, mb.count));
+        check(CPX->setdblparam(env, CPXPARAM_MIP_Limits_TreeMemory, mb.count));
     }
     auto get_memory_limit() {
         double mb;
-        check(CPX.getdblparam(env, CPXPARAM_MIP_Limits_TreeMemory, &mb));
+        check(CPX->getdblparam(env, CPXPARAM_MIP_Limits_TreeMemory, &mb));
         return memory_size<double, mebi>(mb);
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_optimality_tolerance(double tol) {
-        check(CPX.setdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, tol));
+        check(CPX->setdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, tol));
     }
     double get_optimality_tolerance() {
         double tol;
-        check(CPX.getdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, &tol));
+        check(CPX->getdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, &tol));
         return tol;
     }
     void set_feasibility_tolerance(double tol) {
-        check(CPX.setdblparam(env, CPXPARAM_MIP_Tolerances_Linearization, tol));
+        check(
+            CPX->setdblparam(env, CPXPARAM_MIP_Tolerances_Linearization, tol));
     }
     double get_feasibility_tolerance() {
         double tol;
         check(
-            CPX.getdblparam(env, CPXPARAM_MIP_Tolerances_Linearization, &tol));
+            CPX->getdblparam(env, CPXPARAM_MIP_Tolerances_Linearization, &tol));
         return tol;
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -303,10 +304,10 @@ private:
 
     status_variant _get_status_milp() {
         using namespace status;
-        int status = CPX.getstat(env, lp);
+        int status = CPX->getstat(env, lp);
         if(status == CPX_STAT_UNKNOWN) return unknown{};
         int pfeasind;
-        check(CPX.solninfo(env, lp, nullptr, nullptr, &pfeasind, nullptr));
+        check(CPX->solninfo(env, lp, nullptr, nullptr, &pfeasind, nullptr));
         const bool has_sol = pfeasind != 0;
         switch(status) {
             case CPXMIP_OPTIMAL:
@@ -337,7 +338,7 @@ private:
     }
     status_variant _get_status_lp() {
         using namespace status;
-        switch(CPX.getstat(env, lp)) {
+        switch(CPX->getstat(env, lp)) {
             case CPX_STAT_OPTIMAL:        return optimal{};
             case CPX_STAT_OPTIMAL_FACE_UNBOUNDED: 
                                           return optimal_face_unbounded{};
@@ -366,10 +367,10 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        int probtype = CPX.getprobtype(env, lp);
+        int probtype = CPX->getprobtype(env, lp);
         switch(probtype) {
             case CPXPROB_MILP:
-                check(CPX.mipopt(env, lp));
+                check(CPX->mipopt(env, lp));
                 _status = _get_status_milp();
                 return;
             case CPXPROB_LP:
@@ -377,7 +378,7 @@ public:
                     throw std::runtime_error(
                         "cplex_milp: can't solve lp (no integer variables) "
                         "with candidate_solution_callback");
-                check(CPX.lpopt(env, lp));
+                check(CPX->lpopt(env, lp));
                 _status = _get_status_lp();
                 return;
             default:
@@ -387,18 +388,18 @@ public:
     }
     double get_solution_value() {
         double val;
-        check(CPX.solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,
-                           nullptr));
+        check(CPX->solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,
+                            nullptr));
         return val;
         // double val;
-        // check(CPX.getbestobjval(env, lp, &val));
+        // check(CPX->getbestobjval(env, lp, &val));
         // return val;
     }
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids());
-        check(CPX.solution(env, lp, nullptr, nullptr, solution.get(), nullptr,
-                           nullptr, nullptr));
+        check(CPX->solution(env, lp, nullptr, nullptr, solution.get(), nullptr,
+                            nullptr, nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));

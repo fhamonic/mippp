@@ -44,12 +44,12 @@ private:
     status_variant _get_status() {
         using namespace status;
         int stop_status;
-        check(XPRS.getintattrib(prob, XPRS_STOPSTATUS, &stop_status));    
+        check(XPRS->getintattrib(prob, XPRS_STOPSTATUS, &stop_status));    
         switch(stop_status) {
             case XPRS_STOP_NONE:
             case XPRS_STOP_SOLVECOMPLETE: {
                 int lp_status;
-                check(XPRS.getintattrib(prob, XPRS_LPSTATUS, &lp_status));    
+                check(XPRS->getintattrib(prob, XPRS_LPSTATUS, &lp_status));    
                 switch(lp_status) {
                     case XPRS_LP_OPTIMAL:    return optimal{};
                     case XPRS_LP_INFEAS:     return infeasible{};
@@ -83,34 +83,34 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(XPRS.lpoptimize(prob, nullptr));
+        check(XPRS->lpoptimize(prob, nullptr));
         _status = _get_status();
     }
     double get_solution_value() {
         double val;
-        check(XPRS.getdblattrib(prob, XPRS_LPOBJVAL, &val));
+        check(XPRS->getdblattrib(prob, XPRS_LPOBJVAL, &val));
         return objective_offset + val;
     }
     auto get_solution() {
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(XPRS.getsolution(prob, nullptr, solution.get(), 0,
-                               static_cast<int>(num_vars) - 1));
+        check(XPRS->getsolution(prob, nullptr, solution.get(), 0,
+                                static_cast<int>(num_vars) - 1));
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
         const auto num_constrs = num_constraints();
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constrs);
-        check(XPRS.getduals(prob, nullptr, dual_solution.get(), 0,
-                            static_cast<int>(num_constrs) - 1));
+        check(XPRS->getduals(prob, nullptr, dual_solution.get(), 0,
+                             static_cast<int>(num_constrs) - 1));
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
         const auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(XPRS.getredcosts(prob, nullptr, reduced_costs.get(), 0,
-                               static_cast<int>(num_vars) - 1));
+        check(XPRS->getredcosts(prob, nullptr, reduced_costs.get(), 0,
+                                static_cast<int>(num_vars) - 1));
         return variable_mapping(std::move(reduced_costs));
     }
 };

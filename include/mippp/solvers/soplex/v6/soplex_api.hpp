@@ -75,10 +75,10 @@ namespace soplex::v6 {
     F(SoPlex_getPrimalReal, getPrimalReal) \
     F(SoPlex_getDualReal, getDualReal)
 
-#define DECLARE_SOPLEX_FUN(FULL, SHORT)   \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_SOPLEX_FUN(FULL, SHORT) \
+#define DECLARE_SOPLEX_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);     \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_SOPLEX_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class soplex_api {
@@ -86,13 +86,17 @@ private:
     dylib::library lib;
 
 public:
-    SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUN)
+    SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUNCTIONS)
 
 public:
     inline soplex_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "SOPLEX", {"soplexshared"}))
-              SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUN) {}
+              SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUNCTIONS) {}
 };
+
+#undef CONSTRUCT_SOPLEX_FUNCTIONS
+#undef DECLARE_SOPLEX_FUNCTIONS
+#undef SOPLEX_FUNCTIONS
 
 }  // namespace soplex::v6
 }  // namespace mippp

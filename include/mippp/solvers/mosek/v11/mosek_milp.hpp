@@ -16,8 +16,8 @@ namespace mosek::v11 {
 class mosek_milp : public mosek_base {
 public:
     [[nodiscard]] explicit mosek_milp(const mosek_api & api) : mosek_base(api) {
-        check(
-            MSK.putintparam(task, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_MIXED_INT));
+        check(MSK->putintparam(task, MSK_IPAR_OPTIMIZER,
+                               MSK_OPTIMIZER_MIXED_INT));
     }
 
     variable add_integer_variable(
@@ -66,10 +66,10 @@ public:
     }
 
     void set_continuous(variable v) noexcept {
-        check(MSK.putvartype(task, v.id(), MSK_VAR_TYPE_CONT));
+        check(MSK->putvartype(task, v.id(), MSK_VAR_TYPE_CONT));
     }
     void set_integer(variable v) noexcept {
-        check(MSK.putvartype(task, v.id(), MSK_VAR_TYPE_INT));
+        check(MSK->putvartype(task, v.id(), MSK_VAR_TYPE_INT));
     }
     void set_binary(variable v) noexcept {
         set_integer(v);
@@ -87,7 +87,7 @@ private:
         for(auto && [var, coef] : entries) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(MSK.putxx(task, MSK_SOL_ITG, tmp_scalars.data()));
+        check(MSK->putxx(task, MSK_SOL_ITG, tmp_scalars.data()));
     }
 
 public:
@@ -124,24 +124,24 @@ private:
 
     MSKsoltypee _pick_sol() {
         MSKbooleant def = 0;
-        if (MSK.solutiondef(task, MSK_SOL_ITG, &def) == MSK_RES_OK && def) return MSK_SOL_ITG;
-        if (MSK.solutiondef(task, MSK_SOL_BAS, &def) == MSK_RES_OK && def) return MSK_SOL_BAS;
+        if (MSK->solutiondef(task, MSK_SOL_ITG, &def) == MSK_RES_OK && def) return MSK_SOL_ITG;
+        if (MSK->solutiondef(task, MSK_SOL_BAS, &def) == MSK_RES_OK && def) return MSK_SOL_BAS;
         return MSK_SOL_ITR;
     }
 
     status_variant _get_status() {
         using namespace status;
         MSKrestrmcode trm;
-        check(MSK.optimizetrm(task, &trm));
+        check(MSK->optimizetrm(task, &trm));
         switch(trm) {
             case MSK_RES_OK: {
                 MSKsoltypee soltype = _pick_sol();
                 MSKprostae prosta;
-                check(MSK.getprosta(task, soltype, &prosta));
+                check(MSK->getprosta(task, soltype, &prosta));
                 switch(prosta) {
                     case MSK_PRO_STA_PRIM_AND_DUAL_FEAS: {
                         MSKsolstae solsta;
-                        check(MSK.getsolsta(task, soltype, &solsta));
+                        check(MSK->getsolsta(task, soltype, &solsta));
                         switch (solsta) {
                             case MSK_SOL_STA_OPTIMAL:
                             case MSK_SOL_STA_INTEGER_OPTIMAL:  return optimal{};
@@ -188,19 +188,19 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(MSK.optimize(task));
+        check(MSK->optimize(task));
         _status = _get_status();
     }
     double get_solution_value() {
         double val = 0.0;
         if(num_variables() > 0)
-            check(MSK.getprimalobj(task, MSK_SOL_ITG, &val));
+            check(MSK->getprimalobj(task, MSK_SOL_ITG, &val));
         return val;
     }
     auto get_solution() {
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        if(num_vars > 0) check(MSK.getxx(task, MSK_SOL_ITG, solution.get()));
+        if(num_vars > 0) check(MSK->getxx(task, MSK_SOL_ITG, solution.get()));
         return variable_mapping(std::move(solution));
     }
 };

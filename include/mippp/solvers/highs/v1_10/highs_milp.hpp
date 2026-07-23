@@ -54,15 +54,15 @@ public:
             {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
     }
     void set_continuous(variable v) noexcept {
-        check(
-            Highs.changeColIntegrality(model, v.id(), kHighsVarTypeContinuous));
+        check(Highs->changeColIntegrality(model, v.id(),
+                                          kHighsVarTypeContinuous));
     }
     void set_integer(variable v) noexcept {
-        check(Highs.changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
+        check(Highs->changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
     }
     void set_binary(variable v) noexcept {
         _set_variable_bounds(v, 0.0, 1.0);
-        check(Highs.changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
+        check(Highs->changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -72,9 +72,9 @@ private:
     inline void _add_mip_start(ER && entries) {
         _reset_raw_cache();
         _register_raw_entries(entries);
-        check(Highs.setSparseSolution(model,
-                                      static_cast<int>(tmp_indices.size()),
-                                      tmp_indices.data(), tmp_scalars.data()));
+        check(Highs->setSparseSolution(model,
+                                       static_cast<int>(tmp_indices.size()),
+                                       tmp_indices.data(), tmp_scalars.data()));
     }
 
 public:
@@ -107,7 +107,7 @@ private:
 
     status_variant _get_status() {
         using namespace status;
-        const int status_ = Highs.getModelStatus(model);
+        const int status_ = Highs->getModelStatus(model);
         switch (status_) {         
             case kHighsModelStatusOptimal:        return optimal{};
             case kHighsModelStatusUnboundedOrInfeasible: 
@@ -116,7 +116,7 @@ private:
             case kHighsModelStatusUnbounded:      return unbounded{};
         }
         int psolstatus;
-        check(Highs.getIntInfoValue(model, "primal_solution_status", &psolstatus));
+        check(Highs->getIntInfoValue(model, "primal_solution_status", &psolstatus));
         const bool has_sol = (psolstatus == kHighsSolutionStatusFeasible);
         switch (status_) { 
             case kHighsModelStatusInterrupt:      return interrupted{has_sol};
@@ -146,15 +146,15 @@ public:
         if(num_variables() == 0u) {
             return;
         }
-        check(Highs.run(model));
+        check(Highs->run(model));
         _status = _get_status();
     }
-    double get_solution_value() { return Highs.getObjectiveValue(model); }
+    double get_solution_value() { return Highs->getObjectiveValue(model); }
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(Highs.getSolution(model, solution.get(), nullptr, nullptr,
-                                nullptr));
+        check(Highs->getSolution(model, solution.get(), nullptr, nullptr,
+                                 nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));

@@ -20,12 +20,13 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::size_t count) {
-        check(CPX.setintparam(env, CPXPARAM_Simplex_Limits_Iterations,
-                              static_cast<int>(count)));
+        check(CPX->setintparam(env, CPXPARAM_Simplex_Limits_Iterations,
+                               static_cast<int>(count)));
     }
     auto get_time_limit() {
         int count;
-        check(CPX.getintparam(env, CPXPARAM_Simplex_Limits_Iterations, &count));
+        check(
+            CPX->getintparam(env, CPXPARAM_Simplex_Limits_Iterations, &count));
         return static_cast<std::size_t>(count);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -33,22 +34,22 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void set_optimality_tolerance(double tol) {
         check(
-            CPX.setdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality, tol));
+            CPX->setdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality, tol));
     }
     double get_optimality_tolerance() {
         double tol;
-        check(
-            CPX.getdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality, &tol));
+        check(CPX->getdblparam(env, CPXPARAM_Simplex_Tolerances_Optimality,
+                               &tol));
         return tol;
     }
     void set_feasibility_tolerance(double tol) {
-        check(
-            CPX.setdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility, tol));
+        check(CPX->setdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
+                               tol));
     }
     double get_feasibility_tolerance() {
         double tol;
-        check(CPX.getdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
-                              &tol));
+        check(CPX->getdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
+                               &tol));
         return tol;
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -74,7 +75,7 @@ private:
     
     status_variant _get_status() {
         using namespace status;
-        switch(CPX.getstat(env, lp)) {
+        switch(CPX->getstat(env, lp)) {
             case CPX_STAT_OPTIMAL:        return optimal{};
             case CPX_STAT_OPTIMAL_FACE_UNBOUNDED: return optimal_face_unbounded{};
             case CPX_STAT_OPTIMAL_INFEAS: return optimal_infeasible_unscaled{};
@@ -102,37 +103,37 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(CPX.primopt(env, lp));
+        check(CPX->primopt(env, lp));
         _status = _get_status();
     }
     void refine_lp_status() {
         if(!is<status::infeasible_or_unbounded>(_status)) return;
         int tmp_advance_param, tmp_reduce_param;
-        check(CPX.getintparam(env, CPXPARAM_Advance, &tmp_advance_param));
-        check(CPX.getintparam(env, CPXPARAM_Preprocessing_Reduce,
-                              &tmp_reduce_param));
-        check(CPX.setintparam(env, CPXPARAM_Advance, 0));
-        check(CPX.setintparam(env, CPXPARAM_Preprocessing_Reduce,
-                              CPX_PREREDUCE_NOPRIMALORDUAL));
-        check(CPX.primopt(env, lp));
+        check(CPX->getintparam(env, CPXPARAM_Advance, &tmp_advance_param));
+        check(CPX->getintparam(env, CPXPARAM_Preprocessing_Reduce,
+                               &tmp_reduce_param));
+        check(CPX->setintparam(env, CPXPARAM_Advance, 0));
+        check(CPX->setintparam(env, CPXPARAM_Preprocessing_Reduce,
+                               CPX_PREREDUCE_NOPRIMALORDUAL));
+        check(CPX->primopt(env, lp));
         _status = _get_status();
-        check(CPX.setintparam(env, CPXPARAM_Advance, tmp_advance_param));
-        check(CPX.setintparam(env, CPXPARAM_Preprocessing_Reduce,
-                              tmp_reduce_param));
+        check(CPX->setintparam(env, CPXPARAM_Advance, tmp_advance_param));
+        check(CPX->setintparam(env, CPXPARAM_Preprocessing_Reduce,
+                               tmp_reduce_param));
         if(is<status::infeasible_or_unbounded>(_status))
             throw std::runtime_error("Failed to refine LP status.");
     }
     double get_solution_value() {
         double val;
-        check(CPX.solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,
-                           nullptr));
+        check(CPX->solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,
+                            nullptr));
         return val;
     }
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(CPX.solution(env, lp, nullptr, nullptr, solution.get(), nullptr,
-                           nullptr, nullptr));
+        check(CPX->solution(env, lp, nullptr, nullptr, solution.get(), nullptr,
+                            nullptr, nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
@@ -141,15 +142,15 @@ public:
     auto get_dual_solution() {
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
-        check(CPX.solution(env, lp, nullptr, nullptr, nullptr,
-                           dual_solution.get(), nullptr, nullptr));
+        check(CPX->solution(env, lp, nullptr, nullptr, nullptr,
+                            dual_solution.get(), nullptr, nullptr));
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
         auto reduced_costs =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(CPX.solution(env, lp, nullptr, nullptr, nullptr, nullptr, nullptr,
-                           reduced_costs.get()));
+        check(CPX->solution(env, lp, nullptr, nullptr, nullptr, nullptr,
+                            nullptr, reduced_costs.get()));
         return variable_mapping([this, reduced_costs = std::move(
                                            reduced_costs)](const variable & v) {
             return *(reduced_costs.get() + _native_id(v));

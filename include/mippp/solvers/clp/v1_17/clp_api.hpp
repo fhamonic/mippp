@@ -126,10 +126,10 @@ namespace clp::v1_17 {
     F(Clp_dualColumnSolution, dualColumnSolution)             \
     F(Clp_loadProblem, loadProblem)
 
-#define DECLARE_CLP_FUN(FULL, SHORT)      \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_CLP_FUN(FULL, SHORT) \
+#define DECLARE_CLP_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);  \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_CLP_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class clp_api {
@@ -137,13 +137,17 @@ private:
     dylib::library lib;
 
 public:
-    CLP_FUNCTIONS(DECLARE_CLP_FUN)
+    CLP_FUNCTIONS(DECLARE_CLP_FUNCTIONS)
 
 public:
     inline clp_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "CLP", {"Clp"}))
-              CLP_FUNCTIONS(CONSTRUCT_CLP_FUN) {}
+              CLP_FUNCTIONS(CONSTRUCT_CLP_FUNCTIONS) {}
 };
+
+#undef CONSTRUCT_CLP_FUNCTIONS
+#undef DECLARE_CLP_FUNCTIONS
+#undef CLP_FUNCTIONS
 
 }  // namespace clp::v1_17
 }  // namespace mippp

@@ -262,8 +262,8 @@ void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace cplex::v22_1_2 {
@@ -332,10 +332,10 @@ namespace cplex::v22_1_2 {
     F(CPXcallbackaddusercuts, callbackaddusercuts)                   \
     F(CPXcallbackabort, callbackabort)
 
-#define DECLARE_CPLEX_FUN(FULL, SHORT)    \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_CPLEX_FUN(FULL, SHORT) \
+#define DECLARE_CPLEX_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);    \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_CPLEX_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class cplex_api {
@@ -343,12 +343,12 @@ private:
     dylib::library lib;
 
 public:
-    CPLEX_FUNCTIONS(DECLARE_CPLEX_FUN)
+    CPLEX_FUNCTIONS(DECLARE_CPLEX_FUNCTIONS)
 
 public:
     inline cplex_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "CPLEX", {"cplex2212"}))
-              CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUN) {
+              CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUNCTIONS) {
         CPXENVptr env = _create_env();
         int version_;
         _check(env, versionnumber(env, &version_));
@@ -380,6 +380,10 @@ public:
         throw solver_error(errmsg);
     }
 };
+
+#undef CONSTRUCT_CPLEX_FUNCTIONS
+#undef DECLARE_CPLEX_FUNCTIONS
+#undef CPLEX_FUNCTIONS
 
 }  // namespace cplex::v22_1_2
 }  // namespace mippp

@@ -234,8 +234,8 @@ HighsInt Highs_startCallback(void * highs, const int callback_type);
 
 #include "dylib.hpp"
 
-#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace highs::v1_10 {
@@ -301,10 +301,10 @@ namespace highs::v1_10 {
     F(Highs_setSolution, setSolution)                                   \
     F(Highs_setSparseSolution, setSparseSolution)
 
-#define DECLARE_HIGHS_FUN(FULL, SHORT)    \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_HIGHS_FUN(FULL, SHORT) \
+#define DECLARE_HIGHS_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);    \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_HIGHS_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class highs_api {
@@ -312,12 +312,12 @@ private:
     dylib::library lib;
 
 public:
-    HIGHS_FUNCTIONS(DECLARE_HIGHS_FUN)
+    HIGHS_FUNCTIONS(DECLARE_HIGHS_FUNCTIONS)
 
 public:
     inline highs_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "HIGHS", {"highs"}))
-              HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUN) {}
+              HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUNCTIONS) {}
 
     void _check(const int status) const {
         if(status == kHighsStatusOk) return;
@@ -327,6 +327,10 @@ public:
             throw solver_error("HiGHS kHighsStatusWarning");
     }
 };
+
+#undef CONSTRUCT_HIGHS_FUNCTIONS
+#undef DECLARE_HIGHS_FUNCTIONS
+#undef HIGHS_FUNCTIONS
 
 }  // namespace highs::v1_10
 }  // namespace mippp

@@ -43,16 +43,16 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 private:
-    const soplex_api & SoPlex;
+    const soplex_api * SoPlex;
     void * model;
     double objective_offset;
     std::vector<double> tmp_scalars;
 
 public:
     [[nodiscard]] explicit soplex_lp(const soplex_api & api)
-        : SoPlex(api), model(SoPlex.create()), objective_offset(0.0) {}
+        : SoPlex(&api), model(SoPlex->create()), objective_offset(0.0) {}
     ~soplex_lp() {
-        if(model) SoPlex.free(model);
+        if(model) SoPlex->free(model);
     }
 
     constexpr soplex_lp(const soplex_lp &) = delete;
@@ -68,17 +68,17 @@ public:
     constexpr soplex_lp & operator=(soplex_lp && other) = delete;
 
     std::size_t num_variables() {
-        return static_cast<std::size_t>(SoPlex.numCols(model));
+        return static_cast<std::size_t>(SoPlex->numCols(model));
     }
     std::size_t num_constraints() {
-        return static_cast<std::size_t>(SoPlex.numRows(model));
+        return static_cast<std::size_t>(SoPlex->numRows(model));
     }
     // std::size_t num_entries() {
-    //     return static_cast<std::size_t>(SoPlex.getNumElements(model));
+    //     return static_cast<std::size_t>(SoPlex->getNumElements(model));
     // }
 
-    void set_maximization() { SoPlex.setIntParam(model, 0, 1); }
-    void set_minimization() { SoPlex.setIntParam(model, 0, -1); }
+    void set_maximization() { SoPlex->setIntParam(model, 0, 1); }
+    void set_minimization() { SoPlex->setIntParam(model, 0, -1); }
 
     void set_objective_offset(double constant) { objective_offset = constant; }
     void set_objective(linear_expression auto && le) {
@@ -88,17 +88,17 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        SoPlex.changeObjReal(model, tmp_scalars.data(),
-                             static_cast<int>(num_vars));
+        SoPlex->changeObjReal(model, tmp_scalars.data(),
+                              static_cast<int>(num_vars));
         set_objective_offset(le.constant());
     }
     double get_objective_offset() { return objective_offset; }
 
 private:
     inline void _add_var(const variable_params & params) {
-        SoPlex.addColReal(model, nullptr, 0, 0, params.obj_coef,
-                          params.lower_bound.value_or(-1e100),
-                          params.upper_bound.value_or(1e100));
+        SoPlex->addColReal(model, nullptr, 0, 0, params.obj_coef,
+                           params.lower_bound.value_or(-1e100),
+                           params.upper_bound.value_or(1e100));
     }
 
 public:
@@ -146,10 +146,10 @@ private:
             tmp_scalars[constr.uid()] += static_cast<scalar>(coef);
             num_nz += (tmp_scalars[constr.uid()] != 0) ? 1 : -1;
         }
-        SoPlex.addColReal(model, tmp_scalars.data(), num_nz,
-                          static_cast<int>(num_vars), params.obj_coef,
-                          params.lower_bound.value_or(-1e100),
-                          params.upper_bound.value_or(1e100));
+        SoPlex->addColReal(model, tmp_scalars.data(), num_nz,
+                           static_cast<int>(num_vars), params.obj_coef,
+                           params.lower_bound.value_or(-1e100),
+                           params.upper_bound.value_or(1e100));
         return variable(static_cast<int>(num_vars));
     }
 
@@ -175,14 +175,14 @@ private:
             num_nz += (tmp_scalars[var.uid()] != 0) ? 1 : -1;
         }
         const double b = lc.rhs();
-        SoPlex.addRowReal(model, tmp_scalars.data(),
-                          static_cast<int>(num_variables()), num_nz,
-                          (lc.sense() == constraint_sense::less_equal)
-                              ? -std::numeric_limits<double>::infinity()
-                              : b,
-                          (lc.sense() == constraint_sense::greater_equal)
-                              ? std::numeric_limits<double>::infinity()
-                              : b);
+        SoPlex->addRowReal(model, tmp_scalars.data(),
+                           static_cast<int>(num_variables()), num_nz,
+                           (lc.sense() == constraint_sense::less_equal)
+                               ? -std::numeric_limits<double>::infinity()
+                               : b,
+                           (lc.sense() == constraint_sense::greater_equal)
+                               ? std::numeric_limits<double>::infinity()
+                               : b);
     }
 
 public:
@@ -256,7 +256,7 @@ public:
         if(num_variables() == 0u) {
             return;
         }
-        switch(SoPlex.optimize(model)) {
+        switch(SoPlex->optimize(model)) {
             case OPTIMAL:
                 _status.emplace<optimal>();
                 return;
@@ -293,19 +293,20 @@ public:
         }
     }
     double get_solution_value() {
-        return objective_offset + SoPlex.objValueReal(model);
+        return objective_offset + SoPlex->objValueReal(model);
     }
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        SoPlex.getPrimalReal(model, solution.get(), static_cast<int>(num_vars));
+        SoPlex->getPrimalReal(model, solution.get(),
+                              static_cast<int>(num_vars));
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
-        SoPlex.getDualReal(model, solution.get(),
-                           static_cast<int>(num_constrs));
+        SoPlex->getDualReal(model, solution.get(),
+                            static_cast<int>(num_constrs));
         return constraint_mapping(std::move(solution));
     }
 };

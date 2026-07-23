@@ -29,16 +29,10 @@ struct zero_t {
     constexpr zero_t & operator-=(zero_t) noexcept { return *this; }
     constexpr zero_t & operator*=(zero_t) noexcept { return *this; }
 
-    // Accumulating a zero onto a runtime scalar needs these explicitly: the
+    // Accumulating a zero onto a runtime scalar S needs these explicitly: the
     // built-in candidates are `operator+=(S &, R)` for *every* promoted
-    // arithmetic R, and the conversion above -- being a template -- satisfies
-    // all of them equally well, so `s += zero` would be ambiguous. Binary `+`
-    // escapes this only because its friend below is an exact match.
-    // `convertible_to<int, S>` keeps class types out; without it these would
-    // capture types that define their own `+=`, such as
-    // runtime_linear_expression.
-    // note: `s *= zero` is intentionally not provided, for the same reason as
-    // `s / zero`: silently zeroing a scalar should be spelled out.
+    // arithmetic R, and the conversion above, being a template, satisfies
+    // all of them equally, so `s += zero` would be ambiguous.
     template <typename S>
         requires(!statically_zero<S>) && std::convertible_to<int, S>
     friend constexpr S & operator+=(S & s, zero_t) noexcept {

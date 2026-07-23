@@ -16,12 +16,12 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_iteration_limit(std::size_t n) {
-        check(GRB.setdblparam(env, GRB_DBL_PAR_ITERATIONLIMIT,
+        check(GRB->setdblparam(env, GRB_DBL_PAR_ITERATIONLIMIT,
                               static_cast<double>(n)));
     }
     std::size_t get_iteration_limit() {
         double n;
-        check(GRB.getdblparam(env, GRB_DBL_PAR_ITERATIONLIMIT, &n));
+        check(GRB->getdblparam(env, GRB_DBL_PAR_ITERATIONLIMIT, &n));
         return static_cast<std::size_t>(n);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -48,7 +48,7 @@ private:
     status_variant _get_status() {
         using namespace status;
         int status_;
-        check(GRB.getintattr(model, GRB_INT_ATTR_STATUS, &status_));
+        check(GRB->getintattr(model, GRB_INT_ATTR_STATUS, &status_));
         switch(status_) {
             case GRB_OPTIMAL:         return optimal{};
             case GRB_INF_OR_UNBD:     return infeasible_or_unbounded{};
@@ -56,7 +56,7 @@ private:
             case GRB_UNBOUNDED:       return unbounded{};
         }
         int sol_count;
-        check(GRB.getintattr(model, GRB_INT_ATTR_SOLCOUNT, &sol_count));
+        check(GRB->getintattr(model, GRB_INT_ATTR_SOLCOUNT, &sol_count));
         const bool sol_available = sol_count > 0;
         switch(status_) {
             case GRB_TIME_LIMIT:      return time_limit{sol_available};
@@ -78,31 +78,31 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(GRB.optimize(model));
+        check(GRB->optimize(model));
         _status = _get_status();
     }
     void refine_lp_status() {
         if(!is<status::infeasible_or_unbounded>(_status)) return;
         int tmp_dual_reductions;
-        check(GRB.getintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
+        check(GRB->getintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
                               &tmp_dual_reductions));
-        check(GRB.setintparam(env, GRB_INT_PAR_DUALREDUCTIONS, 0));
-        check(GRB.optimize(model));
+        check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS, 0));
+        check(GRB->optimize(model));
         _status = _get_status();
-        check(GRB.setintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
+        check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
                               tmp_dual_reductions));
         if(is<status::infeasible_or_unbounded>(_status))
             throw std::runtime_error("Failed to refine LP status.");
     }
     double get_solution_value() {
         double value;
-        check(GRB.getdblattr(model, GRB_DBL_ATTR_OBJVAL, &value));
+        check(GRB->getdblattr(model, GRB_DBL_ATTR_OBJVAL, &value));
         return value;
     }
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
-        check(GRB.getdblattrarray(model, GRB_DBL_ATTR_X, 0,
+        check(GRB->getdblattrarray(model, GRB_DBL_ATTR_X, 0,
                                   static_cast<int>(_num_var_native_ids),
                                   solution.get()));
         return variable_mapping(
@@ -113,7 +113,7 @@ public:
     auto get_dual_solution() {
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
-        check(GRB.getdblattrarray(model, GRB_DBL_ATTR_PI, 0,
+        check(GRB->getdblattrarray(model, GRB_DBL_ATTR_PI, 0,
                                   static_cast<int>(num_constrs),
                                   solution.get()));
         return constraint_mapping(std::move(solution));
@@ -121,7 +121,7 @@ public:
     auto get_reduced_costs() {
         auto reduced_costs =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
-        check(GRB.getdblattrarray(model, GRB_DBL_ATTR_RC, 0,
+        check(GRB->getdblattrarray(model, GRB_DBL_ATTR_RC, 0,
                                   static_cast<int>(_num_var_native_ids),
                                   reduced_costs.get()));
         return variable_mapping([this, reduced_costs = std::move(

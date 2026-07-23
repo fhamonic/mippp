@@ -160,10 +160,10 @@ namespace cbc::v2_10_12 {
     F(Cbc_getColSolution, getColSolution)                   \
     F(Cbc_bestSolution, bestSolution)
 
-#define DECLARE_CBC_FUN(FULL, SHORT)      \
-    using SHORT##_fun_t = decltype(FULL); \
-    decltype(FULL) * SHORT;
-#define CONSTRUCT_CBC_FUN(FULL, SHORT) \
+#define DECLARE_CBC_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);  \
+    decltype(FULL) const * SHORT;
+#define CONSTRUCT_CBC_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<decltype(FULL)>(#FULL))
 
 class cbc_api {
@@ -171,16 +171,20 @@ private:
     dylib::library lib;
 
 public:
-    CBC_FUNCTIONS(DECLARE_CBC_FUN)
+    CBC_FUNCTIONS(DECLARE_CBC_FUNCTIONS)
 
 public:
     inline cbc_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "CBC", {"CbcSolver", "Cbc"},
                                           {"Cbc_getVersion"}))
-              CBC_FUNCTIONS(CONSTRUCT_CBC_FUN) {
+              CBC_FUNCTIONS(CONSTRUCT_CBC_FUNCTIONS) {
         detail::warn_on_version_mismatch("CBC", "2.10.12", getVersion());
     }
 };
+
+#undef CONSTRUCT_CBC_FUNCTIONS
+#undef DECLARE_CBC_FUNCTIONS
+#undef CBC_FUNCTIONS
 
 }  // namespace cbc::v2_10_12
 }  // namespace mippp

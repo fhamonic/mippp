@@ -52,7 +52,7 @@ private:
                   tmp_scalars.end(), 1);
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), COPT_BINARY);
-        check(COPT.AddCols(
+        check(COPT->AddCols(
             prob, static_cast<int>(count), tmp_scalars.data(), nullptr, nullptr,
             nullptr, nullptr, tmp_types.data(), nullptr,
             nullptr /*tmp_scalars.data() + static_cast<std::ptrdiff_t>(count)*/,
@@ -80,60 +80,60 @@ public:
     void set_continuous(variable v) noexcept {
         int var_id = v.id();
         char type = COPT_CONTINUOUS;
-        check(COPT.SetColType(prob, 1, &var_id, &type));
+        check(COPT->SetColType(prob, 1, &var_id, &type));
     }
     void set_integer(variable v) noexcept {
         int var_id = v.id();
         char type = COPT_INTEGER;
-        check(COPT.SetColType(prob, 1, &var_id, &type));
+        check(COPT->SetColType(prob, 1, &var_id, &type));
     }
     void set_binary(variable v) noexcept {
         int var_id = v.id();
         char type = COPT_BINARY;
-        check(COPT.SetColType(prob, 1, &var_id, &type));
+        check(COPT->SetColType(prob, 1, &var_id, &type));
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Callbacks ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     class candidate_solution_callback_handle : public model_base<int, double> {
     private:
-        const copt_api & COPT;
+        const copt_api * COPT;
         copt_prob * prob;
         void * cbdata;
 
     public:
-        candidate_solution_callback_handle(const copt_api & api,
+        candidate_solution_callback_handle(const copt_api * api,
                                            copt_prob * prob_, void * cbdata_)
             : model_base<int, double>()
             , COPT(api)
             , prob(prob_)
             , cbdata(cbdata_) {}
 
-        void check(const ret_code error) { COPT._check(nullptr, error); }
+        void check(const ret_code error) { COPT->_check(nullptr, error); }
 
         std::size_t num_variables() {
             int num;
-            check(COPT.GetIntAttr(prob, COPT_INTATTR_COLS, &num));
+            check(COPT->GetIntAttr(prob, COPT_INTATTR_COLS, &num));
             return static_cast<std::size_t>(num);
         }
         void add_lazy_constraint(linear_constraint auto && lc) {
             _reset_cache(num_variables());
             _register_entries(lc.linear_terms());
-            check(COPT.AddCallbackLazyConstr(
+            check(COPT->AddCallbackLazyConstr(
                 cbdata, static_cast<int>(tmp_indices.size()),
                 tmp_indices.data(), tmp_scalars.data(),
                 constraint_sense_to_copt_sense(lc.sense()), lc.rhs()));
         }
         double get_solution_value() {
             double obj;
-            check(COPT.GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDOBJ, &obj));
+            check(COPT->GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDOBJ, &obj));
             return obj;
         }
         auto get_solution() {
             auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            check(COPT.GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDIDATE,
-                                       solution.get()));
+            check(COPT->GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDIDATE,
+                                        solution.get()));
             return variable_mapping(std::move(solution));
         }
     };
@@ -154,8 +154,8 @@ public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
         solution_callback = std::forward<F>(f);
-        check(COPT.SetCallback(prob, candidate_solution_callback_func,
-                               COPT_CBCONTEXT_MIPSOL, this));
+        check(COPT->SetCallback(prob, candidate_solution_callback_func,
+                                COPT_CBCONTEXT_MIPSOL, this));
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -165,8 +165,8 @@ private:
     inline void _add_mip_start(ER && entries) {
         _reset_raw_cache();
         _register_raw_entries(entries);
-        check(COPT.AddMipStart(prob, static_cast<int>(tmp_indices.size()),
-                               tmp_indices.data(), tmp_scalars.data()));
+        check(COPT->AddMipStart(prob, static_cast<int>(tmp_indices.size()),
+                                tmp_indices.data(), tmp_scalars.data()));
     }
 
 public:
@@ -182,30 +182,30 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        check(COPT.SetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, t.count()));
+        check(COPT->SetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, t.count()));
     }
     auto get_time_limit() {
         double t;
-        check(COPT.GetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, &t));
+        check(COPT->GetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, &t));
         return std::chrono::duration<double>(t);
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_optimality_tolerance(double tol) {
-        check(COPT.SetDblParam(prob, COPT_DBLPARAM_RELGAP, tol));
+        check(COPT->SetDblParam(prob, COPT_DBLPARAM_RELGAP, tol));
     }
     double get_optimality_tolerance() {
         double tol;
-        check(COPT.GetDblParam(prob, COPT_DBLPARAM_RELGAP, &tol));
+        check(COPT->GetDblParam(prob, COPT_DBLPARAM_RELGAP, &tol));
         return tol;
     }
     void set_feasibility_tolerance(double tol) {
-        check(COPT.SetDblParam(prob, COPT_DBLPARAM_FEASTOL, tol));
+        check(COPT->SetDblParam(prob, COPT_DBLPARAM_FEASTOL, tol));
     }
     double get_feasibility_tolerance() {
         double tol;
-        check(COPT.GetDblParam(prob, COPT_DBLPARAM_FEASTOL, &tol));
+        check(COPT->GetDblParam(prob, COPT_DBLPARAM_FEASTOL, &tol));
         return tol;
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -229,7 +229,7 @@ private:
     status_variant _get_status_lp() {
         using namespace status;
         int status_;
-        check(COPT.GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &status_));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &status_));
         switch(status_) {
             case COPT_LPSTATUS_OPTIMAL:     return optimal{};
             case COPT_LPSTATUS_INFEASIBLE:  return infeasible{};
@@ -247,7 +247,7 @@ private:
     status_variant _get_status_milp() {
         using namespace status;
         int status_;
-        check(COPT.GetIntAttr(prob, COPT_INTATTR_MIPSTATUS, &status_));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_MIPSTATUS, &status_));
         switch(status_) {
             case COPT_MIPSTATUS_OPTIMAL:     return optimal{};
             case COPT_MIPSTATUS_INF_OR_UNB:  return infeasible_or_unbounded{};
@@ -268,12 +268,12 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(COPT.GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
         if(_is_mip) {
-            check(COPT.Solve(prob));
+            check(COPT->Solve(prob));
             _status = _get_status_milp();
         } else {
-            check(COPT.SolveLp(prob));
+            check(COPT->SolveLp(prob));
             _status = _get_status_lp();
         }
     }
@@ -281,19 +281,19 @@ public:
     double get_solution_value() {
         double val;
         if(_is_mip)
-            check(COPT.GetDblAttr(prob, COPT_DBLATTR_BESTOBJ, &val));
+            check(COPT->GetDblAttr(prob, COPT_DBLATTR_BESTOBJ, &val));
         else
-            check(COPT.GetDblAttr(prob, COPT_DBLATTR_LPOBJVAL, &val));
+            check(COPT->GetDblAttr(prob, COPT_DBLATTR_LPOBJVAL, &val));
         return val;
     }
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
         if(_is_mip)
-            check(COPT.GetSolution(prob, solution.get()));
+            check(COPT->GetSolution(prob, solution.get()));
         else
-            check(COPT.GetLpSolution(prob, solution.get(), nullptr, nullptr,
-                                     nullptr));
+            check(COPT->GetLpSolution(prob, solution.get(), nullptr, nullptr,
+                                      nullptr));
         return variable_mapping(std::move(solution));
     }
 };

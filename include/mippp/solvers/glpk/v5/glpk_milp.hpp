@@ -67,9 +67,9 @@ private:
     inline void _add_binary_variables(const std::size_t & offset,
                                       const std::size_t & count) {
         if(count == 0u) return;
-        glp.add_cols(model, static_cast<int>(count));
+        glp->add_cols(model, static_cast<int>(count));
         for(std::size_t i = offset + 1; i <= offset + count; ++i)
-            glp.set_col_kind(model, static_cast<int>(i), GLP_BV);
+            glp->set_col_kind(model, static_cast<int>(i), GLP_BV);
     }
 
 public:
@@ -93,13 +93,13 @@ public:
                                             std::forward<IL>(id_lambda));
     }
     void set_continuous(variable v) noexcept {
-        glp.set_col_kind(model, v.id() + 1, GLP_CV);
+        glp->set_col_kind(model, v.id() + 1, GLP_CV);
     }
     void set_integer(variable v) noexcept {
-        glp.set_col_kind(model, v.id() + 1, GLP_IV);
+        glp->set_col_kind(model, v.id() + 1, GLP_IV);
     }
     void set_binary(variable v) noexcept {
-        glp.set_col_kind(model, v.id() + 1, GLP_BV);
+        glp->set_col_kind(model, v.id() + 1, GLP_BV);
     }
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////// Special constraints ///////////////////////////
@@ -136,7 +136,7 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        switch(glp.intopt(model, &model_params)) {
+        switch(glp->intopt(model, &model_params)) {
             case 0:
             case GLP_EMIPGAP:
                 _status.emplace<status::optimal>();
@@ -158,13 +158,13 @@ public:
         }
     }
     double get_solution_value() {
-        return objective_offset + glp.mip_obj_val(model);
+        return objective_offset + glp->mip_obj_val(model);
     }
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         for(std::size_t var = 0u; var < num_vars; ++var) {
-            solution[var] = glp.mip_col_val(model, static_cast<int>(var) + 1);
+            solution[var] = glp->mip_col_val(model, static_cast<int>(var) + 1);
         }
         return variable_mapping(std::move(solution));
     }

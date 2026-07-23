@@ -37,7 +37,7 @@ public:
     };
 
 protected:
-    const copt_api & COPT;
+    const copt_api * COPT;
     copt_env * env;
     copt_prob * prob;
 
@@ -45,7 +45,7 @@ protected:
     std::vector<char> tmp_types;
     std::vector<scalar> tmp_rhs;
 
-    void check(const ret_code error) { COPT._check(env, error); }
+    void check(const ret_code error) { COPT->_check(env, error); }
     static constexpr char constraint_sense_to_copt_sense(constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return COPT_LESS_EQUAL;
         if(rel == constraint_sense::equal) return COPT_EQUAL;
@@ -60,13 +60,13 @@ protected:
 
 public:
     [[nodiscard]] explicit copt_base(const copt_api & api)
-        : model_base<int, double>(), COPT(api), env(nullptr), prob(nullptr) {
-        check(COPT.CreateEnv(&env));
-        check(COPT.CreateProb(env, &prob));
+        : model_base<int, double>(), COPT(&api), env(nullptr), prob(nullptr) {
+        check(COPT->CreateEnv(&env));
+        check(COPT->CreateProb(env, &prob));
     }
     ~copt_base() {
-        if(prob) check(COPT.DeleteProb(&prob));
-        if(env) check(COPT.DeleteEnv(&env));
+        if(prob) check(COPT->DeleteProb(&prob));
+        if(env) check(COPT->DeleteEnv(&env));
     }
 
     constexpr copt_base(const copt_base &) = delete;
@@ -87,31 +87,31 @@ public:
 
     std::size_t num_variables() {
         int num;
-        check(COPT.GetIntAttr(prob, COPT_INTATTR_COLS, &num));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_COLS, &num));
         return static_cast<std::size_t>(num);
     }
     std::size_t num_constraints() {
         int num;
-        check(COPT.GetIntAttr(prob, COPT_INTATTR_ROWS, &num));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_ROWS, &num));
         return static_cast<std::size_t>(num);
     }
     std::size_t num_entries() {
         int num;
-        check(COPT.GetIntAttr(prob, COPT_INTATTR_ELEMS, &num));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_ELEMS, &num));
         return static_cast<std::size_t>(num);
     }
 
-    void set_maximization() { check(COPT.SetObjSense(prob, COPT_MAXIMIZE)); }
-    void set_minimization() { check(COPT.SetObjSense(prob, COPT_MINIMIZE)); }
+    void set_maximization() { check(COPT->SetObjSense(prob, COPT_MAXIMIZE)); }
+    void set_minimization() { check(COPT->SetObjSense(prob, COPT_MINIMIZE)); }
 
     void set_objective_offset(scalar constant) {
-        check(COPT.SetObjConst(prob, constant));
+        check(COPT->SetObjConst(prob, constant));
     }
     void set_objective(linear_expression auto && le) {
         _reset_cache(num_variables());
         _register_entries(le.linear_terms());
-        check(COPT.ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
-                                 tmp_indices.data(), tmp_scalars.data()));
+        check(COPT->ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
+                                  tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
@@ -119,20 +119,20 @@ public:
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
         tmp_scalars.resize(num_vars);
-        check(COPT.GetColInfo(prob, COPT_DBLINFO_OBJ,
-                              static_cast<int>(num_vars), tmp_indices.data(),
-                              tmp_scalars.data()));
+        check(COPT->GetColInfo(prob, COPT_DBLINFO_OBJ,
+                               static_cast<int>(num_vars), tmp_indices.data(),
+                               tmp_scalars.data()));
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(COPT.ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
-                                 tmp_indices.data(), tmp_scalars.data()));
+        check(COPT->ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
+                                  tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
 
     scalar get_objective_offset() {
         scalar objective_offset;
-        check(COPT.GetDblAttr(prob, COPT_DBLATTR_OBJCONST, &objective_offset));
+        check(COPT->GetDblAttr(prob, COPT_DBLATTR_OBJCONST, &objective_offset));
         return objective_offset;
     }
     auto get_objective() {
@@ -140,9 +140,9 @@ public:
         auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
-        check(COPT.GetColInfo(prob, COPT_DBLINFO_OBJ,
-                              static_cast<int>(num_vars), tmp_indices.data(),
-                              coefs.get()));
+        check(COPT->GetColInfo(prob, COPT_DBLINFO_OBJ,
+                               static_cast<int>(num_vars), tmp_indices.data(),
+                               coefs.get()));
         return linear_expression_view(
             std::views::transform(
                 std::views::iota(variable_id{0},
@@ -157,9 +157,9 @@ protected:
     variable _add_variable(const variable_params & params, const char type,
                            const char * name = nullptr) {
         int var_id = static_cast<int>(num_variables());
-        check(COPT.AddCol(prob, params.obj_coef, 0, nullptr, nullptr, type,
-                          params.lower_bound.value_or(-COPT_INFINITY),
-                          params.upper_bound.value_or(+COPT_INFINITY), name));
+        check(COPT->AddCol(prob, params.obj_coef, 0, nullptr, nullptr, type,
+                           params.lower_bound.value_or(-COPT_INFINITY),
+                           params.upper_bound.value_or(+COPT_INFINITY), name));
         return variable(var_id);
     }
     void _add_variables(std::size_t count, const variable_params & params,
@@ -178,7 +178,7 @@ protected:
         }
         tmp_types.resize(count);
         std::fill(tmp_types.begin(), tmp_types.end(), type);
-        check(COPT.AddCols(
+        check(COPT->AddCols(
             prob, static_cast<int>(count), tmp_scalars.data(), nullptr, nullptr,
             nullptr, nullptr, tmp_types.data(),
             dbl_offset_1.has_value()
@@ -211,7 +211,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(count, params, COPT_CONTINUOUS);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -226,7 +226,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(count, params, COPT_CONTINUOUS);
         return _make_named_variables_view(offset, count,
-                                           std::forward<NL>(name_lambda), this);
+                                          std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -246,7 +246,7 @@ private:
         const int var_id = static_cast<int>(num_variables());
         _reset_raw_cache();
         _register_raw_entries(entries);
-        check(COPT.AddCol(
+        check(COPT->AddCol(
             prob, params.obj_coef, static_cast<int>(tmp_indices.size()),
             tmp_indices.data(), tmp_scalars.data(), type,
             params.lower_bound.value_or(-COPT_INFINITY),
@@ -268,45 +268,45 @@ public:
 
     void set_objective_coefficient(variable v, scalar c) {
         const int id = v.id();
-        check(COPT.SetColObj(prob, 1, &id, &c));
+        check(COPT->SetColObj(prob, 1, &id, &c));
     }
     void set_variable_lower_bound(variable v, scalar lb) {
         const int id = v.id();
-        check(COPT.SetColLower(prob, 1, &id, &lb));
+        check(COPT->SetColLower(prob, 1, &id, &lb));
     }
     void set_variable_upper_bound(variable v, scalar ub) {
         const int id = v.id();
-        check(COPT.SetColUpper(prob, 1, &id, &ub));
+        check(COPT->SetColUpper(prob, 1, &id, &ub));
     }
     void set_variable_name(variable v, const std::string & name) {
         const int id = v.id();
         const char * c_str = name.c_str();
-        check(COPT.SetColNames(prob, 1, &id, &c_str));
+        check(COPT->SetColNames(prob, 1, &id, &c_str));
     }
 
     scalar get_objective_coefficient(variable v) {
         scalar coef;
         const int id = v.id();
-        check(COPT.GetColInfo(prob, COPT_DBLINFO_OBJ, 1, &id, &coef));
+        check(COPT->GetColInfo(prob, COPT_DBLINFO_OBJ, 1, &id, &coef));
         return coef;
     }
     scalar get_variable_lower_bound(variable v) {
         scalar lb;
         const int id = v.id();
-        check(COPT.GetColInfo(prob, COPT_DBLINFO_LB, 1, &id, &lb));
+        check(COPT->GetColInfo(prob, COPT_DBLINFO_LB, 1, &id, &lb));
         return lb;
     }
     scalar get_variable_upper_bound(variable v) {
         scalar ub;
         const int id = v.id();
-        check(COPT.GetColInfo(prob, COPT_DBLINFO_UB, 1, &id, &ub));
+        check(COPT->GetColInfo(prob, COPT_DBLINFO_UB, 1, &id, &ub));
         return ub;
     }
     std::string get_variable_name(variable v) {
         int size;
-        check(COPT.GetColName(prob, v.id(), nullptr, 0, &size));
+        check(COPT->GetColName(prob, v.id(), nullptr, 0, &size));
         std::string name(static_cast<std::size_t>(size), '\0');
-        check(COPT.GetColName(prob, v.id(), name.data(), size, nullptr));
+        check(COPT->GetColName(prob, v.id(), name.data(), size, nullptr));
         name.pop_back();
         return name;
     }
@@ -316,10 +316,10 @@ public:
         _reset_cache(num_variables());
         _register_entries(lc.linear_terms());
         const scalar b = lc.rhs();
-        check(COPT.AddRow(prob, static_cast<int>(tmp_indices.size()),
-                          tmp_indices.data(), tmp_scalars.data(),
-                          constraint_sense_to_copt_sense(lc.sense()), b,
-                          COPT_INFINITY, nullptr));
+        check(COPT->AddRow(prob, static_cast<int>(tmp_indices.size()),
+                           tmp_indices.data(), tmp_scalars.data(),
+                           constraint_sense_to_copt_sense(lc.sense()), b,
+                           COPT_INFINITY, nullptr));
         return constraint(constr_id);
     }
 
@@ -366,10 +366,10 @@ public:
             ++constr_id;
         }
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
-        check(COPT.AddRows(prob, static_cast<int>(tmp_rhs.size()),
-                           tmp_begins.data(), nullptr, tmp_indices.data(),
-                           tmp_scalars.data(), tmp_types.data(), tmp_rhs.data(),
-                           nullptr, nullptr));
+        check(COPT->AddRows(prob, static_cast<int>(tmp_rhs.size()),
+                            tmp_begins.data(), nullptr, tmp_indices.data(),
+                            tmp_scalars.data(), tmp_types.data(),
+                            tmp_rhs.data(), nullptr, nullptr));
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),

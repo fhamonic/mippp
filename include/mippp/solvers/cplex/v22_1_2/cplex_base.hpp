@@ -37,7 +37,7 @@ public:
     };
 
 protected:
-    const cplex_api & CPX;
+    const cplex_api * CPX;
     CPXENVptr env;
     CPXLPptr lp;
 
@@ -45,7 +45,7 @@ protected:
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
-    void check(const int error) { CPX._check(env, error); }
+    void check(const int error) { CPX->_check(env, error); }
     static constexpr char constraint_sense_to_cplex_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
@@ -62,12 +62,12 @@ protected:
 public:
     [[nodiscard]] explicit cplex_base(const cplex_api & api)
         : remapping_model_base<int, double>()
-        , CPX(api)
-        , env(CPX._create_env())
-        , lp(CPX._create_prob(env)) {}
+        , CPX(&api)
+        , env(CPX->_create_env())
+        , lp(CPX->_create_prob(env)) {}
     ~cplex_base() {
-        if(lp) check(CPX.freeprob(env, &lp));
-        if(env) CPX._close_env(env);
+        if(lp) check(CPX->freeprob(env, &lp));
+        if(env) CPX->_close_env(env);
     }
 
     constexpr cplex_base(const cplex_base &) = delete;
@@ -89,22 +89,22 @@ public:
 protected:
     int _new_var_native_id() {
         if(_remap_ids) _extend_handle_ids_map(1);
-        return CPX.getnumcols(env, lp);
+        return CPX->getnumcols(env, lp);
     }
     std::size_t _num_var_native_ids() {
-        return static_cast<std::size_t>(CPX.getnumcols(env, lp));
+        return static_cast<std::size_t>(CPX->getnumcols(env, lp));
     }
 
     void _lazily_remove_variables() {
         if(_var_handles_to_delete.empty()) return;
         const std::size_t old_num_variables =
-            static_cast<std::size_t>(CPX.getnumcols(env, lp));
+            static_cast<std::size_t>(CPX->getnumcols(env, lp));
         tmp_indices.resize(old_num_variables);
         std::fill(tmp_indices.begin(), tmp_indices.end(), 0);
         for(const variable & var : _var_handles_to_delete) {
             tmp_indices[static_cast<std::size_t>(_native_id(var))] = 1;
         }
-        check(CPX.delsetcols(env, lp, tmp_indices.data()));
+        check(CPX->delsetcols(env, lp, tmp_indices.data()));
 
         if(!_remap_ids) {
             _native_ids_map.resize(old_num_variables);
@@ -136,21 +136,21 @@ protected:
 
 public:
     std::size_t num_variables() {
-        return static_cast<std::size_t>(CPX.getnumcols(env, lp)) -
+        return static_cast<std::size_t>(CPX->getnumcols(env, lp)) -
                _var_handles_to_delete.size();
     }
     std::size_t num_constraints() {
-        return static_cast<std::size_t>(CPX.getnumrows(env, lp));
+        return static_cast<std::size_t>(CPX->getnumrows(env, lp));
     }
     std::size_t num_entries() {
-        return static_cast<std::size_t>(CPX.getnumnz(env, lp));
+        return static_cast<std::size_t>(CPX->getnumnz(env, lp));
     }
 
-    void set_maximization() { check(CPX.chgobjsen(env, lp, CPX_MAX)); }
-    void set_minimization() { check(CPX.chgobjsen(env, lp, CPX_MIN)); }
+    void set_maximization() { check(CPX->chgobjsen(env, lp, CPX_MAX)); }
+    void set_minimization() { check(CPX->chgobjsen(env, lp, CPX_MIN)); }
 
     void set_objective_offset(double constant) {
-        check(CPX.chgobjoffset(env, lp, constant));
+        check(CPX->chgobjoffset(env, lp, constant));
     }
 
     void set_objective(linear_expression auto && le) {
@@ -162,8 +162,8 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
         }
-        check(CPX.chgobj(env, lp, static_cast<int>(num_vars),
-                         tmp_indices.data(), tmp_scalars.data()));
+        check(CPX->chgobj(env, lp, static_cast<int>(num_vars),
+                          tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
@@ -171,26 +171,26 @@ public:
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
         tmp_scalars.resize(num_vars);
-        check(CPX.getobj(env, lp, tmp_scalars.data(), 0,
-                         static_cast<int>(num_vars) - 1));
+        check(CPX->getobj(env, lp, tmp_scalars.data(), 0,
+                          static_cast<int>(num_vars) - 1));
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
         }
-        check(CPX.chgobj(env, lp, static_cast<int>(num_vars),
-                         tmp_indices.data(), tmp_scalars.data()));
+        check(CPX->chgobj(env, lp, static_cast<int>(num_vars),
+                          tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
 
     double get_objective_offset() {
         double objective_offset;
-        check(CPX.getobjoffset(env, lp, &objective_offset));
+        check(CPX->getobjoffset(env, lp, &objective_offset));
         return objective_offset;
     }
     auto get_objective() {
         const std::size_t num_vars = _num_var_native_ids();
         auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
-        check(CPX.getobj(env, lp, coefs.get(), 0,
-                         static_cast<int>(num_vars) - 1));
+        check(CPX->getobj(env, lp, coefs.get(), 0,
+                          static_cast<int>(num_vars) - 1));
         return linear_expression_view(
             std::views::transform(
                 std::views::iota(0, static_cast<int>(num_vars)),
@@ -206,8 +206,8 @@ protected:
         const int var_id = _new_var_native_id();
         const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
         const double ub = params.upper_bound.value_or(CPX_INFBOUND);
-        check(CPX.newcols(env, lp, 1, &params.obj_coef, &lb, &ub,
-                          (type != CPX_CONTINUOUS) ? &type : nullptr, &name));
+        check(CPX->newcols(env, lp, 1, &params.obj_coef, &lb, &ub,
+                           (type != CPX_CONTINUOUS) ? &type : nullptr, &name));
         return _new_var_handle(var_id);
     }
     std::size_t _add_variables(std::size_t count,
@@ -234,7 +234,7 @@ protected:
             tmp_types.resize(count);
             std::fill(tmp_types.begin(), tmp_types.end(), type);
         }
-        check(CPX.newcols(
+        check(CPX->newcols(
             env, lp, static_cast<int>(count),
             dbl_offset_1.has_value()
                 ? (tmp_scalars.data() +
@@ -275,7 +275,7 @@ public:
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
         return _make_indexed_variables_view(handle_ids_begin, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -295,7 +295,7 @@ public:
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
         return _make_named_variables_view(handle_ids_begin, count,
-                                           std::forward<NL>(name_lambda), this);
+                                          std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -317,9 +317,9 @@ private:
         _register_raw_entries(entries);
         const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
         const double ub = params.upper_bound.value_or(CPX_INFBOUND);
-        check(CPX.addcols(env, lp, 1, static_cast<int>(tmp_indices.size()),
-                          &params.obj_coef, &cmatbeg, tmp_indices.data(),
-                          tmp_scalars.data(), &lb, &ub, nullptr));
+        check(CPX->addcols(env, lp, 1, static_cast<int>(tmp_indices.size()),
+                           &params.obj_coef, &cmatbeg, tmp_indices.data(),
+                           tmp_scalars.data(), &lb, &ub, nullptr));
         return _new_var_handle(var_id);
     }
 
@@ -352,40 +352,40 @@ public:
 
     void set_objective_coefficient(variable v, double c) {
         int var_id = _native_id(v);
-        check(CPX.chgobj(env, lp, 1, &var_id, &c));
+        check(CPX->chgobj(env, lp, 1, &var_id, &c));
     }
     void set_variable_lower_bound(variable v, double lb) noexcept {
         int var_id = _native_id(v);
         char lu = 'L';
-        check(CPX.chgbds(env, lp, 1, &var_id, &lu, &lb));
+        check(CPX->chgbds(env, lp, 1, &var_id, &lu, &lb));
     }
     void set_variable_upper_bound(variable v, double ub) noexcept {
         int var_id = _native_id(v);
         char lu = 'U';
-        check(CPX.chgbds(env, lp, 1, &var_id, &lu, &ub));
+        check(CPX->chgbds(env, lp, 1, &var_id, &lu, &ub));
     }
     void set_variable_name(variable v, const std::string & name) noexcept {
         int var_id = _native_id(v);
         char * col_name = const_cast<char *>(name.c_str());
-        check(CPX.chgcolname(env, lp, 1, &var_id, &col_name));
+        check(CPX->chgcolname(env, lp, 1, &var_id, &col_name));
     }
 
     double get_objective_coefficient(variable v) {
         const int var_id = _native_id(v);
         double coef;
-        check(CPX.getobj(env, lp, &coef, var_id, var_id));
+        check(CPX->getobj(env, lp, &coef, var_id, var_id));
         return coef;
     }
     double get_variable_lower_bound(variable v) noexcept {
         const int var_id = _native_id(v);
         double b;
-        check(CPX.getlb(env, lp, &b, var_id, var_id));
+        check(CPX->getlb(env, lp, &b, var_id, var_id));
         return b;
     }
     double get_variable_upper_bound(variable v) noexcept {
         const int var_id = _native_id(v);
         double b;
-        check(CPX.getub(env, lp, &b, var_id, var_id));
+        check(CPX->getub(env, lp, &b, var_id, var_id));
         return b;
     }
     std::string get_variable_name(variable v) noexcept {
@@ -394,13 +394,13 @@ public:
         name.resize(name.capacity());
         char * subptr;
         int surplus = 0;
-        if(CPX.getcolname(env, lp, &subptr, name.data(),
-                          static_cast<int>(name.size()), &surplus, var_id,
-                          var_id) == 1207) {
+        if(CPX->getcolname(env, lp, &subptr, name.data(),
+                           static_cast<int>(name.size()), &surplus, var_id,
+                           var_id) == 1207) {
             name.resize(name.size() - static_cast<std::size_t>(surplus));
-            check(CPX.getcolname(env, lp, &subptr, name.data(),
-                                 static_cast<int>(name.size()), &surplus,
-                                 var_id, var_id));
+            check(CPX->getcolname(env, lp, &subptr, name.data(),
+                                  static_cast<int>(name.size()), &surplus,
+                                  var_id, var_id));
         }
         name.resize(name.size() - static_cast<std::size_t>(surplus + 1));
         return name;
@@ -413,9 +413,9 @@ public:
         int matbegin = 0;
         const double b = lc.rhs();
         const char sense = constraint_sense_to_cplex_sense(lc.sense());
-        check(CPX.addrows(env, lp, 0, 1, static_cast<int>(tmp_indices.size()),
-                          &b, &sense, &matbegin, tmp_indices.data(),
-                          tmp_scalars.data(), nullptr, nullptr));
+        check(CPX->addrows(env, lp, 0, 1, static_cast<int>(tmp_indices.size()),
+                           &b, &sense, &matbegin, tmp_indices.data(),
+                           tmp_scalars.data(), nullptr, nullptr));
         return constraint(constr_id);
     }
 
@@ -461,11 +461,11 @@ public:
             _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
-        check(CPX.addrows(env, lp, 0, static_cast<int>(tmp_begins.size()),
-                          static_cast<int>(tmp_indices.size()), tmp_rhs.data(),
-                          tmp_types.data(), tmp_begins.data(),
-                          tmp_indices.data(), tmp_scalars.data(), nullptr,
-                          nullptr));
+        check(CPX->addrows(env, lp, 0, static_cast<int>(tmp_begins.size()),
+                           static_cast<int>(tmp_indices.size()), tmp_rhs.data(),
+                           tmp_types.data(), tmp_begins.data(),
+                           tmp_indices.data(), tmp_scalars.data(), nullptr,
+                           nullptr));
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
@@ -474,19 +474,19 @@ public:
 
     void set_constraint_rhs(constraint constr, double rhs) {
         int constr_id = constr.id();
-        check(CPX.chgrhs(env, lp, 1, &constr_id, &rhs));
+        check(CPX->chgrhs(env, lp, 1, &constr_id, &rhs));
     }
     void set_constraint_sense(constraint constr, constraint_sense r) {
         int constr_id = constr.id();
         char sense = constraint_sense_to_cplex_sense(r);
-        check(CPX.chgsense(env, lp, 1, &constr_id, &sense));
+        check(CPX->chgsense(env, lp, 1, &constr_id, &sense));
     }
 
     auto get_constraint_lhs(constraint constr) {
         int palceholder, surplus, beg;
         if(int error =
-               CPX.getrows(env, lp, &palceholder, nullptr, nullptr, nullptr, 0,
-                           &surplus, constr.id(), constr.id());
+               CPX->getrows(env, lp, &palceholder, nullptr, nullptr, nullptr, 0,
+                            &surplus, constr.id(), constr.id());
            error != 1207 && error != 0)
             throw std::runtime_error("CPLEX: error " + std::to_string(error));
 
@@ -495,9 +495,9 @@ public:
             static_cast<std::size_t>(num_nz));
         auto coefs = std::make_shared_for_overwrite<double[]>(
             static_cast<std::size_t>(num_nz));
-        check(CPX.getrows(env, lp, &palceholder, &beg, indices.get(),
-                          coefs.get(), num_nz, &surplus, constr.id(),
-                          constr.id()));
+        check(CPX->getrows(env, lp, &palceholder, &beg, indices.get(),
+                           coefs.get(), num_nz, &surplus, constr.id(),
+                           constr.id()));
         return std::views::transform(
             std::views::iota(0, num_nz), [this, indices = std::move(indices),
                                           coefs = std::move(coefs)](int i) {
@@ -507,12 +507,12 @@ public:
     }
     double get_constraint_rhs(constraint constr) {
         double rhs;
-        check(CPX.getrhs(env, lp, &rhs, constr.id(), constr.id()));
+        check(CPX->getrhs(env, lp, &rhs, constr.id(), constr.id()));
         return rhs;
     }
     constraint_sense get_constraint_sense(constraint constr) {
         char sense;
-        check(CPX.getsense(env, lp, &sense, constr.id(), constr.id()));
+        check(CPX->getsense(env, lp, &sense, constr.id(), constr.id()));
         return cplex_sense_to_constraint_sense(sense);
     }
     auto get_constraint(constraint constr) {
@@ -525,11 +525,11 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        check(CPX.setdblparam(env, CPXPARAM_TimeLimit, t.count()));
+        check(CPX->setdblparam(env, CPXPARAM_TimeLimit, t.count()));
     }
     auto get_time_limit() {
         double t;
-        check(CPX.getdblparam(env, CPXPARAM_TimeLimit, &t));
+        check(CPX->getdblparam(env, CPXPARAM_TimeLimit, &t));
         return std::chrono::duration<double>(t);
     }
 };

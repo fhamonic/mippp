@@ -290,10 +290,10 @@ namespace scip::v8 {
     F(SCIPincludeConshdlrBasic, includeConshdlrBasic)   \
     F(SCIPconshdlrGetData, conshdlrGetData)
 
-#define DECLARE_SCIP_FUN(FULL, SHORT)     \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_SCIP_FUN(FULL, SHORT) \
+#define DECLARE_SCIP_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);   \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_SCIP_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class scip_api {
@@ -301,13 +301,17 @@ private:
     dylib::library lib;
 
 public:
-    SCIP_FUNCTIONS(DECLARE_SCIP_FUN)
+    SCIP_FUNCTIONS(DECLARE_SCIP_FUNCTIONS)
 
 public:
     inline scip_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "SCIP", {"scip"}))
-              SCIP_FUNCTIONS(CONSTRUCT_SCIP_FUN) {}
+              SCIP_FUNCTIONS(CONSTRUCT_SCIP_FUNCTIONS) {}
 };
+
+#undef CONSTRUCT_SCIP_FUNCTIONS
+#undef DECLARE_SCIP_FUNCTIONS
+#undef SCIP_FUNCTIONS
 
 }  // namespace scip::v8
 }  // namespace mippp

@@ -39,10 +39,10 @@ public:
     };
 
 protected:
-    const highs_api & Highs;
+    const highs_api * Highs;
     void * model;
 
-    void check(const int status) { Highs._check(status); }
+    void check(const int status) { Highs->_check(status); }
 
     std::vector<index> tmp_begins;
     std::vector<scalar> tmp_lower_bounds;
@@ -51,10 +51,10 @@ protected:
 public:
     [[nodiscard]] explicit highs_base(const highs_api & api)
         : remapping_model_base<int, double>()
-        , Highs(api)
-        , model(Highs.create()) {}
+        , Highs(&api)
+        , model(Highs->create()) {}
     ~highs_base() {
-        if(model) Highs.destroy(model);
+        if(model) Highs->destroy(model);
     }
 
     constexpr highs_base(const highs_base &) = delete;
@@ -73,7 +73,7 @@ public:
 
 protected:
     std::size_t _num_var_native_ids() {
-        return static_cast<std::size_t>(Highs.getNumCol(model));
+        return static_cast<std::size_t>(Highs->getNumCol(model));
     }
     int _new_var_native_id() {
         if(_remap_ids) _extend_handle_ids_map(1);
@@ -88,8 +88,8 @@ protected:
         std::ranges::sort(tmp_indices);
 
         const std::size_t old_num_native_ids = _num_var_native_ids();
-        check(Highs.deleteColsBySet(model, static_cast<int>(tmp_indices.size()),
-                                    tmp_indices.data()));
+        check(Highs->deleteColsBySet(
+            model, static_cast<int>(tmp_indices.size()), tmp_indices.data()));
 
         const std::size_t new_num_native_ids =
             old_num_native_ids - tmp_indices.size();
@@ -138,21 +138,21 @@ public:
         return _num_var_native_ids() - _var_handles_to_delete.size();
     }
     std::size_t num_constraints() {
-        return static_cast<std::size_t>(Highs.getNumRow(model));
+        return static_cast<std::size_t>(Highs->getNumRow(model));
     }
     std::size_t num_entries() {
-        return static_cast<std::size_t>(Highs.getNumNz(model));
+        return static_cast<std::size_t>(Highs->getNumNz(model));
     }
 
     void set_maximization() {
-        check(Highs.changeObjectiveSense(model, kHighsObjSenseMaximize));
+        check(Highs->changeObjectiveSense(model, kHighsObjSenseMaximize));
     }
     void set_minimization() {
-        check(Highs.changeObjectiveSense(model, kHighsObjSenseMinimize));
+        check(Highs->changeObjectiveSense(model, kHighsObjSenseMinimize));
     }
 
     void set_objective_offset(scalar offset) {
-        check(Highs.changeObjectiveOffset(model, offset));
+        check(Highs->changeObjectiveOffset(model, offset));
     }
     template <linear_expression LE>
     void set_objective(LE && le) {
@@ -162,7 +162,7 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
         }
-        check(Highs.changeColsCostByRange(
+        check(Highs->changeColsCostByRange(
             model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
@@ -176,7 +176,7 @@ public:
                           });
         tmp_scalars.resize(2 * num_entries);
         int dummy_int;
-        check(Highs.getColsBySet(
+        check(Highs->getColsBySet(
             model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
             &dummy_int, tmp_scalars.data() + num_entries, nullptr, nullptr,
             &dummy_int, nullptr, nullptr, nullptr));
@@ -184,24 +184,24 @@ public:
         for(std::size_t i = 0; i < num_entries; ++i) {
             tmp_scalars[i] += tmp_scalars[num_entries + i];
         }
-        check(
-            Highs.changeColsCostBySet(model, static_cast<HighsInt>(num_entries),
-                                      tmp_indices.data(), tmp_scalars.data()));
+        check(Highs->changeColsCostBySet(
+            model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
+            tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
     scalar get_objective_offset() {
         scalar offset;
-        check(Highs.getObjectiveOffset(model, &offset));
+        check(Highs->getObjectiveOffset(model, &offset));
         return offset;
     }
     auto get_objective() {
         const auto num_vars = _num_var_native_ids();
         auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
         int dummy_int;
-        check(Highs.getColsByRange(model, 0,
-                                   static_cast<HighsInt>(num_vars) - 1,
-                                   &dummy_int, coefs.get(), nullptr, nullptr,
-                                   &dummy_int, nullptr, nullptr, nullptr));
+        check(Highs->getColsByRange(model, 0,
+                                    static_cast<HighsInt>(num_vars) - 1,
+                                    &dummy_int, coefs.get(), nullptr, nullptr,
+                                    &dummy_int, nullptr, nullptr, nullptr));
         return linear_expression_view(
             std::views::transform(
                 std::views::iota(variable_id{0},
@@ -215,13 +215,13 @@ public:
 protected:
     variable _add_variable(const variable_params & params, int type) {
         HighsInt var_id = _new_var_native_id();
-        check(
-            Highs.addCol(model, params.obj_coef,
-                         params.lower_bound.value_or(-Highs.getInfinity(model)),
-                         params.upper_bound.value_or(Highs.getInfinity(model)),
-                         0, nullptr, nullptr));
+        check(Highs->addCol(
+            model, params.obj_coef,
+            params.lower_bound.value_or(-Highs->getInfinity(model)),
+            params.upper_bound.value_or(Highs->getInfinity(model)), 0, nullptr,
+            nullptr));
         if(type != kHighsVarTypeContinuous)
-            check(Highs.changeColIntegrality(model, var_id, type));
+            check(Highs->changeColIntegrality(model, var_id, type));
         return _new_var_handle(var_id);
     }
     std::size_t _add_variables(std::size_t count,
@@ -237,17 +237,17 @@ protected:
                   params.obj_coef);
         std::fill(tmp_scalars.begin() + diff_count,
                   tmp_scalars.begin() + 2 * diff_count,
-                  params.lower_bound.value_or(-Highs.getInfinity(model)));
+                  params.lower_bound.value_or(-Highs->getInfinity(model)));
         std::fill(tmp_scalars.begin() + 2 * diff_count, tmp_scalars.end(),
-                  params.upper_bound.value_or(Highs.getInfinity(model)));
-        check(Highs.addCols(model, static_cast<HighsInt>(count),
-                            tmp_scalars.data(), tmp_scalars.data() + diff_count,
-                            tmp_scalars.data() + 2 * diff_count, 0, nullptr,
-                            nullptr, nullptr));
+                  params.upper_bound.value_or(Highs->getInfinity(model)));
+        check(Highs->addCols(
+            model, static_cast<HighsInt>(count), tmp_scalars.data(),
+            tmp_scalars.data() + diff_count,
+            tmp_scalars.data() + 2 * diff_count, 0, nullptr, nullptr, nullptr));
         if(type != kHighsVarTypeContinuous) {
             tmp_indices.resize(count);
             std::fill(tmp_indices.begin(), tmp_indices.end(), type);
-            check(Highs.changeColsIntegralityByRange(
+            check(Highs->changeColsIntegralityByRange(
                 model, static_cast<HighsInt>(offset),
                 static_cast<HighsInt>(offset + count - 1), tmp_indices.data()));
         }
@@ -273,7 +273,7 @@ public:
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -290,7 +290,7 @@ public:
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_named_variables_view(offset, count,
-                                           std::forward<NL>(name_lambda), this);
+                                          std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -309,12 +309,12 @@ private:
         const int var_id = _new_var_native_id();
         _reset_raw_cache();
         _register_raw_entries(entries);
-        check(
-            Highs.addCol(model, params.obj_coef,
-                         params.lower_bound.value_or(-Highs.getInfinity(model)),
-                         params.upper_bound.value_or(Highs.getInfinity(model)),
-                         static_cast<HighsInt>(tmp_indices.size()),
-                         tmp_indices.data(), tmp_scalars.data()));
+        check(Highs->addCol(
+            model, params.obj_coef,
+            params.lower_bound.value_or(-Highs->getInfinity(model)),
+            params.upper_bound.value_or(Highs->getInfinity(model)),
+            static_cast<HighsInt>(tmp_indices.size()), tmp_indices.data(),
+            tmp_scalars.data()));
         return _new_var_handle(var_id);
     }
 
@@ -347,12 +347,12 @@ public:
 
 protected:
     void _set_variable_bounds(variable v, scalar lb, scalar ub) {
-        check(Highs.changeColBounds(model, _native_id(v), lb, ub));
+        check(Highs->changeColBounds(model, _native_id(v), lb, ub));
     }
 
 public:
     void set_objective_coefficient(variable v, scalar c) {
-        check(Highs.changeColCost(model, _native_id(v), c));
+        check(Highs->changeColCost(model, _native_id(v), c));
     }
     void set_variable_lower_bound(variable v, scalar lb) {
         _set_variable_bounds(v, lb, get_variable_upper_bound(v));
@@ -361,7 +361,7 @@ public:
         _set_variable_bounds(v, get_variable_lower_bound(v), ub);
     }
     void set_variable_name(variable v, const std::string & name) {
-        check(Highs.passColName(model, _native_id(v), name.c_str()));
+        check(Highs->passColName(model, _native_id(v), name.c_str()));
     }
 
     scalar get_objective_coefficient(variable v) {
@@ -369,9 +369,9 @@ public:
         index dummy_int;
         scalar dummy_dbl;
         const int native_id = _native_id(v);
-        check(Highs.getColsByRange(model, native_id, native_id, &dummy_int,
-                                   &coef, &dummy_dbl, &dummy_dbl, &dummy_int,
-                                   nullptr, nullptr, nullptr));
+        check(Highs->getColsByRange(model, native_id, native_id, &dummy_int,
+                                    &coef, &dummy_dbl, &dummy_dbl, &dummy_int,
+                                    nullptr, nullptr, nullptr));
         return coef;
     }
     scalar get_variable_lower_bound(variable v) {
@@ -379,9 +379,9 @@ public:
         int dummy_int;
         double dummy_dbl;
         const int native_id = _native_id(v);
-        check(Highs.getColsByRange(model, native_id, native_id, &dummy_int,
-                                   &dummy_dbl, &lb, &dummy_dbl, &dummy_int,
-                                   nullptr, nullptr, nullptr));
+        check(Highs->getColsByRange(model, native_id, native_id, &dummy_int,
+                                    &dummy_dbl, &lb, &dummy_dbl, &dummy_int,
+                                    nullptr, nullptr, nullptr));
         return lb;
     }
     scalar get_variable_upper_bound(variable v) {
@@ -389,14 +389,14 @@ public:
         int dummy_int;
         double dummy_dbl;
         const int native_id = _native_id(v);
-        check(Highs.getColsByRange(model, native_id, native_id, &dummy_int,
-                                   &dummy_dbl, &dummy_dbl, &ub, &dummy_int,
-                                   nullptr, nullptr, nullptr));
+        check(Highs->getColsByRange(model, native_id, native_id, &dummy_int,
+                                    &dummy_dbl, &dummy_dbl, &ub, &dummy_int,
+                                    nullptr, nullptr, nullptr));
         return ub;
     }
     std::string get_variable_name(variable v) {
         std::string name(kHighsMaximumStringLength, '\0');
-        check(Highs.getColName(model, _native_id(v), name.data()));
+        check(Highs->getColName(model, _native_id(v), name.data()));
         name.resize(std::strlen(name.data()));
         name.shrink_to_fit();
         return name;
@@ -407,15 +407,15 @@ public:
         _reset_cache(_num_var_native_ids());
         _register_entries(lc.linear_terms());
         const scalar b = lc.rhs();
-        check(Highs.addRow(model,
-                           (lc.sense() == constraint_sense::less_equal)
-                               ? -Highs.getInfinity(model)
-                               : b,
-                           (lc.sense() == constraint_sense::greater_equal)
-                               ? Highs.getInfinity(model)
-                               : b,
-                           static_cast<HighsInt>(tmp_indices.size()),
-                           tmp_indices.data(), tmp_scalars.data()));
+        check(Highs->addRow(model,
+                            (lc.sense() == constraint_sense::less_equal)
+                                ? -Highs->getInfinity(model)
+                                : b,
+                            (lc.sense() == constraint_sense::greater_equal)
+                                ? Highs->getInfinity(model)
+                                : b,
+                            static_cast<HighsInt>(tmp_indices.size()),
+                            tmp_indices.data(), tmp_scalars.data()));
         return constraint(constr_id);
     }
 
@@ -426,11 +426,11 @@ private:
         const scalar b = lc.rhs();
         tmp_lower_bounds.emplace_back(
             (lc.sense() == constraint_sense::less_equal)
-                ? -Highs.getInfinity(model)
+                ? -Highs->getInfinity(model)
                 : b);
         tmp_upper_bounds.emplace_back(
             (lc.sense() == constraint_sense::greater_equal)
-                ? Highs.getInfinity(model)
+                ? Highs->getInfinity(model)
                 : b);
         _register_entries(lc.linear_terms());
     }
@@ -468,11 +468,11 @@ public:
             _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
-        check(Highs.addRows(model, static_cast<HighsInt>(tmp_begins.size()),
-                            tmp_lower_bounds.data(), tmp_upper_bounds.data(),
-                            static_cast<HighsInt>(tmp_indices.size()),
-                            tmp_begins.data(), tmp_indices.data(),
-                            tmp_scalars.data()));
+        check(Highs->addRows(model, static_cast<HighsInt>(tmp_begins.size()),
+                             tmp_lower_bounds.data(), tmp_upper_bounds.data(),
+                             static_cast<HighsInt>(tmp_indices.size()),
+                             tmp_begins.data(), tmp_indices.data(),
+                             tmp_scalars.data()));
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
@@ -483,24 +483,24 @@ private:
     std::pair<double, double> _row_bounds(const constraint & constr) {
         double lower, upper;
         int dummy_int;
-        check(Highs.getRowsByRange(model, constr.id(), constr.id(), &dummy_int,
-                                   &lower, &upper, &dummy_int, nullptr, nullptr,
-                                   nullptr));
+        check(Highs->getRowsByRange(model, constr.id(), constr.id(), &dummy_int,
+                                    &lower, &upper, &dummy_int, nullptr,
+                                    nullptr, nullptr));
         return std::make_pair(lower, upper);
     }
     auto _row_lhs_bounds(const constraint & constr) {
         int dummy_int, num_nz;
-        check(Highs.getRowsByRange(model, constr.id(), constr.id(), &dummy_int,
-                                   nullptr, nullptr, &num_nz, nullptr, nullptr,
-                                   nullptr));
+        check(Highs->getRowsByRange(model, constr.id(), constr.id(), &dummy_int,
+                                    nullptr, nullptr, &num_nz, nullptr, nullptr,
+                                    nullptr));
         double lower, upper;
         auto indices = std::make_shared_for_overwrite<int[]>(
             static_cast<std::size_t>(num_nz));
         auto coefs = std::make_shared_for_overwrite<double[]>(
             static_cast<std::size_t>(num_nz));
-        check(Highs.getRowsByRange(model, constr.id(), constr.id(), &dummy_int,
-                                   &lower, &upper, &num_nz, &dummy_int,
-                                   indices.get(), coefs.get()));
+        check(Highs->getRowsByRange(model, constr.id(), constr.id(), &dummy_int,
+                                    &lower, &upper, &num_nz, &dummy_int,
+                                    indices.get(), coefs.get()));
         return std::make_tuple(
             std::views::transform(std::views::iota(0, num_nz),
                                   [this, indices = std::move(indices),
@@ -512,12 +512,12 @@ private:
             lower, upper);
     }
     double _bounds_to_rhs(const double & lower, const double & upper) {
-        return (lower == -Highs.getInfinity(model)) ? upper : lower;
+        return (lower == -Highs->getInfinity(model)) ? upper : lower;
     }
     constraint_sense _bounds_to_constraint_sense(const double & lower,
                                                  const double & upper) {
         if(lower == upper) return constraint_sense::equal;
-        if(lower == -Highs.getInfinity(model))
+        if(lower == -Highs->getInfinity(model))
             return constraint_sense::less_equal;
         return constraint_sense::greater_equal;
     }
@@ -536,7 +536,7 @@ public:
                 lower = rhs;
                 break;
         }
-        check(Highs.changeRowBounds(model, constr.id(), lower, upper));
+        check(Highs->changeRowBounds(model, constr.id(), lower, upper));
     }
     void set_constraint_sense(constraint constr, constraint_sense new_sense) {
         auto [lower, upper] = _row_bounds(constr);
@@ -548,18 +548,18 @@ public:
                 lower = upper = rhs;
                 break;
             case constraint_sense::less_equal:
-                lower = -Highs.getInfinity(model);
+                lower = -Highs->getInfinity(model);
                 upper = rhs;
                 break;
             case constraint_sense::greater_equal:
                 lower = rhs;
-                upper = Highs.getInfinity(model);
+                upper = Highs->getInfinity(model);
                 break;
         }
-        check(Highs.changeRowBounds(model, constr.id(), lower, upper));
+        check(Highs->changeRowBounds(model, constr.id(), lower, upper));
     }
     void set_constraint_name(constraint constr, std::string name) {
-        check(Highs.passRowName(model, constr.id(), name.c_str()));
+        check(Highs->passRowName(model, constr.id(), name.c_str()));
     }
 
     auto get_constraint_lhs(constraint constr) {
@@ -583,7 +583,7 @@ public:
     }
     auto get_constraint_name(constraint constr) {
         char name[kHighsMaximumStringLength];
-        check(Highs.getRowName(model, constr.id(), name));
+        check(Highs->getRowName(model, constr.id(), name));
         return std::string(name);
     }
 
@@ -591,11 +591,11 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        check(Highs.setDoubleOptionValue(model, "time_limit", t.count()));
+        check(Highs->setDoubleOptionValue(model, "time_limit", t.count()));
     }
     auto get_time_limit() {
         double t;
-        check(Highs.getDoubleOptionValue(model, "time_limit", &t));
+        check(Highs->getDoubleOptionValue(model, "time_limit", &t));
         return std::chrono::duration<double>(t);
     }
 };

@@ -33,7 +33,7 @@ private:
     status_variant _get_status() {
         using namespace status;
         int status_;
-        check(COPT.GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &status_));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &status_));
         switch(status_) {
             case COPT_LPSTATUS_OPTIMAL: return optimal{};
             case COPT_LPSTATUS_INFEASIBLE: return infeasible{};
@@ -56,33 +56,33 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(COPT.SolveLp(prob));
+        check(COPT->SolveLp(prob));
         _status = _get_status();
     }
     double get_solution_value() {
         double val;
-        check(COPT.GetDblAttr(prob, COPT_DBLATTR_LPOBJVAL, &val));
+        check(COPT->GetDblAttr(prob, COPT_DBLATTR_LPOBJVAL, &val));
         return val;
     }
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(COPT.GetLpSolution(prob, solution.get(), nullptr, nullptr,
-                                 nullptr));
+        check(COPT->GetLpSolution(prob, solution.get(), nullptr, nullptr,
+                                  nullptr));
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(COPT.GetLpSolution(prob, nullptr, nullptr, dual_solution.get(),
-                                 nullptr));
+        check(COPT->GetLpSolution(prob, nullptr, nullptr, dual_solution.get(),
+                                  nullptr));
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
         auto reduced_costs =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(COPT.GetLpSolution(prob, nullptr, nullptr, nullptr,
-                                 reduced_costs.get()));
+        check(COPT->GetLpSolution(prob, nullptr, nullptr, nullptr,
+                                  reduced_costs.get()));
         return variable_mapping(std::move(reduced_costs));
     }
 };

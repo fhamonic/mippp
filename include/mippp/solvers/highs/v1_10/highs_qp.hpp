@@ -38,7 +38,7 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
         }
-        check(Highs.changeColsCostByRange(
+        check(Highs->changeColsCostByRange(
             model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
@@ -66,7 +66,7 @@ public:
         while(next_row < static_cast<int>(num_vars))
             tmp_begins[static_cast<std::size_t>(next_row++)] =
                 static_cast<HighsInt>(tmp_scalars.size());
-        check(Highs.passHessian(
+        check(Highs->passHessian(
             model, static_cast<int>(num_vars),
             static_cast<int>(tmp_scalars.size()), kHighsHessianFormatTriangular,
             tmp_begins.data(), tmp_indices.data(), tmp_scalars.data()));
@@ -75,12 +75,12 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_iteration_limit(std::size_t n) {
-        check(Highs.setIntOptionValue(model, "qp_iteration_limit",
-                                      static_cast<int>(n)));
+        check(Highs->setIntOptionValue(model, "qp_iteration_limit",
+                                       static_cast<int>(n)));
     }
     std::size_t get_iteration_limit() {
         int n;
-        check(Highs.getIntOptionValue(model, "qp_iteration_limit", &n));
+        check(Highs->getIntOptionValue(model, "qp_iteration_limit", &n));
         return static_cast<std::size_t>(n);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -103,7 +103,7 @@ private:
 
     status_variant _get_status() {
         using namespace status;
-        switch (Highs.getModelStatus(model)) {            
+        switch (Highs->getModelStatus(model)) {            
             case kHighsModelStatusOptimal:        return optimal{};
             case kHighsModelStatusUnboundedOrInfeasible: 
                                                   return infeasible_or_unbounded{};
@@ -136,15 +136,15 @@ public:
         if(num_variables() == 0u) {
             return;
         }
-        check(Highs.run(model));
+        check(Highs->run(model));
         _status = _get_status();
     }
-    double get_solution_value() { return Highs.getObjectiveValue(model); }
+    double get_solution_value() { return Highs->getObjectiveValue(model); }
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(Highs.getSolution(model, solution.get(), nullptr, nullptr,
-                                nullptr));
+        check(Highs->getSolution(model, solution.get(), nullptr, nullptr,
+                                 nullptr));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
@@ -153,8 +153,8 @@ public:
     auto get_dual_solution() {
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
-        check(Highs.getSolution(model, nullptr, nullptr, nullptr,
-                                solution.get()));
+        check(Highs->getSolution(model, nullptr, nullptr, nullptr,
+                                 solution.get()));
         return constraint_mapping(std::move(solution));
     }
 };

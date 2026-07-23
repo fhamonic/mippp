@@ -62,36 +62,36 @@ public:
     void set_continuous(variable v) noexcept {
         int var_id = v.id();
         char type = 'C';
-        check(XPRS.chgcoltype(prob, 1, &var_id, &type));
+        check(XPRS->chgcoltype(prob, 1, &var_id, &type));
     }
     void set_integer(variable v) noexcept {
         int var_id = v.id();
         char type = 'I';
-        check(XPRS.chgcoltype(prob, 1, &var_id, &type));
+        check(XPRS->chgcoltype(prob, 1, &var_id, &type));
     }
     void set_binary(variable v) noexcept {
         int var_id = v.id();
         char type = 'B';
-        check(XPRS.chgcoltype(prob, 1, &var_id, &type));
+        check(XPRS->chgcoltype(prob, 1, &var_id, &type));
     }
 
 private:
     class callback_handle_base : public model_base<int, double> {
     protected:
-        const xpress_api & XPRS;
+        const xpress_api * XPRS;
         XPRSprob prob;
         const double objective_offset;
 
         void check(int error) {
             if(error == 0) return;
             char errmsg[512];
-            check(XPRS.getlasterror(prob, errmsg));
+            check(XPRS->getlasterror(prob, errmsg));
             throw std::runtime_error("Xpress: error " + std::to_string(error) +
                                      ": " + errmsg);
         }
 
     public:
-        callback_handle_base(const xpress_api & api, XPRSprob prob_,
+        callback_handle_base(const xpress_api * api, XPRSprob prob_,
                              const double obj_offset)
             : model_base<int, double>()
             , XPRS(api)
@@ -100,7 +100,7 @@ private:
 
         std::size_t num_variables() {
             int num_vars;
-            check(XPRS.getintattrib(prob, XPRS_COLS, &num_vars));
+            check(XPRS->getintattrib(prob, XPRS_COLS, &num_vars));
             return static_cast<std::size_t>(num_vars);
         }
     };
@@ -111,7 +111,7 @@ public:
         int * _reject;
 
     public:
-        candidate_solution_callback_handle(const xpress_api & api,
+        candidate_solution_callback_handle(const xpress_api * api,
                                            XPRSprob prob_,
                                            const double obj_offset,
                                            int * reject)
@@ -121,14 +121,14 @@ public:
 
         double get_solution_value() {
             double val;
-            check(XPRS.getdblattrib(prob, XPRS_MIPOBJVAL, &val));
+            check(XPRS->getdblattrib(prob, XPRS_MIPOBJVAL, &val));
             return objective_offset + val;
         }
         auto get_solution() {
             const auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            check(XPRS.getsolution(prob, nullptr, solution.get(), 0,
-                                   static_cast<int>(num_vars) - 1));
+            check(XPRS->getsolution(prob, nullptr, solution.get(), 0,
+                                    static_cast<int>(num_vars) - 1));
             return variable_mapping(std::move(solution));
         }
     };
@@ -150,8 +150,8 @@ public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
         candidate_solution_callback = std::forward<F>(f);
-        check(XPRS.addcbpreintsol(prob, candidate_solution_callback_fun, this,
-                                  1));
+        check(XPRS->addcbpreintsol(prob, candidate_solution_callback_fun, this,
+                                   1));
     }
 
     //////////////////////////////// MIP start ////////////////////////////////
@@ -160,8 +160,8 @@ private:
     inline void _add_mip_start(ER && entries) {
         _reset_raw_cache();
         _register_raw_entries(entries);
-        check(XPRS.addmipsol(prob, static_cast<int>(tmp_indices.size()),
-                             tmp_scalars.data(), tmp_indices.data(), nullptr));
+        check(XPRS->addmipsol(prob, static_cast<int>(tmp_indices.size()),
+                              tmp_scalars.data(), tmp_indices.data(), nullptr));
     }
 
 public:
@@ -178,21 +178,21 @@ public:
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_optimality_tolerance(double tol) {
-        check(XPRS.setdblcontrol(prob, XPRS_MIPTOL, tol));
+        check(XPRS->setdblcontrol(prob, XPRS_MIPTOL, tol));
     }
     double get_optimality_tolerance() {
         double tol;
-        check(XPRS.getdblcontrol(prob, XPRS_MIPTOL, &tol));
+        check(XPRS->getdblcontrol(prob, XPRS_MIPTOL, &tol));
         return tol;
     }
 
     ///////////////////////////////// Limits //////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        check(XPRS.setdblcontrol(prob, XPRS_TIMELIMIT, t.count()));
+        check(XPRS->setdblcontrol(prob, XPRS_TIMELIMIT, t.count()));
     }
     auto get_time_limit() {
         double t;
-        check(XPRS.getdblcontrol(prob, XPRS_TIMELIMIT, &t));
+        check(XPRS->getdblcontrol(prob, XPRS_TIMELIMIT, &t));
         return std::chrono::duration<double>(t);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -220,9 +220,9 @@ private:
     status_variant _get_status() {
         using namespace status;
         int stop_status;
-        check(XPRS.getintattrib(prob, XPRS_STOPSTATUS, &stop_status));
+        check(XPRS->getintattrib(prob, XPRS_STOPSTATUS, &stop_status));
         int lp_status;
-        check(XPRS.getintattrib(prob, XPRS_MIPSTATUS, &lp_status)); 
+        check(XPRS->getintattrib(prob, XPRS_MIPSTATUS, &lp_status)); 
         const bool has_sol = (lp_status ==  XPRS_MIP_SOLUTION);  
         switch(stop_status) {
             case XPRS_STOP_NONE:
@@ -258,18 +258,18 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void solve() { check(XPRS.mipoptimize(prob, nullptr)); }
+    void solve() { check(XPRS->mipoptimize(prob, nullptr)); }
 
     double get_solution_value() {
         double val;
-        check(XPRS.getdblattrib(prob, XPRS_MIPOBJVAL, &val));
+        check(XPRS->getdblattrib(prob, XPRS_MIPOBJVAL, &val));
         return objective_offset + val;
     }
     auto get_solution() {
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(XPRS.getsolution(prob, nullptr, solution.get(), 0,
-                               static_cast<int>(num_vars) - 1));
+        check(XPRS->getsolution(prob, nullptr, solution.get(), 0,
+                                static_cast<int>(num_vars) - 1));
         return variable_mapping(std::move(solution));
     }
 };

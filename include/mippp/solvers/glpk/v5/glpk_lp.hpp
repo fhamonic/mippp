@@ -61,7 +61,7 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        switch(glp.simplex(model, &model_params)) {
+        switch(glp->simplex(model, &model_params)) {
             case GLP_ENOPFS:
                 _status.emplace<status::unbounded>();
                 return;
@@ -69,7 +69,7 @@ public:
                 _status.emplace<status::infeasible>();
                 return;
         }
-        const int primal_status = glp.get_status(model);
+        const int primal_status = glp->get_status(model);
         if(primal_status == GLP_UNBND || !std::isfinite(get_solution_value())) {
                 _status.emplace<status::unbounded>();
             return;
@@ -84,13 +84,13 @@ public:
         }
     }
     double get_solution_value() {
-        return objective_offset + glp.get_obj_val(model);
+        return objective_offset + glp->get_obj_val(model);
     }
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         for(std::size_t var = 0u; var < num_vars; ++var) {
-            solution[var] = glp.get_col_prim(model, static_cast<int>(var) + 1);
+            solution[var] = glp->get_col_prim(model, static_cast<int>(var) + 1);
         }
         return variable_mapping(std::move(solution));
     }
@@ -99,7 +99,7 @@ public:
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
         for(std::size_t constr = 0u; constr < num_constrs; ++constr) {
             solution[constr] =
-                glp.get_row_dual(model, static_cast<int>(constr) + 1);
+                glp->get_row_dual(model, static_cast<int>(constr) + 1);
         }
         return constraint_mapping(std::move(solution));
     }
@@ -108,7 +108,7 @@ public:
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
         for(std::size_t var = 0u; var < num_vars; ++var) {
             reduced_costs[var] =
-                glp.get_col_dual(model, static_cast<int>(var) + 1);
+                glp->get_col_dual(model, static_cast<int>(var) + 1);
         }
         return variable_mapping(std::move(reduced_costs));
     }

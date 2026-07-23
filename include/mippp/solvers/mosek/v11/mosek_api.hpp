@@ -423,10 +423,10 @@ namespace mosek::v11 {
     F(MSK_deletesolution, deletesolution)               \
     F(MSK_getreducedcosts, getreducedcosts)
 
-#define DECLARE_MOSEK_FUN(FULL, SHORT)    \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_MOSEK_FUN(FULL, SHORT) \
+#define DECLARE_MOSEK_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);    \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_MOSEK_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class mosek_api {
@@ -434,12 +434,12 @@ private:
     dylib::library lib;
 
 public:
-    MOSEK_FUNCTIONS(DECLARE_MOSEK_FUN)
+    MOSEK_FUNCTIONS(DECLARE_MOSEK_FUNCTIONS)
 
 public:
     inline mosek_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "MOSEK", {"mosek64"}))
-              MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUN) {}
+              MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUNCTIONS) {}
 
     void _check(const MSKrescodee error) const {
         if(error == 0) return;
@@ -449,6 +449,10 @@ public:
         throw solver_error(str);
     }
 };
+
+#undef CONSTRUCT_MSK_FUNCTIONS
+#undef DECLARE_MSK_FUNCTIONS
+#undef MSK_FUNCTIONS
 
 }  // namespace mosek::v11
 }  // namespace mippp

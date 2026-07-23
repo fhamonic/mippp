@@ -46,26 +46,26 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
-    const scip_api & SCIP;
+    const scip_api * SCIP;
     struct Scip * model;
     std::vector<SCIP_VAR *> variables;
     std::vector<SCIP_CONS *> constraints;
 
 public:
-    [[nodiscard]] explicit scip_milp(const scip_api & api) : SCIP(api) {
-        SCIP.create(&model);
-        SCIP.includeDefaultPlugins(model);
-        SCIP.createProbBasic(model, "MILP");
+    [[nodiscard]] explicit scip_milp(const scip_api & api) : SCIP(&api) {
+        SCIP->create(&model);
+        SCIP->includeDefaultPlugins(model);
+        SCIP->createProbBasic(model, "MILP");
     }
     ~scip_milp() {
         if(!model) return;
         for(auto & var : variables) {
-            SCIP.releaseVar(model, &var);
+            SCIP->releaseVar(model, &var);
         }
         for(auto & cons : constraints) {
-            SCIP.releaseCons(model, &cons);
+            SCIP->releaseCons(model, &cons);
         }
-        SCIP.free(&model);
+        SCIP->free(&model);
     }
 
     constexpr scip_milp(const scip_milp &) = delete;
@@ -112,38 +112,38 @@ public:
     std::size_t num_variables() { return variables.size(); }
     std::size_t num_constraints() { return constraints.size(); }
     std::size_t num_entries() {
-        return static_cast<std::size_t>(SCIP.getNNZs(model));
+        return static_cast<std::size_t>(SCIP->getNNZs(model));
     }
 
     void set_maximization() {
-        check(SCIP.setObjsense(model, SCIP_OBJSENSE_MAXIMIZE));
+        check(SCIP->setObjsense(model, SCIP_OBJSENSE_MAXIMIZE));
     }
     void set_minimization() {
-        check(SCIP.setObjsense(model, SCIP_OBJSENSE_MINIMIZE));
+        check(SCIP->setObjsense(model, SCIP_OBJSENSE_MINIMIZE));
     }
 
     void set_objective_offset(double offset) {
-        check(SCIP.addOrigObjoffset(model,
-                                    offset - SCIP.getOrigObjoffset(model)));
+        check(SCIP->addOrigObjoffset(model,
+                                     offset - SCIP->getOrigObjoffset(model)));
     }
     void set_objective(linear_expression auto && le) {
         for(auto && var : variables) {
-            check(SCIP.chgVarObj(model, var, 0.0));
+            check(SCIP->chgVarObj(model, var, 0.0));
         }
         for(auto && [var_, coef] : le.linear_terms()) {
             const auto & var = variables[var_.uid()];
-            check(SCIP.chgVarObj(model, var, SCIP.varGetObj(var) + coef));
+            check(SCIP->chgVarObj(model, var, SCIP->varGetObj(var) + coef));
         }
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
         for(auto && [var_, coef] : le.linear_terms()) {
             const auto & var = variables[var_.uid()];
-            check(SCIP.chgVarObj(model, var, SCIP.varGetObj(var) + coef));
+            check(SCIP->chgVarObj(model, var, SCIP->varGetObj(var) + coef));
         }
         set_objective_offset(get_objective_offset() + le.constant());
     }
-    double get_objective_offset() { return SCIP.getOrigObjoffset(model); }
+    double get_objective_offset() { return SCIP->getOrigObjoffset(model); }
     auto get_objective() {
         return linear_expression_view(
             std::views::transform(
@@ -152,7 +152,8 @@ public:
                 [this](auto i) {
                     return std::make_pair(
                         variable(i),
-                        SCIP.varGetObj(variables[static_cast<std::size_t>(i)]));
+                        SCIP->varGetObj(
+                            variables[static_cast<std::size_t>(i)]));
                 }),
             get_objective_offset());
     }
@@ -161,12 +162,12 @@ private:
     void _add_variable(const variable_params & params, SCIP_VARTYPE type,
                        const char * name = "") {
         SCIP_VAR * var = nullptr;
-        check(SCIP.createVarBasic(
+        check(SCIP->createVarBasic(
             model, &var, name,
-            params.lower_bound.value_or(-SCIP.infinity(model)),
-            params.upper_bound.value_or(SCIP.infinity(model)), params.obj_coef,
+            params.lower_bound.value_or(-SCIP->infinity(model)),
+            params.upper_bound.value_or(SCIP->infinity(model)), params.obj_coef,
             type));
-        check(SCIP.addVar(model, var));
+        check(SCIP->addVar(model, var));
         variables.emplace_back(var);
     }
 
@@ -312,62 +313,63 @@ public:
 
     void set_continuous(variable v) noexcept {
         unsigned int infeas;
-        check(SCIP.chgVarType(model, variables[v.uid()],
-                              SCIP_VARTYPE_CONTINUOUS, &infeas));
+        check(SCIP->chgVarType(model, variables[v.uid()],
+                               SCIP_VARTYPE_CONTINUOUS, &infeas));
     }
     void set_integer(variable v) noexcept {
         unsigned int infeas;
-        check(SCIP.chgVarType(model, variables[v.uid()], SCIP_VARTYPE_INTEGER,
-                              &infeas));
+        check(SCIP->chgVarType(model, variables[v.uid()], SCIP_VARTYPE_INTEGER,
+                               &infeas));
     }
     void set_binary(variable v) noexcept {
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);
         unsigned int infeas;
-        check(SCIP.chgVarType(model, variables[v.uid()], SCIP_VARTYPE_BINARY,
-                              &infeas));
+        check(SCIP->chgVarType(model, variables[v.uid()], SCIP_VARTYPE_BINARY,
+                               &infeas));
     }
     void set_objective_coefficient(variable v, double c) {
-        check(SCIP.chgVarObj(model, variables[v.uid()], c));
+        check(SCIP->chgVarObj(model, variables[v.uid()], c));
     }
     void set_variable_lower_bound(variable v, double lb) {
-        check(SCIP.chgVarLb(model, variables[v.uid()], lb));
+        check(SCIP->chgVarLb(model, variables[v.uid()], lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
-        check(SCIP.chgVarUb(model, variables[v.uid()], ub));
+        check(SCIP->chgVarUb(model, variables[v.uid()], ub));
     }
     void set_variable_name(variable v, std::string name) {
-        check(SCIP.chgVarName(model, variables[v.uid()], name.c_str()));
+        check(SCIP->chgVarName(model, variables[v.uid()], name.c_str()));
     }
     double get_objective_coefficient(variable v) {
-        return SCIP.varGetObj(variables[v.uid()]);
+        return SCIP->varGetObj(variables[v.uid()]);
     }
     double get_variable_lower_bound(variable v) {
-        return SCIP.varGetLbGlobal(variables[v.uid()]);
+        return SCIP->varGetLbGlobal(variables[v.uid()]);
     }
     double get_variable_upper_bound(variable v) {
-        return SCIP.varGetUbGlobal(variables[v.uid()]);
+        return SCIP->varGetUbGlobal(variables[v.uid()]);
     }
     std::string get_variable_name(variable v) {
-        return std::string(SCIP.varGetName(variables[v.uid()]));
+        return std::string(SCIP->varGetName(variables[v.uid()]));
     }
 
 private:
     SCIP_CONS * _add_constraint(linear_constraint auto && lc) {
         SCIP_CONS * constr = nullptr;
         const double b = lc.rhs();
-        check(SCIP.createConsBasicLinear(
+        check(SCIP->createConsBasicLinear(
             model, &constr, "", 0, nullptr, nullptr,
-            (lc.sense() == constraint_sense::less_equal) ? -SCIP.infinity(model)
-                                                         : b,
+            (lc.sense() == constraint_sense::less_equal)
+                ? -SCIP->infinity(model)
+                : b,
             (lc.sense() == constraint_sense::greater_equal)
-                ? SCIP.infinity(model)
+                ? SCIP->infinity(model)
                 : b));
         for(auto && [var, coef] : lc.linear_terms()) {
             check(
-                SCIP.addCoefLinear(model, constr, variables[var.uid()], coef));
+                SCIP->addCoefLinear(model, constr, variables[var.uid()], coef));
         }
-        check(SCIP.addCons(model, constr));
+        check(SCIP->addCons(model, constr));
         return constr;
     }
 
@@ -417,10 +419,10 @@ public:
     }
 
     // void set_constraint_rhs(constraint c, double rhs) {
-    //     check(SCIP.setdblattrelement(model, SCIP_DBL_ATTR_RHS, c, rhs));
+    //     check(SCIP->setdblattrelement(model, SCIP_DBL_ATTR_RHS, c, rhs));
     // }
     // void set_constraint_sense(constraint c, constraint_sense r) {
-    //     check(SCIP.setcharattrelement(model, SCIP_CHAR_ATTR_SENSE, c,
+    //     check(SCIP->setcharattrelement(model, SCIP_CHAR_ATTR_SENSE, c,
     //                                   constraint_sense_to_scip_sense(r)));
     // }
     // constraint add_ranged_constraint(linear_expression auto && le, double lb,
@@ -432,7 +434,7 @@ public:
     //         tmp_indices.emplace_back(var);
     //         tmp_scalars.emplace_back(coef);
     //     }
-    //     check(SCIP.addrangeconstr(model,
+    //     check(SCIP->addrangeconstr(model,
     //     static_cast<int>(tmp_indices.size()),
     //                               tmp_indices.data(), tmp_scalars.data(),
     //                               lb, ub, nullptr));
@@ -444,13 +446,13 @@ public:
     // double get_constraint_rhs(constraint c) {
     //     double rhs;
     //     update_scip_model();
-    //     check(SCIP.getdblattrelement(model, SCIP_DBL_ATTR_RHS, c, &rhs));
+    //     check(SCIP->getdblattrelement(model, SCIP_DBL_ATTR_RHS, c, &rhs));
     //     return rhs;
     // }
     // constraint_sense get_constraint_sense(constraint c) {
     //     char sense;
     //     update_scip_model();
-    //     check(SCIP.getcharattrelement(model, SCIP_CHAR_ATTR_SENSE, c,
+    //     check(SCIP->getcharattrelement(model, SCIP_CHAR_ATTR_SENSE, c,
     //     &sense)); return scip_sense_to_constraint_sense(sense);
     // }
     // // auto get_constraint(const constraint c) {}
@@ -458,7 +460,7 @@ public:
     //     char * name;
     //     update_scip_model();
     //     check(
-    //         SCIP.getstrattrelement(model, SCIP_STR_ATTR_CONSTRNAME, c,
+    //         SCIP->getstrattrelement(model, SCIP_STR_ATTR_CONSTRNAME, c,
     //         &name));
     //     return std::string(name);
     // }
@@ -469,12 +471,12 @@ public:
 private:
     class callback_handle_base {
     protected:
-        const scip_api & SCIP;
+        const scip_api * SCIP;
         scip_milp & milp;
         SCIP_RESULT * result;
 
     public:
-        callback_handle_base(const scip_api & api, scip_milp & milp_,
+        callback_handle_base(const scip_api * api, scip_milp & milp_,
                              SCIP_RESULT * result_)
             : SCIP(api), milp(milp_), result(result_) {}
 
@@ -484,7 +486,7 @@ private:
 public:
     class candidate_solution_callback_handle : public callback_handle_base {
     public:
-        candidate_solution_callback_handle(const scip_api & api,
+        candidate_solution_callback_handle(const scip_api * api,
                                            scip_milp & milp_,
                                            SCIP_RESULT * result_)
             : callback_handle_base(api, milp_, result_) {
@@ -498,15 +500,15 @@ public:
         }
         // double get_solution_value() {
         //     double obj;
-        //     check(SCIP.callbackgetcandidatepoint(context, nullptr, 0, 0,
+        //     check(SCIP->callbackgetcandidatepoint(context, nullptr, 0, 0,
         //     &obj)); return obj;
         // }
         auto get_solution() {
             auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            SCIP_SOL * sol = SCIP.getBestSol(milp.model);
-            SCIP.getSolVals(milp.model, sol, static_cast<int>(num_vars),
-                            milp.variables.data(), solution.get());
+            SCIP_SOL * sol = SCIP->getBestSol(milp.model);
+            SCIP->getSolVals(milp.model, sol, static_cast<int>(num_vars),
+                             milp.variables.data(), solution.get());
             return variable_mapping(std::move(solution));
         }
     };
@@ -542,7 +544,7 @@ public:
 
         std::println("this = {:p}", static_cast<void *>(this));
 
-        check(SCIP.includeConshdlrBasic(
+        check(SCIP->includeConshdlrBasic(
             model, &candidate_solution_constraint_handler,
             "candidate_solution_callback", "candidate_solution_callback", -1,
             -1, -1, false, nullptr, nullptr, nullptr, nullptr,
@@ -591,7 +593,7 @@ private:
 
     status_variant _get_status() {
         using namespace status;
-        switch(SCIP.getStatus(model)) {
+        switch(SCIP->getStatus(model)) {
             case SCIP_STATUS_OPTIMAL:       return optimal{};
             case SCIP_STATUS_INFORUNBD:     return infeasible_or_unbounded{};
             case SCIP_STATUS_INFEASIBLE:    return infeasible{};
@@ -621,16 +623,16 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(SCIP.solve(model));
+        check(SCIP->solve(model));
         _status = _get_status();
     }
-    double get_solution_value() { return SCIP.getPrimalbound(model); }
+    double get_solution_value() { return SCIP->getPrimalbound(model); }
     auto get_solution() {
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        SCIP_SOL * sol = SCIP.getBestSol(model);
-        check(SCIP.getSolVals(model, sol, static_cast<int>(num_vars),
-                              variables.data(), solution.get()));
+        SCIP_SOL * sol = SCIP->getBestSol(model);
+        check(SCIP->getSolVals(model, sol, static_cast<int>(num_vars),
+                               variables.data(), solution.get()));
         return variable_mapping(std::move(solution));
     }
 };

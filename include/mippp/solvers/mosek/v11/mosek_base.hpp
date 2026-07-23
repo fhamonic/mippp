@@ -38,7 +38,7 @@ public:
     };
 
 protected:
-    const mosek_api & MSK;
+    const mosek_api * MSK;
     MSKenv_t env;
     MSKtask_t task;
 
@@ -47,7 +47,7 @@ protected:
     std::vector<scalar> tmp_rhs;
     std::vector<MSKvariabletypee> tmp_vartype;
 
-    void check(const MSKrescodee error) const { MSK._check(error); }
+    void check(const MSKrescodee error) const { MSK->_check(error); }
     static constexpr MSKboundkeye constraint_sense_to_mosek_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return MSK_BK_UP;
@@ -63,15 +63,15 @@ protected:
 
 public:
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
-        : model_base<int, double>(), MSK(api), env(nullptr), task(nullptr) {
+        : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr) {
         const auto env_path_str =
             (std::filesystem::temp_directory_path() / "mosek_").string();
-        check(MSK.makeenv(&env, env_path_str.c_str()));
-        check(MSK.makeemptytask(env, &task));
+        check(MSK->makeenv(&env, env_path_str.c_str()));
+        check(MSK->makeemptytask(env, &task));
     }
     ~mosek_base() {
-        if(task) check(MSK.deletetask(&task));
-        if(env) check(MSK.deleteenv(&env));
+        if(task) check(MSK->deletetask(&task));
+        if(env) check(MSK->deleteenv(&env));
     }
 
     constexpr mosek_base(const mosek_base &) = delete;
@@ -93,29 +93,29 @@ public:
 
     std::size_t num_variables() {
         MSKint32t num;
-        check(MSK.getnumvar(task, &num));
+        check(MSK->getnumvar(task, &num));
         return static_cast<std::size_t>(num);
     }
     std::size_t num_constraints() {
         MSKint32t num;
-        check(MSK.getnumcon(task, &num));
+        check(MSK->getnumcon(task, &num));
         return static_cast<std::size_t>(num);
     }
     std::size_t num_entries() {
         MSKint32t num;
-        check(MSK.getnumanz(task, &num));
+        check(MSK->getnumanz(task, &num));
         return static_cast<std::size_t>(num);
     }
 
     void set_maximization() {
-        check(MSK.putobjsense(task, MSK_OBJECTIVE_SENSE_MAXIMIZE));
+        check(MSK->putobjsense(task, MSK_OBJECTIVE_SENSE_MAXIMIZE));
     }
     void set_minimization() {
-        check(MSK.putobjsense(task, MSK_OBJECTIVE_SENSE_MINIMIZE));
+        check(MSK->putobjsense(task, MSK_OBJECTIVE_SENSE_MINIMIZE));
     }
 
     void set_objective_offset(scalar constant) {
-        check(MSK.putcfix(task, constant));
+        check(MSK->putcfix(task, constant));
     }
     void set_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
@@ -124,31 +124,31 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(MSK.putcslice(task, 0, static_cast<indice>(num_vars),
-                            tmp_scalars.data()));
+        check(MSK->putcslice(task, 0, static_cast<indice>(num_vars),
+                             tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
-        check(MSK.getc(task, tmp_scalars.data()));
+        check(MSK->getc(task, tmp_scalars.data()));
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(MSK.putcslice(task, 0, static_cast<indice>(num_vars),
-                            tmp_scalars.data()));
+        check(MSK->putcslice(task, 0, static_cast<indice>(num_vars),
+                             tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
 
     scalar get_objective_offset() {
         scalar objective_offset;
-        check(MSK.getcfix(task, &objective_offset));
+        check(MSK->getcfix(task, &objective_offset));
         return objective_offset;
     }
     auto get_objective() {
         const auto num_vars = num_variables();
         auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
-        check(MSK.getc(task, coefs.get()));
+        check(MSK->getc(task, coefs.get()));
         return linear_expression_view(
             std::views::transform(
                 std::views::iota(variable_id{0},
@@ -162,7 +162,7 @@ public:
 protected:
     void _add_variable(const int & var_id, const variable_params & params,
                        const MSKvariabletypee type) {
-        check(MSK.appendvars(task, 1));
+        check(MSK->appendvars(task, 1));
         MSKboundkeye boundkey = MSK_BK_FR;
         scalar lb = params.lower_bound.value_or(-MSK_INFINITY);
         scalar ub = params.upper_bound.value_or(+MSK_INFINITY);
@@ -173,23 +173,23 @@ protected:
         } else if(params.upper_bound.has_value()) {
             boundkey = MSK_BK_UP;
         }
-        check(MSK.putvarbound(task, var_id, boundkey, lb, ub));
-        check(MSK.putcj(task, var_id, params.obj_coef));
+        check(MSK->putvarbound(task, var_id, boundkey, lb, ub));
+        check(MSK->putcj(task, var_id, params.obj_coef));
 
         if(type != MSK_VAR_TYPE_CONT) {
-            check(MSK.putvartype(task, var_id, type));
+            check(MSK->putvartype(task, var_id, type));
         }
     }
     void _add_variables(std::size_t offset, std::size_t count,
                         const variable_params & params,
                         const MSKvariabletypee type) {
-        check(MSK.appendvars(task, static_cast<int>(count)));
+        check(MSK->appendvars(task, static_cast<int>(count)));
         if(auto obj = params.obj_coef; obj != 0.0) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
-            check(MSK.putcslice(task, static_cast<variable_id>(offset),
-                                static_cast<variable_id>(offset + count),
-                                tmp_scalars.data()));
+            check(MSK->putcslice(task, static_cast<variable_id>(offset),
+                                 static_cast<variable_id>(offset + count),
+                                 tmp_scalars.data()));
         }
         MSKboundkeye boundkey = MSK_BK_FR;
         scalar lb = params.lower_bound.value_or(-MSK_INFINITY);
@@ -201,7 +201,7 @@ protected:
         } else if(params.upper_bound.has_value()) {
             boundkey = MSK_BK_UP;
         }
-        check(MSK.putvarboundsliceconst(
+        check(MSK->putvarboundsliceconst(
             task, static_cast<variable_id>(offset),
             static_cast<variable_id>(offset + count), boundkey, lb, ub));
 
@@ -211,8 +211,8 @@ protected:
                       static_cast<variable_id>(offset));
             tmp_vartype.resize(count);
             std::fill(tmp_vartype.begin(), tmp_vartype.end(), type);
-            check(MSK.putvartypelist(task, static_cast<indice>(count),
-                                     tmp_indices.data(), tmp_vartype.data()));
+            check(MSK->putvartypelist(task, static_cast<indice>(count),
+                                      tmp_indices.data(), tmp_vartype.data()));
         }
     }
 
@@ -237,7 +237,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_indexed_variables_view(offset, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -254,7 +254,7 @@ public:
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_named_variables_view(offset, count,
-                                           std::forward<NL>(name_lambda), this);
+                                          std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -274,8 +274,8 @@ private:
         _add_variable(var_id, params, MSK_VAR_TYPE_CONT);
         _reset_raw_cache();
         _register_raw_entries(entries);
-        check(MSK.putacol(task, var_id, static_cast<int>(tmp_indices.size()),
-                          tmp_indices.data(), tmp_scalars.data()));
+        check(MSK->putacol(task, var_id, static_cast<int>(tmp_indices.size()),
+                           tmp_indices.data(), tmp_scalars.data()));
         return variable(var_id);
     }
 
@@ -292,56 +292,56 @@ public:
     }
 
     void set_objective_coefficient(variable v, scalar c) {
-        check(MSK.putcj(task, v.id(), c));
+        check(MSK->putcj(task, v.id(), c));
     }
     void set_variable_lower_bound(variable v, scalar lb) {
-        check(MSK.chgvarbound(task, v.id(), 1, 1, lb));
+        check(MSK->chgvarbound(task, v.id(), 1, 1, lb));
     }
     void set_variable_upper_bound(variable v, scalar ub) {
-        check(MSK.chgvarbound(task, v.id(), 0, 1, ub));
+        check(MSK->chgvarbound(task, v.id(), 0, 1, ub));
     }
     void set_variable_name(variable v, const std::string & name) {
-        check(MSK.putvarname(task, v.id(), name.c_str()));
+        check(MSK->putvarname(task, v.id(), name.c_str()));
     }
 
     scalar get_objective_coefficient(variable v) {
         scalar coef;
-        check(MSK.getcj(task, v.id(), &coef));
+        check(MSK->getcj(task, v.id(), &coef));
         return coef;
     }
     scalar get_variable_lower_bound(variable v) {
         MSKboundkeye boundkey;
         scalar lb, ub;
-        check(MSK.getvarbound(task, v.id(), &boundkey, &lb, &ub));
+        check(MSK->getvarbound(task, v.id(), &boundkey, &lb, &ub));
         return lb;
     }
     scalar get_variable_upper_bound(variable v) {
         MSKboundkeye boundkey;
         scalar lb, ub;
-        check(MSK.getvarbound(task, v.id(), &boundkey, &lb, &ub));
+        check(MSK->getvarbound(task, v.id(), &boundkey, &lb, &ub));
         return ub;
     }
     std::string get_variable_name(variable v) {
         MSKint32t len;
-        check(MSK.getvarnamelen(task, v.id(), &len));
+        check(MSK->getvarnamelen(task, v.id(), &len));
         std::string name(static_cast<std::size_t>(len + 1), '\0');
-        check(MSK.getvarname(task, v.id(), len + 1, name.data()));
+        check(MSK->getvarname(task, v.id(), len + 1, name.data()));
         name.pop_back();
         return name;
     }
 
     constraint add_constraint(linear_constraint auto && lc) {
         auto constr_id = static_cast<constraint_id>(num_constraints());
-        check(MSK.appendcons(task, 1));
+        check(MSK->appendcons(task, 1));
         _reset_cache(num_variables());
         _register_entries(lc.linear_terms());
-        check(MSK.putarow(task, constr_id,
-                          static_cast<indice>(tmp_indices.size()),
-                          tmp_indices.data(), tmp_scalars.data()));
+        check(MSK->putarow(task, constr_id,
+                           static_cast<indice>(tmp_indices.size()),
+                           tmp_indices.data(), tmp_scalars.data()));
         const scalar b = lc.rhs();
-        check(MSK.putconbound(task, constr_id,
-                              constraint_sense_to_mosek_sense(lc.sense()), b,
-                              b));
+        check(MSK->putconbound(task, constr_id,
+                               constraint_sense_to_mosek_sense(lc.sense()), b,
+                               b));
         return constraint(constr_id);
     }
 
@@ -387,14 +387,14 @@ public:
             _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
-        check(MSK.appendcons(task, constr_id - offset));
+        check(MSK->appendcons(task, constr_id - offset));
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
-        check(MSK.putarowslice(task, offset, constr_id, tmp_begins.data(),
-                               tmp_begins.data() + 1, tmp_indices.data(),
-                               tmp_scalars.data()));
-        check(MSK.putconboundslice(task, offset, constr_id,
-                                   tmp_boundkeye.data(), tmp_rhs.data(),
-                                   tmp_rhs.data()));
+        check(MSK->putarowslice(task, offset, constr_id, tmp_begins.data(),
+                                tmp_begins.data() + 1, tmp_indices.data(),
+                                tmp_scalars.data()));
+        check(MSK->putconboundslice(task, offset, constr_id,
+                                    tmp_boundkeye.data(), tmp_rhs.data(),
+                                    tmp_rhs.data()));
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),

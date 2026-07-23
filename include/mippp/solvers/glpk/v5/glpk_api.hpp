@@ -242,10 +242,10 @@ namespace glpk::v5 {
     F(glp_mip_obj_val, mip_obj_val)     \
     F(glp_mip_col_val, mip_col_val)
 
-#define DECLARE_GLPK_FUN(FULL, SHORT)     \
-    using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_GLPK_FUN(FULL, SHORT) \
+#define DECLARE_GLPK_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);   \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_GLPK_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class glpk_api {
@@ -253,13 +253,17 @@ private:
     dylib::library lib;
 
 public:
-    GLPK_FUNCTIONS(DECLARE_GLPK_FUN)
+    GLPK_FUNCTIONS(DECLARE_GLPK_FUNCTIONS)
 
 public:
     inline glpk_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "GLPK", {"glpk"}))
-              GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUN) {}
+              GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUNCTIONS) {}
 };
+
+#undef CONSTRUCT_GLPK_FUNCTIONS
+#undef DECLARE_GLPK_FUNCTIONS
+#undef GLPK_FUNCTIONS
 
 }  // namespace glpk::v5
 }  // namespace mippp

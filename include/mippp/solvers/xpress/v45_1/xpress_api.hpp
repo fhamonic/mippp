@@ -199,10 +199,10 @@ namespace xpress::v45_1 {
     F(XPRSaddcuts, addcuts)                     \
     F(XPRSloaddelayedrows, loaddelayedrows)
 
-#define DECLARE_XPRESS_FUN(FULL, SHORT)   \
+#define DECLARE_XPRESS_FUNCTIONS(FULL, SHORT)   \
     using SHORT##_fun_t = decltype(FULL); \
-    SHORT##_fun_t * SHORT;
-#define CONSTRUCT_XPRESS_FUN(FULL, SHORT) \
+    SHORT##_fun_t const * SHORT;
+#define CONSTRUCT_XPRESS_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
 class xpress_api {
@@ -210,12 +210,12 @@ private:
     dylib::library lib;
 
 public:
-    XPRESS_FUNCTIONS(DECLARE_XPRESS_FUN)
+    XPRESS_FUNCTIONS(DECLARE_XPRESS_FUNCTIONS)
 
 public:
     inline xpress_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "XPRESS", {"xprs"}))
-              XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUN) {
+              XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUNCTIONS) {
         if(init("")) {
             char msg[512];
             getlicerrmsg(msg, 512);
@@ -232,6 +232,10 @@ public:
         throw solver_error(errmsg);
     }
 };
+
+#undef CONSTRUCT_XPRESS_FUNCTIONS
+#undef DECLARE_XPRESS_FUNCTIONS
+#undef XPRESS_FUNCTIONS
 
 }  // namespace xpress::v45_1
 }  // namespace mippp
