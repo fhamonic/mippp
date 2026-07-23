@@ -14,6 +14,7 @@ struct CandidateSolutionCallbackTest : public T {
     static_assert(has_candidate_solution_callback<model_type>);
 };
 TYPED_TEST_SUITE_P(CandidateSolutionCallbackTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CandidateSolutionCallbackTest);
 
 TYPED_TEST_P(CandidateSolutionCallbackTest, lp_behavior) {
     this->SkipOnLicenseError([this]() {

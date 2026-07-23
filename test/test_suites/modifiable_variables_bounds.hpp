@@ -13,6 +13,7 @@ struct ModifiableVariablesBoundsTest : public T {
     static_assert(has_modifiable_variables_bounds<model_type>);
 };
 TYPED_TEST_SUITE_P(ModifiableVariablesBoundsTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ModifiableVariablesBoundsTest);
 
 TYPED_TEST_P(ModifiableVariablesBoundsTest, set_variable_lower_bound) {
     this->SkipOnLicenseError([this]() {

@@ -15,6 +15,7 @@ struct QpModelTest : public T {
     static_assert(qp_model<model_type>);
 };
 TYPED_TEST_SUITE_P(QpModelTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(QpModelTest);
 
 TYPED_TEST_P(QpModelTest, test) {
     this->SkipOnLicenseError([this]() {

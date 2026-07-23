@@ -14,6 +14,7 @@ struct LpModelTest : public T {
     static_assert(lp_model<model_type>);
 };
 TYPED_TEST_SUITE_P(LpModelTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LpModelTest);
 
 TYPED_TEST_P(LpModelTest, construct) {
     this->SkipOnLicenseError([this]() {

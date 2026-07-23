@@ -19,6 +19,7 @@ struct SudokuTest : public T {
     static_assert(milp_model<model_type>);
 };
 TYPED_TEST_SUITE_P(SudokuTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SudokuTest);
 
 TYPED_TEST_P(SudokuTest, test) {
     this->SkipOnLicenseError([this]() {

@@ -14,6 +14,7 @@ struct MilpModelTest : public T {
     static_assert(milp_model<model_type>);
 };
 TYPED_TEST_SUITE_P(MilpModelTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MilpModelTest);
 
 TYPED_TEST_P(MilpModelTest, add_integer_variable) {
     this->SkipOnLicenseError([this]() {

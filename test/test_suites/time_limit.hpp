@@ -22,6 +22,7 @@ struct TimeLimitTest : public T {
     static_assert(has_time_limit<model_type>);
 };
 TYPED_TEST_SUITE_P(TimeLimitTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TimeLimitTest);
 
 // The getter/setter contract is fully deterministic, so we test it on its own,
 // free of any wall-clock measurement.

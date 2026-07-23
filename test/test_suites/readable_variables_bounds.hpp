@@ -13,6 +13,7 @@ struct ReadableVariablesBoundsTest : public T {
     static_assert(has_readable_variables_bounds<model_type>);
 };
 TYPED_TEST_SUITE_P(ReadableVariablesBoundsTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ReadableVariablesBoundsTest);
 
 TYPED_TEST_P(ReadableVariablesBoundsTest, get_variable_lower_bound) {
     this->SkipOnLicenseError([this]() {

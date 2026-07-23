@@ -14,6 +14,7 @@ struct AddColumnTest : public T {
     static_assert(has_add_column<model_type>);
 };
 TYPED_TEST_SUITE_P(AddColumnTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(AddColumnTest);
 
 TYPED_TEST_P(AddColumnTest, add_column_entries) {
     this->SkipOnLicenseError([this]() {

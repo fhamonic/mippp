@@ -23,6 +23,7 @@ struct CuttingStockTest : public T {
     static_assert(has_add_column<model_type>);
 };
 TYPED_TEST_SUITE_P(CuttingStockTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CuttingStockTest);
 
 TYPED_TEST_P(CuttingStockTest, test) {
     this->SkipOnLicenseError([this]() {

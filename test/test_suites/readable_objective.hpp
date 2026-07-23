@@ -16,6 +16,7 @@ struct ReadableObjectiveTest : public T {
     static_assert(has_readable_objective<model_type>);
 };
 TYPED_TEST_SUITE_P(ReadableObjectiveTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ReadableObjectiveTest);
 
 TYPED_TEST_P(ReadableObjectiveTest, get_objective_offset) {
     this->SkipOnLicenseError([this]() {

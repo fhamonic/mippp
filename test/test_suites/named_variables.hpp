@@ -16,6 +16,7 @@ struct NamedVariablesTest : public T {
     static_assert(has_named_variables<model_type>);
 };
 TYPED_TEST_SUITE_P(NamedVariablesTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(NamedVariablesTest);
 
 TYPED_TEST_P(NamedVariablesTest, set_variable_name) {
     this->SkipOnLicenseError([this]() {

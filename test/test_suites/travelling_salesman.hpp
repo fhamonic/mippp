@@ -29,6 +29,7 @@ struct TravellingSalesmanTest : public T {
     static_assert(has_candidate_solution_callback<model_type>);
 };
 TYPED_TEST_SUITE_P(TravellingSalesmanTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TravellingSalesmanTest);
 
 TYPED_TEST_P(TravellingSalesmanTest, test) {
     this->SkipOnLicenseError([this]() {

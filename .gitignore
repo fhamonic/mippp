@@ -11,5 +11,4 @@ CMakeUserPresets.json
 *.blend1
 /site
 
-Makefile
 MakeW64.bat

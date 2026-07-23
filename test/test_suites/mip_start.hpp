@@ -23,6 +23,7 @@ struct MipStartTest : public T {
     static_assert(has_time_limit<model_type>);
 };
 TYPED_TEST_SUITE_P(MipStartTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MipStartTest);
 
 TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
     this->SkipOnLicenseError([this]() {

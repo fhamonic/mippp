@@ -16,6 +16,7 @@ struct ModifiableObjectiveTest : public T {
     static_assert(has_modifiable_objective<model_type>);
 };
 TYPED_TEST_SUITE_P(ModifiableObjectiveTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ModifiableObjectiveTest);
 
 TYPED_TEST_P(ModifiableObjectiveTest, set_objective_coefficient) {
     this->SkipOnLicenseError([this]() {

@@ -14,6 +14,7 @@ struct ReducedCostsTest : public T {
     static_assert(has_reduced_costs<model_type>);
 };
 TYPED_TEST_SUITE_P(ReducedCostsTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ReducedCostsTest);
 
 TYPED_TEST_P(ReducedCostsTest, standard_form_max) {
     this->SkipOnLicenseError([this]() {

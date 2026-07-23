@@ -16,6 +16,7 @@ struct RemoveVariableTest : public T {
     static_assert(has_remove_variable<model_type>);
 };
 TYPED_TEST_SUITE_P(RemoveVariableTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(RemoveVariableTest);
 
 TYPED_TEST_P(RemoveVariableTest, remove_solve) {
     this->SkipOnLicenseError([this]() {

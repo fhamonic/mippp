@@ -25,6 +25,7 @@ struct ColumnManagerTest : public T {
     static_assert(has_remove_variable<model_type>);
 };
 TYPED_TEST_SUITE_P(ColumnManagerTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ColumnManagerTest);
 
 TYPED_TEST_P(ColumnManagerTest, test) {
     this->SkipOnLicenseError([this]() {

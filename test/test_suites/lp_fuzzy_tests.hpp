@@ -982,6 +982,7 @@ struct LpFuzzyTest : public T {
     static_assert(lp_model<model_type>);
 };
 TYPED_TEST_SUITE_P(LpFuzzyTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LpFuzzyTest);
 
 TYPED_TEST_P(LpFuzzyTest, random_operations) {
     this->SkipOnLicenseError([this]() {

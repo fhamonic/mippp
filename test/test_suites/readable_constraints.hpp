@@ -16,6 +16,7 @@ struct ReadableConstraintsTest : public T {
     static_assert(has_readable_constraints<model_type>);
 };
 TYPED_TEST_SUITE_P(ReadableConstraintsTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ReadableConstraintsTest);
 
 TYPED_TEST_P(ReadableConstraintsTest, get_constraint_lhs) {
     this->SkipOnLicenseError([this]() {

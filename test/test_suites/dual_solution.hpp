@@ -14,6 +14,7 @@ struct DualSolutionTest : public T {
     static_assert(has_dual_solution<model_type>);
 };
 TYPED_TEST_SUITE_P(DualSolutionTest);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DualSolutionTest);
 
 TYPED_TEST_P(DualSolutionTest, standard_form_max) {
     this->SkipOnLicenseError([this]() {
