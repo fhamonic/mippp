@@ -17,9 +17,10 @@ MIP++ is a header-only C++23 library for linear, mixed-integer, and quadratic pr
 ## Highlights
 
 - **One model, every solver.** Benchmarking Gurobi vs. CPLEX vs. HiGHS vs. SCIP is a two-line change and a recompile — no `#ifdef` soup, no linking against a solver SDK. ([Why MIP++](https://fhamonic.github.io/mippp/getting-started/))
-- **No modeling tax.** A million-variable model built in **73 ms** — **2.2–5.2× faster than the OR-Tools C++ API**, 6–15× faster than JuMP, and orders of magnitude ahead of the Python layers. Build time is noise for a one-shot solve that runs for hours; it bites on very large models and in loops that touch the model constantly — MIP++ is built for those regimes. [See the benchmark ↓](#performance)
+- **No modeling tax.** A million-variable model built in **73 ms** — **2.2–5.2× faster than the OR-Tools C++ API**, 6–15× faster than JuMP, and orders of magnitude ahead of the Python layers. Build time is often noise for a one-shot solve that runs for hours, but it bites on very large models and algorithms that modify them constantly: MIP++ is built for those. [See the benchmark ↓](#performance)
 - **Built for algorithms, not just models.** [Branch-and-cut callbacks](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) with lazy constraints, [column generation](https://fhamonic.github.io/mippp/algorithms/column-generation/), dual values, reduced costs, MIP starts, indicator constraints, and [in-place model updates](https://fhamonic.github.io/mippp/solving/updates/) — a MIP++ model *is* the solver's own model, so re-solves and modifications never re-extract anything.
 - **A functional, zero-copy expression system.** Objectives and constraint families are composed from C++ ranges with `xsum`; expressions are lazy views that allocate nothing. ([Expressions and constraints](https://fhamonic.github.io/mippp/modeling/expressions/))
+- **Solve statuses that survive the backend swap.** Outcomes are typed tags in a per-backend `std::variant`, so `is_a<status::limit_reached>` asks one question across every solver — and `set_node_limit()` only exists on a backend whose status can actually report it. ([Status and limits](https://fhamonic.github.io/mippp/solving/status-and-limits/))
 
 ## A first model
 

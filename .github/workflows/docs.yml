@@ -9,7 +9,19 @@ permissions:
   pages: write
   id-token: write
 jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - name: 🗑 Delete deployment
+        uses: strumwolf/delete-deployment-environment@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: github-pages
+          onlyRemoveDeployments: true
   deploy:
+    needs: cleanup
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

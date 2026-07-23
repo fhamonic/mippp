@@ -55,7 +55,8 @@ template <typename S>
 }
 
 template <typename S>
-[[nodiscard]] constexpr bool is_a(const auto & s) noexcept {
+[[nodiscard]] constexpr bool is_a(
+    const variant_containing_a<S> auto & s) noexcept {
     return std::visit(
         []<typename A>(const A &) { return std::derived_from<A, S>; }, s);
 }
