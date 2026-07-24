@@ -71,6 +71,93 @@ public:
     constexpr highs_base & operator=(const highs_base &) = delete;
     constexpr highs_base & operator=(highs_base && other) = delete;
 
+public:
+    std::size_t num_variables() {
+        return _num_var_native_ids() - _var_handles_to_delete.size();
+    }
+    std::size_t num_constraints() {
+        return static_cast<std::size_t>(Highs->getNumRow(model));
+    }
+    std::size_t num_entries() {
+        return static_cast<std::size_t>(Highs->getNumNz(model));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_maximization() {
+        check(Highs->changeObjectiveSense(model, kHighsObjSenseMaximize));
+    }
+    void set_minimization() {
+        check(Highs->changeObjectiveSense(model, kHighsObjSenseMinimize));
+    }
+
+    void set_objective_offset(scalar offset) {
+        check(Highs->changeObjectiveOffset(model, offset));
+    }
+    template <linear_expression LE>
+    void set_objective(LE && le) {
+        const auto num_vars = _num_var_native_ids();
+        tmp_scalars.resize(num_vars);
+        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
+        for(auto && [var, coef] : le.linear_terms()) {
+            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
+        }
+        check(Highs->changeColsCostByRange(
+            model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
+        set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
+    }
+    void add_objective(linear_expression auto && le) {
+        _reset_cache(_num_var_native_ids());
+        _register_entries(le.linear_terms());
+        const std::size_t num_entries = tmp_indices.size();
+        std::ranges::sort(std::views::zip(tmp_indices, tmp_scalars),
+                          [](const auto & e1, const auto & e2) {
+                              return std::get<0>(e1) < std::get<0>(e2);
+                          });
+        tmp_scalars.resize(2 * num_entries);
+        int dummy_int;
+        check(Highs->getColsBySet(
+            model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
+            &dummy_int, tmp_scalars.data() + num_entries, nullptr, nullptr,
+            &dummy_int, nullptr, nullptr, nullptr));
+
+        for(std::size_t i = 0; i < num_entries; ++i) {
+            tmp_scalars[i] += tmp_scalars[num_entries + i];
+        }
+        check(Highs->changeColsCostBySet(
+            model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
+            tmp_scalars.data()));
+        set_objective_offset(get_objective_offset() + le.constant());
+    }
+    scalar get_objective_offset() {
+        scalar offset;
+        check(Highs->getObjectiveOffset(model, &offset));
+        return offset;
+    }
+    auto get_objective() {
+        const auto num_vars = _num_var_native_ids();
+        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
+        int dummy_int;
+        check(Highs->getColsByRange(model, 0,
+                                    static_cast<HighsInt>(num_vars) - 1,
+                                    &dummy_int, coefs.get(), nullptr, nullptr,
+                                    &dummy_int, nullptr, nullptr, nullptr));
+        return linear_expression_view(
+            std::views::transform(
+                std::views::iota(variable_id{0},
+                                 static_cast<variable_id>(num_vars)),
+                [this, coefs = std::move(coefs)](auto i) {
+                    return std::make_pair(_var_handle(i), coefs[i]);
+                }),
+            get_objective_offset());
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 protected:
     std::size_t _num_var_native_ids() {
         return static_cast<std::size_t>(Highs->getNumCol(model));
@@ -131,85 +218,6 @@ protected:
 #endif
         }
         _var_handles_to_delete.clear();
-    }
-
-public:
-    std::size_t num_variables() {
-        return _num_var_native_ids() - _var_handles_to_delete.size();
-    }
-    std::size_t num_constraints() {
-        return static_cast<std::size_t>(Highs->getNumRow(model));
-    }
-    std::size_t num_entries() {
-        return static_cast<std::size_t>(Highs->getNumNz(model));
-    }
-
-    void set_maximization() {
-        check(Highs->changeObjectiveSense(model, kHighsObjSenseMaximize));
-    }
-    void set_minimization() {
-        check(Highs->changeObjectiveSense(model, kHighsObjSenseMinimize));
-    }
-
-    void set_objective_offset(scalar offset) {
-        check(Highs->changeObjectiveOffset(model, offset));
-    }
-    template <linear_expression LE>
-    void set_objective(LE && le) {
-        const auto num_vars = _num_var_native_ids();
-        tmp_scalars.resize(num_vars);
-        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
-        }
-        check(Highs->changeColsCostByRange(
-            model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
-        set_objective_offset(le.constant());
-    }
-    void add_objective(linear_expression auto && le) {
-        _reset_cache(_num_var_native_ids());
-        _register_entries(le.linear_terms());
-        const std::size_t num_entries = tmp_indices.size();
-        std::ranges::sort(std::views::zip(tmp_indices, tmp_scalars),
-                          [](const auto & e1, const auto & e2) {
-                              return std::get<0>(e1) < std::get<0>(e2);
-                          });
-        tmp_scalars.resize(2 * num_entries);
-        int dummy_int;
-        check(Highs->getColsBySet(
-            model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
-            &dummy_int, tmp_scalars.data() + num_entries, nullptr, nullptr,
-            &dummy_int, nullptr, nullptr, nullptr));
-
-        for(std::size_t i = 0; i < num_entries; ++i) {
-            tmp_scalars[i] += tmp_scalars[num_entries + i];
-        }
-        check(Highs->changeColsCostBySet(
-            model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
-            tmp_scalars.data()));
-        set_objective_offset(get_objective_offset() + le.constant());
-    }
-    scalar get_objective_offset() {
-        scalar offset;
-        check(Highs->getObjectiveOffset(model, &offset));
-        return offset;
-    }
-    auto get_objective() {
-        const auto num_vars = _num_var_native_ids();
-        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
-        int dummy_int;
-        check(Highs->getColsByRange(model, 0,
-                                    static_cast<HighsInt>(num_vars) - 1,
-                                    &dummy_int, coefs.get(), nullptr, nullptr,
-                                    &dummy_int, nullptr, nullptr, nullptr));
-        return linear_expression_view(
-            std::views::transform(
-                std::views::iota(variable_id{0},
-                                 static_cast<variable_id>(num_vars)),
-                [this, coefs = std::move(coefs)](auto i) {
-                    return std::make_pair(_var_handle(i), coefs[i]);
-                }),
-            get_objective_offset());
     }
 
 protected:
@@ -401,11 +409,20 @@ public:
         name.shrink_to_fit();
         return name;
     }
-
-    constraint add_constraint(linear_constraint auto && lc) {
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    template <bool distinct, linear_constraint LC>
+    constraint _add_constraint(LC && lc) {
         const HighsInt constr_id = static_cast<HighsInt>(num_constraints());
-        _reset_cache(_num_var_native_ids());
-        _register_entries(lc.linear_terms());
+        if constexpr(distinct) {
+            _reset_raw_cache();
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _reset_cache(_num_var_native_ids());
+            _register_entries(lc.linear_terms());
+        }
         const scalar b = lc.rhs();
         check(Highs->addRow(model,
                             (lc.sense() == constraint_sense::less_equal)
@@ -419,8 +436,18 @@ public:
         return constraint(constr_id);
     }
 
-private:
+public:
     template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
+        return _add_constraint<false>(std::forward<LC>(lc));
+    }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        return _add_constraint<true>(std::forward<LC>(lc));
+    }
+
+private:
+    template <bool distinct, linear_constraint LC>
     void _register_constraint(LC && lc) {
         tmp_begins.emplace_back(static_cast<HighsInt>(tmp_indices.size()));
         const scalar b = lc.rhs();
@@ -432,40 +459,48 @@ private:
             (lc.sense() == constraint_sense::greater_equal)
                 ? Highs->getInfinity(model)
                 : b);
-        _register_entries(lc.linear_terms());
+        if constexpr(distinct) {
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _register_entries(lc.linear_terms());
+        }
     }
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
     void _register_first_valued_constraint(const Key & key,
-                                           const LastConstrLambda & lc_lambda) {
-        _register_constraint(lc_lambda(key));
+                                           LastConstrLambda & lc_lambda) {
+        _register_constraint<distinct>(lc_lambda(key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
-    void _register_first_valued_constraint(
-        const Key & key, const OptConstrLambda & opt_lc_lambda,
-        const Tail &... tail) {
+    void _register_first_valued_constraint(const Key & key,
+                                           OptConstrLambda & opt_lc_lambda,
+                                           Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _register_constraint(opt_lc.value());
+            _register_constraint<distinct>(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(key, tail...);
+        _register_first_valued_constraint<distinct>(key, tail...);
     }
-
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        _reset_cache(_num_var_native_ids());
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
+        if constexpr(distinct) {
+            _reset_raw_cache();
+        } else {
+            _reset_cache(_num_var_native_ids());
+        }
         tmp_begins.resize(0);
         tmp_lower_bounds.resize(0);
         tmp_upper_bounds.resize(0);
         const HighsInt offset = static_cast<HighsInt>(num_constraints());
         HighsInt constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(key, constraint_lambdas...);
+            _register_first_valued_constraint<distinct>(key,
+                                                        constraint_lambdas...);
             ++constr_id;
         }
         check(Highs->addRows(model, static_cast<HighsInt>(tmp_begins.size()),
@@ -477,6 +512,19 @@ public:
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
+    }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
     }
 
 private:

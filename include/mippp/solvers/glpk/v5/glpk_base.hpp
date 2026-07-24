@@ -107,7 +107,9 @@ public:
     std::size_t num_entries() {
         return static_cast<std::size_t>(glp->get_num_nz(model));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_maximization() { glp->set_obj_dir(model, GLP_MAX); }
     void set_minimization() { glp->set_obj_dir(model, GLP_MIN); }
 
@@ -122,6 +124,10 @@ public:
                               glp->get_obj_coef(model, var.id() + 1) + coef);
         }
         set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
     }
     void add_objective(linear_expression auto && le) {
         for(auto && [var, coef] : le.linear_terms()) {
@@ -142,7 +148,9 @@ public:
                 }),
             get_objective_offset());
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 protected:
     inline void _add_variable(const int & var_id,
                               const variable_params & params, int type) {
@@ -303,14 +311,20 @@ public:
     std::string get_variable_name(variable v) {
         return std::string(glp->get_col_name(model, v.id() + 1));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
-    template <linear_constraint LC>
-    void _add_constraint(const int & constr_id, const LC & lc) {
+    template <bool distinct, linear_constraint LC>
+    void _add_constraint(const int & constr_id, LC && lc) {
         glp->add_rows(model, 1);
         tmp_indices.resize(1);
         tmp_scalars.resize(1);
-        _register_entries(lc.linear_terms());
+        if constexpr(distinct) {
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _register_entries(lc.linear_terms());
+        }
         glp->set_mat_row(model, constr_id + 1,
                          static_cast<int>(tmp_indices.size()) - 1,
                          tmp_indices.data(), tmp_scalars.data());
@@ -320,49 +334,73 @@ private:
     }
 
 public:
-    constraint add_constraint(linear_constraint auto && lc) {
+    template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
         tmp_entry_index_cache.resize(num_variables());
         int constr_id = static_cast<int>(num_constraints());
-        _add_constraint(constr_id, lc);
+        _add_constraint<false>(constr_id, std::forward<LC>(lc));
+        return constraint(constr_id);
+    }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        tmp_entry_index_cache.resize(num_variables());
+        int constr_id = static_cast<int>(num_constraints());
+        _add_constraint<true>(constr_id, std::forward<LC>(lc));
         return constraint(constr_id);
     }
 
 private:
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
     void _add_first_valued_constraint(const int & constr_id, const Key & key,
-                                      const LastConstrLambda & lc_lambda) {
-        _add_constraint(constr_id, lc_lambda(key));
+                                      LastConstrLambda & lc_lambda) {
+        _add_constraint<distinct>(constr_id, lc_lambda(key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
     void _add_first_valued_constraint(const int & constr_id, const Key & key,
-                                      const OptConstrLambda & opt_lc_lambda,
-                                      const Tail &... tail) {
+                                      OptConstrLambda & opt_lc_lambda,
+                                      Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _add_constraint(constr_id, opt_lc.value());
+            _add_constraint<distinct>(constr_id, opt_lc.value());
             return;
         }
-        _add_first_valued_constraint(constr_id, key, tail...);
+        _add_first_valued_constraint<distinct>(constr_id, key, tail...);
     }
 
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        tmp_entry_index_cache.resize(num_variables());
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
+        if constexpr(!distinct) {
+            tmp_entry_index_cache.resize(num_variables());
+        }
         const int offset = static_cast<int>(num_constraints());
         int constr_id = offset;
         for(auto && key : keys) {
-            _add_first_valued_constraint(constr_id, key, constraint_lambdas...);
+            _add_first_valued_constraint<distinct>(constr_id, key,
+                                                   constraint_lambdas...);
             ++constr_id;
         }
         return constraints_range(
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
+    }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
     }
 };
 

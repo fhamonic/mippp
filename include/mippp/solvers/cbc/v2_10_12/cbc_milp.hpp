@@ -106,7 +106,9 @@ public:
     std::size_t num_entries() {
         return static_cast<std::size_t>(Cbc->getNumElements(model));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_maximization() { Cbc->setObjSense(model, -1); }
     void set_minimization() { Cbc->setObjSense(model, 1); }
 
@@ -121,6 +123,10 @@ public:
                                       get_objective_coefficient(var) + coef);
         }
         set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
     }
     void add_objective(linear_expression auto && le) {
         for(auto && [var, coef] : le.linear_terms()) {
@@ -140,7 +146,9 @@ public:
                 }),
             get_objective_offset());
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     inline void _add_var(const variable_params & p, const bool is_integer,
                          const char * name = "") {
@@ -305,7 +313,9 @@ public:
         name.resize(std::strlen(name.c_str()));
         return name;
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     template <linear_constraint LC>
     void _add_constraint(LC && lc) {
@@ -317,46 +327,80 @@ private:
                     constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
         ++_lazy_num_constraints;
     }
+    template <linear_constraint LC>
+    void _add_constraint(distinct_variables_t, LC && lc) {
+        tmp_indices.resize(0);
+        tmp_scalars.resize(0);
+        _register_raw_entries(lc.linear_terms());
+        Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
+                    tmp_indices.data(), tmp_scalars.data(),
+                    constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
+        ++_lazy_num_constraints;
+    }
+
+private:
+    template <bool distinct, linear_constraint LC>
+    void _add_constraint(LC && lc) {
+        tmp_indices.resize(0);
+        tmp_scalars.resize(0);
+        if constexpr(distinct) {
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _register_entries(lc.linear_terms());
+        }
+        Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
+                    tmp_indices.data(), tmp_scalars.data(),
+                    constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
+        ++_lazy_num_constraints;
+    }
 
 public:
-    constraint add_constraint(linear_constraint auto && lc) {
+    template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
         tmp_entry_index_cache.resize(_lazy_num_variables);
         int constr_id = static_cast<int>(_lazy_num_constraints);
-        _add_constraint(lc);
+        _add_constraint<false>(std::forward<LC>(lc));
+        return constraint(constr_id);
+    }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        int constr_id = static_cast<int>(_lazy_num_constraints);
+        _add_constraint<true>(std::forward<LC>(lc));
         return constraint(constr_id);
     }
 
 private:
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
     void _add_first_valued_constraint(const Key & key,
-                                      const LastConstrLambda & lc_lambda) {
-        _add_constraint(lc_lambda(key));
+                                      LastConstrLambda & lc_lambda) {
+        _add_constraint<distinct>(lc_lambda(key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
     void _add_first_valued_constraint(const Key & key,
-                                      const OptConstrLambda & opt_lc_lambda,
-                                      const Tail &... tail) {
+                                      OptConstrLambda & opt_lc_lambda,
+                                      Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _add_constraint(opt_lc.value());
+            _add_constraint<distinct>(opt_lc.value());
             return;
         }
-        _add_first_valued_constraint(key, tail...);
+        _add_first_valued_constraint<distinct>(key, tail...);
     }
-
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
         using key_t = std::ranges::range_value_t<IR>;
-        tmp_entry_index_cache.resize(_lazy_num_variables);
+        if constexpr(!distinct) {
+            tmp_entry_index_cache.resize(_lazy_num_variables);
+        }
         const int offset = static_cast<int>(_lazy_num_constraints);
         int constr_id = offset;
         for(const key_t & key : keys) {
-            _add_first_valued_constraint(key, constraint_lambdas...);
+            _add_first_valued_constraint<distinct>(key, constraint_lambdas...);
             ++constr_id;
         }
         if constexpr(std::strict_weak_order<std::less<key_t>, key_t, key_t>) {
@@ -365,6 +409,19 @@ public:
                 std::views::transform(std::views::iota(offset, constr_id),
                                       [](auto && i) { return constraint{i}; }));
         }
+    }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
     }
 
     // void set_constraint_rhs(constraint constr, double rhs) {

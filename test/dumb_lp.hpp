@@ -116,6 +116,10 @@ public:
         add_objective(le);
         set_objective_offset(le.constant());
     }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
+    }
     void add_objective(linear_expression auto && le) {
         for(auto && [var, coef] : le.linear_terms())
             _cols[var.uid()].obj_coef += coef;
@@ -285,6 +289,10 @@ public:
         _rows.emplace_back(std::move(row));
         return constraint(constr_id);
     }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        return add_constraint(std::forward<LC>(lc));
+    }
 
 private:
     template <typename Key, typename LastConstrLambda>
@@ -321,6 +329,12 @@ public:
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL... constraint_lambdas) {
+        return add_constraints(std::forward<IR>(keys),
+                               std::forward<CL...>(constraint_lambdas...));
     }
 
     template <std::ranges::range ER>

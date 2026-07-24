@@ -114,7 +114,9 @@ public:
     std::size_t num_entries() {
         return static_cast<std::size_t>(SCIP->getNNZs(model));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
         check(SCIP->setObjsense(model, SCIP_OBJSENSE_MAXIMIZE));
     }
@@ -133,6 +135,17 @@ public:
         for(auto && [var_, coef] : le.linear_terms()) {
             const auto & var = variables[var_.uid()];
             check(SCIP->chgVarObj(model, var, SCIP->varGetObj(var) + coef));
+        }
+        set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        for(auto && var : variables) {
+            check(SCIP->chgVarObj(model, var, 0.0));
+        }
+        for(auto && [var_, coef] : le.linear_terms()) {
+            const auto & var = variables[var_.uid()];
+            check(SCIP->chgVarObj(model, var, coef));
         }
         set_objective_offset(le.constant());
     }
@@ -157,7 +170,9 @@ public:
                 }),
             get_objective_offset());
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     void _add_variable(const variable_params & params, SCIP_VARTYPE type,
                        const char * name = "") {
@@ -352,7 +367,9 @@ public:
     std::string get_variable_name(variable v) {
         return std::string(SCIP->varGetName(variables[v.uid()]));
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     SCIP_CONS * _add_constraint(linear_constraint auto && lc) {
         SCIP_CONS * constr = nullptr;
@@ -379,12 +396,16 @@ public:
         constraints.emplace_back(_add_constraint(lc));
         return constraint(constr_id);
     }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        return add_constraint(std::forward<LC>(lc));
+    }
 
 private:
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
-    SCIP_CONS * _add_first_valued_constraint(
-        const Key & key, const LastConstrLambda & lc_lambda) {
+    SCIP_CONS * _add_first_valued_constraint(const Key & key,
+                                             LastConstrLambda & lc_lambda) {
         return _add_constraint(lc_lambda(key));
     }
     template <typename Key, typename OptConstrLambda, typename... Tail>
@@ -392,9 +413,9 @@ private:
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
-    SCIP_CONS * _add_first_valued_constraint(
-        const Key & key, const OptConstrLambda & opt_lc_lambda,
-        const Tail &... tail) {
+    SCIP_CONS * _add_first_valued_constraint(const Key & key,
+                                             OptConstrLambda & opt_lc_lambda,
+                                             Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
             return _add_constraint(opt_lc.value());
         }
@@ -403,7 +424,7 @@ private:
 
 public:
     template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
         const constraint_id offset =
             static_cast<constraint_id>(num_constraints());
         constraint_id constr_id = offset;
@@ -416,6 +437,12 @@ public:
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return add_constraints(std::forward<IR>(keys),
+                               std::forward<CL>(constraint_lambdas)...);
     }
 
     // void set_constraint_rhs(constraint c, double rhs) {

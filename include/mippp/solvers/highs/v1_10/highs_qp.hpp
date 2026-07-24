@@ -32,7 +32,7 @@ public:
 
     template <linear_expression LE>
     void set_objective(LE && le) {
-        const auto num_vars = num_variables();
+        const auto num_vars = _num_var_native_ids();
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
@@ -41,6 +41,10 @@ public:
         check(Highs->changeColsCostByRange(
             model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
     }
     template <quadratic_expression QE>
     void set_objective(QE && qe) {
@@ -70,6 +74,10 @@ public:
             model, static_cast<int>(num_vars),
             static_cast<int>(tmp_scalars.size()), kHighsHessianFormatTriangular,
             tmp_begins.data(), tmp_indices.data(), tmp_scalars.data()));
+    }
+    template <quadratic_expression QE>
+    void set_objective(distinct_variables_t, QE && qe) {
+        set_objective(std::forward<QE>(qe));
     }
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////

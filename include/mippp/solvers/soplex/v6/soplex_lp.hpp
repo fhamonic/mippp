@@ -76,7 +76,9 @@ public:
     // std::size_t num_entries() {
     //     return static_cast<std::size_t>(SoPlex->getNumElements(model));
     // }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_maximization() { SoPlex->setIntParam(model, 0, 1); }
     void set_minimization() { SoPlex->setIntParam(model, 0, -1); }
 
@@ -92,8 +94,14 @@ public:
                               static_cast<int>(num_vars));
         set_objective_offset(le.constant());
     }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
+    }
     double get_objective_offset() { return objective_offset; }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     inline void _add_var(const variable_params & params) {
         SoPlex->addColReal(model, nullptr, 0, 0, params.obj_coef,
@@ -164,7 +172,9 @@ public:
         const variable_params params = default_variable_params) {
         return _add_column(entries, params);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 private:
     void _add_constraint(linear_constraint auto && lc) {
         int num_nz = 0;
@@ -186,18 +196,23 @@ private:
     }
 
 public:
-    constraint add_constraint(linear_constraint auto && lc) {
+    template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
         tmp_scalars.resize(num_variables());
-        _add_constraint(lc);
+        _add_constraint(std::forward<LC>(lc));
         return constraint(constr_id);
+    }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        return add_constraint(std::forward<LC>(lc));
     }
 
 private:
     template <typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
     void _add_first_valued_constraint(const Key & key,
-                                      const LastConstrLambda & lc_lambda) {
+                                      LastConstrLambda & lc_lambda) {
         _add_constraint(lc_lambda(key));
     }
     template <typename Key, typename OptConstrLambda, typename... Tail>
@@ -206,8 +221,8 @@ private:
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
     void _add_first_valued_constraint(const Key & key,
-                                      const OptConstrLambda & opt_lc_lambda,
-                                      const Tail &... tail) {
+                                      OptConstrLambda & opt_lc_lambda,
+                                      Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
             _add_constraint(opt_lc.value());
             return;
@@ -217,7 +232,7 @@ private:
 
 public:
     template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
         tmp_scalars.resize(num_variables());
         const int offset = static_cast<int>(num_constraints());
         int constr_id = offset;
@@ -229,6 +244,12 @@ public:
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return add_constraints(std::forward<IR>(keys),
+                              std::forward<CL>(constraint_lambdas)...);
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////

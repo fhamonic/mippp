@@ -71,10 +71,10 @@ public:
         , _num_var_native_ids(0)
         , _lazy_num_constraints(0) {
         check(GRB->emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
-                                   GRB_VERSION_TECHNICAL));
+                                    GRB_VERSION_TECHNICAL));
         check(GRB->startenv(env));
         check(GRB->newmodel(env, &model, "GUROBI", 0, nullptr, nullptr, nullptr,
-                           nullptr, nullptr));
+                            nullptr, nullptr));
         GRB->freeenv(env);
         env = GRB->getenv(model);
         if(env == nullptr)
@@ -120,7 +120,7 @@ protected:
             tmp_indices.emplace_back(_native_id(var));
         std::ranges::sort(tmp_indices);
         check(GRB->delvars(model, static_cast<int>(tmp_indices.size()),
-                          tmp_indices.data()));
+                           tmp_indices.data()));
 
         update_gurobi_model();
 
@@ -195,7 +195,9 @@ public:
         check(GRB->getintattr(model, GRB_INT_ATTR_NUMNZS, &num));
         return static_cast<std::size_t>(num);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
         check(GRB->setintattr(model, GRB_INT_ATTR_MODELSENSE, GRB_MAXIMIZE));
     }
@@ -213,9 +215,13 @@ public:
             tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
         }
         check(GRB->setdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
-                                  static_cast<int>(_num_var_native_ids),
-                                  tmp_scalars.data()));
+                                   static_cast<int>(_num_var_native_ids),
+                                   tmp_scalars.data()));
         set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
     }
     void add_objective(linear_expression auto && le) {
         _reset_cache(_num_var_native_ids);
@@ -225,8 +231,8 @@ public:
             coef += get_objective_coefficient(_var_handle(native_id));
         }
         check(GRB->setdblattrlist(model, GRB_DBL_ATTR_OBJ,
-                                 static_cast<int>(tmp_indices.size()),
-                                 tmp_indices.data(), tmp_scalars.data()));
+                                  static_cast<int>(tmp_indices.size()),
+                                  tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
     double get_objective_offset() {
@@ -240,8 +246,8 @@ public:
             std::make_shared_for_overwrite<double[]>(_num_var_native_ids);
         update_gurobi_model();
         check(GRB->getdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
-                                  static_cast<int>(_num_var_native_ids),
-                                  coefs.get()));
+                                   static_cast<int>(_num_var_native_ids),
+                                   coefs.get()));
         return linear_expression_view(
             std::views::transform(
                 std::views::iota(0, static_cast<int>(_num_var_native_ids)),
@@ -250,14 +256,16 @@ public:
                 }),
             get_objective_offset());
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 protected:
     inline variable _add_variable(const variable_params & params,
                                   const char & type, const char * name_str) {
         check(GRB->addvar(model, 0, nullptr, nullptr, params.obj_coef,
-                         params.lower_bound.value_or(-GRB_INFINITY),
-                         params.upper_bound.value_or(GRB_INFINITY), type,
-                         name_str));
+                          params.lower_bound.value_or(-GRB_INFINITY),
+                          params.upper_bound.value_or(GRB_INFINITY), type,
+                          name_str));
         return _new_var_handle(_new_var_native_id());
     }
     inline std::size_t _add_variables(const std::size_t & count,
@@ -268,8 +276,8 @@ protected:
         const std::size_t handle_ids_begin =
             _new_var_handle_range(_num_var_native_ids, count);
         check(GRB->addvars(model, static_cast<int>(count), 0, nullptr, nullptr,
-                          nullptr, nullptr, nullptr, nullptr, nullptr,
-                          nullptr));
+                           nullptr, nullptr, nullptr, nullptr, nullptr,
+                           nullptr));
         if(double obj = params.obj_coef; obj != 0.0) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
@@ -322,7 +330,7 @@ public:
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_indexed_variables_view(handle_ids_begin, count,
-                                             std::forward<IL>(id_lambda));
+                                            std::forward<IL>(id_lambda));
     }
 
     variable add_named_variable(
@@ -337,7 +345,7 @@ public:
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_named_variables_view(handle_ids_begin, count,
-                                           std::forward<NL>(name_lambda), this);
+                                          std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
     auto add_named_variables(
@@ -392,17 +400,20 @@ public:
     }
 
     void set_objective_coefficient(variable v, double c) {
-        check(GRB->setdblattrelement(model, GRB_DBL_ATTR_OBJ, _native_id(v), c));
+        check(
+            GRB->setdblattrelement(model, GRB_DBL_ATTR_OBJ, _native_id(v), c));
     }
     void set_variable_lower_bound(variable v, double lb) {
-        check(GRB->setdblattrelement(model, GRB_DBL_ATTR_LB, _native_id(v), lb));
+        check(
+            GRB->setdblattrelement(model, GRB_DBL_ATTR_LB, _native_id(v), lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
-        check(GRB->setdblattrelement(model, GRB_DBL_ATTR_UB, _native_id(v), ub));
+        check(
+            GRB->setdblattrelement(model, GRB_DBL_ATTR_UB, _native_id(v), ub));
     }
     void set_variable_name(variable v, const char * name_ptr) {
         check(GRB->setstrattrelement(model, GRB_STR_ATTR_VARNAME, _native_id(v),
-                                    name_ptr));
+                                     name_ptr));
     }
     void set_variable_name(variable v, const std::string & name) {
         set_variable_name(v, name.c_str());
@@ -412,7 +423,7 @@ public:
         double coef;
         update_gurobi_model();
         check(GRB->getdblattrelement(model, GRB_DBL_ATTR_OBJ, _native_id(v),
-                                    &coef));
+                                     &coef));
         return coef;
     }
     double get_variable_lower_bound(variable v) {
@@ -433,62 +444,83 @@ public:
         char * name;
         update_gurobi_model();
         check(GRB->getstrattrelement(model, GRB_STR_ATTR_VARNAME, _native_id(v),
-                                    &name));
+                                     &name));
         return std::string(name);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     constraint add_constraint(linear_constraint auto && lc) {
         const int constr_id = static_cast<int>(_lazy_num_constraints++);
         _reset_cache(_num_var_native_ids);
         _register_entries(lc.linear_terms());
         check(GRB->addconstr(model, static_cast<int>(tmp_indices.size()),
-                            tmp_indices.data(), tmp_scalars.data(),
-                            constraint_sense_to_gurobi_sense(lc.sense()),
-                            lc.rhs(), nullptr));
+                             tmp_indices.data(), tmp_scalars.data(),
+                             constraint_sense_to_gurobi_sense(lc.sense()),
+                             lc.rhs(), nullptr));
+        return constraint(constr_id);
+    }
+    constraint add_constraint(distinct_variables_t,
+                              linear_constraint auto && lc) {
+        const int constr_id = static_cast<int>(_lazy_num_constraints++);
+        _reset_raw_cache();
+        _register_raw_entries(lc.linear_terms());
+        check(GRB->addconstr(model, static_cast<int>(tmp_indices.size()),
+                             tmp_indices.data(), tmp_scalars.data(),
+                             constraint_sense_to_gurobi_sense(lc.sense()),
+                             lc.rhs(), nullptr));
         return constraint(constr_id);
     }
 
 private:
-    template <linear_constraint LC>
+    template <bool distinct, linear_constraint LC>
     void _register_constraint(LC && lc) {
         ++register_count;
         tmp_begins.emplace_back(static_cast<int>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_gurobi_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        _register_entries(lc.linear_terms());
+        if constexpr(distinct) {
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _register_entries(lc.linear_terms());
+        }
     }
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
     void _register_first_valued_constraint(const Key & key,
-                                           const LastConstrLambda & lc_lambda) {
-        _register_constraint(lc_lambda(key));
+                                           LastConstrLambda & lc_lambda) {
+        _register_constraint<distinct>(lc_lambda(key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
-    void _register_first_valued_constraint(
-        const Key & key, const OptConstrLambda & opt_lc_lambda,
-        const Tail &... tail) {
+    void _register_first_valued_constraint(const Key & key,
+                                           OptConstrLambda & opt_lc_lambda,
+                                           Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _register_constraint(opt_lc.value());
+            _register_constraint<distinct>(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(key, tail...);
+        _register_first_valued_constraint<distinct>(key, tail...);
     }
-
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        _reset_cache(_num_var_native_ids);
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
+        if constexpr(distinct) {
+            _reset_raw_cache();
+        } else {
+            _reset_cache(_num_var_native_ids);
+        }
         tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
         const int offset = static_cast<int>(_lazy_num_constraints);
         int constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(key, constraint_lambdas...);
+            _register_first_valued_constraint<distinct>(key,
+                                                        constraint_lambdas...);
             ++constr_id;
         }
         check(GRB->addconstrs(
@@ -502,12 +534,26 @@ public:
                                   [](auto && i) { return constraint{i}; }));
     }
 
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
+    }
+
     void set_constraint_rhs(constraint constr, double rhs) {
-        check(GRB->setdblattrelement(model, GRB_DBL_ATTR_RHS, constr.id(), rhs));
+        check(
+            GRB->setdblattrelement(model, GRB_DBL_ATTR_RHS, constr.id(), rhs));
     }
     void set_constraint_sense(constraint constr, constraint_sense r) {
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
-                                     constraint_sense_to_gurobi_sense(r)));
+                                      constraint_sense_to_gurobi_sense(r)));
     }
     // adds an equality constraint with a slack variable bounded in [0, ub-lb]
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
@@ -516,8 +562,8 @@ public:
         _reset_cache(_num_var_native_ids);
         _register_entries(le.linear_terms());
         check(GRB->addrangeconstr(model, static_cast<int>(tmp_indices.size()),
-                                 tmp_indices.data(), tmp_scalars.data(), lb, ub,
-                                 nullptr));
+                                  tmp_indices.data(), tmp_scalars.data(), lb,
+                                  ub, nullptr));
         _new_var_handle(_new_var_native_id());  // added_slack variable
         return constraint(constr_id);
     }
@@ -527,13 +573,13 @@ public:
         int num_nz, beg;
         update_gurobi_model();
         check(GRB->getconstrs(model, &num_nz, nullptr, nullptr, nullptr,
-                             constr.id(), 1));
+                              constr.id(), 1));
         auto indices = std::make_shared_for_overwrite<int[]>(
             static_cast<std::size_t>(num_nz));
         auto coefs = std::make_shared_for_overwrite<double[]>(
             static_cast<std::size_t>(num_nz));
         check(GRB->getconstrs(model, &num_nz, &beg, indices.get(), coefs.get(),
-                             constr.id(), 1));
+                              constr.id(), 1));
         return std::views::transform(
             std::views::iota(0, num_nz), [this, indices = std::move(indices),
                                           coefs = std::move(coefs)](int i) {
@@ -552,7 +598,7 @@ public:
         char sense;
         update_gurobi_model();
         check(GRB->getcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
-                                     &sense));
+                                      &sense));
         return gurobi_sense_to_constraint_sense(sense);
     }
     auto get_constraint(constraint constr) {
@@ -565,8 +611,8 @@ public:
     auto get_constraint_name(constraint constr) {
         char * name;
         update_gurobi_model();
-        check(GRB->getstrattrelement(model, GRB_STR_ATTR_CONSTRNAME, constr.id(),
-                                    &name));
+        check(GRB->getstrattrelement(model, GRB_STR_ATTR_CONSTRNAME,
+                                     constr.id(), &name));
         return std::string(name);
     }
 

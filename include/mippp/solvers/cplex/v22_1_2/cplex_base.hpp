@@ -86,6 +86,78 @@ public:
     constexpr cplex_base & operator=(const cplex_base &) = delete;
     constexpr cplex_base & operator=(cplex_base && other) = delete;
 
+public:
+    std::size_t num_variables() {
+        return static_cast<std::size_t>(CPX->getnumcols(env, lp)) -
+               _var_handles_to_delete.size();
+    }
+    std::size_t num_constraints() {
+        return static_cast<std::size_t>(CPX->getnumrows(env, lp));
+    }
+    std::size_t num_entries() {
+        return static_cast<std::size_t>(CPX->getnumnz(env, lp));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_maximization() { check(CPX->chgobjsen(env, lp, CPX_MAX)); }
+    void set_minimization() { check(CPX->chgobjsen(env, lp, CPX_MIN)); }
+
+    void set_objective_offset(double constant) {
+        check(CPX->chgobjoffset(env, lp, constant));
+    }
+    void set_objective(linear_expression auto && le) {
+        const std::size_t num_vars = _num_var_native_ids();
+        tmp_indices.resize(num_vars);
+        std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
+        tmp_scalars.resize(num_vars);
+        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
+        for(auto && [var, coef] : le.linear_terms()) {
+            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
+        }
+        check(CPX->chgobj(env, lp, static_cast<int>(num_vars),
+                          tmp_indices.data(), tmp_scalars.data()));
+        set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
+    }
+    void add_objective(linear_expression auto && le) {
+        const std::size_t num_vars = _num_var_native_ids();
+        tmp_indices.resize(num_vars);
+        std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
+        tmp_scalars.resize(num_vars);
+        check(CPX->getobj(env, lp, tmp_scalars.data(), 0,
+                          static_cast<int>(num_vars) - 1));
+        for(auto && [var, coef] : le.linear_terms()) {
+            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
+        }
+        check(CPX->chgobj(env, lp, static_cast<int>(num_vars),
+                          tmp_indices.data(), tmp_scalars.data()));
+        set_objective_offset(get_objective_offset() + le.constant());
+    }
+    double get_objective_offset() {
+        double objective_offset;
+        check(CPX->getobjoffset(env, lp, &objective_offset));
+        return objective_offset;
+    }
+    auto get_objective() {
+        const std::size_t num_vars = _num_var_native_ids();
+        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
+        check(CPX->getobj(env, lp, coefs.get(), 0,
+                          static_cast<int>(num_vars) - 1));
+        return linear_expression_view(
+            std::views::transform(
+                std::views::iota(0, static_cast<int>(num_vars)),
+                [this, coefs = std::move(coefs)](auto i) {
+                    return std::make_pair(_var_handle(i), coefs[i]);
+                }),
+            get_objective_offset());
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 protected:
     int _new_var_native_id() {
         if(_remap_ids) _extend_handle_ids_map(1);
@@ -94,7 +166,6 @@ protected:
     std::size_t _num_var_native_ids() {
         return static_cast<std::size_t>(CPX->getnumcols(env, lp));
     }
-
     void _lazily_remove_variables() {
         if(_var_handles_to_delete.empty()) return;
         const std::size_t old_num_variables =
@@ -132,72 +203,6 @@ protected:
                                  _var_handles_to_delete.cend());
 #endif
         _var_handles_to_delete.clear();
-    }
-
-public:
-    std::size_t num_variables() {
-        return static_cast<std::size_t>(CPX->getnumcols(env, lp)) -
-               _var_handles_to_delete.size();
-    }
-    std::size_t num_constraints() {
-        return static_cast<std::size_t>(CPX->getnumrows(env, lp));
-    }
-    std::size_t num_entries() {
-        return static_cast<std::size_t>(CPX->getnumnz(env, lp));
-    }
-
-    void set_maximization() { check(CPX->chgobjsen(env, lp, CPX_MAX)); }
-    void set_minimization() { check(CPX->chgobjsen(env, lp, CPX_MIN)); }
-
-    void set_objective_offset(double constant) {
-        check(CPX->chgobjoffset(env, lp, constant));
-    }
-
-    void set_objective(linear_expression auto && le) {
-        const std::size_t num_vars = _num_var_native_ids();
-        tmp_indices.resize(num_vars);
-        std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
-        tmp_scalars.resize(num_vars);
-        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
-        }
-        check(CPX->chgobj(env, lp, static_cast<int>(num_vars),
-                          tmp_indices.data(), tmp_scalars.data()));
-        set_objective_offset(le.constant());
-    }
-    void add_objective(linear_expression auto && le) {
-        const std::size_t num_vars = _num_var_native_ids();
-        tmp_indices.resize(num_vars);
-        std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
-        tmp_scalars.resize(num_vars);
-        check(CPX->getobj(env, lp, tmp_scalars.data(), 0,
-                          static_cast<int>(num_vars) - 1));
-        for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
-        }
-        check(CPX->chgobj(env, lp, static_cast<int>(num_vars),
-                          tmp_indices.data(), tmp_scalars.data()));
-        set_objective_offset(get_objective_offset() + le.constant());
-    }
-
-    double get_objective_offset() {
-        double objective_offset;
-        check(CPX->getobjoffset(env, lp, &objective_offset));
-        return objective_offset;
-    }
-    auto get_objective() {
-        const std::size_t num_vars = _num_var_native_ids();
-        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
-        check(CPX->getobj(env, lp, coefs.get(), 0,
-                          static_cast<int>(num_vars) - 1));
-        return linear_expression_view(
-            std::views::transform(
-                std::views::iota(0, static_cast<int>(num_vars)),
-                [this, coefs = std::move(coefs)](auto i) {
-                    return std::make_pair(_var_handle(i), coefs[i]);
-                }),
-            get_objective_offset());
     }
 
 protected:
@@ -405,7 +410,9 @@ public:
         name.resize(name.size() - static_cast<std::size_t>(surplus + 1));
         return name;
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
         _reset_cache(_num_var_native_ids());
@@ -418,47 +425,69 @@ public:
                            tmp_scalars.data(), nullptr, nullptr));
         return constraint(constr_id);
     }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        int constr_id = static_cast<int>(num_constraints());
+        _reset_raw_cache();
+        _register_raw_entries(lc.linear_terms());
+        int matbegin = 0;
+        const double b = lc.rhs();
+        const char sense = constraint_sense_to_cplex_sense(lc.sense());
+        check(CPX->addrows(env, lp, 0, 1, static_cast<int>(tmp_indices.size()),
+                           &b, &sense, &matbegin, tmp_indices.data(),
+                           tmp_scalars.data(), nullptr, nullptr));
+        return constraint(constr_id);
+    }
 
 private:
-    template <linear_constraint LC>
+    template <bool distinct, linear_constraint LC>
     void _register_constraint(LC && lc) {
         tmp_begins.emplace_back(static_cast<int>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_cplex_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        _register_entries(lc.linear_terms());
+        if constexpr(distinct) {
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _register_entries(lc.linear_terms());
+        }
     }
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
     void _register_first_valued_constraint(const Key & key,
-                                           const LastConstrLambda & lc_lambda) {
-        _register_constraint(lc_lambda(key));
+                                           LastConstrLambda & lc_lambda) {
+        _register_constraint<distinct>(lc_lambda(key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
-    void _register_first_valued_constraint(
-        const Key & key, const OptConstrLambda & opt_lc_lambda,
-        const Tail &... tail) {
+    void _register_first_valued_constraint(const Key & key,
+                                           OptConstrLambda & opt_lc_lambda,
+                                           Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _register_constraint(opt_lc.value());
+            _register_constraint<distinct>(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(key, tail...);
+        _register_first_valued_constraint<distinct>(key, tail...);
     }
 
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        _reset_cache(_num_var_native_ids());
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
+        if constexpr(distinct) {
+            _reset_raw_cache();
+        } else {
+            _reset_cache(_num_var_native_ids());
+        }
         tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
         const int offset = static_cast<int>(num_constraints());
         int constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(key, constraint_lambdas...);
+            _register_first_valued_constraint<distinct>(key,
+                                                        constraint_lambdas...);
             ++constr_id;
         }
         check(CPX->addrows(env, lp, 0, static_cast<int>(tmp_begins.size()),
@@ -470,6 +499,19 @@ public:
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
+    }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
     }
 
     void set_constraint_rhs(constraint constr, double rhs) {

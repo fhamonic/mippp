@@ -106,7 +106,9 @@ public:
         check(MSK->getnumanz(task, &num));
         return static_cast<std::size_t>(num);
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
         check(MSK->putobjsense(task, MSK_OBJECTIVE_SENSE_MAXIMIZE));
     }
@@ -127,6 +129,10 @@ public:
         check(MSK->putcslice(task, 0, static_cast<indice>(num_vars),
                              tmp_scalars.data()));
         set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
     }
     void add_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
@@ -158,7 +164,9 @@ public:
                 }),
             get_objective_offset());
     }
-
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
 protected:
     void _add_variable(const int & var_id, const variable_params & params,
                        const MSKvariabletypee type) {
@@ -329,12 +337,21 @@ public:
         name.pop_back();
         return name;
     }
-
-    constraint add_constraint(linear_constraint auto && lc) {
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    template <bool distinct, linear_constraint LC>
+    constraint _add_constraint(LC && lc) {
         auto constr_id = static_cast<constraint_id>(num_constraints());
         check(MSK->appendcons(task, 1));
-        _reset_cache(num_variables());
-        _register_entries(lc.linear_terms());
+        if constexpr(distinct) {
+            _reset_raw_cache();
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _reset_cache(num_variables());
+            _register_entries(lc.linear_terms());
+        }
         check(MSK->putarow(task, constr_id,
                            static_cast<indice>(tmp_indices.size()),
                            tmp_indices.data(), tmp_scalars.data()));
@@ -345,46 +362,65 @@ public:
         return constraint(constr_id);
     }
 
-private:
+public:
     template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
+        return _add_constraint<false>(std::forward<LC>(lc));
+    }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        return _add_constraint<true>(std::forward<LC>(lc));
+    }
+
+private:
+    template <bool distinct, linear_constraint LC>
     void _register_constraint(LC && lc) {
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         tmp_boundkeye.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        _register_entries(lc.linear_terms());
+        if constexpr(distinct) {
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _register_entries(lc.linear_terms());
+        }
     }
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
     void _register_first_valued_constraint(const Key & key,
-                                           const LastConstrLambda & lc_lambda) {
-        _register_constraint(lc_lambda(key));
+                                           LastConstrLambda & lc_lambda) {
+        _register_constraint<distinct>(lc_lambda(key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
                      std::invoke_result_t<OptConstrLambda, Key>>>
-    void _register_first_valued_constraint(
-        const Key & key, const OptConstrLambda & opt_lc_lambda,
-        const Tail &... tail) {
+    void _register_first_valued_constraint(const Key & key,
+                                           OptConstrLambda & opt_lc_lambda,
+                                           Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            _register_constraint(opt_lc.value());
+            _register_constraint<distinct>(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(key, tail...);
+        _register_first_valued_constraint<distinct>(key, tail...);
     }
 
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
-        _reset_cache(num_variables());
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
+        if constexpr(distinct) {
+            _reset_raw_cache();
+        } else {
+            _reset_cache(num_variables());
+        }
         tmp_begins.resize(0);
         tmp_boundkeye.resize(0);
         tmp_rhs.resize(0);
         const indice offset = static_cast<indice>(num_constraints());
         indice constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(key, constraint_lambdas...);
+            _register_first_valued_constraint<distinct>(key,
+                                                        constraint_lambdas...);
             ++constr_id;
         }
         check(MSK->appendcons(task, constr_id - offset));
@@ -399,6 +435,19 @@ public:
             std::forward<IR>(keys),
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
+    }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
     }
 };
 
