@@ -50,16 +50,16 @@ The [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/) w
 
 ## Why MIP++
 
-### One model, every solver
+### One model, any solver
 
-Benchmarking Gurobi vs. CPLEX vs. HiGHS vs. SCIP is a two-line change and a recompile — no `#ifdef` soup, no linking against a solver SDK. Solver shared libraries are discovered at runtime via `LD_LIBRARY_PATH`, system directories, and per-solver environment variables (`MIPPP_HIGHS_LIBRARY`, etc.), so a single compiled binary runs on whatever solver the machine has installed. ([Why MIP++](https://fhamonic.github.io/mippp/getting-started/))
+Benchmarking Gurobi vs. CPLEX vs. HiGHS vs. SCIP is a two-line change and a recompile — no `#ifdef` soup, no linking against a solver SDK. Solver shared libraries are discovered at runtime via exact path parameter, per-solver environment variables (`MIPPP_HIGHS_LIBRARY`, etc.) or `LD_LIBRARY_PATH` and system directories: a single compiled binary runs on whatever solver the machine has installed. ([Why MIP++](https://fhamonic.github.io/mippp/getting-started/))
 
 
 ### No modeling tax
 
-MIP++ matches the raw Gurobi C API to within a few percent and is **2.5–5.8× faster than the OR-Tools C++ API**, 5–15× faster than JuMP (warm), and two to three orders of magnitude faster than the Python layers — all measured on model construction alone. Build time is noise for a one-shot solve that runs for hours, but it dominates in algorithms that build, modify, and re-solve constantly: column generation, Benders decomposition, cutting planes, large-scale experiments. MIP++ is built for those. [See the benchmark ↓](#performance)
+MIP++ matches the raw Gurobi C API to within a few percent and is **2.5–5.8× faster than the OR-Tools C++ API**, 5–15× faster than JuMP (warm), and two to three orders of magnitude faster than Python layers — all measured on model construction alone. Build time is noise for a one-shot solve that runs for hours, but can dominate in algorithms that build, modify, and re-solve constantly: column generation, Benders decomposition, cutting planes, large-scale experiments. MIP++ is built for those. [See the benchmark ↓](#performance)
 
-The speedup comes from the expression system's architecture: objectives and constraints are composed from C++ ranges as lazy views using `xsum`, and they allocate nothing. When a constraint is added, its term range is iterated directly into the scratch buffers passed to the solver's C API (`Highs_addRow`, `GRBaddconstr`, etc.). There is no intermediate model representation to build, extract, or garbage-collect. ([Expressions and constraints](https://fhamonic.github.io/mippp/modeling/expressions/))
+The speedup comes from the expression system's architecture: objectives and constraints are composed from C++ ranges as lazy views using `xsum`, and they allocate nothing. When a constraint is added, its term range is iterated directly into the pre-allocated scratch buffers passed to the solver's C API (`Highs_addRow`, `GRBaddconstr`, etc.). There is no intermediate model representation to build, extract, or garbage-collect. ([Expressions and constraints](https://fhamonic.github.io/mippp/modeling/expressions/))
 
 
 ### Built for algorithms, not just models
@@ -77,7 +77,7 @@ The library exposes the algorithmic hooks that decomposition and cutting-plane m
 
 Solver-agnostic code usually hides backend-specific outcomes behind a lowest-common-denominator enum. MIP++ does the opposite: each backend's `solve_status()` returns a `std::variant` whose alternatives are exactly the statuses *that solver actually reports*. MOSEK's LP variant distinguishes `primal_and_dual_infeasible` from plain `infeasible`; Clp's only carries `optimal`, `infeasible`, and `unbounded`. Nothing is erased.
 
-Generic queries work through the status type hierarchy: `primal_and_dual_infeasible` inherits from `infeasible`, which inherits from `infeasible_or_unbounded`. Calling `is_a<status::infeasible_or_unbounded>` matches any of them — one question, every solver. Calling `is<status::primal_and_dual_infeasible>` asks the exact question instead, and will only compile if the backend can report it. The abstraction is free at runtime — the inheritance check is resolved at compile time, so the compiler reduces it to a direct index check. ([Status and limits](https://fhamonic.github.io/mippp/solving/status-and-limits/))
+Generic queries work through the status type hierarchy: `primal_and_dual_infeasible` inherits from `infeasible`, which inherits from `infeasible_or_unbounded`. Calling `is_a<status::infeasible_or_unbounded>` matches any of them — one question, every solver. Calling `is<status::primal_and_dual_infeasible>` asks the exact question instead, and will only compile if the backend can report it. This abstraction is free at runtime — the inheritance check is resolved at compile time, so the compiler reduces it to a direct index check. ([Status and limits](https://fhamonic.github.io/mippp/solving/status-and-limits/))
 
 
 ## Performance
@@ -86,7 +86,7 @@ Time to *build* the N-Queens model (`N²` binary variables, `6N−6` constraints
 
 ### MIP++ vs. the Gurobi C API
 
-The most direct measure of modeling overhead. MIP++ tracks the raw C API to within a few percent across the entire sweep — the abstraction layer is essentially free:
+The most direct measure of modeling overhead. MIP++ tracks the raw C API to within a few percent, the abstraction layer is essentially free:
 
 | N | Gurobi C API | MIP++ | gurobipy | JuMP warm |
 | ---: | ---: | ---: | ---: | ---: |
