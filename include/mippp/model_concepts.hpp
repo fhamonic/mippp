@@ -453,7 +453,7 @@ concept has_remove_variable = requires(T & model, model_variable_t<T> v) {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////// Warm start //////////////////////////////////
+//////////////////////////////////// Basis ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace basis_status {
@@ -466,24 +466,15 @@ struct nonbasic_at_upper_bound : nonbasic_at_bound {};
 struct nonbasic_fixed : nonbasic_at_bound {};
 }  // namespace basis_status
 
-// clang-format off
 template <typename S>
-concept lp_basis_status = requires(const S & status) {
-    { std::visit(detail::overloaded{
-                       [](basis_status::basic) {},
-                       [](basis_status::nonbasic) {}
-                 },
-                 status) };
-};
+concept lp_basis_status = variant_containing_a<S, basis_status::basic> &&
+                          variant_containing_a<S, basis_status::nonbasic>;
+
 // clang-format on
 template <typename B, typename T>
 concept lp_basis =
     requires(B & basis, model_variable_t<T> v, model_constraint_t<T> c) {
-        // variables
-        { basis.is_basic(v) } -> std::same_as<bool>;
         { basis.get_status(v) } -> lp_basis_status;
-        // constraints
-        { basis.is_basic(c) } -> std::same_as<bool>;
         { basis.get_status(c) } -> lp_basis_status;
     };
 
@@ -494,21 +485,10 @@ template <typename T>
 concept has_lp_basis = lp_basis<model_basis_t<T>, T>;
 
 template <typename T>
-using model_variable_basis_status_t =
-    std::decay_t<decltype(std::declval<T>().get_basis().get_status(
-        std::declval<model_variable_t<T>>()))>;
-
-template <typename T>
-using model_constraint_basis_status_t =
-    std::decay_t<decltype(std::declval<T>().get_basis().get_status(
-        std::declval<model_constraint_t<T>>()))>;
-
-template <typename T>
-concept has_lp_basis_warm_start =
+concept has_modifiable_lp_basis =
     has_lp_basis<T> &&
     requires(T & model, model_basis_t<T> b, model_variable_t<T> v,
              model_constraint_t<T> c, model_scalar_t<T> s) {
-        { model.set_basis(b) };
         // variables
         { b.set_basic(v) };
         { b.set_nonbasic(v, s) };  // snaps to lower/upper/free within tolerance
@@ -526,6 +506,22 @@ concept has_lp_basis_warm_start =
         { b.set_status(c, basis_status::nonbasic_at_upper_bound{}) };
         { b.set_status(c, basis_status::nonbasic_fixed{}) };
     };
+
+template <typename T>
+using model_variable_basis_status_t =
+    std::decay_t<decltype(std::declval<T>().get_basis().get_status(
+        std::declval<model_variable_t<T>>()))>;
+
+template <typename T>
+using model_constraint_basis_status_t =
+    std::decay_t<decltype(std::declval<T>().get_basis().get_status(
+        std::declval<model_constraint_t<T>>()))>;
+
+template <typename T>
+concept has_lp_basis_warm_start =
+    has_lp_basis<T> && requires(T & model, model_basis_t<T> b,
+                                model_variable_t<T> v, model_constraint_t<T> c,
+                                model_scalar_t<T> s) { model.set_basis(b); };
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// MIP start //////////////////////////////////
