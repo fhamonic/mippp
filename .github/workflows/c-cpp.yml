@@ -29,6 +29,8 @@ jobs:
           git clone https://github.com/fhamonic/melon.git
           conan create melon -u -b=missing -pr=.github/workflows/gcc15_c++26 -c tools.build:skip_test=true
       - name: Build and run unit tests
+        env:
+          MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK;HIGHS"
         run: |
           conan build . -of=build -b=missing -pr=.github/workflows/gcc15_c++26
 
@@ -54,6 +56,8 @@ jobs:
           git clone https://github.com/fhamonic/melon.git
           conan create melon -u -b=missing -pr=.github/workflows/gcc14_c++23 -c tools.build:skip_test=true
       - name: Build and run unit tests
+        env:
+          MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK"
         run: |
           conan build . -of=build -b=missing -pr=.github/workflows/gcc14_c++23
 
@@ -79,6 +83,8 @@ jobs:
           git clone https://github.com/fhamonic/melon.git
           conan create melon -u -b=missing -pr=.github/workflows/clang18_c++23 -c tools.build:skip_test=true
       - name: Build and run unit tests
+        env:
+          MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK"
         run: |
           conan build . -of=build -b=missing -pr=.github/workflows/clang18_c++23
 
@@ -156,12 +162,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Conan 2.0
-        run: pip install conan highspy
+        run: pip install conan
       - name: Autodetect a default conan profile
         run: conan profile detect --name=default
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
           conan create melon -u -b=missing "-pr=.github/workflows/mingw15_c++26" -c tools.build:skip_test=true
+      - name: Fetch Highs
+        run: |
+          Invoke-WebRequest -Uri https://github.com/ERGO-Code/HiGHS/releases/download/v1.13.0/highs-1.13.0-x86_64-windows-mit.zip -OutFile highs.zip
+          Expand-Archive -Path highs.zip -DestinationPath highs
       - name: Build and run unit tests
+        env:
+          MIPPP_HIGHS_LIBRARY: ${{ github.workspace }}\highs\bin\highs.dll
+          MIPPP_REQUIRED_SOLVERS: "HIGHS"
         run: conan build . -of=build -b=missing "-pr=.github/workflows/mingw15_c++26"

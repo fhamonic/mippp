@@ -5,7 +5,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct dumb_lp_test : public model_test<clp_api, dumb_lp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("CLP"); }
 };
 INSTANTIATE_TEST(Dumb, LpModelTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, ReadableObjectiveTest, dumb_lp_test);

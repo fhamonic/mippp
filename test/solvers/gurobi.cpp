@@ -5,7 +5,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct gurobi_lp_test : public model_test<gurobi_api, gurobi_lp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("GUROBI"); }
 };
 INSTANTIATE_TEST(Gurobi_lp, LpModelTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableObjectiveTest, gurobi_lp_test);
@@ -24,7 +24,7 @@ INSTANTIATE_TEST(Gurobi_lp, ColumnManagerTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpFuzzyTest, gurobi_lp_test);
 
 struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("GUROBI"); }
 };
 INSTANTIATE_TEST(Gurobi_milp, LpModelTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, MilpModelTest, gurobi_milp_test);

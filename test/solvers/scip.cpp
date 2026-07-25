@@ -5,7 +5,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct scip_milp_test : public model_test<scip_api, scip_milp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("SCIP"); }
 };
 INSTANTIATE_TEST(SCIP, LpModelTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, MilpModelTest, scip_milp_test);

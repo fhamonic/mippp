@@ -5,7 +5,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct glpk_lp_test : public model_test<glpk_api, glpk_lp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("GLPK"); }
 };
 INSTANTIATE_TEST(GLPK_lp, LpModelTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ReadableObjectiveTest, glpk_lp_test);
@@ -20,7 +20,7 @@ INSTANTIATE_TEST(GLPK_lp, LpStatusTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, CuttingStockTest, glpk_lp_test);
 
 struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("GLPK"); }
 };
 INSTANTIATE_TEST(GLPK_milp, LpModelTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, MilpModelTest, glpk_milp_test);

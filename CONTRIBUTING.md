@@ -133,10 +133,24 @@ have one solver installed locally. Without a filter, every backend in
 [test/CMakeLists.txt](test/CMakeLists.txt) is built; backends whose runtime
 library is missing are skipped automatically.
 
+That automatic skipping is convenient locally but hides packaging mistakes in
+CI, where the solvers are installed on purpose. Set `MIPPP_REQUIRED_SOLVERS` to
+a `;`-separated list of solver keys — the same keys as the
+`MIPPP_<key>_LIBRARY` variables above — to turn "this backend could not be
+loaded" from a skip into a test failure:
+
+```bash
+MIPPP_REQUIRED_SOLVERS="CLP;CBC;GLPK;HIGHS" make CONAN_PROFILE=<your_conan_profile>
+```
+
+Only the loading of the backend is asserted; tests skipped because a solver
+lacks a capability, or because its license is unavailable, are unaffected.
+
 Before opening a pull request, make sure the suite passes for at least one
 open-source backend. The GitHub Actions workflow
 ([.github/workflows/c-cpp.yml](.github/workflows/c-cpp.yml)) runs the tests on
-Ubuntu with GCC 15 and the open-source solvers.
+Ubuntu with GCC 15 and the open-source solvers, and each job declares its
+installed backends through `MIPPP_REQUIRED_SOLVERS`.
 
 ## How the tests are organized
 

@@ -5,7 +5,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct highs_lp_test : public model_test<highs_api, highs_lp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("HIGHS"); }
 };
 INSTANTIATE_TEST(HiGHS_lp, LpModelTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ReadableObjectiveTest, highs_lp_test);
@@ -24,7 +24,7 @@ INSTANTIATE_TEST(HiGHS_lp, ColumnManagerTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpFuzzyTest, highs_lp_test);
 
 struct highs_milp_test : public model_test<highs_api, highs_milp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("HIGHS"); }
 };
 INSTANTIATE_TEST(HiGHS_milp, LpModelTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, MilpModelTest, highs_milp_test);
@@ -40,7 +40,7 @@ INSTANTIATE_TEST(HiGHS_milp, SudokuTest, highs_milp_test);
 // INSTANTIATE_TEST(HiGHS_milp, MipStartTest, highs_milp_test);
 
 struct highs_qp_test : public model_test<highs_api, highs_qp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("HIGHS"); }
 };
 INSTANTIATE_TEST(HiGHS_qp, LpModelTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, QpModelTest, highs_qp_test);

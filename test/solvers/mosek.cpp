@@ -5,7 +5,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct mosek_lp_test : public model_test<mosek_api, mosek_lp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("MOSEK"); }
 };
 INSTANTIATE_TEST(MOSEK_lp, LpModelTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableObjectiveTest, mosek_lp_test);
@@ -20,7 +20,7 @@ INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, CuttingStockTest, mosek_lp_test);
 
 struct mosek_milp_test : public model_test<mosek_api, mosek_milp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("MOSEK"); }
 };
 INSTANTIATE_TEST(MOSEK_milp, LpModelTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, MilpModelTest, mosek_milp_test);

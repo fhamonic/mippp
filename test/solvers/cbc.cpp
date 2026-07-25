@@ -7,7 +7,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("CBC"); }
 };
 INSTANTIATE_TEST(Cbc, LpModelTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, MilpModelTest, cbc_milp_test);

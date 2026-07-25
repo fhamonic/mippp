@@ -5,7 +5,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct copt_lp_test : public model_test<copt_api, copt_lp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("COPT"); }
 };
 INSTANTIATE_TEST(COPT_lp, LpModelTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ReadableObjectiveTest, copt_lp_test);
@@ -20,7 +20,7 @@ INSTANTIATE_TEST(COPT_lp, LpStatusTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, CuttingStockTest, copt_lp_test);
 
 struct copt_milp_test : public model_test<copt_api, copt_milp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("COPT"); }
 };
 INSTANTIATE_TEST(COPT_milp, LpModelTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, MilpModelTest, copt_milp_test);

@@ -5,7 +5,7 @@ using namespace mippp;
 #include "test_suites/all.hpp"
 
 struct xpress_lp_test : public model_test<xpress_api, xpress_lp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("XPRESS"); }
 };
 INSTANTIATE_TEST(Xpress_lp, LpModelTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, ReadableObjectiveTest, xpress_lp_test);
@@ -20,7 +20,7 @@ INSTANTIATE_TEST(Xpress_lp, LpStatusTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, CuttingStockTest, xpress_lp_test);
 
 struct xpress_milp_test : public model_test<xpress_api, xpress_milp> {
-    static void SetUpTestSuite() { construct_api(); }
+    static void SetUpTestSuite() { construct_api("XPRESS"); }
 };
 INSTANTIATE_TEST(Xpress_milp, LpModelTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, MilpModelTest, xpress_milp_test);
