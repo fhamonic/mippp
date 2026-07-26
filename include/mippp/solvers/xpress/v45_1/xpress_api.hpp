@@ -1,5 +1,7 @@
 #pragma once
 
+#include <print>
+
 #if INCLUDE_XPRESS_HEADER
 #include "xprs.h"
 #else
@@ -199,8 +201,8 @@ namespace xpress::v45_1 {
     F(XPRSaddcuts, addcuts)                     \
     F(XPRSloaddelayedrows, loaddelayedrows)
 
-#define DECLARE_XPRESS_FUNCTIONS(FULL, SHORT)   \
-    using SHORT##_fun_t = decltype(FULL); \
+#define DECLARE_XPRESS_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);     \
     SHORT##_fun_t const * SHORT;
 #define CONSTRUCT_XPRESS_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
@@ -228,7 +230,12 @@ public:
     void _check(XPRSprob prob, const int error) const {
         if(error == 0) return;
         char errmsg[512];
+        std::println("Error {}", error);
         getlasterror(prob, errmsg);
+        for(int license_err_code :
+            {36, 52, 73, 107, 120, 129, 293, 319, 352, 392, 395, 717, 1054,
+             1081, 1090, 1128, 1148, 1151, 1152})
+            if(error == license_err_code) throw license_error(errmsg);
         throw solver_error(errmsg);
     }
 };
