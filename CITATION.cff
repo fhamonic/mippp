@@ -9,6 +9,10 @@ authors:
   - family-names: Hamonic
     given-names: François
     email: francois.hamonic@gmail.com
+    orcid: "https://orcid.org/0000-0002-3383-3100"
+    affiliation: "Aix-Marseille Univ, CNRS, Univ Avignon, IRD, IMBE, Marseille, France"
 repository-code: "https://github.com/fhamonic/mippp"
+url: "https://fhamonic.github.io/mippp/"
 license: BSL-1.0
 version: 1.0.0
+date-released: 2026-07-25

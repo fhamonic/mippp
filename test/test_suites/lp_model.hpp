@@ -183,6 +183,17 @@ TYPED_TEST_P(LpModelTest, set_objective) {
         ASSERT_EQ(model.num_constraints(), 0);
     });
 }
+TYPED_TEST_P(LpModelTest, set_objective_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        model.set_objective(distinct_variables, x + y);
+        ASSERT_EQ(model.num_variables(), 2);
+        ASSERT_EQ(model.num_constraints(), 0);
+    });
+}
 TYPED_TEST_P(LpModelTest, add_constraint) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -192,6 +203,22 @@ TYPED_TEST_P(LpModelTest, add_constraint) {
         auto c1 = model.add_constraint(x + y >= 1);
         auto c2 = model.add_constraint(x + y == 2);
         auto c3 = model.add_constraint(x + y <= 3);
+        ASSERT_EQ(model.num_variables(), 2);
+        ASSERT_EQ(model.num_constraints(), 3);
+        ASSERT_EQ(c1.id(), 0);
+        ASSERT_EQ(c2.id(), 1);
+        ASSERT_EQ(c3.id(), 2);
+    });
+}
+TYPED_TEST_P(LpModelTest, add_constraint_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        auto c1 = model.add_constraint(distinct_variables, x + y >= 1);
+        auto c2 = model.add_constraint(distinct_variables, x + y == 2);
+        auto c3 = model.add_constraint(distinct_variables, x + y <= 3);
         ASSERT_EQ(model.num_variables(), 2);
         ASSERT_EQ(model.num_constraints(), 3);
         ASSERT_EQ(c1.id(), 0);
@@ -219,6 +246,26 @@ TYPED_TEST_P(LpModelTest, add_constraints) {
         ASSERT_THROW(c(3), std::out_of_range);
     });
 }
+TYPED_TEST_P(LpModelTest, add_constraints_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        auto c1 = model.add_constraint(x + y >= 1);
+        auto c = model.add_constraints(
+            distinct_variables, std::views::iota(0, 3),
+            [&](auto i) { return (3 - i) * x + i * y <= 5; });
+        ASSERT_EQ(model.num_variables(), 2);
+        ASSERT_EQ(model.num_constraints(), 4);
+        ASSERT_EQ(c1.id(), 0);
+        ASSERT_EQ(c(0).id(), 1);
+        ASSERT_EQ(c(1).id(), 2);
+        ASSERT_EQ(c(2).id(), 3);
+        ASSERT_THROW(c(-1), std::out_of_range);
+        ASSERT_THROW(c(3), std::out_of_range);
+    });
+}
 TYPED_TEST_P(LpModelTest, add_opt_constraints) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -228,6 +275,28 @@ TYPED_TEST_P(LpModelTest, add_opt_constraints) {
         auto c1 = model.add_constraint(x + y >= 1);
         auto c = model.add_constraints(
             std::views::iota(0, 3),
+            [&](int i) { return OPT((i == 0), 3 * x <= 5); },
+            [&](int i) { return OPT((i == 1), 2 * x + y <= 5); },
+            [&](int) { return x + 2 * y <= 5; });
+        ASSERT_EQ(model.num_variables(), 2);
+        ASSERT_EQ(model.num_constraints(), 4);
+        ASSERT_EQ(c1.id(), 0);
+        ASSERT_EQ(c(0).id(), 1);
+        ASSERT_EQ(c(1).id(), 2);
+        ASSERT_EQ(c(2).id(), 3);
+        ASSERT_THROW(c(-1), std::out_of_range);
+        ASSERT_THROW(c(3), std::out_of_range);
+    });
+}
+TYPED_TEST_P(LpModelTest, add_opt_constraints_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        auto c1 = model.add_constraint(x + y >= 1);
+        auto c = model.add_constraints(
+            distinct_variables, std::views::iota(0, 3),
             [&](int i) { return OPT((i == 0), 3 * x <= 5); },
             [&](int i) { return OPT((i == 1), 2 * x + y <= 5); },
             [&](int) { return x + 2 * y <= 5; });
@@ -448,6 +517,60 @@ TYPED_TEST_P(LpModelTest, solve_lp_constraint_redundant_terms) {
         ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
     });
 }
+TYPED_TEST_P(LpModelTest, solve_lp_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 = model.add_variable();
+        auto x2 = model.add_variable();
+        auto x3 = model.add_variable();
+        model.set_maximization();
+        model.set_objective(distinct_variables, 5 * x1 + 4 * x2 + 3 * x3);
+        model.add_constraint(distinct_variables, 2 * x1 + 3 * x2 + x3 <= 5);
+        model.add_constraints(
+            distinct_variables, std::views::iota(0, 2),
+            [&](int i) { return OPT((i == 0), 4 * x1 + x2 + 2 * x3 <= 11); },
+            [&](int) { return 3 * x1 + 4 * x2 + 2 * x3 <= 8; });
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), 13.0, TEST_EPSILON);
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[x1], 2.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
+    });
+}
+// Interleaves both forms, and inserts a variable after a tagged call: the
+// tagged path skips the entry cache the untagged one indexes by variable, so
+// the untagged constraint that follows must still see a large enough cache.
+TYPED_TEST_P(LpModelTest, solve_lp_mixed_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 = model.add_variable();
+        auto x2 = model.add_variable();
+        auto x3 = model.add_variable();
+        model.set_maximization();
+        model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
+        model.add_constraint(2 * x1 + 3 * x2 + x3 <= 5);
+        model.add_constraint(distinct_variables, 4 * x1 + x2 + 2 * x3 <= 11);
+        auto x4 = model.add_variable({.obj_coef = 1, .upper_bound = 2});
+        auto c3 = model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 <= 8);
+        auto c4 = model.add_constraint(distinct_variables, x1 + x4 <= 10);
+        auto c5 = model.add_constraint(x2 + x4 <= 10);
+        ASSERT_EQ(model.num_variables(), 4);
+        ASSERT_EQ(model.num_constraints(), 5);
+        ASSERT_EQ(c3.id(), 2);
+        ASSERT_EQ(c4.id(), 3);
+        ASSERT_EQ(c5.id(), 4);
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), 15.0, TEST_EPSILON);
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[x1], 2.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x4], 2.0, TEST_EPSILON);
+    });
+}
 TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_max) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -495,12 +618,16 @@ REGISTER_TYPED_TEST_SUITE_P(
     add_variable_and_variables, add_zero_indexed_variables,
     add_indexed_variables, add_indexed_variables_params,
     add_capturing_indexed_variables, add_variable_and_indexed_variables,
-    set_objective, add_constraint, add_constraints, add_opt_constraints,
-    solve_empty_no_sense, solve_empty_max, solve_empty_min,
-    solve_bounded_variables_max, solve_bounded_variables_min, solve_lp,
-    solve_lp_add_constraints, solve_lp_with_objective_offset_min,
-    solve_lp_with_objective_offset_max, solve_lp_set_objective_offset,
-    solve_lp_objective_redundant_terms, solve_lp_constraint_redundant_terms,
-    solve_lp_non_standard_form_max, solve_lp_non_standard_form_min);
+    set_objective, set_objective_distinct_variables, add_constraint,
+    add_constraint_distinct_variables, add_constraints,
+    add_constraints_distinct_variables, add_opt_constraints,
+    add_opt_constraints_distinct_variables, solve_empty_no_sense,
+    solve_empty_max, solve_empty_min, solve_bounded_variables_max,
+    solve_bounded_variables_min, solve_lp, solve_lp_add_constraints,
+    solve_lp_with_objective_offset_min, solve_lp_with_objective_offset_max,
+    solve_lp_set_objective_offset, solve_lp_objective_redundant_terms,
+    solve_lp_constraint_redundant_terms, solve_lp_distinct_variables,
+    solve_lp_mixed_distinct_variables, solve_lp_non_standard_form_max,
+    solve_lp_non_standard_form_min);
 
 }  // namespace mippp

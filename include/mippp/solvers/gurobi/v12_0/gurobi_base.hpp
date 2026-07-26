@@ -68,10 +68,9 @@ public:
     [[nodiscard]] explicit gurobi_base(const gurobi_api & api)
         : remapping_model_base<int, double>()
         , GRB(&api)
+        , env(GRB->_empty_env())
         , _num_var_native_ids(0)
         , _lazy_num_constraints(0) {
-        check(GRB->emptyenvinternal(&env, GRB_VERSION_MAJOR, GRB_VERSION_MINOR,
-                                    GRB_VERSION_TECHNICAL));
         check(GRB->startenv(env));
         check(GRB->newmodel(env, &model, "GUROBI", 0, nullptr, nullptr, nullptr,
                             nullptr, nullptr));
@@ -223,9 +222,13 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
-        _reset_cache(_num_var_native_ids);
-        _register_entries(le.linear_terms());
+
+private:
+    template <bool distinct, linear_expression LE>
+    void _add_objective(LE && le) {
+        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids);
+        _reset_cache();
+        _register_variables_entries<distinct>(le.linear_terms());
         for(auto && [native_id, coef] :
             std::views::zip(tmp_indices, tmp_scalars)) {
             coef += get_objective_coefficient(_var_handle(native_id));
@@ -234,6 +237,16 @@ public:
                                   static_cast<int>(tmp_indices.size()),
                                   tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
+    }
+
+public:
+    template <linear_expression LE>
+    void add_objective(LE && le) {
+        _add_objective<false>(std::forward<LE>(le));
+    }
+    template <linear_expression LE>
+    void add_objective(distinct_variables_t, LE && le) {
+        _add_objective<true>(std::forward<LE>(le));
     }
     double get_objective_offset() {
         double constant;
@@ -362,8 +375,8 @@ private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params,
                                 const char & type) {
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_constraints_entries<true>(entries);
         check(GRB->addvar(
             model, static_cast<int>(tmp_indices.size()), tmp_indices.data(),
             tmp_scalars.data(), params.obj_coef,
@@ -376,7 +389,7 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
-        return _add_column(entries, params, GRB_CONTINUOUS);
+        return _add_column(std::forward<ER>(entries), params, GRB_CONTINUOUS);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
@@ -450,26 +463,28 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////////// Constraints ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    constraint add_constraint(linear_constraint auto && lc) {
+private:
+    template <bool distinct, linear_constraint LC>
+    constraint _add_constraint(LC && lc) {
         const int constr_id = static_cast<int>(_lazy_num_constraints++);
-        _reset_cache(_num_var_native_ids);
-        _register_entries(lc.linear_terms());
+        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids);
+        _reset_cache();
+        _register_variables_entries<distinct>(lc.linear_terms());
         check(GRB->addconstr(model, static_cast<int>(tmp_indices.size()),
                              tmp_indices.data(), tmp_scalars.data(),
                              constraint_sense_to_gurobi_sense(lc.sense()),
                              lc.rhs(), nullptr));
         return constraint(constr_id);
     }
-    constraint add_constraint(distinct_variables_t,
-                              linear_constraint auto && lc) {
-        const int constr_id = static_cast<int>(_lazy_num_constraints++);
-        _reset_raw_cache();
-        _register_raw_entries(lc.linear_terms());
-        check(GRB->addconstr(model, static_cast<int>(tmp_indices.size()),
-                             tmp_indices.data(), tmp_scalars.data(),
-                             constraint_sense_to_gurobi_sense(lc.sense()),
-                             lc.rhs(), nullptr));
-        return constraint(constr_id);
+
+public:
+    template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
+        return _add_constraint<false>(std::forward<LC>(lc));
+    }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        return _add_constraint<true>(std::forward<LC>(lc));
     }
 
 private:
@@ -479,11 +494,7 @@ private:
         tmp_begins.emplace_back(static_cast<int>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_gurobi_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        if constexpr(distinct) {
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _register_variables_entries<distinct>(lc.linear_terms());
     }
     template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -508,11 +519,8 @@ private:
     }
     template <bool distinct, std::ranges::range IR, typename... CL>
     auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
-        if constexpr(distinct) {
-            _reset_raw_cache();
-        } else {
-            _reset_cache(_num_var_native_ids);
-        }
+        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids);
+        _reset_cache();
         tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);
@@ -556,16 +564,29 @@ public:
                                       constraint_sense_to_gurobi_sense(r)));
     }
     // adds an equality constraint with a slack variable bounded in [0, ub-lb]
-    constraint add_ranged_constraint(linear_expression auto && le, double lb,
-                                     double ub) {
+private:
+    template <bool distinct, linear_expression LE>
+    constraint _add_ranged_constraint(LE && le, double lb, double ub) {
         int constr_id = static_cast<int>(_lazy_num_constraints++);
-        _reset_cache(_num_var_native_ids);
-        _register_entries(le.linear_terms());
+        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids);
+        _reset_cache();
+        _register_variables_entries<distinct>(le.linear_terms());
         check(GRB->addrangeconstr(model, static_cast<int>(tmp_indices.size()),
                                   tmp_indices.data(), tmp_scalars.data(), lb,
                                   ub, nullptr));
         _new_var_handle(_new_var_native_id());  // added_slack variable
         return constraint(constr_id);
+    }
+
+public:
+    template <linear_expression LE>
+    constraint add_ranged_constraint(LE && le, double lb, double ub) {
+        return _add_ranged_constraint<false>(std::forward<LE>(le), lb, ub);
+    }
+    template <linear_expression LE>
+    constraint add_ranged_constraint(distinct_variables_t, LE && le, double lb,
+                                     double ub) {
+        return _add_ranged_constraint<true>(std::forward<LE>(le), lb, ub);
     }
     // void set_constraint_name(constraint constr, auto && name);
 

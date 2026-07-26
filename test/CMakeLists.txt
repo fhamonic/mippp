@@ -41,7 +41,7 @@ add_executable(
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
 target_link_libraries(mippp_test mippp)
-target_link_libraries(mippp_test GTest::gtest)
+target_link_libraries(mippp_test GTest::gmock)
 target_link_libraries(mippp_test melon::melon)
 gtest_discover_tests(mippp_test)
 

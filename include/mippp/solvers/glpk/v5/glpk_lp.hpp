@@ -18,6 +18,10 @@ private:
 public:
     [[nodiscard]] explicit glpk_lp(const glpk_api & api)
         : glpk_base(api), model_params() {
+        // Let GLPK fill in its own defaults before overriding: the fields left
+        // untouched below must not stay zero. GLPK <= 4.62 rejects out_frq = 0
+        // outright, and xerror() aborts the process rather than reporting it.
+        glp->init_smcp(&model_params);
         model_params.msg_lev = GLP_MSG_ALL;
         model_params.meth = GLP_PRIMAL;
         model_params.pricing = GLP_PT_STD;

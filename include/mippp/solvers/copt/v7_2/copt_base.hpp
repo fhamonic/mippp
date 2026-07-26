@@ -109,19 +109,26 @@ public:
     void set_objective_offset(scalar constant) {
         check(COPT->SetObjConst(prob, constant));
     }
-    void set_objective(linear_expression auto && le) {
-        _reset_cache(num_variables());
-        _register_entries(le.linear_terms());
+
+private:
+    template <bool distinct, linear_expression LE>
+    void _set_objective(LE && le) {
+        if constexpr(!distinct) _prepare_coalescing(num_variables());
+        _reset_cache();
+        _register_variables_entries<distinct>(le.linear_terms());
         check(COPT->ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
                                   tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
-    void set_objective(distinct_variables_t, linear_expression auto && le) {
-        _reset_raw_cache();
-        _register_raw_entries(le.linear_terms());
-        check(COPT->ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
-                                  tmp_indices.data(), tmp_scalars.data()));
-        set_objective_offset(le.constant());
+
+public:
+    template <linear_expression LE>
+    void set_objective(LE && le) {
+        _set_objective<false>(std::forward<LE>(le));
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        _set_objective<true>(std::forward<LE>(le));
     }
     void add_objective(linear_expression auto && le) {
         const auto num_vars = num_variables();
@@ -138,7 +145,6 @@ public:
                                   tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
-
     scalar get_objective_offset() {
         scalar objective_offset;
         check(COPT->GetDblAttr(prob, COPT_DBLATTR_OBJCONST, &objective_offset));
@@ -255,8 +261,8 @@ private:
     inline variable _add_column(ER && entries, const variable_params & params,
                                 const char & type) {
         const int var_id = static_cast<int>(num_variables());
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_constraints_entries<true>(entries);
         check(COPT->AddCol(
             prob, params.obj_coef, static_cast<int>(tmp_indices.size()),
             tmp_indices.data(), tmp_scalars.data(), type,
@@ -322,22 +328,13 @@ public:
         return name;
     }
 
-    constraint add_constraint(linear_constraint auto && lc) {
+private:
+    template <bool distinct, linear_constraint LC>
+    constraint _add_constraint(LC && lc) {
         auto constr_id = static_cast<constraint_id>(num_constraints());
-        _reset_cache(num_variables());
-        _register_entries(lc.linear_terms());
-        const scalar b = lc.rhs();
-        check(COPT->AddRow(prob, static_cast<int>(tmp_indices.size()),
-                           tmp_indices.data(), tmp_scalars.data(),
-                           constraint_sense_to_copt_sense(lc.sense()), b,
-                           COPT_INFINITY, nullptr));
-        return constraint(constr_id);
-    }
-    constraint add_constraint(distinct_variables_t,
-                              linear_constraint auto && lc) {
-        auto constr_id = static_cast<constraint_id>(num_constraints());
-        _reset_raw_cache();
-        _register_raw_entries(lc.linear_terms());
+        if constexpr(!distinct) _prepare_coalescing(num_variables());
+        _reset_cache();
+        _register_variables_entries<distinct>(lc.linear_terms());
         const scalar b = lc.rhs();
         check(COPT->AddRow(prob, static_cast<int>(tmp_indices.size()),
                            tmp_indices.data(), tmp_scalars.data(),
@@ -346,17 +343,23 @@ public:
         return constraint(constr_id);
     }
 
+public:
+    template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
+        return _add_constraint<false>(std::forward<LC>(lc));
+    }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        return _add_constraint<true>(std::forward<LC>(lc));
+    }
+
 private:
     template <bool distinct, linear_constraint LC>
     void _register_constraint(LC && lc) {
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_copt_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        if constexpr(distinct) {
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _register_variables_entries<distinct>(lc.linear_terms());
     }
     template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -382,11 +385,8 @@ private:
 
     template <bool distinct, std::ranges::range IR, typename... CL>
     auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
-        if constexpr(distinct) {
-            _reset_raw_cache();
-        } else {
-            _reset_cache(num_variables());
-        }
+        if constexpr(!distinct) _prepare_coalescing(num_variables());
+        _reset_cache();
         tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);

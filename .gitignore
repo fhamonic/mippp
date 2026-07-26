@@ -12,3 +12,5 @@ CMakeUserPresets.json
 /site
 
 MakeW64.bat
+# compatibility matrix downloads (tools/compat_matrix.py)
+/.compat-cache

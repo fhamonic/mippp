@@ -110,9 +110,13 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
-        _reset_cache(_num_var_native_ids());
-        _register_entries(le.linear_terms());
+
+private:
+    template <bool distinct, linear_expression LE>
+    void _add_objective(LE && le) {
+        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids());
+        _reset_cache();
+        _register_variables_entries<distinct>(le.linear_terms());
         const std::size_t num_entries = tmp_indices.size();
         std::ranges::sort(std::views::zip(tmp_indices, tmp_scalars),
                           [](const auto & e1, const auto & e2) {
@@ -133,6 +137,17 @@ public:
             tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
+
+public:
+    template <linear_expression LE>
+    void add_objective(LE && le) {
+        _add_objective<false>(std::forward<LE>(le));
+    }
+    template <linear_expression LE>
+    void add_objective(distinct_variables_t, LE && le) {
+        _add_objective<true>(std::forward<LE>(le));
+    }
+
     scalar get_objective_offset() {
         scalar offset;
         check(Highs->getObjectiveOffset(model, &offset));
@@ -315,8 +330,8 @@ private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
         const int var_id = _new_var_native_id();
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_constraints_entries<true>(entries);
         check(Highs->addCol(
             model, params.obj_coef,
             params.lower_bound.value_or(-Highs->getInfinity(model)),
@@ -416,13 +431,9 @@ private:
     template <bool distinct, linear_constraint LC>
     constraint _add_constraint(LC && lc) {
         const HighsInt constr_id = static_cast<HighsInt>(num_constraints());
-        if constexpr(distinct) {
-            _reset_raw_cache();
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _reset_cache(_num_var_native_ids());
-            _register_entries(lc.linear_terms());
-        }
+        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids());
+        _reset_cache();
+        _register_variables_entries<distinct>(lc.linear_terms());
         const scalar b = lc.rhs();
         check(Highs->addRow(model,
                             (lc.sense() == constraint_sense::less_equal)
@@ -459,11 +470,7 @@ private:
             (lc.sense() == constraint_sense::greater_equal)
                 ? Highs->getInfinity(model)
                 : b);
-        if constexpr(distinct) {
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _register_variables_entries<distinct>(lc.linear_terms());
     }
     template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -488,11 +495,8 @@ private:
     }
     template <bool distinct, std::ranges::range IR, typename... CL>
     auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
-        if constexpr(distinct) {
-            _reset_raw_cache();
-        } else {
-            _reset_cache(_num_var_native_ids());
-        }
+        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids());
+        _reset_cache();
         tmp_begins.resize(0);
         tmp_lower_bounds.resize(0);
         tmp_upper_bounds.resize(0);

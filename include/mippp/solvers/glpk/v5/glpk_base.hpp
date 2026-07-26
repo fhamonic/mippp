@@ -55,23 +55,29 @@ protected:
                                  "' to constraint_sense.");
     }
 
-    void _reset_cache(std::size_t num_variables) {
-        tmp_entry_index_cache.resize(num_variables);
+    void _reset_cache() {
         tmp_indices.resize(1);
         tmp_scalars.resize(1);
     }
-
     template <std::ranges::range Entries>
-    void _register_entries(Entries && entries) {
+    void _register_raw_entries(Entries && entries) {
+        for(auto && [entity, coef] : entries) {
+            tmp_indices.emplace_back(entity.id() + 1);
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+    template <std::ranges::range Entries>
+    void _register_coalescing_entries(Entries && entries) {
         ++register_count;
         for(auto && [entity, coef] : entries) {
-            auto & p = tmp_entry_index_cache[entity.uid()];
+            const int id = entity.id();
+            auto & p = *(tmp_entry_index_cache.data() + id);
             if(p.first == register_count) {
                 tmp_scalars[p.second] += static_cast<scalar>(coef);
                 continue;
             }
             p = std::make_pair(register_count, tmp_indices.size());
-            tmp_indices.emplace_back(entity.id() + 1);
+            tmp_indices.emplace_back(id + 1);
             tmp_scalars.emplace_back(coef);
         }
     }
@@ -264,8 +270,8 @@ private:
     inline variable _add_column(ER && entries, const variable_params & params) {
         const int var_id = static_cast<int>(num_variables());
         _add_variable(var_id, params, GLP_CV);
-        _reset_cache(num_constraints());
-        _register_entries(entries);
+        _reset_cache();
+        _register_raw_entries(entries);
         glp->set_mat_col(model, var_id + 1,
                          static_cast<int>(tmp_indices.size()) - 1,
                          tmp_indices.data(), tmp_scalars.data());
@@ -323,7 +329,7 @@ private:
         if constexpr(distinct) {
             _register_raw_entries(lc.linear_terms());
         } else {
-            _register_entries(lc.linear_terms());
+            _register_coalescing_entries(lc.linear_terms());
         }
         glp->set_mat_row(model, constr_id + 1,
                          static_cast<int>(tmp_indices.size()) - 1,

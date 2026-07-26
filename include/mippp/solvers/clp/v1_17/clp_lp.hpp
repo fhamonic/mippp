@@ -233,8 +233,8 @@ private:
             }
             return v;
         }
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_constraints_entries<true>(entries);
         const int var_id = static_cast<int>(num_native_ids_variables());
         const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
         const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
@@ -314,8 +314,8 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     constraint add_constraint(linear_constraint auto && lc) {
         int constr_id = static_cast<int>(num_constraints());
-        _reset_raw_cache();
-        _register_raw_entries(lc.linear_terms());
+        _reset_cache();
+        _register_variables_entries<true>(lc.linear_terms());
         const scalar b = lc.rhs();
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
         Clp->addRows(

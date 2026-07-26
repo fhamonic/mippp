@@ -273,8 +273,8 @@ private:
     inline variable _add_column(ER && entries, const variable_params & params) {
         const int var_id = static_cast<int>(num_variables());
         const int cmatbeg = 0;
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_constraints_entries<true>(entries);
         const double lb = params.lower_bound.value_or(XPRS_MINUSINFINITY);
         const double ub = params.upper_bound.value_or(XPRS_PLUSINFINITY);
         check(XPRS->addcols(prob, 1, static_cast<int>(tmp_indices.size()),
@@ -345,13 +345,9 @@ private:
     template <bool distinct, linear_constraint LC>
     constraint _add_constraint(LC && lc) {
         int constr_id = static_cast<int>(num_constraints());
-        if constexpr(distinct) {
-            _reset_raw_cache();
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _reset_cache(num_variables());
-            _register_entries(lc.linear_terms());
-        }
+        if constexpr(!distinct) _prepare_coalescing(num_variables());
+        _reset_cache();
+        _register_variables_entries<distinct>(lc.linear_terms());
         int matbegin = 0;
         const double b = lc.rhs();
         const char sense = constraint_sense_to_xpress_sense(lc.sense());
@@ -377,11 +373,7 @@ private:
         tmp_begins.emplace_back(static_cast<int>(tmp_indices.size()));
         tmp_types.emplace_back(constraint_sense_to_xpress_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        if constexpr(distinct) {
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _register_variables_entries<distinct>(lc.linear_terms());
     }
     template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -406,11 +398,8 @@ private:
     }
     template <bool distinct, std::ranges::range IR, typename... CL>
     auto _add_constraints(IR && keys, CL &&... constraint_lambdas) {
-        if constexpr(distinct) {
-            _reset_raw_cache();
-        } else {
-            _reset_cache(num_variables());
-        }
+        if constexpr(!distinct) _prepare_coalescing(num_variables());
+        _reset_cache();
         tmp_begins.resize(0);
         tmp_types.resize(0);
         tmp_rhs.resize(0);

@@ -20,6 +20,9 @@ private:
 public:
     [[nodiscard]] explicit glpk_milp(const glpk_api & api)
         : glpk_base(api), model_params() {
+        // See glpk_lp: the untouched fields must carry GLPK's defaults, not
+        // zeros, or out_frq = 0 aborts the process on GLPK <= 4.62.
+        glp->init_iocp(&model_params);
         model_params.msg_lev = GLP_MSG_ALL;
         model_params.br_tech = GLP_BR_PCH;
         model_params.bt_tech = GLP_BT_BLB;

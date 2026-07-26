@@ -8,7 +8,7 @@ CONAN_PROFILE = gcc14_c++23
 
 CONAN_CXXFLAGS = -c 'tools.build:cxxflags=["-fconcepts-diagnostics-depth=30"]'
 
-.PHONY: all test package features_tables doc clean
+.PHONY: all test package features_tables compat_table doc paper clean
 
 all: test
 
@@ -30,9 +30,18 @@ package:
 features_tables:
 	python docs/assets/features_tables/tested_features_table.py
 
+compat_table:
+	python3 tools/compat_matrix.py run --limit $(or $(LIMIT),5) --commercial
+
 doc:
 	zensical serve
+
+paper:
+	@rm -f paper/paper.pdf
+	docker run --rm -v "$(CURDIR):/data" -u $(shell id -u):$(shell id -g) openjournals/inara -o pdf paper/paper.md
 
 clean:
 	@rm -rf CMakeUserPresets.json
 	@rm -rf $(BUILD_DIR)
+	@rm -rf .compat-cache
+	@rm -f paper/paper.pdf

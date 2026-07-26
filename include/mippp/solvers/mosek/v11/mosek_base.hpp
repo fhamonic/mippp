@@ -145,6 +145,10 @@ public:
                              tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
+    template <linear_expression LE>
+    void add_objective(distinct_variables_t, LE && le) {
+        add_objective(std::forward<LE>(le));
+    }
 
     scalar get_objective_offset() {
         scalar objective_offset;
@@ -280,8 +284,8 @@ private:
     inline variable _add_column(ER && entries, const variable_params & params) {
         const int var_id = static_cast<int>(num_variables());
         _add_variable(var_id, params, MSK_VAR_TYPE_CONT);
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_constraints_entries<true>(entries);
         check(MSK->putacol(task, var_id, static_cast<int>(tmp_indices.size()),
                            tmp_indices.data(), tmp_scalars.data()));
         return variable(var_id);
@@ -345,13 +349,9 @@ private:
     constraint _add_constraint(LC && lc) {
         auto constr_id = static_cast<constraint_id>(num_constraints());
         check(MSK->appendcons(task, 1));
-        if constexpr(distinct) {
-            _reset_raw_cache();
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _reset_cache(num_variables());
-            _register_entries(lc.linear_terms());
-        }
+        if constexpr(!distinct) _prepare_coalescing(num_variables());
+        _reset_cache();
+        _register_variables_entries<distinct>(lc.linear_terms());
         check(MSK->putarow(task, constr_id,
                            static_cast<indice>(tmp_indices.size()),
                            tmp_indices.data(), tmp_scalars.data()));
@@ -378,11 +378,7 @@ private:
         tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
         tmp_boundkeye.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
-        if constexpr(distinct) {
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _register_variables_entries<distinct>(lc.linear_terms());
     }
     template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
@@ -408,11 +404,8 @@ private:
 
     template <bool distinct, std::ranges::range IR, typename... CL>
     auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
-        if constexpr(distinct) {
-            _reset_raw_cache();
-        } else {
-            _reset_cache(num_variables());
-        }
+        if constexpr(!distinct) _prepare_coalescing(num_variables());
+        _reset_cache();
         tmp_begins.resize(0);
         tmp_boundkeye.resize(0);
         tmp_rhs.resize(0);

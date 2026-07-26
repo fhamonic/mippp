@@ -33,7 +33,25 @@ TYPED_TEST_P(QpModelTest, test) {
         EXPECT_NEAR(solution[x2], 1.75, TEST_EPSILON);
     });
 }
+TYPED_TEST_P(QpModelTest, set_objective_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 = model.add_variable();
+        auto x2 = model.add_variable();
+        model.set_minimization();
+        model.set_objective(distinct_variables,
+                            2 * x1 * x1 + 2 * x2 * x2 - 4 * x1 - 6 * x2);
+        model.add_constraint(distinct_variables, x1 + x2 >= 3);
+        model.solve();
+        EXPECT_NEAR(model.get_solution_value(), -6.25, TEST_EPSILON);
+        auto solution = model.get_solution();
+        EXPECT_NEAR(solution[x1], 1.25, TEST_EPSILON);
+        EXPECT_NEAR(solution[x2], 1.75, TEST_EPSILON);
+    });
+}
 
-REGISTER_TYPED_TEST_SUITE_P(QpModelTest, test);
+REGISTER_TYPED_TEST_SUITE_P(QpModelTest, test,
+                            set_objective_distinct_variables);
 
 }  // namespace mippp

@@ -50,8 +50,21 @@ TYPED_TEST_P(ReadableObjectiveTest, get_objective) {
                         123.0);
     });
 }
+TYPED_TEST_P(ReadableObjectiveTest, get_objective_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        auto z = model.add_variable();
+        model.set_objective(distinct_variables, 123 + 3 * x - 5 * y + z);
+        ASSERT_LIN_EXPR(model.get_objective(), {{x, 3.0}, {y, -5.0}, {z, 1.0}},
+                        123.0);
+    });
+}
 
 REGISTER_TYPED_TEST_SUITE_P(ReadableObjectiveTest, get_objective_offset,
-                            get_objective_coefficient, get_objective);
+                            get_objective_coefficient, get_objective,
+                            get_objective_distinct_variables);
 
 }  // namespace mippp

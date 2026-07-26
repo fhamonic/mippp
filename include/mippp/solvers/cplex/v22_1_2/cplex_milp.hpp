@@ -101,15 +101,28 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////// Special constraints ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void add_indicator_constraint(variable x, bool val,
-                                  linear_constraint auto && lc) {
-        _reset_cache(_num_var_native_ids());
-        _register_entries(lc.linear_terms());
+private:
+    template <bool distinct, linear_constraint LC>
+    void _add_indicator_constraint(variable x, bool val, LC && lc) {
+        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids());
+        _reset_cache();
+        _register_variables_entries<distinct>(lc.linear_terms());
         check(CPX->addindconstr(env, lp, x.id(), static_cast<int>(!val),
                                 static_cast<int>(tmp_indices.size()), lc.rhs(),
                                 constraint_sense_to_cplex_sense(lc.sense()),
                                 tmp_indices.data(), tmp_scalars.data(),
                                 nullptr));
+    }
+
+public:
+    template <linear_constraint LC>
+    void add_indicator_constraint(variable x, bool val, LC && lc) {
+        _add_indicator_constraint<false>(x, val, std::forward<LC>(lc));
+    }
+    template <linear_constraint LC>
+    void add_indicator_constraint(distinct_variables_t, variable x, bool val,
+                                  LC && lc) {
+        _add_indicator_constraint<true>(x, val, std::forward<LC>(lc));
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Callbacks ////////////////////////////////
@@ -149,9 +162,13 @@ public:
                                            cplex_milp * model_)
             : callback_handle_base(api, context_, model_) {}
 
-        void add_lazy_constraint(linear_constraint auto && lc) {
-            _reset_cache(model->_num_var_native_ids());
-            _register_entries(lc.linear_terms());
+    private:
+        template <bool distinct, linear_constraint LC>
+        void _add_lazy_constraint(LC && lc) {
+            if constexpr(!distinct)
+                _prepare_coalescing(model->_num_var_native_ids());
+            _reset_cache();
+            _register_variables_entries<distinct>(lc.linear_terms());
             if(model->_remap_ids) {
                 for(auto & id : tmp_indices)
                     id = model->_native_ids_map[static_cast<std::size_t>(id)];
@@ -162,6 +179,16 @@ public:
             cbcheck(CPX->callbackrejectcandidate(
                 context, 1, static_cast<int>(tmp_indices.size()), &b, &sense,
                 &matbegin, tmp_indices.data(), tmp_scalars.data()));
+        }
+
+    public:
+        template <linear_constraint LC>
+        void add_lazy_constraint(LC && lc) {
+            return _add_lazy_constraint<false>(std::forward<LC>(lc));
+        }
+        template <linear_constraint LC>
+        void add_lazy_constraint(distinct_variables_t, LC && lc) {
+            return _add_lazy_constraint<true>(std::forward<LC>(lc));
         }
         double get_solution_value() {
             double obj;
@@ -208,8 +235,8 @@ public:
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_variables_entries<true>(entries);
         int beg = 0;
         int effort_level = CPX_MIPSTART_SOLVEMIP;
         check(CPX->addmipstarts(

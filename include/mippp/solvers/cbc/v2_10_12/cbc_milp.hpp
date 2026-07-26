@@ -251,8 +251,8 @@ public:
 private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_constraints_entries<true>(entries);
         Cbc->addCol(model, "", params.lower_bound.value_or(-COIN_DBL_MAX),
                     params.upper_bound.value_or(COIN_DBL_MAX), params.obj_coef,
                     false, static_cast<int>(tmp_indices.size()),
@@ -317,37 +317,10 @@ public:
     /////////////////////////////// Constraints ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
-    template <linear_constraint LC>
-    void _add_constraint(LC && lc) {
-        tmp_indices.resize(0);
-        tmp_scalars.resize(0);
-        _register_entries(lc.linear_terms());
-        Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
-                    tmp_indices.data(), tmp_scalars.data(),
-                    constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
-        ++_lazy_num_constraints;
-    }
-    template <linear_constraint LC>
-    void _add_constraint(distinct_variables_t, LC && lc) {
-        tmp_indices.resize(0);
-        tmp_scalars.resize(0);
-        _register_raw_entries(lc.linear_terms());
-        Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
-                    tmp_indices.data(), tmp_scalars.data(),
-                    constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
-        ++_lazy_num_constraints;
-    }
-
-private:
     template <bool distinct, linear_constraint LC>
     void _add_constraint(LC && lc) {
-        tmp_indices.resize(0);
-        tmp_scalars.resize(0);
-        if constexpr(distinct) {
-            _register_raw_entries(lc.linear_terms());
-        } else {
-            _register_entries(lc.linear_terms());
-        }
+        _reset_cache();
+        _register_variables_entries<distinct>(lc.linear_terms());
         Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
                     tmp_indices.data(), tmp_scalars.data(),
                     constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
@@ -357,7 +330,7 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
-        tmp_entry_index_cache.resize(_lazy_num_variables);
+        _prepare_coalescing(_lazy_num_variables);
         int constr_id = static_cast<int>(_lazy_num_constraints);
         _add_constraint<false>(std::forward<LC>(lc));
         return constraint(constr_id);
@@ -453,9 +426,8 @@ public:
     constraint add_ranged_constraint(linear_expression auto && le, double lb,
                                      double ub) {
         const int constr_id = static_cast<int>(_lazy_num_constraints);
-        tmp_indices.resize(0);
-        tmp_scalars.resize(0);
-        _register_entries(le.linear_terms());
+        _reset_cache();
+        _register_variables_entries<false>(le.linear_terms());
         const double c = le.constant();
         Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
                     tmp_indices.data(), tmp_scalars.data(), 'L', ub - c);
@@ -505,8 +477,8 @@ public:
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_variables_entries<true>(entries);
         Cbc->setMIPStartI(model, static_cast<int>(tmp_indices.size()),
                           tmp_indices.data(), tmp_scalars.data());
     }

@@ -161,8 +161,8 @@ public:
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_variables_entries<true>(entries);
         check(XPRS->addmipsol(prob, static_cast<int>(tmp_indices.size()),
                               tmp_scalars.data(), tmp_indices.data(), nullptr));
     }

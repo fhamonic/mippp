@@ -37,6 +37,7 @@ nav = [
   { "Solvers" = [
     { "Choosing a solver" = "solvers/index.md" },
     { "Writing solver-generic code" = "solvers/generic-code.md" },
+    { "Version compatibility" = "solvers/compatibility.md" },
   ] },
   { "Worked examples" = "examples.md" },
   { "Performance" = "performance.md" },

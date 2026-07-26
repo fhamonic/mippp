@@ -117,6 +117,7 @@ struct glp_smcp {
     int aorn;            // option to use A or N
     double foo_bar[33];  // (reserved)
 };
+void glp_init_smcp(glp_smcp * parm);
 int glp_simplex(glp_prob * P, const glp_smcp * parm);
 
 constexpr int GLP_UNDEF = 1;   // solution is undefined
@@ -182,6 +183,7 @@ struct glp_iocp {               // integer optimizer control parameters
 #endif
     double foo_bar[23];  // (reserved)
 };
+void glp_init_iocp(glp_iocp * parm);
 int glp_intopt(glp_prob * P, const glp_iocp * parm);
 int glp_intfeas1(glp_prob * P, int use_bound, int obj_bound);
 double glp_mip_obj_val(glp_prob * P);
@@ -229,6 +231,7 @@ namespace glpk::v5 {
     F(glp_get_row_stat, get_row_stat)   \
     F(glp_set_col_stat, set_col_stat)   \
     F(glp_get_col_stat, get_col_stat)   \
+    F(glp_init_smcp, init_smcp)         \
     F(glp_simplex, simplex)             \
     F(glp_get_status, get_status)       \
     F(glp_get_prim_stat, get_prim_stat) \
@@ -237,6 +240,7 @@ namespace glpk::v5 {
     F(glp_get_col_prim, get_col_prim)   \
     F(glp_get_row_dual, get_row_dual)   \
     F(glp_get_col_dual, get_col_dual)   \
+    F(glp_init_iocp, init_iocp)         \
     F(glp_intopt, intopt)               \
     F(glp_intfeas1, intfeas1)           \
     F(glp_mip_obj_val, mip_obj_val)     \

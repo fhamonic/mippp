@@ -334,7 +334,7 @@ public:
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL... constraint_lambdas) {
         return add_constraints(std::forward<IR>(keys),
-                               std::forward<CL...>(constraint_lambdas...));
+                               std::forward<CL>(constraint_lambdas)...);
     }
 
     template <std::ranges::range ER>

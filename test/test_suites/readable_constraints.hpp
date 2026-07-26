@@ -88,9 +88,55 @@ TYPED_TEST_P(ReadableConstraintsTest, get_constraint) {
                           constraint_sense::equal, 8);
     });
 }
+TYPED_TEST_P(ReadableConstraintsTest, get_constraint_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 = model.add_variable();
+        auto x2 = model.add_variable();
+        auto x3 = model.add_variable();
+        auto c1 = model.add_constraint(distinct_variables,
+                                       2 * x1 + 2 * x2 - x3 >= 5);
+        auto c2 = model.add_constraint(distinct_variables,
+                                       4 * x1 + x2 + 2 * x3 <= 11);
+        auto c3 = model.add_constraint(distinct_variables,
+                                       3 * x1 + 4 * x2 + 2 * x3 == 8);
+        ASSERT_CONSTRAINT(model.get_constraint(c1),
+                          {{x1, 2.0}, {x2, 2.0}, {x3, -1.0}},
+                          constraint_sense::greater_equal, 5);
+        ASSERT_CONSTRAINT(model.get_constraint(c2),
+                          {{x1, 4.0}, {x2, 1.0}, {x3, 2.0}},
+                          constraint_sense::less_equal, 11);
+        ASSERT_CONSTRAINT(model.get_constraint(c3),
+                          {{x1, 3.0}, {x2, 4.0}, {x3, 2.0}},
+                          constraint_sense::equal, 8);
+    });
+}
+TYPED_TEST_P(ReadableConstraintsTest, get_constraints_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 = model.add_variable();
+        auto x2 = model.add_variable();
+        auto x3 = model.add_variable();
+        auto cs = model.add_constraints(
+            distinct_variables, std::views::iota(0, 3),
+            [&](int i) { return (i + 1) * x1 + x2 - (i + 1) * x3 <= 2 * i; });
+        ASSERT_CONSTRAINT(model.get_constraint(cs(0)),
+                          {{x1, 1.0}, {x2, 1.0}, {x3, -1.0}},
+                          constraint_sense::less_equal, 0);
+        ASSERT_CONSTRAINT(model.get_constraint(cs(1)),
+                          {{x1, 2.0}, {x2, 1.0}, {x3, -2.0}},
+                          constraint_sense::less_equal, 2);
+        ASSERT_CONSTRAINT(model.get_constraint(cs(2)),
+                          {{x1, 3.0}, {x2, 1.0}, {x3, -3.0}},
+                          constraint_sense::less_equal, 4);
+    });
+}
 
 REGISTER_TYPED_TEST_SUITE_P(ReadableConstraintsTest, get_constraint_lhs,
                             get_constraint_sense, get_constraint_rhs,
-                            get_constraint);
+                            get_constraint, get_constraint_distinct_variables,
+                            get_constraints_distinct_variables);
 
 }  // namespace mippp

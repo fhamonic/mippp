@@ -80,13 +80,13 @@ Complete runnable programs — N-Queens, Sudoku, TSP with lazy constraints, cutt
 
 Time to *build* the N-Queens model (`N²` binary variables, `6N−6` constraints) — MIP++ in milliseconds, the other interfaces as a multiple of it **on the same backend**:
 
-| N | **MIP++** Cbc | **MIP++** HiGHS | OR-tools Cbc | OR-tools HiGHS | JuMP Cbc | JuMP HiGHS |
-| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | **0.9 ms** | **1.5 ms** | 4.0× | 2.3× | 14.3× | 43.9× |
-| 500 | **18.9 ms** | **36.6 ms** | 4.8× | 2.4× | 13.6× | 7.4× |
-| 1000 | **72.8 ms** | **146.2 ms** | 5.2× | 2.6× | 13.7× | 6.5× |
+| N | **MIP++** HiGHS | OR-tools `MPSolver` | OR-tools MathOpt | JuMP cached | JuMP direct |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 | **1.5 ms** | 2.4× | 3.3× | 4.1× | 13.1× |
+| 500 | **34.1 ms** | 2.6× | 5.2× | 6.8× | 16.6× |
+| 1000 | **137.6 ms** | 2.8× | 7.7× | 6.5× | 21.1× |
 
-A million binary variables in 73 ms; the Python layers land two to three orders of magnitude above that. Build time is noise when a single solve runs for hours — it matters on very large models and in loops that touch the model constantly, and the [Performance](performance.md) page is explicit about that scope. Full tables, the case where MIP++ *loses* (SCIP), and the methodology are there too — benchmark code and raw per-solver timings in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
+A million binary variables in 138 ms through HiGHS, 67 ms through Cbc — and within a few percent (99–104%) of what the Gurobi C API itself costs. The Python layers land one to two orders of magnitude above that. Build time is noise when a single solve runs for hours — it matters on very large models and in loops that touch the model constantly, and the [Performance](performance.md) page is explicit about that scope. Full tables across seven backends, the case where MIP++ *loses* (SCIP), the limitations and the methodology are there too — benchmark code and raw per-solver timings in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
 
 ## Acknowledgements
 

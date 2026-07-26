@@ -15,6 +15,7 @@ constexpr int GRB_VERSION_MAJOR = 12;
 constexpr int GRB_VERSION_MINOR = 0;
 constexpr int GRB_VERSION_TECHNICAL = 1;
 void GRBversion(int * majorP, int * minorP, int * technicalP);
+int GRBemptyenv(GRBenv ** envP);  // prior to v12
 int GRBemptyenvinternal(GRBenv ** envP, int major, int minor, int tech);
 int GRBstartenv(GRBenv * env);
 GRBenv * GRBgetenv(GRBmodel * model);
@@ -208,7 +209,6 @@ namespace gurobi::v12_0 {
 
 #define GRB_FUNCTIONS(F)                               \
     F(GRBversion, version)                             \
-    F(GRBemptyenvinternal, emptyenvinternal)           \
     F(GRBstartenv, startenv)                           \
     F(GRBgetenv, getenv)                               \
     F(GRBfreeenv, freeenv)                             \
@@ -258,34 +258,63 @@ namespace gurobi::v12_0 {
     F(GRBsetcallbackfunc, setcallbackfunc)             \
     F(GRBcbproceed, cbproceed)                         \
     F(GRBcbget, cbget)                                 \
-    F(GRBcbsetintparam, cbsetintparam)                 \
-    F(GRBcbsetdblparam, cbsetdblparam)                 \
-    F(GRBcbsetstrparam, cbsetstrparam)                 \
     F(GRBcbsetparam, cbsetparam)                       \
     F(GRBcbsolution, cbsolution)                       \
     F(GRBcbcut, cbcut)                                 \
     F(GRBcblazy, cblazy)
 
-#define DECLARE_GUROBI_FUNCTIONS(FULL, SHORT) \
-    using SHORT##_fun_t = decltype(FULL);     \
+#define GRB_OPTIONAL_FUNCTIONS(F)            \
+    F(GRBemptyenv, emptyenv)                 \
+    F(GRBemptyenvinternal, emptyenvinternal) \
+    F(GRBcbsetintparam, cbsetintparam)       \
+    F(GRBcbsetdblparam, cbsetdblparam)       \
+    F(GRBcbsetstrparam, cbsetstrparam)
+
+#define DECLARE_GRB_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);  \
     SHORT##_fun_t const * SHORT;
-#define CONSTRUCT_GUROBI_FUNCTIONS(FULL, SHORT) \
+#define CONSTRUCT_GRB_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
+#define CONSTRUCT_GRB_OPTIONAL_FUNCTIONS(FULL, SHORT) \
+    , SHORT(_try_load<SHORT##_fun_t>(#FULL))
 
 class gurobi_api {
 private:
     dylib::library lib;
 
+    template <typename T>
+    T * _try_load(const char * symbol_name) const {
+        try {
+            return lib.get_function<T>(symbol_name);
+        } catch(const dylib::symbol_error &) {
+            return nullptr;
+        }
+    }
+
 public:
-    GRB_FUNCTIONS(DECLARE_GUROBI_FUNCTIONS)
+    GRB_FUNCTIONS(DECLARE_GRB_FUNCTIONS)
+    GRB_OPTIONAL_FUNCTIONS(DECLARE_GRB_FUNCTIONS)
+    int major, minor, technical;
 
 public:
     gurobi_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "GUROBI", {"gurobi120"}))
-              GRB_FUNCTIONS(CONSTRUCT_GUROBI_FUNCTIONS) {
-        int major, minor, technical;
+              GRB_FUNCTIONS(CONSTRUCT_GRB_FUNCTIONS)
+                  GRB_OPTIONAL_FUNCTIONS(CONSTRUCT_GRB_OPTIONAL_FUNCTIONS) {
+        if(!emptyenvinternal && !emptyenv)
+            throw solver_error(
+                "GRBemptyenv and GRBemptyenvinternal both not found.");
         version(&major, &minor, &technical);
         detail::warn_on_version_mismatch("GUROBI", GRB_VERSION_MAJOR, major);
+    }
+
+    GRBenv * _empty_env() const {
+        GRBenv * env;
+        if(emptyenvinternal)
+            emptyenvinternal(&env, major, minor, technical);
+        else
+            emptyenv(&env);
+        return env;
     }
 
     void _check(GRBenv * env, const int error) const {
@@ -295,9 +324,10 @@ public:
     }
 };
 
-#undef CONSTRUCT_GUROBI_FUNCTIONS
-#undef DECLARE_GUROBI_FUNCTIONS
-#undef GUROBI_FUNCTIONS
+#undef CONSTRUCT_GRB_FUNCTIONS
+#undef DECLARE_GRB_FUNCTIONS
+#undef GRB_OPTIONAL_FUNCTIONS
+#undef GRB_FUNCTIONS
 
 }  // namespace gurobi::v12_0
 }  // namespace mippp

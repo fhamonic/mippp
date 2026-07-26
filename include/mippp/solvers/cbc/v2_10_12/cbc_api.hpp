@@ -162,7 +162,7 @@ namespace cbc::v2_10_12 {
 
 #define DECLARE_CBC_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);  \
-    decltype(FULL) const * SHORT;
+    decltype(FULL) * const SHORT;
 #define CONSTRUCT_CBC_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<decltype(FULL)>(#FULL))
 

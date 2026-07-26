@@ -111,7 +111,7 @@ for(auto && inst : instances) {
 
 The model is built by the *same* code in every row of that table — which is the point: differences in the numbers come from the solvers, not from three modeling layers with three sets of defaults.
 
-Model building is measured in tens of milliseconds even at a million variables, so it is negligible next to the solve; and when the *build* is what you are measuring, that is exactly what [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens) reports — see [Performance](../performance.md).
+Model building stays well under a second even at a million variables — 67 ms through Cbc, 138 ms through HiGHS, and the spread across backends is the solvers' own build APIs, not the abstraction. That is negligible next to the solve; and when the *build* is what you are measuring, that is exactly what [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens) reports — see [Performance](../performance.md).
 
 ## Writing generic code over expressions
 

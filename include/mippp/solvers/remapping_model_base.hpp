@@ -13,12 +13,13 @@ template <std::integral _Index, std::floating_point _Scalar>
 class remapping_model_base : public model_base<_Index, _Scalar> {
 protected:
     using typename model_base<_Index, _Scalar>::variable;
+    using typename model_base<_Index, _Scalar>::constraint;
     using model_base<_Index, _Scalar>::register_count;
     using model_base<_Index, _Scalar>::tmp_entry_index_cache;
     using model_base<_Index, _Scalar>::tmp_indices;
     using model_base<_Index, _Scalar>::tmp_scalars;
-    using model_base<_Index, _Scalar>::_register_entries;
     using model_base<_Index, _Scalar>::_register_raw_entries;
+    using model_base<_Index, _Scalar>::_register_coalescing_entries;
 
     std::vector<variable> _var_handles_to_delete;
     std::vector<variable> _free_var_handles;
@@ -81,56 +82,45 @@ protected:
         return new_handle_ids_begin;
     }
 
-    template <std::ranges::range Entries>
+    template <bool raw, std::ranges::range Entries>
         requires linear_term<std::ranges::range_value_t<Entries>> &&
                  std::same_as<linear_term_variable_t<
                                   std::ranges::range_value_t<Entries>>,
                               variable>
-    void _register_entries(Entries && entries) {
-        ++register_count;
-        if(_remap_ids) {
-            for(auto && [entity, coef] : entries) {
-                const std::size_t native_id =
-                    static_cast<std::size_t>(_native_ids_map[entity.uid()]);
-                auto & p = tmp_entry_index_cache[native_id];
-                if(p.first == register_count) {
-                    tmp_scalars[p.second] += static_cast<_Scalar>(coef);
-                    continue;
-                }
-                p = std::make_pair(register_count, tmp_indices.size());
-                tmp_indices.emplace_back(native_id);
-                tmp_scalars.emplace_back(coef);
+    void _register_variables_entries(Entries && entries) {
+        if constexpr(raw) {
+            if(!_remap_ids) {
+                _register_raw_entries(std::forward<Entries>(entries));
+                return;
             }
-            return;
-        }
-        for(auto && [entity, coef] : entries) {
-            auto & p = tmp_entry_index_cache[entity.uid()];
-            if(p.first == register_count) {
-                tmp_scalars[p.second] += static_cast<_Scalar>(coef);
-                continue;
+            _register_raw_entries(
+                std::forward<Entries>(entries),
+                [native_ids = _native_ids_map.data()](auto && e) {
+                    return *(native_ids + static_cast<std::ptrdiff_t>(e.id()));
+                });
+        } else {
+            if(!_remap_ids) {
+                _register_coalescing_entries(std::forward<Entries>(entries));
+                return;
             }
-            p = std::make_pair(register_count, tmp_indices.size());
-            tmp_indices.emplace_back(entity.id());
-            tmp_scalars.emplace_back(coef);
+            _register_coalescing_entries(
+                std::forward<Entries>(entries),
+                [native_ids = _native_ids_map.data()](auto && e) {
+                    return *(native_ids + static_cast<std::ptrdiff_t>(e.id()));
+                });
         }
     }
 
-    template <std::ranges::range Entries>
+    template <bool raw, std::ranges::range Entries>
         requires linear_term<std::ranges::range_value_t<Entries>> &&
                  std::same_as<linear_term_variable_t<
                                   std::ranges::range_value_t<Entries>>,
-                              variable>
-    void _register_raw_entries(Entries && entries) {
-        if(_remap_ids) {
-            for(auto && [entity, coef] : entries) {
-                tmp_indices.emplace_back(_native_ids_map[entity.uid()]);
-                tmp_scalars.emplace_back(coef);
-            }
-            return;
-        }
-        for(auto && [entity, coef] : entries) {
-            tmp_indices.emplace_back(entity.id());
-            tmp_scalars.emplace_back(coef);
+                              constraint>
+    void _register_constraints_entries(Entries && entries) {
+        if constexpr(raw) {
+            _register_raw_entries(std::forward<Entries>(entries));
+        } else {
+            _register_coalescing_entries(std::forward<Entries>(entries));
         }
     }
 };

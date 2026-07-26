@@ -56,6 +56,28 @@
   url    = {https://github.com/coin-or/python-mip}
 }
 
+% TODO(verify): entry reconstructed from memory -- confirm the venue, page range
+% and whether a DOI exists before submission.
+@inproceedings{gravity2018,
+  author    = {Hijazi, Hassan and Coffrin, Carleton and Van Hentenryck, Pascal},
+  title     = {{Gravity}: A Mathematical Modeling Language for Optimization and Machine Learning},
+  booktitle = {Machine Learning Open Source Software Workshop at NeurIPS 2018},
+  year      = {2018},
+  url       = {https://github.com/coin-or/Gravity}
+}
+
+% TODO(verify): PyOptInterface also appeared in a peer-reviewed venue -- replace
+% the arXiv preprint with the published reference and its DOI if confirmed.
+@misc{pyoptinterface2024,
+  author       = {Yang, Yue and Lin, Chenhui and Xu, Luo and Wu, Wenchuan},
+  title        = {{PyOptInterface}: Design and implementation of an efficient modeling language for mathematical optimization},
+  year         = {2024},
+  eprint       = {2405.10130},
+  archivePrefix = {arXiv},
+  primaryClass = {math.OC},
+  url          = {https://arxiv.org/abs/2405.10130}
+}
+
 @incollection{flopcpp2007,
   author    = {Hultberg, Tim Helge},
   title     = {{FLOPC++} an algebraic modeling language embedded in {C++}},
@@ -86,16 +108,115 @@
   url     = {https://developers.google.com/optimization/}
 }
 
+% Vendor manuals: the version is the API version MIP++ wraps, so that the
+% citation stays meaningful as the products move on.
 @misc{gurobi,
-  author = {{Gurobi Optimization, LLC}},
-  title  = {Gurobi Optimizer Reference Manual},
-  year   = {2026},
-  url    = {https://www.gurobi.com}
+  author  = {{Gurobi Optimization, LLC}},
+  title   = {Gurobi Optimizer Reference Manual},
+  version = {12.0},
+  year    = {2026},
+  url     = {https://www.gurobi.com},
+  urldate = {2026-07-25}
 }
 
+% TODO(release): archive the benchmark repository on Zenodo and add the DOI --
+% every quantitative claim in the paper rests on it.
 @misc{mippp_nqueens,
-  author = {Hamonic, Fran{\c{c}}ois},
-  title  = {mippp\_nqueens: model-construction benchmarks for {MIP++}},
-  year   = {2026},
-  url    = {https://github.com/fhamonic/mippp_nqueens}
+  author  = {Hamonic, Fran{\c{c}}ois},
+  title   = {mippp\_nqueens: model-construction benchmarks for {MIP++}},
+  year    = {2026},
+  url     = {https://github.com/fhamonic/mippp_nqueens},
+  urldate = {2026-07-25}
+}
+
+@misc{cplex,
+  author  = {{IBM}},
+  title   = {{IBM ILOG CPLEX Optimization Studio}},
+  version = {22.1.2},
+  year    = {2026},
+  url     = {https://www.ibm.com/products/ilog-cplex-optimization-studio},
+  urldate = {2026-07-25}
+}
+
+@misc{xpress,
+  author  = {{FICO}},
+  title   = {{FICO Xpress Optimization}},
+  version = {45.1},
+  year    = {2026},
+  url     = {https://www.fico.com/en/products/fico-xpress-optimization},
+  urldate = {2026-07-25}
+}
+
+@misc{copt,
+  author  = {{Cardinal Operations}},
+  title   = {{COPT}: the Cardinal Optimizer},
+  version = {7.2},
+  year    = {2026},
+  url     = {https://www.shanshu.ai/copt},
+  urldate = {2026-07-25}
+}
+
+@misc{mosek,
+  author  = {{MOSEK ApS}},
+  title   = {{The MOSEK Optimization Suite}},
+  version = {11},
+  year    = {2026},
+  url     = {https://www.mosek.com},
+  urldate = {2026-07-25}
+}
+
+% TODO(verify): Cbc, Clp and SoPlex are archived on Zenodo with concept DOIs.
+% Look each one up and add `doi = {...}` -- a DOI is preferred over a repository
+% URL, but do not guess the number.
+@misc{cbc,
+  author  = {Forrest, John and {others}},
+  title   = {{coin-or/Cbc}: {COIN-OR} branch and cut},
+  version = {2.10.12},
+  year    = {2026},
+  url     = {https://github.com/coin-or/Cbc},
+  urldate = {2026-07-25}
+}
+
+@misc{clp,
+  author  = {Forrest, John and {others}},
+  title   = {{coin-or/Clp}: {COIN-OR} linear programming},
+  version = {1.17},
+  year    = {2026},
+  url     = {https://github.com/coin-or/Clp},
+  urldate = {2026-07-25}
+}
+
+@misc{soplex,
+  author  = {{Zuse Institute Berlin}},
+  title   = {{SoPlex}: the sequential object-oriented simplex},
+  version = {6.0},
+  year    = {2026},
+  url     = {https://soplex.zib.de},
+  urldate = {2026-07-25}
+}
+
+@misc{glpk,
+  author  = {Makhorin, Andrew},
+  title   = {{GNU} Linear Programming Kit ({GLPK})},
+  version = {5.0},
+  year    = {2026},
+  url     = {https://www.gnu.org/software/glpk/},
+  urldate = {2026-07-25}
+}
+
+@misc{osi,
+  author  = {{COIN-OR Foundation}},
+  title   = {{coin-or/Osi}: the {COIN-OR} Open Solver Interface},
+  year    = {2026},
+  url     = {https://github.com/coin-or/Osi},
+  urldate = {2026-07-25}
+}
+
+% TODO(release): archive MELON on Zenodo alongside MIP++ and add the DOI.
+@software{melon,
+  author  = {Hamonic, Fran{\c{c}}ois},
+  title   = {{MELON}: a modern {C++} graph library},
+  year    = {2026},
+  url     = {https://github.com/fhamonic/melon},
+  urldate = {2026-07-25}
 }

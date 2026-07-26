@@ -298,7 +298,9 @@ namespace highs::v1_10 {
     F(Highs_getSolution, getSolution)                                   \
     F(Highs_setBasis, setBasis)                                         \
     F(Highs_getBasis, getBasis)                                         \
-    F(Highs_setSolution, setSolution)                                   \
+    F(Highs_setSolution, setSolution)
+
+#define HIGHS_OPTIONAL_FUNCTIONS(F) \
     F(Highs_setSparseSolution, setSparseSolution)
 
 #define DECLARE_HIGHS_FUNCTIONS(FULL, SHORT) \
@@ -306,18 +308,34 @@ namespace highs::v1_10 {
     SHORT##_fun_t const * SHORT;
 #define CONSTRUCT_HIGHS_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
+#define CONSTRUCT_HIGHS_OPTIONAL_FUNCTIONS(FULL, SHORT) \
+    , SHORT(_try_load<SHORT##_fun_t>(#FULL))
 
 class highs_api {
 private:
     dylib::library lib;
 
+    template <typename T>
+    T * _try_load(const char * symbol_name) const {
+        try {
+            return lib.get_function<T>(symbol_name);
+        } catch(const dylib::symbol_error &) {
+            return nullptr;
+        }
+    }
+
 public:
     HIGHS_FUNCTIONS(DECLARE_HIGHS_FUNCTIONS)
+    HIGHS_OPTIONAL_FUNCTIONS(DECLARE_HIGHS_FUNCTIONS)
 
 public:
     inline highs_api(const char * lib_path = nullptr)
         : lib(detail::load_solver_library(lib_path, "HIGHS", {"highs"}))
-              HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUNCTIONS) {}
+              HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUNCTIONS)
+                  HIGHS_OPTIONAL_FUNCTIONS(CONSTRUCT_HIGHS_OPTIONAL_FUNCTIONS) {
+        if(!setSparseSolution)
+            std::fprintf(stderr, "Highs_setSparseSolution not available.");
+    }
 
     void _check(const int status) const {
         if(status == kHighsStatusOk) return;

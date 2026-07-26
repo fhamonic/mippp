@@ -116,13 +116,27 @@ public:
             check(COPT->GetIntAttr(prob, COPT_INTATTR_COLS, &num));
             return static_cast<std::size_t>(num);
         }
-        void add_lazy_constraint(linear_constraint auto && lc) {
-            _reset_cache(num_variables());
-            _register_entries(lc.linear_terms());
+
+    private:
+        template <bool distinct, linear_constraint LC>
+        void _add_lazy_constraint(LC && lc) {
+            if constexpr(!distinct) _prepare_coalescing(num_variables());
+            _reset_cache();
+            _register_variables_entries<distinct>(lc.linear_terms());
             check(COPT->AddCallbackLazyConstr(
                 cbdata, static_cast<int>(tmp_indices.size()),
                 tmp_indices.data(), tmp_scalars.data(),
                 constraint_sense_to_copt_sense(lc.sense()), lc.rhs()));
+        }
+
+    public:
+        template <linear_constraint LC>
+        void add_lazy_constraint(LC && lc) {
+            _add_lazy_constraint<false>(std::forward<LC>(lc));
+        }
+        template <linear_constraint LC>
+        void add_lazy_constraint(distinct_variables_t, LC && lc) {
+            _add_lazy_constraint<true>(std::forward<LC>(lc));
         }
         double get_solution_value() {
             double obj;
@@ -163,8 +177,8 @@ public:
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
-        _reset_raw_cache();
-        _register_raw_entries(entries);
+        _reset_cache();
+        _register_variables_entries<true>(entries);
         check(COPT->AddMipStart(prob, static_cast<int>(tmp_indices.size()),
                                 tmp_indices.data(), tmp_scalars.data()));
     }
