@@ -82,11 +82,11 @@ Time to *build* the N-Queens model (`N²` binary variables, `6N−6` constraints
 
 | N | **MIP++** HiGHS | OR-tools `MPSolver` | OR-tools MathOpt | JuMP cached | JuMP direct |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | **1.5 ms** | 2.4× | 3.3× | 4.1× | 13.1× |
-| 500 | **34.1 ms** | 2.6× | 5.2× | 6.8× | 16.6× |
-| 1000 | **137.6 ms** | 2.8× | 7.7× | 6.5× | 21.1× |
+| 100 | **1.6 ms** | 1.3× | 2.6× | 3.7× | 12.0× |
+| 500 | **37.4 ms** | 1.3× | 3.7× | 6.1× | 16.1× |
+| 1000 | **151.5 ms** | 1.3× | 5.6× | 5.7× | 18.3× |
 
-A million binary variables in 138 ms through HiGHS, 67 ms through Cbc — and within a few percent (99–104%) of what the Gurobi C API itself costs. The Python layers land one to two orders of magnitude above that. Build time is noise when a single solve runs for hours — it matters on very large models and in loops that touch the model constantly, and the [Performance](performance.md) page is explicit about that scope. Full tables across seven backends, the case where MIP++ *loses* (SCIP), the limitations and the methodology are there too — benchmark code and raw per-solver timings in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
+A million binary variables in 152 ms through HiGHS, 67 ms through Cbc — and within 2–8% (102–108%) of what the Gurobi C API itself costs. The Python layers land one to two orders of magnitude above that. Build time is noise when a single solve runs for hours — it matters on very large models and in loops that touch the model constantly, and the [Performance](performance.md) page is explicit about that scope. Full tables across eight backends, the case where MIP++ *loses* (SCIP), the limitations and the methodology are there too — benchmark code and raw per-solver timings in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
 
 ## Acknowledgements
 

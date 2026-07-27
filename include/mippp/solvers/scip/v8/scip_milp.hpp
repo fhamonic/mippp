@@ -51,8 +51,45 @@ protected:
     std::vector<SCIP_VAR *> variables;
     std::vector<SCIP_CONS *> constraints;
 
+    std::vector<std::pair<unsigned int, unsigned int>> tmp_entry_index_cache;
+    std::vector<SCIP_VAR *> tmp_vars;
+    std::vector<SCIP_Real> tmp_reals;
+    unsigned int register_count;
+
+    void _prepare_coalescing(const std::size_t ids_end) {
+        tmp_entry_index_cache.resize(ids_end);
+    }
+    void _reset_cache() {
+        tmp_vars.resize(0);
+        tmp_reals.resize(0);
+    }
+    template <bool distinct, std::ranges::range Entries>
+    void _register_variables_entries(Entries && entries) {
+        if constexpr(distinct) {
+            for(auto && [entity, coef] : entries) {
+                const int id = entity.id();
+                tmp_vars.emplace_back(*(variables.data() + id));
+                tmp_reals.emplace_back(coef);
+            }
+        } else {
+            ++register_count;
+            for(auto && [entity, coef] : entries) {
+                const int id = entity.id();
+                auto & p = *(tmp_entry_index_cache.data() + id);
+                if(p.first == register_count) {
+                    tmp_reals[p.second] += static_cast<scalar>(coef);
+                    continue;
+                }
+                p = std::make_pair(register_count, tmp_vars.size());
+                tmp_vars.emplace_back(*(variables.data() + id));
+                tmp_reals.emplace_back(coef);
+            }
+        }
+    }
+
 public:
-    [[nodiscard]] explicit scip_milp(const scip_api & api) : SCIP(&api) {
+    [[nodiscard]] explicit scip_milp(const scip_api & api)
+        : SCIP(&api), register_count(0) {
         SCIP->create(&model);
         SCIP->includeDefaultPlugins(model);
         SCIP->createProbBasic(model, "MILP");
@@ -177,11 +214,11 @@ private:
     void _add_variable(const variable_params & params, SCIP_VARTYPE type,
                        const char * name = "") {
         SCIP_VAR * var = nullptr;
-        check(SCIP->createVarBasic(
+        check(SCIP->createVar(
             model, &var, name,
             params.lower_bound.value_or(-SCIP->infinity(model)),
             params.upper_bound.value_or(SCIP->infinity(model)), params.obj_coef,
-            type));
+            type, FALSE, FALSE, nullptr, nullptr, nullptr, nullptr, nullptr));
         check(SCIP->addVar(model, var));
         variables.emplace_back(var);
     }
@@ -371,44 +408,49 @@ public:
     /////////////////////////////// Constraints ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
+    template <bool distinct>
     SCIP_CONS * _add_constraint(linear_constraint auto && lc) {
         SCIP_CONS * constr = nullptr;
         const double b = lc.rhs();
+        _reset_cache();
+        _register_variables_entries<distinct>(lc.linear_terms());
         check(SCIP->createConsBasicLinear(
-            model, &constr, "", 0, nullptr, nullptr,
+            model, &constr, "", static_cast<int>(tmp_vars.size()),
+            tmp_vars.data(), tmp_reals.data(),
             (lc.sense() == constraint_sense::less_equal)
                 ? -SCIP->infinity(model)
                 : b,
             (lc.sense() == constraint_sense::greater_equal)
                 ? SCIP->infinity(model)
                 : b));
-        for(auto && [var, coef] : lc.linear_terms()) {
-            check(
-                SCIP->addCoefLinear(model, constr, variables[var.uid()], coef));
-        }
         check(SCIP->addCons(model, constr));
         return constr;
     }
 
 public:
-    constraint add_constraint(linear_constraint auto && lc) {
+    template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
-        constraints.emplace_back(_add_constraint(lc));
+        _prepare_coalescing(num_variables());
+        constraints.emplace_back(_add_constraint<false>(std::forward<LC>(lc)));
         return constraint(constr_id);
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
-        return add_constraint(std::forward<LC>(lc));
+        constraint_id constr_id = static_cast<constraint_id>(num_constraints());
+        constraints.emplace_back(_add_constraint<true>(std::forward<LC>(lc)));
+        return constraint(constr_id);
     }
 
 private:
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
     SCIP_CONS * _add_first_valued_constraint(const Key & key,
                                              LastConstrLambda & lc_lambda) {
-        return _add_constraint(lc_lambda(key));
+        return _add_constraint<distinct>(lc_lambda(key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<
                      std::invoke_result_t<OptConstrLambda, Key>> &&
                  linear_constraint<detail::optional_type_value_t<
@@ -417,20 +459,20 @@ private:
                                              OptConstrLambda & opt_lc_lambda,
                                              Tail &... tail) {
         if(const auto & opt_lc = opt_lc_lambda(key)) {
-            return _add_constraint(opt_lc.value());
+            return _add_constraint<distinct>(opt_lc.value());
         }
-        return _add_first_valued_constraint(key, tail...);
+        return _add_first_valued_constraint<distinct>(key, tail...);
     }
 
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        if constexpr(!distinct) _prepare_coalescing(num_variables());
         const constraint_id offset =
             static_cast<constraint_id>(num_constraints());
         constraint_id constr_id = offset;
         for(auto && key : keys) {
-            constraints.emplace_back(
-                _add_first_valued_constraint(key, constraint_lambdas...));
+            constraints.emplace_back(_add_first_valued_constraint<distinct>(
+                key, constraint_lambdas...));
             ++constr_id;
         }
         return constraints_range(
@@ -438,59 +480,31 @@ public:
             std::views::transform(std::views::iota(offset, constr_id),
                                   [](auto && i) { return constraint{i}; }));
     }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       std::forward<CL>(constraint_lambdas)...);
+    }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
-        return add_constraints(std::forward<IR>(keys),
-                               std::forward<CL>(constraint_lambdas)...);
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      std::forward<CL>(constraint_lambdas)...);
     }
 
-    // void set_constraint_rhs(constraint c, double rhs) {
-    //     check(SCIP->setdblattrelement(model, SCIP_DBL_ATTR_RHS, c, rhs));
-    // }
-    // void set_constraint_sense(constraint c, constraint_sense r) {
-    //     check(SCIP->setcharattrelement(model, SCIP_CHAR_ATTR_SENSE, c,
-    //                                   constraint_sense_to_scip_sense(r)));
-    // }
+    // TODO
+    // void set_constraint_rhs(constraint c, double rhs) {}
+    // void set_constraint_sense(constraint c, constraint_sense r) {}
     // constraint add_ranged_constraint(linear_expression auto && le, double lb,
-    //                                  double ub) {
-    //     int constr_id = static_cast<int>(num_constraints());
-    //     tmp_indices.resize(0);
-    //     tmp_scalars.resize(0);
-    //     for(auto && [var, coef] : le.linear_terms()) {
-    //         tmp_indices.emplace_back(var);
-    //         tmp_scalars.emplace_back(coef);
-    //     }
-    //     check(SCIP->addrangeconstr(model,
-    //     static_cast<int>(tmp_indices.size()),
-    //                               tmp_indices.data(), tmp_scalars.data(),
-    //                               lb, ub, nullptr));
-    //     return constr_id;
-    // }
-    // void set_constraint_name(constraint c, auto && name);
-
+    //                                  double ub)
+    // void set_constraint_name(constraint c, auto && name) {}
     // auto get_constraint_lhs(constraint c) {}
-    // double get_constraint_rhs(constraint c) {
-    //     double rhs;
-    //     update_scip_model();
-    //     check(SCIP->getdblattrelement(model, SCIP_DBL_ATTR_RHS, c, &rhs));
-    //     return rhs;
-    // }
-    // constraint_sense get_constraint_sense(constraint c) {
-    //     char sense;
-    //     update_scip_model();
-    //     check(SCIP->getcharattrelement(model, SCIP_CHAR_ATTR_SENSE, c,
-    //     &sense)); return scip_sense_to_constraint_sense(sense);
-    // }
-    // // auto get_constraint(const constraint c) {}
-    // auto get_constraint_name(constraint c) {
-    //     char * name;
-    //     update_scip_model();
-    //     check(
-    //         SCIP->getstrattrelement(model, SCIP_STR_ATTR_CONSTRNAME, c,
-    //         &name));
-    //     return std::string(name);
-    // }
+    // double get_constraint_rhs(constraint c) {}
+    // constraint_sense get_constraint_sense(constraint c) {}
+    // auto get_constraint(const constraint c) {}
+    // auto get_constraint_name(constraint c) {}
 
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Callbacks ////////////////////////////////

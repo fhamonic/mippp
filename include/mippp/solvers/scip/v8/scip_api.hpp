@@ -20,6 +20,9 @@ constexpr SCIP_Real SCIP_REAL_MIN = -std::numeric_limits<SCIP_Real>::lowest();
 using SCIP_Longint = long long;
 using SCIP_Bool = unsigned int;
 
+constexpr unsigned int TRUE = 1;
+constexpr unsigned int FALSE = 1;
+
 using SCIP = struct Scip;
 using SCIP_VAR = struct SCIP_Var;
 using SCIP_CONS = struct SCIP_Cons;
@@ -79,10 +82,53 @@ enum SCIP_VARTYPE : int {
             // need to enforce integrality further
     SCIP_VARTYPE_CONTINUOUS = 3
 };
+
+SCIP_RETCODE SCIPcreateVar(SCIP * scip, SCIP_VAR ** var, const char * name,
+                           SCIP_Real lb, SCIP_Real ub, SCIP_Real obj,
+                           SCIP_VARTYPE vartype, SCIP_Bool initial,
+                           SCIP_Bool removable, void *, void *, void *, void *,
+                           void *);
 SCIP_RETCODE SCIPcreateVarBasic(SCIP * scip, SCIP_VAR ** var, const char * name,
                                 SCIP_Real lb, SCIP_Real ub, SCIP_Real obj,
                                 SCIP_VARTYPE vartype);
 SCIP_RETCODE SCIPaddVar(SCIP * scip, SCIP_VAR * var);
+
+SCIP_RETCODE SCIPcreateConsLinear(
+    SCIP * scip, SCIP_CONS ** cons, const char * name, int nvars,
+    SCIP_VAR ** vars, SCIP_Real * vals, SCIP_Real lhs, SCIP_Real rhs,
+    SCIP_Bool initial,    /**< should the LP relaxation of constraint be in the
+                           * initial LP?    Usually set to TRUE. Set to FALSE for
+                           * 'lazy constraints'. */
+    SCIP_Bool separate,   /**< should the constraint be separated during LP
+                           * processing?   Usually set to TRUE. */
+    SCIP_Bool enforce,    /**< should the constraint be enforced during node
+                           * processing?    TRUE for model constraints, FALSE for
+                           * additional, redundant constraints. */
+    SCIP_Bool check,      /**< should the constraint be checked for feasibility?
+                           *   TRUE for model constraints, FALSE for additional,
+                           * redundant constraints. */
+    SCIP_Bool propagate,  /**< should the constraint be propagated during node
+                           * processing?  Usually set to TRUE. */
+    SCIP_Bool local,      /**< is constraint only valid locally?
+                           *   Usually set to FALSE. Has to be set to TRUE, e.g., for
+                           * branching constraints. */
+    SCIP_Bool modifiable, /**< is constraint modifiable (subject to column
+                           * generation)? Usually set to FALSE. In column
+                           * generation applications, set to TRUE if pricing
+                           *   adds coefficients to this constraint. */
+    SCIP_Bool dynamic,    /**< is constraint subject to aging?
+                           *   Usually set to FALSE. Set to TRUE for own cuts which
+                           *   are separated as constraints. */
+    SCIP_Bool removable,  /**< should the relaxation be removed from the LP due
+                           * to aging or cleanup?  Usually set to FALSE. Set to
+                           * TRUE for 'lazy constraints' and 'user cuts'. */
+    SCIP_Bool
+        stickingatnode /**< should the constraint always be kept at the node
+                        * where it was added, even if it may be moved to a more
+                        * global node? Usually set to FALSE. Set to TRUE to for
+                        * constraints that represent node data. */
+);
+
 SCIP_RETCODE SCIPcreateConsBasicLinear(SCIP * scip, SCIP_CONS ** cons,
                                        const char * name, int nnzs,
                                        SCIP_VAR ** vars, SCIP_Real * vals,
@@ -261,8 +307,10 @@ namespace scip::v8 {
     F(SCIPsetObjsense, setObjsense)                     \
     F(SCIPaddOrigObjoffset, addOrigObjoffset)           \
     F(SCIPgetOrigObjoffset, getOrigObjoffset)           \
+    F(SCIPcreateVar, createVar)                         \
     F(SCIPcreateVarBasic, createVarBasic)               \
     F(SCIPaddVar, addVar)                               \
+    F(SCIPcreateConsLinear, createConsLinear)           \
     F(SCIPchgVarObj, chgVarObj)                         \
     F(SCIPvarGetObj, varGetObj)                         \
     F(SCIPchgVarLb, chgVarLb)                           \

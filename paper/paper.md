@@ -105,20 +105,22 @@ same overhead concern has recently driven work in Python, notably
 PyOptInterface [@pyoptinterface2024].
 
 MIP++ removes the trade-off by using C++23 ranges, concepts, and lazy views to
-make the modeling layer essentially free. On a model-construction benchmark
-(N-Queens, $N^2$ binary variables and $6N-6$ constraints; only construction is
-timed, never the solve), MIP++ builds models within a few percent of
-hand-written C against the Gurobi C API, 2.2–2.6$\times$ faster than the
-OR-Tools C++ API on HiGHS and 4.0–5.2$\times$ faster on Cbc, and 6–15$\times$
-faster than JuMP in its default cached mode after warm-up; Python layers are
-two to three orders of magnitude slower, though those scripts time a single
-build without warm-up and should be read as orders of magnitude. The
-OR-Tools comparison is not like-for-like: `MPSolver` fills its own
-backend-independent structures and defers the native model build to `Solve()`,
-which the MIP++ timings include — on SCIP this makes the OR-Tools fill phase
-measure 0.6$\times$ of a full MIP++ build. The model is also variable-heavy
-and constraint-light. Full tables, hardware and library versions, and
-reproduction instructions are in a companion repository [@mippp_nqueens].
+keep the modeling layer thin. On a model-construction benchmark (N-Queens,
+$N^2$ binary variables and $6N-6$ constraints; only construction is timed,
+never the solve), MIP++ builds models within 2–8 % of hand-written C against
+the Gurobi C API, 1.2–1.3$\times$ faster than OR-Tools' `MPSolver` on HiGHS
+and 2.4–3.0$\times$ faster on Cbc (2.6–5.6$\times$ faster than OR-Tools'
+MathOpt on HiGHS), and 3.7–7.3$\times$ faster than JuMP in its default cached
+mode after warm-up; Python layers are one to two orders of magnitude slower,
+though those scripts time a single build without warm-up and should be read as
+orders of magnitude. Both OR-Tools APIs are measured in their fastest
+row-filling form, but the comparison is still not like-for-like: `MPSolver`
+fills its own backend-independent structures and defers the native model build
+to `Solve()`, which the MIP++ timings include — on SCIP this makes the
+OR-Tools fill phase measure 0.3–0.5$\times$ of a full MIP++ build. The model
+is also variable-heavy and constraint-light. Full tables, hardware and library
+versions, and reproduction instructions are in a companion repository
+[@mippp_nqueens].
 
 Solver independence, in turn, makes computational studies portable:
 benchmarking Gurobi against HiGHS or SCIP is a two-line change. The

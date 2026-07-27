@@ -27,7 +27,7 @@ MIP++ avoids the tax with a **functional, zero-copy expression system**:
 - When a constraint is registered, its terms are streamed **once** into a small buffer that the model reuses for every row (coefficients of repeated variables are merged on the fly), then passed to the solver's C function.
 - Variables are trivially-copyable strongly-typed handles (an integer id), and variable *names* can be assigned lazily, so you never pay for strings you don't use.
 
-The result: an N-Queens model with **one million binary variables** is filled in **138 ms** through HiGHS — 99–104% of what building the same model through the solver's own C API costs, so the modeling layer is essentially free. On that same backend the OR-Tools `MPSolver` C++ API takes 2.8× longer, MathOpt 7.7×, JuMP 6.5× cached and 21× in direct mode, and the CPython layers one to two orders of magnitude more. Full tables, limitations and methodology: [Performance](../performance.md).
+The result: an N-Queens model with **one million binary variables** is filled in **152 ms** through HiGHS — 102–108% of what building the same model through the solver's own C API costs, so the modeling layer is thin. On that same backend the OR-Tools `MPSolver` C++ API takes 1.3× longer, MathOpt 5.6×, JuMP 5.7× cached and 18× in direct mode, and the CPython layers one to two orders of magnitude more. Full tables, limitations and methodology: [Performance](../performance.md).
 
 ## Index variables by *your* problem's coordinates
 

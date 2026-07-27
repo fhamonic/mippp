@@ -27,10 +27,10 @@ public:
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
 protected:
-    unsigned int register_count;
     std::vector<std::pair<unsigned int, unsigned int>> tmp_entry_index_cache;
     std::vector<_Index> tmp_indices;
     std::vector<_Scalar> tmp_scalars;
+    unsigned int register_count;
 
     [[nodiscard]] explicit model_base() : register_count(0) {}
 

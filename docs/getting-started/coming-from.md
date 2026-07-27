@@ -124,7 +124,7 @@ MIP++ deliberately covers the modeling and algorithmic core. Currently missing, 
 
 ## What you gain in exchange
 
-- Model building one to two orders of magnitude faster than the Python layers (12× gurobipy, ~100× PuLP), 4–21× faster than JuMP, and within a few percent of the solver's own C API ([Performance](../performance.md)) — decisive for column generation, cutting planes and large instances.
+- Model building one to two orders of magnitude faster than the Python layers (11× gurobipy, 103× PuLP), 3.7–18× faster than JuMP, and within 2–8% of the solver's own C API ([Performance](../performance.md)) — decisive for column generation, cutting planes and large instances.
 - The same model code on **11 backends**, with capability differences caught at compile time.
 - Everything is C++: your data structures, your graph library, your profiler, no marshalling between a modeling layer and the algorithm around it.
 
