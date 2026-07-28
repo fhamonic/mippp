@@ -1,7 +1,5 @@
 #pragma once
 
-#include <print>
-
 #if INCLUDE_XPRESS_HEADER
 #include "xprs.h"
 #else
@@ -230,7 +228,6 @@ public:
     void _check(XPRSprob prob, const int error) const {
         if(error == 0) return;
         char errmsg[512];
-        std::println("Error {}", error);
         getlasterror(prob, errmsg);
         for(int license_err_code :
             {36, 52, 73, 107, 120, 129, 293, 319, 352, 392, 395, 717, 1054,
