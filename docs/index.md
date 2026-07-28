@@ -1,3 +1,9 @@
+---
+# The H1 below is the hero wordmark; without this the tab reads "MIP++ - MIP++".
+# An empty title makes the template fall through to the bare site_name.
+title: ""
+---
+
 <div class="mip-hero" markdown>
 
 ![MIP++ logo](assets/mippp.png)

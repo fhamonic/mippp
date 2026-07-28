@@ -52,11 +52,12 @@ nav = [
 anchors = "warn"
 
 [project.theme]
-# Keep the traditional Material for MkDocs look.
-variant = "classic"
+# Zensical's own look: Inter / JetBrains Mono, lucide icons.
+variant = "modern"
 logo = "assets/logo.png"
 favicon = "assets/logo.png"
 features = [
+  "navigation.tabs",
   "navigation.sections",
   "navigation.top",
   "navigation.footer",

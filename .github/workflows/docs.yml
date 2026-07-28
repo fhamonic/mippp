@@ -32,7 +32,9 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
-      - run: pip install zensical
+      # Pinned: docs/stylesheets/extra.css overrides selectors and values read
+      # out of this version's stylesheets. Re-check them before bumping.
+      - run: pip install zensical==0.0.50
       - run: zensical build --clean 
       - uses: actions/upload-pages-artifact@v5
         with:

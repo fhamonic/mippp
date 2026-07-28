@@ -24,7 +24,7 @@ auto sol = model.get_solution();                       // ✓ one fetch
 for(int i : items) if(sol[X(i)] > 0.5) selected.push_back(i);
 ```
 
-Reading a solution is only valid when one exists — see [Status, limits and tolerances](status-and-limits.md#the-coarse-status).
+Reading a solution is only valid when one exists — see [Status, limits and tolerances](status-and-limits.md#the-solve-status).
 
 ### Rounding integers
 
