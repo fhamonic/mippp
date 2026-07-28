@@ -34,11 +34,11 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/workflows/gcc15_c++26 -c tools.build:skip_test=true
+          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -c tools.build:skip_test=true
       # Every backend must be compiled in: the matrix only swaps the library the
       # binary dlopens, so one build serves every row.
       - name: Build the test binary
-        run: conan build . -of=build -b=missing -pr=.github/workflows/gcc15_c++26
+        run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26
       - name: Run the compatibility matrix
         run: |
           python3 tools/compat_matrix.py run \

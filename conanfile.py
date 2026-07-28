@@ -25,7 +25,7 @@ class MipppRecipe(ConanFile):
 
     def build_requirements(self):
         self.test_requires("gtest/[>=1.10.0 <cci]")
-        self.test_requires("melon/1.0.0-alpha.2")
+        self.test_requires("melon/1.0.0")
 
     def generate(self):
         print(

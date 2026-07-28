@@ -27,12 +27,12 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/workflows/gcc15_c++26 -c tools.build:skip_test=true
+          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -c tools.build:skip_test=true
       - name: Build and run unit tests
         env:
           MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK;HIGHS"
         run: |
-          conan build . -of=build -b=missing -pr=.github/workflows/gcc15_c++26
+          conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26
 
   linux-gcc14-build:
     runs-on: ubuntu-latest
@@ -54,12 +54,12 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/workflows/gcc14_c++23 -c tools.build:skip_test=true
+          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc14_c++23 -c tools.build:skip_test=true
       - name: Build and run unit tests
         env:
           MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK"
         run: |
-          conan build . -of=build -b=missing -pr=.github/workflows/gcc14_c++23
+          conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc14_c++23
 
   linux-clang18-build:
     runs-on: ubuntu-latest
@@ -81,12 +81,12 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/workflows/clang18_c++23 -c tools.build:skip_test=true
+          conan create melon -u -b=missing -pr=.github/conan-profiles/clang18_c++23 -c tools.build:skip_test=true
       - name: Build and run unit tests
         env:
           MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK"
         run: |
-          conan build . -of=build -b=missing -pr=.github/workflows/clang18_c++23
+          conan build . -of=build -b=missing -pr=.github/conan-profiles/clang18_c++23
 
   linux-cmake-install:
     runs-on: ubuntu-latest
@@ -168,7 +168,7 @@ jobs:
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing "-pr=.github/workflows/mingw15_c++26" -c tools.build:skip_test=true
+          conan create melon -u -b=missing "-pr=.github/conan-profiles/mingw15_c++26" -c tools.build:skip_test=true
       - name: Fetch Highs
         run: |
           Invoke-WebRequest -Uri https://github.com/ERGO-Code/HiGHS/releases/download/v1.13.0/highs-1.13.0-x86_64-windows-mit.zip -OutFile highs.zip
@@ -177,4 +177,4 @@ jobs:
         env:
           MIPPP_HIGHS_LIBRARY: ${{ github.workspace }}\highs\bin\highs.dll
           MIPPP_REQUIRED_SOLVERS: "HIGHS"
-        run: conan build . -of=build -b=missing "-pr=.github/workflows/mingw15_c++26"
+        run: conan build . -of=build -b=missing "-pr=.github/conan-profiles/mingw15_c++26"
