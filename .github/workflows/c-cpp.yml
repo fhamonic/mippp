@@ -117,44 +117,15 @@ jobs:
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/prefix" \
             -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
           cmake --install build
-      - name: Configure an out-of-tree consumer using find_package(mippp)
+      - name: Build the simple_lp example against the installed package
         run: |
-          mkdir -p consumer
-          cat > consumer/CMakeLists.txt << 'EOF'
-          cmake_minimum_required(VERSION 3.23)
-          project(consumer LANGUAGES CXX)
-          find_package(mippp 1.0 CONFIG REQUIRED)
-          add_executable(app main.cpp)
-          target_link_libraries(app PRIVATE mippp::mippp)
-          EOF
-          cat > consumer/main.cpp << 'EOF'
-          #include <print>
-          #include "mippp/solvers/highs/all.hpp"
-          using namespace mippp;
-          using namespace mippp::operators;
-          int main() {
-              highs_api api;
-              highs_lp model(api);
-              auto x1 = model.add_variable();
-              auto x2 = model.add_variable({.upper_bound = 3});
-              model.set_maximization();
-              model.set_objective(4 * x1 + 5 * x2);
-              model.add_constraint(x1 <= 4);
-              model.add_constraint(2 * x1 + x2 <= 9);
-              model.solve();
-              std::println("objective = {}", model.get_solution_value());
-              return 0;
-          }
-          EOF
-      - name: Build the consumer
-        run: |
-          cmake -S consumer -B consumer/build \
+          cmake -S examples/simple_lp -B examples/simple_lp/build \
             -DCMAKE_CXX_COMPILER=g++-14 \
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/prefix"
-          cmake --build consumer/build -j
-      - name: Run the consumer and test output
+          cmake --build examples/simple_lp/build -j
+      - name: Run the example and test output
         run: |
-          ./consumer/build/app | tee output.txt
+          ./examples/simple_lp/build/simple_lp | tee output.txt
           grep -q "objective = 27" output.txt
 
   windows-mingw15-build:

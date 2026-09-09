@@ -45,14 +45,19 @@ class MipppRecipe(ConanFile):
         check_min_cppstd(self, 23)
 
     def build(self):
-        if self.conf.get("tools.build:skip_test", default=False):
+        skip_test = self.conf.get("tools.build:skip_test", default=False)
+        examples = os.environ.get("ENABLE_EXAMPLES", "").upper() in ("1", "ON", "TRUE")
+        if skip_test and not examples:
             return
         test_source = os.environ.get("TEST_SOURCE")
         test_filter = os.environ.get("TEST_FILTER")
 
         cmake = CMake(self)
 
-        variables = {"ENABLE_TESTING": "ON"}
+        variables = {
+            "ENABLE_TESTING": "OFF" if skip_test else "ON",
+            "ENABLE_EXAMPLES": "ON" if examples else "OFF",
+        }
         if test_source:
             variables["TEST_SOURCE"] = test_source
         if test_filter:
@@ -60,6 +65,8 @@ class MipppRecipe(ConanFile):
         cmake.configure(variables=variables)
         cmake.build()
 
+        if skip_test:
+            return
         cli_args = ["CTEST_OUTPUT_ON_FAILURE=1"]
         if test_filter:
             cli_args.append("ARGS=-R {}".format(test_filter))

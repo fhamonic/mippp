@@ -160,10 +160,6 @@ JuMP, Pyomo, and OR-Tools CP-SAT remain the better choice.
 
 # Acknowledgements
 
-This work is grounded in the author's PhD thesis and postdoctoral positions,
-funded by Région Sud and Natural Solutions (PhD grant), the ERC
-project SCALED (grant n°949812), the PEPR VDBI project RESILIENCE, and the
-OASIS project of Aix-Marseille University's ITEM institute (postdoctoral
-positions).
+MIP++ is grounded in the PhD thesis and postdoctoral positions of François Hamonic, funded by Région Sud - Provence-Alpes-Côte d'Azur, Natural Solutions, the European Research Council grant [SCALED](https://www.scaled-erc.eu/) to Cécile ALBERT (ERC-STG no. 949812), the ANR project [RESILIENCE](https://www.pepr-resilience.eu/index.php) (no. ANR-24-PEVD-0002) and the project OASIS of [ITEM](https://institut-item.univ-amu.fr), an A\*Midex Initiative d'Excellence institute funded under France 2030 (AMX-19-IET-012).
 
 # References

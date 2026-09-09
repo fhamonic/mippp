@@ -68,7 +68,7 @@ A MIP++ model *is* the solver's native model. There is no extraction step, so re
 
 The library exposes the algorithmic hooks that decomposition and cutting-plane methods need:
 
-- [**Branch-and-cut callbacks**](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) with lazy constraints — the TSP example in `examples/tsp_lazy_constraints.cpp` adds subtour elimination cuts through a typed callback handle using the same `xsum` syntax as the main model.
+- [**Branch-and-cut callbacks**](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) with lazy constraints — the TSP example in `examples/travelling_salesman_dfj/` adds subtour elimination cuts through a typed callback handle using the same `xsum` syntax as the main model.
 - [**Column generation**](https://fhamonic.github.io/mippp/algorithms/column-generation/) via `add_column`, dual values (`get_dual_solution`), and reduced costs (`get_reduced_costs`). A full `column_manager` framework tracks columns across pool and master states, propagates pricing events to per-column properties (reduced cost, age, basis status) through compile-time event dispatch, and provides pluggable activation/eviction strategies — all at zero runtime overhead for unused properties.
 - **MIP starts**, **SOS1/SOS2 constraints**, **indicator constraints**, and [**in-place model updates**](https://fhamonic.github.io/mippp/solving/updates/) (bound changes, coefficient changes, variable/constraint removal). When columns are evicted, solvers compact their internal arrays, invalidating external indices. MIP++ keeps user-facing variable handles stable through a bidirectional handle/native-ID map — but the map is only allocated on the first deletion; models that never remove variables pay nothing beyond a branch prediction.
 
@@ -197,7 +197,7 @@ Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md), and open a
 
 ## Acknowledgements
 
-This work is grounded in the PhD thesis and postdoctoral positions of François Hamonic, funded by Région Sud and Natural Solutions (PhD grant), the ERC project SCALED (grant n°949812), the PEPR VDBI project RESILIENCE, and the OASIS project of Aix-Marseille University's ITEM institute (postdoctoral positions).
+MIP++ is grounded in the PhD thesis and postdoctoral positions of François Hamonic, funded by Région Sud - Provence-Alpes-Côte d'Azur, Natural Solutions, the European Research Council grant [SCALED](https://www.scaled-erc.eu/) to Cécile ALBERT (ERC-STG no. 949812), the ANR project [RESILIENCE](https://www.pepr-resilience.eu/index.php) (no. ANR-24-PEVD-0002) and the project OASIS of [ITEM](https://institut-item.univ-amu.fr), an A\*Midex Initiative d'Excellence institute funded under France 2030 (AMX-19-IET-012).
 
 
 ## Documentation, citing, license

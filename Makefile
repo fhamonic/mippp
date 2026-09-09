@@ -8,7 +8,7 @@ CONAN_PROFILE = gcc14_c++23
 
 CONAN_CXXFLAGS = -c 'tools.build:cxxflags=["-fconcepts-diagnostics-depth=30"]'
 
-.PHONY: all test package features_tables compat_table doc paper clean
+.PHONY: all test examples package features_tables compat_table doc paper clean
 
 all: test
 
@@ -24,6 +24,9 @@ endif
 test:
 	TEST_SOURCE="$(TEST_SOURCE)" TEST_FILTER="$(TEST_FILTER)" conan build . -of=${BUILD_DIR} -b=missing -pr=${CONAN_PROFILE} ${CONAN_CXXFLAGS}
 	
+examples:
+	ENABLE_EXAMPLES=ON conan build . -of=${BUILD_DIR} -b=missing -pr=${CONAN_PROFILE} -c tools.build:skip_test=true
+
 package:
 	conan create . -u -b=missing -pr=${CONAN_PROFILE} -c tools.build:skip_test=true
 

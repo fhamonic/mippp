@@ -54,7 +54,7 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
         for(unsigned int i = 0; i < vertex_names.size(); ++i) {
             for(unsigned int j = 0; j < vertex_names.size(); ++j) {
                 if(i == j) continue;
-                builder.add_arc(i, j, distances[i][j]);
+                builder.add_arc({i, j}, distances[i][j]);
             }
         }
         auto [graph, length_map] = builder.build();

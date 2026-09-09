@@ -30,7 +30,7 @@ The master must be an **LP** while you price: duals only exist for the relaxatio
 
 ## Example: cutting stock
 
-[`examples/cutting_stock.cpp`](https://github.com/fhamonic/mippp/blob/main/examples/cutting_stock.cpp) is a complete, runnable implementation — the pricing subproblem (an unbounded knapsack over the current duals) is a small dynamic program, so the example depends only on MIP++.
+[`examples/cutting_stock/`](https://github.com/fhamonic/mippp/blob/main/examples/cutting_stock/main.cpp) is a complete, runnable implementation — the pricing subproblem (an unbounded knapsack over the current duals) is a small dynamic program, so the example depends only on MIP++.
 
 The master has one demand-covering row per order, kept retrievable by order id:
 

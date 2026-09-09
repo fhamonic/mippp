@@ -9,7 +9,7 @@ s.t.    x1        <= 4
       x1 >= 0,  x2 <= 3
 ```
 
-The full program ([`examples/simple_lp.cpp`](https://github.com/fhamonic/mippp/blob/main/examples/simple_lp.cpp)):
+The full program ([`examples/simple_lp/main.cpp`](https://github.com/fhamonic/mippp/blob/main/examples/simple_lp/main.cpp)):
 
 ```cpp
 #include <print>
@@ -123,9 +123,11 @@ More on reading results — snapshots, reduced costs, evaluating expressions at 
 With the Conan or CMake setup from the [Installation](installation.md) page, there is nothing solver-specific to do — no `-lgurobi`, no `-lhighs`:
 
 ```bash
-g++-14 -std=c++23 -O3 -I<mippp>/include -I<dylib>/include simple_lp.cpp -o simple_lp
+g++-14 -std=c++23 -O3 -I<mippp>/include -I<dylib>/include main.cpp -o simple_lp
 ./simple_lp   # libhighs.so must be discoverable at *run* time
 ```
+
+The [`examples/simple_lp/`](https://github.com/fhamonic/mippp/tree/main/examples/simple_lp) folder packages this program with a `CMakeLists.txt` and a `conanfile.py`, ready to be copied as the start of your own project.
 
 ## Next
 

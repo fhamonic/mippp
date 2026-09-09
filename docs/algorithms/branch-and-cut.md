@@ -33,7 +33,7 @@ Backends supporting this are those satisfying the `has_candidate_solution_callba
 
 ## Example: TSP subtour elimination
 
-The heart of [`examples/tsp_lazy_constraints.cpp`](https://github.com/fhamonic/mippp/blob/main/examples/tsp_lazy_constraints.cpp), where `X(a)` are binary arc variables constrained so that each city has one incoming and one outgoing activated arc:
+The heart of [`examples/travelling_salesman_dfj/`](https://github.com/fhamonic/mippp/blob/main/examples/travelling_salesman_dfj/main.cpp), where `X(a)` are binary arc variables constrained so that each city has one incoming and one outgoing activated arc:
 
 ```cpp
 model.set_candidate_solution_callback([&](auto & handle) {
