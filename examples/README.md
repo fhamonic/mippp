@@ -74,8 +74,7 @@ the same way from a clone of [MELON](https://github.com/fhamonic/melon).
 
 ### Standalone, with plain CMake
 
-If MIP++ (and dylib) are installed where CMake can find them, no Conan is
-needed:
+If MIP++ is installed where CMake can find it, no Conan is needed:
 
 ```bash
 cd examples/nqueens

@@ -98,7 +98,7 @@ void OsiCuts_addRowCut(void * osiCuts, int nz, const int * idx,
 }  // namespace mippp
 #endif
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 
@@ -168,9 +168,14 @@ namespace cbc::v2_10_12 {
 
 class cbc_api {
 private:
-    dylib::library lib;
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     CBC_FUNCTIONS(DECLARE_CBC_FUNCTIONS)
 
 public:

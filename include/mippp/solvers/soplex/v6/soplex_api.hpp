@@ -53,7 +53,7 @@ enum Status {
 };
 }  // namespace mippp::soplex::v6
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 
@@ -83,9 +83,14 @@ namespace soplex::v6 {
 
 class soplex_api {
 private:
-    dylib::library lib;
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUNCTIONS)
 
 public:

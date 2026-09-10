@@ -232,7 +232,7 @@ HighsInt Highs_startCallback(void * highs, const int callback_type);
 }  // namespace mippp
 #endif
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
@@ -309,22 +309,18 @@ namespace highs::v1_10 {
 #define CONSTRUCT_HIGHS_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 #define CONSTRUCT_HIGHS_OPTIONAL_FUNCTIONS(FULL, SHORT) \
-    , SHORT(_try_load<SHORT##_fun_t>(#FULL))
+    , SHORT(lib.find_function<SHORT##_fun_t>(#FULL))
 
 class highs_api {
 private:
-    dylib::library lib;
-
-    template <typename T>
-    T * _try_load(const char * symbol_name) const {
-        try {
-            return lib.get_function<T>(symbol_name);
-        } catch(const dylib::symbol_error &) {
-            return nullptr;
-        }
-    }
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     HIGHS_FUNCTIONS(DECLARE_HIGHS_FUNCTIONS)
     HIGHS_OPTIONAL_FUNCTIONS(DECLARE_HIGHS_FUNCTIONS)
 

@@ -3,10 +3,9 @@
 ## Requirements
 
 - **GCC 14 or Clang 18 / C++23.** MIP++ targets **GCC 14 / C++23**, though its original target — **GCC 15 / C++26** — remains the recommended toolchain. A handful of C++26 features it relies on (such as `std::views::concat` and `std::flat_map`) are provided by built-in fallbacks, so GCC 14 or Clang 18 in C++23 mode is enough to build it. Clang is tested against libstdc++.
-- [**dylib**](https://github.com/martin-olivier/dylib) **3.0** — the only library dependency, used to load solver shared libraries at runtime. It is pulled in automatically when using Conan.
 - At least one solver installed on the machine that *runs* your program (see [below](#making-solver-libraries-discoverable)). Nothing is needed at compile time.
 
-MIP++ is header-only: there is nothing to build, and your binary never links against a solver SDK.
+MIP++ is header-only and has no library dependency: there is nothing to build, and your binary never links against a solver SDK. Solver libraries are opened at runtime through the platform loader (`dlopen` on Linux and macOS, `LoadLibrary` on Windows).
 
 ## Getting the headers
 
@@ -28,7 +27,15 @@ MIP++ is header-only: there is nothing to build, and your binary never links aga
     target_link_libraries(<target> INTERFACE mippp)
     ```
 
-    The build calls `find_package(dylib REQUIRED)`, so dylib 3.0 must be discoverable by CMake (installed system-wide, vendored with its own `add_subdirectory`, or provided through Conan's `CMakeDeps`).
+=== "CMake package"
+
+    ```bash
+    git clone https://github.com/fhamonic/mippp && cd mippp
+    cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix>
+    cmake --install build
+    ```
+
+    then `find_package(mippp CONFIG REQUIRED)` and link `mippp::mippp`. The installed package has no dependency to locate.
 
 ## Making solver libraries discoverable
 
@@ -43,7 +50,7 @@ Each `<solver>_api` object locates and loads the solver's shared library when it
 
     Recognized keys: `GUROBI`, `CPLEX`, `XPRESS`, `MOSEK`, `COPT`, `SCIP`, `HIGHS`, `SOPLEX`, `CLP`, `CBC`, `GLPK`.
 
-3. **The dynamic loader's search directories** — `LD_LIBRARY_PATH` and the system library directories on Linux (with `/etc/ld.so.conf` honored), `DYLD_LIBRARY_PATH` and the usual locations on macOS, `PATH` on Windows. The conventional decorated name (`libhighs.so`) is preferred; if only version-suffixed variants exist (`libhighs.so.1.10.0`), the lexicographically greatest filename — usually the highest version — is picked.
+3. **The dynamic loader's search directories** — `LD_LIBRARY_PATH` and the system library directories on Linux (with `/etc/ld.so.conf` honored), `DYLD_LIBRARY_PATH` and the usual locations on macOS, `PATH` on Windows. The conventional decorated name (`libhighs.so`) is preferred; if only version-suffixed variants exist (`libhighs.so.1.10.0`), the lexicographically greatest filename — usually the highest version — is picked. The result of this search is remembered for the rest of the process.
 
 Solvers installed through the system package manager (e.g. `apt install coinor-clp coinor-libclp-dev libglpk-dev`) are found without any configuration. Commercial and source-built solvers usually live outside the system directories, so export their locations from your shell profile, adjusting the base paths to your installation:
 

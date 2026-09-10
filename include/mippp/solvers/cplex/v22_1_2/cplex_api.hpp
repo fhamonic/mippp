@@ -260,7 +260,7 @@ void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
 }  // namespace mippp
 #endif
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
@@ -340,9 +340,14 @@ namespace cplex::v22_1_2 {
 
 class cplex_api {
 private:
-    dylib::library lib;
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     CPLEX_FUNCTIONS(DECLARE_CPLEX_FUNCTIONS)
 
 public:

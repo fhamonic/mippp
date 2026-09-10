@@ -354,7 +354,7 @@ MSKrescodee MSK_putcallbackfunc(MSKtask_t task, MSKcallbackfunc func,
 }  // namespace mippp
 #endif
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
@@ -431,9 +431,14 @@ namespace mosek::v11 {
 
 class mosek_api {
 private:
-    dylib::library lib;
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     MOSEK_FUNCTIONS(DECLARE_MOSEK_FUNCTIONS)
 
 public:

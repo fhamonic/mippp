@@ -19,7 +19,7 @@ title: ""
 
 </div>
 
-MIP++ is a header-only C++23 library for linear, mixed-integer, and quadratic programming — the fastest way to write portable, solver-agnostic optimization models in modern C++. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API. The same model code targets any of **11 solvers** — you choose the backend at compile time, and its shared library is loaded dynamically at runtime, with no link-time solver dependency.
+MIP++ is a header-only, dependency-free C++23 library for linear, mixed-integer, and quadratic programming — the fastest way to write portable, solver-agnostic optimization models in modern C++. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API. The same model code targets any of **11 solvers** — you choose the backend at compile time, and its shared library is loaded dynamically at runtime, with no link-time solver dependency.
 
 ```cpp
 #include <print>

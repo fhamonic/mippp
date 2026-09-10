@@ -193,7 +193,7 @@ double glp_mip_col_val(glp_prob * P, int j);
 }  // namespace mippp
 #endif
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 
@@ -254,9 +254,14 @@ namespace glpk::v5 {
 
 class glpk_api {
 private:
-    dylib::library lib;
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     GLPK_FUNCTIONS(DECLARE_GLPK_FUNCTIONS)
 
 public:

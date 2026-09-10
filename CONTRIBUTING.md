@@ -31,13 +31,13 @@ suite. You will need:
   C++26 features for which fallbacks are provided, so it also builds under C++23
   with GCC 14 or Clang 18. GCC 15 / C++26 remains the primary target if you have it.
 - **CMake ≥ 3.12**
-- **Conan 2.0** for dependency management
+- **Conan 2.0** to fetch the test dependencies (the library itself has none)
 - Open-source solvers for local testing (at minimum HiGHS, Clp/Cbc, GLPK, or
   SCIP). The CI installs `coinor-clp coinor-libclp-dev coinor-cbc
   coinor-libcbc-dev highs libhighs1 libglpk-dev`.
 
-The build depends on [dylib](https://github.com/martin-olivier/dylib),
-[GoogleTest](https://github.com/google/googletest), and the
+The library itself has no dependency; the tests need
+[GoogleTest](https://github.com/google/googletest) and the
 [MELON](https://github.com/fhamonic/melon) library (used by the graph-based
 tests). MELON is not on Conan Center yet, so build it locally first:
 
@@ -62,9 +62,19 @@ reproduces exactly what the workflow does:
 
 ## Making solver libraries discoverable at runtime
 
-MIP++ loads each solver's C API **at runtime** through `dylib`, so the solver's
-shared library must be reachable when you run the tests — it is not needed at
-compile time. [include/mippp/detail/solver_library.hpp](include/mippp/detail/solver_library.hpp)
+MIP++ loads each solver's C API **at runtime** through the platform loader
+(`dlopen` / `LoadLibrary`, wrapped by
+[include/mippp/detail/dynamic_library.hpp](include/mippp/detail/dynamic_library.hpp)),
+so the solver's shared library must be reachable when you run the tests — it is
+not needed at compile time. `dynamic_library` is the only place with
+platform-specific loading code (`dlopen` on POSIX, `LoadLibraryExW` on Windows).
+It never unmaps a library once loaded (`RTLD_NODELETE`, a pinned module on
+Windows): solvers keep worker threads and thread-local state alive past the
+destruction of their models, and unloading their code underneath those threads
+crashed the HiGHS tests at process exit;
+its behavior and the resolution rules below are pinned by
+[test/dynamic_library.cpp](test/dynamic_library.cpp), which opens a small fixture
+library built alongside the test binary. [include/mippp/detail/solver_library.hpp](include/mippp/detail/solver_library.hpp)
 implements that lookup once for every backend, with the following precedence
 (first match wins):
 
@@ -74,11 +84,20 @@ implements that lookup once for every backend, with the following precedence
    one library file — also used verbatim, and it wins over anything on
    `LD_LIBRARY_PATH`.
 3. **A search by name**, over the directories the dynamic loader would itself
-   search. Since dylib 3.0 opens paths only and no longer looks libraries up by
-   name, MIP++ reproduces that list itself: `LD_LIBRARY_PATH`, then `/etc/ld.so.conf` and
+   search. `dynamic_library` opens exact paths only, so MIP++ reproduces that
+   list itself: `LD_LIBRARY_PATH`, then `/etc/ld.so.conf` and
    `/etc/ld.so.conf.d/*.conf`, then `/usr/local/lib`, `/usr/lib`, `/lib` (on
    Windows: `PATH` then `System32`; on macOS the `DYLD_*` variables then the
    Homebrew/MacPorts prefixes).
+
+The result of that search is memoized per solver key and name list for the life
+of the process, so default-constructing several api objects costs microseconds
+after the first. Only successes are cached; a cached file that no longer loads
+triggers a fresh search. The one consequence is that a change the process makes
+to `LD_LIBRARY_PATH` after its first search is not seen. Steps 1 and 2 bypass the
+cache, which is what lets two versions of one solver be loaded side by side: an
+api object is one library file, `api.library_path()` says which, and a model is
+bound to the api it was built from.
 
 In each directory the search accepts the decorated name (`libhighs.so`) or, when
 the unversioned symlink is absent — usual in runtime-only packages — a versioned
@@ -304,8 +323,9 @@ backend supporting it gets coverage, rather than duplicating logic per solver.
   Run `clang-format -i` on changed files before committing.
 - Match the surrounding code: naming, header layout, and idioms already in the
   file take precedence over personal preference.
-- Keep the library **header-only**. Solver libraries are loaded at runtime via
-  `dylib`; do not add link-time dependencies on solver SDKs.
+- Keep the library **header-only** and dependency-free. Solver libraries are
+  loaded at runtime via `detail::dynamic_library`; do not add link-time
+  dependencies on solver SDKs.
 - Target C++23 as used elsewhere in the codebase. GCC 14 and Clang 18 are built in
   CI, so a C++26 feature may only be used behind a fallback that keeps those
   compilers working (as [include/mippp/detail/concat_view.hpp](include/mippp/detail/concat_view.hpp)
@@ -319,7 +339,16 @@ layout of an existing backend such as
 [glpk](include/mippp/solvers/glpk/v5/) or
 [highs](include/mippp/solvers/highs/v1_10/):
 
-- `<name>_api.hpp` — thin binding that loads the solver's C API through `dylib`.
+- `<name>_api.hpp` — thin binding that loads the solver's C API. It redeclares the
+  C prototypes it needs, so the solver's SDK headers are not required to build
+  (defining `INCLUDE_<SOLVER>_HEADER` includes the real header instead, to check
+  them against a release), lists them in an `X`-macro, and resolves each one in its
+  constructor: `detail::load_solver_library(path, "KEY", {names}, {probe
+  symbols})` opens the library, then `lib.get_function<F>("name")` fetches a
+  required entry point (throwing `detail::symbol_not_found`) and
+  `lib.find_function<F>("name")` an optional one, returning `nullptr` for
+  entry points absent from older releases (see the `*_OPTIONAL_FUNCTIONS` lists
+  of the HiGHS and Gurobi bindings).
 - `<name>_base.hpp` — shared model machinery.
 - `<name>_lp.hpp`, `<name>_milp.hpp`, and (where supported) `<name>_qp.hpp` —
   the model classes exposing the MIP++ interface.

@@ -6,7 +6,7 @@
 
 **One model, any solver — at raw C API speed.**
 
-MIP++ is a header-only C++23 library for linear, mixed-integer, and quadratic programming. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API — no intermediate model representation, no extraction step, no allocation in the expression layer. The same model code targets any of **11 solvers**; you choose the backend at compile time, and its shared library is discovered and loaded dynamically at runtime, with no link-time solver dependency.
+MIP++ is a header-only, dependency-free C++23 library for linear, mixed-integer, and quadratic programming. It gives you an algebraic modeling syntax as readable as JuMP or Pyomo, but compiles down to direct calls into the solver's own C API — no intermediate model representation, no extraction step, no allocation in the expression layer. The same model code targets any of **11 solvers**; you choose the backend at compile time, and its shared library is discovered and loaded dynamically at runtime, with no link-time solver dependency.
 
 📖 **[Documentation](https://fhamonic.github.io/mippp/)** — start with the [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/).
 
@@ -159,14 +159,15 @@ MIP++ has a deliberate niche. It is worth being honest about where it fits and w
 
 ## Installation
 
-Install via Conan or as a CMake subdirectory:
+MIP++ is header-only and has no library dependency — solver libraries are opened at runtime through the platform loader (`dlopen` / `LoadLibrary`), which MIP++ wraps itself. Install via Conan, as a CMake subdirectory, or with a plain CMake install:
 
 ```bash
 git clone https://github.com/fhamonic/mippp && cd mippp
-conan create . -u -b=missing -pr=<your_conan_profile>
+conan create . -u -b=missing -pr=<your_conan_profile>        # Conan
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=<prefix> && cmake --install build   # CMake package
 ```
 
-Solver shared libraries are discovered at runtime; only the solvers you actually have installed need to be present. Per-solver environment variables (`MIPPP_HIGHS_LIBRARY`, `MIPPP_GUROBI_LIBRARY`, etc.) can pin specific library paths or versioned sonames. Full instructions: [Installation](https://fhamonic.github.io/mippp/getting-started/installation/).
+Solver shared libraries are discovered at runtime; only the solvers you actually have installed need to be present, and nothing solver-related is needed at compile time. Per-solver environment variables (`MIPPP_HIGHS_LIBRARY`, `MIPPP_GUROBI_LIBRARY`, etc.) can pin specific library paths or versioned sonames. Full instructions: [Installation](https://fhamonic.github.io/mippp/getting-started/installation/).
 
 
 ## Roadmap

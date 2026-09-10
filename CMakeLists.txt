@@ -1,8 +1,20 @@
 cmake_minimum_required(VERSION 3.23)
 
+# The version number is parsed from include/mippp/version.hpp, its single
+# source of truth (conanfile.py parses it too).
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/include/mippp/version.hpp"
+     _mippp_version_hpp)
+foreach(level MAJOR MINOR PATCH)
+  if(NOT _mippp_version_hpp MATCHES "#define MIPPP_VERSION_${level} ([0-9]+)")
+    message(FATAL_ERROR
+            "Failed to parse MIPPP_VERSION_${level} from version.hpp")
+  endif()
+  set(MIPPP_VERSION_${level} ${CMAKE_MATCH_1})
+endforeach()
+
 project(
   mippp
-  VERSION 1.0.0
+  VERSION ${MIPPP_VERSION_MAJOR}.${MIPPP_VERSION_MINOR}.${MIPPP_VERSION_PATCH}
   DESCRIPTION
     "A modern interface for linear programming solvers using C++23 features."
   HOMEPAGE_URL "https://github.com/fhamonic/mippp"
@@ -19,9 +31,6 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(CompilerWarnings)
 
-# ################### Packages ###################
-find_package(dylib REQUIRED)
-
 # ############### Exported target ################
 add_library(mippp INTERFACE)
 add_library(mippp::mippp ALIAS mippp)
@@ -29,7 +38,8 @@ target_compile_features(mippp INTERFACE cxx_std_23)
 target_include_directories(
   mippp INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_link_libraries(mippp INTERFACE dylib::dylib)
+# dlopen lives in libdl on older glibc; empty elsewhere
+target_link_libraries(mippp INTERFACE ${CMAKE_DL_LIBS})
 
 # ################# Installation #################
 install(

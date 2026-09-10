@@ -101,21 +101,9 @@ jobs:
         run: apt-get update && apt-get install -y gcc-14 g++-14 cmake git
       - name: Install the HiGHS solver
         run: apt-get install -y highs libhighs1
-      - name: Build and install dylib
-        run: |
-          git clone --depth 1 --branch v3.0.1 https://github.com/martin-olivier/dylib.git
-          cmake -S dylib -B dylib/build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_STANDARD=17 \
-            -DBUILD_TESTS=OFF \
-            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
-          cmake --build dylib/build -j
-          cmake --install dylib/build
       - name: Install mippp
         run: |
-          cmake -S . -B build \
-            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/prefix" \
-            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
+          cmake -S . -B build -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
           cmake --install build
       - name: Build the simple_lp example against the installed package
         run: |

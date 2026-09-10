@@ -44,13 +44,15 @@ Only the solvers actually installed on the machine need to be present: a backend
 
 ## How solver libraries are found
 
-Constructing the api object loads the solver's shared library through[dylib](https://github.com/martin-olivier/dylib). Resolution order (first match wins):
+Constructing the api object opens the solver's shared library through the platform loader (`dlopen` on Linux and macOS, `LoadLibrary` on Windows) and resolves the C entry points the wrapper uses — nothing is linked, and MIP++ needs no third-party loader library. Resolution order (first match wins):
 
 1. an explicit path passed to the constructor — `gurobi_api api("/opt/gurobi1201/linux64/lib/libgurobi120.so");`
 2. the `MIPPP_<SOLVER>_LIBRARY` environment variable, holding the full path of the exact file to load;
 3. a search of the dynamic loader's directories (`LD_LIBRARY_PATH` and system library paths) for the conventional name, accepting version-suffixed sonames (`libhighs.so.1.10.0`) when the plain name is absent.
 
-See [Installation](../getting-started/installation.md#making-solver-libraries-discoverable) for per-solver environment setup.
+Each api object is one loaded library file, and `api.library_path()` returns it. Two api objects built from two explicit paths load two independent copies, each with its own global state, so two versions of the same solver can serve two models in one process. The directory search of step 3 is memoized per solver for the life of the process, so default-constructing many api objects is cheap; explicit paths and the environment variable are never cached.
+
+A library that exists but lacks the expected entry points (a same-named build without the C API, say) is rejected with the loader's own message rather than half-loaded, and the exception lists every candidate tried. See [Installation](../getting-started/installation.md#making-solver-libraries-discoverable) for per-solver environment setup.
 
 ## Feature support
 

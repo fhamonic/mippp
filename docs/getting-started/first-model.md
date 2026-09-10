@@ -123,9 +123,11 @@ More on reading results — snapshots, reduced costs, evaluating expressions at 
 With the Conan or CMake setup from the [Installation](installation.md) page, there is nothing solver-specific to do — no `-lgurobi`, no `-lhighs`:
 
 ```bash
-g++-14 -std=c++23 -O3 -I<mippp>/include -I<dylib>/include main.cpp -o simple_lp
+g++-14 -std=c++23 -O3 -I<mippp>/include main.cpp -o simple_lp
 ./simple_lp   # libhighs.so must be discoverable at *run* time
 ```
+
+MIP++ has no library to link against. The only platform detail is that on glibc older than 2.34 (before Debian 12 / Ubuntu 22.04) `dlopen` lives in a separate library, so add `-ldl` there; CMake and Conan consumers get this automatically.
 
 The [`examples/simple_lp/`](https://github.com/fhamonic/mippp/tree/main/examples/simple_lp) folder packages this program with a `CMakeLists.txt` and a `conanfile.py`, ready to be copied as the start of your own project.
 

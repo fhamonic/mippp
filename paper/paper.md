@@ -32,8 +32,8 @@ COPT [@copt], MOSEK [@mosek], HiGHS [@highs2018], SCIP [@scip8], Cbc [@cbc],
 Clp [@clp], SoPlex [@soplex], and GLPK [@glpk]); the backend is selected at
 compile time and its shared library is discovered and loaded at runtime, so no
 solver SDK needs to be present at link time and a single compiled binary runs
-on whatever solver the target machine has installed. Beyond a small
-dynamic-loading helper the library is dependency-free; GoogleTest and MELON
+on whatever solver the target machine has installed. The library is
+dependency-free, wrapping the platform loader itself; GoogleTest and MELON
 [@melon] are needed only to build the test suite.
 
 Constraint families are written over ranges, close to their mathematical

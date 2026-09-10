@@ -7,14 +7,16 @@
 #include <filesystem>
 #include <fstream>
 #include <initializer_list>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 namespace mippp::detail {
 
@@ -58,8 +60,8 @@ inline void append_conf_dirs(std::vector<std::filesystem::path> & dirs,
     }
 }
 
-// Reproduces the directories the dynamic loader would search, since dylib 3.0
-// no longer resolves libraries by name.
+// Reproduces the directories the dynamic loader would search, since
+// dynamic_library opens exact paths only.
 inline std::vector<std::filesystem::path> system_library_dirs() {
     std::vector<std::filesystem::path> dirs;
 #if defined(_WIN32)
@@ -158,17 +160,24 @@ inline std::optional<std::filesystem::path> find_library_in_dir(
     return std::nullopt;
 }
 
-// Loads a solver's shared library as a `dylib::library`, resolving it with
+// Loads a solver's shared library as a `dynamic_library`, resolving it with
 // the precedence shared by every `<solver>_api` backend (first match wins):
 //
 //   1. `path`, if non-null: the exact library file, used verbatim;
 //   2. the `MIPPP_<key>_LIBRARY` env var (e.g. MIPPP_HIGHS_LIBRARY): idem,
 //      letting versioned sonames like libhighs.so.1.10.0 be pinned;
 //   3. each undecorated name of `names` ("highs" -> libhighs.so), in order,
-//      searched across the loader's directories — dylib 3.0 resolves paths
-//      only, so MIP++ searches itself. Several names cover solvers renamed
-//      across releases (Cbc: libCbc / libCbcSolver).
-inline dylib::library load_solver_library(
+//      searched across the loader's directories (see system_library_dirs).
+//      Several names cover solvers renamed across releases (Cbc: libCbc /
+//      libCbcSolver).
+//
+// Only step 3 is memoized: the directory walk costs milliseconds where
+// reopening a known file costs microseconds, so default-constructing many api
+// objects stays cheap. Successes only, keyed by the exact query, so a failed
+// search is retried and two queries never alias; an entry that no longer
+// loads is dropped and searched afresh. Steps 1 and 2 bypass it, which is what
+// lets two versions of one solver be loaded side by side.
+inline dynamic_library load_solver_library(
     const char * path, const char * key,
     std::initializer_list<const char *> names,
     std::initializer_list<const char *> probe_symbols = {}) {
@@ -176,16 +185,15 @@ inline dylib::library load_solver_library(
     // matching name without the C API (Ubuntu's libCbc.so vs libCbcSolver.so)
     const auto try_load =
         [probe_symbols](const std::filesystem::path & p,
-                        std::string & err) -> std::optional<dylib::library> {
+                        std::string & err) -> std::optional<dynamic_library> {
         try {
-            dylib::library lib{p};
+            dynamic_library lib{p};
             for(auto && probe_symbol : probe_symbols)
                 lib.get_symbol(probe_symbol);
             return lib;
-        } catch(const std::exception & e) {
+        } catch(const std::runtime_error & e) {
+            // both dynamic_library errors already name the file
             if(!err.empty()) err += "\n  ";
-            err += p.string();
-            err += ": ";
             err += e.what();
             return std::nullopt;
         }
@@ -210,23 +218,58 @@ inline dylib::library load_solver_library(
                                  env_var + ":\n  " + errors);
     }
 
-    const dylib::decorations decorations = dylib::decorations::os_default();
+    // a handful of entries at most, one per backend actually constructed
+    static std::mutex cache_mutex;
+    static std::vector<std::pair<std::string, std::filesystem::path>> cache;
+    const auto cache_find = [](const std::string & k) {
+        return std::ranges::find_if(
+            cache, [&](const auto & e) { return e.first == k; });
+    };
+    std::string cache_key(key);
+    for(const char * n : names) {
+        cache_key += ';';
+        cache_key += n;
+    }
+    for(const char * probe_symbol : probe_symbols) {
+        cache_key += '|';
+        cache_key += probe_symbol;
+    }
+    std::optional<std::filesystem::path> cached;
+    {
+        const std::lock_guard<std::mutex> lock(cache_mutex);
+        if(auto it = cache_find(cache_key); it != cache.end())
+            cached = it->second;
+    }
+    if(cached) {
+        if(auto lib = try_load(*cached, errors)) return std::move(*lib);
+        const std::lock_guard<std::mutex> lock(cache_mutex);
+        if(auto it = cache_find(cache_key); it != cache.end()) cache.erase(it);
+    }
+
     const auto directories = detail::system_library_dirs();
     for(const char * n : names) {
         const std::string base =
-            detail::concat_str(decorations.prefix, n);  // libfoo
+            detail::concat_str(dynamic_library::prefix, n);  // libfoo
         const std::string decorated =
-            detail::concat_str(base, decorations.suffix);  // libfoo.so
+            detail::concat_str(base, dynamic_library::suffix);  // libfoo.so
         for(const auto & directory : directories)
             if(auto found = detail::find_library_in_dir(
-                   directory, base, decorated, decorations.suffix))
-                if(auto lib = try_load(*found, errors)) return std::move(*lib);
+                   directory, base, decorated, dynamic_library::suffix))
+                if(auto lib = try_load(*found, errors)) {
+                    const std::lock_guard<std::mutex> lock(cache_mutex);
+                    if(auto it = cache_find(cache_key); it != cache.end())
+                        it->second = *found;
+                    else
+                        cache.emplace_back(cache_key, *found);
+                    return std::move(*lib);
+                }
     }
 
     std::string tried;
     for(const char * n : names) {
         if(!tried.empty()) tried += "', '";
-        tried += std::string(decorations.prefix) + n + decorations.suffix;
+        tried += detail::concat_str(dynamic_library::prefix, n,
+                                    dynamic_library::suffix);
     }
     throw std::runtime_error(
         "mippp: could not locate a usable " + std::string(key) +

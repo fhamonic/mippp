@@ -202,7 +202,7 @@ ret_code COPT_AddCallbackLazyConstr(void * cbdata, int nRowMatCnt,
 }  // namespace mippp
 #endif
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
@@ -264,9 +264,14 @@ namespace copt::v7_2 {
 
 class copt_api {
 private:
-    dylib::library lib;
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     COPT_FUNCTIONS(DECLARE_COPT_FUNCTIONS)
 
 public:

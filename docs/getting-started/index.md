@@ -69,9 +69,9 @@ Most research codes are not "build model, call solve": they are branch-and-cut, 
 
 Each of these is itself a concept (`has_candidate_solution_callback`, `has_add_column`, …), so a generic algorithm can state its requirements in its template signature and fail at *compile time* — with a clear diagnostic — if you instantiate it with a backend that lacks a capability, rather than at hour three of a run.
 
-## Header-only, solvers loaded at runtime
+## Header-only, dependency-free, solvers loaded at runtime
 
-MIP++ itself is header-only, and solver libraries are **not linked** — each `<solver>_api` object loads the solver's shared library dynamically when constructed. Your binary has no link-time dependency on any solver SDK; only the backends you actually instantiate need to be installed on the machine running it. Details and the library-resolution rules are in [Choosing a solver](../solvers/index.md).
+MIP++ itself is header-only and depends on nothing but the standard library: solver libraries are **not linked** — each `<solver>_api` object opens the solver's shared library through the platform loader (`dlopen` / `LoadLibrary`) when constructed and resolves the C entry points it needs. Your binary has no link-time dependency on any solver SDK; only the backends you actually instantiate need to be installed on the machine running it, and a missing or unusable library is reported by an exception naming the files that were tried. Details and the library-resolution rules are in [Choosing a solver](../solvers/index.md).
 
 ## Is MIP++ right for you?
 

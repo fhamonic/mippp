@@ -199,7 +199,7 @@ int GRBcblazy(void * cbdata, int lazylen, const int * lazyind,
 }  // namespace mippp
 #endif
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
@@ -276,22 +276,18 @@ namespace gurobi::v12_0 {
 #define CONSTRUCT_GRB_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 #define CONSTRUCT_GRB_OPTIONAL_FUNCTIONS(FULL, SHORT) \
-    , SHORT(_try_load<SHORT##_fun_t>(#FULL))
+    , SHORT(lib.find_function<SHORT##_fun_t>(#FULL))
 
 class gurobi_api {
 private:
-    dylib::library lib;
-
-    template <typename T>
-    T * _try_load(const char * symbol_name) const {
-        try {
-            return lib.get_function<T>(symbol_name);
-        } catch(const dylib::symbol_error &) {
-            return nullptr;
-        }
-    }
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     GRB_FUNCTIONS(DECLARE_GRB_FUNCTIONS)
     GRB_OPTIONAL_FUNCTIONS(DECLARE_GRB_FUNCTIONS)
     int major, minor, technical;

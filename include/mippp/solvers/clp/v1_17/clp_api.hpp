@@ -77,7 +77,7 @@ void Clp_loadProblem(Clp_Simplex * model, const int numcols, const int numrows,
 }  // namespace mippp
 #endif
 
-#include "dylib.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
 
@@ -134,9 +134,14 @@ namespace clp::v1_17 {
 
 class clp_api {
 private:
-    dylib::library lib;
+    detail::dynamic_library lib;
 
 public:
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+
     CLP_FUNCTIONS(DECLARE_CLP_FUNCTIONS)
 
 public:
