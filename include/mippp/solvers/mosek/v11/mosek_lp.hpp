@@ -12,9 +12,6 @@ namespace mippp {
 namespace mosek::v11 {
 
 class mosek_lp : public mosek_base {
-private:
-    MSKprostae lp_status;
-
 public:
     [[nodiscard]] explicit mosek_lp(const mosek_api & api) : mosek_base(api) {}
 
@@ -94,8 +91,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         check(MSK->optimize(task));
-        check(MSK->getprosta(task, MSK_SOL_BAS, &lp_status));
-        _status = _get_status();
+        _status = (num_variables() > 0) ? _get_status() : status::optimal{};
     }
     double get_solution_value() {
         double val;

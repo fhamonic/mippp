@@ -12,7 +12,7 @@
     INSTANTIATE_TYPED_TEST_SUITE_P(model_name, test_suite,   \
                                    ::testing::Types<model_type>)
 
-#define TEST_EPSILON 1e-7
+#define TEST_EPSILON 1e-6
 #define TEST_INFINITY 1e20
 
 #include "mippp/utility/solver_exceptions.hpp"

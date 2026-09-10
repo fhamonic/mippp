@@ -189,7 +189,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         check(MSK->optimize(task));
-        _status = _get_status();
+        _status = (num_variables() > 0) ? _get_status() : status::optimal{};
     }
     double get_solution_value() {
         double val = 0.0;
