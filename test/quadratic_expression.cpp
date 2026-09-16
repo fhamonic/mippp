@@ -215,14 +215,13 @@ GTEST_TEST(quadratic_expression_concepts, named_operands_are_referenced) {
     using rt_expr = decltype(e);
 
     static_assert(
-        std::same_as<decltype(square(e)),
-                     linear_expression_square<
-                         detail::linear_expression_ref<rt_expr>>>);
-    static_assert(
-        std::same_as<decltype(e * e),
-                     linear_expression_mul_view<
-                         detail::linear_expression_ref<rt_expr>,
-                         detail::linear_expression_ref<rt_expr>>>);
+        std::same_as<
+            decltype(square(e)),
+            linear_expression_square<detail::linear_expression_ref<rt_expr>>>);
+    static_assert(std::same_as<decltype(e * e),
+                               linear_expression_mul_view<
+                                   detail::linear_expression_ref<rt_expr>,
+                                   detail::linear_expression_ref<rt_expr>>>);
 
     static_assert(std::same_as<decltype(square(materialize(xsum(vars)))),
                                linear_expression_square<rt_expr>>);
@@ -236,9 +235,9 @@ GTEST_TEST(quadratic_expression_operators, square_references_named_operand) {
     auto quadexpr = square(e);
     e += 2.0 * Var(2);
     // (x1 + 2*x2)^2
-    ASSERT_QUAD_TERMS(quadexpr.quadratic_terms(), {{Var(1), Var(1), 1.0},
-                                                   {Var(2), Var(2), 4.0},
-                                                   {Var(1), Var(2), 4.0}});
+    ASSERT_QUAD_TERMS(
+        quadexpr.quadratic_terms(),
+        {{Var(1), Var(1), 1.0}, {Var(2), Var(2), 4.0}, {Var(1), Var(2), 4.0}});
 }
 
 ///////////////////////////////////////////////////////////////////////////////

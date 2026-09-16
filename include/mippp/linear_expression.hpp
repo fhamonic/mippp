@@ -192,11 +192,12 @@ linear_expression_view(Terms &&)
     -> linear_expression_view<std::views::all_t<Terms>, zero_t>;
 
 template <std::ranges::viewable_range Terms, typename Constant>
-linear_expression_view(Terms &&, Constant) -> linear_expression_view<
-    std::views::all_t<Terms>,
-    std::conditional_t<
-        statically_zero<Constant>, zero_t,
-        linear_term_scalar_t<std::ranges::range_value_t<Terms>>>>;
+linear_expression_view(Terms &&, Constant)
+    -> linear_expression_view<
+        std::views::all_t<Terms>,
+        std::conditional_t<
+            statically_zero<Constant>, zero_t,
+            linear_term_scalar_t<std::ranges::range_value_t<Terms>>>>;
 
 template <typename V, typename S>
 constexpr auto empty_linear_expression =

@@ -1,8 +1,16 @@
 #pragma once
 
+#include <chrono>
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <numeric>
 #include <optional>
+#include <ranges>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/model_concepts.hpp"
@@ -25,8 +33,7 @@ public:
         return variable(var_id);
     }
     auto add_integer_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+        std::size_t count, variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'I');
         return _make_variables_view(offset, count);

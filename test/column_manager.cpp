@@ -37,12 +37,10 @@ using fake_basis_status =
 
 // times_activated is listed in both states so that it survives the
 // pool <-> master transitions (see transfer_common_properties)
-using manager =
-    column_manager<fake_model, int,
-                   property_list<reduced_cost, age, times_activated>,
-                   property_list<reduced_cost, age, variable_value,
-                                 variable_status<fake_basis_status>,
-                                 times_activated>>;
+using manager = column_manager<
+    fake_model, int, property_list<reduced_cost, age, times_activated>,
+    property_list<reduced_cost, age, variable_value,
+                  variable_status<fake_basis_status>, times_activated>>;
 
 // reads a single column's property from the views (the states are only
 // exposed through pool_columns()/master_columns())
@@ -153,8 +151,7 @@ GTEST_TEST(column_manager, pool_updates_reach_properties) {
     }
 
     columns.update_pool_columns(price_from(rc));
-    for(int seed : {1, 2, 3})
-        EXPECT_EQ(pool_get<age>(columns, seed), 2u);
+    for(int seed : {1, 2, 3}) EXPECT_EQ(pool_get<age>(columns, seed), 2u);
 }
 
 GTEST_TEST(column_manager, master_refresh_updates_value_and_basis_status) {
@@ -175,8 +172,8 @@ GTEST_TEST(column_manager, master_refresh_updates_value_and_basis_status) {
     const auto status =
         master_get<variable_status<fake_basis_status>>(columns, 10);
     ASSERT_TRUE(status.has_value());
-    EXPECT_TRUE(std::holds_alternative<basis_status::nonbasic_at_upper_bound>(
-        *status));
+    EXPECT_TRUE(
+        std::holds_alternative<basis_status::nonbasic_at_upper_bound>(*status));
     EXPECT_EQ(master_get<age>(columns, 10), 1u);
 
     // the pool column was not touched by update_master_columns
@@ -190,8 +187,7 @@ GTEST_TEST(column_manager, update_columns_reaches_both_states) {
     columns.emplace_master_column(2, model.add_variable());
 
     // the single-callback overload broadcasts one event to every column
-    columns.update_columns(
-        [](const int & seed) { return priced{seed * 1.0}; });
+    columns.update_columns([](const int & seed) { return priced{seed * 1.0}; });
     EXPECT_EQ(pool_get<reduced_cost>(columns, 1), 1.0);
     EXPECT_EQ(master_get<reduced_cost>(columns, 2), 2.0);
 
@@ -226,8 +222,8 @@ GTEST_TEST(column_manager, activation_selects_matching_columns) {
         return m.add_variable();
     };
 
-    auto result = columns.manage_columns(
-        model, all<negative<reduced_cost>>{}, add_column);
+    auto result = columns.manage_columns(model, all<negative<reduced_cost>>{},
+                                         add_column);
 
     EXPECT_EQ(result.num_activated, 2u);
     EXPECT_EQ(columns.num_master_columns(), 2u);
@@ -266,9 +262,9 @@ GTEST_TEST(column_manager, eviction_reads_state_in_remove_lambda) {
         }
     };
 
-    auto result = columns.manage_columns(model, none{},
-                                         all<positive<reduced_cost>>{},
-                                         make_variable, remove_columns);
+    auto result =
+        columns.manage_columns(model, none{}, all<positive<reduced_cost>>{},
+                               make_variable, remove_columns);
 
     EXPECT_EQ(result.num_evicted, 2u);
     std::ranges::sort(evicted_seeds);
@@ -305,11 +301,11 @@ GTEST_TEST(column_manager, at_most_k_best_ranks_by_state_property) {
         return a.second.template get<reduced_cost>() <
                b.second.template get<reduced_cost>();
     };
-    auto result = columns.manage_columns(
-        model,
-        at_most_k_best{std::size_t{2}, by_reduced_cost,
-                       negative<reduced_cost>{}},
-        add_column);
+    auto result =
+        columns.manage_columns(model,
+                               at_most_k_best{std::size_t{2}, by_reduced_cost,
+                                              negative<reduced_cost>{}},
+                               add_column);
 
     EXPECT_EQ(result.num_activated, 2u);
     std::ranges::sort(activated_seeds);

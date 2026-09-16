@@ -3,11 +3,17 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <functional>
 #include <optional>
 #include <ostream>
 #include <ranges>
 #include <sstream>
+#include <stdexcept>
+#include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -167,9 +173,8 @@ public:
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = default_variable_params) {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
         return _make_indexed_variables_view(offset, count,
@@ -224,18 +229,17 @@ public:
         return variable(var_id);
     }
     template <typename NL>
-    auto add_named_variables(
-        std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_var(params, false, name_lambda(i).c_str());
         return _make_variables_view(offset, count);
     }
     template <typename IL, typename NL>
-    auto add_named_variables(
-        std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, IL && id_lambda,
+                             NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
         return _make_indexed_named_variables_view(

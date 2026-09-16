@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <cstddef>
 #include <memory>
 #include <tuple>
 #include <type_traits>
@@ -17,8 +18,7 @@ concept mapping = requires(Map map, Key key) { map[key]; };
 
 template <typename Map, typename Key>
     requires mapping<Map, Key>
-using mapped_reference_t =
-    decltype(std::declval<Map>()[std::declval<Key>()]);
+using mapped_reference_t = decltype(std::declval<Map>()[std::declval<Key>()]);
 
 template <typename Map, typename Key>
     requires mapping<Map, Key>
@@ -44,12 +44,12 @@ concept output_mapping =
         {
             map[key] = value
         } -> std::same_as<
-            std::add_lvalue_reference_t<mapped_reference_t<Map, Key>>>;
+              std::add_lvalue_reference_t<mapped_reference_t<Map, Key>>>;
     };
 
 template <typename Map, typename Key, typename Value>
-concept output_mapping_of = output_mapping<Map, Key> &&
-                            std::same_as<mapped_value_t<Map, Key>, Value>;
+concept output_mapping_of =
+    output_mapping<Map, Key> && std::same_as<mapped_value_t<Map, Key>, Value>;
 
 template <typename Map, typename Key>
 concept contiguous_mapping =
@@ -60,9 +60,8 @@ concept contiguous_mapping =
     };
 
 template <typename Map, typename Key, typename Value>
-concept contiguous_mapping_of =
-    contiguous_mapping<Map, Key> &&
-    std::same_as<mapped_value_t<Map, Key>, Value>;
+concept contiguous_mapping_of = contiguous_mapping<Map, Key> &&
+                                std::same_as<mapped_value_t<Map, Key>, Value>;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// Mapping views ///////////////////////////////////
@@ -148,9 +147,8 @@ public:
     }
     constexpr movable_box & operator=(const movable_box & other) noexcept(
         std::copyable<T> ? std::is_nothrow_copy_assignable_v<T> : false)
-        requires std::copyable<T> ||
-                 (std::copy_constructible<T> &&
-                  std::is_nothrow_move_constructible_v<T>)
+        requires std::copyable<T> || (std::copy_constructible<T> &&
+                                      std::is_nothrow_move_constructible_v<T>)
     {
         if constexpr(std::copyable<T>) {
             _value = other._value;
@@ -230,8 +228,7 @@ public:
     constexpr mapping_owning_view(mapping_owning_view &&) = default;
     constexpr mapping_owning_view & operator=(const mapping_owning_view &) =
         default;
-    constexpr mapping_owning_view & operator=(mapping_owning_view &&) =
-        default;
+    constexpr mapping_owning_view & operator=(mapping_owning_view &&) = default;
 
     constexpr Map & base() & noexcept { return *_map; }
     constexpr const Map & base() const & noexcept { return *_map; }
@@ -252,8 +249,7 @@ public:
         return (*_map).data();
     }
     [[nodiscard]] constexpr auto data() const
-        requires std::is_pointer_v<
-            decltype(std::declval<const Map &>().data())>
+        requires std::is_pointer_v<decltype(std::declval<const Map &>().data())>
     {
         return (*_map).data();
     }

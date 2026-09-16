@@ -1,8 +1,12 @@
 #pragma once
 
 #include <cmath>
+#include <cstddef>
 #include <limits>
+#include <memory>
 #include <optional>
+#include <utility>
+#include <variant>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
@@ -50,8 +54,7 @@ public:
         return variable(var_id);
     }
     auto add_integer_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+        std::size_t count, variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_IV);
         return _make_variables_view(offset, count);

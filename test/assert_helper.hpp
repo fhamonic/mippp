@@ -83,8 +83,7 @@ void ASSERT_QUAD_EXPR(
 template <typename Constr>
 void ASSERT_CONSTRAINT(
     Constr && constr,
-    std::initializer_list<mippp::linear_term_t<Constr>>
-        expected_terms,
+    std::initializer_list<mippp::linear_term_t<Constr>> expected_terms,
     mippp::constraint_sense rel,
     mippp::linear_constraint_scalar_t<Constr> bound) {
     ASSERT_LIN_TERMS(constr.linear_terms(), expected_terms);

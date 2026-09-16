@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #if INCLUDE_GUROBI_HEADER
 #include "gurobi_c.h"
 #else

@@ -1,6 +1,12 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <functional>
+#include <memory>
+#include <ranges>
+#include <utility>
+#include <variant>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
@@ -22,8 +28,7 @@ public:
         return _add_variable(params, GRB_INTEGER, nullptr);
     }
     auto add_integer_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+        std::size_t count, variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_INTEGER);
         return _make_variables_view(handle_ids_begin, count);
@@ -132,8 +137,9 @@ private:
     };
 
 public:
-    class candidate_solution_callback_handle : public callback_handle_base,
-                                               protected model_base<int, double> {
+    class candidate_solution_callback_handle
+        : public callback_handle_base,
+          protected model_base<int, double> {
     public:
         candidate_solution_callback_handle(const gurobi_milp & parent_,
                                            GRBmodel * master_model_,

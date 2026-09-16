@@ -215,10 +215,16 @@ make clean
 
 `make test <solver>` sets the `TEST_SOURCE` variable, which restricts
 compilation and execution to `test/solvers/<solver>.cpp` — handy when you only
-have one solver installed locally. An optional third word sets `TEST_FILTER`,
-passed to `ctest -R`. Without a source, every backend in
+have one solver installed locally. A `;`-separated list selects several
+(`make test "clp;cbc"`). An optional third word sets `TEST_FILTER`, passed to
+`ctest -R`. Without a source, every backend in
 [test/CMakeLists.txt](test/CMakeLists.txt) is built; backends whose runtime
-library is missing are skipped automatically.
+library is missing are skipped automatically. Each solver file instantiates
+every shared suite for every model type of its backend and takes about as long
+to compile as all the core tests together, so a targeted build is several
+times faster than a full one. Whatever the selection, every public header is
+also compiled on its own in a generated translation unit, which catches a
+header that only works when something else was included before it.
 
 That automatic skipping is convenient locally but hides packaging mistakes in
 CI, where the solvers are installed on purpose. Set `MIPPP_REQUIRED_SOLVERS` to
@@ -237,15 +243,45 @@ Note that `TEST_SOURCE` is sticky in the CMake cache: after `make test highs`, t
 build directory keeps producing a HiGHS-only binary until you run `make test` (or
 `make clean`) again — the compatibility matrix below needs an all-backends one.
 
+The tests can be built with sanitizers, in which case a Debug build is what
+makes their reports precise:
+
+```bash
+TEST_SANITIZE=address,undefined conan build . -of=build_sanitize -b=missing -pr=gcc15_c++26 -s build_type=Debug
+```
+
+Two source-level checks run in CI and can be run locally: `make check-format`
+verifies the tree against `.clang-format` (CI pins clang-format 18.1.8, another
+major version flags different lines) and `make check-includes` runs
+[misc/tools/check_std_includes.py](misc/tools/check_std_includes.py), which
+fails if a header names a `std::` symbol that none of its own includes is
+guaranteed to provide. The second one matters because every Linux job compiles
+against libstdc++, whose `<ranges>` drags in most of `<utility>` and
+`<type_traits>`, so a missing include compiles across the whole matrix and
+breaks only in a consumer's translation unit.
+
 Before opening a pull request, make sure the suite passes for at least one
 open-source backend. The rest is covered by
-[.github/workflows/c-cpp.yml](.github/workflows/c-cpp.yml), which on every push and
-pull request to `main` builds and runs the suite under GCC 15 / C++26, GCC 14 /
-C++23, Clang 18 / C++23 and MinGW 15 on Windows — each job declaring its installed
-backends through `MIPPP_REQUIRED_SOLVERS` — plus a job that installs the library
-with plain CMake and builds an out-of-tree `find_package(mippp)` consumer against
-it. Changes to the CMake install/export rules should be checked against that last
-job.
+[.github/workflows/c-cpp.yml](.github/workflows/c-cpp.yml), which runs on every
+push and pull request to `main` and on every `v*` tag:
+
+- `source-hygiene`: the two checks above.
+- `linux-gcc15-sanitize` and `macos-appleclang21-build` build and run the whole
+  suite, every backend compiled, with all four open-source solvers installed and
+  required — the first one under ASan and UBSan in Debug, the second one under
+  Apple clang 21 / libc++.
+- `linux-gcc15-build`, `linux-gcc14-build`, `linux-clang18-build`,
+  `windows-mingw15-build` and `windows-msvc1711-build` build the tests of one or
+  two backends each (`TEST_SOURCE`) and require them (`MIPPP_REQUIRED_SOLVERS`),
+  which keeps every compiler of the matrix under a few minutes; every backend
+  is still compiled there through the per-header check.
+- `linux-cmake-install`, `linux-cmake-submodule` and `linux-conan-create` build
+  and run [examples/simple_lp](examples/simple_lp) against, respectively, a
+  `cmake --install` prefix, an `add_subdirectory` of the source tree, and a
+  package created by `conan create`; the program's output is diffed against
+  [examples/simple_lp/expected_output.txt](examples/simple_lp/expected_output.txt).
+  Changes to the CMake install/export rules or to `conanfile.py` should be
+  checked against these.
 
 ## The version compatibility matrix
 

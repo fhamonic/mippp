@@ -8,12 +8,12 @@
 
 #include "mippp/detail/concat_view.hpp"
 
-// `unordered_concat` has two implementations selected on __cpp_lib_ranges_concat
-// (the std::views::concat one additionally swaps its operands on the GCC 15.1
-// bug path). Both must accept *any* viewable_range -- notably plain containers,
-// which is what a runtime_linear_expression hands over -- and both are free to
-// produce the terms in either order, so every assertion below is written to be
-// order-insensitive.
+// `unordered_concat` has two implementations selected on
+// __cpp_lib_ranges_concat (the std::views::concat one additionally swaps its
+// operands on the GCC 15.1 bug path). Both must accept *any* viewable_range --
+// notably plain containers, which is what a runtime_linear_expression hands
+// over -- and both are free to produce the terms in either order, so every
+// assertion below is written to be order-insensitive.
 
 using mippp::detail::unordered_concat;
 
@@ -40,9 +40,8 @@ void ASSERT_ELEMENTS(R && r,
 /////////////////////////////// Range categories //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-using two_vectors_t =
-    decltype(unordered_concat(std::declval<std::vector<int> &>(),
-                              std::declval<std::vector<int> &>()));
+using two_vectors_t = decltype(unordered_concat(
+    std::declval<std::vector<int> &>(), std::declval<std::vector<int> &>()));
 
 static_assert(std::ranges::view<two_vectors_t>);
 static_assert(std::ranges::forward_range<two_vectors_t>);
@@ -54,7 +53,8 @@ static_assert(std::same_as<std::ranges::range_value_t<two_vectors_t>, int>);
 
 // regression: the fallback concat_view used to be handed the raw operands, so
 // CTAD deduced V1 = std::vector and failed the `view<V1>` constraint. Adding
-// two containers -- e.g. two materialized linear expressions -- did not compile.
+// two containers -- e.g. two materialized linear expressions -- did not
+// compile.
 GTEST_TEST(unordered_concat, two_lvalue_containers) {
     std::vector<int> a = {1, 2, 3};
     std::vector<int> b = {4, 5};
@@ -69,7 +69,8 @@ GTEST_TEST(unordered_concat, const_lvalue_containers) {
 
 // a container passed as an rvalue must be *owned* by the result, not referenced
 GTEST_TEST(unordered_concat, rvalue_containers_are_owned) {
-    auto c = unordered_concat(std::vector<int>{1, 2, 3}, std::vector<int>{4, 5});
+    auto c =
+        unordered_concat(std::vector<int>{1, 2, 3}, std::vector<int>{4, 5});
     ASSERT_ELEMENTS(c, {1, 2, 3, 4, 5});
 }
 

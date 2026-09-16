@@ -1,9 +1,16 @@
 #pragma once
 
+#include <algorithm>
+#include <chrono>
+#include <cstddef>
 #include <memory>
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <ratio>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -326,17 +333,15 @@ public:
         const variable_params params = default_variable_params) {
         return _add_variable(params, GRB_CONTINUOUS, nullptr);
     }
-    auto add_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count,
+                       variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
-    auto add_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_indexed_variables_view(handle_ids_begin, count,
@@ -349,18 +354,17 @@ public:
         return _add_variable(params, GRB_CONTINUOUS, name.c_str());
     }
     template <typename NL>
-    auto add_named_variables(
-        std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_named_variables_view(handle_ids_begin, count,
                                           std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
-    auto add_named_variables(
-        std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, IL && id_lambda,
+                             NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_indexed_named_variables_view(

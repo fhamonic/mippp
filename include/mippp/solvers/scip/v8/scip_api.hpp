@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
 #include <limits>
 
 #if INCLUDE_SCIP_HEADER

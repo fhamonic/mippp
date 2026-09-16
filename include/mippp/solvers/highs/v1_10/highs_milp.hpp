@@ -1,7 +1,12 @@
 #pragma once
 
+#include <cstddef>
 #include <limits>
+#include <memory>
 #include <optional>
+#include <ranges>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -24,8 +29,7 @@ public:
         return _add_variable(params, kHighsVarTypeInteger);
     }
     auto add_integer_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+        std::size_t count, variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeInteger);
         return _make_variables_view(offset, count);

@@ -4,14 +4,16 @@
 #include <array>
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
-#include "mippp/model_concepts.hpp"
 #include "mippp/detail/variadic_helper.hpp"
+#include "mippp/model_concepts.hpp"
 
 namespace mippp {
 

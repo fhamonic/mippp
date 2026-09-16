@@ -1,7 +1,9 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <optional>
+#include <variant>
 
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"

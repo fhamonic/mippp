@@ -39,8 +39,8 @@ using string_map_t = unordered_dense_map<std::string, int, sv_hash, sv_eq>;
 
 // the map holds exactly these entries, whatever their order
 template <typename M>
-void ASSERT_MAP_ENTRIES(
-    const M & m, std::initializer_list<typename M::value_type> entries) {
+void ASSERT_MAP_ENTRIES(const M & m,
+                        std::initializer_list<typename M::value_type> entries) {
     ASSERT_EQ(m.size(), entries.size());
     for(const auto & [k, v] : entries) {
         ASSERT_TRUE(m.contains(k));

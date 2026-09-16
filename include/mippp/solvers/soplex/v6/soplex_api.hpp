@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #if INCLUDE_SOPLEX_HEADER
 #include "soplex_interface.h"
 #else

@@ -169,8 +169,9 @@ GTEST_TEST(linear_expression_concepts, multipass_linear_terms) {
     static_assert(multipass_linear_terms<owned_expr>);
 
     // fails on each axis independently
-    static_assert(!multipass_linear_terms<lazy_expr>);    // readable, 1-pass
-    static_assert(!multipass_linear_terms<owning_expr>);  // restartable, unread.
+    static_assert(!multipass_linear_terms<lazy_expr>);  // readable, 1-pass
+    static_assert(
+        !multipass_linear_terms<owning_expr>);  // restartable, unread.
 
     // materialize() repairs both
     static_assert(multipass_linear_terms<decltype(materialize(

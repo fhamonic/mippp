@@ -1,8 +1,13 @@
 #pragma once
 
 #include <cmath>
+#include <cstddef>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -215,17 +220,15 @@ public:
         _add_variable(var_id, params, GLP_CV);
         return variable(var_id);
     }
-    auto add_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count,
+                       variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_CV);
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_CV);
         return _make_indexed_variables_view(offset, count,
@@ -240,18 +243,17 @@ public:
         return v;
     }
     template <typename NL>
-    auto add_named_variables(
-        std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_CV);
         return _make_named_variables_view(offset, count,
                                           std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
-    auto add_named_variables(
-        std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, IL && id_lambda,
+                             NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_CV);
         return _make_indexed_named_variables_view(

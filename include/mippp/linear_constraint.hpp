@@ -2,6 +2,7 @@
 
 #include <ranges>
 #include <type_traits>
+#include <utility>
 
 #include "mippp/linear_expression.hpp"
 
@@ -125,41 +126,47 @@ template <linear_expression E1, linear_expression E2>
 }
 
 template <linear_expression E>
-[[nodiscard]] constexpr auto operator<=(linear_expression_scalar_t<E> c, E && e) {
+[[nodiscard]] constexpr auto operator<=(linear_expression_scalar_t<E> c,
+                                        E && e) {
     return linear_constraint_view(
         linear_expression_scalar_add(
             linear_expression_negate(std::forward<E>(e)), c),
         constraint_sense::less_equal);
 }
 template <linear_expression E>
-[[nodiscard]] constexpr auto operator<=(E && e, linear_expression_scalar_t<E> c) {
+[[nodiscard]] constexpr auto operator<=(E && e,
+                                        linear_expression_scalar_t<E> c) {
     return linear_constraint_view(
         linear_expression_scalar_add(std::forward<E>(e), -c),
         constraint_sense::less_equal);
 }
 
 template <linear_expression E>
-[[nodiscard]] constexpr auto operator>=(linear_expression_scalar_t<E> c, E && e) {
+[[nodiscard]] constexpr auto operator>=(linear_expression_scalar_t<E> c,
+                                        E && e) {
     return linear_constraint_view(
         linear_expression_scalar_add(
             linear_expression_negate(std::forward<E>(e)), c),
         constraint_sense::greater_equal);
 }
 template <linear_expression E>
-[[nodiscard]] constexpr auto operator>=(E && e, linear_expression_scalar_t<E> c) {
+[[nodiscard]] constexpr auto operator>=(E && e,
+                                        linear_expression_scalar_t<E> c) {
     return linear_constraint_view(
         linear_expression_scalar_add(std::forward<E>(e), -c),
         constraint_sense::greater_equal);
 }
 
 template <linear_expression E>
-[[nodiscard]] constexpr auto operator==(E && e, linear_expression_scalar_t<E> c) {
+[[nodiscard]] constexpr auto operator==(E && e,
+                                        linear_expression_scalar_t<E> c) {
     return linear_constraint_view(
         linear_expression_scalar_add(std::forward<E>(e), -c),
         constraint_sense::equal);
 }
 template <linear_expression E>
-[[nodiscard]] constexpr auto operator==(linear_expression_scalar_t<E> c, E && e) {
+[[nodiscard]] constexpr auto operator==(linear_expression_scalar_t<E> c,
+                                        E && e) {
     return linear_constraint_view(
         linear_expression_scalar_add(
             linear_expression_negate(std::forward<E>(e)), c),

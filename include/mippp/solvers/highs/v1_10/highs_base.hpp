@@ -1,11 +1,18 @@
 #pragma once
 
+#include <algorithm>
+#include <chrono>
+#include <cstddef>
 #include <cstring>
 #include <limits>
 #include <memory>
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -275,17 +282,15 @@ public:
         const variable_params params = default_variable_params) {
         return _add_variable(params, kHighsVarTypeContinuous);
     }
-    auto add_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count,
+                       variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_indexed_variables_view(offset, count,
@@ -300,18 +305,17 @@ public:
         return v;
     }
     template <typename NL>
-    auto add_named_variables(
-        std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_named_variables_view(offset, count,
                                           std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
-    auto add_named_variables(
-        std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, IL && id_lambda,
+                             NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_indexed_named_variables_view(

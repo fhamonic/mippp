@@ -3,123 +3,317 @@ name: C/C++ CI
 on:
   push:
     branches: ["main"]
+    # Release tags run the full matrix on the exact tagged commit, which may
+    # not be the branch head the last main push validated.
+    tags: ["v*"]
   pull_request:
     branches: ["main"]
 
+# Compiling one solver's test file costs about as much as all the core tests
+# together, so a full build is reserved to the two jobs meant to surface every
+# warning (linux-gcc15-sanitize, macos-appleclang21-build). The other build
+# jobs set TEST_SOURCE to the backends they install and run; every backend is
+# still compiled on every compiler by the per-header check that test/ builds
+# alongside the test binary.
 jobs:
+  # Every step after the first carries `if: !cancelled()`: steps stop at the
+  # first failure by default, so dropping it hides a second independent
+  # problem until the next round-trip.
+  source-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Every build job but the MSVC one uses libstdc++, whose <ranges> pulls
+      # in std::move, std::pair and every type trait, so a header missing
+      # <utility> or <type_traits> compiles across the whole matrix and breaks
+      # only in a consumer's translation unit.
+      - name: "Every header includes what provides the std:: symbols it names"
+        run: python3 misc/tools/check_std_includes.py include
+      # Pinned to the version the tree is formatted with: another major
+      # version flags different lines.
+      - name: Install clang-format
+        if: ${{ !cancelled() }}
+        run: pipx install clang-format==18.1.8
+      - name: Check formatting
+        if: ${{ !cancelled() }}
+        run: |
+          find include test -name "*.hpp" -o -name "*.cpp" \
+            | xargs clang-format --dry-run -Werror
+
   linux-gcc15-build:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:25.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
       - name: Install GCC-15, CMake and Git
-        run: apt-get update && apt-get install -y gcc-15 g++-15 cmake git
-      - name: Install open-source solvers
-        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev highs libhighs1 libglpk-dev
+        run: apt-get install -y gcc-15 g++-15 cmake git
+      - name: Install the HiGHS solver
+        run: apt-get install -y highs libhighs1
       - name: Install Conan 2.0
         run: |
-          apt install -y pipx
+          apt-get install -y pipx
           pipx install conan
-          echo "/github/home/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
           conan create melon -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -c tools.build:skip_test=true
-      - name: Build and run unit tests
+      - name: Build and run the HiGHS tests
         env:
-          MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK;HIGHS"
-        run: |
-          conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26
+          TEST_SOURCE: highs
+          MIPPP_REQUIRED_SOLVERS: "HIGHS"
+        run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26
 
   linux-gcc14-build:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
       - name: Install GCC-14, CMake and Git
-        run: apt-get update && apt-get install -y gcc-14 g++-14 cmake git
-      - name: Install open-source solvers
-        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev
+        run: apt-get install -y gcc-14 g++-14 cmake git
+      - name: Install the Clp and Cbc solvers
+        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev
       - name: Install Conan 2.0
         run: |
-          apt install -y pipx
+          apt-get install -y pipx
           pipx install conan
-          echo "/github/home/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
           conan create melon -u -b=missing -pr=.github/conan-profiles/gcc14_c++23 -c tools.build:skip_test=true
-      - name: Build and run unit tests
+      - name: Build and run the Clp and Cbc tests
         env:
-          MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK"
-        run: |
-          conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc14_c++23
+          TEST_SOURCE: "clp;cbc"
+          MIPPP_REQUIRED_SOLVERS: "CLP;CBC"
+        run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc14_c++23
 
   linux-clang18-build:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Clang-18, listdc++-14, CMake and Git
-        run: apt-get update && apt-get install -y clang-18 clang++-18 libstdc++-14-dev cmake git
-      - name: Install open-source solvers
-        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev
+      - uses: actions/checkout@v7
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
+      - name: Install Clang-18, libstdc++-14, CMake and Git
+        run: apt-get install -y clang-18 libstdc++-14-dev cmake git
+      - name: Install the GLPK solver
+        run: apt-get install -y libglpk-dev
       - name: Install Conan 2.0
         run: |
-          apt install -y pipx
+          apt-get install -y pipx
           pipx install conan
-          echo "/github/home/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
       - name: Fetch Melon
         run: |
           git clone https://github.com/fhamonic/melon.git
           conan create melon -u -b=missing -pr=.github/conan-profiles/clang18_c++23 -c tools.build:skip_test=true
-      - name: Build and run unit tests
+      - name: Build and run the GLPK tests
         env:
-          MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK"
+          TEST_SOURCE: glpk
+          MIPPP_REQUIRED_SOLVERS: "GLPK"
+        run: conan build . -of=build -b=missing -pr=.github/conan-profiles/clang18_c++23
+
+  # The full suite, every backend compiled, under ASan and UBSan. Debug, not
+  # Release: at -O2 the optimiser elides the very UB being hunted and ASan's
+  # reports lose their line precision. Conan rather than plain CMake because
+  # the tests need GTest and MELON, which the CMake tree does not fetch.
+  linux-gcc15-sanitize:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:25.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
+      - name: Install GCC-15, CMake and Git
+        run: apt-get install -y gcc-15 g++-15 cmake git
+      - name: Install open-source solvers
+        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev highs libhighs1 libglpk-dev
+      - name: Install Conan 2.0
         run: |
-          conan build . -of=build -b=missing -pr=.github/conan-profiles/clang18_c++23
+          apt-get install -y pipx
+          pipx install conan
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Detect conan profile
+        run: conan profile detect --name=default
+      - name: Fetch Melon
+        run: |
+          git clone https://github.com/fhamonic/melon.git
+          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -s build_type=Debug -c tools.build:skip_test=true
+      # Two jobs, not the runner's four: a sanitized solver file peaks at
+      # 4 to 6 GB (highs.cpp 5.8 GB, cplex and gurobi 4.2 GB, GCC 15) and
+      # the big ones are adjacent in build order, so four at once exceed
+      # the 16 GB of the runner and the step dies with exit 137.
+      - name: Build and run the whole suite with ASan and UBSan
+        env:
+          TEST_SANITIZE: address,undefined
+          MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK;HIGHS"
+        run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26 -s build_type=Debug -c tools.build:jobs=2
+
+  linux-cmake-submodule:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:25.04
+    steps:
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
+      - name: Install GCC-15 and CMake
+        run: apt-get install -y gcc-15 g++-15 cmake
+      - name: Install the HiGHS solver
+        run: apt-get install -y highs libhighs1
+      - uses: actions/checkout@v7
+        with:
+          path: consumer/external/mippp
+      - name: Create a consumer project using mippp as a submodule
+        run: |
+          cat > consumer/CMakeLists.txt << 'EOF'
+          cmake_minimum_required(VERSION 3.23)
+          project(MipppSubmoduleConsumer LANGUAGES CXX)
+
+          set(CMAKE_CXX_STANDARD 23)
+          set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+          add_subdirectory(external/mippp)
+
+          add_executable(mippp_consumer main.cpp)
+          target_link_libraries(mippp_consumer PRIVATE mippp::mippp)
+          EOF
+          cp consumer/external/mippp/examples/simple_lp/main.cpp consumer/main.cpp
+      - name: Configure, build and run the consumer project
+        env:
+          CC: gcc-15
+          CXX: g++-15
+        run: |
+          cmake -S consumer -B consumer/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build consumer/build
+          ./consumer/build/mippp_consumer | tee output.txt
+          tail -n 2 output.txt | diff -u consumer/external/mippp/examples/simple_lp/expected_output.txt -
 
   linux-cmake-install:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:25.04
     env:
-      CC: gcc-14
-      CXX: g++-14
+      CC: gcc-15
+      CXX: g++-15
     steps:
-      - uses: actions/checkout@v3
-      - name: Install GCC-14, CMake and Git
-        run: apt-get update && apt-get install -y gcc-14 g++-14 cmake git
+      - uses: actions/checkout@v7
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
+      - name: Install GCC-15 and CMake
+        run: apt-get install -y gcc-15 g++-15 cmake
       - name: Install the HiGHS solver
         run: apt-get install -y highs libhighs1
-      - name: Install mippp
+      - name: Install mippp into a prefix
         run: |
-          cmake -S . -B build -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/prefix"
           cmake --install build
+      - name: Check the installed layout
+        run: |
+          test -f "$GITHUB_WORKSPACE/prefix/include/mippp/version.hpp"
+          test -f "$GITHUB_WORKSPACE/prefix/include/mippp/solvers/highs/all.hpp"
+          test -f "$GITHUB_WORKSPACE/prefix/lib/cmake/mippp/mipppConfig.cmake"
+          test -f "$GITHUB_WORKSPACE/prefix/lib/cmake/mippp/mipppConfigVersion.cmake"
+          test -f "$GITHUB_WORKSPACE/prefix/lib/cmake/mippp/mipppTargets.cmake"
+      # examples/simple_lp is itself the out-of-tree find_package(mippp)
+      # consumer, so the README's instructions are what gets checked.
       - name: Build the simple_lp example against the installed package
         run: |
           cmake -S examples/simple_lp -B examples/simple_lp/build \
-            -DCMAKE_CXX_COMPILER=g++-14 \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/prefix"
-          cmake --build examples/simple_lp/build -j
-      - name: Run the example and test output
+          cmake --build examples/simple_lp/build -j"$(nproc)"
+      - name: Run the example and check its output
         run: |
           ./examples/simple_lp/build/simple_lp | tee output.txt
-          grep -q "objective = 27" output.txt
+          tail -n 2 output.txt | diff -u examples/simple_lp/expected_output.txt -
+
+  # `conan create`, not the `conan build` the build jobs use: `conan build`
+  # never runs package() or package_info(), so the recipe's packaging half is
+  # checked only here, by consuming the created package.
+  linux-conan-create:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:25.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Update APT
+        run: apt-get update && apt-get upgrade -y
+      - name: Install GCC-15 and CMake
+        run: apt-get install -y gcc-15 g++-15 cmake
+      - name: Install the HiGHS solver
+        run: apt-get install -y highs libhighs1
+      - name: Install Conan 2.0
+        run: |
+          apt-get install -y pipx
+          pipx install conan
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Detect conan profile
+        run: conan profile detect --name=default
+      - name: Create the package
+        run: conan create . -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -c tools.build:skip_test=true
+      # examples/simple_lp carries its own conanfile.py requiring mippp from
+      # the cache, so the example's documented workflow is what gets checked.
+      - name: Build the simple_lp example against the created package
+        run: conan build examples/simple_lp -of=examples/simple_lp/build -b=missing -pr=.github/conan-profiles/gcc15_c++26
+      - name: Run the example and check its output
+        run: |
+          ./examples/simple_lp/build/simple_lp | tee output.txt
+          tail -n 2 output.txt | diff -u examples/simple_lp/expected_output.txt -
+
+  # Xcode 26.4.1 rather than the image default: the oldest Apple clang 21,
+  # which is what the conan profile pins.
+  macos-appleclang21-build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select Xcode 26.4.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.4.1.app
+          clang++ --version
+      # All four open-source solvers land in /opt/homebrew/lib, one of the
+      # directories the loader searches by default on Apple silicon.
+      - name: Install open-source solvers
+        run: brew install highs glpk clp cbc
+      # pipx's bin dir is not on later steps' PATH unless appended here, and
+      # the image may set PIPX_BIN_DIR to somewhere other than ~/.local/bin.
+      - name: Install Conan 2.0
+        run: |
+          pipx install conan
+          echo "${PIPX_BIN_DIR:-$HOME/.local/bin}" >> "$GITHUB_PATH"
+      - name: Detect conan profile
+        run: conan profile detect --name=default
+      - name: Fetch Melon
+        run: |
+          git clone https://github.com/fhamonic/melon.git
+          conan create melon -u -b=missing -pr=.github/conan-profiles/appleclang21_c++23 -c tools.build:skip_test=true
+      # Two jobs: the Apple silicon runner has 7 GB, and a Release solver
+      # file peaks at 2 to 3 GB.
+      - name: Build and run the whole suite
+        env:
+          MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK;HIGHS"
+        run: conan build . -of=build -b=missing -pr=.github/conan-profiles/appleclang21_c++23 -c tools.build:jobs=2
 
   windows-mingw15-build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: Install Conan 2.0
         run: pip install conan
       - name: Autodetect a default conan profile
@@ -128,12 +322,53 @@ jobs:
         run: |
           git clone https://github.com/fhamonic/melon.git
           conan create melon -u -b=missing "-pr=.github/conan-profiles/mingw15_c++26" -c tools.build:skip_test=true
-      - name: Fetch Highs
+      - name: Fetch HiGHS
         run: |
           Invoke-WebRequest -Uri https://github.com/ERGO-Code/HiGHS/releases/download/v1.13.0/highs-1.13.0-x86_64-windows-mit.zip -OutFile highs.zip
           Expand-Archive -Path highs.zip -DestinationPath highs
-      - name: Build and run unit tests
+      - name: Build and run the HiGHS tests
         env:
+          TEST_SOURCE: highs
           MIPPP_HIGHS_LIBRARY: ${{ github.workspace }}\highs\bin\highs.dll
           MIPPP_REQUIRED_SOLVERS: "HIGHS"
         run: conan build . -of=build -b=missing "-pr=.github/conan-profiles/mingw15_c++26"
+
+  windows-msvc1711-build:
+    # Not windows-latest: that image carries only Visual Studio 2026, and
+    # both the "Visual Studio 17 2022" generator conan derives from
+    # compiler.version=194 and the 14.41 toolset need a VS 2022 instance.
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install the MSVC 14.41 (VS 17.11) toolset
+        # The image ships only the newest 14.4x toolset and the profile pins
+        # 14.41. Exit code 3010 is success-needs-reboot, not a failure.
+        shell: pwsh
+        run: |
+          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
+          $vs = & "$installer\vswhere.exe" -latest -products * -property installationPath
+          $proc = Start-Process -Wait -PassThru -FilePath "$installer\setup.exe" `
+            -ArgumentList ('modify --installPath "' + $vs + '" ' +
+              '--add Microsoft.VisualStudio.Component.VC.14.41.17.11.x86.x64 ' +
+              '--quiet --norestart --nocache')
+          if (($proc.ExitCode -ne 0) -and ($proc.ExitCode -ne 3010)) {
+            throw "VS installer exited with $($proc.ExitCode)"
+          }
+      - name: Install Conan 2.0
+        run: pip install conan
+      - name: Autodetect a default conan profile
+        run: conan profile detect --name=default
+      - name: Fetch Melon
+        run: |
+          git clone https://github.com/fhamonic/melon.git
+          conan create melon -u -b=missing "-pr=.github/conan-profiles/msvc17.11_c++23" -c tools.build:skip_test=true
+      - name: Fetch HiGHS
+        run: |
+          Invoke-WebRequest -Uri https://github.com/ERGO-Code/HiGHS/releases/download/v1.13.0/highs-1.13.0-x86_64-windows-mit.zip -OutFile highs.zip
+          Expand-Archive -Path highs.zip -DestinationPath highs
+      - name: Build and run the HiGHS tests
+        env:
+          TEST_SOURCE: highs
+          MIPPP_HIGHS_LIBRARY: ${{ github.workspace }}\highs\bin\highs.dll
+          MIPPP_REQUIRED_SOLVERS: "HIGHS"
+        run: conan build . -of=build -b=missing "-pr=.github/conan-profiles/msvc17.11_c++23"

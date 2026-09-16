@@ -1,7 +1,9 @@
 #pragma once
 
+#include <memory>
 #include <numeric>
 #include <optional>
+#include <variant>
 #include <vector>
 
 #include "mippp/model_concepts.hpp"

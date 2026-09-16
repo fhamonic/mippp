@@ -1,0 +1,2 @@
+objective = 27
+x1 = 3, x2 = 3

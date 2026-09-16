@@ -43,8 +43,8 @@ static_assert(!contiguous_mapping<std::unique_ptr<double[]>, int>);
 using heavy_owning = views::mapping_all_t<std::vector<std::string>>;
 static_assert(std::same_as<decltype(std::declval<const heavy_owning &>()[0u]),
                            const std::string &>);
-static_assert(std::same_as<decltype(std::declval<heavy_owning &>()[0u]),
-                           std::string &>);
+static_assert(
+    std::same_as<decltype(std::declval<heavy_owning &>()[0u]), std::string &>);
 // ref views are shallow-const: constness is carried by the Map type
 using heavy_ref = views::mapping_all_t<std::vector<std::string> &>;
 using heavy_const_ref = views::mapping_all_t<const std::vector<std::string> &>;
@@ -78,8 +78,8 @@ GTEST_TEST(mapping_all, lvalue_gives_ref_view_with_write_through) {
 
 GTEST_TEST(mapping_all, rvalue_gives_owning_view) {
     auto view = views::mapping_all(std::vector<double>{1.0, 2.0});
-    static_assert(std::same_as<decltype(view),
-                               mapping_owning_view<std::vector<double>>>);
+    static_assert(
+        std::same_as<decltype(view), mapping_owning_view<std::vector<double>>>);
     view[1u] = 5.0;
     ASSERT_DOUBLE_EQ(view[1u], 5.0);
     ASSERT_DOUBLE_EQ(view.data()[0], 1.0);

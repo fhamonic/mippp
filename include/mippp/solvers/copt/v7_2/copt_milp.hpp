@@ -1,8 +1,15 @@
 #pragma once
 
+#include <algorithm>
+#include <chrono>
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <numeric>
 #include <optional>
+#include <ranges>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -27,8 +34,7 @@ public:
         return _add_variable(params, COPT_INTEGER);
     }
     auto add_integer_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+        std::size_t count, variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(count, params, COPT_INTEGER);
         return _make_variables_view(offset, count);
@@ -95,7 +101,8 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Callbacks ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    class candidate_solution_callback_handle : protected model_base<int, double> {
+    class candidate_solution_callback_handle
+        : protected model_base<int, double> {
     private:
         const copt_api * COPT;
         copt_prob * prob;

@@ -1,5 +1,10 @@
 #pragma once
 
+#include <cstddef>
+#include <memory>
+#include <stdexcept>
+#include <variant>
+
 #include "mippp/model_concepts.hpp"
 
 #include "mippp/solvers/gurobi/v12_0/gurobi_base.hpp"
@@ -17,7 +22,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void set_iteration_limit(std::size_t n) {
         check(GRB->setdblparam(env, GRB_DBL_PAR_ITERATIONLIMIT,
-                              static_cast<double>(n)));
+                               static_cast<double>(n)));
     }
     std::size_t get_iteration_limit() {
         double n;
@@ -86,12 +91,12 @@ public:
         if(!is<status::infeasible_or_unbounded>(_status)) return;
         int tmp_dual_reductions;
         check(GRB->getintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
-                              &tmp_dual_reductions));
+                               &tmp_dual_reductions));
         check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS, 0));
         check(GRB->optimize(model));
         _status = _get_status();
         check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
-                              tmp_dual_reductions));
+                               tmp_dual_reductions));
         if(is<status::infeasible_or_unbounded>(_status))
             throw std::runtime_error("Failed to refine LP status.");
     }
@@ -104,8 +109,8 @@ public:
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
         check(GRB->getdblattrarray(model, GRB_DBL_ATTR_X, 0,
-                                  static_cast<int>(_num_var_native_ids),
-                                  solution.get()));
+                                   static_cast<int>(_num_var_native_ids),
+                                   solution.get()));
         return variable_mapping(
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
@@ -115,16 +120,16 @@ public:
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
         check(GRB->getdblattrarray(model, GRB_DBL_ATTR_PI, 0,
-                                  static_cast<int>(num_constrs),
-                                  solution.get()));
+                                   static_cast<int>(num_constrs),
+                                   solution.get()));
         return constraint_mapping(std::move(solution));
     }
     auto get_reduced_costs() {
         auto reduced_costs =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
         check(GRB->getdblattrarray(model, GRB_DBL_ATTR_RC, 0,
-                                  static_cast<int>(_num_var_native_ids),
-                                  reduced_costs.get()));
+                                   static_cast<int>(_num_var_native_ids),
+                                   reduced_costs.get()));
         return variable_mapping([this, reduced_costs = std::move(
                                            reduced_costs)](const variable & v) {
             return *(reduced_costs.get() + _native_id(v));

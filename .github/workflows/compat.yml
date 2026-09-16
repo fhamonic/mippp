@@ -21,7 +21,7 @@ jobs:
     container:
       image: ubuntu:25.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: Install GCC-15, CMake and Git
         run: apt-get update && apt-get install -y gcc-15 g++-15 cmake git curl zstd binutils
       - name: Install Conan 2.0

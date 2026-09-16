@@ -1,8 +1,14 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <ranges>
+#include <type_traits>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -138,9 +144,8 @@ public:
                 [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
-    auto add_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return variables_view(
@@ -259,7 +264,7 @@ public:
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
         return add_constraints(std::forward<IR>(keys),
-                              std::forward<CL>(constraint_lambdas)...);
+                               std::forward<CL>(constraint_lambdas)...);
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////

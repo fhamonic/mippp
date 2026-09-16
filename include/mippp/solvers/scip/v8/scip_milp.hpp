@@ -1,9 +1,16 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -12,7 +19,6 @@
 #include "mippp/model_entities.hpp"
 
 #include "mippp/solvers/scip/v8/scip_api.hpp"
-
 
 namespace mippp {
 namespace scip::v8 {
@@ -274,18 +280,16 @@ public:
         _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
         return variable(var_id);
     }
-    auto add_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count,
+                       variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
@@ -300,8 +304,7 @@ public:
         return variable(var_id);
     }
     auto add_integer_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+        std::size_t count, variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_INTEGER);
@@ -351,9 +354,8 @@ public:
         return variable(var_id);
     }
     template <typename NL>
-    auto add_named_variables(
-        std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS,
@@ -361,9 +363,9 @@ public:
         return _make_variables_view(offset, count);
     }
     template <typename IL, typename NL>
-    auto add_named_variables(
-        std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, IL && id_lambda,
+                             NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);

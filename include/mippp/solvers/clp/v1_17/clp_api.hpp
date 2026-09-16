@@ -4,6 +4,7 @@
 #include "coin/Clp_C_Interface.h"
 #include "coin/CoinFinite.hpp"
 #else
+#include <filesystem>
 #include <limits>
 namespace mippp {
 namespace clp::v1_17 {

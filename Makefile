@@ -8,7 +8,7 @@ CONAN_PROFILE = gcc14_c++23
 
 CONAN_CXXFLAGS = -c 'tools.build:cxxflags=["-fconcepts-diagnostics-depth=30"]'
 
-.PHONY: all test examples package features_tables compat_table doc paper clean
+.PHONY: all test examples package check-format check-includes features_tables compat_table doc paper clean
 
 all: test
 
@@ -29,6 +29,14 @@ examples:
 
 package:
 	conan create . -u -b=missing -pr=${CONAN_PROFILE} -c tools.build:skip_test=true
+
+check-format:
+	find include test -name "*.hpp" -o -name "*.cpp" | xargs clang-format --dry-run -Werror
+
+# Public headers only: a test .cpp leaning on a transitive include harms
+# nobody, a header leaning on a consumer's include order does.
+check-includes:
+	python3 misc/tools/check_std_includes.py include
 
 features_tables:
 	python docs/assets/features_tables/tested_features_table.py

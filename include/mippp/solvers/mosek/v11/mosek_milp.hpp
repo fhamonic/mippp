@@ -1,6 +1,12 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
+#include <memory>
 #include <optional>
+#include <ranges>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"

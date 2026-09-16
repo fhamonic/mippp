@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #if INCLUDE_GLPK_HEADER
 #include "glpk.h"
 #else

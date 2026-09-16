@@ -1,7 +1,12 @@
 #pragma once
 
 #if __cpp_lib_flat_map
+#include <cstddef>
 #include <flat_map>
+#include <functional>
+#include <stdexcept>
+#include <string>
+#include <utility>
 #else
 #include <map>
 #endif
@@ -12,8 +17,8 @@
 #include <type_traits>
 
 #include "mippp/mapping.hpp"
-#include "mippp/utility/zero.hpp"
 #include "mippp/model_concepts.hpp"
+#include "mippp/utility/zero.hpp"
 
 namespace mippp {
 
@@ -101,24 +106,23 @@ private:
 
     // what a const access reaches: ref views are shallow-const (constness
     // carried by Map itself), owning views are deep-const
-    using const_probe = std::conditional_t<std::is_reference_v<Map>,
-                                           std::remove_reference_t<Map>,
-                                           const Map>;
+    using const_probe =
+        std::conditional_t<std::is_reference_v<Map>,
+                           std::remove_reference_t<Map>, const Map>;
 
 public:
     constexpr entity_mapping(Map && map)
         : _map(views::mapping_all(std::forward<Map>(map))) {}
 
     [[nodiscard]] constexpr decltype(auto) operator[](const Entity & e) {
-        if constexpr(detail::mapping_subscriptable<
-                         std::remove_reference_t<Map>, const Entity &>)
+        if constexpr(detail::mapping_subscriptable<std::remove_reference_t<Map>,
+                                                   const Entity &>)
             return _map[e];
         else
             return _map[e.uid()];
     }
     [[nodiscard]] constexpr decltype(auto) operator[](const Entity & e) const {
-        if constexpr(detail::mapping_subscriptable<const_probe,
-                                                   const Entity &>)
+        if constexpr(detail::mapping_subscriptable<const_probe, const Entity &>)
             return _map[e];
         else
             return _map[e.uid()];
@@ -221,7 +225,7 @@ private:
 public:
     template <typename VR, typename NL, typename M>
     constexpr lazily_named_variables_view(VR && variables, NL && name_lambda,
-                                           M * model)
+                                          M * model)
         : variables_view<Vars, IdLambda, Args...>(std::forward<VR>(variables))
         , _name_lambda(std::forward<NL>(name_lambda))
         , _name_set_map(std::make_unique<bool[]>(this->size()))
@@ -229,8 +233,8 @@ public:
 
     template <typename AP, typename VR, typename IL, typename NL, typename M>
     constexpr lazily_named_variables_view(AP p, VR && variables,
-                                           IL && id_lambda, NL && name_lambda,
-                                           M * model)
+                                          IL && id_lambda, NL && name_lambda,
+                                          M * model)
         : variables_view<Vars, IdLambda, Args...>(
               p, std::forward<VR>(variables), std::forward<IL>(id_lambda))
         , _name_lambda(std::forward<NL>(name_lambda))
@@ -257,13 +261,13 @@ variables_view(std::from_range_t, VR &&)
     -> variables_view<std::views::all_t<VR>, std::identity, std::size_t>;
 
 template <std::ranges::viewable_range VR, typename IL, typename... Args>
-variables_view(detail::pack<Args...>, VR &&, IL &&)
-    -> variables_view<std::views::all_t<VR>, IL, Args...>;
+variables_view(detail::pack<Args...>, VR &&,
+               IL &&) -> variables_view<std::views::all_t<VR>, IL, Args...>;
 
 template <std::ranges::viewable_range VR, typename NL, typename M>
 lazily_named_variables_view(VR &&, NL &&, M *)
     -> lazily_named_variables_view<std::views::all_t<VR>, std::identity, NL, M,
-                                    std::size_t>;
+                                   std::size_t>;
 
 template <std::ranges::viewable_range VR, typename IL, typename NL, typename M,
           typename... Args>
@@ -360,8 +364,8 @@ public:
 #endif
 
 template <typename KR, typename CR>
-constraints_range(KR &&, CR &&)
-    -> constraints_range<std::ranges::range_value_t<KR>,
-                         std::ranges::range_value_t<CR>>;
+constraints_range(KR &&,
+                  CR &&) -> constraints_range<std::ranges::range_value_t<KR>,
+                                              std::ranges::range_value_t<CR>>;
 
 }  // namespace mippp

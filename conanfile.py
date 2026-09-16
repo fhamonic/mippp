@@ -80,14 +80,19 @@ class MipppConan(ConanFile):
             return
         test_filter = os.environ.get("TEST_FILTER")
         test_source = os.environ.get("TEST_SOURCE")
+        test_sanitize = os.environ.get("TEST_SANITIZE")
 
         variables = {
             "ENABLE_TESTING": "OFF" if self._skip_test else "ON",
             "ENABLE_EXAMPLES": "ON" if self._build_examples else "OFF",
         }
-        # TEST_SOURCE restricts the build to one backend's tests; see Makefile
+        # TEST_SOURCE restricts the build to some backends' tests ("highs",
+        # "CLP;CBC"); TEST_SANITIZE builds them with -fsanitize=<list>. Both
+        # are documented in test/CMakeLists.txt and CONTRIBUTING.md.
         if test_source:
             variables["TEST_SOURCE"] = test_source
+        if test_sanitize:
+            variables["MIPPP_SANITIZE"] = test_sanitize
 
         cmake = CMake(self)
         cmake.configure(variables=variables)

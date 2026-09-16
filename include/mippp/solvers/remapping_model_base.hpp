@@ -1,8 +1,10 @@
 #pragma once
 
 #include <concepts>
+#include <cstddef>
 #include <optional>
 #include <ranges>
+#include <utility>
 #include <vector>
 
 #include "mippp/solvers/model_base.hpp"

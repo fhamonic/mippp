@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #if INCLUDE_XPRESS_HEADER
 #include "xprs.h"
 #else

@@ -1,8 +1,16 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <functional>
+#include <memory>
 #include <numeric>
 #include <optional>
+#include <ranges>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -28,8 +36,7 @@ public:
         return _new_var_handle(var_id);
     }
     auto add_integer_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+        std::size_t count, variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_INTEGER);
         return _make_variables_view(handle_ids_begin, count);

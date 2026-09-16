@@ -1,10 +1,14 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -209,9 +213,9 @@ protected:
         } else if(params.upper_bound.has_value()) {
             boundkey = MSK_BK_UP;
         }
-        check(MSK->putvarboundsliceconst(
-            task, static_cast<index>(offset),
-            static_cast<index>(offset + count), boundkey, lb, ub));
+        check(MSK->putvarboundsliceconst(task, static_cast<index>(offset),
+                                         static_cast<index>(offset + count),
+                                         boundkey, lb, ub));
 
         if(type != MSK_VAR_TYPE_CONT) {
             tmp_indices.resize(count);
@@ -231,17 +235,15 @@ public:
         _add_variable(var_id, params, MSK_VAR_TYPE_CONT);
         return variable(var_id);
     }
-    auto add_variables(
-        std::size_t count,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count,
+                       variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
+    auto add_variables(std::size_t count, IL && id_lambda,
+                       variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_indexed_variables_view(offset, count,
@@ -256,18 +258,17 @@ public:
         return v;
     }
     template <typename NL>
-    auto add_named_variables(
-        std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_named_variables_view(offset, count,
                                           std::forward<NL>(name_lambda), this);
     }
     template <typename IL, typename NL>
-    auto add_named_variables(
-        std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) {
+    auto add_named_variables(std::size_t count, IL && id_lambda,
+                             NL && name_lambda,
+                             variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_indexed_named_variables_view(

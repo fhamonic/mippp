@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
 
 #if INCLUDE_CBC_HEADER
 #include "coin/Cbc_C_Interface.h"

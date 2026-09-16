@@ -95,8 +95,8 @@ TYPED_TEST_P(ReadableConstraintsTest, get_constraint_distinct_variables) {
         auto x1 = model.add_variable();
         auto x2 = model.add_variable();
         auto x3 = model.add_variable();
-        auto c1 = model.add_constraint(distinct_variables,
-                                       2 * x1 + 2 * x2 - x3 >= 5);
+        auto c1 =
+            model.add_constraint(distinct_variables, 2 * x1 + 2 * x2 - x3 >= 5);
         auto c2 = model.add_constraint(distinct_variables,
                                        4 * x1 + x2 + 2 * x3 <= 11);
         auto c3 = model.add_constraint(distinct_variables,

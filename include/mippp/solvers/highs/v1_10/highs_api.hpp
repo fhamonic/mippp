@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdio>
+#include <filesystem>
 
 #if INCLUDE_HIGHS_HEADER
 #include "interfaces/highs_c_api.h"

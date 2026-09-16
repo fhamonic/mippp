@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
+#include <memory>
 #include <optional>
+#include <variant>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"

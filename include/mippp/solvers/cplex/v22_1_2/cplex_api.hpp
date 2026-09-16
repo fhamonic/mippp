@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #if INCLUDE_CPLEX_HEADER
 #include "ilcplex/cplex.h"
 #else
