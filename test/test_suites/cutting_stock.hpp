@@ -54,7 +54,13 @@ TYPED_TEST_P(CuttingStockTest, test) {
         auto satisfaction_constrs =
             model.add_constraints(order_ids, [&](auto order_id) {
                 auto && demanded_quantity = orders[order_id].first;
+                // `using namespace operators` again, inside the lambda:
+                // the TestBody-level directive is enough for GCC, Clang and a
+                // one-level lambda on MSVC, but MSVC 14.41 loses it two
+                // generic lambdas deep and then finds no operator* for
+                // scalar * variable.
                 return xsum(patterns, [&, order_id](auto && p) {
+                           using namespace operators;
                            auto && [var, pattern] = p;
                            return pattern[order_id] * var;
                        }) >= demanded_quantity;

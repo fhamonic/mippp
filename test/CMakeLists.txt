@@ -56,6 +56,10 @@ if(MSVC)
     # A solver file instantiates dozens of typed suites; without this the
     # object exceeds the default COFF section limit and dies with C1128.
     target_compile_options(mippp_test PRIVATE /bigobj)
+    # The suites read MIPPP_REQUIRED_SOLVERS and the fuzzing seed through
+    # std::getenv, which MSVC deprecates (C4996) in favour of its own
+    # _dupenv_s.
+    target_compile_definitions(mippp_test PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 
 # shared libraries opened at runtime by dynamic_library.cpp, never linked: the

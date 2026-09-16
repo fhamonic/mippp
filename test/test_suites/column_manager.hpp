@@ -70,14 +70,17 @@ TYPED_TEST_P(ColumnManagerTest, test) {
         auto satisfaction_constrs =
             model.add_constraints(order_ids, [&](auto order_id) {
                 auto && demanded_quantity = orders[order_id].first;
-                // .first/.second rather than a structured binding: MSVC
-                // 14.41 cannot deduce the lambda's result through xsum's
-                // invoke_result constraint when the binding decomposes this
-                // pair of references (C2672); GCC and Clang accept both.
-                return xsum(columns.master_columns(), [&, order_id](
-                                                          auto && column) {
-                           return column.first[order_id] * column.second.var;
-                       }) >= demanded_quantity;
+                // `using namespace operators` again, inside the lambda:
+                // the TestBody-level directive is enough for GCC, Clang and a
+                // one-level lambda on MSVC, but MSVC 14.41 loses it two
+                // generic lambdas deep and then finds no operator* for
+                // scalar * variable.
+                return xsum(columns.master_columns(),
+                            [&, order_id](auto && column) {
+                                using namespace operators;
+                                auto && [pattern, state] = column;
+                                return pattern[order_id] * state.var;
+                            }) >= demanded_quantity;
             });
 
         auto add_pattern_column = [&](auto & model_,

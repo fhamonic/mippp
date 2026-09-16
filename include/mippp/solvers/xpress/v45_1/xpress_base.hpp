@@ -207,7 +207,8 @@ protected:
 
         if(type != 'C') {
             tmp_indices.resize(count);
-            std::iota(tmp_indices.begin(), tmp_indices.end(), offset);
+            std::iota(tmp_indices.begin(), tmp_indices.end(),
+                      static_cast<int>(offset));
             tmp_types.resize(count);
             std::fill(tmp_types.begin(), tmp_types.end(), type);
             check(XPRS->chgcoltype(prob, static_cast<int>(count),

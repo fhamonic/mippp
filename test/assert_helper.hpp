@@ -39,14 +39,19 @@ void ASSERT_LIN_EXPR(
     ASSERT_EQ(expr.constant(), expected_constant);
 }
 
+// Compares ids rather than variables: with `using namespace operators` in
+// the including test, MSVC resolves `v1 < v2` to the constraint-building
+// operator< and then rejects the linear_constraint_view in the `if`.
 struct variables_pair_cmp {
     bool operator()(auto && p1, auto && p2) const {
         auto [p1v1, p1v2] = p1;
-        if(p1v2 < p1v1) std::swap(p1v1, p1v2);
+        auto id1 = p1v1.id(), id2 = p1v2.id();
+        if(id2 < id1) std::swap(id1, id2);
         auto [p2v1, p2v2] = p2;
-        if(p2v2 < p2v1) std::swap(p2v1, p2v2);
-        if(p1v1 == p2v1) return p1v2 < p2v2;
-        return p1v1 < p2v1;
+        auto id3 = p2v1.id(), id4 = p2v2.id();
+        if(id4 < id3) std::swap(id3, id4);
+        if(id1 == id3) return id2 < id4;
+        return id1 < id3;
     }
 };
 
