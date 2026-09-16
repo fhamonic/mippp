@@ -73,7 +73,8 @@ protected:
         if(!_remap_ids) return num_native_ids;
         const std::size_t new_handle_ids_begin = _native_ids_map.size();
         for(std::size_t i = 0; i < count; ++i) {
-            _native_ids_map.emplace_back(num_native_ids + i);
+            _native_ids_map.emplace_back(
+                static_cast<_Index>(num_native_ids + i));
             _handle_ids_map[num_native_ids + i] =
                 static_cast<_Index>(new_handle_ids_begin + i);
         }

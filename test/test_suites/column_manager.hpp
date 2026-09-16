@@ -70,11 +70,14 @@ TYPED_TEST_P(ColumnManagerTest, test) {
         auto satisfaction_constrs =
             model.add_constraints(order_ids, [&](auto order_id) {
                 auto && demanded_quantity = orders[order_id].first;
-                return xsum(columns.master_columns(),
-                            [&, order_id](auto && column) {
-                                auto && [pattern, state] = column;
-                                return pattern[order_id] * state.var;
-                            }) >= demanded_quantity;
+                // .first/.second rather than a structured binding: MSVC
+                // 14.41 cannot deduce the lambda's result through xsum's
+                // invoke_result constraint when the binding decomposes this
+                // pair of references (C2672); GCC and Clang accept both.
+                return xsum(columns.master_columns(), [&, order_id](
+                                                          auto && column) {
+                           return column.first[order_id] * column.second.var;
+                       }) >= demanded_quantity;
             });
 
         auto add_pattern_column = [&](auto & model_,

@@ -274,7 +274,7 @@ namespace gurobi::v12_0 {
 
 #define DECLARE_GRB_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);  \
-    SHORT##_fun_t const * SHORT;
+    SHORT##_fun_t * const SHORT;
 #define CONSTRUCT_GRB_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 #define CONSTRUCT_GRB_OPTIONAL_FUNCTIONS(FULL, SHORT) \

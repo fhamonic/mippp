@@ -203,7 +203,7 @@ namespace xpress::v45_1 {
 
 #define DECLARE_XPRESS_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);     \
-    SHORT##_fun_t const * SHORT;
+    SHORT##_fun_t * const SHORT;
 #define CONSTRUCT_XPRESS_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 

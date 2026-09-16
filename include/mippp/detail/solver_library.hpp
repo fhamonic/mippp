@@ -18,6 +18,13 @@
 
 #include "mippp/detail/dynamic_library.hpp"
 
+// MSVC deprecates std::getenv (C4996) in favour of its own _dupenv_s; the
+// portable call is kept and the warning silenced for this header only.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
 namespace mippp::detail {
 
 #if defined(_WIN32)
@@ -317,3 +324,7 @@ inline void warn_on_version_mismatch(const char * key, int wrapped_major,
 }
 
 }  // namespace mippp::detail
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif

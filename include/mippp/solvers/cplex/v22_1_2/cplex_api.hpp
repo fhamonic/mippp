@@ -336,7 +336,7 @@ namespace cplex::v22_1_2 {
 
 #define DECLARE_CPLEX_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);    \
-    SHORT##_fun_t const * SHORT;
+    SHORT##_fun_t * const SHORT;
 #define CONSTRUCT_CPLEX_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
