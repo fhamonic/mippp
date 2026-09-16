@@ -94,7 +94,36 @@ TYPED_TEST_P(ModifiableVariablesBoundsTest, set_variable_upper_bound) {
     });
 }
 
+// A column without constraint entries whose bound range was infinite at the
+// previous solve: a warm-started re-solve must see its new finite range.
+TYPED_TEST_P(ModifiableVariablesBoundsTest, resolve_after_bounding_free_range) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 = model.add_variable({.upper_bound = 0.0});
+        auto x2 = model.add_variable({.lower_bound = 0.0});
+        auto x3 = model.add_variable({.lower_bound = 1.0, .upper_bound = 2.0});
+        model.set_minimization();
+        model.set_objective(-x1 + x2 + x3);
+        model.solve();
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[x1], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
+        model.set_objective(x1 - x2 + x3);
+        model.set_variable_lower_bound(x1, -4.0);
+        model.set_variable_upper_bound(x2, 3.0);
+        model.solve();
+        solution = model.get_solution();
+        ASSERT_NEAR(solution[x1], -4.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x2], 3.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
+        ASSERT_NEAR(model.get_solution_value(), -6.0, TEST_EPSILON);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(ModifiableVariablesBoundsTest,
-                            set_variable_lower_bound, set_variable_upper_bound);
+                            set_variable_lower_bound, set_variable_upper_bound,
+                            resolve_after_bounding_free_range);
 
 }  // namespace mippp

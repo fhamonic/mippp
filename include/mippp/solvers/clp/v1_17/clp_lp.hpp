@@ -526,6 +526,14 @@ public:
             // _status.emplace<status::optimal>() ?
             return;
         }
+        // Clp keeps the scale factors of the previous solve as long as the
+        // dimensions match, and an empty column with an infinite bound range
+        // gets a factor around 1e22: a finite range set since then scales to
+        // a "tiny gap" and the column is silently fixed. Dropping the factors
+        // forces a recompute and keeps the warm-start basis.
+        const int scaling_mode = Clp->scalingFlag(model);
+        Clp->scaling(model, 0);
+        Clp->scaling(model, scaling_mode);
         Clp->primal(model, 0);
         _status = _get_status();
     }
