@@ -94,6 +94,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const copt_api & native_api() const noexcept { return *COPT; }
     std::pair<copt_env *, copt_prob *> native_model() const noexcept {
         return {env, prob};
     }

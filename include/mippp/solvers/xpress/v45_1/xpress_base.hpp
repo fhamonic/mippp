@@ -88,6 +88,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const xpress_api & native_api() const noexcept { return *XPRS; }
     XPRSprob native_model() const noexcept { return prob; }
     int native_id(variable v) const noexcept { return v.id(); }
     int native_id(constraint c) const noexcept { return c.id(); }

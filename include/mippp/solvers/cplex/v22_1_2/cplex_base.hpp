@@ -93,6 +93,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const cplex_api & native_api() const noexcept { return *CPX; }
     std::pair<CPXENVptr, CPXLPptr> native_model() const noexcept {
         return {env, lp};
     }

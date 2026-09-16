@@ -189,6 +189,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const gurobi_api & native_api() const noexcept { return *GRB; }
     std::pair<GRBenv *, GRBmodel *> native_model() const noexcept {
         return {env, model};
     }

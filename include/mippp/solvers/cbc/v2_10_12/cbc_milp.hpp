@@ -89,6 +89,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const cbc_api & native_api() const noexcept { return *Cbc; }
     Cbc_Model * native_model() const noexcept { return model; }
     int native_id(variable v) const noexcept { return v.id(); }
     int native_id(constraint c) const noexcept { return c.id(); }

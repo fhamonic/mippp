@@ -161,6 +161,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const scip_api & native_api() const noexcept { return *SCIP; }
     struct Scip * native_model() const noexcept { return model; }
     SCIP_VAR * native_id(variable v) const noexcept {
         return variables[v.uid()];

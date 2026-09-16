@@ -615,6 +615,7 @@ TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_min) {
 TYPED_TEST_P(LpModelTest, native_ids) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
+        static_assert(has_native_handles<typename TestFixture::model_type>);
         auto model = this->new_model();
         auto x = model.add_variable();
         auto y = model.add_variable();

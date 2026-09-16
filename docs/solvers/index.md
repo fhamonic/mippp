@@ -83,13 +83,13 @@ Notable current limitations (see the
 - **SOS constraints and LP basis warm starts** — specified as concepts, not yet implemented by any backend.
 - **Ranged constraints** — Clp and Cbc only (`has_ranged_constraints`, with `has_readable_constraint_bounds` to read them back); see [Special constraints](../modeling/special-constraints.md#ranged-constraints).
 - **Indicator constraints** — Gurobi and CPLEX only (`has_indicator_constraints`). The call returns no handle, so an indicator constraint cannot be read back or edited once added ([details](../modeling/special-constraints.md)).
-- **Solver-specific parameters** — the uniform interface covers [limits and tolerances](../solving/status-and-limits.md); there is no uniform passthrough for solver-specific knobs such as Gurobi's `MIPFocus` or CPLEX's emphasis settings. The escape hatch is `native_model()`, which every model class provides: it returns the solver's own objects, and the `*_api` object exposes every raw C function it loads, so the call is made directly:
+- **Solver-specific parameters** — the uniform interface covers [limits and tolerances](../solving/status-and-limits.md); there is no uniform passthrough for solver-specific knobs such as Gurobi's `MIPFocus` or CPLEX's emphasis settings. The escape hatch is the `has_native_handles` concept, which every model class satisfies: `native_model()` returns the solver's own objects and `native_api()` the loaded `*_api` object, whose members are the solver's raw C functions, so the call is made directly:
 
     ```cpp
     gurobi_api api;
     gurobi_milp model(api);
     auto [env, grb_model] = model.native_model();
-    api.setintparam(env, "MIPFocus", 2);
+    model.native_api().setintparam(env, "MIPFocus", 2);
     ```
 
     What comes back depends on the backend: a `(env, model)` pair where the solver has an environment — `std::pair<GRBenv *, GRBmodel *>` (Gurobi), `std::pair<CPXENVptr, CPXLPptr>` (CPLEX), `std::pair<copt_env *, copt_prob *>` (COPT), `std::pair<MSKenv_t, MSKtask_t>` (MOSEK) — and the single problem object otherwise: `XPRSprob` (Xpress), `SCIP *` (SCIP), `glp_prob *` (GLPK), `Clp_Simplex *` (Clp), `Cbc_Model *` (Cbc), `void *` (HiGHS, SoPlex). To address one variable or constraint through the raw API, `native_id(v)` and `native_id(c)` translate a MIP++ handle into what the solver calls it: the column or row index (1-based on GLPK), or the `SCIP_VAR *` / `SCIP_CONS *` on SCIP. Handles and native indices drift apart once variables have been removed on the backends that delete columns (HiGHS, Gurobi, CPLEX), which is what the translation is for. Anything done through these handles bypasses MIP++'s bookkeeping (handle remapping, name tracking), so keep it to parameters and read-only queries.

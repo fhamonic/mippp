@@ -657,4 +657,18 @@ concept has_integrality_tolerance = requires(T & model, model_scalar_t<T> s) {
     { model.set_integrality_tolerance(s) };
     { model.get_integrality_tolerance() } -> std::same_as<model_scalar_t<T>>;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// Escape hatch /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+concept has_native_handles =
+    requires(T & model, model_variable_t<T> v, model_constraint_t<T> c) {
+        model.native_api();
+        model.native_model();
+        model.native_id(v);
+        model.native_id(c);
+    };
+
 }  // namespace mippp

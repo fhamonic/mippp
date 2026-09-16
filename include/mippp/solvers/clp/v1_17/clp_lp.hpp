@@ -71,6 +71,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const clp_api & native_api() const noexcept { return *Clp; }
     Clp_Simplex * native_model() const noexcept { return model; }
     int native_id(variable v) const noexcept { return v.id(); }
     int native_id(constraint c) const noexcept { return c.id(); }

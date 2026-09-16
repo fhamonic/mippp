@@ -98,6 +98,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const glpk_api & native_api() const noexcept { return *glp; }
     glp_prob * native_model() const noexcept { return model; }
     int native_id(variable v) const noexcept { return v.id() + 1; }
     int native_id(constraint c) const noexcept { return c.id() + 1; }

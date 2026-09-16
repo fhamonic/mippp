@@ -165,6 +165,12 @@ Neither the SOS nor the indicator functions require a return type. SOS and indic
 | `has_candidate_solution_rejection` | On a callback handle: `reject_solution()` discards the candidate without adding a constraint. Satisfied by the handle of `xpress_milp`. |
 | `has_node_relaxation_callback` | `set_node_relaxation_callback(f)`, for user cuts on fractional solutions. *(no backend yet)* |
 
+## Escape hatch
+
+| Concept | Provides |
+| --- | --- |
+| `has_native_handles` | `native_api()`, the loaded `*_api` object (the solver's raw C functions); `native_model()`, the solver's own model objects; `native_id(v)` and `native_id(c)`, what the solver calls a variable or a constraint. Satisfied by every model class; see [Solver-specific parameters](../solvers/index.md#feature-support). |
+
 ## Tolerances
 
 | Concept | Provides |

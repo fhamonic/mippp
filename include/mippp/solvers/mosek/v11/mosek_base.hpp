@@ -97,6 +97,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const mosek_api & native_api() const noexcept { return *MSK; }
     std::pair<MSKenv_t, MSKtask_t> native_model() const noexcept {
         return {env, task};
     }

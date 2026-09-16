@@ -77,6 +77,7 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
+    const highs_api & native_api() const noexcept { return *Highs; }
     void * native_model() const noexcept { return model; }
     int native_id(variable v) const noexcept { return _native_id(v); }
     int native_id(constraint c) const noexcept { return c.id(); }

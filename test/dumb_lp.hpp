@@ -90,6 +90,7 @@ public:
     [[nodiscard]] explicit dumb_lp(const clp_api & api)
         : model_base<int, double>(), Clp(api) {}
 
+    const clp_api & native_api() const noexcept { return Clp; }
     int native_id(variable v) const noexcept { return v.id(); }
     int native_id(constraint c) const noexcept { return c.id(); }
 
