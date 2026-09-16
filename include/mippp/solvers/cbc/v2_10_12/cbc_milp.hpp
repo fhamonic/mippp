@@ -30,7 +30,6 @@ class cbc_milp : protected model_base<int, double> {
 private:
     const cbc_api * Cbc;
     Cbc_Model * model;
-    std::chrono::duration<double> time_limit;
     double objective_offset;
     double feasibility_tol;
 
