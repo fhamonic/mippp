@@ -201,7 +201,7 @@ jobs:
           cmake -S consumer -B consumer/build -DCMAKE_BUILD_TYPE=Release
           cmake --build consumer/build
           ./consumer/build/mippp_consumer | tee output.txt
-          tail -n 2 output.txt | diff -u consumer/external/mippp/examples/simple_lp/expected_output.txt -
+          tail -n 2 output.txt | diff -u consumer/external/mippp/.github/simple_lp_expected_output.txt -
 
   linux-cmake-install:
     runs-on: ubuntu-latest
@@ -242,7 +242,7 @@ jobs:
       - name: Run the example and check its output
         run: |
           ./examples/simple_lp/build/simple_lp | tee output.txt
-          tail -n 2 output.txt | diff -u examples/simple_lp/expected_output.txt -
+          tail -n 2 output.txt | diff -u .github/simple_lp_expected_output.txt -
 
   # `conan create`, not the `conan build` the build jobs use: `conan build`
   # never runs package() or package_info(), so the recipe's packaging half is
@@ -275,7 +275,7 @@ jobs:
       - name: Run the example and check its output
         run: |
           ./examples/simple_lp/build/simple_lp | tee output.txt
-          tail -n 2 output.txt | diff -u examples/simple_lp/expected_output.txt -
+          tail -n 2 output.txt | diff -u .github/simple_lp_expected_output.txt -
 
   # Xcode 26.4.1 rather than the image default: the oldest Apple clang 21,
   # which is what the conan profile pins.

@@ -79,7 +79,7 @@ Only export the solvers you actually have. If a library cannot be located, the a
 
 ## Checking that everything works
 
-Build and run any of the [examples](../examples.md) — the smallest is `simple_lp`, which uses HiGHS. Each example folder is a complete Conan + CMake project that can be copied as the starting point of your own. If you cloned the repository, the test suite can also be run with `make CONAN_PROFILE=<your_profile>`, and restricted to one backend with `make test highs CONAN_PROFILE=<your_profile>`; backends whose runtime library is missing are skipped automatically.
+Build and run any of the [examples](../examples.md) — the smallest is `simple_lp`, which uses HiGHS. Each example folder is a complete Conan + CMake project that can be copied as the starting point of your own. If you cloned the repository, the test suite can also be run with `make CONAN_PROFILE=<your_profile>`, and restricted to one or a few backends with `make test highs CONAN_PROFILE=<your_profile>` or `make test "clp;cbc" CONAN_PROFILE=<your_profile>`; backends whose runtime library is missing are skipped automatically.
 
 ## Next
 

@@ -279,7 +279,9 @@ push and pull request to `main` and on every `v*` tag:
   and run [examples/simple_lp](examples/simple_lp) against, respectively, a
   `cmake --install` prefix, an `add_subdirectory` of the source tree, and a
   package created by `conan create`; the program's output is diffed against
-  [examples/simple_lp/expected_output.txt](examples/simple_lp/expected_output.txt).
+  [.github/simple_lp_expected_output.txt](.github/simple_lp_expected_output.txt),
+  kept out of the example folder so that folder stays what the README says
+  can be copied as-is.
   Changes to the CMake install/export rules or to `conanfile.py` should be
   checked against these.
 
