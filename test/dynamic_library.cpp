@@ -132,14 +132,18 @@ TEST(dynamic_library, stays_mapped_after_destruction) {
             lib.get_function<int()>("mippp_test_answer"));
     }
     // solver worker threads may still run after the handle is gone: the code
-    // must stay mapped (RTLD_NODELETE / pinned module)
+    // must stay mapped (RTLD_NODELETE / pinned module). Calling it is the
+    // check that holds everywhere; the loader-side probes below are extra
+    // where the loader documents them. Not on Apple: dyld keeps a
+    // RTLD_NODELETE image mapped but stops reporting it to
+    // dlopen(RTLD_NOLOAD) once every handle is closed.
 #if defined(_WIN32)
     HMODULE still_loaded = GetModuleHandleW(fixture_path.c_str());
     ASSERT_NE(still_loaded, nullptr);
     EXPECT_EQ(reinterpret_cast<void *>(
                   GetProcAddress(still_loaded, "mippp_test_answer")),
               before);
-#else
+#elif !defined(__APPLE__)
     void * still_loaded =
         dlopen(fixture_path.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NOLOAD);
     ASSERT_NE(still_loaded, nullptr);
