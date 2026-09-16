@@ -19,6 +19,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "mippp/mapping.hpp"
 #include "mippp/model_concepts.hpp"
@@ -312,11 +313,16 @@ protected:
     const std::flat_map<Key, Constraint> _constraints_map;
 
 public:
+    // The two containers rather than from_range over views::zip: libc++ 21's
+    // flat_map probes an inserted iterator for zip_view's private
+    // __is_zip_view_iterator member, a hard error on Apple clang; the
+    // container constructor sorts and deduplicates just the same.
     template <typename KR, typename CR>
     constexpr constraints_range(KR && keys, CR && constraints)
-        : _constraints_map(std::from_range,
-                           std::views::zip(std::forward<KR>(keys),
-                                           std::forward<CR>(constraints))) {}
+        : _constraints_map(
+              std::ranges::to<std::vector<Key>>(std::forward<KR>(keys)),
+              std::ranges::to<std::vector<Constraint>>(
+                  std::forward<CR>(constraints))) {}
 
     constexpr constraints_range(const constraints_range &) = default;
     constexpr constraints_range(constraints_range &&) = default;
