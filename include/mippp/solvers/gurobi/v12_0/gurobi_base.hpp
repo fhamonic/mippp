@@ -124,8 +124,8 @@ protected:
             if(!_remap_ids) {
                 _native_ids_map.resize(_num_var_native_ids);
                 _handle_ids_map.resize(_num_var_native_ids);
-                std::ranges::iota(_native_ids_map, 0);
-                std::ranges::iota(_handle_ids_map, 0);
+                std::iota(_native_ids_map.begin(), _native_ids_map.end(), 0);
+                std::iota(_handle_ids_map.begin(), _handle_ids_map.end(), 0);
                 _remap_ids = true;
             }
 

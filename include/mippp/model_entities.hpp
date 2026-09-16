@@ -1,20 +1,24 @@
 #pragma once
 
+#include <version>
+
+// <version> first: the gate is re-evaluated at the flat_map use below, and a
+// header included in between may define the macro that was unset here.
 #if __cpp_lib_flat_map
-#include <cstddef>
 #include <flat_map>
-#include <functional>
-#include <stdexcept>
-#include <string>
-#include <utility>
 #else
 #include <map>
 #endif
 
+#include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <utility>
 
 #include "mippp/mapping.hpp"
 #include "mippp/model_concepts.hpp"

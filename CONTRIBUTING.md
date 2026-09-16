@@ -269,7 +269,10 @@ push and pull request to `main` and on every `v*` tag:
 - `linux-gcc15-sanitize` and `macos-appleclang21-build` build and run the whole
   suite, every backend compiled, with all four open-source solvers installed and
   required — the first one under ASan and UBSan in Debug, the second one under
-  Apple clang 21 / libc++.
+  Apple clang 21 / libc++. The sanitized job also defines
+  `MIPPP_PORTABLE_RANGE_SHAPES`, which makes MIP++ use its own `concat` and
+  `cartesian_product` views even where the standard library has them, so the
+  fallbacks that C++23 and libc++ users get are sanitized too.
 - `linux-gcc15-build`, `linux-gcc14-build`, `linux-clang18-build`,
   `windows-mingw15-build` and `windows-msvc1711-build` build the tests of one or
   two backends each (`TEST_SOURCE`) and require them (`MIPPP_REQUIRED_SOLVERS`),

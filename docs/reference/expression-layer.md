@@ -223,7 +223,7 @@ As with linear terms, the stream is a multiset, and the pairs are **unordered**:
 
 ### Products need a second pass
 
-`square(e)` and `e1 * e2` are lazy too — `linear_expression_square` and `linear_expression_mul_view` produce their terms with `views::cartesian_product` — but a cartesian product walks one operand **once per term of the other**. Both therefore require `multipass_linear_terms` on their operands, and enforce it *on the view type itself*, not only in the operator, so that `std::is_constructible_v` and friends do not lie:
+`square(e)` and `e1 * e2` are lazy too — `linear_expression_square` and `linear_expression_mul_view` produce their terms with `views::cartesian_product` (through `detail::cartesian_product`, which falls back to a local `cartesian_product_view` on libc++, where the standard adaptor is still missing) — but a cartesian product walks one operand **once per term of the other**. Both therefore require `multipass_linear_terms` on their operands, and enforce it *on the view type itself*, not only in the operator, so that `std::is_constructible_v` and friends do not lie:
 
 ```cpp
 auto e = xsum(vars);

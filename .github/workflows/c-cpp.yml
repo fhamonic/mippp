@@ -158,11 +158,15 @@ jobs:
       # 4 to 6 GB (highs.cpp 5.8 GB, cplex and gurobi 4.2 GB, GCC 15) and
       # the big ones are adjacent in build order, so four at once exceed
       # the 16 GB of the runner and the step dies with exit 137.
+      # MIPPP_PORTABLE_RANGE_SHAPES makes this the sanitized run of the
+      # concat and cartesian_product fallbacks, which a C++26 libstdc++
+      # would otherwise never compile; the other Linux jobs use the standard
+      # adaptors.
       - name: Build and run the whole suite with ASan and UBSan
         env:
           TEST_SANITIZE: address,undefined
           MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK;HIGHS"
-        run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26 -s build_type=Debug -c tools.build:jobs=2
+        run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26 -s build_type=Debug -c tools.build:jobs=2 -c 'tools.build:defines=["MIPPP_PORTABLE_RANGE_SHAPES"]'
 
   linux-cmake-submodule:
     runs-on: ubuntu-latest

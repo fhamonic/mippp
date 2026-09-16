@@ -68,7 +68,7 @@ int main(int argc, char ** argv) {
     for(int row : indices) {
         for(int col : indices)
             std::print("{}", solution[X(row, col)] > 0.5 ? " Q" : " .");
-        std::println();
+        std::println("");
     }
     return 0;
 }

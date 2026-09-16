@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "mippp/detail/cartesian_product_view.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/utility/zero.hpp"
 
@@ -223,8 +224,8 @@ public:
 
     [[nodiscard]] constexpr auto quadratic_terms() const & noexcept {
         return std::views::transform(
-            std::views::cartesian_product(_linear_expression.linear_terms(),
-                                          _linear_expression.linear_terms()),
+            detail::cartesian_product(_linear_expression.linear_terms(),
+                                      _linear_expression.linear_terms()),
             [](auto && p) {
                 auto && [t1, t2] = p;
                 auto && [v1, c1] = t1;
@@ -275,8 +276,8 @@ public:
 
     [[nodiscard]] constexpr auto quadratic_terms() const & noexcept {
         return std::views::transform(
-            std::views::cartesian_product(_linear_expression_1.linear_terms(),
-                                          _linear_expression_2.linear_terms()),
+            detail::cartesian_product(_linear_expression_1.linear_terms(),
+                                      _linear_expression_2.linear_terms()),
             [](auto && p) {
                 auto && [t1, t2] = p;
                 auto && [v1, c1] = t1;

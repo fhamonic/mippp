@@ -10,6 +10,9 @@
 #include <random>
 #include <ranges>
 
+// detail::cartesian_product, not std::views::cartesian_product: libc++ has
+// no cartesian_product (Apple clang), and the suites must compile there.
+#include "mippp/detail/cartesian_product_view.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
@@ -174,7 +177,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             auto items = std::views::iota(std::size_t{0}, num_items);
             auto num_items_pairs = num_items * (num_items - 1) / 2;
             auto items_pairs = std::views::filter(
-                std::views::cartesian_product(items, items),
+                mippp::detail::cartesian_product(items, items),
                 [](auto && p) { return std::get<0>(p) < std::get<1>(p); });
             const int budget =
                 static_cast<int>(6.69 * static_cast<double>(num_items));

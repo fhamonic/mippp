@@ -47,6 +47,7 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <numeric>
 #include <optional>
 #include <random>
 #include <ranges>
@@ -595,7 +596,7 @@ private:
                     // distinct constraints: some models overwrite instead of
                     // summing duplicated column entries
                     std::vector<std::size_t> indices(_constraints.size());
-                    std::ranges::iota(indices, std::size_t{0});
+                    std::iota(indices.begin(), indices.end(), std::size_t{0});
                     std::ranges::shuffle(indices, _rng);
                     indices.resize(static_cast<std::size_t>(
                         _rand_int(1, static_cast<int>(std::min<std::size_t>(
@@ -924,7 +925,7 @@ public:
         std::size_t step = 0;
         std::vector<std::size_t> applicable;
         std::vector<std::size_t> check_order(_check_events.size());
-        std::ranges::iota(check_order, std::size_t{0});
+        std::iota(check_order.begin(), check_order.end(), std::size_t{0});
         for(std::size_t round = 0; round < num_rounds; ++round) {
             const int num_mutations =
                 _rand_int(1, static_cast<int>(max_mutations_per_round));

@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **GCC 14 or Clang 18 / C++23.** MIP++ targets **GCC 14 / C++23**, though its original target — **GCC 15 / C++26** — remains the recommended toolchain. A handful of C++26 features it relies on (such as `std::views::concat` and `std::flat_map`) are provided by built-in fallbacks, so GCC 14 or Clang 18 in C++23 mode is enough to build it. Clang is tested against libstdc++.
+- **GCC 14 or Clang 18 / C++23.** MIP++ targets **GCC 14 / C++23**, though its original target — **GCC 15 / C++26** — remains the recommended toolchain. A handful of standard-library features it relies on that some implementations lack (`std::views::concat` and `std::flat_map` before C++26, `std::views::cartesian_product` in libc++) are provided by built-in fallbacks, so GCC 14 or Clang 18 in C++23 mode is enough to build it. Clang is tested against libstdc++.
 - At least one solver installed on the machine that *runs* your program (see [below](#making-solver-libraries-discoverable)). Nothing is needed at compile time.
 
 MIP++ is header-only and has no library dependency: there is nothing to build, and your binary never links against a solver SDK. Solver libraries are opened at runtime through the platform loader (`dlopen` on Linux and macOS, `LoadLibrary` on Windows).

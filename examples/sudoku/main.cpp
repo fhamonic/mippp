@@ -90,7 +90,7 @@ int main() {
         for(int j : indices)
             for(int v : values)
                 if(solution[X(i, j, v)] > 0.5) std::print(" {}", v);
-        std::println();
+        std::println("");
     }
     return 0;
 }

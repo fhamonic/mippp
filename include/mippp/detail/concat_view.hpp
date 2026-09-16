@@ -8,7 +8,9 @@
 
 namespace mippp::detail {
 
-#if defined(__cpp_lib_ranges_concat)
+// MIPPP_PORTABLE_RANGE_SHAPES forces the fallback where the standard adaptor
+// exists, so a C++26 build can exercise what C++23 users get.
+#if defined(__cpp_lib_ranges_concat) && !defined(MIPPP_PORTABLE_RANGE_SHAPES)
 // unordered_concat is required for GCC 15.1, fixed for GCC 15.2
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120934
 template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>

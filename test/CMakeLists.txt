@@ -43,6 +43,7 @@ add_executable(
     column_manager.cpp
     mapping.cpp
     concat_view.cpp
+    cartesian_product_view.cpp
     zero.cpp
     dynamic_library.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}

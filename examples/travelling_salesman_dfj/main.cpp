@@ -86,6 +86,6 @@ int main() {
             graph, {}, [&](auto a) { return solution[X(a)] > 0.5; }))) {
         std::print(" -> {}", v);
     }
-    std::println();
+    std::println("");
     return 0;
 }
