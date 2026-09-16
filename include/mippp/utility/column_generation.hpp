@@ -5,7 +5,7 @@
 #include <concepts>
 #include <cstddef>
 #include <functional>
-#include <limits>
+#include <iterator>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
@@ -213,7 +213,7 @@ struct age : property<std::size_t> {
 };
 
 // number of times the column entered the master model
-// (has to be listed it in both states so that it survives transitions)
+// (has to be listed in both states so that it survives transitions)
 struct times_activated : property<std::size_t> {
     static constexpr void on(std::size_t & value, const activated &) noexcept {
         ++value;

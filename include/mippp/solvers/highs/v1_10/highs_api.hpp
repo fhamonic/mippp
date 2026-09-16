@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cstdio>
 #include <filesystem>
 
 #if INCLUDE_HIGHS_HEADER
@@ -348,8 +347,6 @@ public:
         : lib(detail::load_solver_library(lib_path, "HIGHS", {"highs"}))
               HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUNCTIONS)
                   HIGHS_OPTIONAL_FUNCTIONS(CONSTRUCT_HIGHS_OPTIONAL_FUNCTIONS) {
-        if(!setSparseSolution)
-            std::fprintf(stderr, "Highs_setSparseSolution not available.");
     }
 
     void _check(const int status) const {
@@ -361,8 +358,10 @@ public:
     }
 };
 
+#undef CONSTRUCT_HIGHS_OPTIONAL_FUNCTIONS
 #undef CONSTRUCT_HIGHS_FUNCTIONS
 #undef DECLARE_HIGHS_FUNCTIONS
+#undef HIGHS_OPTIONAL_FUNCTIONS
 #undef HIGHS_FUNCTIONS
 
 }  // namespace highs::v1_10

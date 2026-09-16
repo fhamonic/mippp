@@ -14,6 +14,8 @@
 
 #define TEST_EPSILON 1e-6
 #define TEST_INFINITY 1e20
+// an optional constraint, for the add_constraints lambdas of the suites
+#define OPT(cond, ...) ((cond) ? std::make_optional(__VA_ARGS__) : std::nullopt)
 
 #include "mippp/utility/solver_exceptions.hpp"
 

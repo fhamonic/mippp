@@ -1,13 +1,10 @@
 #pragma once
 
 #include <cstddef>
-#include <limits>
 #include <memory>
-#include <optional>
 #include <ranges>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -58,15 +55,17 @@ public:
             {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
     }
     void set_continuous(variable v) {
-        check(Highs->changeColIntegrality(model, v.id(),
+        check(Highs->changeColIntegrality(model, _native_id(v),
                                           kHighsVarTypeContinuous));
     }
     void set_integer(variable v) {
-        check(Highs->changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
+        check(Highs->changeColIntegrality(model, _native_id(v),
+                                          kHighsVarTypeInteger));
     }
     void set_binary(variable v) {
         _set_variable_bounds(v, 0.0, 1.0);
-        check(Highs->changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
+        check(Highs->changeColIntegrality(model, _native_id(v),
+                                          kHighsVarTypeInteger));
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -110,7 +109,7 @@ private:
             status::failed,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;
@@ -151,6 +150,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
+            _status = status::unknown{};
             return;
         }
         check(Highs->run(model));

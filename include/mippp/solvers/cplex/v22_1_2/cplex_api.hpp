@@ -110,7 +110,6 @@ int CPXaddmipstarts(CPXCENVptr env, CPXLPptr lp, int mcnt, int nzcnt,
                     char ** mipstartname);
 
 constexpr int CPXPARAM_Simplex_Tolerances_Feasibility = 1016;
-// constexpr int CPXPARAM_Simplex_Tolerances_Markowitz = 1013;
 constexpr int CPXPARAM_Simplex_Tolerances_Optimality = 1014;
 constexpr int CPXPARAM_TimeLimit = 1039;
 constexpr int CPXPARAM_Simplex_Limits_Iterations = 1020;
@@ -119,7 +118,6 @@ constexpr int CPXPARAM_MIP_Limits_Solutions = 2015;
 constexpr int CPXPARAM_MIP_Limits_TreeMemory = 2027;
 constexpr int CPXPARAM_MIP_Tolerances_MIPGap = 2009;
 constexpr int CPXPARAM_MIP_Tolerances_Linearization = 2068;
-// constexpr int CPXPARAM_MIP_Tolerances_Integrality = 2010;
 int CPXgetdblparam(CPXCENVptr env, int whichparam, double * value_p);
 int CPXsetdblparam(CPXENVptr env, int whichparam, double newvalue);
 
@@ -164,17 +162,6 @@ constexpr int CPX_STAT_ABORT_PRIM_OBJ_LIM = 21;
 constexpr int CPX_STAT_ABORT_DUAL_OBJ_LIM = 22;
 constexpr int CPX_STAT_FEASIBLE = 23;  // after CPXfeasopt
 constexpr int CPX_STAT_ABORT_DETTIME_LIM = 25;
-
-// constexpr int CPX_STAT_CONFLICT_FEASIBLE = 30;
-// constexpr int CPX_STAT_CONFLICT_MINIMAL = 31;
-// constexpr int CPX_STAT_CONFLICT_ABORT_CONTRADICTION = 32;
-// constexpr int CPX_STAT_CONFLICT_ABORT_TIME_LIM = 33;
-// constexpr int CPX_STAT_CONFLICT_ABORT_IT_LIM = 34;
-// constexpr int CPX_STAT_CONFLICT_ABORT_NODE_LIM = 35;
-// constexpr int CPX_STAT_CONFLICT_ABORT_OBJ_LIM = 36;
-// constexpr int CPX_STAT_CONFLICT_ABORT_MEM_LIM = 37;
-// constexpr int CPX_STAT_CONFLICT_ABORT_USER = 38;
-// constexpr int CPX_STAT_CONFLICT_ABORT_DETTIME_LIM = 39;
 
 constexpr int CPXMIP_OPTIMAL = 101;
 constexpr int CPXMIP_OPTIMAL_TOL = 102;
@@ -382,7 +369,8 @@ public:
     void _check(CPXENVptr env, const int retcode) const {
         if(retcode == 0) return;
         char errmsg[CPXMESSAGEBUFSIZE];
-        geterrorstring(env, retcode, errmsg);
+        if(geterrorstring(env, retcode, errmsg) == nullptr)
+            throw solver_error("CPLEX: unknown error code");
         if(retcode == 1016) throw license_error(errmsg);
         throw solver_error(errmsg);
     }

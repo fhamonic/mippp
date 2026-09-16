@@ -12,7 +12,6 @@
 
 #include "melon/algorithm/breadth_first_search.hpp"
 #include "melon/algorithm/traversal_forest.hpp"
-// #include "melon/algorithm/strongly_connected_components.hpp"
 #include "melon/container/static_digraph.hpp"
 #include "melon/utility/static_digraph_builder.hpp"
 #include "melon/views/subgraph.hpp"

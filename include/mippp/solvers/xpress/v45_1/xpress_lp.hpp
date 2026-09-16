@@ -1,10 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <numeric>
-#include <optional>
 #include <variant>
-#include <vector>
 
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
@@ -18,10 +15,6 @@ class xpress_lp : public xpress_base {
 public:
     [[nodiscard]] explicit xpress_lp(const xpress_api & api)
         : xpress_base(api) {}
-
-    ///////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////// Limits //////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
@@ -41,7 +34,7 @@ private:
             status::out_of_memory,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;

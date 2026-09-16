@@ -7,13 +7,6 @@
 namespace mippp {
 namespace detail {
 
-template <class... Ts>
-struct overloaded : Ts... {
-    using Ts::operator()...;
-};
-template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
-
 template <template <typename, typename> typename C, typename T,
           typename Variant>
 inline constexpr bool any_alternative_v = false;

@@ -2,11 +2,8 @@
 
 #include <cstddef>
 #include <memory>
-#include <numeric>
-#include <optional>
 #include <stdexcept>
 #include <variant>
-#include <vector>
 
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
@@ -23,11 +20,11 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_time_limit(std::size_t count) {
+    void set_iteration_limit(std::size_t count) {
         check(CPX->setintparam(env, CPXPARAM_Simplex_Limits_Iterations,
                                static_cast<int>(count)));
     }
-    auto get_time_limit() {
+    auto get_iteration_limit() {
         int count;
         check(
             CPX->getintparam(env, CPXPARAM_Simplex_Limits_Iterations, &count));
@@ -62,7 +59,7 @@ public:
     // clang-format off
 private:
     using status_variant = std::variant<
-            status::unknown, //  default value
+            status::unknown,
             status::optimal,
             status::optimal_face_unbounded,
             status::optimal_infeasible_unscaled,
@@ -75,7 +72,7 @@ private:
             status::numerical_failure,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
     
     status_variant _get_status() {
         using namespace status;
@@ -90,7 +87,7 @@ private:
             case CPX_STAT_ABORT_IT_LIM:   return iteration_limit{};
             case CPX_STAT_NUM_BEST:       return numerical_failure{true};
             case CPX_STAT_ABORT_USER:     return interrupted{};
-            // unimplemented limits for now
+            // no dedicated status type: these collapse into limit_reached
             case CPX_STAT_ABORT_OBJ_LIM:      return limit_reached{true};
             case CPX_STAT_ABORT_PRIM_OBJ_LIM: return limit_reached{};
             case CPX_STAT_ABORT_DUAL_OBJ_LIM: return limit_reached{};

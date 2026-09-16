@@ -1,14 +1,11 @@
 #pragma once
 
-#include <cmath>
 #include <cstddef>
 #include <optional>
 #include <ranges>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -33,16 +30,9 @@ protected:
         if(rel == constraint_sense::equal) return GLP_FX;
         return GLP_LO;
     }
-    static constexpr constraint_sense glp_row_type_to_constraint_sense(
-        int type) {
-        if(type == GLP_UP) return constraint_sense::less_equal;
-        if(type == GLP_FX) return constraint_sense::equal;
-        if(type == GLP_LO) return constraint_sense::greater_equal;
-        throw std::runtime_error("glpk_base: Cannot convert row type '" +
-                                 std::to_string(type) +
-                                 "' to constraint_sense.");
-    }
-
+    // GLPK arrays are 1-based: slot 0 is a dummy, so the caches keep one
+    // element and every length passed to glp_set_mat_* is size() - 1.
+    // Resizing to 0 here, as model_base does, makes GLPK read past the array.
     void _reset_cache() {
         tmp_indices.resize(1);
         tmp_scalars.resize(1);
@@ -108,9 +98,9 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     glp_prob * native_model() const noexcept { return model; }
+    int native_id(variable v) const noexcept { return v.id() + 1; }
+    int native_id(constraint c) const noexcept { return c.id() + 1; }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -320,8 +310,7 @@ private:
     template <bool distinct, linear_constraint LC>
     void _add_constraint(const int & constr_id, LC && lc) {
         glp->add_rows(model, 1);
-        tmp_indices.resize(1);
-        tmp_scalars.resize(1);
+        _reset_cache();
         if constexpr(distinct) {
             _register_raw_entries(lc.linear_terms());
         } else {

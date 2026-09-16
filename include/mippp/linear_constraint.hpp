@@ -97,32 +97,37 @@ linear_constraint_view(LE &&, constraint_sense)
 ////////////////////////////////// Operators //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+namespace detail {
+// `e1 <sense> e2` as the row `e1 - e2 <sense> 0`
+template <linear_expression E1, linear_expression E2>
+constexpr auto make_linear_constraint(E1 && e1, E2 && e2,
+                                      constraint_sense sense) {
+    assert_compatible_linear_expressions<E1, E2>();
+    return linear_constraint_view(
+        linear_expression_add(std::forward<E1>(e1),
+                              linear_expression_negate(std::forward<E2>(e2))),
+        sense);
+}
+}  // namespace detail
+
 namespace operators {
 
 template <linear_expression E1, linear_expression E2>
 [[nodiscard]] constexpr auto operator<=(E1 && e1, E2 && e2) {
-    detail::assert_compatible_linear_expressions<E1, E2>();
-    return linear_constraint_view(
-        linear_expression_add(std::forward<E1>(e1),
-                              linear_expression_negate(std::forward<E2>(e2))),
-        constraint_sense::less_equal);
+    return detail::make_linear_constraint(std::forward<E1>(e1),
+                                          std::forward<E2>(e2),
+                                          constraint_sense::less_equal);
 }
 template <linear_expression E1, linear_expression E2>
 [[nodiscard]] constexpr auto operator>=(E1 && e1, E2 && e2) {
-    detail::assert_compatible_linear_expressions<E1, E2>();
-    return linear_constraint_view(
-        linear_expression_add(std::forward<E1>(e1),
-                              linear_expression_negate(std::forward<E2>(e2))),
-        constraint_sense::greater_equal);
+    return detail::make_linear_constraint(std::forward<E1>(e1),
+                                          std::forward<E2>(e2),
+                                          constraint_sense::greater_equal);
 }
-
 template <linear_expression E1, linear_expression E2>
 [[nodiscard]] constexpr auto operator==(E1 && e1, E2 && e2) {
-    detail::assert_compatible_linear_expressions<E1, E2>();
-    return linear_constraint_view(
-        linear_expression_add(std::forward<E1>(e1),
-                              linear_expression_negate(std::forward<E2>(e2))),
-        constraint_sense::equal);
+    return detail::make_linear_constraint(
+        std::forward<E1>(e1), std::forward<E2>(e2), constraint_sense::equal);
 }
 
 template <linear_expression E>

@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
-#include <optional>
 #include <variant>
 
 #include "mippp/model_concepts.hpp"
@@ -37,7 +36,7 @@ public:
         model_params.obj_ul = std::numeric_limits<double>::max();
         model_params.it_lim = std::numeric_limits<int>::max();
         model_params.tm_lim = std::numeric_limits<int>::max();
-        model_params.presolve = 0;  // PRESOLVE
+        model_params.presolve = 0;
         model_params.excl = 0;
         model_params.shift = 0;
         model_params.aorn = GLP_USE_AT;
@@ -56,12 +55,13 @@ public:
     // clang-format off
 private:
     using status_variant = std::variant<
-            status::unknown, // default value
+            status::unknown,
             status::optimal,
             status::infeasible,
             status::unbounded>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
+    // clang-format on
 
 public:
     const status_variant & solve_status() const { return _status; }
@@ -69,25 +69,28 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        // an error code leaves the solution undefined: never keep the status
+        // of the previous solve
+        _status = status::unknown{};
         switch(glp->simplex(model, &model_params)) {
             case GLP_ENOPFS:
-                _status.emplace<status::unbounded>();
+                _status.emplace<status::infeasible>();
                 return;
             case GLP_ENODFS:
-                _status.emplace<status::infeasible>();
+                _status.emplace<status::unbounded>();
                 return;
         }
         const int primal_status = glp->get_status(model);
         if(primal_status == GLP_UNBND || !std::isfinite(get_solution_value())) {
-                _status.emplace<status::unbounded>();
+            _status.emplace<status::unbounded>();
             return;
         }
         if(primal_status == GLP_OPT) {
-                _status.emplace<status::optimal>();
+            _status.emplace<status::optimal>();
             return;
         }
         if(primal_status == GLP_INFEAS || primal_status == GLP_NOFEAS) {
-                _status.emplace<status::infeasible>();
+            _status.emplace<status::infeasible>();
             return;
         }
     }

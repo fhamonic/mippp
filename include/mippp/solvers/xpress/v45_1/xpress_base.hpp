@@ -40,12 +40,6 @@ protected:
         if(rel == constraint_sense::equal) return 'E';
         return 'G';
     }
-    // static constexpr constraint_sense mosek_sense_to_constraint_sense(
-    //     CPXboundkeye sense) {
-    //     if(sense == CPX_BK_UP) return constraint_sense::less_equal;
-    //     if(sense == CPX_BK_FX) return constraint_sense::equal;
-    //     return constraint_sense::greater_equal;
-    // }
 
 public:
     // the anchor model_variable_params_t deduces from
@@ -94,9 +88,9 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     XPRSprob native_model() const noexcept { return prob; }
+    int native_id(variable v) const noexcept { return v.id(); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -133,7 +127,6 @@ public:
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
         tmp_scalars.resize(num_vars);
-        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         check(XPRS->getobj(prob, tmp_scalars.data(), 0,
                            static_cast<int>(num_vars) - 1));
         for(auto && [var, coef] : le.linear_terms()) {

@@ -77,9 +77,9 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     void * native_model() const noexcept { return model; }
+    int native_id(variable v) const noexcept { return _native_id(v); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -195,7 +195,8 @@ protected:
 
         const std::size_t new_num_native_ids =
             old_num_native_ids - tmp_indices.size();
-        // // Skips remapping if all deletiond are the native ids tail
+        // Deleting only the tail of the native ids leaves every surviving id
+        // in place: no remap table is needed and _remap_ids stays false.
         if(_remap_ids ||
            static_cast<std::size_t>(tmp_indices.front()) < new_num_native_ids) {
             if(!_remap_ids) {

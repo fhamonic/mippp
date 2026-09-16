@@ -12,8 +12,6 @@
 //                                       overloads never collide with Key --
 //                                       even when Key itself is std::size_t.
 //
-// Requires C++20 (heterogeneous lookup in unordered containers).
-//
 // STL compatibility:
 //  The public interface mirrors std::unordered_map for the common operations,
 //  BUT the following std::unordered_map guarantees are deliberately NOT met:
@@ -50,15 +48,10 @@ namespace mippp {
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename KeyEqual = std::equal_to<Key>>
 class unordered_dense_map {
-    // Detect whether Hash/KeyEqual opt into heterogeneous lookup.
-    template <typename T, typename = void>
-    struct has_is_transparent : std::false_type {};
-    template <typename T>
-    struct has_is_transparent<T, std::void_t<typename T::is_transparent>>
-        : std::true_type {};
-    template <typename H, typename E>
-    static constexpr bool is_transparent_v =
-        has_is_transparent<H>::value && has_is_transparent<E>::value;
+    // both Hash and KeyEqual must opt into heterogeneous lookup
+    static constexpr bool transparent = requires {
+        typename Hash::is_transparent;
+    } && requires { typename KeyEqual::is_transparent; };
 
     using Entry = std::pair<Key, Value>;
     using Store = std::vector<Entry>;
@@ -100,7 +93,7 @@ class unordered_dense_map {
     using IndexSet = std::unordered_set<Index, IndexHash, IndexEqual>;
 
     // unique_ptr keeps the Store's address stable across moves so the pointers
-    // captured by IndexHash and IndexEqual stays valid
+    // captured by IndexHash and IndexEqual stay valid
     std::unique_ptr<Store> store_;
     IndexSet index_;
 
@@ -192,16 +185,16 @@ public:
                    ? end()
                    : begin() + static_cast<difference_type>(it->value);
     }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<is_transparent_v<H, E>, int> = 0>
+    template <typename K>
+        requires transparent
     iterator find(const K & k) {
         auto it = index_.find(k);
         return it == index_.end()
                    ? end()
                    : begin() + static_cast<difference_type>(it->value);
     }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<is_transparent_v<H, E>, int> = 0>
+    template <typename K>
+        requires transparent
     const_iterator find(const K & k) const {
         auto it = index_.find(k);
         return it == index_.end()
@@ -212,15 +205,15 @@ public:
     bool contains(const Key & k) const {
         return index_.find(k) != index_.end();
     }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<is_transparent_v<H, E>, int> = 0>
+    template <typename K>
+        requires transparent
     bool contains(const K & k) const {
         return index_.find(k) != index_.end();
     }
 
     size_type count(const Key & k) const { return contains(k) ? 1 : 0; }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<is_transparent_v<H, E>, int> = 0>
+    template <typename K>
+        requires transparent
     size_type count(const K & k) const {
         return contains(k) ? 1 : 0;
     }
@@ -233,14 +226,14 @@ public:
         auto it = find(k);
         return {it, it == end() ? it : std::next(it)};
     }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<is_transparent_v<H, E>, int> = 0>
+    template <typename K>
+        requires transparent
     std::pair<iterator, iterator> equal_range(const K & k) {
         auto it = find(k);
         return {it, it == end() ? it : std::next(it)};
     }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<is_transparent_v<H, E>, int> = 0>
+    template <typename K>
+        requires transparent
     std::pair<const_iterator, const_iterator> equal_range(const K & k) const {
         auto it = find(k);
         return {it, it == end() ? it : std::next(it)};
@@ -258,16 +251,16 @@ public:
             throw std::out_of_range("unordered_dense_map::at");
         return (*store_)[it->value].second;
     }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<is_transparent_v<H, E>, int> = 0>
+    template <typename K>
+        requires transparent
     Value & at(const K & k) {
         auto it = index_.find(k);
         if(it == index_.end())
             throw std::out_of_range("unordered_dense_map::at");
         return (*store_)[it->value].second;
     }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<is_transparent_v<H, E>, int> = 0>
+    template <typename K>
+        requires transparent
     const Value & at(const K & k) const {
         auto it = index_.find(k);
         if(it == index_.end())
@@ -329,12 +322,10 @@ public:
     }
 
     size_type erase(const Key & k) { return erase_key(k); }
-    template <typename K, typename H = Hash, typename E = KeyEqual,
-              std::enable_if_t<
-                  is_transparent_v<H, E> &&
-                      !std::is_convertible_v<const K &, const_iterator> &&
-                      !std::is_convertible_v<const K &, iterator>,
-                  int> = 0>
+    template <typename K>
+        requires transparent &&
+                 (!std::is_convertible_v<const K &, const_iterator>) &&
+                 (!std::is_convertible_v<const K &, iterator>)
     size_type erase(const K & k) {
         return erase_key(k);
     }

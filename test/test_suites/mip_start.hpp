@@ -241,7 +241,6 @@ TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
                   << std::endl;
         std::cout << "mipstarted avg. : " << mipstarted_time_us_sum / 10
                   << std::endl;
-        // ASSERT_TRUE(mipstarted_time_us_sum < 0.95 * default_time_us_sum);
 
         ASSERT_DOUBLE_EQ(mipstarted_model.get_solution_value(),
                          default_model.get_solution_value());

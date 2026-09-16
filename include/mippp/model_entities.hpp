@@ -74,7 +74,6 @@ public:
     constexpr explicit model_variable(T t) : model_entity_base<Id>(t) {}
 
     constexpr auto linear_terms() const noexcept {
-        // return std::views::single(std::make_pair(*this, Scalar{1}));
         return std::views::single(
             std::pair<model_variable<Id, Scalar>, Scalar>(*this, Scalar{1}));
     }
@@ -296,8 +295,6 @@ concept optional_type = is_optional_type<std::remove_cvref_t<T>>::value;
 
 template <optional_type T>
 using optional_type_value_t = typename T::value_type;
-
-#define OPT(cond, ...) ((cond) ? std::make_optional(__VA_ARGS__) : std::nullopt)
 
 }  // namespace detail
 

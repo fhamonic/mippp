@@ -460,7 +460,7 @@ GTEST_TEST(unordered_dense_map, heterogeneous_lookup) {
 
 namespace {
 // probes whether M exposes find(K) -- the heterogeneous overloads must be
-// SFINAE'd away on non-transparent maps
+// constrained away on non-transparent maps
 template <typename M, typename K, typename = void>
 struct has_hetero_find : std::false_type {};
 template <typename M, typename K>

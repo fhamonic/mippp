@@ -2,14 +2,9 @@
 
 #include <algorithm>
 #include <cstring>
-#include <limits>
-#include <optional>
-#include <ostream>
 #include <ranges>
-#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -76,9 +71,9 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     Clp_Simplex * native_model() const noexcept { return model; }
+    int native_id(variable v) const noexcept { return v.id(); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -150,8 +145,8 @@ private:
         return offset;
     }
 
-    inline variable _recylcle_variable(const variable_params & params,
-                                       const char * name_str = "") {
+    inline variable _recycle_variable(const variable_params & params,
+                                      const char * name_str = "") {
         variable v{_free_variable_ids.back()};
         _free_variable_ids.pop_back();
         set_objective_coefficient(v, params.obj_coef);
@@ -167,7 +162,7 @@ public:
     variable add_variable(
         const variable_params params = default_variable_params) {
         if(!_free_variable_ids.empty()) {
-            return _recylcle_variable(params);
+            return _recycle_variable(params);
         }
         index var_id = static_cast<index>(num_native_ids_variables());
         const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
@@ -193,7 +188,7 @@ public:
         const std::string & name,
         const variable_params params = default_variable_params) {
         if(!_free_variable_ids.empty()) {
-            return _recylcle_variable(params, name.c_str());
+            return _recycle_variable(params, name.c_str());
         }
         variable v = add_variable(params);
         set_variable_name(v, name);
@@ -220,7 +215,7 @@ private:
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
         if(!_free_variable_ids.empty()) {
-            variable v = _recylcle_variable(params);
+            variable v = _recycle_variable(params);
             for(auto && [constr, coef] : entries) {
                 Clp->modifyCoefficient(model, constr.id(), v.id(),
                                        static_cast<double>(coef), false);
@@ -254,7 +249,6 @@ public:
         set_objective_coefficient(v, 0);
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 0);
-        // Zeroes the column
         const int * col_starts = Clp->getVectorStarts(model);
         const int * row_indices = Clp->getIndices(model);
 
@@ -447,8 +441,8 @@ public:
         Clp->setRowName(model, constr.id(), const_cast<char *>(name.c_str()));
     }
 
-    // auto get_constraint_lhs(constraint constr) {} // Clp C API only has
-    // column-major accessors
+    // No get_constraint_lhs / get_constraint: the Clp C API exposes the
+    // matrix column-major only.
     scalar get_constraint_rhs(constraint constr) {
         if(get_constraint_sense(constr) == constraint_sense::greater_equal)
             return Clp->rowLower(model)[constr.id()];
@@ -469,13 +463,6 @@ public:
     scalar get_constraint_upper_bound(constraint constr) {
         return Clp->rowUpper(model)[constr.id()];
     }
-    // auto get_constraint(constraint constr) {
-    //     return linear_constraint_view(
-    //         linear_expression_view(get_constraint_lhs(constr),
-    //                                -get_constraint_rhs(constr)),
-    //         get_constraint_sense(constr));
-    // }
-
     auto get_constraint_name(constraint constr) {
         auto max_length = static_cast<std::size_t>(Clp->lengthNames(model));
         std::string name(max_length, '\0');
@@ -483,7 +470,6 @@ public:
         name.resize(std::strlen(name.c_str()));
         return name;
     }
-    // auto get_constraint(const constraint constr) const;
 
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
@@ -498,12 +484,12 @@ public:
     // clang-format off
 private:
     using status_variant = std::variant<
-            status::unknown, // default value
+            status::unknown,
             status::optimal,
             status::infeasible,
             status::unbounded>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;
@@ -523,7 +509,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
-            // _status.emplace<status::optimal>() ?
+            _status = status::unknown{};
             return;
         }
         // Clp keeps the scale factors of the previous solve as long as the

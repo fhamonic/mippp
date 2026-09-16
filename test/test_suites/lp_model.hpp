@@ -612,8 +612,21 @@ TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_min) {
     });
 }
 
+TYPED_TEST_P(LpModelTest, native_ids) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        auto c1 = model.add_constraint(x + y <= 1);
+        auto c2 = model.add_constraint(x - y >= 0);
+        ASSERT_NE(model.native_id(x), model.native_id(y));
+        ASSERT_NE(model.native_id(c1), model.native_id(c2));
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(
-    LpModelTest, construct, add_variable, add_variable_params,
+    LpModelTest, native_ids, construct, add_variable, add_variable_params,
     add_zero_variables, add_variables, add_variables_params,
     add_variable_and_variables, add_zero_indexed_variables,
     add_indexed_variables, add_indexed_variables_params,

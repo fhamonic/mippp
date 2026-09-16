@@ -6,7 +6,6 @@
 #include <numeric>
 #include <optional>
 #include <ranges>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -95,11 +94,11 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     std::pair<copt_env *, copt_prob *> native_model() const noexcept {
         return {env, prob};
     }
+    int native_id(variable v) const noexcept { return v.id(); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -417,23 +416,6 @@ public:
                          CL &&... constraint_lambdas) {
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
-    }
-
-protected:
-    static void check_lp_status(int status) {
-        if(status >= 1 && status <= 3) return;
-        if(status == COPT_LPSTATUS_UNSTARTED)
-            throw std::runtime_error("copt_base: COPT_LPSTATUS_UNSTARTED");
-        if(status == COPT_LPSTATUS_NUMERICAL)
-            throw std::runtime_error("copt_base: COPT_LPSTATUS_NUMERICAL");
-        if(status == COPT_LPSTATUS_IMPRECISE)
-            throw std::runtime_error("copt_base: COPT_LPSTATUS_IMPRECISE");
-        if(status == COPT_LPSTATUS_TIMEOUT)
-            throw std::runtime_error("copt_base: COPT_LPSTATUS_TIMEOUT");
-        if(status == COPT_LPSTATUS_UNFINISHED)
-            throw std::runtime_error("copt_base: COPT_LPSTATUS_UNFINISHED");
-        if(status == COPT_LPSTATUS_INTERRUPTED)
-            throw std::runtime_error("copt_base: COPT_LPSTATUS_INTERRUPTED");
     }
 };
 

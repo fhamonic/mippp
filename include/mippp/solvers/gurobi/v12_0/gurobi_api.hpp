@@ -47,7 +47,6 @@ int GRBaddconstrs(GRBmodel * model, int numconstrs, int numnz, int * cbeg,
                   char ** constrnames);
 int GRBaddrangeconstr(GRBmodel * model, int numnz, int * cind, double * cval,
                       double lower, double upper, const char * constrname);
-// SOS types
 constexpr int GRB_SOS_TYPE1 = 1;
 constexpr int GRB_SOS_TYPE2 = 2;
 int GRBaddsos(GRBmodel * model, int numsos, int nummembers, int * types,
@@ -88,7 +87,6 @@ enum ModelSense : int { GRB_MINIMIZE = 1, GRB_MAXIMIZE = -1 };
 constexpr const char * GRB_INT_ATTR_NUMVARS = "NumVars";
 constexpr const char * GRB_INT_ATTR_NUMCONSTRS = "NumConstrs";
 constexpr const char * GRB_INT_ATTR_NUMNZS = "NumNZs";
-// Model statuses
 constexpr const char * GRB_INT_ATTR_STATUS = "Status";
 constexpr const char * GRB_INT_ATTR_SOLCOUNT = "SolCount";
 enum ModelStatus : int {

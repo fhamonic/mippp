@@ -82,10 +82,9 @@ concept compatible_quadratic_expressions =
     std::same_as<quadratic_expression_scalar_t<E1>,
                  quadratic_expression_scalar_t<E2>>;
 
-// Reading a quadratic expression does not consume it: quadratic terms and
-// linear part both accessors are are reachable through a `const &`, which by
-// construction cannot move out of it. An expression that owns a move-only term
-// range fails this.
+// Reading a quadratic expression does not consume it: both accessors are
+// reachable through a `const &`, which by construction cannot move out of it.
+// An expression that owns a move-only term range fails this.
 template <typename E>
 concept const_readable_quadratic_expression =
     requires(const std::remove_cvref_t<E> & e) {
@@ -138,8 +137,8 @@ consteval void assert_forwardable_quadratic_expressions() {
 }
 
 // Products need `multipass_linear_terms` on both operands: the quadratic views
-// expose only `const &` accessors (see the note above), and a cartesian product
-// walks one operand once per term of the other.
+// expose only `const &` accessors, and a cartesian product walks one operand
+// once per term of the other.
 template <typename... Es>
 consteval void assert_multipliable_linear_expressions() {
     static_assert(
@@ -154,6 +153,18 @@ consteval void assert_multipliable_linear_expressions() {
         "forward_range. This usually means the expression comes from xsum(), "
         "whose terms are a join of temporary ranges. Materialize it first: "
         "square(materialize(e)), or materialize(e1) * materialize(e2).");
+}
+
+template <std::ranges::viewable_range T1, std::ranges::viewable_range T2>
+constexpr auto quadratic_product_terms(T1 && terms_1, T2 && terms_2) {
+    return std::views::transform(
+        cartesian_product(std::forward<T1>(terms_1), std::forward<T2>(terms_2)),
+        [](auto && p) {
+            auto && [t1, t2] = p;
+            auto && [v1, c1] = t1;
+            auto && [v2, c2] = t2;
+            return std::make_tuple(v1, v2, c1 * c2);
+        });
 }
 }  // namespace detail
 
@@ -197,7 +208,7 @@ public:
     {
         return _linear_expression;
     }
-    // lvalue access must not copy: Terms may be move-only
+    // lvalue access must not copy: LExpr may be move-only
     [[nodiscard]] constexpr LExpr & linear_part() & noexcept {
         return _linear_expression;
     }
@@ -223,15 +234,9 @@ public:
         : _linear_expression(std::forward<E>(linear_expression)) {}
 
     [[nodiscard]] constexpr auto quadratic_terms() const & noexcept {
-        return std::views::transform(
-            detail::cartesian_product(_linear_expression.linear_terms(),
-                                      _linear_expression.linear_terms()),
-            [](auto && p) {
-                auto && [t1, t2] = p;
-                auto && [v1, c1] = t1;
-                auto && [v2, c2] = t2;
-                return std::make_tuple(v1, v2, c1 * c2);
-            });
+        return detail::quadratic_product_terms(
+            _linear_expression.linear_terms(),
+            _linear_expression.linear_terms());
     }
     [[nodiscard]] constexpr auto linear_part() const & noexcept {
         if constexpr(statically_zero<linear_expression_constant_t<LExpr>>) {
@@ -251,8 +256,6 @@ public:
     }
 };
 
-// `expression_all_t` mirrors the `views::all_t` guides of the range adaptors:
-// an rvalue operand is moved into the view, a named operand is referenced.
 template <typename LE>
 linear_expression_square(LE &&)
     -> linear_expression_square<detail::expression_all_t<LE>>;
@@ -275,15 +278,9 @@ public:
         , _linear_expression_2(std::forward<E2>(linear_expression_2)) {}
 
     [[nodiscard]] constexpr auto quadratic_terms() const & noexcept {
-        return std::views::transform(
-            detail::cartesian_product(_linear_expression_1.linear_terms(),
-                                      _linear_expression_2.linear_terms()),
-            [](auto && p) {
-                auto && [t1, t2] = p;
-                auto && [v1, c1] = t1;
-                auto && [v2, c2] = t2;
-                return std::make_tuple(v1, v2, c1 * c2);
-            });
+        return detail::quadratic_product_terms(
+            _linear_expression_1.linear_terms(),
+            _linear_expression_2.linear_terms());
     }
     [[nodiscard]] constexpr auto linear_part() const & noexcept {
         using constant_1 = linear_expression_constant_t<LExpr1>;

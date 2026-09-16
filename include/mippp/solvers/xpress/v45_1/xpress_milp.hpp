@@ -4,14 +4,11 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <numeric>
-#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
@@ -94,7 +91,7 @@ private:
         void check(int error) {
             if(error == 0) return;
             char errmsg[512];
-            check(XPRS->getlasterror(prob, errmsg));
+            XPRS->getlasterror(prob, errmsg);
             throw std::runtime_error("Xpress: error " + std::to_string(error) +
                                      ": " + errmsg);
         }
@@ -225,7 +222,7 @@ private:
             status::out_of_memory,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;
@@ -268,7 +265,10 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void solve() { check(XPRS->mipoptimize(prob, nullptr)); }
+    void solve() {
+        check(XPRS->mipoptimize(prob, nullptr));
+        _status = _get_status();
+    }
 
     double get_solution_value() {
         double val;

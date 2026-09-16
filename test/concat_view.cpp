@@ -51,10 +51,10 @@ static_assert(std::same_as<std::ranges::range_value_t<two_vectors_t>, int>);
 ////////////////////////////// Accepted operands //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// regression: the fallback concat_view used to be handed the raw operands, so
-// CTAD deduced V1 = std::vector and failed the `view<V1>` constraint. Adding
-// two containers -- e.g. two materialized linear expressions -- did not
-// compile.
+// regression: unordered_concat must wrap its operands in views::all before
+// CTAD, otherwise V1 deduces to std::vector and fails the `view<V1>`
+// constraint, and adding two containers -- e.g. two materialized linear
+// expressions -- does not compile.
 GTEST_TEST(unordered_concat, two_lvalue_containers) {
     std::vector<int> a = {1, 2, 3};
     std::vector<int> b = {4, 5};

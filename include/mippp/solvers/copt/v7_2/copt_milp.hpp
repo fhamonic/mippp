@@ -5,15 +5,11 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <numeric>
-#include <optional>
 #include <ranges>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #include "mippp/linear_constraint.hpp"
-#include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
@@ -24,7 +20,7 @@ namespace copt::v7_2 {
 
 class copt_milp : public copt_base {
 private:
-    int _is_mip;
+    int _is_mip = 0;
 
 public:
     [[nodiscard]] explicit copt_milp(const copt_api & api) : copt_base(api) {}
@@ -51,18 +47,11 @@ public:
 
 private:
     inline void _add_binary_variables(const std::size_t & count) {
-        tmp_scalars.resize(2 * count);
-        std::fill(tmp_scalars.begin(),
-                  tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count), 0);
-        std::fill(tmp_scalars.begin() + static_cast<std::ptrdiff_t>(count),
-                  tmp_scalars.end(), 1);
-        tmp_types.resize(count);
-        std::fill(tmp_types.begin(), tmp_types.end(), COPT_BINARY);
-        check(COPT->AddCols(
-            prob, static_cast<int>(count), tmp_scalars.data(), nullptr, nullptr,
-            nullptr, nullptr, tmp_types.data(), nullptr,
-            nullptr /*tmp_scalars.data() + static_cast<std::ptrdiff_t>(count)*/,
-            nullptr));
+        tmp_scalars.assign(count, 0.0);
+        tmp_types.assign(count, COPT_BINARY);
+        check(COPT->AddCols(prob, static_cast<int>(count), tmp_scalars.data(),
+                            nullptr, nullptr, nullptr, nullptr,
+                            tmp_types.data(), nullptr, nullptr, nullptr));
     }
 
 public:
@@ -245,7 +234,7 @@ private:
             status::numerical_failure,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status_lp() {
         using namespace status;

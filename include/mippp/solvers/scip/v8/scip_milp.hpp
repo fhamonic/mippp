@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <functional>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -116,7 +115,8 @@ public:
         : SCIP(other.SCIP)
         , model(other.model)
         , variables(std::move(other.variables))
-        , constraints(std::move(other.constraints)) {
+        , constraints(std::move(other.constraints))
+        , register_count(other.register_count) {
         other.model = nullptr;
     }
 
@@ -161,9 +161,13 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     struct Scip * native_model() const noexcept { return model; }
+    SCIP_VAR * native_id(variable v) const noexcept {
+        return variables[v.uid()];
+    }
+    SCIP_CONS * native_id(constraint c) const noexcept {
+        return constraints[c.uid()];
+    }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -229,11 +233,11 @@ private:
     void _add_variable(const variable_params & params, SCIP_VARTYPE type,
                        const char * name = "") {
         SCIP_VAR * var = nullptr;
-        check(SCIP->createVar(
+        check(SCIP->createVarBasic(
             model, &var, name,
             params.lower_bound.value_or(-SCIP->infinity(model)),
             params.upper_bound.value_or(SCIP->infinity(model)), params.obj_coef,
-            type, FALSE, FALSE, nullptr, nullptr, nullptr, nullptr, nullptr));
+            type));
         check(SCIP->addVar(model, var));
         variables.emplace_back(var);
     }
@@ -505,35 +509,23 @@ public:
                                       std::forward<CL>(constraint_lambdas)...);
     }
 
-    // TODO
-    // void set_constraint_rhs(constraint c, double rhs) {}
-    // void set_constraint_sense(constraint c, constraint_sense r) {}
-    // constraint add_ranged_constraint(linear_expression auto && le, double lb,
-    //                                  double ub)
-    // void set_constraint_name(constraint c, auto && name) {}
-    // auto get_constraint_lhs(constraint c) {}
-    // double get_constraint_rhs(constraint c) {}
-    // constraint_sense get_constraint_sense(constraint c) {}
-    // auto get_constraint(const constraint c) {}
-    // auto get_constraint_name(constraint c) {}
-
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
-        check(SCIPsetRealParam(model, "numerics/feastol", tol));
+        check(SCIP->setRealParam(model, "numerics/feastol", tol));
     }
     double get_feasibility_tolerance() {
         double tol;
-        check(SCIPgetRealParam(model, "numerics/feastol", &tol));
+        check(SCIP->getRealParam(model, "numerics/feastol", &tol));
         return tol;
     }
     void set_optimality_tolerance(double tol) {
-        check(SCIPsetRealParam(model, "limits/gap", tol));
+        check(SCIP->setRealParam(model, "limits/gap", tol));
     }
     double get_optimality_tolerance() {
         double tol;
-        check(SCIPgetRealParam(model, "limits/gap", &tol));
+        check(SCIP->getRealParam(model, "limits/gap", &tol));
         return tol;
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -556,7 +548,7 @@ private:
             status::numerical_failure,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;

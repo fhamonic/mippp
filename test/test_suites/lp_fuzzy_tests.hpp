@@ -397,11 +397,6 @@ private:
                     _tested.add_variable(_to_params<Tested>(spec)),
                     _reference.add_variable(_to_params<dumb_lp>(spec)), label,
                     false);
-
-                // std::cout << "add_variable -> " <<
-                // _variables.back().tested.id()
-                //           << " : " << _variables.back().reference.id()
-                //           << std::endl;
             });
         register_mutation(
             "add variables", [] { return true; },
@@ -625,11 +620,6 @@ private:
                         _reference.add_column(reference_entries,
                                               _to_params<dumb_lp>(spec)),
                         label, false);
-
-                    // std::cout << "add_column -> "
-                    //           << _variables.back().tested.id() << " : "
-                    //           << _variables.back().reference.id() <<
-                    //           std::endl;
                 });
         }
         if constexpr(has_remove_variable<Tested>) {

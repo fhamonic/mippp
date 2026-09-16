@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 #include <variant>
 
 #include "mippp/model_concepts.hpp"
@@ -22,7 +21,7 @@ public:
     // clang-format off
 private:
     using status_variant = std::variant<
-            status::unknown, // default value
+            status::unknown,
             status::optimal,
             status::infeasible,
             status::unbounded,
@@ -30,7 +29,7 @@ private:
             status::numerical_failure,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;
@@ -41,7 +40,6 @@ private:
             case COPT_LPSTATUS_INFEASIBLE: return infeasible{};
             case COPT_LPSTATUS_UNBOUNDED: return unbounded{};
             case COPT_LPSTATUS_TIMEOUT: return time_limit{};
-            // case COPT_LPSTATUS_ITERLIMIT: return iteration_limit{};
             case COPT_LPSTATUS_NUMERICAL:
             case COPT_LPSTATUS_IMPRECISE:
             case COPT_LPSTATUS_UNFINISHED: return numerical_failure{};
@@ -75,7 +73,7 @@ public:
     }
     auto get_dual_solution() {
         auto dual_solution =
-            std::make_unique_for_overwrite<double[]>(num_variables());
+            std::make_unique_for_overwrite<double[]>(num_constraints());
         check(COPT->GetLpSolution(prob, nullptr, nullptr, dual_solution.get(),
                                   nullptr));
         return constraint_mapping(std::move(dual_solution));

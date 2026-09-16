@@ -92,7 +92,7 @@ Notable current limitations (see the
     api.setintparam(env, "MIPFocus", 2);
     ```
 
-    What comes back depends on the backend: a `(env, model)` pair where the solver has an environment — `std::pair<GRBenv *, GRBmodel *>` (Gurobi), `std::pair<CPXENVptr, CPXLPptr>` (CPLEX), `std::pair<copt_env *, copt_prob *>` (COPT), `std::pair<MSKenv_t, MSKtask_t>` (MOSEK) — and the single problem object otherwise: `XPRSprob` (Xpress), `SCIP *` (SCIP), `glp_prob *` (GLPK), `Clp_Simplex *` (Clp), `Cbc_Model *` (Cbc), `void *` (HiGHS, SoPlex). Anything done through these handles bypasses MIP++'s bookkeeping (variable handle remapping after removals, name tracking), so keep it to parameters and read-only queries.
+    What comes back depends on the backend: a `(env, model)` pair where the solver has an environment — `std::pair<GRBenv *, GRBmodel *>` (Gurobi), `std::pair<CPXENVptr, CPXLPptr>` (CPLEX), `std::pair<copt_env *, copt_prob *>` (COPT), `std::pair<MSKenv_t, MSKtask_t>` (MOSEK) — and the single problem object otherwise: `XPRSprob` (Xpress), `SCIP *` (SCIP), `glp_prob *` (GLPK), `Clp_Simplex *` (Clp), `Cbc_Model *` (Cbc), `void *` (HiGHS, SoPlex). To address one variable or constraint through the raw API, `native_id(v)` and `native_id(c)` translate a MIP++ handle into what the solver calls it: the column or row index (1-based on GLPK), or the `SCIP_VAR *` / `SCIP_CONS *` on SCIP. Handles and native indices drift apart once variables have been removed on the backends that delete columns (HiGHS, Gurobi, CPLEX), which is what the translation is for. Anything done through these handles bypasses MIP++'s bookkeeping (handle remapping, name tracking), so keep it to parameters and read-only queries.
 
 ## Next
 

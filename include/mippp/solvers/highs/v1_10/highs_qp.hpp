@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <ranges>
 #include <tuple>
 #include <utility>
@@ -26,24 +25,9 @@ public:
     [[nodiscard]] explicit highs_qp(const highs_api & api) : highs_base(api) {}
 
 private:
-    // HiGHS minimizes ½·xᵀQx over the lower triangle of Q: a diagonal
-    // coefficient is stored doubled, an off-diagonal one as is because its
-    // mirror image supplies the other half.
     bool _has_hessian = false;
     std::vector<std::tuple<HighsInt, HighsInt, double>> tmp_quadratic_entries;
 
-    template <linear_expression LE>
-    void _set_linear_objective(LE && le) {
-        const auto num_vars = _num_var_native_ids();
-        tmp_scalars.resize(num_vars);
-        std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            tmp_scalars[static_cast<std::size_t>(_native_id(var))] += coef;
-        }
-        check(Highs->changeColsCostByRange(
-            model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
-        set_objective_offset(le.constant());
-    }
     // HiGHS rejects dim 0 on a non-empty model: the empty Hessian is passed
     // with the full dimension and no entries
     void _clear_hessian() {
@@ -60,7 +44,7 @@ public:
     template <linear_expression LE>
     void set_objective(LE && le) {
         _clear_hessian();
-        _set_linear_objective(std::forward<LE>(le));
+        highs_base::set_objective(std::forward<LE>(le));
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
@@ -70,8 +54,12 @@ public:
     template <quadratic_expression QE>
     void set_quadratic_objective(QE && qe) {
         const auto num_vars = _num_var_native_ids();
-        _set_linear_objective(qe.linear_part());
+        highs_base::set_objective(qe.linear_part());
         tmp_quadratic_entries.resize(0);
+        // HiGHS minimizes ½·xᵀQx over the lower triangle of Q: a diagonal
+        // coefficient is passed doubled, an off-diagonal one as is because
+        // its mirror image supplies the other half; get_quadratic_objective
+        // undoes this.
         for(auto && [var1, var2, coef] : qe.quadratic_terms()) {
             HighsInt i = _native_id(var1);
             HighsInt j = _native_id(var2);
@@ -209,7 +197,7 @@ private:
             status::failed,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;
@@ -244,6 +232,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
+            _status = status::unknown{};
             return;
         }
         check(Highs->run(model));

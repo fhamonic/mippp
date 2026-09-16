@@ -20,13 +20,13 @@ namespace mippp {
 // user may name, so nothing here is frozen by the public API. The one
 // member the concepts need, default_variable_params, is re-exposed by each
 // backend with a public using-declaration.
-template <std::integral _Index, std::floating_point _Scalar>
+template <std::integral Index, std::floating_point Scalar>
 class model_base {
 protected:
-    using index = _Index;
-    using scalar = _Scalar;
-    using variable = model_variable<_Index, _Scalar>;
-    using constraint = model_constraint<_Index>;
+    using index = Index;
+    using scalar = Scalar;
+    using variable = model_variable<Index, Scalar>;
+    using constraint = model_constraint<Index>;
     template <typename Map>
     struct variable_mapping : entity_mapping<variable, Map> {
         variable_mapping(Map && t)
@@ -39,9 +39,9 @@ protected:
     };
 
     struct variable_params {
-        _Scalar obj_coef = _Scalar{0};
-        std::optional<_Scalar> lower_bound = std::nullopt;
-        std::optional<_Scalar> upper_bound = std::nullopt;
+        Scalar obj_coef = Scalar{0};
+        std::optional<Scalar> lower_bound = std::nullopt;
+        std::optional<Scalar> upper_bound = std::nullopt;
     };
 
 public:
@@ -51,8 +51,8 @@ public:
 
 protected:
     std::vector<std::pair<unsigned int, unsigned int>> tmp_entry_index_cache;
-    std::vector<_Index> tmp_indices;
-    std::vector<_Scalar> tmp_scalars;
+    std::vector<Index> tmp_indices;
+    std::vector<Scalar> tmp_scalars;
     unsigned int register_count;
 
     [[nodiscard]] explicit model_base() : register_count(0) {}
@@ -68,8 +68,8 @@ protected:
         return variables_view(
             std::from_range,
             std::views::transform(
-                std::views::iota(static_cast<_Index>(offset),
-                                 static_cast<_Index>(offset + count)),
+                std::views::iota(static_cast<Index>(offset),
+                                 static_cast<Index>(offset + count)),
                 [](auto && i) { return variable{i}; }));
     }
     template <typename IL>
@@ -79,8 +79,8 @@ protected:
         return variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
-                std::views::iota(static_cast<_Index>(offset),
-                                 static_cast<_Index>(offset + count)),
+                std::views::iota(static_cast<Index>(offset),
+                                 static_cast<Index>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda));
     }
@@ -92,7 +92,7 @@ protected:
                                            const std::size_t & count,
                                            NL && name_lambda, M * model) {
         for(std::size_t i = 0; i < count; ++i) {
-            model->set_variable_name(variable(static_cast<int>(offset + i)),
+            model->set_variable_name(variable(static_cast<Index>(offset + i)),
                                      name_lambda(i));
         }
         return _make_variables_view(offset, count);
@@ -109,8 +109,8 @@ protected:
         return lazily_named_variables_view(
             typename detail::function_traits<IL>::arg_types(),
             std::views::transform(
-                std::views::iota(static_cast<_Index>(offset),
-                                 static_cast<_Index>(offset + count)),
+                std::views::iota(static_cast<Index>(offset),
+                                 static_cast<Index>(offset + count)),
                 [](auto && i) { return variable{i}; }),
             std::forward<IL>(id_lambda), std::forward<NL>(name_lambda), model);
     }
@@ -118,8 +118,8 @@ protected:
     struct EntityId {
         template <typename E>
             requires std::derived_from<std::decay_t<E>,
-                                       model_entity_base<_Index>>
-        _Index operator()(E && entity) {
+                                       model_entity_base<Index>>
+        Index operator()(E && entity) {
             return entity.id();
         }
     };
@@ -135,7 +135,7 @@ protected:
 
     template <std::ranges::range Entries, typename IdProj = EntityId>
         requires linear_term<std::ranges::range_value_t<Entries>> &&
-                 std::is_invocable_r_v<_Index, IdProj,
+                 std::is_invocable_r_v<Index, IdProj,
                                        linear_term_variable_t<
                                            std::ranges::range_value_t<Entries>>>
     void _register_raw_entries(Entries && entries, IdProj proj = {}) {
@@ -146,17 +146,17 @@ protected:
     }
     template <std::ranges::range Entries, typename IdProj = EntityId>
         requires linear_term<std::ranges::range_value_t<Entries>> &&
-                 std::is_invocable_r_v<_Index, IdProj,
+                 std::is_invocable_r_v<Index, IdProj,
                                        linear_term_variable_t<
                                            std::ranges::range_value_t<Entries>>>
     void _register_coalescing_entries(Entries && entries, IdProj proj = {}) {
         ++register_count;
         for(auto && [entity, coef] : entries) {
-            const _Index entity_id = proj(entity);
+            const Index entity_id = proj(entity);
             auto & p = *(tmp_entry_index_cache.data() +
                          static_cast<std::ptrdiff_t>(entity_id));
             if(p.first == register_count) {
-                tmp_scalars[p.second] += static_cast<_Scalar>(coef);
+                tmp_scalars[p.second] += static_cast<Scalar>(coef);
                 continue;
             }
             p = std::make_pair(register_count, tmp_indices.size());

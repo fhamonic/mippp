@@ -1,20 +1,16 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <cstring>
 #include <functional>
-#include <optional>
-#include <ostream>
 #include <ranges>
-#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -38,13 +34,6 @@ private:
         if(rel == constraint_sense::equal) return 'E';
         return 'G';
     }
-    // static constexpr constraint_sense cbc_sense_to_constraint_sense(
-    //     char sense) {
-    //     if(sense == Clp_LESS_EQUAL) return
-    //     constraint_sense::less_equal; if(sense == Clp_EQUAL) return
-    //     constraint_sense::equal; return
-    //     constraint_sense::greater_equal;
-    // }
 
     std::size_t _lazy_num_variables;
     std::size_t _lazy_num_constraints;
@@ -80,18 +69,17 @@ public:
     constexpr cbc_milp & operator=(const cbc_milp &) = delete;
     constexpr cbc_milp & operator=(cbc_milp && other) = delete;
 
-    std::size_t num_variables() {
-        if(static_cast<std::size_t>(Cbc->getNumCols(model)) !=
-           _lazy_num_variables)
-            throw std::runtime_error(
-                "cbc_milp : _lazy_num_variables differs from Cbc one.");
+    // counted here rather than asked to Cbc: Cbc_getNumCols/Rows flush the
+    // C interface's add buffer, so counting between additions would turn a
+    // bulk add into one flush per element
+    std::size_t num_variables() const noexcept {
+        assert(static_cast<std::size_t>(Cbc->getNumCols(model)) ==
+               _lazy_num_variables);
         return _lazy_num_variables;
     }
-    std::size_t num_constraints() {
-        if(static_cast<std::size_t>(Cbc->getNumRows(model)) !=
-           _lazy_num_constraints)
-            throw std::runtime_error(
-                "cbc_milp : _lazy_num_constraints differs from Cbc one.");
+    std::size_t num_constraints() const noexcept {
+        assert(static_cast<std::size_t>(Cbc->getNumRows(model)) ==
+               _lazy_num_constraints);
         return _lazy_num_constraints;
     }
     std::size_t num_entries() {
@@ -101,9 +89,9 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     Cbc_Model * native_model() const noexcept { return model; }
+    int native_id(variable v) const noexcept { return v.id(); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -395,32 +383,6 @@ public:
                                       constraint_lambdas...);
     }
 
-    // void set_constraint_rhs(constraint constr, double rhs) {
-    // if(get_constraint_sense(constr) ==
-    // constraint_sense::greater_equal) {
-    //     Clp.rowLower(model)[constr] = rhs;
-    //     return;
-    // }
-    // Clp.rowUpper(model)[constr] = rhs;
-    // }
-    // void set_constraint_sense(constraint constr, constraint_sense r) {
-    // constraint_sense old_r = get_constraint_sense(constr);
-    // double old_rhs = get_constraint_rhs(constr);
-    // if(old_r == r) return;
-    // switch(r) {
-    //     case constraint_sense::equal:
-    //         Clp.rowLower(model)[constr] = Clp.rowUpper(model)[constr] =
-    //         old_rhs; return;
-    //     case constraint_sense::less_equal:
-    //         Clp.rowLower(model)[constr] = -COIN_DBL_MAX;
-    //         Clp.rowUpper(model)[constr] = old_rhs;
-    //         return;
-    //     case constraint_sense::greater_equal:
-    //         Clp.rowLower(model)[constr] = old_rhs;
-    //         Clp.rowUpper(model)[constr] = COIN_DBL_MAX;
-    //         return;
-    // }
-    // }
 private:
     template <bool distinct, linear_expression LE>
     constraint _add_ranged_constraint(LE && le, double lb, double ub) {
@@ -446,8 +408,6 @@ public:
                                      double ub) {
         return _add_ranged_constraint<true>(std::forward<LE>(le), lb, ub);
     }
-    // void set_constraint_name(constraint constr, auto && name);
-
     auto get_constraint_lhs(constraint constr) {
         const int num_nz = Cbc->getRowNz(model, constr.id());
         const int * ids = Cbc->getRowIndices(model, constr.id());
@@ -552,7 +512,7 @@ public:
     // clang-format off
 private:
     using status_variant = std::variant<
-            status::unknown, // default value
+            status::unknown,
             status::optimal,
             status::infeasible,
             status::unbounded,
@@ -563,10 +523,9 @@ private:
             status::numerical_failure,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
-        using namespace status;
         if (Cbc->getNumIntegers(model) == 0) {
             if (Cbc->isProvenOptimal(model)) {
                 return status::optimal{};
@@ -587,7 +546,7 @@ private:
                     return status::unbounded{};
                 }
                 case 1: {
-                    const bool has_sol = Cbc->bestSolution(model) != NULL;
+                    const bool has_sol = Cbc->bestSolution(model) != nullptr;
                     switch (Cbc->secondaryStatus(model)) {
                         case 1: return status::infeasible{};
                         case 2: return status::unknown{has_sol};
@@ -615,9 +574,11 @@ public:
     ///////////////////////////////// Solve ///////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        // Cbc_solve crashes on a model without columns
         if(_lazy_num_variables == 0u) {
-            add_variable();  // ?
-        };
+            _status = status::unknown{};
+            return;
+        }
         Cbc->solve(model);
         _status = _get_status();
     }
@@ -625,12 +586,16 @@ public:
         return objective_offset +
                (_lazy_num_variables == 0u ? 0.0 : Cbc->getObjValue(model));
     }
-    // auto get_solution() { return variable_mapping(Cbc->bestSolution(model));
-    // }
     auto get_solution() {
-        const double * sol =
-            Cbc->bestSolution(model);  // NULL is no integer variables
-        if(sol == nullptr) sol = Cbc->getColSolution(model);
+        // Cbc aborts when queried before a solve, and an empty model is never
+        // solved: hand back a mapping nothing can index
+        const double * sol = nullptr;
+        if(_lazy_num_variables != 0u) {
+            // bestSolution() is null when the model has no integer variable
+            // (Cbc solved the LP only): fall back to the LP column solution
+            sol = Cbc->bestSolution(model);
+            if(sol == nullptr) sol = Cbc->getColSolution(model);
+        }
         return variable_mapping(std::move(sol));
     }
 };

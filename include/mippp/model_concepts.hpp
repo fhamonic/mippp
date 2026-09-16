@@ -538,7 +538,6 @@ template <typename S>
 concept lp_basis_status = variant_containing_a<S, basis_status::basic> &&
                           variant_containing_a<S, basis_status::nonbasic>;
 
-// clang-format on
 template <typename B, typename T>
 concept lp_basis =
     requires(B & basis, model_variable_t<T> v, model_constraint_t<T> c) {
@@ -587,9 +586,8 @@ using model_constraint_basis_status_t =
 
 template <typename T>
 concept has_lp_basis_warm_start =
-    has_lp_basis<T> && requires(T & model, model_basis_t<T> b,
-                                model_variable_t<T> v, model_constraint_t<T> c,
-                                model_scalar_t<T> s) { model.set_basis(b); };
+    has_lp_basis<T> &&
+    requires(T & model, model_basis_t<T> b) { model.set_basis(b); };
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// MIP start //////////////////////////////////

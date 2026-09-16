@@ -1,10 +1,8 @@
 #pragma once
 
-#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <memory>
-#include <optional>
 #include <utility>
 #include <variant>
 
@@ -108,12 +106,6 @@ public:
         glp->set_col_kind(model, v.id() + 1, GLP_BV);
     }
     ///////////////////////////////////////////////////////////////////////////
-    /////////////////////////// Special constraints ///////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
-    // add_sos1_constraint
-    // add_sos2_constraint
-    // add_indicator_constraint
-    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
@@ -127,14 +119,15 @@ public:
     // clang-format off
 private:
     using status_variant = std::variant<
-            status::unknown, // default value
+            status::unknown,
             status::optimal,
+            status::infeasible,
             status::unbounded,
             status::time_limit,
             status::failed,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
     // clang-format on
 public:
     const status_variant & solve_status() const { return _status; }
@@ -142,25 +135,42 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        switch(glp->intopt(model, &model_params)) {
+        const int ret = glp->intopt(model, &model_params);
+        // 0 only says the search completed: infeasibility is reported through
+        // glp_mip_status, and a limit may still leave an incumbent
+        const int mip_status = glp->mip_status(model);
+        const bool has_sol = (mip_status == GLP_FEAS || mip_status == GLP_OPT);
+        switch(ret) {
             case 0:
+                if(mip_status == GLP_OPT)
+                    _status.emplace<status::optimal>();
+                else if(mip_status == GLP_NOFEAS)
+                    _status.emplace<status::infeasible>();
+                else
+                    _status.emplace<status::unknown>(has_sol);
+                return;
             case GLP_EMIPGAP:
                 _status.emplace<status::optimal>();
+                return;
+            case GLP_ENOPFS:
+                _status.emplace<status::infeasible>();
                 return;
             case GLP_ENODFS:
                 _status.emplace<status::unbounded>();
                 return;
             case GLP_ETMLIM:
-                _status.emplace<status::time_limit>();
+                _status.emplace<status::time_limit>(has_sol);
                 return;
+            case GLP_ESTOP:
+                _status.emplace<status::interrupted>(has_sol);
+                return;
+            case GLP_EBOUND:
+            case GLP_EROOT:
             case GLP_EFAIL:
                 _status.emplace<status::failed>();
                 return;
-            case GLP_ESTOP:
-                _status.emplace<status::interrupted>();
-                return;
             default:
-                _status.emplace<status::unknown>();
+                _status.emplace<status::unknown>(has_sol);
         }
     }
     double get_solution_value() {

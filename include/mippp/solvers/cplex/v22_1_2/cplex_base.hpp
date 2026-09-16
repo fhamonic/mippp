@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <cassert>
 #include <chrono>
 #include <cstddef>
 #include <memory>
@@ -94,11 +93,11 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     std::pair<CPXENVptr, CPXLPptr> native_model() const noexcept {
         return {env, lp};
     }
+    int native_id(variable v) const noexcept { return _native_id(v); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -194,7 +193,9 @@ protected:
             if(new_native_id == -1) continue;
             _native_ids_map[static_cast<std::size_t>(
                 _handle_ids_map[old_native_id])] = new_native_id;
-            // (new_native_id <= old_native_id) is guaranteed
+            // delsetcols yields new_native_id <= old_native_id, so the slot
+            // written here was already read: iterating in decreasing order
+            // would read overwritten handles.
             _handle_ids_map[static_cast<std::size_t>(new_native_id)] =
                 _handle_ids_map[old_native_id];
         }
@@ -519,9 +520,9 @@ public:
     }
 
     auto get_constraint_lhs(constraint constr) {
-        int palceholder, surplus, beg;
+        int placeholder, surplus, beg;
         if(int error =
-               CPX->getrows(env, lp, &palceholder, nullptr, nullptr, nullptr, 0,
+               CPX->getrows(env, lp, &placeholder, nullptr, nullptr, nullptr, 0,
                             &surplus, constr.id(), constr.id());
            error != 1207 && error != 0)
             throw std::runtime_error("CPLEX: error " + std::to_string(error));
@@ -531,7 +532,7 @@ public:
             static_cast<std::size_t>(num_nz));
         auto coefs = std::make_shared_for_overwrite<double[]>(
             static_cast<std::size_t>(num_nz));
-        check(CPX->getrows(env, lp, &palceholder, &beg, indices.get(),
+        check(CPX->getrows(env, lp, &placeholder, &beg, indices.get(),
                            coefs.get(), num_nz, &surplus, constr.id(),
                            constr.id()));
         return std::views::transform(

@@ -50,11 +50,10 @@ private:
         check(GRB->addvars(model, static_cast<int>(count), 0, nullptr, nullptr,
                            nullptr, nullptr, nullptr, nullptr, tmp_types.data(),
                            nullptr));
-
+        if(_remap_ids) _extend_handle_ids_map(count);
         const std::size_t handle_ids_begin =
             _new_var_handle_range(_num_var_native_ids, count);
         _num_var_native_ids += count;
-        _var_name_set.resize(_num_var_native_ids, false);
         return handle_ids_begin;
     }
 
@@ -89,8 +88,6 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////// Special constraints ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    // void add_sos1_constraint(VR && variables)
-    // void add_sos2_constraint(VR && variables)
 private:
     template <bool distinct, linear_constraint LC>
     void _add_indicator_constraint(variable x, bool val, LC && lc) {
@@ -146,12 +143,6 @@ public:
                                            void * cbdata_)
             : callback_handle_base(parent_, master_model_, cbdata_)
             , model_base<int, double>() {}
-
-        std::size_t num_variables() {
-            int num;
-            parent.GRB->getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
-            return static_cast<std::size_t>(num);
-        }
 
     private:
         template <bool distinct, linear_constraint LC>
@@ -271,7 +262,7 @@ public:
     // clang-format off
 private:
     using status_variant = std::variant<
-            status::unknown, // default value
+            status::unknown,
             status::optimal,
             status::infeasible_or_unbounded,
             status::infeasible,
@@ -285,7 +276,7 @@ private:
             status::numerical_failure,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;

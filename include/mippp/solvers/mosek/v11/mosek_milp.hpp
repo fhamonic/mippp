@@ -3,14 +3,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <ranges>
 #include <utility>
 #include <variant>
-#include <vector>
 
-#include "mippp/linear_constraint.hpp"
-#include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
@@ -126,7 +122,7 @@ private:
             status::numerical_failure,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     MSKsoltypee _pick_sol() {
         MSKbooleant def = 0;

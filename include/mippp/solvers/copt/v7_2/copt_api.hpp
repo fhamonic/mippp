@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-// #define INCLUDE_COPT_HEADER 1
 
 #if INCLUDE_COPT_HEADER
 #include "copt.h"
@@ -84,8 +83,9 @@ ret_code COPT_AddIndicator(copt_prob * prob, int binColIdx, int binColVal,
                            double dRowBound);
 
 //////////////////////////////////// Cols /////////////////////////////////////
-ret_code COPT_ReplaceColObj(copt_prob * prob, int num, const int * list,
-                            const double * obj);  // replaces all objective
+ret_code COPT_ReplaceColObj(
+    copt_prob * prob, int num, const int * list,
+    const double * obj);  // zeroes the columns absent from list
 ret_code COPT_SetColObj(copt_prob * prob, int num, const int * list,
                         const double * obj);
 constexpr const char * COPT_DBLINFO_OBJ = "Obj";

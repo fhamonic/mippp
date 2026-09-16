@@ -52,8 +52,6 @@ protected:
     std::vector<char> tmp_types;
     std::vector<double> tmp_rhs;
 
-    std::vector<bool> _var_name_set;
-
 public:
     // the anchor model_variable_params_t deduces from
     using remapping_model_base<int, double>::default_variable_params;
@@ -71,7 +69,7 @@ public:
         env = GRB->getenv(model);
         if(env == nullptr)
             throw std::runtime_error(
-                "gurobi_base: Could not retrieve model environement.");
+                "gurobi_base: Could not retrieve model environment.");
     }
     ~gurobi_base() {
         if(model) check(GRB->freemodel(model));
@@ -87,8 +85,7 @@ public:
         , _lazy_num_constraints(other._lazy_num_constraints)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_types(std::move(other.tmp_types))
-        , tmp_rhs(std::move(other.tmp_rhs))
-        , _var_name_set(std::move(other._var_name_set)) {
+        , tmp_rhs(std::move(other.tmp_rhs)) {
         other.model = nullptr;
         other.env = nullptr;
     }
@@ -118,7 +115,8 @@ protected:
 
         const std::size_t new_num_native_ids =
             _num_var_native_ids - tmp_indices.size();
-        // Skips remapping if all deletiond are the native ids tail
+        // Deleting only the tail of the native ids leaves every surviving id
+        // in place: no remap table is needed and _remap_ids stays false.
         if(_remap_ids ||
            static_cast<std::size_t>(tmp_indices.front()) < new_num_native_ids) {
             if(!_remap_ids) {
@@ -191,11 +189,11 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     std::pair<GRBenv *, GRBmodel *> native_model() const noexcept {
         return {env, model};
     }
+    int native_id(variable v) const noexcept { return _native_id(v); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -564,8 +562,6 @@ public:
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
                                       constraint_sense_to_gurobi_sense(r)));
     }
-    // void set_constraint_name(constraint constr, auto && name);
-
     auto get_constraint_lhs(constraint constr) {
         int num_nz, beg;
         update_gurobi_model();

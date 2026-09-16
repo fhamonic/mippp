@@ -17,7 +17,7 @@ concept statically_zero = std::same_as<std::remove_cvref_t<T>, zero_t>;
 // No type in MIP++ should declare a conversion to zero_t.
 // Arithmetic and comparison operators are hidden friends: found by ADL only, so
 // they are candidates exactly when an operand *is* a zero_t and don't
-// participate to unqualified lookups
+// participate in unqualified lookups
 struct zero_t {
     template <typename S>
         requires std::convertible_to<int, S> && (!statically_zero<S>)
@@ -74,7 +74,7 @@ struct zero_t {
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    ////////////////////////////// Substraction ///////////////////////////////
+    /////////////////////////////// Subtraction ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 
     [[nodiscard]] friend constexpr zero_t operator-(zero_t) noexcept {

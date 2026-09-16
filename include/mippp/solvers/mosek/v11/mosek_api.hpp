@@ -456,9 +456,9 @@ public:
     }
 };
 
-#undef CONSTRUCT_MSK_FUNCTIONS
-#undef DECLARE_MSK_FUNCTIONS
-#undef MSK_FUNCTIONS
+#undef CONSTRUCT_MOSEK_FUNCTIONS
+#undef DECLARE_MOSEK_FUNCTIONS
+#undef MOSEK_FUNCTIONS
 
 }  // namespace mosek::v11
 }  // namespace mippp

@@ -90,6 +90,9 @@ public:
     [[nodiscard]] explicit dumb_lp(const clp_api & api)
         : model_base<int, double>(), Clp(api) {}
 
+    int native_id(variable v) const noexcept { return v.id(); }
+    int native_id(constraint c) const noexcept { return c.id(); }
+
     std::size_t num_variables() {
         return _cols.size() - _free_variable_ids.size();
     }

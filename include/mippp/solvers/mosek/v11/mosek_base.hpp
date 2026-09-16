@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <filesystem>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -54,9 +53,7 @@ public:
 
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
         : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr) {
-        const auto env_path_str =
-            (std::filesystem::temp_directory_path() / "mosek_").string();
-        check(MSK->makeenv(&env, env_path_str.c_str()));
+        check(MSK->makeenv(&env, nullptr));
         check(MSK->makeemptytask(env, &task));
     }
     ~mosek_base() {
@@ -100,11 +97,11 @@ public:
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     std::pair<MSKenv_t, MSKtask_t> native_model() const noexcept {
         return {env, task};
     }
+    int native_id(variable v) const noexcept { return v.id(); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////

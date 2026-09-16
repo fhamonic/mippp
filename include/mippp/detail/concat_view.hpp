@@ -11,8 +11,8 @@ namespace mippp::detail {
 // MIPPP_PORTABLE_RANGE_SHAPES forces the fallback where the standard adaptor
 // exists, so a C++26 build can exercise what C++23 users get.
 #if defined(__cpp_lib_ranges_concat) && !defined(MIPPP_PORTABLE_RANGE_SHAPES)
-// unordered_concat is required for GCC 15.1, fixed for GCC 15.2
-// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=120934
+// GCC 15.1's views::concat rejects some operand orders (GCC bug 120934, fixed
+// in 15.2); trying the swapped order keeps 15.1 working, hence "unordered".
 template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
 constexpr auto unordered_concat(R1 && r1, R2 && r2) {
     if constexpr(std::ranges::range<decltype(std::views::concat(
@@ -151,8 +151,8 @@ public:
     constexpr auto end() noexcept { return std::default_sentinel; }
 };
 
-template <typename... _Rs>
-concat_view(_Rs &&...) -> concat_view<std::views::all_t<_Rs>...>;
+template <typename... Rs>
+concat_view(Rs &&...) -> concat_view<std::views::all_t<Rs>...>;
 
 template <std::ranges::viewable_range R1, std::ranges::viewable_range R2>
 constexpr auto unordered_concat(R1 && r1, R2 && r2) {

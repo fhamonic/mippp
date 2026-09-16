@@ -16,13 +16,8 @@ namespace mippp {
 namespace scip::v8 {
 
 using SCIP_Real = double;
-constexpr SCIP_Real SCIP_REAL_MAX = std::numeric_limits<SCIP_Real>::max();
-constexpr SCIP_Real SCIP_REAL_MIN = -std::numeric_limits<SCIP_Real>::lowest();
 using SCIP_Longint = long long;
 using SCIP_Bool = unsigned int;
-
-constexpr unsigned int TRUE = 1;
-constexpr unsigned int FALSE = 1;
 
 using SCIP = struct Scip;
 using SCIP_VAR = struct SCIP_Var;
@@ -189,14 +184,6 @@ SCIP_SOL * SCIPgetBestSol(SCIP * scip);
 SCIP_Real SCIPgetSolVal(SCIP * scip, SCIP_SOL * sol, SCIP_VAR * var);
 SCIP_RETCODE SCIPgetSolVals(SCIP * scip, SCIP_SOL * sol, int nvars,
                             SCIP_VAR ** vars, SCIP_Real * vals);
-
-// SCIPfeastol
-
-// SCIPcreateEmptyRowConshdlr
-// SCIPcacheRowExtensions
-// SCIPaddVarToRow
-// SCIPflushRowExtensions
-// SCIPaddRow
 
 struct SCIP_Conshdlr {
     char pad1[480];

@@ -47,10 +47,9 @@ public:
 // load_solver_library, which reproduces the loader's search itself.
 //
 // The library stays mapped for the life of the process even after the handle
-// is destroyed. Unmapping a solver is never safe: HiGHS detaches its worker
-// threads when a model is destroyed, so an unload racing their exit crashed
-// roughly a third of the test processes under load, and the other solvers
-// keep thread pools and thread-local state of their own.
+// is destroyed. Unmapping a solver is never safe: HiGHS detaches worker threads
+// that outlive the model, so an unload racing their exit crashes the process,
+// and the other solvers keep thread pools and thread-local state of their own.
 class dynamic_library {
 public:
 #if defined(_WIN32)

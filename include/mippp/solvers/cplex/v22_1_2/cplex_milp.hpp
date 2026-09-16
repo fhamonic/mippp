@@ -4,17 +4,13 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <numeric>
-#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #include "mippp/linear_constraint.hpp"
-#include "mippp/linear_expression.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/memory_size.hpp"
 #include "mippp/utility/solve_status.hpp"
@@ -31,9 +27,7 @@ public:
 
     variable add_integer_variable(
         const variable_params params = default_variable_params) {
-        int var_id = _new_var_native_id();
-        _add_variable(params, CPX_INTEGER);
-        return _new_var_handle(var_id);
+        return _add_variable(params, CPX_INTEGER);
     }
     auto add_integer_variables(
         std::size_t count, variable_params params = default_variable_params) {
@@ -53,6 +47,7 @@ public:
 
 private:
     inline std::size_t _add_binary_variables(const std::size_t & count) {
+        if(_remap_ids) _extend_handle_ids_map(count);
         const std::size_t handle_ids_begin =
             _new_var_handle_range(_num_var_native_ids(), count);
         tmp_scalars.resize(2 * count);
@@ -71,10 +66,9 @@ private:
 
 public:
     variable add_binary_variable() {
-        int var_id = _new_var_native_id();
-        _add_variable({.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-                      CPX_BINARY);
-        return _new_var_handle(var_id);
+        return _add_variable(
+            {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
+            CPX_BINARY);
     }
     auto add_binary_variables(std::size_t count) {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
@@ -191,11 +185,11 @@ public:
     public:
         template <linear_constraint LC>
         void add_lazy_constraint(LC && lc) {
-            return _add_lazy_constraint<false>(std::forward<LC>(lc));
+            _add_lazy_constraint<false>(std::forward<LC>(lc));
         }
         template <linear_constraint LC>
         void add_lazy_constraint(distinct_variables_t, LC && lc) {
-            return _add_lazy_constraint<true>(std::forward<LC>(lc));
+            _add_lazy_constraint<true>(std::forward<LC>(lc));
         }
         double get_solution_value() {
             double obj;
@@ -334,7 +328,7 @@ private:
             status::out_of_memory,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status_milp() {
         using namespace status;
@@ -363,7 +357,7 @@ private:
             case CPXMIP_FAIL_INFEAS_NO_TREE: return out_of_memory{has_sol};
             case CPXMIP_ABORT_FEAS:      
             case CPXMIP_ABORT_INFEAS:        return interrupted{has_sol};
-            // unimplemented limits for now
+            // no dedicated status type: these collapse into limit_reached
             case CPXMIP_DETTIME_LIM_FEAS:
             case CPXMIP_DETTIME_LIM_INFEAS:  return limit_reached{has_sol};
             default:
@@ -384,7 +378,7 @@ private:
             case CPX_STAT_ABORT_IT_LIM:   return iteration_limit{};
             case CPX_STAT_NUM_BEST:       return numerical_failure{true};
             case CPX_STAT_ABORT_USER:     return interrupted{};
-            // unimplemented limits for now
+            // no dedicated status type: these collapse into limit_reached
             case CPX_STAT_ABORT_OBJ_LIM:      return limit_reached{true};
             case CPX_STAT_ABORT_PRIM_OBJ_LIM: return limit_reached{};
             case CPX_STAT_ABORT_DUAL_OBJ_LIM: return limit_reached{};
@@ -416,7 +410,7 @@ public:
                 _status = _get_status_lp();
                 return;
             default:
-                throw std::runtime_error("cplex_milp: unknowned problem type " +
+                throw std::runtime_error("cplex_milp: unknown problem type " +
                                          std::to_string(probtype));
         }
     }
@@ -425,9 +419,6 @@ public:
         check(CPX->solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,
                             nullptr));
         return val;
-        // double val;
-        // check(CPX->getbestobjval(env, lp, &val));
-        // return val;
     }
     auto get_solution() {
         auto solution =

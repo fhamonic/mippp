@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <variant>
 
 #include "mippp/linear_constraint.hpp"
@@ -49,7 +48,7 @@ private:
             status::failed,
             status::interrupted>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
 
     status_variant _get_status() {
         using namespace status;
@@ -84,6 +83,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         if(num_variables() == 0u) {
+            _status = status::unknown{};
             return;
         }
         check(Highs->run(model));

@@ -188,6 +188,7 @@ struct glp_iocp {               // integer optimizer control parameters
 void glp_init_iocp(glp_iocp * parm);
 int glp_intopt(glp_prob * P, const glp_iocp * parm);
 int glp_intfeas1(glp_prob * P, int use_bound, int obj_bound);
+int glp_mip_status(glp_prob * P);
 double glp_mip_obj_val(glp_prob * P);
 double glp_mip_col_val(glp_prob * P, int j);
 
@@ -245,6 +246,7 @@ namespace glpk::v5 {
     F(glp_init_iocp, init_iocp)         \
     F(glp_intopt, intopt)               \
     F(glp_intfeas1, intfeas1)           \
+    F(glp_mip_status, mip_status)       \
     F(glp_mip_obj_val, mip_obj_val)     \
     F(glp_mip_col_val, mip_col_val)
 

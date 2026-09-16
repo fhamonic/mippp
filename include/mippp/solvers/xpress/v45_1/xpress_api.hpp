@@ -49,7 +49,7 @@ int XPRSchgrowtype(XPRSprob prob, int nrows, const int rowind[],
 int XPRSchgrhs(XPRSprob prob, int nrows, const int rowind[],
                const double rhs[]);
 
-enum IntergerAttribute : int {
+enum IntegerAttribute : int {
     XPRS_COLS = 1018,
     XPRS_ROWS = 1001,
     XPRS_ELEMS = 1006,

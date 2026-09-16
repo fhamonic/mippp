@@ -80,16 +80,13 @@ public:
     std::size_t num_constraints() {
         return static_cast<std::size_t>(SoPlex->numRows(model));
     }
-    // std::size_t num_entries() {
-    //     return static_cast<std::size_t>(SoPlex->getNumElements(model));
-    // }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Native handles /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 public:
-    // the solver's own objects, for solver-specific calls through the api;
-    // MIP++ bookkeeping (variable handles, names) is bypassed
     void * native_model() const noexcept { return model; }
+    int native_id(variable v) const noexcept { return v.id(); }
+    int native_id(constraint c) const noexcept { return c.id(); }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -272,7 +269,7 @@ public:
     // clang-format off
 private:
     using status_variant = std::variant<
-            status::unknown,  // default value
+            status::unknown,
             status::optimal,
             status::optimal_infeasible_unscaled,
             status::infeasible_or_unbounded,
@@ -280,7 +277,7 @@ private:
             status::unbounded,
             status::failed>;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
     // clang-format on
 public:
     const status_variant & solve_status() const { return _status; }
@@ -290,6 +287,7 @@ public:
     void solve() {
         using namespace status;
         if(num_variables() == 0u) {
+            _status = status::unknown{};
             return;
         }
         switch(SoPlex->optimize(model)) {

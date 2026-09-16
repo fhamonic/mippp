@@ -97,6 +97,9 @@ TYPED_TEST_P(RemoveVariableTest, remove_addvar_solve) {
             {.obj_coef = 2, .lower_bound = -1, .upper_bound = std::nullopt});
         ASSERT_EQ(model.num_variables(), 3);
         ASSERT_EQ(x4, x2);
+        // the recycled handle maps to a live column of its own
+        ASSERT_NE(model.native_id(x4), model.native_id(x1));
+        ASSERT_NE(model.native_id(x4), model.native_id(x3));
 
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 93.0 / 7.0 - 2, TEST_EPSILON);
@@ -136,6 +139,9 @@ TYPED_TEST_P(RemoveVariableTest, solve_remove_addvar_solve) {
             {.obj_coef = 2, .lower_bound = -1, .upper_bound = std::nullopt});
         ASSERT_EQ(model.num_variables(), 3);
         ASSERT_EQ(x4, x2);
+        // the recycled handle maps to a live column of its own
+        ASSERT_NE(model.native_id(x4), model.native_id(x1));
+        ASSERT_NE(model.native_id(x4), model.native_id(x3));
 
         model.solve();
         ASSERT_NEAR(model.get_solution_value(), 93.0 / 7.0 - 2, TEST_EPSILON);
