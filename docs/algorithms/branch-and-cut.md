@@ -32,9 +32,10 @@ Take the handle by `auto &` — its type is the backend's `candidate_solution_ca
 The two operations are two concepts, because a solver can fire a candidate callback without letting you cut inside it:
 
 - `has_candidate_solution_callback<Model>` promises the callback and `handle.get_solution()`, indexed by the model's variable handles;
+- `has_candidate_solution_rejection<Handle>` promises `handle.reject_solution()`, which discards the candidate without stating why. It needs no model types, so it takes the handle alone;
 - `has_lazy_constraints<Handle, Model>` promises `handle.add_lazy_constraint(c)` on that handle. The second parameter is the model, which supplies the variable and constraint types the handle has no way to declare itself (see [Concepts on callback handles](../reference/concepts.md#concepts-on-callback-handles)).
 
-Both hold, and are validated by the test suite, on **Gurobi, CPLEX and COPT**. **Xpress** provides the callback without lazy constraints. SCIP has no callback yet.
+Both hold, and are validated by the test suite, on **Gurobi, CPLEX and COPT**. **Xpress** provides the callback and `reject_solution()`, without lazy constraints. SCIP has no callback yet.
 
 ## Example: TSP subtour elimination
 

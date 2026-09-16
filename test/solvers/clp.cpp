@@ -14,6 +14,8 @@ INSTANTIATE_TEST(Clp, ReadableVariablesBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ModifiableVariablesBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, NamedVariablesTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, AddColumnTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, RangedConstraintsTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, ReadableConstraintBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, RemoveVariableTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, DualSolutionTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReducedCostsTest, clp_lp_test);

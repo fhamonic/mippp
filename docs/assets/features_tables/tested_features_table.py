@@ -42,6 +42,8 @@ formated_test_names = [
     ("ReadableObjectiveTest", "Read objective"),
     ("ReadableVariablesBoundsTest", "Read variables bounds"),
     ("ReadableConstraintsTest", "Read constraints"),
+    ("ReadableConstraintBoundsTest", "Read constraint bounds"),
+    ("RangedConstraintsTest", "Ranged constraints"),
     ("ModifiableObjectiveTest", "Increment objective"),
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
     ("NamedVariablesTest", "Named variables"),

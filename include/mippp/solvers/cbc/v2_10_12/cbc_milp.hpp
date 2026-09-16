@@ -418,17 +418,30 @@ public:
     //         return;
     // }
     // }
-    constraint add_ranged_constraint(linear_expression auto && le, double lb,
-                                     double ub) {
+private:
+    template <bool distinct, linear_expression LE>
+    constraint _add_ranged_constraint(LE && le, double lb, double ub) {
         const int constr_id = static_cast<int>(_lazy_num_constraints);
         _reset_cache();
-        _register_variables_entries<false>(le.linear_terms());
+        _register_variables_entries<distinct>(le.linear_terms());
         const double c = le.constant();
         Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
                     tmp_indices.data(), tmp_scalars.data(), 'L', ub - c);
         Cbc->setRowLower(model, constr_id, lb - c);
         ++_lazy_num_constraints;
         return constraint(constr_id);
+    }
+
+public:
+    template <linear_expression LE>
+    constraint add_ranged_constraint(LE && le, double lb, double ub) {
+        _prepare_coalescing(_lazy_num_variables);
+        return _add_ranged_constraint<false>(std::forward<LE>(le), lb, ub);
+    }
+    template <linear_expression LE>
+    constraint add_ranged_constraint(distinct_variables_t, LE && le, double lb,
+                                     double ub) {
+        return _add_ranged_constraint<true>(std::forward<LE>(le), lb, ub);
     }
     // void set_constraint_name(constraint constr, auto && name);
 
@@ -449,6 +462,12 @@ public:
         if(ub == COIN_DBL_MAX) return constraint_sense::greater_equal;
         throw std::runtime_error(
             "Tried to get the sense of a ranged constraint");
+    }
+    double get_constraint_lower_bound(constraint constr) {
+        return Cbc->getRowLower(model)[constr.id()];
+    }
+    double get_constraint_upper_bound(constraint constr) {
+        return Cbc->getRowUpper(model)[constr.id()];
     }
     double get_constraint_rhs(constraint constr) {
         return Cbc->getRowRHS(model, constr.id());

@@ -438,6 +438,11 @@ public:
                      tmp_scalars.data());
         return constraint(constr_id);
     }
+    constraint add_ranged_constraint(distinct_variables_t,
+                                     linear_expression auto && le, scalar lb,
+                                     scalar ub) {
+        return add_ranged_constraint(le, lb, ub);
+    }
     void set_constraint_name(constraint constr, auto && name) {
         Clp->setRowName(model, constr.id(), const_cast<char *>(name.c_str()));
     }
@@ -457,6 +462,12 @@ public:
         if(ub == COIN_DBL_MAX) return constraint_sense::greater_equal;
         throw std::runtime_error(
             "Tried to get the sense of a ranged constraint");
+    }
+    scalar get_constraint_lower_bound(constraint constr) {
+        return Clp->rowLower(model)[constr.id()];
+    }
+    scalar get_constraint_upper_bound(constraint constr) {
+        return Clp->rowUpper(model)[constr.id()];
     }
     // auto get_constraint(constraint constr) {
     //     return linear_constraint_view(

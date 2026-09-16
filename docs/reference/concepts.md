@@ -63,8 +63,8 @@ model.set_candidate_solution_callback(
 
 The concepts declared this way are `has_dual_solution`, `has_reduced_costs`,
 `has_readable_variables_bounds`, `has_modifiable_variables_bounds`,
-`has_readable_constraints` and its three finer-grained forms, and
-`has_lazy_constraints`. The others describe whole models and stay
+`has_readable_constraints` and its three finer-grained forms,
+`has_readable_constraint_bounds`, and `has_lazy_constraints`. The others describe whole models and stay
 single-parameter.
 
 !!! note "Concept declared ≠ backend provides"
@@ -130,6 +130,7 @@ set is a limit you can detect.
 | `has_readable_variables_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
 | `has_modifiable_variables_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
 | `has_readable_constraints` | `get_constraint(c)` plus the three finer-grained concepts `has_readable_constraint_lhs` / `_sense` / `_rhs`. |
+| `has_readable_constraint_bounds` | `get_constraint_lower_bound(c)`, `get_constraint_upper_bound(c)` — defined on every row, including [ranged](../modeling/special-constraints.md#ranged-constraints) ones, where `get_constraint_sense` / `_rhs` are not. Satisfied by `clp_lp` and `cbc_milp`. |
 | `has_modifiable_constraint_lhs` / `_sense` / `_rhs` | `set_constraint_lhs(c, entries)`, `set_constraint_sense(c, s)`, `set_constraint_rhs(c, s)`. |
 
 See [Re-solving and model updates](../solving/updates.md).
@@ -148,8 +149,9 @@ See [Re-solving and model updates](../solving/updates.md).
 | `has_indicator_constraints` | `add_indicator_constraint(v, value, constraint)` — the constraint holds whenever binary variable `v` takes `value`. Satisfied by `gurobi_milp` and `cplex_milp`; see [Special constraints](../modeling/special-constraints.md). |
 | `has_sos1_constraints` | `add_sos1_constraint(variables)`. *(no backend yet)* |
 | `has_sos2_constraints` | `add_sos2_constraint(variables)`. *(no backend yet)* |
+| `has_ranged_constraints` | `add_ranged_constraint(expr, lb, ub)` and the `distinct_variables` form: `lb <= expr <= ub` as a single row, returning the usual `constraint` handle. Satisfied by `clp_lp` and `cbc_milp`; see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints). |
 
-None of the three requires a return type. SOS and indicator constraints live outside the linear-row numbering on most solvers, so the `constraint` handle returned by `add_constraint` could not designate them; a backend may return a handle type of its own, or nothing, and a solver-generic caller must not rely on one.
+Neither the SOS nor the indicator functions require a return type. SOS and indicator constraints live outside the linear-row numbering on most solvers, so the `constraint` handle returned by `add_constraint` could not designate them; a backend may return a handle type of its own, or nothing, and a solver-generic caller must not rely on one.
 
 ## Algorithmic building blocks
 
@@ -160,6 +162,7 @@ None of the three requires a return type. SOS and indicator constraints live out
 | `has_mip_start` | `add_mip_start(entries)` from `(variable, value)` pairs. |
 | `has_candidate_solution_callback` | `set_candidate_solution_callback(f)` where `f` takes the backend's `candidate_solution_callback_handle`, whose `get_solution()` returns the candidate indexed by the model's variable handles — see [Branch-and-cut](../algorithms/branch-and-cut.md). |
 | `has_lazy_constraints` | On a callback handle: `add_lazy_constraint(constraint)` and the `distinct_variables` form, taking the model as second parameter (see [above](#concepts-on-callback-handles)). Satisfied by the handles of `gurobi_milp`, `cplex_milp` and `copt_milp`. |
+| `has_candidate_solution_rejection` | On a callback handle: `reject_solution()` discards the candidate without adding a constraint. Satisfied by the handle of `xpress_milp`. |
 | `has_node_relaxation_callback` | `set_node_relaxation_callback(f)`, for user cuts on fractional solutions. *(no backend yet)* |
 
 ## Tolerances

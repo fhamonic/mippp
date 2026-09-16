@@ -560,31 +560,6 @@ public:
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
                                       constraint_sense_to_gurobi_sense(r)));
     }
-    // adds an equality constraint with a slack variable bounded in [0, ub-lb]
-private:
-    template <bool distinct, linear_expression LE>
-    constraint _add_ranged_constraint(LE && le, double lb, double ub) {
-        int constr_id = static_cast<int>(_lazy_num_constraints++);
-        if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids);
-        _reset_cache();
-        _register_variables_entries<distinct>(le.linear_terms());
-        check(GRB->addrangeconstr(model, static_cast<int>(tmp_indices.size()),
-                                  tmp_indices.data(), tmp_scalars.data(), lb,
-                                  ub, nullptr));
-        _new_var_handle(_new_var_native_id());  // added_slack variable
-        return constraint(constr_id);
-    }
-
-public:
-    template <linear_expression LE>
-    constraint add_ranged_constraint(LE && le, double lb, double ub) {
-        return _add_ranged_constraint<false>(std::forward<LE>(le), lb, ub);
-    }
-    template <linear_expression LE>
-    constraint add_ranged_constraint(distinct_variables_t, LE && le, double lb,
-                                     double ub) {
-        return _add_ranged_constraint<true>(std::forward<LE>(le), lb, ub);
-    }
     // void set_constraint_name(constraint constr, auto && name);
 
     auto get_constraint_lhs(constraint constr) {

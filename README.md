@@ -172,7 +172,7 @@ Solver shared libraries are discovered at runtime; only the solvers you actually
 
 ## Roadmap
 
-The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, SOS/indicator constraints, in-place model updates, LP basis access.
+The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, SOS/indicator constraints, in-place model updates.
 
 Planned, roughly by priority:
 

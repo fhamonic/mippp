@@ -422,6 +422,19 @@ concept has_readable_constraint_rhs =
         { model.get_constraint_rhs(c) } -> std::same_as<model_scalar_t<M>>;
     };
 
+// Defined on every row, unlike get_constraint_sense/rhs which have no
+// meaning on a ranged row (Clp and Cbc throw there).
+// clang-format off
+template <typename T, typename M = T>
+concept has_readable_constraint_bounds =
+    requires(T & model, model_constraint_t<M> c) {
+        { model.get_constraint_lower_bound(c) }
+                -> std::same_as<model_scalar_t<M>>;
+        { model.get_constraint_upper_bound(c) }
+                -> std::same_as<model_scalar_t<M>>;
+    };
+// clang-format on
+
 template <typename T>
 concept has_modifiable_constraint_rhs =
     requires(T & model, model_constraint_t<T> c, model_scalar_t<T> s) {
@@ -465,6 +478,17 @@ concept has_sos2_constraints = requires(
 template <typename T>
 concept has_indicator_constraints = requires(T & model, model_variable_t<T> v) {
     model.add_indicator_constraint(v, true, archetype::linear_constraint<T>());
+};
+
+// lb <= expression <= ub as one row: the usual handle comes back, but only
+// has_readable_constraint_bounds can read such a row back
+template <typename T>
+concept has_ranged_constraints = requires(T & model, model_scalar_t<T> s) {
+    { model.add_ranged_constraint(archetype::linear_expression<T>(), s, s) }
+            -> std::same_as<model_constraint_t<T>>;
+    { model.add_ranged_constraint(distinct_variables,
+                                  archetype::linear_expression<T>(), s, s) }
+            -> std::same_as<model_constraint_t<T>>;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -596,6 +620,12 @@ concept has_candidate_solution_callback =
         { handle.get_solution() }
                 -> input_mapping_of<model_variable_t<T>, model_scalar_t<T>>;
     };
+
+// on the candidate-solution handle: discards the candidate without cutting
+template <typename T>
+concept has_candidate_solution_rejection = requires(T & handle) {
+    { handle.reject_solution() };
+};
 
 template <typename T>
 using node_relaxation_callback_handle_t =

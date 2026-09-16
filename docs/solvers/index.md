@@ -10,7 +10,7 @@ Each backend lives in `mippp/solvers/<name>/all.hpp` and provides an api class p
 | --- | --- | --- | --- | --- |
 | [HiGHS](https://highs.dev) | `highs/all.hpp` | `highs_api` | `highs_lp`, `highs_milp`, `highs_qp` | v1.10 |
 | [Gurobi](https://www.gurobi.com) | `gurobi/all.hpp` | `gurobi_api` | `gurobi_lp`, `gurobi_milp` | v12.0 |
-| [CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio) | `cplex/all.hpp` | `cplex_api` | `cplex_lp`, `cplex_milp` | v22.12 |
+| [CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio) | `cplex/all.hpp` | `cplex_api` | `cplex_lp`, `cplex_milp` | v22.1.2 |
 | [FICO Xpress](https://www.fico.com/en/products/fico-xpress-optimization) | `xpress/all.hpp` | `xpress_api` | `xpress_lp`, `xpress_milp` | v45.1 |
 | [COPT](https://www.copt.de) | `copt/all.hpp` | `copt_api` | `copt_lp`, `copt_milp` | v7.2 |
 | [MOSEK](https://www.mosek.com) | `mosek/all.hpp` | `mosek_api` | `mosek_lp`, `mosek_milp` | v11 |
@@ -37,6 +37,10 @@ using milp_type = highs_milp;
 ```
 
 Change those to `gurobi`/`gurobi_api`/`gurobi_milp` and recompile: the rest of the program is untouched. There is no linking step to adjust, because solver libraries are loaded at runtime.
+
+### Versioned namespaces and the `all.hpp` aliases
+
+Each binding lives in a namespace named after the solver release it targets, `mippp::gurobi::v12_0::gurobi_milp` for instance, and `all.hpp` aliases the newest one into `mippp` as `gurobi_milp`. When a binding for a newer solver release is added, the alias moves to it in the next minor release of MIP++, the previous namespace stays available unchanged, the move is announced in the release notes, and the [compatibility matrix](compatibility.md) records which solver builds each namespace loads. Code that must keep loading a given solver release spells the versioned namespace instead of the alias.
 
 To choose the solver at *runtime* — for a `--solver` command-line flag, say — write the model-building code once as a template over the backend and dispatch on the flag; that pattern, and the capability checks that go with it, are the subject of [Writing solver-generic code](generic-code.md).
 
@@ -77,6 +81,7 @@ Notable current limitations (see the
 - **Solve status** — `solve_status()` is part of `lp_model`, so every backend reports one, but the set of tags a backend can return varies (it is part of the model type). `refine_lp_status()` — resolving `infeasible_or_unbounded` into one of the two — exists only on `gurobi_lp` and `cplex_lp`, and `glpk_milp` cannot yet report `infeasible`. See [Status, limits and tolerances](../solving/status-and-limits.md).
 - **Quadratic objectives** — HiGHS only. Quadratic constraints: none yet.
 - **SOS constraints and LP basis warm starts** — specified as concepts, not yet implemented by any backend.
+- **Ranged constraints** — Clp and Cbc only (`has_ranged_constraints`, with `has_readable_constraint_bounds` to read them back); see [Special constraints](../modeling/special-constraints.md#ranged-constraints).
 - **Indicator constraints** — Gurobi and CPLEX only (`has_indicator_constraints`). The call returns no handle, so an indicator constraint cannot be read back or edited once added ([details](../modeling/special-constraints.md)).
 - **Solver-specific parameters** — the uniform interface covers [limits and tolerances](../solving/status-and-limits.md); there is no uniform passthrough for solver-specific knobs such as Gurobi's `MIPFocus` or CPLEX's emphasis settings. The escape hatch is `native_model()`, which every model class provides: it returns the solver's own objects, and the `*_api` object exposes every raw C function it loads, so the call is made directly:
 

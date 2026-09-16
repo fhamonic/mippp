@@ -96,6 +96,8 @@ struct model_test : public ::testing::Test {
 #include "modifiable_variables_bounds.hpp"
 #include "named_variables.hpp"
 #include "qp_model.hpp"
+#include "ranged_constraints.hpp"
+#include "readable_constraint_bounds.hpp"
 #include "readable_constraints.hpp"
 #include "readable_objective.hpp"
 #include "readable_variables_bounds.hpp"
