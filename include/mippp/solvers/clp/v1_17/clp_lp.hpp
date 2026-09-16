@@ -21,25 +21,7 @@
 namespace mippp {
 namespace clp::v1_17 {
 
-class clp_lp : public model_base<int, double> {
-public:
-    using index = CoinBigIndex;
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
+class clp_lp : protected model_base<int, double> {
 private:
     const clp_api * Clp;
     Clp_Simplex * model;
@@ -51,6 +33,9 @@ private:
     std::vector<int> _free_variable_ids;
 
 public:
+    // the anchor model_variable_params_t deduces from
+    using model_base<int, double>::default_variable_params;
+
     explicit clp_lp(const clp_api & api)
         : model_base<int, double>(), Clp(&api), model(Clp->newModel()) {}
     ~clp_lp() {
@@ -82,6 +67,15 @@ public:
     std::size_t num_entries() {
         return static_cast<std::size_t>(Clp->getNumElements(model));
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    Clp_Simplex * native_model() const noexcept { return model; }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -117,8 +111,7 @@ public:
         const scalar * objective = Clp->objective(model);
         return linear_expression_view(
             std::views::transform(
-                std::views::iota(variable_id{0},
-                                 static_cast<variable_id>(num_vars)),
+                std::views::iota(index{0}, static_cast<index>(num_vars)),
                 [coefs = objective](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -171,8 +164,8 @@ public:
         if(!_free_variable_ids.empty()) {
             return _recylcle_variable(params);
         }
-        variable_id var_id =
-            static_cast<variable_id>(num_native_ids_variables());
+        index var_id =
+            static_cast<index>(num_native_ids_variables());
         const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
         const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
         Clp->addColumns(model, 1, &lb, &ub, &params.obj_coef, nullptr, nullptr,
@@ -181,14 +174,14 @@ public:
     }
     auto add_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = _add_variables(count, params);
         return _make_variables_view(offset, count);
     }
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = _add_variables(count, params);
         return _make_indexed_variables_view(offset, count,
                                             std::forward<IL>(id_lambda));
@@ -207,7 +200,7 @@ public:
     template <typename NL>
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = _add_variables(count, params);
         return _make_named_variables_view(offset, count,
                                           std::forward<NL>(name_lambda), this);
@@ -215,7 +208,7 @@ public:
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = _add_variables(count, params);
         return _make_indexed_named_variables_view(
             offset, count, std::forward<IL>(id_lambda),
@@ -373,9 +366,9 @@ public:
         tmp_scalars.resize(0);
         tmp_lower_bounds.resize(0);
         tmp_upper_bounds.resize(0);
-        const constraint_id offset =
-            static_cast<constraint_id>(num_constraints());
-        constraint_id constr_id = offset;
+        const index offset =
+            static_cast<index>(num_constraints());
+        index constr_id = offset;
         for(auto && key : keys) {
             _register_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
@@ -431,7 +424,7 @@ public:
     }
     constraint add_ranged_constraint(linear_expression auto && le, scalar lb,
                                      scalar ub) {
-        constraint_id constr_id = static_cast<constraint_id>(num_constraints());
+        index constr_id = static_cast<index>(num_constraints());
         tmp_indices.resize(0);
         tmp_scalars.resize(0);
         for(auto && [var, coef] : le.linear_terms()) {

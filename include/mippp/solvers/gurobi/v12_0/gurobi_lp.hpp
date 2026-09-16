@@ -62,6 +62,7 @@ private:
             case GRB_TIME_LIMIT:      return time_limit{sol_available};
             case GRB_ITERATION_LIMIT: return iteration_limit{sol_available};
             case GRB_MEM_LIMIT:       return memory_limit{sol_available};
+            case GRB_CUTOFF:
             case GRB_USER_OBJ_LIMIT:
             case GRB_WORK_LIMIT:      return limit_reached{sol_available};
             case GRB_SUBOPTIMAL:      return failed{sol_available};
@@ -69,7 +70,7 @@ private:
             case GRB_INTERRUPTED:     return interrupted{sol_available};
             default:
                 return unknown{sol_available}; 
-        }// TODO: what for GRB_CUTOFF ?
+        }
     }
     // clang-format on
 public:

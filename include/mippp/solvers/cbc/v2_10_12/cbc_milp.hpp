@@ -20,24 +20,7 @@
 namespace mippp {
 namespace cbc::v2_10_12 {
 
-class cbc_milp : public model_base<int, double> {
-public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
+class cbc_milp : protected model_base<int, double> {
 private:
     const cbc_api * Cbc;
     Cbc_Model * model;
@@ -62,6 +45,9 @@ private:
     std::size_t _lazy_num_constraints;
 
 public:
+    // the anchor model_variable_params_t deduces from
+    using model_base<int, double>::default_variable_params;
+
     explicit cbc_milp(const cbc_api & api)
         : model_base<int, double>()
         , Cbc(&api)
@@ -107,6 +93,15 @@ public:
         return static_cast<std::size_t>(Cbc->getNumElements(model));
     }
     ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    Cbc_Model * native_model() const noexcept { return model; }
+
+public:
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() { Cbc->setObjSense(model, -1); }
@@ -139,8 +134,8 @@ public:
     auto get_objective() {
         return linear_expression_view(
             std::views::transform(
-                std::views::iota(variable_id{0},
-                                 static_cast<variable_id>(_lazy_num_variables)),
+                std::views::iota(index{0},
+                                 static_cast<index>(_lazy_num_variables)),
                 [coefs = Cbc->getObjCoefficients(model)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -174,7 +169,7 @@ public:
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
         return _make_indexed_variables_view(offset, count,
@@ -195,7 +190,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
         return _make_indexed_variables_view(offset, count,
@@ -213,7 +208,7 @@ public:
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i)
             _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
@@ -231,7 +226,7 @@ public:
     template <typename NL>
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_var(params, false, name_lambda(i).c_str());
@@ -240,7 +235,7 @@ public:
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
         return _make_indexed_named_variables_view(

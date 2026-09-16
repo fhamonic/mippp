@@ -149,7 +149,7 @@ MIP++ has a deliberate niche. It is worth being honest about where it fits and w
 
 **Everyday modeling in Python or Julia.** Stay with gurobipy, JuMP, or Pyomo. They are mature, their communities are large, and for a one-shot solve where solver time dominates, the modeling overhead rarely matters.
 
-**Heavy solver-specific parameter tuning.** The `*_api` objects expose the raw C entry points, but the model classes do not yet hand out their native solver handles. Native-handle access is on the [roadmap](#roadmap).
+**Heavy solver-specific parameter tuning.** There is no uniform interface for solver-specific knobs. They stay reachable — `model.native_model()` hands out the solver's own handles and the `*_api` objects expose the raw C entry points — but each such call is backend-specific code.
 
 **Constraint programming or scheduling.** Use OR-Tools CP-SAT or a dedicated CP solver.
 
@@ -178,10 +178,9 @@ Planned, roughly by priority:
 
 | Priority | Feature | Notes |
 | :---: | --- | --- |
-| 🔴 | **LP basis warm-starts** | `set_basis` and the concept exist; backend wiring in progress |
+| 🔴 | **LP basis warm-starts** | Concepts specified (`has_lp_basis`, `has_lp_basis_warm_start`); no backend implements `get_basis`/`set_basis` yet |
 | 🔴 | **User-cut callbacks** | For cutting-plane methods at node relaxations |
 | 🔴 | **Heuristic-solution injection** | Injecting primal solutions from within callbacks |
-| 🟠 | **Native-handle access** | Expose the solver's internal model pointer for solver-specific parameters |
 | 🟠 | **QP objectives beyond HiGHS** | Extend Hessian support to Gurobi, CPLEX, MOSEK, etc. |
 | 🟡 | **QCP/SOCP constraints** | Quadratically constrained programs |
 | 🟡 | **Model file I/O** | Read/write LP and MPS files |

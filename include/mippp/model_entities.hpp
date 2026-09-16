@@ -163,12 +163,12 @@ protected:
 
 public:
     template <typename VR>
-    constexpr variables_view(std::from_range_t, VR && variables) noexcept
+    constexpr variables_view(std::from_range_t, VR && variables)
         : _variables(std::views::all(std::forward<VR>(variables)))
         , _id_lambda() {}
 
     template <typename AP, typename VR, typename IL>
-    constexpr variables_view(AP, VR && variables, IL && id_lambda) noexcept
+    constexpr variables_view(AP, VR && variables, IL && id_lambda)
         : _variables(std::views::all(std::forward<VR>(variables)))
         , _id_lambda(std::forward<IL>(id_lambda)) {}
 
@@ -221,7 +221,7 @@ private:
 public:
     template <typename VR, typename NL, typename M>
     constexpr lazily_named_variables_view(VR && variables, NL && name_lambda,
-                                           M * model) noexcept
+                                           M * model)
         : variables_view<Vars, IdLambda, Args...>(std::forward<VR>(variables))
         , _name_lambda(std::forward<NL>(name_lambda))
         , _name_set_map(std::make_unique<bool[]>(this->size()))
@@ -230,7 +230,7 @@ public:
     template <typename AP, typename VR, typename IL, typename NL, typename M>
     constexpr lazily_named_variables_view(AP p, VR && variables,
                                            IL && id_lambda, NL && name_lambda,
-                                           M * model) noexcept
+                                           M * model)
         : variables_view<Vars, IdLambda, Args...>(
               p, std::forward<VR>(variables), std::forward<IL>(id_lambda))
         , _name_lambda(std::forward<NL>(name_lambda))
@@ -305,7 +305,7 @@ protected:
 
 public:
     template <typename KR, typename CR>
-    constexpr constraints_range(KR && keys, CR && constraints) noexcept
+    constexpr constraints_range(KR && keys, CR && constraints)
         : _constraints_map(std::from_range,
                            std::views::zip(std::forward<KR>(keys),
                                            std::forward<CR>(constraints))) {}
@@ -334,7 +334,7 @@ protected:
 
 public:
     template <typename KR, typename CR>
-    constexpr constraints_range(KR && keys, CR && constraints) noexcept
+    constexpr constraints_range(KR && keys, CR && constraints)
         : _constraints_map() {
         for(auto && [key, constraint] : std::views::zip(
                 std::forward<KR>(keys), std::forward<CR>(constraints))) {

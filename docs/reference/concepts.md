@@ -20,13 +20,52 @@ static_assert(has_dual_solution<highs_lp>);
 [Writing solver-generic code](../solvers/generic-code.md) shows the patterns;
 this page is the catalogue.
 
-Every model type also exposes the member types used throughout the interface:
-`M::variable` and `M::constraint` (lightweight strongly-typed handles),
-`M::scalar` (the coefficient type, `double` on current backends), and
-`M::variable_params` (the designated-initializer options struct
-`{.obj_coef, .lower_bound, .upper_bound}`). The aliases
-`model_variable_t<M>`, `model_constraint_t<M>`, `model_scalar_t<M>` and
-`model_variable_params_t<M>` name them without a `typename`.
+Four aliases name the types a model works with, and they are the only
+portable spelling — model classes declare no public member types:
+
+- `model_variable_t<M>` and `model_constraint_t<M>`, the lightweight
+  strongly-typed handles, deduced from what `add_variable()` and
+  `add_constraint(...)` return;
+- `model_scalar_t<M>`, the coefficient type (`double` on current backends),
+  deduced from the variable handle's own linear term;
+- `model_variable_params_t<M>`, the designated-initializer options struct
+  `{.obj_coef, .lower_bound, .upper_bound}`, deduced from the model's public
+  `default_variable_params` constant.
+
+Because they are deduced from the API rather than read from a member, any
+type that provides those functions — a wrapper forwarding to a backend, say —
+satisfies the concepts without declaring anything else.
+
+## Concepts on callback handles
+
+A callback handle (the `candidate_solution_callback_handle` a backend passes
+to your callback) is not a model: it creates no variables, so the four aliases
+cannot be deduced from it. The capability concepts that make sense on a handle
+therefore take a second, defaulted parameter naming the model whose variables
+and constraints the handle works with:
+
+```cpp
+template <typename T, typename M = T>
+concept has_lazy_constraints = ...;   // T is checked, M supplies the types
+```
+
+With one argument the concept applies to a model as usual. With two, the first
+is the type being checked and the second is the model it belongs to:
+
+```cpp
+static_assert(has_lazy_constraints<
+    candidate_solution_callback_handle_t<gurobi_milp>, gurobi_milp>);
+
+// the checked type is inserted first, so the shorthand reads naturally
+model.set_candidate_solution_callback(
+    [&](has_lazy_constraints<Model> auto & handle) { ... });
+```
+
+The concepts declared this way are `has_dual_solution`, `has_reduced_costs`,
+`has_readable_variables_bounds`, `has_modifiable_variables_bounds`,
+`has_readable_constraints` and its three finer-grained forms, and
+`has_lazy_constraints`. The others describe whole models and stay
+single-parameter.
 
 !!! note "Concept declared ≠ backend provides"
     A few concepts below are specified but satisfied by **no backend yet**;
@@ -42,7 +81,7 @@ Every model type also exposes the member types used throughout the interface:
 | :---------------- | :------- |
 | `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params` and id-lambdas); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `solve_status`; `get_solution` / `get_solution_value`. |
 | `milp_model` | `lp_model`, plus `add_integer_variable(s)`, `add_binary_variable(s)`, and per-variable type changes `set_continuous` / `set_integer` / `set_binary`. |
-| `qp_model` | `lp_model`, plus `set_objective` accepting a quadratic expression. |
+| `qp_model` | `lp_model`, plus `set_quadratic_objective(expr)` (and its `distinct_variables` form) accepting a quadratic expression. `set_objective` stays linear on every model and replaces the whole objective, quadratic part included. |
 | `sized_model` | `num_entries()` (number of nonzeros). |
 
 ## Solve status
@@ -77,8 +116,9 @@ set is a limit you can detect.
 | --- | --- |
 | `has_dual_solution` | `get_dual_solution()`, indexed by constraint handles. |
 | `has_reduced_costs` | `get_reduced_costs()`, indexed by variable handles. |
-| `has_lp_basis` | `get_basis()`, whose `is_basic(v/c)` and `get_status(v/c)` report the LP basis (statuses in namespace `basis_status`). *(no backend yet)* |
-| `has_lp_basis_warm_start` | `has_lp_basis`, plus `set_basis(b)` and the basis mutators `set_basic` / `set_nonbasic` / `set_status`. *(no backend yet)* |
+| `has_lp_basis` | `get_basis()`, whose `get_status(v)` / `get_status(c)` report the LP basis as a variant over the tags of namespace `basis_status`. *(no backend yet)* |
+| `has_modifiable_lp_basis` | `has_lp_basis`, and the basis returned by `get_basis()` can be edited in place: `set_basic`, `set_nonbasic(v, value)` (snaps to the nearest bound) and `set_status(v, tag)`, each for variables and for constraints. *(no backend yet)* |
+| `has_lp_basis_warm_start` | `has_lp_basis`, plus `set_basis(b)` accepting the basis type of `get_basis()`. Warm-starting does not require that type to be modifiable, and a backend may accept other basis sources as well, such as a basis view built from lambdas. *(no backend yet)* |
 
 ## Reading and modifying the model
 
@@ -86,6 +126,7 @@ set is a limit you can detect.
 | :--- | :--- |
 | `has_readable_objective` | `get_objective()`, `get_objective_coefficient(v)`, `get_objective_offset()`. |
 | `has_modifiable_objective` | `set_objective_coefficient(v, s)`, `add_objective(expr)`. |
+| `has_readable_quadratic_objective` | `has_readable_objective`, plus `get_quadratic_objective()` returning the whole objective as a quadratic expression; on such a model `get_objective()` reads the linear part only. Satisfied by `highs_qp`. |
 | `has_readable_variables_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
 | `has_modifiable_variables_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
 | `has_readable_constraints` | `get_constraint(c)` plus the three finer-grained concepts `has_readable_constraint_lhs` / `_sense` / `_rhs`. |
@@ -104,9 +145,11 @@ See [Re-solving and model updates](../solving/updates.md).
 
 | Concept | Provides |
 | --- | --- |
-| `has_indicator_constraints` | `add_indicator_constraint(v, value, constraint)` returning a constraint handle — the constraint holds whenever binary variable `v` takes `value`. *(no backend yet: `gurobi_milp` and `cplex_milp` provide the function, but declare it `void`, so the concept is `false`; see [Special constraints](../modeling/special-constraints.md#one-model-both-encodings))* |
+| `has_indicator_constraints` | `add_indicator_constraint(v, value, constraint)` — the constraint holds whenever binary variable `v` takes `value`. Satisfied by `gurobi_milp` and `cplex_milp`; see [Special constraints](../modeling/special-constraints.md). |
 | `has_sos1_constraints` | `add_sos1_constraint(variables)`. *(no backend yet)* |
 | `has_sos2_constraints` | `add_sos2_constraint(variables)`. *(no backend yet)* |
+
+None of the three requires a return type. SOS and indicator constraints live outside the linear-row numbering on most solvers, so the `constraint` handle returned by `add_constraint` could not designate them; a backend may return a handle type of its own, or nothing, and a solver-generic caller must not rely on one.
 
 ## Algorithmic building blocks
 
@@ -115,7 +158,8 @@ See [Re-solving and model updates](../solving/updates.md).
 | `has_add_column` | `add_column(entries, params)` from `(constraint, coefficient)` pairs — see [Column generation](../algorithms/column-generation.md). |
 | `has_remove_variable` | `remove_variable(v)`, `remove_variables(range)`. |
 | `has_mip_start` | `add_mip_start(entries)` from `(variable, value)` pairs. |
-| `has_candidate_solution_callback` | `set_candidate_solution_callback(f)` where `f` takes the backend's `candidate_solution_callback_handle` — see [Branch-and-cut](../algorithms/branch-and-cut.md). |
+| `has_candidate_solution_callback` | `set_candidate_solution_callback(f)` where `f` takes the backend's `candidate_solution_callback_handle`, whose `get_solution()` returns the candidate indexed by the model's variable handles — see [Branch-and-cut](../algorithms/branch-and-cut.md). |
+| `has_lazy_constraints` | On a callback handle: `add_lazy_constraint(constraint)` and the `distinct_variables` form, taking the model as second parameter (see [above](#concepts-on-callback-handles)). Satisfied by the handles of `gurobi_milp`, `cplex_milp` and `copt_milp`. |
 | `has_node_relaxation_callback` | `set_node_relaxation_callback(f)`, for user cuts on fractional solutions. *(no backend yet)* |
 
 ## Tolerances

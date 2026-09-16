@@ -5,6 +5,7 @@
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <utility>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -18,24 +19,7 @@
 namespace mippp {
 namespace cplex::v22_1_2 {
 
-class cplex_base : public remapping_model_base<int, double> {
-public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
+class cplex_base : protected remapping_model_base<int, double> {
 protected:
     const cplex_api * CPX;
     CPXENVptr env;
@@ -60,6 +44,9 @@ protected:
     }
 
 public:
+    // the anchor model_variable_params_t deduces from
+    using remapping_model_base<int, double>::default_variable_params;
+
     [[nodiscard]] explicit cplex_base(const cplex_api & api)
         : remapping_model_base<int, double>()
         , CPX(&api)
@@ -97,6 +84,17 @@ public:
     std::size_t num_entries() {
         return static_cast<std::size_t>(CPX->getnumnz(env, lp));
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    std::pair<CPXENVptr, CPXLPptr> native_model() const noexcept {
+        return {env, lp};
+    }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -266,7 +264,7 @@ public:
                        variable_params params = {
                            .obj_coef = 0,
                            .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
+                           .upper_bound = std::nullopt}) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
         return _make_variables_view(handle_ids_begin, count);
@@ -276,7 +274,7 @@ public:
                        variable_params params = {
                            .obj_coef = 0,
                            .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
+                           .upper_bound = std::nullopt}) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
         return _make_indexed_variables_view(handle_ids_begin, count,
@@ -296,7 +294,7 @@ public:
     template <typename NL>
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
         return _make_named_variables_view(handle_ids_begin, count,
@@ -305,7 +303,7 @@ public:
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_CONTINUOUS);
         return _make_indexed_named_variables_view(
@@ -359,17 +357,17 @@ public:
         int var_id = _native_id(v);
         check(CPX->chgobj(env, lp, 1, &var_id, &c));
     }
-    void set_variable_lower_bound(variable v, double lb) noexcept {
+    void set_variable_lower_bound(variable v, double lb) {
         int var_id = _native_id(v);
         char lu = 'L';
         check(CPX->chgbds(env, lp, 1, &var_id, &lu, &lb));
     }
-    void set_variable_upper_bound(variable v, double ub) noexcept {
+    void set_variable_upper_bound(variable v, double ub) {
         int var_id = _native_id(v);
         char lu = 'U';
         check(CPX->chgbds(env, lp, 1, &var_id, &lu, &ub));
     }
-    void set_variable_name(variable v, const std::string & name) noexcept {
+    void set_variable_name(variable v, const std::string & name) {
         int var_id = _native_id(v);
         char * col_name = const_cast<char *>(name.c_str());
         check(CPX->chgcolname(env, lp, 1, &var_id, &col_name));
@@ -381,19 +379,19 @@ public:
         check(CPX->getobj(env, lp, &coef, var_id, var_id));
         return coef;
     }
-    double get_variable_lower_bound(variable v) noexcept {
+    double get_variable_lower_bound(variable v) {
         const int var_id = _native_id(v);
         double b;
         check(CPX->getlb(env, lp, &b, var_id, var_id));
         return b;
     }
-    double get_variable_upper_bound(variable v) noexcept {
+    double get_variable_upper_bound(variable v) {
         const int var_id = _native_id(v);
         double b;
         check(CPX->getub(env, lp, &b, var_id, var_id));
         return b;
     }
-    std::string get_variable_name(variable v) noexcept {
+    std::string get_variable_name(variable v) {
         const int var_id = _native_id(v);
         std::string name;
         name.resize(name.capacity());

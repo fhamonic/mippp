@@ -26,7 +26,7 @@ public:
     }
     auto add_integer_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'I');
         return _make_variables_view(offset, count);
@@ -34,7 +34,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'I');
         return _make_indexed_variables_view(offset, count,
@@ -46,30 +46,30 @@ public:
         _add_variable({}, 'B');
         return variable(var_id);
     }
-    auto add_binary_variables(std::size_t count) noexcept {
+    auto add_binary_variables(std::size_t count) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, {}, 'B');
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, {}, 'B');
         return _make_indexed_variables_view(offset, count,
                                             std::forward<IL>(id_lambda));
     }
 
-    void set_continuous(variable v) noexcept {
+    void set_continuous(variable v) {
         int var_id = v.id();
         char type = 'C';
         check(XPRS->chgcoltype(prob, 1, &var_id, &type));
     }
-    void set_integer(variable v) noexcept {
+    void set_integer(variable v) {
         int var_id = v.id();
         char type = 'I';
         check(XPRS->chgcoltype(prob, 1, &var_id, &type));
     }
-    void set_binary(variable v) noexcept {
+    void set_binary(variable v) {
         int var_id = v.id();
         char type = 'B';
         check(XPRS->chgcoltype(prob, 1, &var_id, &type));
@@ -78,7 +78,7 @@ public:
     //////////////////////////////// Callbacks ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
-    class callback_handle_base : public model_base<int, double> {
+    class callback_handle_base : protected model_base<int, double> {
     protected:
         const xpress_api * XPRS;
         XPRSprob prob;

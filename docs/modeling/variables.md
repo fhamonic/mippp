@@ -17,7 +17,7 @@ auto x = model.add_variable();
 
 `add_variable` returns a lightweight, trivially-copyable **handle** — a strongly-typed column index. Copying it costs nothing, comparing it is an integer comparison, and it is also a one-term linear expression, which is why `4 * x1 + 5 * x2` works without any further ceremony.
 
-Handles are typed per model class (`M::variable`), so a variable of one model cannot silently be used in another.
+Handles are typed per model class (`model_variable_t<M>`), so a variable of one model cannot silently be used in another.
 
 ## Bounds and objective coefficient
 

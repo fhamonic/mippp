@@ -7,7 +7,11 @@
 
 namespace mippp {
 
-enum constraint_sense : int { equal = 0, less_equal = -1, greater_equal = 1 };
+enum class constraint_sense : int {
+    equal = 0,
+    less_equal = -1,
+    greater_equal = 1
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Concepts ///////////////////////////////////

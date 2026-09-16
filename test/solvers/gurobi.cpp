@@ -38,6 +38,7 @@ INSTANTIATE_TEST(Gurobi_milp, RemoveVariableTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ReadableConstraintsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, SudokuTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, CandidateSolutionCallbackTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, LazyConstraintsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, TravellingSalesmanTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, TimeLimitTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, MipStartTest, gurobi_milp_test);

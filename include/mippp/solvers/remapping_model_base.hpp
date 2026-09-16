@@ -10,14 +10,10 @@
 namespace mippp {
 
 template <std::integral _Index, std::floating_point _Scalar>
-class remapping_model_base : public model_base<_Index, _Scalar> {
+class remapping_model_base : protected model_base<_Index, _Scalar> {
 protected:
     using typename model_base<_Index, _Scalar>::variable;
     using typename model_base<_Index, _Scalar>::constraint;
-    using model_base<_Index, _Scalar>::register_count;
-    using model_base<_Index, _Scalar>::tmp_entry_index_cache;
-    using model_base<_Index, _Scalar>::tmp_indices;
-    using model_base<_Index, _Scalar>::tmp_scalars;
     using model_base<_Index, _Scalar>::_register_raw_entries;
     using model_base<_Index, _Scalar>::_register_coalescing_entries;
 

@@ -41,8 +41,8 @@ struct dense_row {
         return std::views::transform(
             std::views::enumerate(coefficients), [](auto && p) {
                 auto && [i, c] = p;
-                return std::pair<typename Model::variable, double>(
-                    typename Model::variable(static_cast<int>(i)), c);
+                return std::pair<model_variable_t<Model>, double>(
+                    model_variable_t<Model>(static_cast<int>(i)), c);
             });
     }
     zero_t constant() const noexcept { return zero; }
@@ -181,7 +181,7 @@ Sums go through `detail::unordered_concat`, a thin wrapper over `std::views::con
 A constraint is an expression plus a sense and a right-hand side:
 
 ```cpp
-enum constraint_sense : int { equal = 0, less_equal = -1, greater_equal = 1 };
+enum class constraint_sense : int { equal = 0, less_equal = -1, greater_equal = 1 };
 
 template <typename T>
 concept linear_constraint =
@@ -204,7 +204,7 @@ class linear_constraint_view { /* ... */ };
 
 Constraining the type rather than the individual member matters: were the type constructible anyway, asking `linear_constraint<C>` would instantiate `linear_terms()` and fail *outside the immediate context* — the concept would be ill-formed instead of simply `false`, and `std::is_constructible_v` would lie. The comparison operators pair it with a `static_assert` so the error names its cause instead of surfacing as a deduction failure.
 
-The comparison operators never build a two-sided object. They move everything to the left — `e1 <= e2` becomes `linear_constraint_view(e1 + (-e2), less_equal)` — and the view then reports `rhs()` as `-expression.constant()`. So a single normalized form (`terms sense rhs`) reaches the backend, whichever way you spelled the comparison, and scalar-on-the-left forms (`3 <= e`) negate the expression to keep the sense consistent.
+The comparison operators never build a two-sided object. They move everything to the left — `e1 <= e2` becomes `linear_constraint_view(e1 + (-e2), constraint_sense::less_equal)` — and the view then reports `rhs()` as `-expression.constant()`. So a single normalized form (`terms sense rhs`) reaches the backend, whichever way you spelled the comparison, and scalar-on-the-left forms (`3 <= e`) negate the expression to keep the sense consistent.
 
 Providing your own constraint type is symmetric with expressions: satisfy the concept and `add_constraint` accepts it.
 

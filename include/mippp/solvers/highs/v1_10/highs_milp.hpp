@@ -25,7 +25,7 @@ public:
     }
     auto add_integer_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeInteger);
         return _make_variables_view(offset, count);
@@ -33,7 +33,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeInteger);
         return _make_indexed_variables_view(offset, count,
@@ -43,24 +43,24 @@ public:
         return add_integer_variable(
             {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
     }
-    auto add_binary_variables(std::size_t count) noexcept {
+    auto add_binary_variables(std::size_t count) {
         return add_integer_variables(
             count, {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         return add_integer_variables(
             count, std::forward<IL>(id_lambda),
             {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
     }
-    void set_continuous(variable v) noexcept {
+    void set_continuous(variable v) {
         check(Highs->changeColIntegrality(model, v.id(),
                                           kHighsVarTypeContinuous));
     }
-    void set_integer(variable v) noexcept {
+    void set_integer(variable v) {
         check(Highs->changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
     }
-    void set_binary(variable v) noexcept {
+    void set_binary(variable v) {
         _set_variable_bounds(v, 0.0, 1.0);
         check(Highs->changeColIntegrality(model, v.id(), kHighsVarTypeInteger));
     }
@@ -99,6 +99,7 @@ private:
             status::infeasible_or_unbounded,
             status::infeasible,
             status::unbounded,
+            status::limit_reached,
             status::time_limit,
             status::iteration_limit,
             status::solution_limit,
@@ -128,7 +129,7 @@ private:
             case kHighsModelStatusSolveError:
             case kHighsModelStatusPostsolveError: return failed{has_sol};
             case kHighsModelStatusObjectiveBound:
-            case kHighsModelStatusObjectiveTarget:
+            case kHighsModelStatusObjectiveTarget: return limit_reached{has_sol};
             case kHighsModelStatusTimeLimit:      return time_limit{has_sol};
             case kHighsModelStatusSolutionLimit:  return solution_limit{has_sol};
             case kHighsModelStatusModelEmpty:

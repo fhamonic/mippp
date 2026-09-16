@@ -21,15 +21,15 @@ void build_assignment(Model & model, const instance & data) {
 
 Called with `highs_milp`, `gurobi_milp`, `scip_milp`, … it compiles for each; called with an LP-only class, it fails immediately with *"constraint not satisfied: `milp_model`"* rather than with a page of overload-resolution noise.
 
-Member types are reached through the model rather than spelled out:
+The types a model works with are reached through aliases deduced from its API rather than spelled out:
 
 ```cpp
-using variable   = model_variable_t<Model>;   // or typename Model::variable
+using variable   = model_variable_t<Model>;
 using constraint = model_constraint_t<Model>;
 using scalar     = model_scalar_t<Model>;     // double on current backends
 ```
 
-This matters when you store handles: a `std::vector<typename Model::variable>` is the portable spelling of "the columns I created".
+This matters when you store handles: a `std::vector<model_variable_t<Model>>` is the portable spelling of "the columns I created". Model classes declare no public member types, so `typename Model::variable` is not an alternative.
 
 ## Require the capabilities you use
 
@@ -37,13 +37,17 @@ Optional features are concepts too, so an algorithm can advertise its requiremen
 
 ```cpp
 template <typename Model>
-    requires milp_model<Model> && has_candidate_solution_callback<Model>
+    requires milp_model<Model> && has_candidate_solution_callback<Model> &&
+             has_lazy_constraints<candidate_solution_callback_handle_t<Model>,
+                                  Model>
 void solve_tsp(Model & model, const instance & data);
 
 template <typename Model>
     requires lp_model<Model> && has_dual_solution<Model> && has_add_column<Model>
 double column_generation(Model & master, const instance & data);
 ```
+
+`has_lazy_constraints` is checked on the callback *handle*, not on the model, so it takes the model as a second argument to know which variable and constraint types are in play. Concepts that can apply to a handle all follow this pattern — see [Concepts on callback handles](../reference/concepts.md#concepts-on-callback-handles).
 
 Instantiating `solve_tsp` with a backend that has no callback support is a **compile-time** error naming the missing capability — not a surprise at hour three of a run. The same check is available as an assertion:
 

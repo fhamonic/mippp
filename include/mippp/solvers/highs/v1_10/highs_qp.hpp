@@ -1,8 +1,11 @@
 #pragma once
 
-#include <iostream>
-#include <map>
+#include <algorithm>
+#include <memory>
 #include <optional>
+#include <ranges>
+#include <tuple>
+#include <vector>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -19,19 +22,15 @@ class highs_qp : public highs_base {
 public:
     [[nodiscard]] explicit highs_qp(const highs_api & api) : highs_base(api) {}
 
-    struct variables_pair_cmp {
-        bool operator()(auto && p1, auto && p2) const {
-            auto [p1v1, p1v2] = p1;
-            if(p1v2 < p1v1) std::swap(p1v1, p1v2);
-            auto [p2v1, p2v2] = p2;
-            if(p2v2 < p2v1) std::swap(p2v1, p2v2);
-            if(p1v1 == p2v1) return p1v2 < p2v2;
-            return p1v1 < p2v1;
-        }
-    };
+private:
+    // HiGHS minimizes ½·xᵀQx over the lower triangle of Q: a diagonal
+    // coefficient is stored doubled, an off-diagonal one as is because its
+    // mirror image supplies the other half.
+    bool _has_hessian = false;
+    std::vector<std::tuple<HighsInt, HighsInt, double>> tmp_quadratic_entries;
 
     template <linear_expression LE>
-    void set_objective(LE && le) {
+    void _set_linear_objective(LE && le) {
         const auto num_vars = _num_var_native_ids();
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
@@ -42,42 +41,141 @@ public:
             model, 0, static_cast<HighsInt>(num_vars) - 1, tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
+    // HiGHS rejects dim 0 on a non-empty model: the empty Hessian is passed
+    // with the full dimension and no entries
+    void _clear_hessian() {
+        if(!_has_hessian) return;
+        const auto num_vars = _num_var_native_ids();
+        tmp_begins.assign(num_vars, 0);
+        check(Highs->passHessian(model, static_cast<HighsInt>(num_vars), 0,
+                                 kHighsHessianFormatTriangular,
+                                 tmp_begins.data(), nullptr, nullptr));
+        _has_hessian = false;
+    }
+
+public:
+    template <linear_expression LE>
+    void set_objective(LE && le) {
+        _clear_hessian();
+        _set_linear_objective(std::forward<LE>(le));
+    }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
+
     template <quadratic_expression QE>
-    void set_objective(QE && qe) {
-        const auto num_vars = num_variables();
-        set_objective(qe.linear_part());
-        std::map<std::pair<variable, variable>, scalar, variables_pair_cmp>
-            factorized_terms;
+    void set_quadratic_objective(QE && qe) {
+        const auto num_vars = _num_var_native_ids();
+        _set_linear_objective(qe.linear_part());
+        tmp_quadratic_entries.resize(0);
         for(auto && [var1, var2, coef] : qe.quadratic_terms()) {
-            factorized_terms[std::make_pair(var1, var2)] += coef;
+            HighsInt i = _native_id(var1);
+            HighsInt j = _native_id(var2);
+            if(j < i) std::swap(i, j);
+            tmp_quadratic_entries.emplace_back(
+                i, j, (i == j ? 2.0 : 1.0) * static_cast<double>(coef));
         }
+        std::ranges::sort(tmp_quadratic_entries, {}, [](const auto & e) {
+            return std::make_pair(std::get<0>(e), std::get<1>(e));
+        });
         tmp_begins.resize(num_vars);
-        tmp_indices.resize(0u);
-        tmp_scalars.resize(0u);
-        HighsInt next_row = 0;
-        for(auto && [vars_pair, coef] : factorized_terms) {
-            auto && [var1, var2] = vars_pair;
-            while(next_row <= _native_id(var1))
-                tmp_begins[static_cast<std::size_t>(next_row++)] =
+        tmp_indices.resize(0);
+        tmp_scalars.resize(0);
+        HighsInt next_col = 0;
+        HighsInt last_i = -1, last_j = -1;
+        for(auto && [i, j, value] : tmp_quadratic_entries) {
+            if(i == last_i && j == last_j) {
+                tmp_scalars.back() += value;
+                continue;
+            }
+            while(next_col <= i)
+                tmp_begins[static_cast<std::size_t>(next_col++)] =
                     static_cast<HighsInt>(tmp_scalars.size());
-            tmp_indices.emplace_back(_native_id(var2));
-            tmp_scalars.emplace_back(2 * coef);
+            tmp_indices.emplace_back(j);
+            tmp_scalars.emplace_back(value);
+            last_i = i;
+            last_j = j;
         }
-        while(next_row < static_cast<int>(num_vars))
-            tmp_begins[static_cast<std::size_t>(next_row++)] =
+        while(next_col < static_cast<HighsInt>(num_vars))
+            tmp_begins[static_cast<std::size_t>(next_col++)] =
                 static_cast<HighsInt>(tmp_scalars.size());
-        check(Highs->passHessian(
-            model, static_cast<int>(num_vars),
-            static_cast<int>(tmp_scalars.size()), kHighsHessianFormatTriangular,
-            tmp_begins.data(), tmp_indices.data(), tmp_scalars.data()));
+        check(Highs->passHessian(model, static_cast<HighsInt>(num_vars),
+                                 static_cast<HighsInt>(tmp_scalars.size()),
+                                 kHighsHessianFormatTriangular,
+                                 tmp_begins.data(), tmp_indices.data(),
+                                 tmp_scalars.data()));
+        _has_hessian = !tmp_scalars.empty();
     }
     template <quadratic_expression QE>
-    void set_objective(distinct_variables_t, QE && qe) {
-        set_objective(std::forward<QE>(qe));
+    void set_quadratic_objective(distinct_variables_t, QE && qe) {
+        set_quadratic_objective(std::forward<QE>(qe));
+    }
+
+private:
+    struct hessian_data {
+        std::vector<HighsInt> start;
+        std::vector<HighsInt> index;
+        std::vector<double> value;
+    };
+
+public:
+    // Highs_getModel copies the whole model: everything but the Hessian
+    // goes to scratch, the Hessian into arrays the view keeps alive. HiGHS
+    // stores every diagonal entry, zero or not, hence the filter.
+    auto get_quadratic_objective() {
+        const auto num_vars = _num_var_native_ids();
+        auto q = std::make_shared<hessian_data>();
+        q->start.assign(num_vars + 1, 0);
+        if(_has_hessian) {
+            const auto num_rows =
+                static_cast<std::size_t>(Highs->getNumRow(model));
+            const auto num_nz =
+                static_cast<std::size_t>(Highs->getNumNz(model));
+            const auto hessian_nz =
+                static_cast<std::size_t>(Highs->getHessianNumNz(model));
+            q->index.resize(hessian_nz);
+            q->value.resize(hessian_nz);
+            tmp_scalars.resize(3 * num_vars + 2 * num_rows + num_nz);
+            tmp_indices.resize(2 * num_vars + num_nz + 2);
+            HighsInt n_col, n_row, n_nz, h_nz, sense;
+            double offset;
+            double * const scalars = tmp_scalars.data();
+            HighsInt * const indices = tmp_indices.data();
+            check(Highs->getModel(
+                model, kHighsMatrixFormatColwise, kHighsHessianFormatTriangular,
+                &n_col, &n_row, &n_nz, &h_nz, &sense, &offset, scalars,
+                scalars + num_vars, scalars + 2 * num_vars,
+                scalars + 3 * num_vars, scalars + 3 * num_vars + num_rows,
+                indices, indices + num_vars + 1,
+                scalars + 3 * num_vars + 2 * num_rows, q->start.data(),
+                q->index.data(), q->value.data(),
+                indices + num_vars + 1 + num_nz));
+            q->start[num_vars] = h_nz;
+        }
+        return quadratic_expression_view(
+            std::views::join(std::views::transform(
+                std::views::iota(index{0}, static_cast<index>(num_vars)),
+                [this, q](index i) {
+                    return std::views::transform(
+                        std::views::filter(
+                            std::views::iota(
+                                q->start[static_cast<std::size_t>(i)],
+                                q->start[static_cast<std::size_t>(i) + 1]),
+                            [q](HighsInt k) {
+                                return q->value[static_cast<std::size_t>(k)] !=
+                                       0.0;
+                            }),
+                        [this, q, i](HighsInt k) {
+                            const HighsInt j =
+                                q->index[static_cast<std::size_t>(k)];
+                            return std::make_tuple(
+                                _var_handle(i), _var_handle(j),
+                                (i == j ? 0.5 : 1.0) *
+                                    q->value[static_cast<std::size_t>(k)]);
+                        });
+                })),
+            get_objective());
     }
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
@@ -102,6 +200,7 @@ private:
             status::infeasible_or_unbounded,
             status::infeasible,
             status::unbounded,
+            status::limit_reached,
             status::time_limit,
             status::iteration_limit,
             status::failed,
@@ -124,7 +223,7 @@ private:
             case kHighsModelStatusSolveError:
             case kHighsModelStatusPostsolveError: return failed{};
             case kHighsModelStatusObjectiveBound:
-            case kHighsModelStatusObjectiveTarget:
+            case kHighsModelStatusObjectiveTarget: return limit_reached{};
             case kHighsModelStatusTimeLimit:      return time_limit{};
             case kHighsModelStatusIterationLimit: return iteration_limit{};
             case kHighsModelStatusModelEmpty:

@@ -39,6 +39,7 @@ private:
             status::infeasible_or_unbounded,
             status::infeasible,
             status::unbounded,
+            status::limit_reached,
             status::time_limit,
             status::iteration_limit,
             status::solution_limit,
@@ -62,7 +63,7 @@ private:
             case kHighsModelStatusSolveError:
             case kHighsModelStatusPostsolveError: return failed{};
             case kHighsModelStatusObjectiveBound:
-            case kHighsModelStatusObjectiveTarget:
+            case kHighsModelStatusObjectiveTarget: return limit_reached{};
             case kHighsModelStatusTimeLimit:      return time_limit{};
             case kHighsModelStatusIterationLimit: return iteration_limit{};
             case kHighsModelStatusModelEmpty:

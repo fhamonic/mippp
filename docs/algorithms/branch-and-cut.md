@@ -29,7 +29,12 @@ model.solve();
 
 Take the handle by `auto &` — its type is the backend's `candidate_solution_callback_handle`, and generic code names it through `candidate_solution_callback_handle_t<Model>`.
 
-Backends supporting this are those satisfying the `has_candidate_solution_callback` concept: implemented on **Gurobi, CPLEX, COPT, SCIP and Xpress**, and validated by the test suite on **Gurobi, CPLEX and COPT**.
+The two operations are two concepts, because a solver can fire a candidate callback without letting you cut inside it:
+
+- `has_candidate_solution_callback<Model>` promises the callback and `handle.get_solution()`, indexed by the model's variable handles;
+- `has_lazy_constraints<Handle, Model>` promises `handle.add_lazy_constraint(c)` on that handle. The second parameter is the model, which supplies the variable and constraint types the handle has no way to declare itself (see [Concepts on callback handles](../reference/concepts.md#concepts-on-callback-handles)).
+
+Both hold, and are validated by the test suite, on **Gurobi, CPLEX and COPT**. **Xpress** provides the callback without lazy constraints. SCIP has no callback yet.
 
 ## Example: TSP subtour elimination
 
@@ -78,8 +83,17 @@ An algorithm that needs a callback states it in its signature, so instantiating 
 
 ```cpp
 template <typename Model>
-    requires milp_model<Model> && has_candidate_solution_callback<Model>
+    requires milp_model<Model> && has_candidate_solution_callback<Model> &&
+             has_lazy_constraints<candidate_solution_callback_handle_t<Model>,
+                                  Model>
 void solve_tsp(Model & model, const instance & data);
+```
+
+Inside the callback, the same concept constrains the handle in place. The checked type goes first, so the one-argument shorthand reads as "a handle with lazy constraints for `Model`":
+
+```cpp
+model.set_candidate_solution_callback(
+    [&](has_lazy_constraints<Model> auto & handle) { ... });
 ```
 
 See [Writing solver-generic code](../solvers/generic-code.md).

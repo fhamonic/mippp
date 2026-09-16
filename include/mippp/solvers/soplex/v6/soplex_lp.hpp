@@ -16,7 +16,7 @@ namespace mippp {
 namespace soplex::v6 {
 
 class soplex_lp {
-public:
+protected:
     using variable_id = int;
     using constraint_id = int;
     using scalar = double;
@@ -39,6 +39,7 @@ public:
         std::optional<scalar> upper_bound = std::nullopt;
     };
 
+public:
     static constexpr variable_params default_variable_params = {
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
@@ -76,6 +77,15 @@ public:
     // std::size_t num_entries() {
     //     return static_cast<std::size_t>(SoPlex->getNumElements(model));
     // }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    void * native_model() const noexcept { return model; }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -130,7 +140,7 @@ public:
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
         return variables_view(

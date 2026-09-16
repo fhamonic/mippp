@@ -7,21 +7,23 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/model_entities.hpp"
 #include "mippp/utility/column_manager.hpp"
 
 using namespace mippp;
 
 namespace {
 
-// A minimal stand-in for a solver model : the column manager only needs the
-// 'variable' and 'scalar' nested types and lets the add/remove lambdas
-// materialize the actual model modifications, so no real solver is required
-// to unit test the pool <-> master bookkeeping and the selection strategies.
+// A minimal stand-in for a solver model : the column manager only needs
+// model_variable_t / model_scalar_t, which are deduced from add_variable, and
+// lets the add/remove lambdas materialize the actual model modifications, so
+// no real solver is required to unit test the pool <-> master bookkeeping and
+// the selection strategies.
 struct fake_model {
-    using variable = int;
-    using scalar = double;
     int next_variable = 0;
-    int new_variable() { return next_variable++; }
+    model_variable<int, double> add_variable() {
+        return model_variable<int, double>(next_variable++);
+    }
 };
 
 // the status variant a solver's basis returns through get_status (see
@@ -60,7 +62,7 @@ std::optional<typename P::value_type> master_get(const manager & columns,
 }
 
 // the recurring add-column lambda of the tests that ignore the seeds
-int make_variable(fake_model & m, const int &) { return m.new_variable(); }
+auto make_variable(fake_model & m, const int &) { return m.add_variable(); }
 
 // a pricing callback reading the reduced costs from the given table
 auto price_from(const std::unordered_map<int, double> & rc) {
@@ -96,8 +98,8 @@ GTEST_TEST(column_manager, emplacement_and_bookkeeping) {
     fake_model model;
     ASSERT_TRUE(columns.emplace_column(1));
     ASSERT_FALSE(columns.emplace_column(1));  // already known
-    ASSERT_TRUE(columns.emplace_master_column(2, model.new_variable()));
-    ASSERT_FALSE(columns.emplace_master_column(2, model.new_variable()));
+    ASSERT_TRUE(columns.emplace_master_column(2, model.add_variable()));
+    ASSERT_FALSE(columns.emplace_master_column(2, model.add_variable()));
 
     EXPECT_EQ(columns.num_columns(), 2u);
     EXPECT_EQ(columns.num_pool_columns(), 1u);
@@ -108,7 +110,7 @@ GTEST_TEST(column_manager, emplacement_and_bookkeeping) {
 
     // master_variable distinguishes the two states
     EXPECT_FALSE(columns.master_variable(1).has_value());
-    EXPECT_EQ(columns.master_variable(2), 0);
+    EXPECT_EQ(columns.master_variable(2)->id(), 0);
     EXPECT_FALSE(columns.master_variable(3).has_value());
     // registering an initial master column counts as an activation
     EXPECT_EQ(master_get<times_activated>(columns, 2), 1u);
@@ -118,7 +120,7 @@ GTEST_TEST(column_manager, emplace_columns_reports_duplicates) {
     manager columns;
     fake_model model;
     columns.emplace_column(1);
-    columns.emplace_master_column(2, model.new_variable());
+    columns.emplace_master_column(2, model.add_variable());
 
     // num_already_in_master flags a pricing oracle regenerating master
     // columns : stale duals or a cycling process
@@ -160,12 +162,12 @@ GTEST_TEST(column_manager, master_refresh_updates_value_and_basis_status) {
     // updates every carried property in a single broadcast
     manager columns;
     fake_model model;
-    columns.emplace_master_column(10, model.new_variable());
+    columns.emplace_master_column(10, model.add_variable());
     columns.emplace_column(20);  // stays in the pool
 
-    columns.update_master_columns([&](const int &, const int & var) {
+    columns.update_master_columns([&](const int &, const auto & var) {
         return master_refreshed<fake_basis_status>{
-            -4.0, 2.5 * var, basis_status::nonbasic_at_upper_bound{}};
+            -4.0, 2.5 * var.id(), basis_status::nonbasic_at_upper_bound{}};
     });
 
     EXPECT_EQ(master_get<reduced_cost>(columns, 10), -4.0);
@@ -185,7 +187,7 @@ GTEST_TEST(column_manager, update_columns_reaches_both_states) {
     manager columns;
     fake_model model;
     columns.emplace_column(1);
-    columns.emplace_master_column(2, model.new_variable());
+    columns.emplace_master_column(2, model.add_variable());
 
     // the single-callback overload broadcasts one event to every column
     columns.update_columns(
@@ -196,7 +198,7 @@ GTEST_TEST(column_manager, update_columns_reaches_both_states) {
     // the two-callback overload builds a distinct event per state
     columns.update_columns(
         [](const int &) { return priced{-1.0}; },
-        [](const int &, const int &) { return priced{-2.0}; });
+        [](const int &, const auto &) { return priced{-2.0}; });
     EXPECT_EQ(pool_get<reduced_cost>(columns, 1), -1.0);
     EXPECT_EQ(master_get<reduced_cost>(columns, 2), -2.0);
 }
@@ -221,7 +223,7 @@ GTEST_TEST(column_manager, activation_selects_matching_columns) {
         EXPECT_LT(rc.at(seed), 0.0)
             << "activated a non-improving column (seed " << seed << ")";
         activated_seeds.push_back(seed);
-        return m.new_variable();
+        return m.add_variable();
     };
 
     auto result = columns.manage_columns(
@@ -247,12 +249,12 @@ GTEST_TEST(column_manager, eviction_reads_state_in_remove_lambda) {
     manager columns;
     fake_model model;
     for(int seed : {1, 2, 3})
-        columns.emplace_master_column(seed, model.new_variable());
+        columns.emplace_master_column(seed, model.add_variable());
     ASSERT_EQ(columns.num_master_columns(), 3u);
 
     const std::unordered_map<int, double> rc = {{1, 1.0}, {2, -0.5}, {3, 3.0}};
     columns.update_master_columns(
-        [&](const int & seed, const int &) { return priced{rc.at(seed)}; });
+        [&](const int & seed, const auto &) { return priced{rc.at(seed)}; });
 
     std::vector<int> evicted_seeds;
     auto remove_columns = [&](fake_model &, auto && evicted_entries) {
@@ -295,7 +297,7 @@ GTEST_TEST(column_manager, at_most_k_best_ranks_by_state_property) {
     std::vector<int> activated_seeds;
     auto add_column = [&](fake_model & m, const int & seed) {
         activated_seeds.push_back(seed);
-        return m.new_variable();
+        return m.add_variable();
     };
 
     // lesser reduced cost is better
@@ -335,7 +337,7 @@ GTEST_TEST(column_manager, age_resets_and_times_activated_persists) {
 
     // evict it back to the pool, then reactivate : times_activated accumulates
     columns.update_master_columns(
-        [](const int &, const int &) { return priced{5.0}; });
+        [](const int &, const auto &) { return priced{5.0}; });
     auto no_remove = [](fake_model &, auto &&) {};
     columns.manage_columns(model, none{}, all<positive<reduced_cost>>{},
                            make_variable, no_remove);
@@ -355,7 +357,7 @@ GTEST_TEST(column_manager, purge_pool_spares_master_columns) {
     manager columns;
     fake_model model;
     for(int seed : {1, 2, 3}) columns.emplace_column(seed);
-    columns.emplace_master_column(4, model.new_variable());
+    columns.emplace_master_column(4, model.add_variable());
 
     const std::unordered_map<int, double> rc = {{1, -1.0}, {2, 0.5}, {3, 2.0}};
     columns.update_pool_columns(price_from(rc));

@@ -17,24 +17,7 @@
 namespace mippp {
 namespace xpress::v45_1 {
 
-class xpress_base : public model_base<int, double> {
-public:
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
+class xpress_base : protected model_base<int, double> {
 protected:
     const xpress_api * XPRS;
     XPRSprob prob;
@@ -59,6 +42,9 @@ protected:
     // }
 
 public:
+    // the anchor model_variable_params_t deduces from
+    using model_base<int, double>::default_variable_params;
+
     [[nodiscard]] explicit xpress_base(const xpress_api & api)
         : model_base<int, double>(), XPRS(&api), objective_offset(0.0) {
         check(XPRS->createprob(&prob));
@@ -98,6 +84,15 @@ public:
         check(XPRS->getintattrib(prob, XPRS_ELEMS, &num_entries));
         return static_cast<std::size_t>(num_entries);
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    XPRSprob native_model() const noexcept { return prob; }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -151,8 +146,7 @@ public:
             XPRS->getobj(prob, coefs.get(), 0, static_cast<int>(num_vars) - 1));
         return linear_expression_view(
             std::views::transform(
-                std::views::iota(variable_id{0},
-                                 static_cast<variable_id>(num_vars)),
+                std::views::iota(index{0}, static_cast<index>(num_vars)),
                 [coefs = std::move(coefs)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -224,7 +218,7 @@ public:
                        variable_params params = {
                            .obj_coef = 0,
                            .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
+                           .upper_bound = std::nullopt}) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
         return _make_variables_view(offset, count);
@@ -234,7 +228,7 @@ public:
                        variable_params params = {
                            .obj_coef = 0,
                            .lower_bound = 0,
-                           .upper_bound = std::nullopt}) noexcept {
+                           .upper_bound = std::nullopt}) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
         return _make_indexed_variables_view(offset, count,
@@ -251,7 +245,7 @@ public:
     template <typename NL>
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
         return _make_named_variables_view(offset, count,
@@ -260,7 +254,7 @@ public:
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, 'C');
         return _make_indexed_named_variables_view(
@@ -299,17 +293,17 @@ public:
         int var_id = v.id();
         check(XPRS->chgobj(prob, 1, &var_id, &c));
     }
-    void set_variable_lower_bound(variable v, double lb) noexcept {
+    void set_variable_lower_bound(variable v, double lb) {
         int var_id = v.id();
         char bt = 'L';
         check(XPRS->chgbounds(prob, 1, &var_id, &bt, &lb));
     }
-    void set_variable_upper_bound(variable v, double ub) noexcept {
+    void set_variable_upper_bound(variable v, double ub) {
         int var_id = v.id();
         char bt = 'U';
         check(XPRS->chgbounds(prob, 1, &var_id, &bt, &ub));
     }
-    void set_variable_name(variable v, const std::string & name) noexcept {
+    void set_variable_name(variable v, const std::string & name) {
         check(XPRS->addnames(prob, XPRS_NAMES_COLUMN, name.data(), v.id(),
                              v.id()));
     }
@@ -319,17 +313,17 @@ public:
         check(XPRS->getobj(prob, &coef, v.id(), v.id()));
         return coef;
     }
-    double get_variable_lower_bound(variable v) noexcept {
+    double get_variable_lower_bound(variable v) {
         double b;
         check(XPRS->getlb(prob, &b, v.id(), v.id()));
         return b;
     }
-    double get_variable_upper_bound(variable v) noexcept {
+    double get_variable_upper_bound(variable v) {
         double b;
         check(XPRS->getub(prob, &b, v.id(), v.id()));
         return b;
     }
-    std::string get_variable_name(variable v) noexcept {
+    std::string get_variable_name(variable v) {
         int nbytes;
         check(XPRS->getnamelist(prob, XPRS_NAMES_COLUMN, nullptr, 0, &nbytes,
                                 v.id(), v.id()));

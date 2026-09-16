@@ -38,6 +38,7 @@ INSTANTIATE_TEST(CPLEX_milp, RemoveVariableTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, ReadableConstraintsTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, SudokuTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, CandidateSolutionCallbackTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, LazyConstraintsTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, TravellingSalesmanTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, TimeLimitTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, MipStartTest, cplex_milp_test);

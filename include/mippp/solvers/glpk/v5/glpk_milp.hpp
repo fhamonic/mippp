@@ -51,7 +51,7 @@ public:
     }
     auto add_integer_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_IV);
         return _make_variables_view(offset, count);
@@ -59,7 +59,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, GLP_IV);
         return _make_indexed_variables_view(offset, count,
@@ -83,13 +83,13 @@ public:
                       GLP_BV);
         return variable(var_id);
     }
-    auto add_binary_variables(std::size_t count) noexcept {
+    auto add_binary_variables(std::size_t count) {
         const std::size_t offset = num_variables();
         _add_binary_variables(offset, count);
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         const std::size_t offset = num_variables();
         _add_binary_variables(offset, count);
         return _make_indexed_variables_view(offset, count,

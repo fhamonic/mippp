@@ -66,7 +66,7 @@ int main() {
 
     api_type api;
     lp_type model(api);
-    using var_t = lp_type::variable;
+    using var_t = model_variable_t<lp_type>;
 
     model.set_minimization();
 

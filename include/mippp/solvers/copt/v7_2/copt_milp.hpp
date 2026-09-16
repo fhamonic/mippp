@@ -28,7 +28,7 @@ public:
     }
     auto add_integer_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(count, params, COPT_INTEGER);
         return _make_variables_view(offset, count);
@@ -36,7 +36,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(count, params, COPT_INTEGER);
         return _make_indexed_variables_view(offset, count,
@@ -65,29 +65,29 @@ public:
             {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
             COPT_BINARY);
     }
-    auto add_binary_variables(std::size_t count) noexcept {
+    auto add_binary_variables(std::size_t count) {
         const std::size_t offset = num_variables();
         _add_binary_variables(count);
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         const std::size_t offset = num_variables();
         _add_binary_variables(count);
         return _make_indexed_variables_view(offset, count,
                                             std::forward<IL>(id_lambda));
     }
-    void set_continuous(variable v) noexcept {
+    void set_continuous(variable v) {
         int var_id = v.id();
         char type = COPT_CONTINUOUS;
         check(COPT->SetColType(prob, 1, &var_id, &type));
     }
-    void set_integer(variable v) noexcept {
+    void set_integer(variable v) {
         int var_id = v.id();
         char type = COPT_INTEGER;
         check(COPT->SetColType(prob, 1, &var_id, &type));
     }
-    void set_binary(variable v) noexcept {
+    void set_binary(variable v) {
         int var_id = v.id();
         char type = COPT_BINARY;
         check(COPT->SetColType(prob, 1, &var_id, &type));
@@ -95,7 +95,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Callbacks ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    class candidate_solution_callback_handle : public model_base<int, double> {
+    class candidate_solution_callback_handle : protected model_base<int, double> {
     private:
         const copt_api * COPT;
         copt_prob * prob;

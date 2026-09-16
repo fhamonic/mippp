@@ -32,6 +32,7 @@ INSTANTIATE_TEST(COPT_milp, NamedVariablesTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, AddColumnTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, SudokuTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, CandidateSolutionCallbackTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, LazyConstraintsTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, TravellingSalesmanTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, TimeLimitTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, MipStartTest, copt_milp_test);

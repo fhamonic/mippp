@@ -73,12 +73,21 @@ The matrices below record which features are implemented **and tested** per back
 Notable current limitations (see the
 [roadmap](https://github.com/fhamonic/mippp#roadmap) for what's planned):
 
-- **Callbacks** — candidate-solution callbacks are implemented on Gurobi, CPLEX, COPT, SCIP and Xpress, and validated on Gurobi, CPLEX and COPT. Node-relaxation (user-cut) callbacks are specified but not yet implemented.
+- **Callbacks** — candidate-solution callbacks are implemented on Gurobi, CPLEX, COPT and Xpress, and validated on Gurobi, CPLEX and COPT; SCIP has none yet. Node-relaxation (user-cut) callbacks are specified but not yet implemented.
 - **Solve status** — `solve_status()` is part of `lp_model`, so every backend reports one, but the set of tags a backend can return varies (it is part of the model type). `refine_lp_status()` — resolving `infeasible_or_unbounded` into one of the two — exists only on `gurobi_lp` and `cplex_lp`, and `glpk_milp` cannot yet report `infeasible`. See [Status, limits and tolerances](../solving/status-and-limits.md).
 - **Quadratic objectives** — HiGHS only. Quadratic constraints: none yet.
 - **SOS constraints and LP basis warm starts** — specified as concepts, not yet implemented by any backend.
-- **Indicator constraints** — usable on Gurobi and CPLEX by calling `add_indicator_constraint` directly, but `has_indicator_constraints` is `false` everywhere because those implementations return `void` where the concept expects a constraint handle ([details](../modeling/special-constraints.md#one-model-both-encodings)).
-- **Solver-specific parameters** — the uniform interface covers [limits and tolerances](../solving/status-and-limits.md), but there is no passthrough yet for solver-specific knobs such as Gurobi's `MIPFocus` or CPLEX's emphasis settings. The `*_api` object you construct exposes every raw C function it loads, so the *functions* are reachable — but the model classes keep their native model and environment handles `protected`, so there is currently **no supported escape hatch** to call them on your model. A public native-handle accessor is on the roadmap; until it lands, a uniform interface is all you get, and research that depends on solver-specific tuning should account for that.
+- **Indicator constraints** — Gurobi and CPLEX only (`has_indicator_constraints`). The call returns no handle, so an indicator constraint cannot be read back or edited once added ([details](../modeling/special-constraints.md)).
+- **Solver-specific parameters** — the uniform interface covers [limits and tolerances](../solving/status-and-limits.md); there is no uniform passthrough for solver-specific knobs such as Gurobi's `MIPFocus` or CPLEX's emphasis settings. The escape hatch is `native_model()`, which every model class provides: it returns the solver's own objects, and the `*_api` object exposes every raw C function it loads, so the call is made directly:
+
+    ```cpp
+    gurobi_api api;
+    gurobi_milp model(api);
+    auto [env, grb_model] = model.native_model();
+    api.setintparam(env, "MIPFocus", 2);
+    ```
+
+    What comes back depends on the backend: a `(env, model)` pair where the solver has an environment — `std::pair<GRBenv *, GRBmodel *>` (Gurobi), `std::pair<CPXENVptr, CPXLPptr>` (CPLEX), `std::pair<copt_env *, copt_prob *>` (COPT), `std::pair<MSKenv_t, MSKtask_t>` (MOSEK) — and the single problem object otherwise: `XPRSprob` (Xpress), `SCIP *` (SCIP), `glp_prob *` (GLPK), `Clp_Simplex *` (Clp), `Cbc_Model *` (Cbc), `void *` (HiGHS, SoPlex). Anything done through these handles bypasses MIP++'s bookkeeping (variable handle remapping after removals, name tracking), so keep it to parameters and read-only queries.
 
 ## Next
 

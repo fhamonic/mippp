@@ -5,6 +5,7 @@
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <utility>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -18,31 +19,13 @@
 namespace mippp {
 namespace mosek::v11 {
 
-class mosek_base : public model_base<int, double> {
-public:
-    using indice = MSKint32t;
-    using variable_id = MSKint32t;
-    using constraint_id = MSKint32t;
-    using scalar = MSKrealt;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
+class mosek_base : protected model_base<int, double> {
 protected:
     const mosek_api * MSK;
     MSKenv_t env;
     MSKtask_t task;
 
-    std::vector<indice> tmp_begins;
+    std::vector<index> tmp_begins;
     std::vector<MSKboundkeye> tmp_boundkeye;
     std::vector<scalar> tmp_rhs;
     std::vector<MSKvariabletypee> tmp_vartype;
@@ -62,6 +45,9 @@ protected:
     }
 
 public:
+    // the anchor model_variable_params_t deduces from
+    using model_base<int, double>::default_variable_params;
+
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
         : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr) {
         const auto env_path_str =
@@ -107,6 +93,17 @@ public:
         return static_cast<std::size_t>(num);
     }
     ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    std::pair<MSKenv_t, MSKtask_t> native_model() const noexcept {
+        return {env, task};
+    }
+
+public:
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
@@ -126,7 +123,7 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(MSK->putcslice(task, 0, static_cast<indice>(num_vars),
+        check(MSK->putcslice(task, 0, static_cast<index>(num_vars),
                              tmp_scalars.data()));
         set_objective_offset(le.constant());
     }
@@ -141,7 +138,7 @@ public:
         for(auto && [var, coef] : le.linear_terms()) {
             tmp_scalars[var.uid()] += coef;
         }
-        check(MSK->putcslice(task, 0, static_cast<indice>(num_vars),
+        check(MSK->putcslice(task, 0, static_cast<index>(num_vars),
                              tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
@@ -161,8 +158,7 @@ public:
         check(MSK->getc(task, coefs.get()));
         return linear_expression_view(
             std::views::transform(
-                std::views::iota(variable_id{0},
-                                 static_cast<variable_id>(num_vars)),
+                std::views::iota(index{0}, static_cast<index>(num_vars)),
                 [coefs = std::move(coefs)](auto i) {
                     return std::make_pair(variable(i), coefs[i]);
                 }),
@@ -199,8 +195,8 @@ protected:
         if(auto obj = params.obj_coef; obj != 0.0) {
             tmp_scalars.resize(count);
             std::fill(tmp_scalars.begin(), tmp_scalars.end(), obj);
-            check(MSK->putcslice(task, static_cast<variable_id>(offset),
-                                 static_cast<variable_id>(offset + count),
+            check(MSK->putcslice(task, static_cast<index>(offset),
+                                 static_cast<index>(offset + count),
                                  tmp_scalars.data()));
         }
         MSKboundkeye boundkey = MSK_BK_FR;
@@ -214,16 +210,16 @@ protected:
             boundkey = MSK_BK_UP;
         }
         check(MSK->putvarboundsliceconst(
-            task, static_cast<variable_id>(offset),
-            static_cast<variable_id>(offset + count), boundkey, lb, ub));
+            task, static_cast<index>(offset),
+            static_cast<index>(offset + count), boundkey, lb, ub));
 
         if(type != MSK_VAR_TYPE_CONT) {
             tmp_indices.resize(count);
             std::iota(tmp_indices.begin(), tmp_indices.end(),
-                      static_cast<variable_id>(offset));
+                      static_cast<index>(offset));
             tmp_vartype.resize(count);
             std::fill(tmp_vartype.begin(), tmp_vartype.end(), type);
-            check(MSK->putvartypelist(task, static_cast<indice>(count),
+            check(MSK->putvartypelist(task, static_cast<index>(count),
                                       tmp_indices.data(), tmp_vartype.data()));
         }
     }
@@ -237,7 +233,7 @@ public:
     }
     auto add_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_variables_view(offset, count);
@@ -245,7 +241,7 @@ public:
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_indexed_variables_view(offset, count,
@@ -262,7 +258,7 @@ public:
     template <typename NL>
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_named_variables_view(offset, count,
@@ -271,7 +267,7 @@ public:
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_CONT);
         return _make_indexed_named_variables_view(
@@ -347,13 +343,13 @@ public:
 private:
     template <bool distinct, linear_constraint LC>
     constraint _add_constraint(LC && lc) {
-        auto constr_id = static_cast<constraint_id>(num_constraints());
+        auto constr_id = static_cast<index>(num_constraints());
         check(MSK->appendcons(task, 1));
         if constexpr(!distinct) _prepare_coalescing(num_variables());
         _reset_cache();
         _register_variables_entries<distinct>(lc.linear_terms());
         check(MSK->putarow(task, constr_id,
-                           static_cast<indice>(tmp_indices.size()),
+                           static_cast<index>(tmp_indices.size()),
                            tmp_indices.data(), tmp_scalars.data()));
         const scalar b = lc.rhs();
         check(MSK->putconbound(task, constr_id,
@@ -375,7 +371,7 @@ public:
 private:
     template <bool distinct, linear_constraint LC>
     void _register_constraint(LC && lc) {
-        tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
+        tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
         tmp_boundkeye.emplace_back(constraint_sense_to_mosek_sense(lc.sense()));
         tmp_rhs.emplace_back(lc.rhs());
         _register_variables_entries<distinct>(lc.linear_terms());
@@ -409,15 +405,15 @@ private:
         tmp_begins.resize(0);
         tmp_boundkeye.resize(0);
         tmp_rhs.resize(0);
-        const indice offset = static_cast<indice>(num_constraints());
-        indice constr_id = offset;
+        const index offset = static_cast<index>(num_constraints());
+        index constr_id = offset;
         for(auto && key : keys) {
             _register_first_valued_constraint<distinct>(key,
                                                         constraint_lambdas...);
             ++constr_id;
         }
         check(MSK->appendcons(task, constr_id - offset));
-        tmp_begins.emplace_back(static_cast<indice>(tmp_indices.size()));
+        tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
         check(MSK->putarowslice(task, offset, constr_id, tmp_begins.data(),
                                 tmp_begins.data() + 1, tmp_indices.data(),
                                 tmp_scalars.data()));

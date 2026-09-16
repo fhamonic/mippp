@@ -11,34 +11,45 @@ namespace mippp {
 template <typename T>
 struct CandidateSolutionCallbackTest : public T {
     using typename T::model_type;
+    static_assert(milp_model<model_type>);
     static_assert(has_candidate_solution_callback<model_type>);
 };
 TYPED_TEST_SUITE_P(CandidateSolutionCallbackTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CandidateSolutionCallbackTest);
 
-TYPED_TEST_P(CandidateSolutionCallbackTest, lp_behavior) {
+TYPED_TEST_P(CandidateSolutionCallbackTest, reads_every_candidate) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
-        auto x1 = model.add_variable();
-        auto x2 = model.add_variable();
-        auto x3 = model.add_variable();
+        auto a = model.add_binary_variable();
+        auto b = model.add_binary_variable();
+        auto c = model.add_binary_variable();
         model.set_maximization();
-        model.set_objective(5 * x1 + 4 * x2 + 3 * x3);
-        model.add_constraint(2 * x1 + 2 * x2 - x3 >= 5);
-        model.add_constraint(4 * x1 + x2 + 2 * x3 <= 11);
-        model.add_constraint(3 * x1 + 4 * x2 + 2 * x3 == 8);
-        model.set_candidate_solution_callback([](auto &) {
+        model.set_objective(3 * a + 2 * b + c);
+        model.add_constraint(a + b + c <= 2);
 
+        int num_candidates = 0;
+        int num_invalid = 0;
+        model.set_candidate_solution_callback([&](auto & handle) {
+            ++num_candidates;
+            auto solution = handle.get_solution();
+            for(auto x : {a, b, c}) {
+                if(solution[x] < -TEST_EPSILON ||
+                   solution[x] > 1 + TEST_EPSILON)
+                    ++num_invalid;
+            }
+            if(solution[a] + solution[b] + solution[c] > 2 + TEST_EPSILON)
+                ++num_invalid;
         });
-        try {
-            model.solve();
-            // TODO
-        } catch(const std::runtime_error & e) {
-        }
+        model.solve();
+
+        ASSERT_GE(num_candidates, 1);
+        ASSERT_EQ(num_invalid, 0);
+        ASSERT_NEAR(model.get_solution_value(), 5, TEST_EPSILON);
     });
 }
 
-REGISTER_TYPED_TEST_SUITE_P(CandidateSolutionCallbackTest, lp_behavior);
+REGISTER_TYPED_TEST_SUITE_P(CandidateSolutionCallbackTest,
+                            reads_every_candidate);
 
 }  // namespace mippp

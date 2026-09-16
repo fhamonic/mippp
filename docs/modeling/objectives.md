@@ -66,7 +66,7 @@ model.add_constraint(model.get_objective() <= incumbent_value - 1);
 
 ## Quadratic objectives
 
-Model classes satisfying `qp_model` accept a quadratic expression in `set_objective`. Products of expressions and `square(e)` build them:
+Model classes satisfying `qp_model` take a quadratic expression in `set_quadratic_objective`. Products of expressions and `square(e)` build them:
 
 ```cpp
 highs_qp model(api);
@@ -74,9 +74,11 @@ auto x1 = model.add_variable();
 auto x2 = model.add_variable();
 
 model.set_minimization();
-model.set_objective(2 * x1 * x1 + 2 * x2 * x2 - 4 * x1 - 6 * x2);
+model.set_quadratic_objective(2 * x1 * x1 + 2 * x2 * x2 - 4 * x1 - 6 * x2);
 model.add_constraint(x1 + x2 >= 3);
 ```
+
+`set_objective` stays linear on every model and replaces the whole objective: calling it after `set_quadratic_objective` drops the quadratic part. Reading goes the same way — `get_objective()` returns the linear part, and a backend satisfying `has_readable_quadratic_objective` also provides `get_quadratic_objective()`, the whole objective as a quadratic expression.
 
 Notes specific to the quadratic layer:
 

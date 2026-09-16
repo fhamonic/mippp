@@ -69,10 +69,10 @@ public:
     static constexpr double data_tolerance = 1e-9;
     static constexpr double solution_tolerance = 1e-5;
 
-    using tested_variable = typename Tested::variable;
-    using tested_constraint = typename Tested::constraint;
-    using reference_variable = dumb_lp::variable;
-    using reference_constraint = dumb_lp::constraint;
+    using tested_variable = model_variable_t<Tested>;
+    using tested_constraint = model_constraint_t<Tested>;
+    using reference_variable = model_variable_t<dumb_lp>;
+    using reference_constraint = model_constraint_t<dumb_lp>;
 
 private:
     struct variable_entry {
@@ -210,7 +210,7 @@ private:
         return spec;
     }
     template <typename M>
-    static typename M::variable_params _to_params(const params_spec & spec) {
+    static model_variable_params_t<M> _to_params(const params_spec & spec) {
         return {.obj_coef = spec.obj_coef,
                 .lower_bound = spec.lower_bound,
                 .upper_bound = spec.upper_bound};

@@ -27,8 +27,8 @@ template <typename Model, typename ColumnSeed,
           typename KeyEqual = std::equal_to<ColumnSeed>>
 class column_manager {
 public:
-    using variable = typename Model::variable;
-    using scalar = typename Model::scalar;
+    using variable = model_variable_t<Model>;
+    using scalar = model_scalar_t<Model>;
     using column_seed = ColumnSeed;
     using in_pool_state = typename detail::in_pool_state_from_property_list<
         InPoolProperties>::type;

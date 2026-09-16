@@ -11,11 +11,28 @@
 
 namespace mippp {
 
+// Backends derive from this class (and from remapping_model_base) with
+// protected inheritance: it is an implementation detail, not a common base a
+// user may name, so nothing here is frozen by the public API. The one
+// member the concepts need, default_variable_params, is re-exposed by each
+// backend with a public using-declaration.
 template <std::integral _Index, std::floating_point _Scalar>
 class model_base {
-public:
+protected:
+    using index = _Index;
+    using scalar = _Scalar;
     using variable = model_variable<_Index, _Scalar>;
     using constraint = model_constraint<_Index>;
+    template <typename Map>
+    struct variable_mapping : entity_mapping<variable, Map> {
+        variable_mapping(Map && t)
+            : entity_mapping<variable, Map>(std::move(t)) {}
+    };
+    template <typename Map>
+    struct constraint_mapping : entity_mapping<constraint, Map> {
+        constraint_mapping(Map && t)
+            : entity_mapping<constraint, Map>(std::move(t)) {}
+    };
 
     struct variable_params {
         _Scalar obj_coef = _Scalar{0};
@@ -23,6 +40,8 @@ public:
         std::optional<_Scalar> upper_bound = std::nullopt;
     };
 
+public:
+    // the anchor model_variable_params_t deduces from
     static constexpr variable_params default_variable_params = {
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
@@ -62,7 +81,7 @@ protected:
             std::forward<IL>(id_lambda));
     }
     template <typename NL, typename M>
-        requires requires(M & model, typename M::variable v, std::string n) {
+        requires requires(M & model, model_variable_t<M> v, std::string n) {
             model.set_variable_name(v, n);
         }
     inline auto _make_named_variables_view(const std::size_t & offset,
@@ -75,7 +94,7 @@ protected:
         return _make_variables_view(offset, count);
     }
     template <typename IL, typename NL, typename M>
-        requires requires(M & model, typename M::variable v, std::string n) {
+        requires requires(M & model, model_variable_t<M> v, std::string n) {
             model.set_variable_name(v, n);
         }
     inline auto _make_indexed_named_variables_view(const std::size_t & offset,

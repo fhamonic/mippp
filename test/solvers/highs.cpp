@@ -45,6 +45,7 @@ struct highs_qp_test : public model_test<highs_api, highs_qp> {
 INSTANTIATE_TEST(HiGHS_qp, LpModelTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, QpModelTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ReadableObjectiveTest, highs_qp_test);
+INSTANTIATE_TEST(HiGHS_qp, ReadableQuadraticObjectiveTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ModifiableObjectiveTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ReadableVariablesBoundsTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ModifiableVariablesBoundsTest, highs_qp_test);

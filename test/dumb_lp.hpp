@@ -33,13 +33,10 @@ namespace mippp {
 // headers are included or the declarations of clp_api.hpp are used
 namespace clp::v1_17 {
 
-class dumb_lp : public model_base<int, double> {
-public:
+class dumb_lp : protected model_base<int, double> {
+protected:
     using variable_id = int;
     using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
     template <typename Map>
     struct variable_mapping : entity_mapping<variable, Map> {
         variable_mapping(Map && t)
@@ -51,6 +48,7 @@ public:
             : entity_mapping<constraint, Map>(std::move(t)) {}
     };
 
+public:
     static constexpr scalar infinity = std::numeric_limits<double>::max();
 
 private:
@@ -86,6 +84,9 @@ private:
     std::vector<scalar> _dual_solution;
 
 public:
+    // the anchor model_variable_params_t deduces from
+    using model_base<int, double>::default_variable_params;
+
     [[nodiscard]] explicit dumb_lp(const clp_api & api)
         : model_base<int, double>(), Clp(api) {}
 

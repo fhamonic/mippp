@@ -35,7 +35,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count, params, MSK_VAR_TYPE_INT);
         return _make_indexed_variables_view(offset, count,
@@ -56,7 +56,7 @@ public:
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         const std::size_t offset = num_variables();
         _add_variables(offset, count,
                        variable_params{.lower_bound = 0, .upper_bound = 1},
@@ -65,13 +65,13 @@ public:
                                             std::forward<IL>(id_lambda));
     }
 
-    void set_continuous(variable v) noexcept {
+    void set_continuous(variable v) {
         check(MSK->putvartype(task, v.id(), MSK_VAR_TYPE_CONT));
     }
-    void set_integer(variable v) noexcept {
+    void set_integer(variable v) {
         check(MSK->putvartype(task, v.id(), MSK_VAR_TYPE_INT));
     }
-    void set_binary(variable v) noexcept {
+    void set_binary(variable v) {
         set_integer(v);
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);

@@ -29,7 +29,7 @@ public:
     }
     auto add_integer_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_INTEGER);
         return _make_variables_view(handle_ids_begin, count);
@@ -37,7 +37,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, CPX_INTEGER);
         return _make_indexed_variables_view(handle_ids_begin, count,
@@ -69,27 +69,27 @@ public:
                       CPX_BINARY);
         return _new_var_handle(var_id);
     }
-    auto add_binary_variables(std::size_t count) noexcept {
+    auto add_binary_variables(std::size_t count) {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
         return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
         return _make_indexed_variables_view(handle_ids_begin, count,
                                             std::forward<IL>(id_lambda));
     }
-    void set_continuous(variable v) noexcept {
+    void set_continuous(variable v) {
         int var_id = _native_id(v);
         char type = CPX_CONTINUOUS;
         check(CPX->chgctype(env, lp, 1, &var_id, &type));
     }
-    void set_integer(variable v) noexcept {
+    void set_integer(variable v) {
         int var_id = _native_id(v);
         char type = CPX_INTEGER;
         check(CPX->chgctype(env, lp, 1, &var_id, &type));
     }
-    void set_binary(variable v) noexcept {
+    void set_binary(variable v) {
         int var_id = _native_id(v);
         char type = CPX_BINARY;
         check(CPX->chgctype(env, lp, 1, &var_id, &type));
@@ -128,7 +128,7 @@ public:
     //////////////////////////////// Callbacks ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
-    class callback_handle_base : public model_base<int, double> {
+    class callback_handle_base : protected model_base<int, double> {
     protected:
         const cplex_api * CPX;
         CPXCALLBACKCONTEXTptr context;

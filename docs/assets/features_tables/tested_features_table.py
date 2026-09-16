@@ -52,6 +52,7 @@ formated_test_names = [
     ("ReducedCostsTest", "Reduced costs"),
     ("CuttingStockTest", "Cutting stock example"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),
+    ("LazyConstraintsTest", "Lazy constraints"),
     ("TravellingSalesmanTest", "Travelling Salesman example"),
     ("TimeLimitTest", "Time limit"),
     ("MipStartTest", "MIP start"),

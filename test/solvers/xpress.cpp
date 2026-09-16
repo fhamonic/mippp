@@ -31,6 +31,10 @@ INSTANTIATE_TEST(Xpress_milp, ModifiableVariablesBoundsTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, NamedVariablesTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, AddColumnTest, xpress_milp_test);
 // INSTANTIATE_TEST(Xpress_milp, CandidateSolutionCallbackTest, xpress_milp_test);
+static_assert(mippp::has_candidate_solution_callback<mippp::xpress_milp>);
+static_assert(!mippp::has_lazy_constraints<
+              mippp::candidate_solution_callback_handle_t<mippp::xpress_milp>,
+              mippp::xpress_milp>);
 INSTANTIATE_TEST(Xpress_milp, SudokuTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, TimeLimitTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, MipStartTest, xpress_milp_test);

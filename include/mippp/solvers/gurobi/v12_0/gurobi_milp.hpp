@@ -23,7 +23,7 @@ public:
     }
     auto add_integer_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_INTEGER);
         return _make_variables_view(handle_ids_begin, count);
@@ -31,7 +31,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_INTEGER);
         return _make_indexed_variables_view(handle_ids_begin, count,
@@ -59,25 +59,25 @@ public:
             {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
             GRB_BINARY, nullptr);
     }
-    auto add_binary_variables(std::size_t count) noexcept {
+    auto add_binary_variables(std::size_t count) {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
         return _make_variables_view(handle_ids_begin, count);
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         const std::size_t handle_ids_begin = _add_binary_variables(count);
         return _make_indexed_variables_view(handle_ids_begin, count,
                                             std::forward<IL>(id_lambda));
     }
-    void set_continuous(variable v) noexcept {
+    void set_continuous(variable v) {
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
                                       GRB_CONTINUOUS));
     }
-    void set_integer(variable v) noexcept {
+    void set_integer(variable v) {
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
                                       GRB_INTEGER));
     }
-    void set_binary(variable v) noexcept {
+    void set_binary(variable v) {
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
                                       GRB_BINARY));
     }
@@ -133,7 +133,7 @@ private:
 
 public:
     class candidate_solution_callback_handle : public callback_handle_base,
-                                               public model_base<int, double> {
+                                               protected model_base<int, double> {
     public:
         candidate_solution_callback_handle(const gurobi_milp & parent_,
                                            GRBmodel * master_model_,
@@ -302,11 +302,12 @@ private:
             case GRB_NODE_LIMIT:      return node_limit{sol_available};
             case GRB_SOLUTION_LIMIT:  return solution_limit{sol_available};
             case GRB_MEM_LIMIT:       return memory_limit{sol_available};
+            case GRB_CUTOFF:
             case GRB_USER_OBJ_LIMIT:
             case GRB_WORK_LIMIT:      return limit_reached{sol_available};
             default:
                 return unknown{sol_available}; 
-        }// TODO: what for GRB_CUTOFF ?
+        }
     }
     // clang-format on
 public:

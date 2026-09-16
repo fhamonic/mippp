@@ -84,6 +84,21 @@ HighsInt Highs_passHessian(void * highs, const HighsInt dim,
                            const HighsInt num_nz, const HighsInt format,
                            const HighsInt * start, const HighsInt * index,
                            const double * value);
+HighsInt Highs_getHessianNumNz(const void * highs);
+enum MatrixFormat : HighsInt {
+    kHighsMatrixFormatColwise = 1,
+    kHighsMatrixFormatRowwise = 2
+};
+HighsInt Highs_getModel(const void * highs, const HighsInt a_format,
+                        const HighsInt q_format, HighsInt * num_col,
+                        HighsInt * num_row, HighsInt * num_nz,
+                        HighsInt * hessian_num_nz, HighsInt * sense,
+                        double * offset, double * col_cost, double * col_lower,
+                        double * col_upper, double * row_lower,
+                        double * row_upper, HighsInt * a_start,
+                        HighsInt * a_index, double * a_value,
+                        HighsInt * q_start, HighsInt * q_index,
+                        double * q_value, HighsInt * integrality);
 
 enum VarType : HighsInt {
     kHighsVarTypeContinuous = 0,
@@ -267,6 +282,8 @@ namespace highs::v1_10 {
     F(Highs_addRow, addRow)                                             \
     F(Highs_addRows, addRows)                                           \
     F(Highs_passHessian, passHessian)                                   \
+    F(Highs_getHessianNumNz, getHessianNumNz)                           \
+    F(Highs_getModel, getModel)                                         \
     F(Highs_changeColIntegrality, changeColIntegrality)                 \
     F(Highs_changeColsIntegralityByRange, changeColsIntegralityByRange) \
     F(Highs_getColIntegrality, getColIntegrality)                       \

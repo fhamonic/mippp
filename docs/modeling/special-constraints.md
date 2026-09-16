@@ -22,7 +22,7 @@ An indicator constraint states that a linear constraint holds whenever a binary 
 model.add_indicator_constraint(z, true, x + y <= 10);
 ```
 
-The third argument is an ordinary constraint expression, so everything from the [expression layer](expressions.md) — `xsum`, filters, coefficient arithmetic — is available inside it. The member function is provided by **`gurobi_milp`** and **`cplex_milp`** (see the [caveat](#one-model-both-encodings) about the matching concept below).
+The third argument is an ordinary constraint expression, so everything from the [expression layer](expressions.md) — `xsum`, filters, coefficient arithmetic — is available inside it. The member function is provided by **`gurobi_milp`** and **`cplex_milp`**, which satisfy `has_indicator_constraints`. It returns no handle: unlike the rows of `add_constraint`, indicator constraints are numbered apart from the linear rows by both solvers, so a `constraint` handle could not designate one, and there is no read-back or edit API for them yet.
 
 Indicators are usually preferable to a big-M encoding when the solver supports them: no M has to be chosen, and the solver's own logic avoids the numerical weakness of a large coefficient.
 
@@ -82,10 +82,7 @@ Two details make this work smoothly:
 
 The same shape generalises to every optional capability — `has_sos1_constraints`, `has_mip_start`, `has_time_limit` — and is developed in [Writing solver-generic code](../solvers/generic-code.md).
 
-!!! warning "`has_indicator_constraints` is currently `false` on every backend"
-    The concept requires `add_indicator_constraint` to **return** a constraint handle, while `gurobi_milp` and `cplex_milp` declare it returning `void`. Their member function is perfectly usable when called directly — the example at the top of this section compiles and runs on both — but the concept they were meant to satisfy is not, so the `if constexpr` above takes the big-M branch everywhere for now.
-
-    That makes the helper the right thing to write today: it is correct on every backend, and it starts emitting native indicators on Gurobi and CPLEX the moment the signatures line up, with no change at any call site.
+With `gurobi_milp` or `cplex_milp` the `if constexpr` above emits a native indicator; on every other backend it takes the big-M branch. The helper is correct everywhere, and a backend that gains indicator support later switches branch with no change at any call site.
 
 ## Logical conditions between binaries
 

@@ -4,6 +4,7 @@
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <utility>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -17,25 +18,7 @@
 namespace mippp {
 namespace gurobi::v12_0 {
 
-class gurobi_base : public remapping_model_base<int, double> {
-public:
-    using indice = int;
-    using variable_id = int;
-    using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
+class gurobi_base : protected remapping_model_base<int, double> {
 protected:
     const gurobi_api * GRB;
     GRBenv * env;
@@ -65,6 +48,9 @@ protected:
     std::vector<bool> _var_name_set;
 
 public:
+    // the anchor model_variable_params_t deduces from
+    using remapping_model_base<int, double>::default_variable_params;
+
     [[nodiscard]] explicit gurobi_base(const gurobi_api & api)
         : remapping_model_base<int, double>()
         , GRB(&api)
@@ -194,6 +180,17 @@ public:
         check(GRB->getintattr(model, GRB_INT_ATTR_NUMNZS, &num));
         return static_cast<std::size_t>(num);
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    std::pair<GRBenv *, GRBmodel *> native_model() const noexcept {
+        return {env, model};
+    }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -331,7 +328,7 @@ public:
     }
     auto add_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_variables_view(handle_ids_begin, count);
@@ -339,7 +336,7 @@ public:
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_indexed_variables_view(handle_ids_begin, count,
@@ -354,7 +351,7 @@ public:
     template <typename NL>
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_named_variables_view(handle_ids_begin, count,
@@ -363,7 +360,7 @@ public:
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t handle_ids_begin =
             _add_variables(count, params, GRB_CONTINUOUS);
         return _make_indexed_named_variables_view(

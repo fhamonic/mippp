@@ -19,25 +19,7 @@
 namespace mippp {
 namespace highs::v1_10 {
 
-class highs_base : public remapping_model_base<int, double> {
-public:
-    using index = HighsInt;
-    using variable_id = HighsInt;
-    using constraint_id = HighsInt;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
+class highs_base : protected remapping_model_base<int, double> {
 protected:
     const highs_api * Highs;
     void * model;
@@ -49,6 +31,9 @@ protected:
     std::vector<scalar> tmp_upper_bounds;
 
 public:
+    // the anchor model_variable_params_t deduces from
+    using remapping_model_base<int, double>::default_variable_params;
+
     [[nodiscard]] explicit highs_base(const highs_api & api)
         : remapping_model_base<int, double>()
         , Highs(&api)
@@ -81,6 +66,15 @@ public:
     std::size_t num_entries() {
         return static_cast<std::size_t>(Highs->getNumNz(model));
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    void * native_model() const noexcept { return model; }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -163,8 +157,7 @@ public:
                                     &dummy_int, nullptr, nullptr, nullptr));
         return linear_expression_view(
             std::views::transform(
-                std::views::iota(variable_id{0},
-                                 static_cast<variable_id>(num_vars)),
+                std::views::iota(index{0}, static_cast<index>(num_vars)),
                 [this, coefs = std::move(coefs)](auto i) {
                     return std::make_pair(_var_handle(i), coefs[i]);
                 }),
@@ -284,7 +277,7 @@ public:
     }
     auto add_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_variables_view(offset, count);
@@ -292,7 +285,7 @@ public:
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_indexed_variables_view(offset, count,
@@ -309,7 +302,7 @@ public:
     template <typename NL>
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_named_variables_view(offset, count,
@@ -318,7 +311,7 @@ public:
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset =
             _add_variables(count, params, kHighsVarTypeContinuous);
         return _make_indexed_named_variables_view(

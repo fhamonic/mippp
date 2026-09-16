@@ -13,13 +13,12 @@
 
 #include "mippp/solvers/scip/v8/scip_api.hpp"
 
-#include <print>
 
 namespace mippp {
 namespace scip::v8 {
 
 class scip_milp {
-public:
+protected:
     using variable_id = int;
     using constraint_id = int;
     using scalar = double;
@@ -42,6 +41,7 @@ public:
         std::optional<scalar> upper_bound = std::nullopt;
     };
 
+public:
     static constexpr variable_params default_variable_params = {
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
 
@@ -151,6 +151,15 @@ public:
     std::size_t num_entries() {
         return static_cast<std::size_t>(SCIP->getNNZs(model));
     }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    // the solver's own objects, for solver-specific calls through the api;
+    // MIP++ bookkeeping (variable handles, names) is bypassed
+    struct Scip * native_model() const noexcept { return model; }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -267,7 +276,7 @@ public:
     }
     auto add_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
@@ -276,7 +285,7 @@ public:
     template <typename IL>
     auto add_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
@@ -292,7 +301,7 @@ public:
     }
     auto add_integer_variables(
         std::size_t count,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_INTEGER);
@@ -301,7 +310,7 @@ public:
     template <typename IL>
     auto add_integer_variables(
         std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_INTEGER);
@@ -315,7 +324,7 @@ public:
                       SCIP_VARTYPE_BINARY);
         return variable(var_id);
     }
-    auto add_binary_variables(std::size_t count) noexcept {
+    auto add_binary_variables(std::size_t count) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(
@@ -324,7 +333,7 @@ public:
         return _make_variables_view(offset, count);
     }
     template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) noexcept {
+    auto add_binary_variables(std::size_t count, IL && id_lambda) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(
@@ -344,7 +353,7 @@ public:
     template <typename NL>
     auto add_named_variables(
         std::size_t count, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS,
@@ -354,7 +363,7 @@ public:
     template <typename IL, typename NL>
     auto add_named_variables(
         std::size_t count, IL && id_lambda, NL && name_lambda,
-        variable_params params = default_variable_params) noexcept {
+        variable_params params = default_variable_params) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i)
             _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
@@ -363,17 +372,17 @@ public:
             std::forward<NL>(name_lambda));
     }
 
-    void set_continuous(variable v) noexcept {
+    void set_continuous(variable v) {
         unsigned int infeas;
         check(SCIP->chgVarType(model, variables[v.uid()],
                                SCIP_VARTYPE_CONTINUOUS, &infeas));
     }
-    void set_integer(variable v) noexcept {
+    void set_integer(variable v) {
         unsigned int infeas;
         check(SCIP->chgVarType(model, variables[v.uid()], SCIP_VARTYPE_INTEGER,
                                &infeas));
     }
-    void set_binary(variable v) noexcept {
+    void set_binary(variable v) {
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);
         unsigned int infeas;
@@ -506,91 +515,6 @@ public:
     // auto get_constraint(const constraint c) {}
     // auto get_constraint_name(constraint c) {}
 
-    ///////////////////////////////////////////////////////////////////////////
-    //////////////////////////////// Callbacks ////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
-private:
-    class callback_handle_base {
-    protected:
-        const scip_api * SCIP;
-        scip_milp & milp;
-        SCIP_RESULT * result;
-
-    public:
-        callback_handle_base(const scip_api * api, scip_milp & milp_,
-                             SCIP_RESULT * result_)
-            : SCIP(api), milp(milp_), result(result_) {}
-
-        std::size_t num_variables() { return milp.num_variables(); }
-    };
-
-public:
-    class candidate_solution_callback_handle : public callback_handle_base {
-    public:
-        candidate_solution_callback_handle(const scip_api * api,
-                                           scip_milp & milp_,
-                                           SCIP_RESULT * result_)
-            : callback_handle_base(api, milp_, result_) {
-            *result = SCIP_FEASIBLE;
-        }
-
-        void reject_solution() { *result = SCIP_INFEASIBLE; }
-        void add_lazy_constraint(linear_constraint auto && lc) {
-            milp.add_constraint(lc);
-            *result = SCIP_CONSADDED;
-        }
-        // double get_solution_value() {
-        //     double obj;
-        //     check(SCIP->callbackgetcandidatepoint(context, nullptr, 0, 0,
-        //     &obj)); return obj;
-        // }
-        auto get_solution() {
-            auto num_vars = num_variables();
-            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            SCIP_SOL * sol = SCIP->getBestSol(milp.model);
-            SCIP->getSolVals(milp.model, sol, static_cast<int>(num_vars),
-                             milp.variables.data(), solution.get());
-            return variable_mapping(std::move(solution));
-        }
-    };
-
-private:
-    SCIP_CONSHDLR * candidate_solution_constraint_handler;
-    std::function<void(candidate_solution_callback_handle &)>
-        candidate_solution_callback;
-
-    static SCIP_RETCODE candidate_solution_callback_fun(
-        [[maybe_unused]] struct Scip * scip,
-        [[maybe_unused]] SCIP_CONSHDLR * conshdlr,
-        [[maybe_unused]] SCIP_CONS ** conss, [[maybe_unused]] int nconss,
-        [[maybe_unused]] int nusefulconss,
-        [[maybe_unused]] SCIP_Bool solinfeasible,
-        [[maybe_unused]] SCIP_RESULT * result) {
-        std::println("*ptr = {:p}",
-                     *static_cast<void **>(conshdlr->conshdlrdata));
-
-        // auto * model = *(static_cast<scip_milp **>(conshdlr->conshdlrdata));
-        // candidate_solution_callback_handle handle(model->SCIP, *model,
-        // result); model->candidate_solution_callback(handle);
-        return SCIP_OKAY;
-    }
-
-public:
-    template <typename F>
-    void set_candidate_solution_callback(F && f) {
-        candidate_solution_callback = std::forward<F>(f);
-
-        auto ptr = static_cast<scip_milp **>(malloc(sizeof(scip_milp **)));
-        *ptr = this;
-
-        std::println("this = {:p}", static_cast<void *>(this));
-
-        check(SCIP->includeConshdlrBasic(
-            model, &candidate_solution_constraint_handler,
-            "candidate_solution_callback", "candidate_solution_callback", -1,
-            -1, -1, false, nullptr, nullptr, nullptr, nullptr,
-            reinterpret_cast<SCIP_CONSHDLRDATA *>(ptr)));
-    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////

@@ -29,7 +29,7 @@ TYPED_TEST_P(CuttingStockTest, test) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
-        using variable = typename decltype(model)::variable;
+        using variable = model_variable_t<decltype(model)>;
 
         constexpr int roll_length = 100;
         std::vector<std::pair<int, int>> orders = {

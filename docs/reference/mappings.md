@@ -63,7 +63,7 @@ mippp::entity_mapping<var, std::vector<double>> values =
 values[var(0)] = 3.0;  // uid() indexes the vector; writes go through
 ```
 
-This is exactly what every solver's `get_solution()` / `get_dual_solution()` / `get_reduced_costs()` returns (as its `variable_mapping` / `constraint_mapping` aliases), which is why `sol[X(i, j)]` works uniformly whether the backend produced a flat array or a remapping closure.
+This is exactly what every solver's `get_solution()` / `get_dual_solution()` / `get_reduced_costs()` returns, which is why `sol[X(i, j)]` works uniformly whether the backend produced a flat array or a remapping closure.
 
 ## Diagnostics
 
