@@ -90,7 +90,7 @@ How a key is resolved is decided at compile time from the type of the key range,
 
 Keys that are neither hashable nor ordered still yield an iterable, positionally indexable range; calling it by key is then a compile-time error whose message names `indexed` as the remedy.
 
-A range type can also supply its own lookup: `mippp::key_index` is a customization point object, and a `key_index(range)` function found by argument-dependent lookup, returning an object with `position(key)`, takes precedence over the built-in strategies.
+A range type can also supply its own lookup: `mippp::key_index` is a customization point object, and a non-template `key_index(const range &)` function found by argument-dependent lookup, returning an object with `position(key)`, takes precedence over the built-in strategies.
 
 On backends with constraint names (concept `has_named_constraints`), a key range wrapped with `named(keys, name)` names each constraint as it is added, from a function of its key; `indexed_named(keys, id, name)` gives both an id and a name (the wrappers do not nest):
 

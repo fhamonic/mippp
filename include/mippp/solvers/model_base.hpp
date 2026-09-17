@@ -134,6 +134,7 @@ public:
         return self.template _add<variable_kind::continuous>(count, params);
     }
     template <typename IL>
+        requires(!std::convertible_to<IL, variable_params>)
     auto add_variables(this auto & self, std::size_t count, IL && id_lambda,
                        variable_params params = default_variable_params) {
         return self.template _add<variable_kind::continuous>(
@@ -156,6 +157,7 @@ public:
         return self.template _add<variable_kind::integer>(count, params);
     }
     template <typename IL>
+        requires(!std::convertible_to<IL, variable_params>)
     auto add_integer_variables(
         this auto & self, std::size_t count, IL && id_lambda,
         variable_params params = default_variable_params) {
@@ -178,6 +180,7 @@ public:
             count, binary_variable_params);
     }
     template <typename IL>
+        requires(!std::convertible_to<IL, variable_params>)
     auto add_binary_variables(this auto & self, std::size_t count,
                               IL && id_lambda) {
         return self.template _add<variable_kind::binary>(
