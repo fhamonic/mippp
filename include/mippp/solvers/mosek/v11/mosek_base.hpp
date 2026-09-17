@@ -419,10 +419,8 @@ private:
         check(MSK->putconboundslice(task, offset, constr_id,
                                     tmp_boundkeye.data(), tmp_rhs.data(),
                                     tmp_rhs.data()));
-        return constraints_range(
-            std::forward<IR>(keys),
-            std::views::transform(std::views::iota(offset, constr_id),
-                                  [](auto && i) { return constraint{i}; }));
+        return constraints_range(std::forward<IR>(keys), constraint{offset},
+                                 static_cast<std::size_t>(constr_id - offset));
     }
 
 public:

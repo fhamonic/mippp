@@ -519,10 +519,8 @@ private:
                 key, constraint_lambdas...));
             ++constr_id;
         }
-        return constraints_range(
-            std::forward<IR>(keys),
-            std::views::transform(std::views::iota(offset, constr_id),
-                                  [](auto && i) { return constraint{i}; }));
+        return constraints_range(std::forward<IR>(keys), constraint{offset},
+                                 static_cast<std::size_t>(constr_id - offset));
     }
 
 public:

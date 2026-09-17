@@ -400,10 +400,8 @@ private:
                             tmp_begins.data(), nullptr, tmp_indices.data(),
                             tmp_scalars.data(), tmp_types.data(),
                             tmp_rhs.data(), nullptr, nullptr));
-        return constraints_range(
-            std::forward<IR>(keys),
-            std::views::transform(std::views::iota(offset, offset + count),
-                                  [](auto && i) { return constraint{i}; }));
+        return constraints_range(std::forward<IR>(keys), constraint{offset},
+                                 static_cast<std::size_t>(count));
     }
 
 public:

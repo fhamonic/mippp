@@ -129,6 +129,9 @@ public:
     constexpr auto end() const noexcept { return std::default_sentinel; }
     constexpr auto end() noexcept { return std::default_sentinel; }
 
+    constexpr const V1 & first_base() const noexcept { return _first; }
+    constexpr const V2 & second_base() const noexcept { return _second; }
+
     constexpr auto size()
         requires std::ranges::sized_range<V1> && std::ranges::sized_range<V2>
     {

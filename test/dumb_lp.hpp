@@ -331,10 +331,8 @@ public:
             _add_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
-        return constraints_range(
-            std::forward<IR>(keys),
-            std::views::transform(std::views::iota(offset, constr_id),
-                                  [](auto && i) { return constraint{i}; }));
+        return constraints_range(std::forward<IR>(keys), constraint{offset},
+                                 static_cast<std::size_t>(constr_id - offset));
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,

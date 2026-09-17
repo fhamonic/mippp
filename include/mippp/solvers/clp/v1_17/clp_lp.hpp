@@ -373,10 +373,8 @@ public:
         Clp->addRows(model, static_cast<int>(tmp_begins.size()) - 1,
                      tmp_lower_bounds.data(), tmp_upper_bounds.data(),
                      tmp_begins.data(), tmp_indices.data(), tmp_scalars.data());
-        return constraints_range(
-            std::forward<IR>(keys),
-            std::views::transform(std::views::iota(offset, constr_id),
-                                  [](auto && i) { return constraint{i}; }));
+        return constraints_range(std::forward<IR>(keys), constraint{offset},
+                                 static_cast<std::size_t>(constr_id - offset));
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,

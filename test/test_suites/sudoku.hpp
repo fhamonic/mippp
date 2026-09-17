@@ -62,25 +62,25 @@ TYPED_TEST_P(SudokuTest, test) {
                 return (81 * i) + (9 * j) + (value - 1);
             });
 
-        auto single_value_constrs = model.add_constraints(
+        model.add_constraints(
             mippp::detail::cartesian_product(indices, indices), [&](auto && p) {
                 auto && [i, j] = p;
                 return xsum(values,
                             [&](auto && v) { return X_vars(i, j, v); }) == 1;
             });
-        auto one_per_row_constrs = model.add_constraints(
+        model.add_constraints(
             mippp::detail::cartesian_product(values, indices), [&](auto && p) {
                 auto && [v, i] = p;
                 return xsum(indices,
                             [&](auto && j) { return X_vars(i, j, v); }) == 1;
             });
-        auto one_per_col_constrs = model.add_constraints(
+        model.add_constraints(
             mippp::detail::cartesian_product(values, indices), [&](auto && p) {
                 auto && [v, j] = p;
                 return xsum(indices,
                             [&](auto && i) { return X_vars(i, j, v); }) == 1;
             });
-        auto one_per_block_constrs = model.add_constraints(
+        model.add_constraints(
             mippp::detail::cartesian_product(values, coords), [&](auto && p) {
                 auto && [v, b] = p;
                 return xsum(coords, [&](auto && p2) {

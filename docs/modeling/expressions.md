@@ -68,12 +68,27 @@ auto rows = model.add_constraints(std::views::iota(0, n), [&](int row) {
 });
 ```
 
-The result is iterable like any range and — like lambda-indexed variables — callable **by key**: `rows(3)` returns the constraint handle built for key `3`. Keeping constraints addressable by your own coordinates is what makes duals usable in decomposition algorithms:
+The result is iterable like any range, indexable by position (`rows[i]` is the constraint built for the *i*-th key) and — like lambda-indexed variables — callable **by key**: `rows(3)` returns the constraint handle built for key `3`. Keeping constraints addressable by your own coordinates is what makes duals usable in decomposition algorithms:
 
 ```cpp
 auto duals = model.get_dual_solution();
 for(int o : orders) price[o] = duals[demand_constraints(o)];
 ```
+
+How a key is resolved is decided at compile time from the type of the key range, and never costs more than that range requires:
+
+- **`std::views::iota`, and `cartesian_product`s of such ranges** — the position is computed arithmetically and nothing is stored. Tuple keys may be passed unpacked: `cells(i, j)` is `cells(std::tuple{i, j})`.
+- **Any other range** — the keys are copied into a hash map when `std::hash` is specialized for them, otherwise into a sorted vector when they support `operator<`. Duplicate keys resolve to their first constraint.
+- **`indexed(keys, id)`** — you supply a function mapping each key to a dense non-negative integer, and the lookup goes through a table sized to the largest id. It is the counterpart of the id-lambda of [`add_variables`](variables.md#bulk-creation-and-lambda-id-maps), for keys that carry their own index (a struct with an `id` field, a filtered subset of an interval):
+
+    ```cpp
+    auto demand = model.add_constraints(indexed(orders, &order::id), [&](const order & o) {
+        return xsum(patterns_covering(o), [&, o](int p) { return cover[p][o.id] * X(p); }) >= o.demand;
+    });
+    for(const order & o : orders) price[o.id] = duals[demand(o)];
+    ```
+
+Keys that are neither hashable nor ordered still yield an iterable, positionally indexable range; calling it by key is then a compile-time error whose message names `indexed` as the remedy.
 
 A single `add_constraint(c)` likewise returns one constraint handle, which you can keep to read its dual or to modify the row later (see [Re-solving and model updates](../solving/updates.md)).
 

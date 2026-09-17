@@ -1,15 +1,5 @@
 #pragma once
 
-#include <version>
-
-// <version> first: the gate is re-evaluated at the flat_map use below, and a
-// header included in between may define the macro that was unset here.
-#if __cpp_lib_flat_map
-#include <flat_map>
-#else
-#include <map>
-#endif
-
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -21,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/constraints_range.hpp"
 #include "mippp/mapping.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/zero.hpp"
@@ -297,82 +288,5 @@ template <optional_type T>
 using optional_type_value_t = typename T::value_type;
 
 }  // namespace detail
-
-///////////////////////////////////////////////////////////////////////////////
-////////////////////////////// Constraints range //////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-#if __cpp_lib_flat_map
-
-template <typename Key, typename Constraint>
-class constraints_range {
-protected:
-    const std::flat_map<Key, Constraint> _constraints_map;
-
-public:
-    // The two containers rather than from_range over views::zip: libc++ 21's
-    // flat_map probes an inserted iterator for zip_view's private
-    // __is_zip_view_iterator member, a hard error on Apple clang; the
-    // container constructor sorts and deduplicates just the same.
-    template <typename KR, typename CR>
-    constexpr constraints_range(KR && keys, CR && constraints)
-        : _constraints_map(
-              std::ranges::to<std::vector<Key>>(std::forward<KR>(keys)),
-              std::ranges::to<std::vector<Constraint>>(
-                  std::forward<CR>(constraints))) {}
-
-    constexpr constraints_range(const constraints_range &) = default;
-    constexpr constraints_range(constraints_range &&) = default;
-
-    constexpr auto size() const noexcept { return _constraints_map.size(); }
-
-    constexpr auto begin() const noexcept {
-        return _constraints_map.values().begin();
-    }
-    constexpr auto end() const noexcept {
-        return _constraints_map.values().end();
-    }
-
-    constexpr auto operator()(const Key & k) const {
-        return _constraints_map.at(k);
-    }
-};
-#else
-template <typename Key, typename Constraint>
-class constraints_range {
-protected:
-    std::map<Key, Constraint> _constraints_map;
-
-public:
-    template <typename KR, typename CR>
-    constexpr constraints_range(KR && keys, CR && constraints)
-        : _constraints_map() {
-        for(auto && [key, constraint] : std::views::zip(
-                std::forward<KR>(keys), std::forward<CR>(constraints))) {
-            _constraints_map[key] = constraint;
-        }
-    }
-
-    constexpr constraints_range(const constraints_range &) = default;
-    constexpr constraints_range(constraints_range &&) = default;
-
-    constexpr auto size() const noexcept { return _constraints_map.size(); }
-
-    constexpr auto begin() const noexcept {
-        return std::views::values(_constraints_map).begin();
-    }
-    constexpr auto end() const noexcept {
-        return std::views::values(_constraints_map).end();
-    }
-    constexpr auto operator()(const Key & k) const {
-        return _constraints_map.at(k);
-    }
-};
-#endif
-
-template <typename KR, typename CR>
-constraints_range(KR &&,
-                  CR &&) -> constraints_range<std::ranges::range_value_t<KR>,
-                                              std::ranges::range_value_t<CR>>;
 
 }  // namespace mippp

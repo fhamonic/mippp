@@ -536,10 +536,8 @@ private:
             tmp_begins.data(), tmp_indices.data(), tmp_scalars.data(),
             tmp_types.data(), tmp_rhs.data(), nullptr));
         _lazy_num_constraints += static_cast<std::size_t>(constr_id - offset);
-        return constraints_range(
-            std::forward<IR>(keys),
-            std::views::transform(std::views::iota(offset, constr_id),
-                                  [](auto && i) { return constraint{i}; }));
+        return constraints_range(std::forward<IR>(keys), constraint{offset},
+                                 static_cast<std::size_t>(constr_id - offset));
     }
 
 public:
