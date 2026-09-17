@@ -20,6 +20,7 @@ private:
     glp_iocp model_params;
 
 public:
+    [[nodiscard]] glpk_milp() : glpk_milp(glpk_api::load()) {}
     [[nodiscard]] explicit glpk_milp(const glpk_api & api)
         : glpk_base(api), model_params() {
         // See glpk_lp: the untouched fields must carry GLPK's defaults, not

@@ -9,11 +9,11 @@ In MIP++, a "model" is not a data structure you fill and then hand to a solver. 
 What makes the model code portable is that this common interface is specified by **C++ concepts** — `lp_model`, `milp_model`, `qp_model`, plus fine-grained capability concepts such as `has_dual_solution` or `has_mip_start` (see the [concepts reference](../reference/concepts.md)). Any code written against the concepts runs on any backend that satisfies them:
 
 ```cpp
-using api_type  = highs_api;   // change these two lines to re-run the same
-using milp_type = highs_milp;  // experiment on Gurobi, CPLEX, SCIP, ...
+using milp_type = highs_milp;  // change this line to re-run the same
+                               // experiment on Gurobi, CPLEX, SCIP, ...
 ```
 
-Benchmarking Gurobi vs. CPLEX vs. HiGHS becomes a two-line change and a recompile — no `#ifdef` soup, no per-solver code paths. Templatize your model building code over the backend type and you can even select the solver at runtime.
+Benchmarking Gurobi vs. CPLEX vs. HiGHS becomes a one-line change and a recompile — no `#ifdef` soup, no per-solver code paths. Templatize your model building code over the backend type and you can even select the solver at runtime.
 
 For a researcher this matters beyond convenience: reviewers increasingly ask for results across solvers, and licenses differ between your laptop, the cluster, and your coauthors' machines.
 
@@ -71,7 +71,7 @@ Each of these is itself a concept (`has_candidate_solution_callback`, `has_add_c
 
 ## Header-only, dependency-free, solvers loaded at runtime
 
-MIP++ itself is header-only and depends on nothing but the standard library: solver libraries are **not linked** — each `<solver>_api` object opens the solver's shared library through the platform loader (`dlopen` / `LoadLibrary`) when constructed and resolves the C entry points it needs. Your binary has no link-time dependency on any solver SDK; only the backends you actually instantiate need to be installed on the machine running it, and a missing or unusable library is reported by an exception naming the files that were tried. Details and the library-resolution rules are in [Choosing a solver](../solvers/index.md).
+MIP++ itself is header-only and depends on nothing but the standard library: solver libraries are **not linked** — the first model of a backend constructed in a process opens the solver's shared library through the platform loader (`dlopen` / `LoadLibrary`) and resolves the C entry points it needs; later models share them. Your binary has no link-time dependency on any solver SDK; only the backends you actually instantiate need to be installed on the machine running it, and a missing or unusable library is reported by an exception naming the files that were tried. Details and the library-resolution rules are in [Choosing a solver](../solvers/index.md).
 
 ## Is MIP++ right for you?
 

@@ -36,7 +36,8 @@ public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
 
-    explicit clp_lp(const clp_api & api)
+    [[nodiscard]] clp_lp() : clp_lp(clp_api::load()) {}
+    [[nodiscard]] explicit clp_lp(const clp_api & api)
         : model_base<int, double>(), Clp(&api), model(Clp->newModel()) {}
     ~clp_lp() {
         if(model) Clp->deleteModel(model);

@@ -39,9 +39,9 @@ MIP++ is header-only and has no library dependency: there is nothing to build, a
 
 ## Making solver libraries discoverable
 
-Each `<solver>_api` object locates and loads the solver's shared library when it is constructed. Resolution proceeds in this order — first match wins:
+The first model of a backend constructed in a process locates and loads the solver's shared library (through the backend's `<solver>_api` object, see [Choosing a solver](../solvers/index.md#how-solver-libraries-are-found)). Resolution proceeds in this order — first match wins:
 
-1. **An explicit path** given to the api constructor: `highs_api api("/path/to/libhighs.so");` loads exactly that file.
+1. **An explicit path** given to `<solver>_api::load`: `highs_lp model(highs_api::load("/path/to/libhighs.so"));` loads exactly that file.
 2. **The `MIPPP_<SOLVER>_LIBRARY` environment variable**, used verbatim as the full path of the library file. This is the way to pin an exact file when several versions are installed, or when only a version-suffixed soname exists:
 
     ```bash
@@ -75,7 +75,7 @@ export XPAUTH_PATH="$XPRESS_HOME/bin"
 
 (The same pattern applies to COPT, MOSEK, and COIN-OR builds — see [CONTRIBUTING.md](https://github.com/fhamonic/mippp/blob/main/CONTRIBUTING.md) for the full list.)
 
-Only export the solvers you actually have. If a library cannot be located, the api constructor throws a `std::runtime_error` naming the files it tried and the environment variable to set.
+Only export the solvers you actually have. If a library cannot be located, the model constructor throws a `std::runtime_error` naming the files it tried and the environment variable to set.
 
 ## Checking that everything works
 

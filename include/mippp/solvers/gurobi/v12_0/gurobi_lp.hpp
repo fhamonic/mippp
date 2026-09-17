@@ -14,6 +14,7 @@ namespace gurobi::v12_0 {
 
 class gurobi_lp : public gurobi_base {
 public:
+    [[nodiscard]] gurobi_lp() : gurobi_lp(gurobi_api::load()) {}
     [[nodiscard]] explicit gurobi_lp(const gurobi_api & api)
         : gurobi_base(api) {}
 

@@ -626,13 +626,22 @@ TYPED_TEST_P(LpModelTest, native_ids) {
     });
 }
 
+TYPED_TEST_P(LpModelTest, default_constructed_shares_interned_api) {
+    this->SkipOnLicenseError([this]() {
+        typename TestFixture::model_type model;
+        ASSERT_EQ(&model.native_api(), TestFixture::api);
+        ASSERT_EQ(&this->new_model().native_api(), TestFixture::api);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(
-    LpModelTest, native_ids, construct, add_variable, add_variable_params,
-    add_zero_variables, add_variables, add_variables_params,
-    add_variable_and_variables, add_zero_indexed_variables,
-    add_indexed_variables, add_indexed_variables_params,
-    add_capturing_indexed_variables, add_variable_and_indexed_variables,
-    set_objective, set_objective_distinct_variables, add_constraint,
+    LpModelTest, default_constructed_shares_interned_api, native_ids, construct,
+    add_variable, add_variable_params, add_zero_variables, add_variables,
+    add_variables_params, add_variable_and_variables,
+    add_zero_indexed_variables, add_indexed_variables,
+    add_indexed_variables_params, add_capturing_indexed_variables,
+    add_variable_and_indexed_variables, set_objective,
+    set_objective_distinct_variables, add_constraint,
     add_constraint_distinct_variables, add_constraints,
     add_constraints_distinct_variables, add_opt_constraints,
     add_opt_constraints_distinct_variables, solve_empty_no_sense,

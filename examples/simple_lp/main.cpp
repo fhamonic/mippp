@@ -6,8 +6,7 @@ using namespace mippp;
 using namespace mippp::operators;
 
 int main() {
-    highs_api api;        // loads the HiGHS C API at runtime
-    highs_lp model(api);  // swap for gurobi_*, cplex_*, cbc_*, ...
+    highs_lp model;  // loads HiGHS at runtime, swap for gurobi_*, cbc_*, ...
 
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.upper_bound = 3});

@@ -11,8 +11,7 @@ If you already write models in Python or Julia, almost everything transfers: MIP
     using namespace mippp;
     using namespace mippp::operators;
 
-    highs_api api;
-    highs_milp model(api);
+    highs_milp model;
 
     auto x = model.add_binary_variables(n, [](int i) { return i; });
 

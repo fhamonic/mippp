@@ -16,15 +16,13 @@
 using namespace mippp;
 using namespace mippp::operators;
 
-using api_type = highs_api;
 using milp_type = highs_milp;
 
 int main(int argc, char ** argv) {
     const int n = (argc > 1) ? std::atoi(argv[1]) : 8;
     auto indices = std::views::iota(0, n);
 
-    api_type api;
-    milp_type model(api);
+    milp_type model;
 
     // One binary variable per board cell; X(row, col) is an O(1) lookup.
     auto X = model.add_binary_variables(

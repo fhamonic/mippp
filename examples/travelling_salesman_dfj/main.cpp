@@ -21,7 +21,6 @@
 using namespace mippp;
 using namespace mippp::operators;
 
-using api_type = gurobi_api;
 using milp_type = gurobi_milp;
 
 int main() {
@@ -45,8 +44,7 @@ int main() {
         return dist[graph.arc_source(a)][graph.arc_target(a)];
     };
 
-    api_type api;
-    milp_type model(api);
+    milp_type model;
 
     auto X =
         model.add_binary_variables(graph.num_arcs(), [](arc a) { return a; });

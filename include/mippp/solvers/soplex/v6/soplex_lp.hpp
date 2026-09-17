@@ -56,6 +56,7 @@ private:
     std::vector<double> tmp_scalars;
 
 public:
+    [[nodiscard]] soplex_lp() : soplex_lp(soplex_api::load()) {}
     [[nodiscard]] explicit soplex_lp(const soplex_api & api)
         : SoPlex(&api), model(SoPlex->create()), objective_offset(0.0) {}
     ~soplex_lp() {

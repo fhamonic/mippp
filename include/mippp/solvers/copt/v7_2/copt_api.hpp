@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_COPT_HEADER
 #include "copt.h"
@@ -264,22 +265,21 @@ namespace copt::v7_2 {
 #define CONSTRUCT_COPT_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
-class copt_api {
-private:
-    detail::dynamic_library lib;
+class copt_api : public detail::solver_api<copt_api> {
+    friend detail::solver_api<copt_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     COPT_FUNCTIONS(DECLARE_COPT_FUNCTIONS)
 
-public:
-    inline copt_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "COPT", {"copt"}))
+private:
+    explicit copt_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               COPT_FUNCTIONS(CONSTRUCT_COPT_FUNCTIONS) {}
+
+public:
+    static const copt_api & load(const char * lib_path = nullptr) {
+        return intern(detail::load_solver_library(lib_path, "COPT", {"copt"}));
+    }
 
     void _check(copt_env * env, const ret_code error) const {
         if(error == COPT_RETCODE_OK) return;

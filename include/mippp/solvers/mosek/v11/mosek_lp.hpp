@@ -13,6 +13,7 @@ namespace mosek::v11 {
 
 class mosek_lp : public mosek_base {
 public:
+    [[nodiscard]] mosek_lp() : mosek_lp(mosek_api::load()) {}
     [[nodiscard]] explicit mosek_lp(const mosek_api & api) : mosek_base(api) {}
 
     ///////////////////////////////////////////////////////////////////////////

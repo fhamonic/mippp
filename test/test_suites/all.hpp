@@ -40,18 +40,17 @@ inline bool is_required_solver(std::string_view solver_key) {
 template <typename Api, typename Model>
 struct model_test : public ::testing::Test {
     using model_type = Model;
-    inline static std::optional<const Api> api;
+    inline static const Api * api = nullptr;
     // Why a *required* api is missing: the suite must then not be skipped, so
     // the failure is reported by SetUp(), see below.
     inline static std::string missing_required_api;
 
     template <typename... Args>
     static void construct_api(const char * solver_key, Args... args) {
-        if(api.has_value()) return;
+        if(api != nullptr) return;
         try {
-            api.emplace(args...);
+            api = &Api::load(args...);
         } catch(const std::exception & e) {
-            api.reset();
             if(is_required_solver(solver_key)) {
                 missing_required_api =
                     std::string(solver_key) +
@@ -71,7 +70,7 @@ struct model_test : public ::testing::Test {
         if(!missing_required_api.empty()) FAIL() << missing_required_api;
     }
 
-    auto new_model() const { return Model(api.value()); }
+    auto new_model() const { return Model(*api); }
 
     template <typename F>
     void SkipOnLicenseError(F && f) {

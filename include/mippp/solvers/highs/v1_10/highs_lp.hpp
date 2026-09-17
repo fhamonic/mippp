@@ -16,6 +16,7 @@ namespace highs::v1_10 {
 
 class highs_lp : public highs_base {
 public:
+    [[nodiscard]] highs_lp() : highs_lp(highs_api::load()) {}
     [[nodiscard]] explicit highs_lp(const highs_api & api) : highs_base(api) {}
 
     ///////////////////////////////////////////////////////////////////////////

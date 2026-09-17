@@ -20,6 +20,7 @@ namespace gurobi::v12_0 {
 
 class gurobi_milp : public gurobi_base {
 public:
+    [[nodiscard]] gurobi_milp() : gurobi_milp(gurobi_api::load()) {}
     [[nodiscard]] explicit gurobi_milp(const gurobi_api & api)
         : gurobi_base(api) {}
 

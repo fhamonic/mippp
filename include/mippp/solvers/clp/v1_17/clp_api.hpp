@@ -6,6 +6,7 @@
 #else
 #include <filesystem>
 #include <limits>
+#include <utility>
 namespace mippp {
 namespace clp::v1_17 {
 
@@ -138,22 +139,21 @@ namespace clp::v1_17 {
 #define CONSTRUCT_CLP_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
-class clp_api {
-private:
-    detail::dynamic_library lib;
+class clp_api : public detail::solver_api<clp_api> {
+    friend detail::solver_api<clp_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     CLP_FUNCTIONS(DECLARE_CLP_FUNCTIONS)
 
-public:
-    inline clp_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "CLP", {"Clp"}))
+private:
+    explicit clp_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               CLP_FUNCTIONS(CONSTRUCT_CLP_FUNCTIONS) {}
+
+public:
+    static const clp_api & load(const char * lib_path = nullptr) {
+        return intern(detail::load_solver_library(lib_path, "CLP", {"Clp"}));
+    }
 };
 
 #undef CONSTRUCT_CLP_FUNCTIONS

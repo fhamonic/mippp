@@ -78,8 +78,9 @@ library built alongside the test binary. [include/mippp/detail/solver_library.hp
 implements that lookup once for every backend, with the following precedence
 (first match wins):
 
-1. **The constructor argument.** Every `<solver>_api` takes an optional path:
-   `highs_api api("/path/to/libhighs.so.1.10.0")`. Used verbatim.
+1. **The argument of `load`.** Every `<solver>_api::load` takes an optional path:
+   `highs_api::load("/path/to/libhighs.so.1.10.0")`; a model's default
+   constructor calls it with none. Used verbatim.
 2. **`MIPPP_<KEY>_LIBRARY`.** An environment variable holding the **full path** of
    one library file — also used verbatim, and it wins over anything on
    `LD_LIBRARY_PATH`.
@@ -91,13 +92,18 @@ implements that lookup once for every backend, with the following precedence
    Homebrew/MacPorts prefixes).
 
 The result of that search is memoized per solver key and name list for the life
-of the process, so default-constructing several api objects costs microseconds
-after the first. Only successes are cached; a cached file that no longer loads
+of the process. Only successes are cached; a cached file that no longer loads
 triggers a fresh search. The one consequence is that a change the process makes
 to `LD_LIBRARY_PATH` after its first search is not seen. Steps 1 and 2 bypass the
-cache, which is what lets two versions of one solver be loaded side by side: an
-api object is one library file, `api.library_path()` says which, and a model is
-bound to the api it was built from.
+cache, which is what lets two versions of one solver be loaded side by side.
+
+`load` then interns the loaded file (`detail::solver_api`, the base of every
+`<solver>_api`): one instance per loaded file, keyed by the loader's handle,
+returned to every later call resolving to that file and never destroyed. An api
+object is thus one library file, `api.library_path()` says which, a model holds
+a pointer to the api it was built from that cannot dangle, and whatever the api
+constructor does once per library (version check, licence initialisation) runs
+once per process.
 
 In each directory the search accepts the decorated name (`libhighs.so`) or, when
 the unversioned symlink is absent — usual in runtime-only packages — a versioned
@@ -384,8 +390,8 @@ layout of an existing backend such as
   C prototypes it needs, so the solver's SDK headers are not required to build
   (defining `INCLUDE_<SOLVER>_HEADER` includes the real header instead, to check
   them against a release), lists them in an `X`-macro, and resolves each one in its
-  constructor: `detail::load_solver_library(path, "KEY", {names}, {probe
-  symbols})` opens the library, then `lib.get_function<F>("name")` fetches a
+  private constructor, reached only through `load()`: `detail::load_solver_library(path,
+  "KEY", {names}, {probe symbols})` opens the library, then `lib.get_function<F>("name")` fetches a
   required entry point (throwing `detail::symbol_not_found`) and
   `lib.find_function<F>("name")` an optional one, returning `nullptr` for
   entry points absent from older releases (see the `*_OPTIONAL_FUNCTIONS` lists

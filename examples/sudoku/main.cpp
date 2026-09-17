@@ -15,7 +15,6 @@
 using namespace mippp;
 using namespace mippp::operators;
 
-using api_type = highs_api;
 using milp_type = highs_milp;
 
 int main() {
@@ -38,8 +37,7 @@ int main() {
     auto coords = std::views::cartesian_product(std::views::iota(0, 3),
                                                 std::views::iota(0, 3));
 
-    api_type api;
-    milp_type model(api);
+    milp_type model;
 
     auto X = model.add_binary_variables(9 * 9 * 9, [](int i, int j, int v) {
         return (81 * i) + (9 * j) + (v - 1);

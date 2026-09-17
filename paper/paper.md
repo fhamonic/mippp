@@ -40,8 +40,7 @@ Constraint families are written over ranges, close to their mathematical
 statement. The row constraints of an N-Queens model, for instance, read:
 
 ```cpp
-highs_api api;          // loads the HiGHS shared library at runtime
-highs_milp model(api);  // or gurobi_milp, cplex_milp, …
+highs_milp model;  // loads HiGHS at runtime; or gurobi_milp, cplex_milp, …
 auto indices = std::views::iota(0, n);
 auto X = model.add_binary_variables(
     n * n, [n](int row, int col) { return row * n + col; });

@@ -1,6 +1,6 @@
 # A first model
 
-This page walks through the smallest possible MIP++ program — a two-variable LP — and introduces the pieces every model uses: the api/model pair, variable handles, expressions, and solution access.
+This page walks through the smallest possible MIP++ program — a two-variable LP — and introduces the pieces every model uses: the model class, variable handles, expressions, and solution access.
 
 ```text
 max   4 x1 + 5 x2
@@ -19,12 +19,10 @@ The full program ([`examples/simple_lp/main.cpp`](https://github.com/fhamonic/mi
 using namespace mippp;
 using namespace mippp::operators;
 
-using api_type = highs_api;
 using lp_type = highs_lp;
 
 int main() {
-    api_type api;        // loads the HiGHS C API at runtime
-    lp_type model(api);
+    lp_type model;  // loads the HiGHS C API at runtime
 
     auto x1 = model.add_variable();
     auto x2 = model.add_variable({.upper_bound = 3});
@@ -47,16 +45,21 @@ int main() {
 
 Each backend ships a single convenience header, `mippp/solvers/<solver>/all.hpp`, that pulls in its api and model classes. `using namespace mippp` brings in the types; `using namespace mippp::operators` is a deliberate **opt-in** for the overloaded operators (`+`, `*`, `<=`, `==`, …) and `xsum` — the algebraic syntax never  eaks into your code unless you ask for it.
 
-Writing the backend choice as two aliases at the top of the file (`api_type` / `lp_type`) is a convention used throughout the examples: they are the only two lines to touch to re-run the program on another solver.
+Writing the backend choice as an alias at the top of the file (`lp_type`) is a convention used throughout the examples: it is the only line to touch to re-run the program on another solver.
 
-## The api / model split
+## Where the solver comes from
 
 ```cpp
-api_type api;        // finds and loads the solver's shared library
-lp_type model(api);  // one optimization model using that library
+lp_type model;  // finds and loads the solver's shared library
 ```
 
-The `api` object does the dynamic loading (see [Installation](installation.md#making-solver-libraries-discoverable)) and holds the function pointers of the solver's C API. Constructing it is the expensive step — do it **once** and share it: any number of models, created and destroyed freely, can reference the same api.
+A model's default constructor obtains the backend's api object — `highs_api` here — which holds the function pointers of the solver's C API. There is one such object per loaded library file, created by the first model that needs it and living for the rest of the process (see [Installation](installation.md#making-solver-libraries-discoverable) for how the file is found); every later model of that backend shares it, so models can be created and destroyed freely, and a missing library is reported by the first model's constructor. To load a specific file instead, pass the api explicitly:
+
+```cpp
+lp_type model(highs_api::load("/path/to/libhighs.so.1.10.0"));
+```
+
+`model.native_api()` returns the api a model was built from.
 
 ## Variables
 

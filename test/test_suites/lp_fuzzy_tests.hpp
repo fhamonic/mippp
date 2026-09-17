@@ -977,9 +977,8 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LpFuzzyTest);
 
 TYPED_TEST_P(LpFuzzyTest, random_operations) {
     this->SkipOnLicenseError([this]() {
-        std::optional<clp_api> reference_api;
         try {
-            reference_api.emplace();
+            clp_api::load();
         } catch(const std::exception & e) {
             GTEST_SKIP() << "the dumb_lp reference model requires Clp: "
                          << e.what();
@@ -992,7 +991,7 @@ TYPED_TEST_P(LpFuzzyTest, random_operations) {
         std::cout << "[   FUZZ   ] MIPPP_FUZZ_SEED=" << seed
                   << " MIPPP_FUZZ_ROUNDS=" << num_rounds << std::endl;
         lp_fuzzy_state_machine<typename TestFixture::model_type> machine(
-            this->new_model(), dumb_lp(reference_api.value()), seed);
+            this->new_model(), dumb_lp(), seed);
 
         try {
             machine.run(num_rounds);

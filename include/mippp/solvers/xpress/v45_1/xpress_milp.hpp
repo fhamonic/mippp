@@ -20,6 +20,7 @@ namespace xpress::v45_1 {
 
 class xpress_milp : public xpress_base {
 public:
+    [[nodiscard]] xpress_milp() : xpress_milp(xpress_api::load()) {}
     [[nodiscard]] explicit xpress_milp(const xpress_api & api)
         : xpress_base(api) {}
 

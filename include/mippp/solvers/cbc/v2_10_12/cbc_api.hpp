@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_CBC_HEADER
 #include "coin/Cbc_C_Interface.h"
@@ -167,24 +168,23 @@ namespace cbc::v2_10_12 {
 #define CONSTRUCT_CBC_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<decltype(FULL)>(#FULL))
 
-class cbc_api {
-private:
-    detail::dynamic_library lib;
+class cbc_api : public detail::solver_api<cbc_api> {
+    friend detail::solver_api<cbc_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     CBC_FUNCTIONS(DECLARE_CBC_FUNCTIONS)
 
-public:
-    inline cbc_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "CBC", {"CbcSolver", "Cbc"},
-                                          {"Cbc_getVersion"}))
+private:
+    explicit cbc_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               CBC_FUNCTIONS(CONSTRUCT_CBC_FUNCTIONS) {
         detail::warn_on_version_mismatch("CBC", "2.10.12", getVersion());
+    }
+
+public:
+    static const cbc_api & load(const char * lib_path = nullptr) {
+        return intern(detail::load_solver_library(
+            lib_path, "CBC", {"CbcSolver", "Cbc"}, {"Cbc_getVersion"}));
     }
 };
 

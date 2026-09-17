@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_MOSEK_HEADER
 #include "mosek.h"
@@ -430,22 +431,22 @@ namespace mosek::v11 {
 #define CONSTRUCT_MOSEK_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
-class mosek_api {
-private:
-    detail::dynamic_library lib;
+class mosek_api : public detail::solver_api<mosek_api> {
+    friend detail::solver_api<mosek_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     MOSEK_FUNCTIONS(DECLARE_MOSEK_FUNCTIONS)
 
-public:
-    inline mosek_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "MOSEK", {"mosek64"}))
+private:
+    explicit mosek_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               MOSEK_FUNCTIONS(CONSTRUCT_MOSEK_FUNCTIONS) {}
+
+public:
+    static const mosek_api & load(const char * lib_path = nullptr) {
+        return intern(
+            detail::load_solver_library(lib_path, "MOSEK", {"mosek64"}));
+    }
 
     void _check(const MSKrescodee error) const {
         if(error == 0) return;

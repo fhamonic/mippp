@@ -18,6 +18,7 @@ namespace highs::v1_10 {
 
 class highs_milp : public highs_base {
 public:
+    [[nodiscard]] highs_milp() : highs_milp(highs_api::load()) {}
     [[nodiscard]] explicit highs_milp(const highs_api & api)
         : highs_base(api) {}
 

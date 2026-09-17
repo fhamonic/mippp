@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_SOPLEX_HEADER
 #include "soplex_interface.h"
@@ -83,22 +84,22 @@ namespace soplex::v6 {
 #define CONSTRUCT_SOPLEX_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
-class soplex_api {
-private:
-    detail::dynamic_library lib;
+class soplex_api : public detail::solver_api<soplex_api> {
+    friend detail::solver_api<soplex_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUNCTIONS)
 
-public:
-    inline soplex_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "SOPLEX", {"soplexshared"}))
+private:
+    explicit soplex_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUNCTIONS) {}
+
+public:
+    static const soplex_api & load(const char * lib_path = nullptr) {
+        return intern(
+            detail::load_solver_library(lib_path, "SOPLEX", {"soplexshared"}));
+    }
 };
 
 #undef CONSTRUCT_SOPLEX_FUNCTIONS

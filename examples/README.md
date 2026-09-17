@@ -24,16 +24,15 @@ nqueens/
 └── .gitignore
 ```
 
-Every example selects its backend through two aliases at the top of `main.cpp`,
+Every example selects its backend through an alias at the top of `main.cpp`,
 e.g.
 
 ```cpp
-using api_type = highs_api;
 using milp_type = highs_milp;
 ```
 
-Change them to target another solver (`gurobi_api`/`gurobi_milp`,
-`scip_api`/`scip_milp`, `cplex_api`/`cplex_lp`, ...). Note that
+Change it to target another solver (`gurobi_milp`, `scip_milp`, `cplex_lp`,
+...). Note that
 `travelling_salesman_dfj` needs the candidate-solution callback, which is currently
 validated on **Gurobi, CPLEX and COPT** only.
 

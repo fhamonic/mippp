@@ -17,6 +17,7 @@ namespace mosek::v11 {
 
 class mosek_milp : public mosek_base {
 public:
+    [[nodiscard]] mosek_milp() : mosek_milp(mosek_api::load()) {}
     [[nodiscard]] explicit mosek_milp(const mosek_api & api) : mosek_base(api) {
         check(MSK->putintparam(task, MSK_IPAR_OPTIMIZER,
                                MSK_OPTIMIZER_MIXED_INT));

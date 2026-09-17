@@ -22,6 +22,7 @@ namespace highs::v1_10 {
 
 class highs_qp : public highs_base {
 public:
+    [[nodiscard]] highs_qp() : highs_qp(highs_api::load()) {}
     [[nodiscard]] explicit highs_qp(const highs_api & api) : highs_base(api) {}
 
 private:

@@ -22,6 +22,7 @@ namespace cplex::v22_1_2 {
 
 class cplex_milp : public cplex_base {
 public:
+    [[nodiscard]] cplex_milp() : cplex_milp(cplex_api::load()) {}
     [[nodiscard]] explicit cplex_milp(const cplex_api & api)
         : cplex_base(api) {}
 

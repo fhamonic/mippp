@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_CPLEX_HEADER
 #include "ilcplex/cplex.h"
@@ -327,27 +328,27 @@ namespace cplex::v22_1_2 {
 #define CONSTRUCT_CPLEX_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
-class cplex_api {
-private:
-    detail::dynamic_library lib;
+class cplex_api : public detail::solver_api<cplex_api> {
+    friend detail::solver_api<cplex_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     CPLEX_FUNCTIONS(DECLARE_CPLEX_FUNCTIONS)
 
-public:
-    inline cplex_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "CPLEX", {"cplex2212"}))
+private:
+    explicit cplex_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               CPLEX_FUNCTIONS(CONSTRUCT_CPLEX_FUNCTIONS) {
         CPXENVptr env = _create_env();
         int version_;
         _check(env, versionnumber(env, &version_));
         detail::warn_on_version_mismatch("CPLEX", 2212, version_);
         _close_env(env);
+    }
+
+public:
+    static const cplex_api & load(const char * lib_path = nullptr) {
+        return intern(
+            detail::load_solver_library(lib_path, "CPLEX", {"cplex2212"}));
     }
 
     CPXENVptr _create_env() const {

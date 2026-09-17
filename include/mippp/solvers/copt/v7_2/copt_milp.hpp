@@ -23,6 +23,7 @@ private:
     int _is_mip = 0;
 
 public:
+    [[nodiscard]] copt_milp() : copt_milp(copt_api::load()) {}
     [[nodiscard]] explicit copt_milp(const copt_api & api) : copt_base(api) {}
 
     variable add_integer_variable(

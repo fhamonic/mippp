@@ -12,20 +12,19 @@ The [`examples/`](https://github.com/fhamonic/mippp/tree/main/examples) director
 
 ## Reading them in order
 
-1. **`simple_lp`** — the api/model split, variable handles, `sol[x]`. Five minutes.
+1. **`simple_lp`** — the model class, variable handles, `sol[x]`. Five minutes.
 2. **`nqueens`** — the first *real* model: one batch of `n²` binaries with an `(row, col)` id-map, six constraint families built from `iota` and `xsum`. This is the model behind the [benchmark](https://github.com/fhamonic/mippp_nqueens), so it is also the reference for what "no modeling tax" means in practice — see [Performance](performance.md).
 3. **`sudoku`** — the same ideas one dimension up, and a good template for assignment-style models: `X(i, j, v)`, families over cartesian products, hints fixed with single constraints.
 4. **`travelling_salesman_dfj`** — an algorithm, not just a model: the callback receives a candidate, the code searches it for subtours, and injects the violated constraints. Needs a backend with callback support (Gurobi, CPLEX or COPT).
 5. **`cutting_stock`** — the other classic: a restricted master, dual prices read back *by order id*, a dynamic-programming pricer, and columns streamed in as lazy ranges.
 
-Every example selects its backend through the two aliases at the top of its `main.cpp`:
+Every example selects its backend through the alias at the top of its `main.cpp`:
 
 ```cpp
-using api_type = highs_api;
 using milp_type = highs_milp;
 ```
 
-Change them to target another solver — see [Choosing a solver](solvers/index.md).
+Change it to target another solver — see [Choosing a solver](solvers/index.md).
 
 ## Building and running
 

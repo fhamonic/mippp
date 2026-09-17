@@ -15,6 +15,7 @@ namespace cplex::v22_1_2 {
 
 class cplex_lp : public cplex_base {
 public:
+    [[nodiscard]] cplex_lp() : cplex_lp(cplex_api::load()) {}
     [[nodiscard]] explicit cplex_lp(const cplex_api & api) : cplex_base(api) {}
 
     ///////////////////////////////////////////////////////////////////////////

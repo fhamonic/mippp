@@ -87,6 +87,7 @@ public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
 
+    [[nodiscard]] dumb_lp() : dumb_lp(clp_api::load()) {}
     [[nodiscard]] explicit dumb_lp(const clp_api & api)
         : model_base<int, double>(), Clp(api) {}
 

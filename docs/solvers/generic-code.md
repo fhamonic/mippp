@@ -77,25 +77,24 @@ This is the idiom to prefer over `#ifdef`s or per-solver overloads: the feature 
 Compile the generic function once per backend and dispatch on a string — the shape of every `--solver` command-line flag:
 
 ```cpp
-template <typename Api, typename Model>
+template <typename Model>
 run_record run_instance(const instance & data) {
-    Api api;                       // loads that solver's library, here and now
-    Model model(api);
+    Model model;                   // loads that solver's library, here and now
     build_assignment(model, data);
     return run(model, 600s);
 }
 
 run_record dispatch(std::string_view solver, const instance & data) {
-    if(solver == "highs")  return run_instance<highs_api,  highs_milp >(data);
-    if(solver == "gurobi") return run_instance<gurobi_api, gurobi_milp>(data);
-    if(solver == "scip")   return run_instance<scip_api,   scip_milp  >(data);
+    if(solver == "highs")  return run_instance<highs_milp >(data);
+    if(solver == "gurobi") return run_instance<gurobi_milp>(data);
+    if(solver == "scip")   return run_instance<scip_milp  >(data);
     throw std::invalid_argument("unknown solver");
 }
 ```
 
-Because solver libraries are loaded when the `api` object is constructed, a binary built with all three branches runs fine on a machine that only has HiGHS installed — as long as the other branches are not taken. A missing library throws a descriptive `std::runtime_error` from the api constructor, which a benchmark driver can catch and record as "backend unavailable".
+Because a solver library is loaded when the first model of that backend is constructed, a binary built with all three branches runs fine on a machine that only has HiGHS installed — as long as the other branches are not taken. A missing library throws a descriptive `std::runtime_error` from the model constructor, which a benchmark driver can catch and record as "backend unavailable".
 
-Constructing an api is the expensive step: hoist it out of the loop and build many models from the same one.
+The library is loaded once per process: the first model pays it, and every later model of that backend shares the loaded api.
 
 ## A cross-solver benchmark
 

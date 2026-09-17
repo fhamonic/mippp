@@ -94,6 +94,7 @@ protected:
     }
 
 public:
+    [[nodiscard]] scip_milp() : scip_milp(scip_api::load()) {}
     [[nodiscard]] explicit scip_milp(const scip_api & api)
         : SCIP(&api), register_count(0) {
         SCIP->create(&model);

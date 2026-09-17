@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_XPRESS_HEADER
 #include "xprs.h"
@@ -207,21 +208,15 @@ namespace xpress::v45_1 {
 #define CONSTRUCT_XPRESS_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
-class xpress_api {
-private:
-    detail::dynamic_library lib;
+class xpress_api : public detail::solver_api<xpress_api> {
+    friend detail::solver_api<xpress_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     XPRESS_FUNCTIONS(DECLARE_XPRESS_FUNCTIONS)
 
-public:
-    inline xpress_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "XPRESS", {"xprs"}))
+private:
+    explicit xpress_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUNCTIONS) {
         if(init("")) {
             char msg[512];
@@ -230,7 +225,14 @@ public:
         }
     }
 
-    inline ~xpress_api() { free(); }
+public:
+    static const xpress_api & load(const char * lib_path = nullptr) {
+        return intern(
+            detail::load_solver_library(lib_path, "XPRESS", {"xprs"}));
+    }
+
+    // no XPRSfree: instances are immortal (see solver_api) and the licence
+    // is returned at process exit
 
     void _check(XPRSprob prob, const int error) const {
         if(error == 0) return;

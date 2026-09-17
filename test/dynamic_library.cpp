@@ -262,3 +262,49 @@ TEST(load_solver_library, two_versions_of_one_library_coexist) {
     EXPECT_EQ(bump_a(), 3);
     EXPECT_EQ(bump_b(), 1);
 }
+
+// a backend-shaped api over the fixture library, as every <solver>_api is
+class test_api : public solver_api<test_api> {
+    friend solver_api<test_api>;
+    explicit test_api(dynamic_library && library)
+        : solver_api(std::move(library))
+        , answer(lib.get_function<int()>("mippp_test_answer")) {
+        ++constructions;
+    }
+
+public:
+    inline static int constructions = 0;
+    int (*const answer)();
+    static const test_api & load(const char * lib_path) {
+        return intern(load_solver_library(lib_path, "TESTINTERN", {}));
+    }
+};
+
+TEST(solver_api, one_instance_per_library_file) {
+    test_api::constructions = 0;
+    const test_api & a = test_api::load(fixture_path.string().c_str());
+    const test_api & again = test_api::load(fixture_path.string().c_str());
+    EXPECT_EQ(&a, &again);
+    EXPECT_EQ(test_api::constructions, 1);
+    EXPECT_EQ(a.answer(), 42);
+    EXPECT_TRUE(same_file(a.library_path(), fixture_path));
+
+    const test_api & b = test_api::load(fixture_path_b.string().c_str());
+    EXPECT_NE(&a, &b);
+    EXPECT_EQ(test_api::constructions, 2);
+    EXPECT_EQ(b.answer(), 43);
+}
+
+TEST(solver_api, symlinked_paths_share_the_instance) {
+    const std::filesystem::path link =
+        std::filesystem::temp_directory_path() /
+        ("mippp_test_link" + fixture_path.extension().string());
+    std::error_code ec;
+    std::filesystem::remove(link, ec);
+    std::filesystem::create_symlink(fixture_path, link, ec);
+    if(ec) GTEST_SKIP() << "cannot create a symlink here: " << ec.message();
+    const test_api & direct = test_api::load(fixture_path.string().c_str());
+    const test_api & linked = test_api::load(link.string().c_str());
+    std::filesystem::remove(link, ec);
+    EXPECT_EQ(&direct, &linked);
+}

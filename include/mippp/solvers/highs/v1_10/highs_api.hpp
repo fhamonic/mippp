@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_HIGHS_HEADER
 #include "interfaces/highs_c_api.h"
@@ -329,24 +330,24 @@ namespace highs::v1_10 {
 #define CONSTRUCT_HIGHS_OPTIONAL_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.find_function<SHORT##_fun_t>(#FULL))
 
-class highs_api {
-private:
-    detail::dynamic_library lib;
+class highs_api : public detail::solver_api<highs_api> {
+    friend detail::solver_api<highs_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     HIGHS_FUNCTIONS(DECLARE_HIGHS_FUNCTIONS)
     HIGHS_OPTIONAL_FUNCTIONS(DECLARE_HIGHS_FUNCTIONS)
 
-public:
-    inline highs_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "HIGHS", {"highs"}))
+private:
+    explicit highs_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               HIGHS_FUNCTIONS(CONSTRUCT_HIGHS_FUNCTIONS)
                   HIGHS_OPTIONAL_FUNCTIONS(CONSTRUCT_HIGHS_OPTIONAL_FUNCTIONS) {
+    }
+
+public:
+    static const highs_api & load(const char * lib_path = nullptr) {
+        return intern(
+            detail::load_solver_library(lib_path, "HIGHS", {"highs"}));
     }
 
     void _check(const int status) const {

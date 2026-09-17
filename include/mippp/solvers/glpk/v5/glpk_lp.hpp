@@ -19,6 +19,7 @@ private:
     glp_smcp model_params;
 
 public:
+    [[nodiscard]] glpk_lp() : glpk_lp(glpk_api::load()) {}
     [[nodiscard]] explicit glpk_lp(const glpk_api & api)
         : glpk_base(api), model_params() {
         // Let GLPK fill in its own defaults before overriding: the fields left

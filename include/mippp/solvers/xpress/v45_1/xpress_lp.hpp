@@ -13,6 +13,7 @@ namespace xpress::v45_1 {
 
 class xpress_lp : public xpress_base {
 public:
+    [[nodiscard]] xpress_lp() : xpress_lp(xpress_api::load()) {}
     [[nodiscard]] explicit xpress_lp(const xpress_api & api)
         : xpress_base(api) {}
 

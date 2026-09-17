@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <initializer_list>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
@@ -285,6 +286,58 @@ inline dynamic_library load_solver_library(
         "\nSet the environment variable " + env_var +
         " to its full path, or add its directory to LD_LIBRARY_PATH.");
 }
+
+// Base of every `<solver>_api`: an immortal, interned wrapper over one loaded
+// library file. `Derived::load(path)` is the only way to obtain one, and it
+// hands out the same instance for the same file, whether that file was
+// reached through an explicit path, the env var or the directory search.
+// So a model stores a pointer that can never dangle, a thousand subproblems
+// share one function table, and whatever the api constructor does once per
+// library (version check, licence init) really runs once.
+//
+// Instances are never destroyed: a solver's teardown must not run during
+// static destruction (see dynamic_library), and the mapping is permanent.
+//
+// Derived declares `friend solver_api;`, a private constructor taking the
+// library by rvalue, and `load()` as
+//   return intern(load_solver_library(path, KEY, {names...}));
+template <typename Derived>
+class solver_api {
+protected:
+    dynamic_library lib;
+
+    explicit solver_api(dynamic_library && library) noexcept
+        : lib(std::move(library)) {}
+
+    // Returns the instance wrapping the file `library` refers to, creating it
+    // on first sight. Keyed by the loader's handle, which is the identity of
+    // a loaded file: two paths naming one file (symlinks) share an instance,
+    // two files never do. The lock is held while Derived is constructed so
+    // its one-time work cannot race with another thread's first load.
+    static const Derived & intern(dynamic_library library) {
+        using handle_type = dynamic_library::native_handle_type;
+        static std::mutex mutex;
+        // leaked on purpose, see above
+        static auto & instances = *new std::vector<
+            std::pair<handle_type, std::unique_ptr<const Derived>>>();
+        const handle_type handle = library.native_handle();
+        const std::lock_guard<std::mutex> lock(mutex);
+        for(const auto & [h, instance] : instances)
+            if(h == handle) return *instance;
+        instances.emplace_back(handle, std::unique_ptr<const Derived>(
+                                           new Derived(std::move(library))));
+        return *instances.back().second;
+    }
+
+public:
+    solver_api(const solver_api &) = delete;
+    solver_api & operator=(const solver_api &) = delete;
+
+    // the file this api loaded: tells versions apart when several coexist
+    const std::filesystem::path & library_path() const noexcept {
+        return lib.path();
+    }
+};
 
 // Warns on stderr when the loaded library's version differs from the one the
 // wrapper was written against — usually harmless (the C APIs are stable) but

@@ -27,16 +27,15 @@ Notes:
 
 ## Switching backends
 
-The examples follow one convention: the backend appears in exactly three places — the include and two aliases.
+The examples follow one convention: the backend appears in exactly two places — the include and one alias.
 
 ```cpp
 #include "mippp/solvers/highs/all.hpp"
 
-using api_type  = highs_api;
 using milp_type = highs_milp;
 ```
 
-Change those to `gurobi`/`gurobi_api`/`gurobi_milp` and recompile: the rest of the program is untouched. There is no linking step to adjust, because solver libraries are loaded at runtime.
+Change those to `gurobi`/`gurobi_milp` and recompile: the rest of the program is untouched. There is no linking step to adjust, because solver libraries are loaded at runtime.
 
 ### Versioned namespaces and the `all.hpp` aliases
 
@@ -44,17 +43,17 @@ Each binding lives in a namespace named after the solver release it targets, `mi
 
 To choose the solver at *runtime* — for a `--solver` command-line flag, say — write the model-building code once as a template over the backend and dispatch on the flag; that pattern, and the capability checks that go with it, are the subject of [Writing solver-generic code](generic-code.md).
 
-Only the solvers actually installed on the machine need to be present: a backend fails at api-construction time (with a descriptive exception), not at program startup.
+Only the solvers actually installed on the machine need to be present: a backend fails when its first model is constructed (with a descriptive exception), not at program startup.
 
 ## How solver libraries are found
 
-Constructing the api object opens the solver's shared library through the platform loader (`dlopen` on Linux and macOS, `LoadLibrary` on Windows) and resolves the C entry points the wrapper uses — nothing is linked, and MIP++ needs no third-party loader library. Resolution order (first match wins):
+Each backend has an api object, `gurobi_api` say, holding the C entry points the wrapper uses. A model's default constructor obtains it through `gurobi_api::load()`, which opens the solver's shared library through the platform loader (`dlopen` on Linux and macOS, `LoadLibrary` on Windows) and resolves those entry points — nothing is linked, and MIP++ needs no third-party loader library. Resolution order (first match wins):
 
-1. an explicit path passed to the constructor — `gurobi_api api("/opt/gurobi1201/linux64/lib/libgurobi120.so");`
+1. an explicit path passed to `load` — `gurobi_milp model(gurobi_api::load("/opt/gurobi1201/linux64/lib/libgurobi120.so"));`
 2. the `MIPPP_<SOLVER>_LIBRARY` environment variable, holding the full path of the exact file to load;
 3. a search of the dynamic loader's directories (`LD_LIBRARY_PATH` and system library paths) for the conventional name, accepting version-suffixed sonames (`libhighs.so.1.10.0`) when the plain name is absent.
 
-Each api object is one loaded library file, and `api.library_path()` returns it. Two api objects built from two explicit paths load two independent copies, each with its own global state, so two versions of the same solver can serve two models in one process. The directory search of step 3 is memoized per solver for the life of the process, so default-constructing many api objects is cheap; explicit paths and the environment variable are never cached.
+An api object is one loaded library file, and `library_path()` returns it. `load` returns the same object whenever it resolves to the same file, and that object lives for the rest of the process: every model of a backend shares one table of entry points, and `model.native_api()` is a reference that cannot dangle. Two explicit paths naming two different files give two independent api objects, each with its own global state, so two versions of the same solver can serve two models in one process. The directory search of step 3 is memoized per solver for the life of the process, so default-constructing many models is cheap; explicit paths and the environment variable are never cached.
 
 A library that exists but lacks the expected entry points (a same-named build without the C API, say) is rejected with the loader's own message rather than half-loaded, and the exception lists every candidate tried. See [Installation](../getting-started/installation.md#making-solver-libraries-discoverable) for per-solver environment setup.
 
@@ -86,8 +85,7 @@ Notable current limitations (see the
 - **Solver-specific parameters** — the uniform interface covers [limits and tolerances](../solving/status-and-limits.md); there is no uniform passthrough for solver-specific knobs such as Gurobi's `MIPFocus` or CPLEX's emphasis settings. The escape hatch is the `has_native_handles` concept, which every model class satisfies: `native_model()` returns the solver's own objects and `native_api()` the loaded `*_api` object, whose members are the solver's raw C functions, so the call is made directly:
 
     ```cpp
-    gurobi_api api;
-    gurobi_milp model(api);
+    gurobi_milp model;
     auto [env, grb_model] = model.native_model();
     model.native_api().setintparam(env, "MIPFocus", 2);
     ```

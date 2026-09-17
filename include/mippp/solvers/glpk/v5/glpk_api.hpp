@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_GLPK_HEADER
 #include "glpk.h"
@@ -256,22 +257,21 @@ namespace glpk::v5 {
 #define CONSTRUCT_GLPK_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
 
-class glpk_api {
-private:
-    detail::dynamic_library lib;
+class glpk_api : public detail::solver_api<glpk_api> {
+    friend detail::solver_api<glpk_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     GLPK_FUNCTIONS(DECLARE_GLPK_FUNCTIONS)
 
-public:
-    inline glpk_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "GLPK", {"glpk"}))
+private:
+    explicit glpk_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
               GLPK_FUNCTIONS(CONSTRUCT_GLPK_FUNCTIONS) {}
+
+public:
+    static const glpk_api & load(const char * lib_path = nullptr) {
+        return intern(detail::load_solver_library(lib_path, "GLPK", {"glpk"}));
+    }
 };
 
 #undef CONSTRUCT_GLPK_FUNCTIONS

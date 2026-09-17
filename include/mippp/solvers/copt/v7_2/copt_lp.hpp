@@ -13,6 +13,7 @@ namespace copt::v7_2 {
 
 class copt_lp : public copt_base {
 public:
+    [[nodiscard]] copt_lp() : copt_lp(copt_api::load()) {}
     [[nodiscard]] explicit copt_lp(const copt_api & api) : copt_base(api) {}
 
     ///////////////////////////////////////////////////////////////////////////

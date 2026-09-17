@@ -42,7 +42,8 @@ public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
 
-    explicit cbc_milp(const cbc_api & api)
+    [[nodiscard]] cbc_milp() : cbc_milp(cbc_api::load()) {}
+    [[nodiscard]] explicit cbc_milp(const cbc_api & api)
         : model_base<int, double>()
         , Cbc(&api)
         , model(Cbc->newModel())

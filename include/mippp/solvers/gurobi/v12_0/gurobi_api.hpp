@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <utility>
 
 #if INCLUDE_GUROBI_HEADER
 #include "gurobi_c.h"
@@ -278,30 +279,29 @@ namespace gurobi::v12_0 {
 #define CONSTRUCT_GRB_OPTIONAL_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.find_function<SHORT##_fun_t>(#FULL))
 
-class gurobi_api {
-private:
-    detail::dynamic_library lib;
+class gurobi_api : public detail::solver_api<gurobi_api> {
+    friend detail::solver_api<gurobi_api>;
 
 public:
-    // the file this api loaded: tells versions apart when several coexist
-    const std::filesystem::path & library_path() const noexcept {
-        return lib.path();
-    }
-
     GRB_FUNCTIONS(DECLARE_GRB_FUNCTIONS)
     GRB_OPTIONAL_FUNCTIONS(DECLARE_GRB_FUNCTIONS)
     int major, minor, technical;
 
-public:
-    gurobi_api(const char * lib_path = nullptr)
-        : lib(detail::load_solver_library(lib_path, "GUROBI", {"gurobi120"}))
-              GRB_FUNCTIONS(CONSTRUCT_GRB_FUNCTIONS)
-                  GRB_OPTIONAL_FUNCTIONS(CONSTRUCT_GRB_OPTIONAL_FUNCTIONS) {
+private:
+    explicit gurobi_api(detail::dynamic_library && library)
+        : solver_api(std::move(library)) GRB_FUNCTIONS(CONSTRUCT_GRB_FUNCTIONS)
+              GRB_OPTIONAL_FUNCTIONS(CONSTRUCT_GRB_OPTIONAL_FUNCTIONS) {
         if(!emptyenvinternal && !emptyenv)
             throw solver_error(
                 "GRBemptyenv and GRBemptyenvinternal both not found.");
         version(&major, &minor, &technical);
         detail::warn_on_version_mismatch("GUROBI", GRB_VERSION_MAJOR, major);
+    }
+
+public:
+    static const gurobi_api & load(const char * lib_path = nullptr) {
+        return intern(
+            detail::load_solver_library(lib_path, "GUROBI", {"gurobi120"}));
     }
 
     GRBenv * _empty_env() const {

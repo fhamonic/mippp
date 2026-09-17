@@ -20,7 +20,6 @@
 using namespace mippp;
 using namespace mippp::operators;
 
-using api_type = highs_api;
 using lp_type = highs_lp;
 
 // Unbounded knapsack: maximize sum(value[i] * count[i]) subject to
@@ -64,8 +63,7 @@ int main() {
     const int m = static_cast<int>(length.size());
     auto orders = std::views::iota(0, m);
 
-    api_type api;
-    lp_type model(api);
+    lp_type model;
     using var_t = model_variable_t<lp_type>;
 
     model.set_minimization();
