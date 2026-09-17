@@ -301,7 +301,8 @@ private:
 public:
     static const gurobi_api & load(const char * lib_path = nullptr) {
         return intern(
-            detail::load_solver_library(lib_path, "GUROBI", {"gurobi120"}));
+            detail::load_solver_library(lib_path, "GUROBI",
+                                        {"gurobi130", "gurobi120"}));
     }
 
     GRBenv * _empty_env() const {
