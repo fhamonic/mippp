@@ -79,7 +79,7 @@ single-parameter.
 
 | Concept           | Requires |
 | :---------------- | :------- |
-| `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params` and id-lambdas); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `solve_status`; `get_solution` / `get_solution_value`. |
+| `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params`, over a count, a count and an id-lambda, or a key range); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `solve_status`; `get_solution` / `get_solution_value`. |
 | `milp_model` | `lp_model`, plus `add_integer_variable(s)`, `add_binary_variable(s)`, and per-variable type changes `set_continuous` / `set_integer` / `set_binary`. |
 | `qp_model` | `lp_model`, plus `set_quadratic_objective(expr)` (and its `distinct_variables` form) accepting a quadratic expression. `set_objective` stays linear on every model and replaces the whole objective, quadratic part included. |
 | `sized_model` | `num_entries()` (number of nonzeros). |
@@ -139,7 +139,7 @@ See [Re-solving and model updates](../solving/updates.md).
 
 | Concept                                | Provides |
 | :--- | :--- |
-| `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../modeling/variables.md#names) id-lambda + name-lambda form). |
+| `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../modeling/variables.md#names) id-lambda + name-lambda form), and `add_variables` over keys wrapped with `named(keys, name)`. |
 | `has_named_constraints` | `set_constraint_name` / `get_constraint_name`. |
 
 ## Special constraints

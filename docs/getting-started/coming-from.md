@@ -64,7 +64,7 @@ If you already write models in Python or Julia, almost everything transfers: MIP
 | :--- | :--- | :--- | :--- | :--- |
 | create a model | `gp.Model()` | `Model(Opt)` | `LpProblem()` | `highs_milp model(api);` |
 | one variable | `addVar(ub=3)` | `@variable(m, x <= 3)` | `LpVariable("x", upBound=3)` | `add_variable({.lower_bound=0, .upper_bound=3})` |
-| indexed variables | `addVars(n, m)` | `@variable(m, x[1:n,1:m])` | `LpVariable.dicts` | `add_variables(n*m, [m](int i,int j){return i*m+j;})` |
+| indexed variables | `addVars(n, m)` | `@variable(m, x[1:n,1:m])` | `LpVariable.dicts` | `add_variables(cartesian_product(iota(0,n), iota(0,m)))` or `add_variables(n*m, [m](int i,int j){return i*m+j;})` |
 | binary / integer | `vtype=GRB.BINARY` | `Bin` / `Int` | `cat="Binary"` | `add_binary_variables`, `add_integer_variables` |
 | sum over a set | `quicksum(...)` | `sum(...)` | `lpSum(...)` | `xsum(range, lambda)` |
 | objective | `setObjective` | `@objective` | `prob += expr` | `set_objective` + `set_maximization` |
