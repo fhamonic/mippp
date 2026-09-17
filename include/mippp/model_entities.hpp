@@ -11,9 +11,9 @@
 #include <utility>
 #include <vector>
 
-#include "mippp/constraints_range.hpp"
 #include "mippp/mapping.hpp"
 #include "mippp/model_concepts.hpp"
+#include "mippp/utility/constraints_range.hpp"
 #include "mippp/utility/zero.hpp"
 
 namespace mippp {

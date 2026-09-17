@@ -95,6 +95,7 @@ struct model_test : public ::testing::Test {
 #include "mip_start.hpp"
 #include "modifiable_objective.hpp"
 #include "modifiable_variables_bounds.hpp"
+#include "named_constraints.hpp"
 #include "named_variables.hpp"
 #include "qp_model.hpp"
 #include "ranged_constraints.hpp"

@@ -400,6 +400,7 @@ private:
                             tmp_begins.data(), nullptr, tmp_indices.data(),
                             tmp_scalars.data(), tmp_types.data(),
                             tmp_rhs.data(), nullptr, nullptr));
+        detail::name_constraints(*this, keys, constraint{offset});
         return constraints_range(std::forward<IR>(keys), constraint{offset},
                                  static_cast<std::size_t>(count));
     }

@@ -364,11 +364,9 @@ private:
             _add_first_valued_constraint<distinct>(key, constraint_lambdas...);
             ++constr_id;
         }
-        if constexpr(std::strict_weak_order<std::less<key_t>, key_t, key_t>) {
-            return constraints_range(
-                std::forward<IR>(keys), constraint{offset},
-                static_cast<std::size_t>(constr_id - offset));
-        }
+        detail::name_constraints(*this, keys, constraint{offset});
+        return constraints_range(std::forward<IR>(keys), constraint{offset},
+                                 static_cast<std::size_t>(constr_id - offset));
     }
 
 public:

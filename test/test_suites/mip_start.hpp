@@ -23,7 +23,7 @@ struct MipStartTest : public T {
     using typename T::model_type;
     static_assert(milp_model<model_type>);
     static_assert(has_mip_start<model_type>);
-    static_assert(has_time_limit<model_type>);
+    static_assert(has_time_limit<model_type> || has_node_limit<model_type>);
 };
 TYPED_TEST_SUITE_P(MipStartTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MipStartTest);
@@ -228,7 +228,12 @@ TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
                 return std::make_pair(mipstarted_X(i), solution[default_X(i)]);
             }));
 
-        mipstarted_model.set_time_limit(std::chrono::milliseconds(100));
+        if constexpr(has_iteration_limit<decltype(mipstarted_model)>)
+            mipstarted_model.set_iteration_limit(1);
+        if constexpr(has_node_limit<decltype(mipstarted_model)>)
+            mipstarted_model.set_node_limit(1);
+        if constexpr(has_time_limit<decltype(mipstarted_model)>)
+            mipstarted_model.set_time_limit(std::chrono::milliseconds(200));
 
         auto mipstarted_start = std::chrono::system_clock::now();
         mipstarted_model.solve();
@@ -236,6 +241,10 @@ TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
         mipstarted_time_us_sum +=
             std::chrono::duration_cast<std::chrono::microseconds>(
                 mipstarted_end - mipstarted_start);
+
+        ASSERT_TRUE(
+            is_a<status::optimal>(mipstarted_model.solve_status()) ||
+            is_a<status::limit_reached>(mipstarted_model.solve_status()));
 
         std::cout << "default avg.    : " << default_time_us_sum / 10
                   << std::endl;

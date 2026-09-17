@@ -536,6 +536,7 @@ private:
             tmp_begins.data(), tmp_indices.data(), tmp_scalars.data(),
             tmp_types.data(), tmp_rhs.data(), nullptr));
         _lazy_num_constraints += static_cast<std::size_t>(constr_id - offset);
+        detail::name_constraints(*this, keys, constraint{offset});
         return constraints_range(std::forward<IR>(keys), constraint{offset},
                                  static_cast<std::size_t>(constr_id - offset));
     }

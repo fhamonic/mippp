@@ -519,6 +519,7 @@ private:
                 key, constraint_lambdas...));
             ++constr_id;
         }
+        detail::name_constraints(*this, keys, constraint{offset});
         return constraints_range(std::forward<IR>(keys), constraint{offset},
                                  static_cast<std::size_t>(constr_id - offset));
     }

@@ -373,6 +373,7 @@ public:
         Clp->addRows(model, static_cast<int>(tmp_begins.size()) - 1,
                      tmp_lower_bounds.data(), tmp_upper_bounds.data(),
                      tmp_begins.data(), tmp_indices.data(), tmp_scalars.data());
+        detail::name_constraints(*this, keys, constraint{offset});
         return constraints_range(std::forward<IR>(keys), constraint{offset},
                                  static_cast<std::size_t>(constr_id - offset));
     }
@@ -437,7 +438,7 @@ public:
                                      scalar ub) {
         return add_ranged_constraint(le, lb, ub);
     }
-    void set_constraint_name(constraint constr, auto && name) {
+    void set_constraint_name(constraint constr, const std::string & name) {
         Clp->setRowName(model, constr.id(), const_cast<char *>(name.c_str()));
     }
 

@@ -10,9 +10,10 @@
 #include <utility>
 #include <vector>
 
-#include "mippp/constraints_range.hpp"
 #include "mippp/detail/cartesian_product_view.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/constraints_range.hpp"
+#include "mippp/utility/keys_view.hpp"
 
 // constraints_range resolves a key to its constraint through a strategy
 // picked from the type of the key range. Each test pins the strategy chosen
@@ -21,6 +22,8 @@
 using constraint = mippp::model_constraint<int>;
 using mippp::constraints_range;
 using mippp::indexed;
+using mippp::indexed_named;
+using mippp::named;
 namespace detail = mippp::detail;
 
 static std::vector<int> ids_of(const auto & constraints) {
@@ -111,7 +114,10 @@ GTEST_TEST(constraints_range, empty_product_keys) {
     ASSERT_THROW(c(0, 0), std::out_of_range);
 }
 
-#ifdef __cpp_lib_ranges_cartesian_product
+// The gate names detail::cartesian_product_view, the standard view only
+// where the fallback is not forced in.
+#if defined(__cpp_lib_ranges_cartesian_product) && \
+    !defined(MIPPP_PORTABLE_RANGE_SHAPES)
 GTEST_TEST(constraints_range, standard_n_ary_product_keys) {
     auto keys = std::views::cartesian_product(
         std::views::iota(0, 2), std::views::iota(5, 8), std::views::iota(0, 4));
@@ -193,7 +199,39 @@ GTEST_TEST(constraints_range, indexed_keys_reject_negative_ids) {
         std::invalid_argument);
 }
 
-struct opaque {};
+struct opaque {
+    int rank = 0;
+};
+
+namespace user {
+// a range that knows where each of its keys is: every key is its own position
+struct positional_keys {
+    std::vector<opaque> keys;
+    auto begin() const { return keys.begin(); }
+    auto end() const { return keys.end(); }
+};
+struct positional_index {
+    std::size_t count;
+    std::size_t position(const opaque & key) const {
+        const auto rank = static_cast<std::size_t>(key.rank);
+        return rank < count ? rank : mippp::npos;
+    }
+};
+positional_index key_index(const positional_keys & keys) {
+    return {keys.keys.size()};
+}
+}  // namespace user
+
+GTEST_TEST(constraints_range, a_range_can_supply_its_own_index) {
+    static_assert(mippp::key_index_for<user::positional_index, opaque>);
+    user::positional_keys keys{{{0}, {1}, {2}}};
+    constraints_range c(keys, constraint{4}, 3);
+    static_assert(
+        std::same_as<decltype(c), constraints_range<opaque, constraint,
+                                                    user::positional_index>>);
+    ASSERT_EQ(c(opaque{1}).id(), 5);
+    ASSERT_THROW(c(opaque{3}), std::out_of_range);
+}
 
 GTEST_TEST(constraints_range, unindexable_keys_stay_iterable) {
     std::vector<opaque> keys(2);
@@ -213,4 +251,71 @@ GTEST_TEST(constraints_range, single_pass_keys_stay_iterable) {
         std::same_as<decltype(c),
                      constraints_range<int, constraint, detail::no_key_index>>);
     ASSERT_EQ(c.size(), 3u);
+}
+
+// --- keys wrappers
+
+struct order_name {
+    std::string operator()(const order &) const { return ""; }
+};
+template <typename K>
+concept renamable = requires(K & k) { named(k, order_name{}); };
+template <typename K>
+concept reindexable = requires(K & k) { indexed(k, &order::id); };
+
+GTEST_TEST(keys_view, each_wrapper_carries_its_functions) {
+    std::vector<order> orders = {{4}, {1}};
+    auto by_id = indexed(orders, &order::id);
+    static_assert(decltype(by_id)::has_id && !decltype(by_id)::has_name);
+    auto by_name = named(orders, [](const order & o) {
+        return "demand_" + std::to_string(o.id);
+    });
+    static_assert(!decltype(by_name)::has_id && decltype(by_name)::has_name);
+    auto both = indexed_named(orders, &order::id, [](const order & o) {
+        return "demand_" + std::to_string(o.id);
+    });
+    static_assert(decltype(both)::has_id && decltype(both)::has_name);
+    ASSERT_EQ(std::ranges::distance(both), 2);
+    ASSERT_EQ(std::invoke(both.id_fn(), orders[0]), 4);
+    ASSERT_EQ(both.name_fn()(orders[1]), "demand_1");
+    // wrappers do not nest
+    static_assert(!renamable<decltype(by_id)>);
+    static_assert(!reindexable<decltype(by_name)>);
+}
+
+GTEST_TEST(keys_view, a_name_does_not_change_the_index_strategy) {
+    auto keys =
+        named(std::views::iota(0, 3), [](int i) { return std::to_string(i); });
+    static_assert(std::same_as<detail::key_index_t<decltype(keys)>,
+                               detail::affine_index<int>>);
+    constraints_range c(keys, constraint{4}, 3);
+    ASSERT_EQ(c(2).id(), 6);
+    ASSERT_THROW(c(3), std::out_of_range);
+}
+
+struct recording_model {
+    std::vector<std::pair<int, std::string>> names;
+    void set_constraint_name(constraint c, const std::string & name) {
+        names.emplace_back(c.id(), name);
+    }
+};
+struct nameless_model {};
+
+GTEST_TEST(keys_view, names_are_applied_in_key_order_from_the_first_id) {
+    std::vector<order> orders = {{4}, {1}};
+    auto keys = named(orders, [](const order & o) {
+        return "demand_" + std::to_string(o.id);
+    });
+    recording_model model;
+    detail::name_constraints(model, keys, constraint{7});
+    ASSERT_EQ(model.names, (std::vector<std::pair<int, std::string>>{
+                               {7, "demand_4"}, {8, "demand_1"}}));
+}
+
+GTEST_TEST(keys_view, unnamed_keys_never_touch_the_model) {
+    std::vector<int> keys = {1, 2};
+    nameless_model model;
+    detail::name_constraints(model, keys, constraint{0});
+    auto indexed_keys = indexed(keys, std::identity{});
+    detail::name_constraints(model, indexed_keys, constraint{0});
 }

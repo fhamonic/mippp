@@ -78,7 +78,7 @@ for(int o : orders) price[o] = duals[demand_constraints(o)];
 How a key is resolved is decided at compile time from the type of the key range, and never costs more than that range requires:
 
 - **`std::views::iota`, and `cartesian_product`s of such ranges** — the position is computed arithmetically and nothing is stored. Tuple keys may be passed unpacked: `cells(i, j)` is `cells(std::tuple{i, j})`.
-- **Any other range** — the keys are copied into a hash map when `std::hash` is specialized for them, otherwise into a sorted vector when they support `operator<`. Duplicate keys resolve to their first constraint.
+- **Any other range** — the keys are copied into a hash map when `std::hash` is specialized for them, otherwise into a sorted vector when they are totally ordered (`<` and `==`). Duplicate keys resolve to their first constraint.
 - **`indexed(keys, id)`** — you supply a function mapping each key to a dense non-negative integer, and the lookup goes through a table sized to the largest id. It is the counterpart of the id-lambda of [`add_variables`](variables.md#bulk-creation-and-lambda-id-maps), for keys that carry their own index (a struct with an `id` field, a filtered subset of an interval):
 
     ```cpp
@@ -89,6 +89,18 @@ How a key is resolved is decided at compile time from the type of the key range,
     ```
 
 Keys that are neither hashable nor ordered still yield an iterable, positionally indexable range; calling it by key is then a compile-time error whose message names `indexed` as the remedy.
+
+A range type can also supply its own lookup: `mippp::key_index` is a customization point object, and a `key_index(range)` function found by argument-dependent lookup, returning an object with `position(key)`, takes precedence over the built-in strategies.
+
+On backends with constraint names (concept `has_named_constraints`), a key range wrapped with `named(keys, name)` names each constraint as it is added, from a function of its key; `indexed_named(keys, id, name)` gives both an id and a name (the wrappers do not nest):
+
+```cpp
+auto rows = model.add_constraints(
+    named(std::views::iota(0, n), [](int i) { return std::format("row_{}", i); }),
+    [&](int i) { return xsum(cols, [&, i](int j) { return X(i, j); }) == 1; });
+```
+
+Unlike variable names, which are assigned lazily on first access, constraint names are written in the same call: a family is added in bulk, and names are most useful when the whole model is exported.
 
 A single `add_constraint(c)` likewise returns one constraint handle, which you can keep to read its dual or to modify the row later (see [Re-solving and model updates](../solving/updates.md)).
 

@@ -237,7 +237,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             ASSERT_LE(solve_time.count(), (limit + overshoot).count())
                 << "with " << num_items << " items";
             if(solve_time < 0.9 * limit) continue;
-            if(++interrupted_solves == 2) {
+            if(++interrupted_solves == 3) {
                 ASSERT_TRUE(is_a<status::time_limit>(result.second));
                 return;
             }

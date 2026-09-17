@@ -419,6 +419,7 @@ private:
         check(MSK->putconboundslice(task, offset, constr_id,
                                     tmp_boundkeye.data(), tmp_rhs.data(),
                                     tmp_rhs.data()));
+        detail::name_constraints(*this, keys, constraint{offset});
         return constraints_range(std::forward<IR>(keys), constraint{offset},
                                  static_cast<std::size_t>(constr_id - offset));
     }
