@@ -60,6 +60,7 @@ protected:
     std::vector<SCIP_VAR *> tmp_vars;
     std::vector<SCIP_Real> tmp_reals;
     unsigned int register_count;
+    bool _solved = false;
 
     void _prepare_coalescing(const std::size_t ids_end) {
         tmp_entry_index_cache.resize(ids_end);
@@ -116,7 +117,8 @@ public:
         , model(other.model)
         , variables(std::move(other.variables))
         , constraints(std::move(other.constraints))
-        , register_count(other.register_count) {
+        , register_count(other.register_count)
+        , _solved(other._solved) {
         other.model = nullptr;
     }
 
@@ -174,18 +176,32 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+    // SCIP rejects every modification once a solve has run (stage SOLVED):
+    // drop the transformed problem, which sends it back to stage PROBLEM and
+    // keeps the found solutions in the original space. Called by every
+    // mutator; a solve followed by another solve resumes the search instead.
+    void _free_transform() {
+        if(!_solved) return;
+        check(SCIP->freeTransform(model));
+        _solved = false;
+    }
+
     void set_maximization() {
+        _free_transform();
         check(SCIP->setObjsense(model, SCIP_OBJSENSE_MAXIMIZE));
     }
     void set_minimization() {
+        _free_transform();
         check(SCIP->setObjsense(model, SCIP_OBJSENSE_MINIMIZE));
     }
 
     void set_objective_offset(double offset) {
+        _free_transform();
         check(SCIP->addOrigObjoffset(model,
                                      offset - SCIP->getOrigObjoffset(model)));
     }
     void set_objective(linear_expression auto && le) {
+        _free_transform();
         for(auto && var : variables) {
             check(SCIP->chgVarObj(model, var, 0.0));
         }
@@ -197,6 +213,7 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _free_transform();
         for(auto && var : variables) {
             check(SCIP->chgVarObj(model, var, 0.0));
         }
@@ -207,6 +224,7 @@ public:
         set_objective_offset(le.constant());
     }
     void add_objective(linear_expression auto && le) {
+        _free_transform();
         for(auto && [var_, coef] : le.linear_terms()) {
             const auto & var = variables[var_.uid()];
             check(SCIP->chgVarObj(model, var, SCIP->varGetObj(var) + coef));
@@ -233,6 +251,7 @@ public:
 private:
     void _add_variable(const variable_params & params, SCIP_VARTYPE type,
                        const char * name = "") {
+        _free_transform();
         SCIP_VAR * var = nullptr;
         check(SCIP->createVarBasic(
             model, &var, name,
@@ -380,16 +399,19 @@ public:
     }
 
     void set_continuous(variable v) {
+        _free_transform();
         unsigned int infeas;
         check(SCIP->chgVarType(model, variables[v.uid()],
                                SCIP_VARTYPE_CONTINUOUS, &infeas));
     }
     void set_integer(variable v) {
+        _free_transform();
         unsigned int infeas;
         check(SCIP->chgVarType(model, variables[v.uid()], SCIP_VARTYPE_INTEGER,
                                &infeas));
     }
     void set_binary(variable v) {
+        _free_transform();
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);
         unsigned int infeas;
@@ -397,15 +419,19 @@ public:
                                &infeas));
     }
     void set_objective_coefficient(variable v, double c) {
+        _free_transform();
         check(SCIP->chgVarObj(model, variables[v.uid()], c));
     }
     void set_variable_lower_bound(variable v, double lb) {
+        _free_transform();
         check(SCIP->chgVarLb(model, variables[v.uid()], lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
+        _free_transform();
         check(SCIP->chgVarUb(model, variables[v.uid()], ub));
     }
     void set_variable_name(variable v, std::string name) {
+        _free_transform();
         check(SCIP->chgVarName(model, variables[v.uid()], name.c_str()));
     }
     double get_objective_coefficient(variable v) {
@@ -426,6 +452,7 @@ public:
 private:
     template <bool distinct>
     SCIP_CONS * _add_constraint(linear_constraint auto && lc) {
+        _free_transform();
         SCIP_CONS * constr = nullptr;
         const double b = lc.rhs();
         _reset_cache();
@@ -584,6 +611,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         check(SCIP->solve(model));
+        _solved = true;
         _status = _get_status();
     }
     double get_solution_value() { return SCIP->getPrimalbound(model); }

@@ -584,8 +584,16 @@ public:
         _status = _get_status();
     }
     double get_solution_value() {
-        return objective_offset +
-               (_lazy_num_variables == 0u ? 0.0 : Cbc->getObjValue(model));
+        // computed from the solution: Cbc_getObjValue keeps the previous
+        // solve's value when a re-solve of a row-less LP takes no iteration
+        double value = objective_offset;
+        if(_lazy_num_variables == 0u) return value;
+        const double * sol = Cbc->bestSolution(model);
+        if(sol == nullptr) sol = Cbc->getColSolution(model);
+        const double * obj = Cbc->getObjCoefficients(model);
+        for(std::size_t i = 0; i < _lazy_num_variables; ++i)
+            value += obj[i] * sol[i];
+        return value;
     }
     auto get_solution() {
         // Cbc aborts when queried before a solve, and an empty model is never
