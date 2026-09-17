@@ -294,10 +294,13 @@ public:
 
 namespace key_index_cpo {
 
-void key_index() = delete;  // argument-dependent lookup only
+// Poison pill in the form the standard library uses for ranges::begin: a
+// customization is a non-template `key_index(const range &)` found by
+// argument-dependent lookup, which then beats this template on a tie.
+void key_index(const auto &) = delete;
 
 template <typename R>
-concept has_adl_key_index = requires(R & keys) {
+concept has_adl_key_index = requires(const R & keys) {
     { key_index(keys) } -> key_index_for<std::ranges::range_value_t<R>>;
 };
 
@@ -306,7 +309,8 @@ struct fn {
     [[nodiscard]] constexpr auto operator()(R && keys) const {
         using K = std::remove_cvref_t<R>;
         using Key = std::ranges::range_value_t<R>;
-        if constexpr(has_adl_key_index<R>) return key_index(keys);
+        if constexpr(has_adl_key_index<R>)
+            return key_index(std::as_const(keys));
         // a name never changes how keys are found, an id does
         else if constexpr(unindexed_keys<K>)
             return (*this)(keys.base());
@@ -330,8 +334,8 @@ struct fn {
 }  // namespace detail
 
 // key_index(keys): the index of a key range. A range type supplies its own
-// by defining a `key_index(range &)` in its namespace, returning any object
-// satisfying key_index_for<its value type>.
+// by defining a non-template `key_index(const range &)` in its namespace,
+// returning any object satisfying key_index_for<its value type>.
 inline constexpr detail::key_index_cpo::fn key_index{};
 
 ///////////////////////////////////////////////////////////////////////////////
