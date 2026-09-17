@@ -44,7 +44,7 @@ add_executable(
     mapping.cpp
     concat_view.cpp
     cartesian_product_view.cpp
-    constraints_range.cpp
+    entity_range.cpp
     zero.cpp
     dynamic_library.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}

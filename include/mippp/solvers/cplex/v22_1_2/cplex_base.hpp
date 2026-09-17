@@ -212,15 +212,6 @@ protected:
     }
 
 protected:
-    variable _add_variable(const variable_params & params, char type,
-                           char * name = nullptr) {
-        const int var_id = _new_var_native_id();
-        const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
-        const double ub = params.upper_bound.value_or(CPX_INFBOUND);
-        check(CPX->newcols(env, lp, 1, &params.obj_coef, &lb, &ub,
-                           (type != CPX_CONTINUOUS) ? &type : nullptr, &name));
-        return _new_var_handle(var_id);
-    }
     std::size_t _add_variables(std::size_t count,
                                const variable_params & params, char type) {
         if(_remap_ids) _extend_handle_ids_map(count);
@@ -264,56 +255,35 @@ protected:
     }
 
 public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, CPX_CONTINUOUS);
-    }
-    auto add_variables(std::size_t count,
-                       variable_params params = {.obj_coef = 0,
-                                                 .lower_bound = 0,
-                                                 .upper_bound = std::nullopt}) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, CPX_CONTINUOUS);
-        return _make_variables_view(handle_ids_begin, count);
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = {.obj_coef = 0,
-                                                 .lower_bound = 0,
-                                                 .upper_bound = std::nullopt}) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, CPX_CONTINUOUS);
-        return _make_indexed_variables_view(handle_ids_begin, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
 
-    variable add_named_variable(
-        const std::string & name,
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, CPX_CONTINUOUS, std::string(name).data());
+private:
+    variable _add_variable(const variable_params & params, char type,
+                           char * name = nullptr) {
+        const int var_id = _new_var_native_id();
+        const double lb = params.lower_bound.value_or(-CPX_INFBOUND);
+        const double ub = params.upper_bound.value_or(CPX_INFBOUND);
+        check(CPX->newcols(env, lp, 1, &params.obj_coef, &lb, &ub,
+                           (type != CPX_CONTINUOUS) ? &type : nullptr, &name));
+        return _new_var_handle(var_id);
     }
-    variable add_named_variable(
-        std::string && name,
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, CPX_CONTINUOUS, name.data());
+    variable _new_variable(const variable_params & params, variable_kind kind) {
+        return _add_variable(params,
+                             kind == variable_kind::continuous ? CPX_CONTINUOUS
+                             : kind == variable_kind::integer  ? CPX_INTEGER
+                                                               : CPX_BINARY);
     }
-    template <typename NL>
-    auto add_named_variables(std::size_t count, NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, CPX_CONTINUOUS);
-        return _make_named_variables_view(handle_ids_begin, count,
-                                          std::forward<NL>(name_lambda), this);
-    }
-    template <typename IL, typename NL>
-    auto add_named_variables(std::size_t count, IL && id_lambda,
-                             NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, CPX_CONTINUOUS);
-        return _make_indexed_named_variables_view(
-            handle_ids_begin, count, std::forward<IL>(id_lambda),
-            std::forward<NL>(name_lambda), this);
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params,
+                               variable_kind kind) {
+        return _add_variables(count, params,
+                              kind == variable_kind::continuous ? CPX_CONTINUOUS
+                              : kind == variable_kind::integer  ? CPX_INTEGER
+                                                                : CPX_BINARY);
     }
 
 private:
@@ -491,9 +461,10 @@ private:
                            tmp_types.data(), tmp_begins.data(),
                            tmp_indices.data(), tmp_scalars.data(), nullptr,
                            nullptr));
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(constr_id - offset));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
     }
 
 public:

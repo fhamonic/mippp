@@ -68,7 +68,7 @@ auto rows = model.add_constraints(std::views::iota(0, n), [&](int row) {
 });
 ```
 
-The result is iterable like any range, indexable by position (`rows[i]` is the constraint built for the *i*-th key) and — like lambda-indexed variables — callable **by key**: `rows(3)` returns the constraint handle built for key `3`. Keeping constraints addressable by your own coordinates is what makes duals usable in decomposition algorithms:
+The result is iterable like any range, indexable by position (`rows[i]` is the constraint built for the *i*-th key) and — like [keyed variables](variables.md#keyed-families) — callable **by key**: `rows(3)` returns the constraint handle built for key `3`. Keeping constraints addressable by your own coordinates is what makes duals usable in decomposition algorithms:
 
 ```cpp
 auto duals = model.get_dual_solution();

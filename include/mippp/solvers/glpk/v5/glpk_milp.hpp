@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <ranges>
 #include <utility>
 #include <variant>
 
@@ -46,27 +47,10 @@ public:
         model_params.sr_heur = GLP_ON;
     }
 
-    variable add_integer_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(var_id, params, GLP_IV);
-        return variable(var_id);
-    }
-    auto add_integer_variables(
-        std::size_t count, variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, GLP_IV);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_integer_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, GLP_IV);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    using model_base<int, double>::add_integer_variable;
+    using model_base<int, double>::add_integer_variables;
+    using model_base<int, double>::add_binary_variable;
+    using model_base<int, double>::add_binary_variables;
 
 private:
     inline void _add_binary_variables(const std::size_t & offset,
@@ -78,25 +62,6 @@ private:
     }
 
 public:
-    variable add_binary_variable() {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(var_id,
-                      {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-                      GLP_BV);
-        return variable(var_id);
-    }
-    auto add_binary_variables(std::size_t count) {
-        const std::size_t offset = num_variables();
-        _add_binary_variables(offset, count);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) {
-        const std::size_t offset = num_variables();
-        _add_binary_variables(offset, count);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
     void set_continuous(variable v) noexcept {
         glp->set_col_kind(model, v.id() + 1, GLP_CV);
     }

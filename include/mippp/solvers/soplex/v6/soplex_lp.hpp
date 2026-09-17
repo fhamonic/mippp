@@ -16,44 +16,24 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
+#include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/soplex/v6/soplex_api.hpp"
 
 namespace mippp {
 namespace soplex::v6 {
 
-class soplex_lp {
+class soplex_lp : protected model_base<int, double> {
 protected:
     using variable_id = int;
     using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
 
 public:
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
+    using model_base<int, double>::default_variable_params;
 
 private:
     const soplex_api * SoPlex;
     void * model;
     double objective_offset;
-    std::vector<double> tmp_scalars;
 
 public:
     [[nodiscard]] soplex_lp() : soplex_lp(soplex_api::load()) {}
@@ -65,10 +45,10 @@ public:
 
     constexpr soplex_lp(const soplex_lp &) = delete;
     constexpr soplex_lp(soplex_lp && other) noexcept
-        : SoPlex(other.SoPlex)
+        : model_base<int, double>(std::move(other))
+        , SoPlex(other.SoPlex)
         , model(other.model)
-        , objective_offset(other.objective_offset)
-        , tmp_scalars(std::move(other.tmp_scalars)) {
+        , objective_offset(other.objective_offset) {
         other.model = nullptr;
     }
 
@@ -124,36 +104,20 @@ private:
                            params.upper_bound.value_or(1e100));
     }
 
+private:
 public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_var(params);
-        return variable(var_id);
-    }
-    auto add_variables(std::size_t count,
-                       const variable_params params = default_variable_params) {
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
+
+private:
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params, variable_kind) {
         const std::size_t offset = num_variables();
         for(std::size_t i = 0; i < count; ++i) _add_var(params);
-        return variables_view(
-            std::from_range,
-            std::views::transform(
-                std::views::iota(static_cast<variable_id>(offset),
-                                 static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i) _add_var(params);
-        return variables_view(
-            typename detail::function_traits<IL>::arg_types(),
-            std::views::transform(
-                std::views::iota(static_cast<variable_id>(offset),
-                                 static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
+        return offset;
     }
 
 private:
@@ -254,9 +218,10 @@ public:
             _add_first_valued_constraint(key, constraint_lambdas...);
             ++constr_id;
         }
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(constr_id - offset));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,

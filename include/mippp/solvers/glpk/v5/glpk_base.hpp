@@ -205,51 +205,22 @@ protected:
     }
 
 public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(var_id, params, GLP_CV);
-        return variable(var_id);
-    }
-    auto add_variables(std::size_t count,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, GLP_CV);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, GLP_CV);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
 
-    variable add_named_variable(
-        const std::string & name,
-        const variable_params params = default_variable_params) {
-        variable v = add_variable(params);
-        set_variable_name(v, name);
-        return v;
-    }
-    template <typename NL>
-    auto add_named_variables(std::size_t count, NL && name_lambda,
-                             variable_params params = default_variable_params) {
+private:
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params,
+                               variable_kind kind) {
         const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, GLP_CV);
-        return _make_named_variables_view(offset, count,
-                                          std::forward<NL>(name_lambda), this);
-    }
-    template <typename IL, typename NL>
-    auto add_named_variables(std::size_t count, IL && id_lambda,
-                             NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, GLP_CV);
-        return _make_indexed_named_variables_view(
-            offset, count, std::forward<IL>(id_lambda),
-            std::forward<NL>(name_lambda), this);
+        _add_variables(offset, count, params,
+                       kind == variable_kind::continuous ? GLP_CV
+                       : kind == variable_kind::integer  ? GLP_IV
+                                                         : GLP_BV);
+        return offset;
     }
 
 private:
@@ -376,9 +347,10 @@ private:
                                                    constraint_lambdas...);
             ++constr_id;
         }
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(constr_id - offset));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
     }
 
 public:

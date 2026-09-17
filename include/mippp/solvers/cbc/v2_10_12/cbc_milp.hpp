@@ -149,91 +149,24 @@ private:
     }
 
 public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(_lazy_num_variables);
-        _add_var(params, false);
-        return variable(var_id);
-    }
-    auto add_variables(std::size_t count,
-                       const variable_params params = default_variable_params) {
-        const std::size_t offset = _lazy_num_variables;
-        for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = _lazy_num_variables;
-        for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
-    variable add_integer_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(_lazy_num_variables);
-        _add_var(params, true);
-        return variable(var_id);
-    }
-    auto add_integer_variables(std::size_t count, const variable_params params =
-                                                      default_variable_params) {
-        const std::size_t offset = _lazy_num_variables;
-        for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_integer_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
-        const std::size_t offset = _lazy_num_variables;
-        for(std::size_t i = 0; i < count; ++i) _add_var(params, true);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
-    variable add_binary_variable() {
-        int var_id = static_cast<int>(_lazy_num_variables);
-        _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
-        return variable(var_id);
-    }
-    auto add_binary_variables(std::size_t count) {
-        const std::size_t offset = _lazy_num_variables;
-        for(std::size_t i = 0; i < count; ++i)
-            _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) {
-        const std::size_t offset = _lazy_num_variables;
-        for(std::size_t i = 0; i < count; ++i)
-            _add_var(variable_params{.lower_bound = 0, .upper_bound = 1}, true);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
+    using model_base<int, double>::add_integer_variable;
+    using model_base<int, double>::add_integer_variables;
+    using model_base<int, double>::add_binary_variable;
+    using model_base<int, double>::add_binary_variables;
 
-    variable add_named_variable(
-        const std::string & name,
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(_lazy_num_variables);
-        _add_var(params, false, name.c_str());
-        return variable(var_id);
-    }
-    template <typename NL>
-    auto add_named_variables(std::size_t count, NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
+private:
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params,
+                               variable_kind kind) {
+        const std::size_t offset = _lazy_num_variables;
         for(std::size_t i = 0; i < count; ++i)
-            _add_var(params, false, name_lambda(i).c_str());
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL, typename NL>
-    auto add_named_variables(std::size_t count, IL && id_lambda,
-                             NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i) _add_var(params, false);
-        return _make_indexed_named_variables_view(
-            offset, count, std::forward<IL>(id_lambda),
-            std::forward<NL>(name_lambda), this);
+            _add_var(params, kind != variable_kind::continuous);
+        return offset;
     }
 
 private:
@@ -364,9 +297,10 @@ private:
             _add_first_valued_constraint<distinct>(key, constraint_lambdas...);
             ++constr_id;
         }
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(constr_id - offset));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
     }
 
 public:

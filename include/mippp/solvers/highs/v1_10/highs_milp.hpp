@@ -22,39 +22,10 @@ public:
     [[nodiscard]] explicit highs_milp(const highs_api & api)
         : highs_base(api) {}
 
-    variable add_integer_variable(
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, kHighsVarTypeInteger);
-    }
-    auto add_integer_variables(
-        std::size_t count, variable_params params = default_variable_params) {
-        const std::size_t offset =
-            _add_variables(count, params, kHighsVarTypeInteger);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_integer_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
-        const std::size_t offset =
-            _add_variables(count, params, kHighsVarTypeInteger);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
-    variable add_binary_variable() {
-        return add_integer_variable(
-            {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
-    }
-    auto add_binary_variables(std::size_t count) {
-        return add_integer_variables(
-            count, {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
-    }
-    template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) {
-        return add_integer_variables(
-            count, std::forward<IL>(id_lambda),
-            {.obj_coef = 0, .lower_bound = 0.0, .upper_bound = 1.0});
-    }
+    using model_base<int, double>::add_integer_variable;
+    using model_base<int, double>::add_integer_variables;
+    using model_base<int, double>::add_binary_variable;
+    using model_base<int, double>::add_binary_variables;
     void set_continuous(variable v) {
         check(Highs->changeColIntegrality(model, _native_id(v),
                                           kHighsVarTypeContinuous));

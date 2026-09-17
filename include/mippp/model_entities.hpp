@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <functional>
-#include <memory>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -13,7 +12,7 @@
 
 #include "mippp/mapping.hpp"
 #include "mippp/model_concepts.hpp"
-#include "mippp/utility/constraints_range.hpp"
+#include "mippp/utility/entity_range.hpp"
 #include "mippp/utility/zero.hpp"
 
 namespace mippp {
@@ -123,151 +122,6 @@ public:
             return _map[e.uid()];
     }
 };
-
-///////////////////////////////////////////////////////////////////////////////
-/////////////////////////// Function traits detail ////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-namespace detail {
-
-template <typename... Args>
-struct pack {};
-
-template <typename T>
-struct function_traits : public function_traits<decltype(&T::operator())> {};
-
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType (ClassType::*)(Args...) const> {
-    using result_type = ReturnType;
-    using arg_types = pack<Args...>;
-};
-
-}  // namespace detail
-
-///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// Variables range ///////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-template <std::ranges::random_access_range Vars, typename IdLambda,
-          typename... Args>
-    requires std::integral<
-        std::decay_t<std::invoke_result_t<IdLambda, Args...>>>
-class variables_view {
-protected:
-    using variable = std::ranges::range_value_t<Vars>;
-    using scalar = linear_expression_scalar_t<variable>;
-
-    const Vars _variables;
-    [[no_unique_address]] const IdLambda _id_lambda;
-
-public:
-    template <typename VR>
-    constexpr variables_view(std::from_range_t, VR && variables)
-        : _variables(std::views::all(std::forward<VR>(variables)))
-        , _id_lambda() {}
-
-    template <typename AP, typename VR, typename IL>
-    constexpr variables_view(AP, VR && variables, IL && id_lambda)
-        : _variables(std::views::all(std::forward<VR>(variables)))
-        , _id_lambda(std::forward<IL>(id_lambda)) {}
-
-    constexpr variables_view(const variables_view &) = default;
-    constexpr variables_view(variables_view &&) = default;
-
-    constexpr auto size() const noexcept {
-        return std::ranges::size(_variables);
-    }
-    constexpr auto begin() const noexcept {
-        return std::ranges::begin(_variables);
-    }
-    constexpr auto end() const noexcept { return std::ranges::end(_variables); }
-
-    template <std::integral T>
-    constexpr auto operator[](T i) const {
-        if(static_cast<std::size_t>(i) >= this->size())
-            throw std::out_of_range("variable's index out of range.");
-        return begin()[static_cast<std::ranges::range_difference_t<Vars>>(i)];
-    }
-
-    constexpr auto operator()(Args... args) const {
-        const auto index = static_cast<std::ranges::range_difference_t<Vars>>(
-            this->_id_lambda(args...));
-        if(static_cast<std::size_t>(index) >= this->size())
-            throw std::out_of_range("variable's index out of range.");
-        return this->begin()[index];
-    }
-
-    constexpr auto linear_terms() const noexcept {
-        return std::views::transform(
-            _variables, [](auto && i) { return std::make_pair(i, scalar{1}); });
-    }
-    constexpr zero_t constant() const noexcept { return {}; }
-};
-
-template <std::ranges::random_access_range Vars, typename IdLambda,
-          typename NameLambda, typename Model, typename... Args>
-    requires std::integral<
-                 std::decay_t<std::invoke_result_t<IdLambda, Args...>>> &&
-             std::convertible_to<std::invoke_result_t<NameLambda, Args...>,
-                                 std::string>
-class lazily_named_variables_view
-    : public variables_view<Vars, IdLambda, Args...> {
-private:
-    [[no_unique_address]] mutable NameLambda _name_lambda;
-    std::unique_ptr<bool[]> _name_set_map;
-    Model * _model;
-
-public:
-    template <typename VR, typename NL, typename M>
-    constexpr lazily_named_variables_view(VR && variables, NL && name_lambda,
-                                          M * model)
-        : variables_view<Vars, IdLambda, Args...>(std::forward<VR>(variables))
-        , _name_lambda(std::forward<NL>(name_lambda))
-        , _name_set_map(std::make_unique<bool[]>(this->size()))
-        , _model(model) {}
-
-    template <typename AP, typename VR, typename IL, typename NL, typename M>
-    constexpr lazily_named_variables_view(AP p, VR && variables,
-                                          IL && id_lambda, NL && name_lambda,
-                                          M * model)
-        : variables_view<Vars, IdLambda, Args...>(
-              p, std::forward<VR>(variables), std::forward<IL>(id_lambda))
-        , _name_lambda(std::forward<NL>(name_lambda))
-        , _name_set_map(std::make_unique<bool[]>(this->size()))
-        , _model(model) {}
-
-    constexpr auto operator()(Args... args) const {
-        const auto index = static_cast<std::size_t>(this->_id_lambda(args...));
-        if(index >= this->size())
-            throw std::out_of_range("variable's index out of range.");
-        auto && var =
-            this->begin()[static_cast<std::ranges::range_difference_t<Vars>>(
-                index)];
-        if(!_name_set_map[index]) {
-            _name_set_map[index] = true;
-            _model->set_variable_name(var, _name_lambda(args...));
-        }
-        return var;
-    }
-};
-
-template <std::ranges::viewable_range VR>
-variables_view(std::from_range_t, VR &&)
-    -> variables_view<std::views::all_t<VR>, std::identity, std::size_t>;
-
-template <std::ranges::viewable_range VR, typename IL, typename... Args>
-variables_view(detail::pack<Args...>, VR &&,
-               IL &&) -> variables_view<std::views::all_t<VR>, IL, Args...>;
-
-template <std::ranges::viewable_range VR, typename NL, typename M>
-lazily_named_variables_view(VR &&, NL &&, M *)
-    -> lazily_named_variables_view<std::views::all_t<VR>, std::identity, NL, M,
-                                   std::size_t>;
-
-template <std::ranges::viewable_range VR, typename IL, typename NL, typename M,
-          typename... Args>
-lazily_named_variables_view(detail::pack<Args...>, VR &&, IL &&, NL &&, M *)
-    -> lazily_named_variables_view<std::views::all_t<VR>, IL, NL, M, Args...>;
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Optional helper ///////////////////////////////

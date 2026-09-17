@@ -173,44 +173,15 @@ public:
                         nullptr);
         return variable(var_id);
     }
-    auto add_variables(std::size_t count,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = _add_variables(count, params);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = _add_variables(count, params);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
 
-    variable add_named_variable(
-        const std::string & name,
-        const variable_params params = default_variable_params) {
-        if(!_free_variable_ids.empty()) {
-            return _recycle_variable(params, name.c_str());
-        }
-        variable v = add_variable(params);
-        set_variable_name(v, name);
-        return v;
-    }
-    template <typename NL>
-    auto add_named_variables(std::size_t count, NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset = _add_variables(count, params);
-        return _make_named_variables_view(offset, count,
-                                          std::forward<NL>(name_lambda), this);
-    }
-    template <typename IL, typename NL>
-    auto add_named_variables(std::size_t count, IL && id_lambda,
-                             NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset = _add_variables(count, params);
-        return _make_indexed_named_variables_view(
-            offset, count, std::forward<IL>(id_lambda),
-            std::forward<NL>(name_lambda), this);
+private:
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params, variable_kind) {
+        return _add_variables(count, params);
     }
 
 private:
@@ -373,9 +344,10 @@ public:
         Clp->addRows(model, static_cast<int>(tmp_begins.size()) - 1,
                      tmp_lower_bounds.data(), tmp_upper_bounds.data(),
                      tmp_begins.data(), tmp_indices.data(), tmp_scalars.data());
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(constr_id - offset));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,

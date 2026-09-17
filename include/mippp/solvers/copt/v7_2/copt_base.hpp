@@ -172,14 +172,6 @@ public:
     //////////////////////////////// Variables ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 protected:
-    variable _add_variable(const variable_params & params, const char type,
-                           const char * name = nullptr) {
-        int var_id = static_cast<int>(num_variables());
-        check(COPT->AddCol(prob, params.obj_coef, 0, nullptr, nullptr, type,
-                           params.lower_bound.value_or(-COPT_INFINITY),
-                           params.upper_bound.value_or(+COPT_INFINITY), name));
-        return variable(var_id);
-    }
     void _add_variables(std::size_t count, const variable_params & params,
                         const char type) {
         std::optional<std::size_t> dbl_offset_1, dbl_offset_2;
@@ -211,47 +203,22 @@ protected:
     }
 
 public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, COPT_CONTINUOUS);
-    }
-    auto add_variables(std::size_t count,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(count, params, COPT_CONTINUOUS);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(count, params, COPT_CONTINUOUS);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
 
-    variable add_named_variable(
-        const std::string & name,
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, COPT_CONTINUOUS, name.c_str());
-    }
-    template <typename NL>
-    auto add_named_variables(std::size_t count, NL && name_lambda,
-                             variable_params params = default_variable_params) {
+private:
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params,
+                               variable_kind kind) {
         const std::size_t offset = num_variables();
-        _add_variables(count, params, COPT_CONTINUOUS);
-        return _make_named_variables_view(offset, count,
-                                          std::forward<NL>(name_lambda), this);
-    }
-    template <typename IL, typename NL>
-    auto add_named_variables(std::size_t count, IL && id_lambda,
-                             NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(count, params, COPT_CONTINUOUS);
-        return _make_indexed_named_variables_view(
-            offset, count, std::forward<IL>(id_lambda),
-            std::forward<NL>(name_lambda), this);
+        _add_variables(count, params,
+                       kind == variable_kind::continuous ? COPT_CONTINUOUS
+                       : kind == variable_kind::integer  ? COPT_INTEGER
+                                                         : COPT_BINARY);
+        return offset;
     }
 
 private:
@@ -400,9 +367,9 @@ private:
                             tmp_begins.data(), nullptr, tmp_indices.data(),
                             tmp_scalars.data(), tmp_types.data(),
                             tmp_rhs.data(), nullptr, nullptr));
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(count));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset}, static_cast<std::size_t>(count)));
     }
 
 public:

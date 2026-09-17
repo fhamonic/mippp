@@ -276,14 +276,6 @@ public:
     //////////////////////////////// Variables ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 protected:
-    inline variable _add_variable(const variable_params & params,
-                                  const char & type, const char * name_str) {
-        check(GRB->addvar(model, 0, nullptr, nullptr, params.obj_coef,
-                          params.lower_bound.value_or(-GRB_INFINITY),
-                          params.upper_bound.value_or(GRB_INFINITY), type,
-                          name_str));
-        return _new_var_handle(_new_var_native_id());
-    }
     inline std::size_t _add_variables(const std::size_t & count,
                                       const variable_params & params,
                                       const char & type) {
@@ -328,47 +320,35 @@ protected:
     }
 
 public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, GRB_CONTINUOUS, nullptr);
-    }
-    auto add_variables(std::size_t count,
-                       variable_params params = default_variable_params) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, GRB_CONTINUOUS);
-        return _make_variables_view(handle_ids_begin, count);
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = default_variable_params) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, GRB_CONTINUOUS);
-        return _make_indexed_variables_view(handle_ids_begin, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
 
-    variable add_named_variable(
-        const std::string & name,
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, GRB_CONTINUOUS, name.c_str());
+private:
+    inline variable _add_variable(const variable_params & params,
+                                  const char & type, const char * name_str) {
+        check(GRB->addvar(model, 0, nullptr, nullptr, params.obj_coef,
+                          params.lower_bound.value_or(-GRB_INFINITY),
+                          params.upper_bound.value_or(GRB_INFINITY), type,
+                          name_str));
+        return _new_var_handle(_new_var_native_id());
     }
-    template <typename NL>
-    auto add_named_variables(std::size_t count, NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, GRB_CONTINUOUS);
-        return _make_named_variables_view(handle_ids_begin, count,
-                                          std::forward<NL>(name_lambda), this);
+    variable _new_variable(const variable_params & params, variable_kind kind) {
+        return _add_variable(params,
+                             kind == variable_kind::continuous ? GRB_CONTINUOUS
+                             : kind == variable_kind::integer  ? GRB_INTEGER
+                                                               : GRB_BINARY,
+                             nullptr);
     }
-    template <typename IL, typename NL>
-    auto add_named_variables(std::size_t count, IL && id_lambda,
-                             NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, GRB_CONTINUOUS);
-        return _make_indexed_named_variables_view(
-            handle_ids_begin, count, std::forward<IL>(id_lambda),
-            std::forward<NL>(name_lambda), this);
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params,
+                               variable_kind kind) {
+        return _add_variables(count, params,
+                              kind == variable_kind::continuous ? GRB_CONTINUOUS
+                              : kind == variable_kind::integer  ? GRB_INTEGER
+                                                                : GRB_BINARY);
     }
 
 private:
@@ -536,9 +516,10 @@ private:
             tmp_begins.data(), tmp_indices.data(), tmp_scalars.data(),
             tmp_types.data(), tmp_rhs.data(), nullptr));
         _lazy_num_constraints += static_cast<std::size_t>(constr_id - offset);
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(constr_id - offset));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
     }
 
 public:

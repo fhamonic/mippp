@@ -16,6 +16,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/quadratic_expression.hpp"
+#include "mippp/utility/keys_view.hpp"
 #include "mippp/utility/memory_size.hpp"
 #include "mippp/utility/solve_status.hpp"
 
@@ -137,6 +138,10 @@ concept lp_model =
         { model.add_variables(std::size_t{1u}, 
                               [](archetype::any_type) { return 0; }, vpars) }
                 -> variables_range<T>;
+        { model.add_variables(archetype::range<archetype::any_type>()) }
+                -> variables_range<T>;
+        { model.add_variables(archetype::range<archetype::any_type>(), vpars) }
+                -> variables_range<T>;
 
         { model.set_objective_offset(s) };
         { model.set_objective(archetype::linear_expression<T>()) };
@@ -194,11 +199,18 @@ concept milp_model =
                                   [](archetype::any_type) { return 0; },
                                   vparams) }
             -> variables_range<T>;
+    { model.add_integer_variables(archetype::range<archetype::any_type>()) }
+            -> variables_range<T>;
+    { model.add_integer_variables(archetype::range<archetype::any_type>(),
+                                  vparams) }
+            -> variables_range<T>;
 
     { model.add_binary_variable() } -> std::same_as<model_variable_t<T>>;
     { model.add_binary_variables(std::size_t{1u}) } -> variables_range<T>;
     { model.add_binary_variables(std::size_t{1u}, 
                                  [](archetype::any_type) { return 0; }) }
+            -> variables_range<T>;
+    { model.add_binary_variables(archetype::range<archetype::any_type>()) }
             -> variables_range<T>;
 
     { model.set_continuous(v) };
@@ -289,12 +301,11 @@ concept has_named_variables = requires(T & model, model_variable_t<T> v,
         { model.add_named_variable(name) } -> std::same_as<model_variable_t<T>>;
         { model.add_named_variable(name, vparams) } 
                 -> std::same_as<model_variable_t<T>>;
-        { model.add_named_variables(
-                std::size_t{1u}, [](std::size_t) -> std::string { return ""; })
+        { model.add_variables(named(archetype::range<archetype::any_type>(),
+                [](archetype::any_type) -> std::string { return ""; }))
         } -> variables_range<T>;
-        { model.add_named_variables(
-                std::size_t{1u}, [](std::size_t) -> std::string { return ""; },
-                vparams)
+        { model.add_variables(named(archetype::range<archetype::any_type>(),
+                [](archetype::any_type) -> std::string { return ""; }), vparams)
         } -> variables_range<T>;
         { model.add_named_variables(
                 std::size_t{1u}, [](archetype::any_type) { return 0; },

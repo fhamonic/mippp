@@ -26,25 +26,10 @@ public:
     [[nodiscard]] copt_milp() : copt_milp(copt_api::load()) {}
     [[nodiscard]] explicit copt_milp(const copt_api & api) : copt_base(api) {}
 
-    variable add_integer_variable(
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, COPT_INTEGER);
-    }
-    auto add_integer_variables(
-        std::size_t count, variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(count, params, COPT_INTEGER);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_integer_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(count, params, COPT_INTEGER);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    using model_base<int, double>::add_integer_variable;
+    using model_base<int, double>::add_integer_variables;
+    using model_base<int, double>::add_binary_variable;
+    using model_base<int, double>::add_binary_variables;
 
 private:
     inline void _add_binary_variables(const std::size_t & count) {
@@ -56,23 +41,6 @@ private:
     }
 
 public:
-    variable add_binary_variable() {
-        return _add_variable(
-            {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-            COPT_BINARY);
-    }
-    auto add_binary_variables(std::size_t count) {
-        const std::size_t offset = num_variables();
-        _add_binary_variables(count);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) {
-        const std::size_t offset = num_variables();
-        _add_binary_variables(count);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
     void set_continuous(variable v) {
         int var_id = v.id();
         char type = COPT_CONTINUOUS;

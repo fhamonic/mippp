@@ -17,38 +17,19 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
+#include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/scip/v8/scip_api.hpp"
 
 namespace mippp {
 namespace scip::v8 {
 
-class scip_milp {
+class scip_milp : protected model_base<int, double> {
 protected:
     using variable_id = int;
     using constraint_id = int;
-    using scalar = double;
-    using variable = model_variable<variable_id, scalar>;
-    using constraint = model_constraint<constraint_id>;
-    template <typename Map>
-    struct variable_mapping : entity_mapping<variable, Map> {
-        variable_mapping(Map && t)
-            : entity_mapping<variable, Map>(std::move(t)) {}
-    };
-    template <typename Map>
-    struct constraint_mapping : entity_mapping<constraint, Map> {
-        constraint_mapping(Map && t)
-            : entity_mapping<constraint, Map>(std::move(t)) {}
-    };
-
-    struct variable_params {
-        scalar obj_coef = scalar{0};
-        std::optional<scalar> lower_bound = std::nullopt;
-        std::optional<scalar> upper_bound = std::nullopt;
-    };
 
 public:
-    static constexpr variable_params default_variable_params = {
-        .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
+    using model_base<int, double>::default_variable_params;
 
 protected:
     const scip_api * SCIP;
@@ -56,10 +37,8 @@ protected:
     std::vector<SCIP_VAR *> variables;
     std::vector<SCIP_CONS *> constraints;
 
-    std::vector<std::pair<unsigned int, unsigned int>> tmp_entry_index_cache;
     std::vector<SCIP_VAR *> tmp_vars;
     std::vector<SCIP_Real> tmp_reals;
-    unsigned int register_count;
     bool _solved = false;
 
     void _prepare_coalescing(const std::size_t ids_end) {
@@ -95,8 +74,7 @@ protected:
 
 public:
     [[nodiscard]] scip_milp() : scip_milp(scip_api::load()) {}
-    [[nodiscard]] explicit scip_milp(const scip_api & api)
-        : SCIP(&api), register_count(0) {
+    [[nodiscard]] explicit scip_milp(const scip_api & api) : SCIP(&api) {
         SCIP->create(&model);
         SCIP->includeDefaultPlugins(model);
         SCIP->createProbBasic(model, "MILP");
@@ -114,11 +92,11 @@ public:
 
     constexpr scip_milp(const scip_milp &) = delete;
     scip_milp(scip_milp && other) noexcept
-        : SCIP(other.SCIP)
+        : model_base<int, double>(std::move(other))
+        , SCIP(other.SCIP)
         , model(other.model)
         , variables(std::move(other.variables))
         , constraints(std::move(other.constraints))
-        , register_count(other.register_count)
         , _solved(other._solved) {
         other.model = nullptr;
     }
@@ -263,142 +241,32 @@ private:
         variables.emplace_back(var);
     }
 
-    inline auto _make_variables_view(const std::size_t & offset,
-                                     const std::size_t & count) {
-        return variables_view(
-            std::from_range,
-            std::views::transform(
-                std::views::iota(static_cast<variable_id>(offset),
-                                 static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }));
-    }
-    template <typename IL>
-    inline auto _make_indexed_variables_view(const std::size_t & offset,
-                                             const std::size_t & count,
-                                             IL && id_lambda) {
-        return variables_view(
-            typename detail::function_traits<IL>::arg_types(),
-            std::views::transform(
-                std::views::iota(static_cast<variable_id>(offset),
-                                 static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda));
-    }
-    template <typename IL, typename NL>
-    inline auto _make_indexed_named_variables_view(const std::size_t & offset,
-                                                   const std::size_t & count,
-                                                   IL && id_lambda,
-                                                   NL && name_lambda) {
-        return lazily_named_variables_view(
-            typename detail::function_traits<IL>::arg_types(),
-            std::views::transform(
-                std::views::iota(static_cast<variable_id>(offset),
-                                 static_cast<variable_id>(offset + count)),
-                [](auto && i) { return variable{i}; }),
-            std::forward<IL>(id_lambda), std::forward<NL>(name_lambda), this);
+public:
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
+    using model_base<int, double>::add_integer_variable;
+    using model_base<int, double>::add_integer_variables;
+    using model_base<int, double>::add_binary_variable;
+    using model_base<int, double>::add_binary_variables;
+
+private:
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params,
+                               variable_kind kind) {
+        const std::size_t offset = num_variables();
+        for(std::size_t i = 0; i < count; ++i)
+            _add_variable(params, kind == variable_kind::continuous
+                                      ? SCIP_VARTYPE_CONTINUOUS
+                                  : kind == variable_kind::integer
+                                      ? SCIP_VARTYPE_INTEGER
+                                      : SCIP_VARTYPE_BINARY);
+        return offset;
     }
 
 public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
-        return variable(var_id);
-    }
-    auto add_variables(std::size_t count,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i)
-            _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i)
-            _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
-
-    variable add_integer_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(params, SCIP_VARTYPE_INTEGER);
-        return variable(var_id);
-    }
-    auto add_integer_variables(
-        std::size_t count, variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i)
-            _add_variable(params, SCIP_VARTYPE_INTEGER);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_integer_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i)
-            _add_variable(params, SCIP_VARTYPE_INTEGER);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
-
-    variable add_binary_variable() {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable({.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-                      SCIP_VARTYPE_BINARY);
-        return variable(var_id);
-    }
-    auto add_binary_variables(std::size_t count) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i)
-            _add_variable(
-                {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-                SCIP_VARTYPE_BINARY);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i)
-            _add_variable(
-                {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-                SCIP_VARTYPE_BINARY);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
-
-    variable add_named_variable(
-        const std::string & name,
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(params, SCIP_VARTYPE_CONTINUOUS, name.c_str());
-        return variable(var_id);
-    }
-    template <typename NL>
-    auto add_named_variables(std::size_t count, NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i)
-            _add_variable(params, SCIP_VARTYPE_CONTINUOUS,
-                          name_lambda(i).c_str());
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL, typename NL>
-    auto add_named_variables(std::size_t count, IL && id_lambda,
-                             NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        for(std::size_t i = 0; i < count; ++i)
-            _add_variable(params, SCIP_VARTYPE_CONTINUOUS);
-        return _make_indexed_named_variables_view(
-            offset, count, std::forward<IL>(id_lambda),
-            std::forward<NL>(name_lambda));
-    }
-
     void set_continuous(variable v) {
         _free_transform();
         unsigned int infeas;
@@ -519,9 +387,10 @@ private:
                 key, constraint_lambdas...));
             ++constr_id;
         }
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(constr_id - offset));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
     }
 
 public:

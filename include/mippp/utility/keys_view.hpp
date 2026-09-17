@@ -108,11 +108,11 @@ constexpr auto named(R && keys, F && name) {
     return detail::make_keys_view(std::forward<R>(keys), detail::absent{},
                                   std::forward<F>(name));
 }
-template <wrappable_keys R, typename IdF, typename NameF>
-    requires detail::key_id_fn<R, IdF> && detail::key_name_fn<R, NameF>
-constexpr auto indexed_named(R && keys, IdF && id, NameF && name) {
-    return detail::make_keys_view(std::forward<R>(keys), std::forward<IdF>(id),
-                                  std::forward<NameF>(name));
+template <wrappable_keys R, typename IdFn, typename NameFn>
+    requires detail::key_id_fn<R, IdFn> && detail::key_name_fn<R, NameFn>
+constexpr auto indexed_named(R && keys, IdFn && id, NameFn && name) {
+    return detail::make_keys_view(std::forward<R>(keys), std::forward<IdFn>(id),
+                                  std::forward<NameFn>(name));
 }
 
 }  // namespace mippp

@@ -318,6 +318,34 @@ TYPED_TEST_P(LpModelTest, add_opt_constraints_distinct_variables) {
         ASSERT_THROW(c(3), std::out_of_range);
     });
 }
+TYPED_TEST_P(LpModelTest, add_variables_by_key) {
+    this->SkipOnLicenseError([this]() {
+        auto model = this->new_model();
+        auto grid = model.add_variables(
+            mippp::detail::cartesian_product(std::views::iota(0, 2),
+                                             std::views::iota(0, 3)),
+            {.obj_coef = 1});
+        ASSERT_EQ(model.num_variables(), 6);
+        ASSERT_EQ(grid(1, 2).id(), 5);
+        ASSERT_EQ(grid(std::tuple{0, 1}).id(), 1);
+        ASSERT_EQ(grid[4].id(), 4);
+        ASSERT_THROW(grid(2, 0), std::out_of_range);
+        std::vector<std::string> names = {"a", "bb"};
+        auto named_keys = model.add_variables(names);
+        ASSERT_EQ(named_keys("bb").id(), 7);
+        ASSERT_THROW(named_keys("c"), std::out_of_range);
+        auto tabled = model.add_variables(
+            indexed(std::vector<int>{3, 1}, std::identity{}));
+        ASSERT_EQ(tabled(3).id(), 8);
+        ASSERT_EQ(tabled(1).id(), 9);
+        ASSERT_THROW(tabled(2), std::out_of_range);
+        // the id lambda may be generic
+        auto generic = model.add_variables(2, [](auto i) { return i - 1; });
+        ASSERT_EQ(generic(1).id(), 10);
+        ASSERT_THROW(generic(0), std::out_of_range);
+        ASSERT_EQ(model.num_variables(), 12);
+    });
+}
 TYPED_TEST_P(LpModelTest, add_constraints_by_key) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -683,10 +711,10 @@ REGISTER_TYPED_TEST_SUITE_P(
     set_objective_distinct_variables, add_constraint,
     add_constraint_distinct_variables, add_constraints,
     add_constraints_distinct_variables, add_opt_constraints,
-    add_opt_constraints_distinct_variables, add_constraints_by_key,
-    solve_empty_no_sense, solve_empty_max, solve_empty_min,
-    solve_bounded_variables_max, solve_bounded_variables_min, solve_lp,
-    solve_lp_add_constraints, solve_lp_with_objective_offset_min,
+    add_opt_constraints_distinct_variables, add_variables_by_key,
+    add_constraints_by_key, solve_empty_no_sense, solve_empty_max,
+    solve_empty_min, solve_bounded_variables_max, solve_bounded_variables_min,
+    solve_lp, solve_lp_add_constraints, solve_lp_with_objective_offset_min,
     solve_lp_with_objective_offset_max, solve_lp_set_objective_offset,
     solve_lp_objective_redundant_terms, solve_lp_constraint_redundant_terms,
     solve_lp_distinct_variables, solve_lp_mixed_distinct_variables,

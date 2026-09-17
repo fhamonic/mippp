@@ -238,17 +238,6 @@ protected:
     }
 
 protected:
-    variable _add_variable(const variable_params & params, int type) {
-        HighsInt var_id = _new_var_native_id();
-        check(Highs->addCol(
-            model, params.obj_coef,
-            params.lower_bound.value_or(-Highs->getInfinity(model)),
-            params.upper_bound.value_or(Highs->getInfinity(model)), 0, nullptr,
-            nullptr));
-        if(type != kHighsVarTypeContinuous)
-            check(Highs->changeColIntegrality(model, var_id, type));
-        return _new_var_handle(var_id);
-    }
     std::size_t _add_variables(std::size_t count,
                                const variable_params & params, int type) {
         if(_remap_ids) _extend_handle_ids_map(count);
@@ -280,49 +269,36 @@ protected:
     }
 
 public:
-    variable add_variable(
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, kHighsVarTypeContinuous);
-    }
-    auto add_variables(std::size_t count,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset =
-            _add_variables(count, params, kHighsVarTypeContinuous);
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_variables(std::size_t count, IL && id_lambda,
-                       variable_params params = default_variable_params) {
-        const std::size_t offset =
-            _add_variables(count, params, kHighsVarTypeContinuous);
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
 
-    variable add_named_variable(
-        const std::string & name,
-        const variable_params params = default_variable_params) {
-        variable v = add_variable(params);
-        set_variable_name(v, name);
-        return v;
+private:
+    variable _add_variable(const variable_params & params, int type) {
+        HighsInt var_id = _new_var_native_id();
+        check(Highs->addCol(
+            model, params.obj_coef,
+            params.lower_bound.value_or(-Highs->getInfinity(model)),
+            params.upper_bound.value_or(Highs->getInfinity(model)), 0, nullptr,
+            nullptr));
+        if(type != kHighsVarTypeContinuous)
+            check(Highs->changeColIntegrality(model, var_id, type));
+        return _new_var_handle(var_id);
     }
-    template <typename NL>
-    auto add_named_variables(std::size_t count, NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset =
-            _add_variables(count, params, kHighsVarTypeContinuous);
-        return _make_named_variables_view(offset, count,
-                                          std::forward<NL>(name_lambda), this);
+    variable _new_variable(const variable_params & params, variable_kind kind) {
+        return _add_variable(params, kind == variable_kind::continuous
+                                         ? kHighsVarTypeContinuous
+                                         : kHighsVarTypeInteger);
     }
-    template <typename IL, typename NL>
-    auto add_named_variables(std::size_t count, IL && id_lambda,
-                             NL && name_lambda,
-                             variable_params params = default_variable_params) {
-        const std::size_t offset =
-            _add_variables(count, params, kHighsVarTypeContinuous);
-        return _make_indexed_named_variables_view(
-            offset, count, std::forward<IL>(id_lambda),
-            std::forward<NL>(name_lambda), this);
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params,
+                               variable_kind kind) {
+        return _add_variables(count, params,
+                              kind == variable_kind::continuous
+                                  ? kHighsVarTypeContinuous
+                                  : kHighsVarTypeInteger);
     }
 
 private:
@@ -511,9 +487,10 @@ private:
                              static_cast<HighsInt>(tmp_indices.size()),
                              tmp_begins.data(), tmp_indices.data(),
                              tmp_scalars.data()));
-        detail::name_constraints(*this, keys, constraint{offset});
-        return constraints_range(std::forward<IR>(keys), constraint{offset},
-                                 static_cast<std::size_t>(constr_id - offset));
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
     }
 
 public:

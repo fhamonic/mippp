@@ -26,25 +26,10 @@ public:
     [[nodiscard]] explicit cplex_milp(const cplex_api & api)
         : cplex_base(api) {}
 
-    variable add_integer_variable(
-        const variable_params params = default_variable_params) {
-        return _add_variable(params, CPX_INTEGER);
-    }
-    auto add_integer_variables(
-        std::size_t count, variable_params params = default_variable_params) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, CPX_INTEGER);
-        return _make_variables_view(handle_ids_begin, count);
-    }
-    template <typename IL>
-    auto add_integer_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
-        const std::size_t handle_ids_begin =
-            _add_variables(count, params, CPX_INTEGER);
-        return _make_indexed_variables_view(handle_ids_begin, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    using model_base<int, double>::add_integer_variable;
+    using model_base<int, double>::add_integer_variables;
+    using model_base<int, double>::add_binary_variable;
+    using model_base<int, double>::add_binary_variables;
 
 private:
     inline std::size_t _add_binary_variables(const std::size_t & count) {
@@ -66,21 +51,6 @@ private:
     }
 
 public:
-    variable add_binary_variable() {
-        return _add_variable(
-            {.obj_coef = 0.0, .lower_bound = 0.0, .upper_bound = 1.0},
-            CPX_BINARY);
-    }
-    auto add_binary_variables(std::size_t count) {
-        const std::size_t handle_ids_begin = _add_binary_variables(count);
-        return _make_variables_view(handle_ids_begin, count);
-    }
-    template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) {
-        const std::size_t handle_ids_begin = _add_binary_variables(count);
-        return _make_indexed_variables_view(handle_ids_begin, count,
-                                            std::forward<IL>(id_lambda));
-    }
     void set_continuous(variable v) {
         int var_id = _native_id(v);
         char type = CPX_CONTINUOUS;

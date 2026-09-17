@@ -24,45 +24,10 @@ public:
     [[nodiscard]] explicit xpress_milp(const xpress_api & api)
         : xpress_base(api) {}
 
-    variable add_integer_variable(
-        const variable_params params = default_variable_params) {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable(params, 'I');
-        return variable(var_id);
-    }
-    auto add_integer_variables(
-        std::size_t count, variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, 'I');
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_integer_variables(
-        std::size_t count, IL && id_lambda,
-        variable_params params = default_variable_params) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, params, 'I');
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
-
-    variable add_binary_variable() {
-        int var_id = static_cast<int>(num_variables());
-        _add_variable({}, 'B');
-        return variable(var_id);
-    }
-    auto add_binary_variables(std::size_t count) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, {}, 'B');
-        return _make_variables_view(offset, count);
-    }
-    template <typename IL>
-    auto add_binary_variables(std::size_t count, IL && id_lambda) {
-        const std::size_t offset = num_variables();
-        _add_variables(offset, count, {}, 'B');
-        return _make_indexed_variables_view(offset, count,
-                                            std::forward<IL>(id_lambda));
-    }
+    using model_base<int, double>::add_integer_variable;
+    using model_base<int, double>::add_integer_variables;
+    using model_base<int, double>::add_binary_variable;
+    using model_base<int, double>::add_binary_variables;
 
     void set_continuous(variable v) {
         int var_id = v.id();

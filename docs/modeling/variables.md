@@ -76,6 +76,19 @@ auto flow = model.add_variables(
 
 Without an id-map, `add_variables(count)` returns the same kind of range, indexable positionally.
 
+### Keyed families
+
+Instead of a count and an id-map, `add_variables` also takes a **range of keys**, one variable per key, and returns a range callable by key with the same lookup rules as [constraint families](expressions.md#constraint-families): arithmetic for `iota` and cartesian products of them, a hash map or a sorted vector for other keys, a table for `indexed(keys, id)`:
+
+```cpp
+auto X = model.add_binary_variables(
+    std::views::cartesian_product(std::views::iota(0, n), std::views::iota(0, n)));
+auto v = X(row, col);   // the row-major offset is derived, never written
+auto F = model.add_variables(indexed(graph.arcs(), [](arc a) { return a.id(); }));
+```
+
+Both forms coexist. The key range cannot describe a coordinate space you never enumerate, and the id-map cannot resolve a string or a struct; pick whichever names your problem's structure directly.
+
 ### Choosing an id-map
 
 The id-map is the place where your problem's structure meets the solver's flat indexing. Two rules of thumb:
@@ -91,9 +104,16 @@ auto X = model.add_binary_variables(
     total, [&offset](int i, int k) { return offset[i] + k; });
 ```
 
-## Names, assigned lazily
+## Names
 
-Variable names are pure overhead for the solver, so MIP++ assigns none by default. When you want them — to debug a model, or to export it — pass a *name lambda* after the id-map to `add_named_variables`:
+Variable names are pure overhead for the solver, so MIP++ assigns none by default. On backends satisfying `has_named_variables`, a key range wrapped with `named(keys, name)` names each variable as it is created, from a function of its key; `indexed_named(keys, id, name)` gives both an id and a name:
+
+```cpp
+auto X = model.add_variables(
+    named(std::views::iota(0, n), [](int i) { return std::format("x_{}", i); }));
+```
+
+With an id-map, pass a *name lambda* taking the same coordinates to `add_named_variables`:
 
 ```cpp
 auto X = model.add_named_variables(
@@ -101,7 +121,7 @@ auto X = model.add_named_variables(
     [](int i, int j) { return std::format("x_{}_{}", i, j); });
 ```
 
-Names are assigned **lazily** — only the first time each variable is accessed through `X(i, j)` — so you pay only for the variables you touch. Individual variables can also be named on the fly with `add_named_variable(name)` or `set_variable_name(v, name)`, on backends satisfying `has_named_variables`.
+Those names are assigned **lazily**, the first time each variable is accessed through `X(i, j)`, since the coordinate space cannot be enumerated ahead of time. Individual variables can also be named on the fly with `add_named_variable(name)` or `set_variable_name(v, name)`.
 
 ## Next
 

@@ -139,7 +139,7 @@ See [Re-solving and model updates](../solving/updates.md).
 
 | Concept                                | Provides |
 | :--- | :--- |
-| `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../modeling/variables.md#names-assigned-lazily) id-lambda + name-lambda form). |
+| `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../modeling/variables.md#names) id-lambda + name-lambda form). |
 | `has_named_constraints` | `set_constraint_name` / `get_constraint_name`. |
 
 ## Special constraints
