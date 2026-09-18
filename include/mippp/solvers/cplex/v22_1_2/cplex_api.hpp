@@ -347,8 +347,8 @@ private:
 
 public:
     static const cplex_api & load(const char * lib_path = nullptr) {
-        return intern(
-            detail::load_solver_library(lib_path, "CPLEX", {"cplex2212"}));
+        return intern(detail::load_solver_library(
+            lib_path, "CPLEX", {"cplex2220", "cplex2212"}));
     }
 
     CPXENVptr _create_env() const {
