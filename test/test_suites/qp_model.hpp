@@ -67,7 +67,7 @@ TYPED_TEST_P(QpModelTest, linear_objective_replaces_quadratic) {
         // the quadratic part must not survive a linear set_objective
         model.set_objective(-4 * x1 - 6 * x2);
         model.solve();
-        ASSERT_TRUE(is<status::optimal>(model.solve_status()));
+        ASSERT_TRUE(is<status::optimal>(model.get_status()));
         EXPECT_NEAR(model.get_solution_value(), -100.0, TEST_EPSILON);
         auto solution = model.get_solution();
         EXPECT_NEAR(solution[x1], 10.0, TEST_EPSILON);

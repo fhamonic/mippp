@@ -208,7 +208,7 @@ HighsInt Highs_getBasis(const void * highs, HighsInt * col_status,
 HighsInt Highs_setSolution(void * highs, const double * col_value,
                            const double * row_value, const double * col_dual,
                            const double * row_dual);
-HighsInt Highs_setSparseSolution(void * highs, const HighsInt num_entries,
+HighsInt Highs_setSparseSolution(void * highs, const HighsInt num_nonzeros,
                                  const HighsInt * index, const double * value);
 
 struct HighsCallbackDataOut {

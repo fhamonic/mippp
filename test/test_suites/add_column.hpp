@@ -11,7 +11,7 @@ namespace mippp {
 template <typename T>
 struct AddColumnTest : public T {
     using typename T::model_type;
-    static_assert(has_add_column<model_type>);
+    static_assert(has_column_generation<model_type>);
 };
 TYPED_TEST_SUITE_P(AddColumnTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(AddColumnTest);

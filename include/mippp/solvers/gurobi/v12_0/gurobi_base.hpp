@@ -176,7 +176,7 @@ public:
                 "one.");
         return _lazy_num_constraints;
     }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         int num;
         update_gurobi_model();
         check(GRB->getintattr(model, GRB_INT_ATTR_NUMNZS, &num));
@@ -225,7 +225,7 @@ public:
 
 private:
     template <bool distinct, linear_expression LE>
-    void _add_objective(LE && le) {
+    void _add_to_objective(LE && le) {
         if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids);
         _reset_cache();
         _register_variables_entries<distinct>(le.linear_terms());
@@ -241,12 +241,12 @@ private:
 
 public:
     template <linear_expression LE>
-    void add_objective(LE && le) {
-        _add_objective<false>(std::forward<LE>(le));
+    void add_to_objective(LE && le) {
+        _add_to_objective<false>(std::forward<LE>(le));
     }
     template <linear_expression LE>
-    void add_objective(distinct_variables_t, LE && le) {
-        _add_objective<true>(std::forward<LE>(le));
+    void add_to_objective(distinct_variables_t, LE && le) {
+        _add_to_objective<true>(std::forward<LE>(le));
     }
     double get_objective_offset() {
         double constant;

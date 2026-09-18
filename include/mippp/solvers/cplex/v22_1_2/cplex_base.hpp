@@ -87,7 +87,7 @@ public:
     std::size_t num_constraints() {
         return static_cast<std::size_t>(CPX->getnumrows(env, lp));
     }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         return static_cast<std::size_t>(CPX->getnumnz(env, lp));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -128,7 +128,7 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         const std::size_t num_vars = _num_var_native_ids();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);

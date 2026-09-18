@@ -71,7 +71,7 @@ public:
     std::size_t num_constraints() {
         return static_cast<std::size_t>(Highs->getNumRow(model));
     }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         return static_cast<std::size_t>(Highs->getNumNz(model));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -116,39 +116,39 @@ public:
 
 private:
     template <bool distinct, linear_expression LE>
-    void _add_objective(LE && le) {
+    void _add_to_objective(LE && le) {
         if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids());
         _reset_cache();
         _register_variables_entries<distinct>(le.linear_terms());
-        const std::size_t num_entries = tmp_indices.size();
+        const std::size_t num_nonzeros = tmp_indices.size();
         std::ranges::sort(std::views::zip(tmp_indices, tmp_scalars),
                           [](const auto & e1, const auto & e2) {
                               return std::get<0>(e1) < std::get<0>(e2);
                           });
-        tmp_scalars.resize(2 * num_entries);
+        tmp_scalars.resize(2 * num_nonzeros);
         int dummy_int;
         check(Highs->getColsBySet(
-            model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
-            &dummy_int, tmp_scalars.data() + num_entries, nullptr, nullptr,
+            model, static_cast<HighsInt>(num_nonzeros), tmp_indices.data(),
+            &dummy_int, tmp_scalars.data() + num_nonzeros, nullptr, nullptr,
             &dummy_int, nullptr, nullptr, nullptr));
 
-        for(std::size_t i = 0; i < num_entries; ++i) {
-            tmp_scalars[i] += tmp_scalars[num_entries + i];
+        for(std::size_t i = 0; i < num_nonzeros; ++i) {
+            tmp_scalars[i] += tmp_scalars[num_nonzeros + i];
         }
         check(Highs->changeColsCostBySet(
-            model, static_cast<HighsInt>(num_entries), tmp_indices.data(),
+            model, static_cast<HighsInt>(num_nonzeros), tmp_indices.data(),
             tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
     }
 
 public:
     template <linear_expression LE>
-    void add_objective(LE && le) {
-        _add_objective<false>(std::forward<LE>(le));
+    void add_to_objective(LE && le) {
+        _add_to_objective<false>(std::forward<LE>(le));
     }
     template <linear_expression LE>
-    void add_objective(distinct_variables_t, LE && le) {
-        _add_objective<true>(std::forward<LE>(le));
+    void add_to_objective(distinct_variables_t, LE && le) {
+        _add_to_objective<true>(std::forward<LE>(le));
     }
 
     scalar get_objective_offset() {

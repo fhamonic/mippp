@@ -84,7 +84,7 @@ public:
                _lazy_num_constraints);
         return _lazy_num_constraints;
     }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         return static_cast<std::size_t>(Cbc->getNumElements(model));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -119,7 +119,7 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         for(auto && [var, coef] : le.linear_terms()) {
             set_objective_coefficient(var,
                                       get_objective_coefficient(var) + coef);
@@ -505,7 +505,7 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & solve_status() const { return _status; }
+    const status_variant & get_status() const { return _status; }
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Solve ///////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

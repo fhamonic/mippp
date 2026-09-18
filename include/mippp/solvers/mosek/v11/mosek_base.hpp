@@ -89,7 +89,7 @@ public:
         check(MSK->getnumcon(task, &num));
         return static_cast<std::size_t>(num);
     }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         MSKint32t num;
         check(MSK->getnumanz(task, &num));
         return static_cast<std::size_t>(num);
@@ -134,7 +134,7 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
         check(MSK->getc(task, tmp_scalars.data()));
@@ -146,8 +146,8 @@ public:
         set_objective_offset(get_objective_offset() + le.constant());
     }
     template <linear_expression LE>
-    void add_objective(distinct_variables_t, LE && le) {
-        add_objective(std::forward<LE>(le));
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
     }
 
     scalar get_objective_offset() {

@@ -80,10 +80,10 @@ public:
         check(XPRS->getintattrib(prob, XPRS_ROWS, &num_constrs));
         return static_cast<std::size_t>(num_constrs);
     }
-    std::size_t num_entries() {
-        int num_entries;
-        check(XPRS->getintattrib(prob, XPRS_ELEMS, &num_entries));
-        return static_cast<std::size_t>(num_entries);
+    std::size_t num_nonzeros() {
+        int num_nonzeros;
+        check(XPRS->getintattrib(prob, XPRS_ELEMS, &num_nonzeros));
+        return static_cast<std::size_t>(num_nonzeros);
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Native handles /////////////////////////////
@@ -124,7 +124,7 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         auto num_vars = num_variables();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);

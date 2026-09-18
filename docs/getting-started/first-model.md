@@ -104,13 +104,13 @@ double v1  = sol[x1];
 
 ```cpp
 model.solve();
-const auto & r = model.solve_status();
+const auto & r = model.get_status();
 if(is_a<status::optimal>(r))         { /* ... */ }
 else if(is_a<status::infeasible>(r)) { /* ... */ }
 else if(is_a<status::unbounded>(r))  { /* ... */ }
 ```
 
-`solve_status()` returns a `std::variant` of tag types organized in a hierarchy, and `is_a` tests a whole branch of it. (The full hierarchy, time limits, tolerances and the rest are covered in [Status, limits and tolerances](../solving/status-and-limits.md).)
+`get_status()` returns a `std::variant` of tag types organized in a hierarchy, and `is_a` tests a whole branch of it. (The full hierarchy, time limits, tolerances and the rest are covered in [Status, limits and tolerances](../solving/status-and-limits.md).)
 
 LP backends supporting dual solutions expose them the same way, indexed by constraint handles:
 

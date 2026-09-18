@@ -13,7 +13,7 @@ double obj = model.get_solution_value();
 
 ## The solve status
 
-`solve_status()` is part of the `lp_model` concept itself, so **every** model class reports how its last solve ended. It returns a `std::variant` of tag types from `namespace status`, and the tags form a **hierarchy**, so you can ask questions at whatever granularity you need:
+`get_status()` is part of the `lp_model` concept itself, so **every** model class reports how its last solve ended. It returns a `std::variant` of tag types from `namespace status`, and the tags form a **hierarchy**, so you can ask questions at whatever granularity you need:
 
 ```text
 any
@@ -39,7 +39,7 @@ Two query functions mirror the two questions you can ask of a hierarchy:
 
 ```cpp
 model.solve();
-const auto & r = model.solve_status();
+const auto & r = model.get_status();
 
 if(is_a<status::optimal>(r))            record_optimal(model);
 else if(is_a<status::limit_reached>(r)) record_timeout(model);
@@ -59,7 +59,7 @@ if(status::solution_available(r)) {
 
 Reading a solution when no solution is available is a solver-level error — always gate on `is_a<status::optimal>(r)` or `status::solution_available(r)` in code that runs under limits.
 
-Which tags a backend can return is part of its type (`model_solve_status_t<M>`, a `std::variant`), and a limit setter only exists on a backend whose `solve_status()` can actually report that limit — the concepts require it.
+Which tags a backend can return is part of its type (`model_status_t<M>`, a `std::variant`), and a limit setter only exists on a backend whose `get_status()` can actually report that limit — the concepts require it.
 
 !!! note "A backend's tag list may grow in a minor release"
     As a solver outcome that MIP++ used to fold into a coarser tag gets its own, the tag is added to that backend's variant in a minor release. `is`, `is_a` and `solution_available` are unaffected. An exhaustive `std::visit` is a compile-time check against the pinned version only: give the visitor a catch-all `auto` overload, or expect to add a case when you upgrade. Removing or renaming a tag stays a major-version change.
@@ -71,7 +71,7 @@ Solvers whose presolve applies dual reductions can terminate knowing the model i
 Two concepts describe what a model class can tell you:
 
 - `has_lp_status<Model>` — the status variant can report `infeasible` and `unbounded` as distinct tags. Every model class satisfies it except `glpk_milp`, which cannot report `infeasible`.
-- `has_refinable_lp_status<Model>` — the model provides `refine_lp_status()`: if the current status is exactly `infeasible_or_unbounded`, it re-solves with the offending reductions disabled, so that `solve_status()` afterwards reports `infeasible` or `unbounded`; on any other status it is a no-op. Currently satisfied by `gurobi_lp` and `cplex_lp`.
+- `has_refinable_lp_status<Model>` — the model provides `refine_lp_status()`: if the current status is exactly `infeasible_or_unbounded`, it re-solves with the offending reductions disabled, so that `get_status()` afterwards reports `infeasible` or `unbounded`; on any other status it is a no-op. Currently satisfied by `gurobi_lp` and `cplex_lp`.
 
 Because refining may mean a full re-solve, it never happens behind your back — the cost is only paid where the call is written:
 
@@ -133,7 +133,7 @@ run_record run(Model & model, std::chrono::seconds budget) {
     const auto elapsed = std::chrono::steady_clock::now() - start;
 
     run_record rec{.seconds = std::chrono::duration<double>(elapsed).count()};
-    const auto & r = model.solve_status();
+    const auto & r = model.get_status();
     rec.optimal = is_a<status::optimal>(r);
     rec.stopped = is_a<status::limit_reached>(r);
     rec.has_solution = status::solution_available(r);

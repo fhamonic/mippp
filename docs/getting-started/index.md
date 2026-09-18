@@ -67,7 +67,7 @@ Most research codes are not "build model, call solve": they are branch-and-cut, 
 - time, node, iteration, solution and memory limits, plus tolerance
   parameters, for [reproducible experiments](../solving/status-and-limits.md).
 
-Each of these is itself a concept (`has_candidate_solution_callback`, `has_add_column`, …), so a generic algorithm can state its requirements in its template signature and fail at *compile time* — with a clear diagnostic — if you instantiate it with a backend that lacks a capability, rather than at hour three of a run.
+Each of these is itself a concept (`has_candidate_solution_callback`, `has_column_generation`, …), so a generic algorithm can state its requirements in its template signature and fail at *compile time* — with a clear diagnostic — if you instantiate it with a backend that lacks a capability, rather than at hour three of a run.
 
 ## Header-only, dependency-free, solvers loaded at runtime
 

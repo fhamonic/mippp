@@ -92,7 +92,7 @@ public:
     std::size_t num_constraints() {
         return static_cast<std::size_t>(glp->get_num_rows(model));
     }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         return static_cast<std::size_t>(glp->get_num_nz(model));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -127,7 +127,7 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         for(auto && [var, coef] : le.linear_terms()) {
             glp->set_obj_coef(model, var.id() + 1,
                               glp->get_obj_coef(model, var.id() + 1) + coef);

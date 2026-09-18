@@ -77,7 +77,7 @@ Notable current limitations (see the
 [roadmap](https://github.com/fhamonic/mippp#roadmap) for what's planned):
 
 - **Callbacks** — candidate-solution callbacks are implemented on Gurobi, CPLEX, COPT and Xpress, and validated on Gurobi, CPLEX and COPT; SCIP has none yet. Node-relaxation (user-cut) callbacks are specified but not yet implemented.
-- **Solve status** — `solve_status()` is part of `lp_model`, so every backend reports one, but the set of tags a backend can return varies (it is part of the model type). `refine_lp_status()` — resolving `infeasible_or_unbounded` into one of the two — exists only on `gurobi_lp` and `cplex_lp`, and `glpk_milp` cannot yet report `infeasible`. See [Status, limits and tolerances](../solving/status-and-limits.md).
+- **Solve status** — `get_status()` is part of `lp_model`, so every backend reports one, but the set of tags a backend can return varies (it is part of the model type). `refine_lp_status()` — resolving `infeasible_or_unbounded` into one of the two — exists only on `gurobi_lp` and `cplex_lp`, and `glpk_milp` cannot yet report `infeasible`. See [Status, limits and tolerances](../solving/status-and-limits.md).
 - **Quadratic objectives** — HiGHS only. Quadratic constraints: none yet.
 - **SOS constraints and LP basis warm starts** — specified as concepts, not yet implemented by any backend.
 - **Ranged constraints** — Clp and Cbc only (`has_ranged_constraints`, with `has_readable_constraint_bounds` to read them back); see [Special constraints](../modeling/special-constraints.md#ranged-constraints).

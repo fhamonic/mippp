@@ -66,7 +66,7 @@ public:
     std::size_t num_constraints() {
         return static_cast<std::size_t>(Clp->getNumRows(model));
     }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         return static_cast<std::size_t>(Clp->getNumElements(model));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -101,7 +101,7 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         scalar * objective = Clp->objective(model);
         for(auto && [var, coef] : le.linear_terms()) {
             objective[var.id()] += coef;
@@ -479,7 +479,7 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & solve_status() const { return _status; }
+    const status_variant & get_status() const { return _status; }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

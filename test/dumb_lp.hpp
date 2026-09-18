@@ -100,7 +100,7 @@ public:
         return _cols.size() - _free_variable_ids.size();
     }
     std::size_t num_constraints() { return _rows.size(); }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         std::size_t count = 0;
         for(const row_data & row : _rows)
             for(const auto & [var_id, coef] : row.coefs)
@@ -120,14 +120,14 @@ public:
 
     void set_objective(linear_expression auto && le) {
         for(column_data & col : _cols) col.obj_coef = 0.0;
-        add_objective(le);
+        add_to_objective(le);
         set_objective_offset(le.constant());
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
         set_objective(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         for(auto && [var, coef] : le.linear_terms())
             _cols[var.uid()].obj_coef += coef;
         set_objective_offset(get_objective_offset() + le.constant());
@@ -390,7 +390,7 @@ private:
     }
 
 public:
-    const status_variant & solve_status() const { return _status; }
+    const status_variant & get_status() const { return _status; }
     void solve() {
         const std::size_t num_cols = _cols.size();
         const std::size_t num_rows = _rows.size();
@@ -487,7 +487,7 @@ using clp_api = clp::v1_17::clp_api;
 using dumb_lp = clp::v1_17::dumb_lp;
 
 static_assert(lp_model<dumb_lp>);
-static_assert(sized_model<dumb_lp>);
+static_assert(has_num_nonzeros<dumb_lp>);
 static_assert(has_lp_status<dumb_lp>);
 static_assert(has_dual_solution<dumb_lp>);
 static_assert(has_named_variables<dumb_lp>);
@@ -500,7 +500,7 @@ static_assert(has_readable_constraints<dumb_lp>);
 static_assert(has_modifiable_constraint_lhs<dumb_lp>);
 static_assert(has_modifiable_constraint_sense<dumb_lp>);
 static_assert(has_modifiable_constraint_rhs<dumb_lp>);
-static_assert(has_add_column<dumb_lp>);
+static_assert(has_column_generation<dumb_lp>);
 static_assert(has_remove_variable<dumb_lp>);
 static_assert(has_feasibility_tolerance<dumb_lp>);
 

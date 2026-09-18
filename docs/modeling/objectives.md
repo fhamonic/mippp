@@ -31,15 +31,15 @@ Backends satisfying `has_modifiable_objective` can change the objective without 
 
 ```cpp
 model.set_objective_coefficient(x, 2.0);      // one column
-model.add_objective(xsum(penalised, [&](int i) { return mu[i] * X(i); }));
+model.add_to_objective(xsum(penalised, [&](int i) { return mu[i] * X(i); }));
 ```
 
-`add_objective(e)` **adds** the expression to the current objective (and adds its constant to the offset) — the natural primitive for Lagrangian relaxation, where each iteration perturbs the objective by a multiplier-weighted term rather than rebuilding it:
+`add_to_objective(e)` adds the expression to the current objective (and adds its constant to the offset) — the natural primitive for Lagrangian relaxation, where each iteration perturbs the objective by a multiplier-weighted term rather than rebuilding it:
 
 ```cpp
 for(int it = 0; it < max_iters; ++it) {
     model.set_objective(base_objective_expr());          // reset
-    model.add_objective(xsum(coupling, [&](int k) {       // perturb
+    model.add_to_objective(xsum(coupling, [&](int k) {       // perturb
         return mu[k] * slack_expr(k); }));
     model.solve();
     update_multipliers(mu, model.get_solution());

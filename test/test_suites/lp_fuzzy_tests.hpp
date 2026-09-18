@@ -497,12 +497,12 @@ private:
                 "add objective", [] { return true; },
                 [this] {
                     const expr_spec spec = _rand_expr(4u);
-                    _log(std::format("add_objective({})", _expr_str(spec)));
+                    _log(std::format("add_to_objective({})", _expr_str(spec)));
                     const auto tested_terms = _tested_terms(spec);
                     const auto reference_terms = _reference_terms(spec);
-                    _tested.add_objective(
+                    _tested.add_to_objective(
                         linear_expression_view(tested_terms, spec.constant));
-                    _reference.add_objective(
+                    _reference.add_to_objective(
                         linear_expression_view(reference_terms, spec.constant));
                 });
             register_mutation(
@@ -583,7 +583,7 @@ private:
                     _constraints.emplace_back(tested_constr, reference_constr,
                                               label);
             });
-        if constexpr(has_add_column<Tested>) {
+        if constexpr(has_column_generation<Tested>) {
             register_mutation(
                 "add column", [this] { return _has_constraints(); },
                 [this] {
@@ -689,14 +689,14 @@ private:
     template <typename M>
     static std::string _status_str(M & model) {
         if constexpr(has_refinable_lp_status<M>) {
-            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+            if(is<status::infeasible_or_unbounded>(model.get_status()))
                 model.refine_lp_status();
         }
-        if(is_a<status::optimal>(model.solve_status()))
+        if(is_a<status::optimal>(model.get_status()))
             return std::format("optimal (value={})",
                                model.get_solution_value());
-        if(is_a<status::infeasible>(model.solve_status())) return "infeasible";
-        if(is_a<status::unbounded>(model.solve_status())) return "unbounded";
+        if(is_a<status::infeasible>(model.get_status())) return "infeasible";
+        if(is_a<status::unbounded>(model.get_status())) return "unbounded";
         return "unknown";
     }
 
@@ -706,12 +706,12 @@ private:
         _reference.solve();
         _log(std::format("    -> tested: {}, reference: {}",
                          _status_str(_tested), _status_str(_reference)));
-        EXPECT_EQ(is_a<status::optimal>(_tested.solve_status()),
-                  is_a<status::optimal>(_reference.solve_status()));
+        EXPECT_EQ(is_a<status::optimal>(_tested.get_status()),
+                  is_a<status::optimal>(_reference.get_status()));
         // infeasible vs unbounded is not compared strictly: solvers and
         // presolves may not always distinguish the two
-        if(!is_a<status::optimal>(_tested.solve_status()) ||
-           !is_a<status::optimal>(_reference.solve_status()))
+        if(!is_a<status::optimal>(_tested.get_status()) ||
+           !is_a<status::optimal>(_reference.get_status()))
             return;
         const double reference_value = _reference.get_solution_value();
         const double value_tolerance =

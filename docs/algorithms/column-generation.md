@@ -1,7 +1,7 @@
 # Column generation
 
 Column generation needs three things from a modeling layer: **dual values** from the restricted master problem, a way to **add a column** to a live model, and enough speed that model manipulation doesn't dominate the pricing loop.
-MIP++ provides the first two as first-class operations (concepts `has_dual_solution` and `has_add_column`), and its [zero-copy expression system](../modeling/expressions.md#why-its-fast-expressions-are-views) takes care of the third.
+MIP++ provides the first two as first-class operations (concepts `has_dual_solution` and `has_column_generation`), and its [zero-copy expression system](../modeling/expressions.md#why-its-fast-expressions-are-views) takes care of the third.
 
 ## The classic loop
 

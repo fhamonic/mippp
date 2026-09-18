@@ -158,7 +158,7 @@ TYPED_TEST_P(RemoveVariableTest, remove_addcol_solve) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
-        if constexpr(!has_add_column<decltype(model)>) GTEST_SKIP();
+        if constexpr(!has_column_generation<decltype(model)>) GTEST_SKIP();
         auto x1 = model.add_variable();
         auto x2 = model.add_variable();
         auto x3 = model.add_variable();
@@ -190,7 +190,7 @@ TYPED_TEST_P(RemoveVariableTest, solve_remove_addcol_solve) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
-        if constexpr(!has_add_column<decltype(model)>) GTEST_SKIP();
+        if constexpr(!has_column_generation<decltype(model)>) GTEST_SKIP();
         auto x1 = model.add_variable();
         auto x2 = model.add_variable();
         auto x3 = model.add_variable();

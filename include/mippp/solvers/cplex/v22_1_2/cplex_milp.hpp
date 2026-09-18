@@ -13,7 +13,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/memory_size.hpp"
-#include "mippp/utility/solve_status.hpp"
+#include "mippp/utility/status.hpp"
 
 #include "mippp/solvers/cplex/v22_1_2/cplex_base.hpp"
 
@@ -361,7 +361,7 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & solve_status() const { return _status; }
+    const status_variant & get_status() const { return _status; }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

@@ -136,7 +136,7 @@ private:
 public:
     std::size_t num_variables() { return variables.size(); }
     std::size_t num_constraints() { return constraints.size(); }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         return static_cast<std::size_t>(SCIP->getNNZs(model));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -203,7 +203,7 @@ public:
         }
         set_objective_offset(le.constant());
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         _free_transform();
         for(auto && [var_, coef] : le.linear_terms()) {
             const auto & var = variables[var_.uid()];
@@ -477,7 +477,7 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & solve_status() const { return _status; }
+    const status_variant & get_status() const { return _status; }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

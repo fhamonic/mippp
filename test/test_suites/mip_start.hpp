@@ -242,9 +242,8 @@ TYPED_TEST_P(MipStartTest, quadratic_knapsack) {
             std::chrono::duration_cast<std::chrono::microseconds>(
                 mipstarted_end - mipstarted_start);
 
-        ASSERT_TRUE(
-            is_a<status::optimal>(mipstarted_model.solve_status()) ||
-            is_a<status::limit_reached>(mipstarted_model.solve_status()));
+        ASSERT_TRUE(is_a<status::optimal>(mipstarted_model.get_status()) ||
+                    is_a<status::limit_reached>(mipstarted_model.get_status()));
 
         std::cout << "default avg.    : " << default_time_us_sum / 10
                   << std::endl;

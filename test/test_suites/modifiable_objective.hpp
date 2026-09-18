@@ -58,7 +58,7 @@ TYPED_TEST_P(ModifiableObjectiveTest, set_objective_coefficient) {
         ASSERT_NEAR(solution[xis3(0)], 0.0, TEST_EPSILON);
     });
 }
-TYPED_TEST_P(ModifiableObjectiveTest, add_objective) {
+TYPED_TEST_P(ModifiableObjectiveTest, add_to_objective) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
@@ -75,8 +75,8 @@ TYPED_TEST_P(ModifiableObjectiveTest, add_objective) {
             model.add_variables(1, [](int i) { return i; }, {.lower_bound = 0});
         model.set_maximization();
         model.set_objective(10 + 3 * x1 + 5 * xs2 + xis3);
-        model.add_objective(6 + -3 * x1 + 2 * x3 + 2.5 * xs1 + 4 * xs3 +
-                            6 * xis1 + 3 * xis3);
+        model.add_to_objective(6 + -3 * x1 + 2 * x3 + 2.5 * xs1 + 4 * xs3 +
+                               6 * xis1 + 3 * xis3);
         model.add_constraint(x1 + x2 + x3 <= 1);
         model.add_constraint(xs1 + xs2 + xs3 <= 2);
         model.add_constraint(xis1 + xis2 + xis3 <= 3);
@@ -96,6 +96,6 @@ TYPED_TEST_P(ModifiableObjectiveTest, add_objective) {
 }
 
 REGISTER_TYPED_TEST_SUITE_P(ModifiableObjectiveTest, set_objective_coefficient,
-                            add_objective);
+                            add_to_objective);
 
 }  // namespace mippp

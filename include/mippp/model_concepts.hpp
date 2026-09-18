@@ -18,7 +18,7 @@
 #include "mippp/quadratic_expression.hpp"
 #include "mippp/utility/keys_view.hpp"
 #include "mippp/utility/memory_size.hpp"
-#include "mippp/utility/solve_status.hpp"
+#include "mippp/utility/status.hpp"
 
 namespace mippp {
 
@@ -166,12 +166,12 @@ concept lp_model =
         { model.num_variables() } -> std::same_as<std::size_t>;
         { model.num_constraints() } -> std::same_as<std::size_t>;
         { model.solve() };
-        { model.solve_status() } -> variant_of<status::any>;
+        { model.get_status() } -> variant_of<status::any>;
         { model.get_solution_value() } -> std::same_as<model_scalar_t<T>>;
         { model.get_solution() }
                 -> input_mapping_of<model_variable_t<T>, model_scalar_t<T>>;
-    } && variant_with_alternative<model_solve_status_t<T>, status::unknown>
-      && variant_containing_a<model_solve_status_t<T>, status::optimal>;
+    } && variant_with_alternative<model_status_t<T>, status::unknown>
+      && variant_containing_a<model_status_t<T>, status::optimal>;
 
 // set_objective stays linear on every model: a quadratic objective has its
 // own setter so that the linear one always replaces the whole objective
@@ -218,18 +218,18 @@ concept milp_model =
     { model.set_binary(v) };
 };
 template <typename T>
-concept sized_model = requires(T & model) {
-    { model.num_entries() } -> std::same_as<std::size_t>;
+concept has_num_nonzeros = requires(T & model) {
+    { model.num_nonzeros() } -> std::same_as<std::size_t>;
 };
 
 template <typename T>
 concept has_lp_status =
-    variant_containing_a<model_solve_status_t<T>, status::infeasible> &&
-    variant_containing_a<model_solve_status_t<T>, status::unbounded>;
+    variant_containing_a<model_status_t<T>, status::infeasible> &&
+    variant_containing_a<model_status_t<T>, status::unbounded>;
 
 template <typename T>
 concept has_refinable_lp_status =
-    variant_with_alternative<model_solve_status_t<T>,
+    variant_with_alternative<model_status_t<T>,
                              status::infeasible_or_unbounded> &&
     requires(T & model) { model.refine_lp_status(); };
 
@@ -253,14 +253,14 @@ template <typename T>
 concept has_time_limit = requires(T & model, std::chrono::seconds s) {
     { model.set_time_limit(s) };
     { model.get_time_limit() } -> std::common_with<std::chrono::seconds>;
-    { model.solve_status() } -> variant_containing_a<status::time_limit>;
+    { model.get_status() } -> variant_containing_a<status::time_limit>;
 };
 // clang-format off
 template <typename T>
 concept has_iteration_limit = requires(T & model, std::size_t n) {
     { model.set_iteration_limit(n) };
     { model.get_iteration_limit() } -> std::same_as<std::size_t>;
-    { model.solve_status() } 
+    { model.get_status() } 
             -> variant_containing_a<status::iteration_limit>;
 };
 
@@ -268,14 +268,14 @@ template <typename T>
 concept has_node_limit = requires(T & model, std::size_t n) {
     { model.set_node_limit(n) };
     { model.get_node_limit() } -> std::same_as<std::size_t>;
-    { model.solve_status() } -> variant_containing_a<status::node_limit>;
+    { model.get_status() } -> variant_containing_a<status::node_limit>;
 };
 
 template <typename T>
 concept has_solution_limit = requires(T & model, std::size_t n) {
     { model.set_solution_limit(n) };
     { model.get_solution_limit() } -> std::same_as<std::size_t>;
-    { model.solve_status() }
+    { model.get_status() }
             -> variant_containing_a<status::solution_limit>;
 };
 
@@ -284,7 +284,7 @@ concept has_memory_limit = requires(T & model) {
     { model.set_memory_limit(mebibytes{128u}) };
     { model.set_memory_limit(gigabytes{4u}) };  // any memory_size<>
     { model.get_memory_limit() } -> std::common_with<bytes>;
-    { model.solve_status() }
+    { model.get_status() }
             -> variant_containing_a<status::memory_limit>;
 };
 
@@ -346,7 +346,7 @@ template <typename T>
 concept has_modifiable_objective =
     requires(T & model, model_variable_t<T> v, model_scalar_t<T> s) {
         { model.set_objective_coefficient(v, s) };
-        { model.add_objective(archetype::linear_expression<T>()) };
+        { model.add_to_objective(archetype::linear_expression<T>()) };
     };
 
 // get_objective() reads the linear part on any model, quadratic ones
@@ -508,7 +508,7 @@ concept has_ranged_constraints = requires(T & model, model_scalar_t<T> s) {
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-concept has_add_column = requires(
+concept has_column_generation = requires(
     T & model, model_variable_params_t<T> vparams, model_scalar_t<T> s,
     std::initializer_list<std::pair<model_constraint_t<T>, model_scalar_t<T>>>
         init_entries) {

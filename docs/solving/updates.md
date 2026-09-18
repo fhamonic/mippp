@@ -27,7 +27,7 @@ Changing bounds is the cheapest possible model update — the matrix is untouche
 
 ## Objective
 
-`set_objective` replaces the objective, `add_objective` increments it, and `set_objective_coefficient` edits a single column — see [Objectives](../modeling/objectives.md#incremental-changes). Switching the sense (`set_maximization` / `set_minimization`) needs no other change.
+`set_objective` replaces the objective, `add_to_objective` increments it, and `set_objective_coefficient` edits a single column — see [Objectives](../modeling/objectives.md#incremental-changes). Switching the sense (`set_maximization` / `set_minimization`) needs no other change.
 
 ## Constraint rows
 

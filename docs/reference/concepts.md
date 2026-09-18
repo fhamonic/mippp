@@ -79,14 +79,14 @@ single-parameter.
 
 | Concept           | Requires |
 | :---------------- | :------- |
-| `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params`, over a count, a count and an id-lambda, or a key range); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `solve_status`; `get_solution` / `get_solution_value`. |
+| `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params`, over a count, a count and an id-lambda, or a key range); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `get_status`; `get_solution` / `get_solution_value`. |
 | `milp_model` | `lp_model`, plus `add_integer_variable(s)`, `add_binary_variable(s)`, and per-variable type changes `set_continuous` / `set_integer` / `set_binary`. |
 | `qp_model` | `lp_model`, plus `set_quadratic_objective(expr)` (and its `distinct_variables` form) accepting a quadratic expression. `set_objective` stays linear on every model and replaces the whole objective, quadratic part included. |
-| `sized_model` | `num_entries()` (number of nonzeros). |
+| `has_num_nonzeros` | `num_nonzeros()`, the number of coefficients in the constraint matrix. |
 
 ## Solve status
 
-`solve_status()` is required by `lp_model` itself: every model class returns a `std::variant` over the tag hierarchy of namespace `status` (`optimal` and its refinements, `infeasible_or_unbounded` with its refinements `infeasible` and `unbounded`, `interrupted`, `failed`, `numerical_failure`, `out_of_memory`, `limit_reached` and its five refinements, `unknown`). Query it with `is<S>(r)` (exact tag), `is_a<S>(r)` (whole branch) and `status::solution_available(r)`; the variant type is `model_solve_status_t<M>`. Two concepts refine what a given model class can report:
+`get_status()` is required by `lp_model` itself: every model class returns a `std::variant` over the tag hierarchy of namespace `status` (`optimal` and its refinements, `infeasible_or_unbounded` with its refinements `infeasible` and `unbounded`, `interrupted`, `failed`, `numerical_failure`, `out_of_memory`, `limit_reached` and its five refinements, `unknown`). Query it with `is<S>(r)` (exact tag), `is_a<S>(r)` (whole branch) and `status::solution_available(r)`; the variant type is `model_status_t<M>`. Two concepts refine what a given model class can report:
 
 | Concept           | Provides |
 | :---------- | --- |
@@ -107,7 +107,7 @@ hierarchy and how to branch on it.
 | `has_memory_limit` | `set_memory_limit(size)` for any `memory_size` unit, `get_memory_limit()`. |
 
 Each limit concept additionally requires that the matching `status::*_limit`
-tag is among those the backend's `solve_status()` can return — a limit you can
+tag is among those the backend's `get_status()` can return — a limit you can
 set is a limit you can detect.
 
 ## Solution information
@@ -125,7 +125,7 @@ set is a limit you can detect.
 |      Concept      | Provides |
 | :--- | :--- |
 | `has_readable_objective` | `get_objective()`, `get_objective_coefficient(v)`, `get_objective_offset()`. |
-| `has_modifiable_objective` | `set_objective_coefficient(v, s)`, `add_objective(expr)`. |
+| `has_modifiable_objective` | `set_objective_coefficient(v, s)`, `add_to_objective(expr)`. |
 | `has_readable_quadratic_objective` | `has_readable_objective`, plus `get_quadratic_objective()` returning the whole objective as a quadratic expression; on such a model `get_objective()` reads the linear part only. Satisfied by `highs_qp`. |
 | `has_readable_variables_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
 | `has_modifiable_variables_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
@@ -157,7 +157,7 @@ Neither the SOS nor the indicator functions require a return type. SOS and indic
 
 | Concept | Provides |
 | --- | --- |
-| `has_add_column` | `add_column(entries, params)` from `(constraint, coefficient)` pairs — see [Column generation](../algorithms/column-generation.md). |
+| `has_column_generation` | `add_column(entries, params)` from `(constraint, coefficient)` pairs — see [Column generation](../algorithms/column-generation.md). |
 | `has_remove_variable` | `remove_variable(v)`, `remove_variables(range)`. |
 | `has_mip_start` | `add_mip_start(entries)` from `(variable, value)` pairs. |
 | `has_candidate_solution_callback` | `set_candidate_solution_callback(f)` where `f` takes the backend's `candidate_solution_callback_handle`, whose `get_solution()` returns the candidate indexed by the model's variable handles — see [Branch-and-cut](../algorithms/branch-and-cut.md). |

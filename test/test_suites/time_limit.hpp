@@ -220,7 +220,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             auto end = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<seconds>(end - start);
 
-            return std::make_pair(duration, model.solve_status());
+            return std::make_pair(duration, model.get_status());
         };
 
         constexpr seconds limit{1.0};

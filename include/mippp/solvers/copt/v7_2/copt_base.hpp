@@ -86,7 +86,7 @@ public:
         check(COPT->GetIntAttr(prob, COPT_INTATTR_ROWS, &num));
         return static_cast<std::size_t>(num);
     }
-    std::size_t num_entries() {
+    std::size_t num_nonzeros() {
         int num;
         check(COPT->GetIntAttr(prob, COPT_INTATTR_ELEMS, &num));
         return static_cast<std::size_t>(num);
@@ -133,7 +133,7 @@ public:
     void set_objective(distinct_variables_t, LE && le) {
         _set_objective<true>(std::forward<LE>(le));
     }
-    void add_objective(linear_expression auto && le) {
+    void add_to_objective(linear_expression auto && le) {
         const auto num_vars = num_variables();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
