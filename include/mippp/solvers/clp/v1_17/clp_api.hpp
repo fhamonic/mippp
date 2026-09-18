@@ -1,6 +1,6 @@
 #pragma once
 
-#if INCLUDE_CLP_HEADER
+#if defined(MIPPP_INCLUDE_CLP_HEADER) && MIPPP_INCLUDE_CLP_HEADER
 #include "coin/Clp_C_Interface.h"
 #include "coin/CoinFinite.hpp"
 #else

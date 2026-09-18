@@ -31,10 +31,6 @@ jobs:
           echo "/github/home/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -c tools.build:skip_test=true
       # Every backend must be compiled in: the matrix only swaps the library the
       # binary dlopens, so one build serves every row.
       - name: Build the test binary

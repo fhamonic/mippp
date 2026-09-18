@@ -247,7 +247,8 @@ public:
         return static_cast<std::size_t>(count);
     }
     void set_memory_limit(memory_size<double, mebi> mb) {
-        check(CPX->setdblparam(env, CPXPARAM_MIP_Limits_TreeMemory, mb.count));
+        check(
+            CPX->setdblparam(env, CPXPARAM_MIP_Limits_TreeMemory, mb.count()));
     }
     auto get_memory_limit() {
         double mb;

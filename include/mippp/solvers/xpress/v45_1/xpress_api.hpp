@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_XPRESS_HEADER
+#if defined(MIPPP_INCLUDE_XPRESS_HEADER) && MIPPP_INCLUDE_XPRESS_HEADER
 #include "xprs.h"
 #else
 namespace mippp {

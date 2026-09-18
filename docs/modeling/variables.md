@@ -17,7 +17,7 @@ auto x = model.add_variable();
 
 `add_variable` returns a lightweight, trivially-copyable **handle** — a strongly-typed column index. Copying it costs nothing, comparing it is an integer comparison, and it is also a one-term linear expression, which is why `4 * x1 + 5 * x2` works without any further ceremony.
 
-Handles are typed per model class (`model_variable_t<M>`), so a variable of one model cannot silently be used in another.
+Handles carry their *kind* in the type: a variable handle and a constraint handle never compare equal and never substitute for one another, even though both wrap an integer id. They carry no *model identity*, though — `model_variable_t<M>` is the same type for every backend, and the handle is little more than the column index. Passing a variable of one model to another therefore compiles, and silently addresses whichever column happens to sit at that index. When a program juggles several models — a master and a pricing problem, say — keep each model's handles with it and name them apart.
 
 ## Bounds and objective coefficient
 
@@ -129,6 +129,11 @@ auto X = model.add_named_variables(
 ```
 
 Those names are assigned **lazily**, the first time each variable is accessed through `X(i, j)`, since the coordinate space cannot be enumerated ahead of time. Individual variables can also be named on the fly with `add_named_variable(name)` or `set_variable_name(v, name)`.
+
+!!! warning "Reading the name of an unnamed entity is backend-defined"
+    `get_variable_name` and `get_constraint_name` are only meaningful for an entity you named — MIP++ assigns no name by default, and the solvers do not agree on what an unnamed entity is called. Observed on a fresh model holding one unnamed variable: Cbc, Clp, COPT, CPLEX, GLPK, MOSEK and SCIP return an empty string; Gurobi and Xpress return a name the solver generated for itself (`C0`, `C1`); HiGHS raises a solver error.
+
+    Keep your own mapping if you need names to round-trip.
 
 ## Next
 

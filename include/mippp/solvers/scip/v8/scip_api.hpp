@@ -5,7 +5,7 @@
 #include <limits>
 #include <utility>
 
-#if INCLUDE_SCIP_HEADER
+#if defined(MIPPP_INCLUDE_SCIP_HEADER) && MIPPP_INCLUDE_SCIP_HEADER
 #include <scip/scipdefplugins.h>
 #include "scip/cons_linear.h"
 #include "scip/retcode.h"

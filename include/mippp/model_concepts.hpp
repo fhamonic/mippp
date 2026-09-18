@@ -4,6 +4,7 @@
 #include <concepts>
 #include <cstddef>
 #include <initializer_list>
+#include <iterator>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -38,21 +39,41 @@ using model_variable_params_t =
 ///////////////////////////////////////////////////////////////////////////////
 
 namespace archetype {
+// Key ranges stay forward: add_variables/add_constraints require it.
 template <typename T>
 auto range() {
     return std::views::empty<T>;
 }
+
+// Term ranges do not. `xsum` builds a join over a transform, which is
+// input-only, not sized and not common -- so this, not `range()`, is the
+// weakest thing a backend must accept. Using the stronger `range()` here let
+// `lp_model<M>` be true for a model that cannot consume a real xsum.
+template <typename T>
+struct term_range {
+    struct iterator {
+        using value_type = T;
+        using difference_type = std::ptrdiff_t;
+        T operator*() const;
+        iterator & operator++();
+        void operator++(int);
+        bool operator==(std::default_sentinel_t) const;
+    };
+    iterator begin() const;
+    std::default_sentinel_t end() const;
+};
+
 template <typename M>
 struct linear_expression {
     auto linear_terms() const {
-        return range<std::pair<model_variable_t<M>, model_scalar_t<M>>>();
+        return term_range<std::pair<model_variable_t<M>, model_scalar_t<M>>>();
     }
     auto constant() const { return model_scalar_t<M>{}; }
 };
 template <typename M>
 struct linear_constraint {
     auto linear_terms() const {
-        return range<std::pair<model_variable_t<M>, model_scalar_t<M>>>();
+        return term_range<std::pair<model_variable_t<M>, model_scalar_t<M>>>();
     }
     auto sense() const { return constraint_sense::equal; }
     auto rhs() const { return model_scalar_t<M>{}; }
@@ -60,8 +81,8 @@ struct linear_constraint {
 template <typename M>
 struct quadratic_expression {
     auto quadratic_terms() const {
-        return range<std::tuple<model_variable_t<M>, model_variable_t<M>,
-                                model_scalar_t<M>>>();
+        return term_range<std::tuple<model_variable_t<M>, model_variable_t<M>,
+                                     model_scalar_t<M>>>();
     }
     auto linear_part() const { return archetype::linear_expression<M>(); }
 };
@@ -372,7 +393,7 @@ concept has_readable_quadratic_objective =
 ///////////////////////////////////////////////////////////////////////////////
 // clang-format off
 template <typename T, typename M = T>
-concept has_readable_variables_bounds =
+concept has_readable_variable_bounds =
     requires(T & model, model_variable_t<M> v) {
         { model.get_variable_lower_bound(v) }
                 -> std::same_as<model_scalar_t<M>>;
@@ -381,7 +402,7 @@ concept has_readable_variables_bounds =
     };
 // clang-format on
 template <typename T, typename M = T>
-concept has_modifiable_variables_bounds =
+concept has_modifiable_variable_bounds =
     requires(T & model, model_variable_t<M> v, model_scalar_t<M> s) {
         { model.set_variable_lower_bound(v, s) };
         { model.set_variable_upper_bound(v, s) };

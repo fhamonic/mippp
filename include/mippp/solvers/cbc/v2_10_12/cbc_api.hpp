@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_CBC_HEADER
+#if defined(MIPPP_INCLUDE_CBC_HEADER) && MIPPP_INCLUDE_CBC_HEADER
 #include "coin/Cbc_C_Interface.h"
 #include "coin/CoinFinite.hpp"
 #else

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <memory>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -265,7 +266,10 @@ public:
         return Clp->columnUpper(model)[v.id()];
     }
     std::string get_variable_name(variable v) {
+        // lengthNames() is 0 until something in the model is named, and
+        // Clp_columnName writes into the buffer regardless: give it nothing
         auto max_length = static_cast<std::size_t>(Clp->lengthNames(model));
+        if(max_length == 0u) return std::string();
         std::string name(max_length, '\0');
         Clp->columnName(model, v.id(), name.data());
         name.resize(std::strlen(name.c_str()));
@@ -440,7 +444,10 @@ public:
         return Clp->rowUpper(model)[constr.id()];
     }
     auto get_constraint_name(constraint constr) {
+        // lengthNames() is 0 until something in the model is named, and
+        // Clp_rowName writes into the buffer regardless: give it nothing
         auto max_length = static_cast<std::size_t>(Clp->lengthNames(model));
+        if(max_length == 0u) return std::string();
         std::string name(max_length, '\0');
         Clp->rowName(model, constr.id(), name.data());
         name.resize(std::strlen(name.c_str()));
@@ -500,14 +507,32 @@ public:
         _status = _get_status();
     }
     scalar get_solution_value() { return Clp->getObjValue(model); }
+
+private:
+    // Clp's arrays belong to the solver and are overwritten by the next
+    // solve() and reallocated by add_variable: solutions.md promises a
+    // snapshot, so copy out, as every other backend does. Sized by the
+    // column count, not num_variables(): removed ids are recycled, so a live
+    // handle's uid() can exceed the number of variables still in the model.
+    auto _snapshot_variables(const double * src) {
+        const auto n = static_cast<std::size_t>(Clp->getNumCols(model));
+        auto values = std::make_unique_for_overwrite<double[]>(n);
+        if(n != 0u) std::copy_n(src, n, values.get());
+        return variable_mapping(std::move(values));
+    }
+
+public:
     auto get_solution() {
-        return variable_mapping(Clp->primalColumnSolution(model));
+        return _snapshot_variables(Clp->primalColumnSolution(model));
     }
     auto get_dual_solution() {
-        return constraint_mapping(Clp->dualRowSolution(model));
+        const auto n = num_constraints();
+        auto values = std::make_unique_for_overwrite<double[]>(n);
+        if(n != 0u) std::copy_n(Clp->dualRowSolution(model), n, values.get());
+        return constraint_mapping(std::move(values));
     }
     auto get_reduced_costs() {
-        return variable_mapping(Clp->dualColumnSolution(model));
+        return _snapshot_variables(Clp->dualColumnSolution(model));
     }
 };
 

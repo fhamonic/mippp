@@ -514,7 +514,7 @@ constexpr auto evaluate(QE && e, const VM & values_map) {
     static_assert(
         input_mapping<const VM, quadratic_expression_variable_t<QE>>,
         "MIP++: evaluate needs a values map readable by the expression's "
-        "variables; adapt raw storage or a callable with views::mapping_all "
+        "variables; adapt raw storage or a callable with maps::mapping_all "
         "or an entity_mapping.");
     using scalar = quadratic_expression_scalar_t<QE>;
     scalar acc = static_cast<scalar>(evaluate(e.linear_part(), values_map));

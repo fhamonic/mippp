@@ -21,7 +21,11 @@ namespace mippp {
 //////////////////////////////// Strong types /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename Id>
+// CRTP: the comparisons take the *derived* type, so a variable never compares
+// against a constraint that happens to share its id type. Deriving from the
+// base with a different Derived is what would later give each model its own
+// entity types.
+template <typename Derived, typename Id>
 class model_entity_base {
 private:
     Id _id;
@@ -40,18 +44,22 @@ public:
         return static_cast<std::size_t>(_id);
     }
 
-    friend constexpr auto operator==(const model_entity_base & a,
-                                     const model_entity_base & b) noexcept {
+    friend constexpr auto operator==(const Derived & a,
+                                     const Derived & b) noexcept {
         return a._id == b._id;
     }
-    friend constexpr auto operator<(const model_entity_base & a,
-                                    const model_entity_base & b) noexcept {
+    friend constexpr auto operator<(const Derived & a,
+                                    const Derived & b) noexcept {
         return a._id < b._id;
     }
 };
 
 template <typename Id, typename Scalar>
-class model_variable : public model_entity_base<Id> {
+class model_variable
+    : public model_entity_base<model_variable<Id, Scalar>, Id> {
+private:
+    using base = model_entity_base<model_variable<Id, Scalar>, Id>;
+
 public:
     constexpr model_variable() = default;
     constexpr model_variable(model_variable && v) = default;
@@ -60,8 +68,10 @@ public:
     constexpr model_variable & operator=(const model_variable &) = default;
     constexpr model_variable & operator=(model_variable &&) = default;
 
+    // same clause as the base: without it std::constructible_from lies
     template <typename T>
-    constexpr explicit model_variable(T t) : model_entity_base<Id>(t) {}
+        requires std::constructible_from<Id, T>
+    constexpr explicit model_variable(T t) : base(t) {}
 
     constexpr auto linear_terms() const noexcept {
         return std::views::single(
@@ -71,7 +81,10 @@ public:
 };
 
 template <typename Id>
-class model_constraint : public model_entity_base<Id> {
+class model_constraint : public model_entity_base<model_constraint<Id>, Id> {
+private:
+    using base = model_entity_base<model_constraint<Id>, Id>;
+
 public:
     constexpr model_constraint() = default;
     constexpr model_constraint(model_constraint && v) = default;
@@ -81,7 +94,8 @@ public:
     constexpr model_constraint & operator=(model_constraint &&) = default;
 
     template <typename T>
-    constexpr explicit model_constraint(T t) : model_entity_base<Id>(t) {}
+        requires std::constructible_from<Id, T>
+    constexpr explicit model_constraint(T t) : base(t) {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,14 +103,14 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 
 // Adapts any mapping storage into one keyed by a model entity. The storage
-// is lifted through views::mapping_all (reference semantics for lvalues,
+// is lifted through maps::mapping_all (reference semantics for lvalues,
 // ownership for rvalues); a lookup passes the entity itself when the storage
 // understands it (callables, associative maps keyed by the entity) and falls
 // back to the entity's uid() (arrays, vectors).
 template <typename Entity, typename Map>
 class entity_mapping : public mapping_view_base {
 private:
-    [[no_unique_address]] views::mapping_all_t<Map> _map;
+    [[no_unique_address]] maps::mapping_all_t<Map> _map;
 
     // what a const access reaches: ref views are shallow-const (constness
     // carried by Map itself), owning views are deep-const
@@ -106,7 +120,7 @@ private:
 
 public:
     constexpr entity_mapping(Map && map)
-        : _map(views::mapping_all(std::forward<Map>(map))) {}
+        : _map(maps::mapping_all(std::forward<Map>(map))) {}
 
     [[nodiscard]] constexpr decltype(auto) operator[](const Entity & e) {
         if constexpr(detail::mapping_subscriptable<std::remove_reference_t<Map>,

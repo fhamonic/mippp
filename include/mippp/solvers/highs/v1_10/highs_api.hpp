@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_HIGHS_HEADER
+#if defined(MIPPP_INCLUDE_HIGHS_HEADER) && MIPPP_INCLUDE_HIGHS_HEADER
 #include "interfaces/highs_c_api.h"
 #else
 namespace mippp {

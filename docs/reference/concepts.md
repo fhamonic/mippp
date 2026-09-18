@@ -62,7 +62,7 @@ model.set_candidate_solution_callback(
 ```
 
 The concepts declared this way are `has_dual_solution`, `has_reduced_costs`,
-`has_readable_variables_bounds`, `has_modifiable_variables_bounds`,
+`has_readable_variable_bounds`, `has_modifiable_variable_bounds`,
 `has_readable_constraints` and its three finer-grained forms,
 `has_readable_constraint_bounds`, and `has_lazy_constraints`. The others describe whole models and stay
 single-parameter.
@@ -127,8 +127,8 @@ set is a limit you can detect.
 | `has_readable_objective` | `get_objective()`, `get_objective_coefficient(v)`, `get_objective_offset()`. |
 | `has_modifiable_objective` | `set_objective_coefficient(v, s)`, `add_to_objective(expr)`. |
 | `has_readable_quadratic_objective` | `has_readable_objective`, plus `get_quadratic_objective()` returning the whole objective as a quadratic expression; on such a model `get_objective()` reads the linear part only. Satisfied by `highs_qp`. |
-| `has_readable_variables_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
-| `has_modifiable_variables_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
+| `has_readable_variable_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
+| `has_modifiable_variable_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
 | `has_readable_constraints` | `get_constraint(c)` plus the three finer-grained concepts `has_readable_constraint_lhs` / `_sense` / `_rhs`. |
 | `has_readable_constraint_bounds` | `get_constraint_lower_bound(c)`, `get_constraint_upper_bound(c)` — defined on every row, including [ranged](../modeling/special-constraints.md#ranged-constraints) ones, where `get_constraint_sense` / `_rhs` are not. Satisfied by `clp_lp` and `cbc_milp`. |
 | `has_modifiable_constraint_lhs` / `_sense` / `_rhs` | `set_constraint_lhs(c, entries)`, `set_constraint_sense(c, s)`, `set_constraint_rhs(c, s)`. |
@@ -139,7 +139,7 @@ See [Re-solving and model updates](../solving/updates.md).
 
 | Concept                                | Provides |
 | :--- | :--- |
-| `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../modeling/variables.md#names) id-lambda + name-lambda form), and `add_variables` over keys wrapped with `named(keys, name)`. |
+| `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../modeling/variables.md#names) id-lambda + name-lambda form), and `add_variables` over keys wrapped with `named(keys, name)`. Reading the name of an entity you never named is [backend-defined](../modeling/variables.md#names). |
 | `has_named_constraints` | `set_constraint_name` / `get_constraint_name`. |
 
 ## Special constraints
@@ -177,7 +177,7 @@ Neither the SOS nor the indicator functions require a return type. SOS and indic
 | --- | --- |
 | `has_feasibility_tolerance` | `get`/`set_feasibility_tolerance`. |
 | `has_optimality_tolerance` | `get`/`set_optimality_tolerance`. |
-| `has_integrality_tolerance` | `get`/`set_integrality_tolerance`. *(no backend yet)* |
+| `has_integrality_tolerance` | `get`/`set_integrality_tolerance`. |
 
 ## Expression concepts
 

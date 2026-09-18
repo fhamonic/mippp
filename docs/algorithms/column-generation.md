@@ -11,7 +11,7 @@ for(;;) {
     auto duals = model.get_dual_solution();
     auto column = solve_pricing(duals);            // your subproblem
     if(reduced_cost(column) >= -epsilon) break;    // no improving column left
-    model.add_column(column, {.obj_coef = 1});
+    model.add_column(column, {.obj_coef = 1, .lower_bound = 0});
 }
 ```
 
@@ -74,7 +74,7 @@ Note how the column's entries are themselves a lazy range pipeline — filter th
 
 ## Large-scale pricing: the column manager
 
-When the pricing problem generates many candidate columns — more than the master should hold at once — the bookkeeping (which columns exist, which are active in the master, which to evict) becomes its own subsystem. The `mippp::column_generation::column_manager` (in `mippp/utility/column_manager.hpp`) implements it on top of any model satisfying the concepts above:
+When the pricing problem generates many candidate columns — more than the master should hold at once — the bookkeeping (which columns exist, which are active in the master, which to evict) becomes its own subsystem. The `mippp::colgen::column_manager` (in `mippp/utility/column_manager.hpp`) implements it on top of any model satisfying the concepts above:
 
 - columns are identified by a user-chosen **seed** type (e.g. the pattern), deduplicated in a pool;
 - compile-time **column properties** (reduced-cost windows, age, …) are attached to pooled and in-master columns via `property_list`;

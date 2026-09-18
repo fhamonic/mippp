@@ -214,8 +214,8 @@ public:
 protected:
     struct EntityId {
         template <typename E>
-            requires std::derived_from<std::decay_t<E>,
-                                       model_entity_base<Index>>
+            requires std::derived_from<
+                std::decay_t<E>, model_entity_base<std::decay_t<E>, Index>>
         Index operator()(E && entity) {
             return entity.id();
         }

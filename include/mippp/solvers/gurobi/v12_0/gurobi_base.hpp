@@ -609,7 +609,7 @@ public:
     }
 
     void set_memory_limit(memory_size<double, std::giga> gb) {
-        check(GRB->setdblparam(env, GRB_DBL_PAR_SOFTMEMLIMIT, gb.count));
+        check(GRB->setdblparam(env, GRB_DBL_PAR_SOFTMEMLIMIT, gb.count()));
     }
     auto get_memory_limit() {
         double gb;

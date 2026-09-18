@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_SOPLEX_HEADER
+#if defined(MIPPP_INCLUDE_SOPLEX_HEADER) && MIPPP_INCLUDE_SOPLEX_HEADER
 #include "soplex_interface.h"
 #else
 namespace mippp::soplex::v6 {

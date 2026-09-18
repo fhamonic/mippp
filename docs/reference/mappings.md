@@ -22,9 +22,9 @@ Constrain generic code on the weakest one that suffices — `evaluate` requires 
 
 A subtlety worth relying on: `std::map<K, V>` *is* a `mapping` but is **not** an `input_mapping`, because a const `std::map` has no `operator[]`. Adaptation (below) is what makes it readable const — through `.at()`.
 
-## Adapting storage: `views::mapping_all`
+## Adapting storage: `maps::mapping_all`
 
-`views::mapping_all(m)` is to mappings what `std::views::all` is to ranges: it lifts anything usable as a mapping into a view with the `[]` protocol, and is the identity on things that already are such views.
+`maps::mapping_all(m)` is to mappings what `std::views::all` is to ranges: it lifts anything usable as a mapping into a view with the `[]` protocol, and is the identity on things that already are such views.
 
 - an **lvalue** is *referenced* — the view is a `mapping_ref_view`, and the operand must outlive it, like any `ref_view`;
 - an **rvalue** is *moved into* a `mapping_owning_view`;
@@ -36,21 +36,21 @@ Reads return references, never copies, and writes go through:
 
 ```cpp
 std::vector<double> values{1.0, 2.0};
-auto view = mippp::views::mapping_all(values);
+auto view = mippp::maps::mapping_all(values);
 view[0u] = 3.0;         // writes into `values`
 double & v = view[1u];  // a reference, not a copy
 ```
 
 Constness follows the `std::ranges` precedent: a `mapping_ref_view` is *shallow*-const (constness is carried by the referenced type — adapt a `const` lvalue to get const access), an owning view is *deep*-const.
 
-Owning views stay `std::movable` even when they own a capturing lambda: assignment reconstructs the closure in place, and is only enabled when the move cannot throw. `views::map(f)` is the explicit spelling for lifting a callable; it copies an lvalue callable and moves an rvalue one:
+Owning views stay `std::movable` even when they own a capturing lambda: assignment reconstructs the closure in place, and is only enabled when the move cannot throw. `maps::function(f)` is the explicit spelling for lifting a callable; it copies an lvalue callable and moves an rvalue one:
 
 ```cpp
-auto squares = mippp::views::map([](int i) { return i * i; });
+auto squares = mippp::maps::function([](int i) { return i * i; });
 static_assert(mippp::input_mapping_of<decltype(squares), int, int>);
 ```
 
-`true_map`, `false_map`, `identity_map` and `element_map<I...>` (chained `std::get`) are ready-made mapping views for the common projections.
+`maps::true_map`, `maps::false_map`, `maps::identity` and `maps::element_map<I...>` (chained `std::get`) are ready-made mapping views for the common projections.
 
 ## Entity-keyed mappings
 
@@ -73,6 +73,6 @@ Storage that supports none of the three protocols is rejected with a message, no
 
 `evaluate(expr, values_map)` checks its values map up front the same way:
 
-> MIP++: evaluate needs a values map readable by the expression's variables; adapt raw storage or a callable with views::mapping_all or an entity_mapping.
+> MIP++: evaluate needs a values map readable by the expression's variables; adapt raw storage or a callable with maps::mapping_all or an entity_mapping.
 
-The remedy it names is real: a bare lambda is not a `mapping` (no `operator[]`), so pass `views::mapping_all(lambda)` — or an `entity_mapping` — instead of the lambda itself.
+The remedy it names is real: a bare lambda is not a `mapping` (no `operator[]`), so pass `maps::mapping_all(lambda)` — or an `entity_mapping` — instead of the lambda itself.

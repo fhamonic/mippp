@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_COPT_HEADER
+#if defined(MIPPP_INCLUDE_COPT_HEADER) && MIPPP_INCLUDE_COPT_HEADER
 #include "copt.h"
 #else
 namespace mippp {

@@ -454,7 +454,7 @@ private:
                     entry.named = true;
                 });
         }
-        if constexpr(has_modifiable_variables_bounds<Tested>) {
+        if constexpr(has_modifiable_variable_bounds<Tested>) {
             register_mutation(
                 "set variable bounds", [this] { return _has_variables(); },
                 [this] {
@@ -809,7 +809,7 @@ private:
                                 reference_objective.constant(), data_tolerance);
                 });
         }
-        if constexpr(has_readable_variables_bounds<Tested>) {
+        if constexpr(has_readable_variable_bounds<Tested>) {
             register_check(
                 "test matching variables bounds", [] { return true; },
                 [this] {

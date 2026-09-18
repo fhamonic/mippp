@@ -27,27 +27,27 @@ static_assert(contiguous_mapping_of<std::vector<double>, int, double>);
 // input_mapping until adapted (the adapted view reads through .at()).
 static_assert(mapping<std::map<int, double>, int>);
 static_assert(!input_mapping<std::map<int, double>, int>);
-static_assert(input_mapping_of<views::mapping_all_t<std::map<int, double> &>,
+static_assert(input_mapping_of<maps::mapping_all_t<std::map<int, double> &>,
                                int, double>);
 
-// a callable is not a mapping by itself; views::map lifts it into one
+// a callable is not a mapping by itself; maps::function lifts it into one
 static_assert(!mapping<std::identity, int>);
 static_assert(
-    input_mapping_of<decltype(views::map(std::identity{})), int, int>);
+    input_mapping_of<decltype(maps::function(std::identity{})), int, int>);
 
 // unique_ptr<T[]> subscripts but exposes no .data(): input, not contiguous
 static_assert(input_mapping_of<std::unique_ptr<double[]>, int, double>);
 static_assert(!contiguous_mapping<std::unique_ptr<double[]>, int>);
 
 // reading through a const view must yield references, not decayed copies
-using heavy_owning = views::mapping_all_t<std::vector<std::string>>;
+using heavy_owning = maps::mapping_all_t<std::vector<std::string>>;
 static_assert(std::same_as<decltype(std::declval<const heavy_owning &>()[0u]),
                            const std::string &>);
 static_assert(
     std::same_as<decltype(std::declval<heavy_owning &>()[0u]), std::string &>);
 // ref views are shallow-const: constness is carried by the Map type
-using heavy_ref = views::mapping_all_t<std::vector<std::string> &>;
-using heavy_const_ref = views::mapping_all_t<const std::vector<std::string> &>;
+using heavy_ref = maps::mapping_all_t<std::vector<std::string> &>;
+using heavy_const_ref = maps::mapping_all_t<const std::vector<std::string> &>;
 static_assert(std::same_as<decltype(std::declval<const heavy_ref &>()[0u]),
                            std::string &>);
 static_assert(
@@ -61,12 +61,12 @@ static_assert(!std::constructible_from<mapping_ref_view<std::vector<double>>,
                                        std::vector<double>>);
 
 ///////////////////////////////////////////////////////////////////////////////
-/////////////////////////////// views::mapping_all ////////////////////////////
+////////////////////////////// maps::mapping_all //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 GTEST_TEST(mapping_all, lvalue_gives_ref_view_with_write_through) {
     std::vector<double> values{1.0, 2.0};
-    auto view = views::mapping_all(values);
+    auto view = maps::mapping_all(values);
     static_assert(
         std::same_as<decltype(view), mapping_ref_view<std::vector<double>>>);
     static_assert(output_mapping_of<decltype(view), std::size_t, double>);
@@ -77,7 +77,7 @@ GTEST_TEST(mapping_all, lvalue_gives_ref_view_with_write_through) {
 }
 
 GTEST_TEST(mapping_all, rvalue_gives_owning_view) {
-    auto view = views::mapping_all(std::vector<double>{1.0, 2.0});
+    auto view = maps::mapping_all(std::vector<double>{1.0, 2.0});
     static_assert(
         std::same_as<decltype(view), mapping_owning_view<std::vector<double>>>);
     view[1u] = 5.0;
@@ -88,33 +88,33 @@ GTEST_TEST(mapping_all, rvalue_gives_owning_view) {
 GTEST_TEST(mapping_all, unique_ptr_array_subscript_branch) {
     auto values = std::make_unique_for_overwrite<double[]>(3);
     values[2] = 7.0;
-    auto view = views::mapping_all(std::move(values));
+    auto view = maps::mapping_all(std::move(values));
     ASSERT_DOUBLE_EQ(view[2u], 7.0);
 }
 
 GTEST_TEST(mapping_all, std_map_branches) {
     std::map<int, double> values{{4, 2.5}};
     // non-const map: subscript branch, std::map insert-on-miss semantics
-    auto view = views::mapping_all(values);
+    auto view = maps::mapping_all(values);
     ASSERT_DOUBLE_EQ(view[4], 2.5);
     view[5] = 1.5;
     ASSERT_EQ(values.size(), 2u);
     // const map has no operator[]: reads go through the .at() branch
-    const auto cview = views::mapping_all(std::as_const(values));
+    const auto cview = maps::mapping_all(std::as_const(values));
     ASSERT_DOUBLE_EQ(cview[5], 1.5);
     ASSERT_THROW((void)cview[6], std::out_of_range);
 }
 
 GTEST_TEST(mapping_all, callable_branch) {
-    const auto view = views::mapping_all([](int i) { return 2 * i; });
+    const auto view = maps::mapping_all([](int i) { return 2 * i; });
     ASSERT_EQ(view[21], 42);
 }
 
 GTEST_TEST(mapping_all, view_pass_through_is_identity) {
-    auto view = views::mapping_all(std::vector<double>{1.0});
-    auto view2 = views::mapping_all(std::move(view));
+    auto view = maps::mapping_all(std::vector<double>{1.0});
+    auto view2 = maps::mapping_all(std::move(view));
     static_assert(std::same_as<decltype(view2), decltype(view)>);
-    auto view3 = views::mapping_all(view2);  // lvalue view: cheap copy
+    auto view3 = maps::mapping_all(view2);  // lvalue view: cheap copy
     static_assert(std::same_as<decltype(view3), decltype(view)>);
     ASSERT_DOUBLE_EQ(view3[0u], 1.0);
 }
@@ -124,8 +124,7 @@ GTEST_TEST(mapping_all, view_pass_through_is_identity) {
 ///////////////////////////////////////////////////////////////////////////////
 
 GTEST_TEST(mapping_owning_view, capturing_lambda_is_movable_view) {
-    auto view =
-        views::mapping_all([factor = 3.0](int i) { return factor * i; });
+    auto view = maps::mapping_all([factor = 3.0](int i) { return factor * i; });
     using view_t = decltype(view);
     static_assert(std::movable<view_t>);
     static_assert(mapping_view<view_t, int>);
@@ -136,7 +135,7 @@ GTEST_TEST(mapping_owning_view, capturing_lambda_is_movable_view) {
     ASSERT_DOUBLE_EQ(other[2], 6.0);
 
     // pass-through instead of re-wrapping, now that the concept is satisfied
-    auto again = views::mapping_all(std::move(other));
+    auto again = maps::mapping_all(std::move(other));
     static_assert(std::same_as<decltype(again), view_t>);
     ASSERT_DOUBLE_EQ(again[3], 9.0);
 }
@@ -144,7 +143,7 @@ GTEST_TEST(mapping_owning_view, capturing_lambda_is_movable_view) {
 GTEST_TEST(mapping_owning_view, copy_assignment_reconstructs) {
     auto storage = std::vector<double>{1.5, 2.5};
     auto view =
-        views::map([storage](int i) { return storage[std::size_t(i)]; });
+        maps::function([storage](int i) { return storage[std::size_t(i)]; });
     auto copy = view;
     copy = view;  // copy-assign a non-assignable closure
     ASSERT_DOUBLE_EQ(copy[1], 2.5);
@@ -156,7 +155,7 @@ GTEST_TEST(views_map, copies_lvalue_callable) {
         ++hits;
         return offset + i;
     };
-    auto view = views::map(counter);
+    auto view = maps::function(counter);
     ASSERT_EQ(view[5], 15);
     ASSERT_EQ(counter(0), 10);
     ASSERT_EQ(hits, 2);
@@ -168,10 +167,10 @@ GTEST_TEST(views_map, copies_lvalue_callable) {
 
 GTEST_TEST(mapping_views, base_access) {
     std::vector<double> values{1.0};
-    auto ref = views::mapping_all(values);
+    auto ref = maps::mapping_all(values);
     ASSERT_EQ(&ref.base(), &values);
 
-    auto owning = views::mapping_all(std::vector<double>{4.0});
+    auto owning = maps::mapping_all(std::vector<double>{4.0});
     owning.base().push_back(8.0);
     ASSERT_DOUBLE_EQ(owning[1u], 8.0);
     auto recovered = std::move(owning).base();
@@ -182,16 +181,16 @@ GTEST_TEST(mapping_views, base_access) {
 ///////////////////////////// Utility mappings ////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static_assert(views::true_map{}[42]);
-static_assert(!views::false_map{}[42]);
-static_assert(views::identity_map{}[7] == 7);
-static_assert(mapping_view<views::true_map, int>);
+static_assert(maps::true_map{}[42]);
+static_assert(!maps::false_map{}[42]);
+static_assert(maps::identity{}[7] == 7);
+static_assert(mapping_view<maps::true_map, int>);
 
 GTEST_TEST(utility_maps, element_map_chains_tuple_access) {
     std::tuple<int, std::pair<int, double>> t{1, {2, 3.5}};
-    ASSERT_EQ((views::element_map<0>{}[t]), 1);
-    ASSERT_DOUBLE_EQ((views::element_map<1, 1>{}[t]), 3.5);
-    views::element_map<1, 0>{}[t] = 9;  // decltype(auto): writable
+    ASSERT_EQ((maps::element_map<0>{}[t]), 1);
+    ASSERT_DOUBLE_EQ((maps::element_map<1, 1>{}[t]), 3.5);
+    maps::element_map<1, 0>{}[t] = 9;  // decltype(auto): writable
     ASSERT_EQ(std::get<1>(t).first, 9);
 }
 

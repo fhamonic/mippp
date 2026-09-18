@@ -10,7 +10,7 @@ namespace mippp {
 template <typename T>
 struct ReadableVariablesBoundsTest : public T {
     using typename T::model_type;
-    static_assert(has_readable_variables_bounds<model_type>);
+    static_assert(has_readable_variable_bounds<model_type>);
 };
 TYPED_TEST_SUITE_P(ReadableVariablesBoundsTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ReadableVariablesBoundsTest);

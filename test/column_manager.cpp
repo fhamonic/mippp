@@ -11,6 +11,7 @@
 #include "mippp/utility/column_manager.hpp"
 
 using namespace mippp;
+using namespace mippp::colgen;
 
 namespace {
 

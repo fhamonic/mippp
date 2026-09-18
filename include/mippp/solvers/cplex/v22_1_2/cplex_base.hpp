@@ -373,13 +373,23 @@ public:
         name.resize(name.capacity());
         char * subptr;
         int surplus = 0;
-        if(CPX->getcolname(env, lp, &subptr, name.data(),
-                           static_cast<int>(name.size()), &surplus, var_id,
-                           var_id) == 1207) {
+        const int status = CPX->getcolname(env, lp, &subptr, name.data(),
+                                           static_cast<int>(name.size()),
+                                           &surplus, var_id, var_id);
+        // 1219 = CPXERR_NO_NAMES: nothing in the problem has been named, so
+        // the call leaves surplus untouched -- without this the resize below
+        // would hand back name.size() - 1 bytes of the uninitialized buffer.
+        if(status == 1219) return std::string();
+        // 1207 = CPXERR_NEGATIVE_SURPLUS: the buffer was too small, and
+        // surplus says by how much (it is negative, so this subtraction
+        // grows the string).
+        if(status == 1207) {
             name.resize(name.size() - static_cast<std::size_t>(surplus));
             check(CPX->getcolname(env, lp, &subptr, name.data(),
                                   static_cast<int>(name.size()), &surplus,
                                   var_id, var_id));
+        } else {
+            check(status);
         }
         name.resize(name.size() - static_cast<std::size_t>(surplus + 1));
         return name;

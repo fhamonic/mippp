@@ -110,9 +110,9 @@ A limit is a property of the model and survives across `solve()` calls, so setti
 
 | Concept | Provides | Backends |
 | :--- | :--- | :--- |
-| `has_feasibility_tolerance` | `get`/`set_feasibility_tolerance` | Cbc, Clp, COPT, CPLEX, GLPK, Gurobi, SCIP, Xpress |
+| `has_feasibility_tolerance` | `get`/`set_feasibility_tolerance` | Cbc, Clp, COPT, CPLEX, GLPK *(LP only)*, Gurobi, SCIP, Xpress |
 | `has_optimality_tolerance` | `get`/`set_optimality_tolerance` (the MIP gap, where applicable) | Cbc, COPT, CPLEX, Gurobi, SCIP, Xpress |
-| `has_integrality_tolerance` | `get`/`set_integrality_tolerance` | *declared, not yet provided by any backend* |
+| `has_integrality_tolerance` | `get`/`set_integrality_tolerance` | GLPK *(MILP only)* |
 
 Two habits worth adopting in experimental code:
 

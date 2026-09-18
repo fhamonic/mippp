@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_MOSEK_HEADER
+#if defined(MIPPP_INCLUDE_MOSEK_HEADER) && MIPPP_INCLUDE_MOSEK_HEADER
 #include "mosek.h"
 #else
 namespace mippp {

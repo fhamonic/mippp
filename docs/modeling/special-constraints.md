@@ -4,7 +4,7 @@ Beyond linear rows, MILP models routinely need logical conditions — "this cons
 
 ## Fixing and freeing variables
 
-The cheapest special constraint is not a constraint at all. Bounds are modifiable on any backend satisfying `has_modifiable_variables_bounds`:
+The cheapest special constraint is not a constraint at all. Bounds are modifiable on any backend satisfying `has_modifiable_variable_bounds`:
 
 ```cpp
 model.set_variable_lower_bound(x, 1.0);   // fix x to 1 together with...

@@ -39,12 +39,8 @@ suite. You will need:
 The library itself has no dependency; the tests need
 [GoogleTest](https://github.com/google/googletest) and the
 [MELON](https://github.com/fhamonic/melon) library (used by the graph-based
-tests). MELON is not on Conan Center yet, so build it locally first:
-
-```bash
-git clone https://github.com/fhamonic/melon.git
-cd melon && conan create . -u -b=missing -pr=<your_conan_profile> -c tools.build:skip_test=true
-```
+tests). Both come from Conan Center, so `conan build` fetches them and nothing
+has to be built by hand.
 
 Ready-to-use Conan profiles are provided, one per CI job, so a local run
 reproduces exactly what the workflow does:
@@ -388,7 +384,7 @@ layout of an existing backend such as
 
 - `<name>_api.hpp` — thin binding that loads the solver's C API. It redeclares the
   C prototypes it needs, so the solver's SDK headers are not required to build
-  (defining `INCLUDE_<SOLVER>_HEADER` includes the real header instead, to check
+  (defining `MIPPP_INCLUDE_<SOLVER>_HEADER` includes the real header instead, to check
   them against a release), lists them in an `X`-macro, and resolves each one in its
   private constructor, reached only through `load()`: `detail::load_solver_library(path,
   "KEY", {names}, {probe symbols})` opens the library, then `lib.get_function<F>("name")` fetches a

@@ -74,11 +74,14 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_feasibility_tolerance(double tol) {
+    // glp_iocp::tol_int is how far from an integer a value may sit, i.e. the
+    // integrality tolerance -- not the primal/dual feasibility tolerance
+    // glpk_lp exposes through glp_smcp::tol_bnd/tol_dj.
+    void set_integrality_tolerance(double tol) {
         model_params.tol_int = tol;
         model_params.tol_obj = tol / 10;
     }
-    double get_feasibility_tolerance() { return model_params.tol_int; }
+    double get_integrality_tolerance() { return model_params.tol_int; }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

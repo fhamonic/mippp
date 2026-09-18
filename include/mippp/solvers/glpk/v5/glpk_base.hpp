@@ -274,7 +274,10 @@ public:
         return glp->get_col_ub(model, v.id() + 1);
     }
     std::string get_variable_name(variable v) {
-        return std::string(glp->get_col_name(model, v.id() + 1));
+        // glp_get_col_name returns NULL for a column that was never named,
+        // and std::string(nullptr) is undefined behaviour
+        const char * name = glp->get_col_name(model, v.id() + 1);
+        return name != nullptr ? std::string(name) : std::string();
     }
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////////// Constraints ///////////////////////////////

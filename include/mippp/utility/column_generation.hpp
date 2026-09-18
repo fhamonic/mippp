@@ -17,6 +17,11 @@
 
 namespace mippp {
 
+// Pricing vocabulary lives in its own namespace: names this generic (`all`,
+// `none`, `event`, `age`, `below`) would collide with user code and with
+// `std::views::all` in the `using namespace mippp;` that every example opens.
+namespace colgen {
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// Properties //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -88,17 +93,17 @@ public:
     }
     template <column_property P>
     static constexpr bool has_property() noexcept {
-        return contains_v<P, Ps...>;
+        return mippp::detail::contains_v<P, Ps...>;
     }
     template <column_property P>
-        requires contains_v<P, Ps...>
+        requires mippp::detail::contains_v<P, Ps...>
     constexpr auto & get() & noexcept {
-        return std::get<index_of_v<P, Ps...>>(_properties);
+        return std::get<mippp::detail::index_of_v<P, Ps...>>(_properties);
     }
     template <column_property P>
-        requires contains_v<P, Ps...>
+        requires mippp::detail::contains_v<P, Ps...>
     constexpr const auto & get() const & noexcept {
-        return std::get<index_of_v<P, Ps...>>(_properties);
+        return std::get<mippp::detail::index_of_v<P, Ps...>>(_properties);
     }
 
     // broadcasts an event to every property; properties that do not handle
@@ -117,7 +122,7 @@ template <column_property... Ps, column_property... Qs>
 constexpr void transfer_common_properties(const properties_base<Ps...> & from,
                                           properties_base<Qs...> & to) {
     [[maybe_unused]] auto transfer_one = [&]<column_property P>() {
-        if constexpr(contains_v<P, Qs...>)
+        if constexpr(mippp::detail::contains_v<P, Qs...>)
             to.template get<P>() = from.template get<P>();
     };
     (transfer_one.template operator()<Ps>(), ...);
@@ -149,12 +154,12 @@ struct event {
 
     template <column_property P>
     static constexpr bool carries_property() noexcept {
-        return detail::contains_v<P, Ps...>;
+        return mippp::detail::contains_v<P, Ps...>;
     }
     template <column_property P>
-        requires detail::contains_v<P, Ps...>
+        requires mippp::detail::contains_v<P, Ps...>
     constexpr const typename P::value_type & get() const noexcept {
-        return std::get<detail::index_of_v<P, Ps...>>(_values);
+        return std::get<mippp::detail::index_of_v<P, Ps...>>(_values);
     }
 };
 
@@ -481,5 +486,7 @@ using evict_window_above = all<window_above<K>>;
 // least a given number of pricing rounds ago (protects freshly added columns)
 using evict_unattractive_aged =
     all<conjunction<above<age>, above<reduced_cost>>>;
+
+}  // namespace colgen
 
 }  // namespace mippp

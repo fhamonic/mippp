@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_CPLEX_HEADER
+#if defined(MIPPP_INCLUDE_CPLEX_HEADER) && MIPPP_INCLUDE_CPLEX_HEADER
 #include "ilcplex/cplex.h"
 #else
 namespace mippp {

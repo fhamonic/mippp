@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_GUROBI_HEADER
+#if defined(MIPPP_INCLUDE_GUROBI_HEADER) && MIPPP_INCLUDE_GUROBI_HEADER
 #include "gurobi_c.h"
 #else
 namespace mippp {

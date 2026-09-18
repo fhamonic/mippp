@@ -10,7 +10,7 @@ namespace mippp {
 template <typename T>
 struct ModifiableVariablesBoundsTest : public T {
     using typename T::model_type;
-    static_assert(has_modifiable_variables_bounds<model_type>);
+    static_assert(has_modifiable_variable_bounds<model_type>);
 };
 TYPED_TEST_SUITE_P(ModifiableVariablesBoundsTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ModifiableVariablesBoundsTest);

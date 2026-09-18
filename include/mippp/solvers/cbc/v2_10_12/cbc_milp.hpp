@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstring>
 #include <functional>
+#include <memory>
 #include <ranges>
 #include <stdexcept>
 #include <string>

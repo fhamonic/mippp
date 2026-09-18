@@ -54,8 +54,10 @@ TYPED_TEST_P(ColumnManagerTest, test) {
         // adds every column with improving reduced cost, evicts columns that
         // stayed unattractive for their 8 last pricing rounds in the master ;
         // the column states embed exactly the properties these strategies read
-        column_manager<decltype(model), pattern_t, property_list<reduced_cost>,
-                       property_list<reduced_cost>, pattern_hash>
+        colgen::column_manager<decltype(model), pattern_t,
+                               colgen::property_list<colgen::reduced_cost>,
+                               colgen::property_list<colgen::reduced_cost>,
+                               pattern_hash>
             columns;
 
         model.set_minimization();
@@ -105,7 +107,7 @@ TYPED_TEST_P(ColumnManagerTest, test) {
                 for(auto order_id : order_ids)
                     value -= dual_solution[satisfaction_constrs(order_id)] *
                              pattern[order_id];
-                return priced{value};
+                return colgen::priced{value};
             };
 
             melon::unbounded_knapsack_bnb knapsack(
@@ -126,7 +128,8 @@ TYPED_TEST_P(ColumnManagerTest, test) {
 
             columns.update_columns(price);
             auto result = columns.manage_columns(
-                model, all<negative<reduced_cost>>{}, add_pattern_column);
+                model, colgen::all<colgen::negative<colgen::reduced_cost>>{},
+                add_pattern_column);
             if(result.num_activated == 0) break;
         }
 

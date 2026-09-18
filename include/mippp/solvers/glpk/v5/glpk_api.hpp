@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <utility>
 
-#if INCLUDE_GLPK_HEADER
+#if defined(MIPPP_INCLUDE_GLPK_HEADER) && MIPPP_INCLUDE_GLPK_HEADER
 #include "glpk.h"
 #else
 namespace mippp {
