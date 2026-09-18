@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "mippp/detail/cartesian_product_view.hpp"
+#include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/utility/keys_view.hpp"
 #include "mippp/utility/zero.hpp"
@@ -145,7 +146,7 @@ public:
     explicit table_index(R & keys) : _id(keys.id_fn()) {
         std::size_t pos = 0;
         for(auto && key : keys) {
-            const auto id = std::invoke(_id, key);
+            const auto id = invoke_key(_id, key);
             if(!std::in_range<std::size_t>(id))
                 throw std::invalid_argument(
                     "indexed keys: id must be non-negative.");
@@ -157,9 +158,9 @@ public:
     }
 
     template <typename K>
-        requires std::invocable<const IdFn &, const K &>
+        requires key_invocable<const IdFn &, const K &>
     constexpr std::size_t position(const K & key) const {
-        const auto id = std::invoke(_id, key);
+        const auto id = invoke_key(_id, key);
         if(!std::in_range<std::size_t>(id)) return npos;
         const auto i = static_cast<std::size_t>(id);
         return i < _table.size() ? _table[i] : npos;
@@ -522,7 +523,7 @@ auto keyed_entities(Model & model, KR & keys, SetName set_name,
             std::size_t pos = 0;
             for(auto && key : keys)
                 set_name(model, positional[pos++],
-                         std::string(std::invoke(keys.name_fn(), key)));
+                         std::string(invoke_key(keys.name_fn(), key)));
         }
     }
     return entity_range(positional, mippp::key_index(keys));

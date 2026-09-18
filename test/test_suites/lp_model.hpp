@@ -352,28 +352,31 @@ TYPED_TEST_P(LpModelTest, add_constraints_by_key) {
         auto model = this->new_model();
         auto x = model.add_variable();
         auto y = model.add_variable();
+        auto cells = mippp::detail::cartesian_product(std::views::iota(0, 2),
+                                                      std::views::iota(0, 3));
         auto grid = model.add_constraints(
-            mippp::detail::cartesian_product(std::views::iota(0, 2),
-                                             std::views::iota(0, 3)),
-            [&](auto && p) {
-                auto [i, j] = p;
-                return i * x + j * y <= 5;
-            });
+            cells, [&](int i, int j) { return i * x + j * y <= 5; });
         ASSERT_EQ(model.num_constraints(), 6);
         ASSERT_EQ(grid(1, 2).id(), 5);
         ASSERT_EQ(grid(std::tuple{0, 1}).id(), 1);
         ASSERT_THROW(grid(2, 0), std::out_of_range);
+        auto grid2 = model.add_constraints(cells, [&](auto && p) {
+            auto [i, j] = p;
+            return i * x - j * y >= -5;
+        });
+        ASSERT_EQ(model.num_constraints(), 12);
+        ASSERT_EQ(grid2(1, 2).id(), 11);
         std::vector<std::string> names = {"a", "bb"};
         auto named = model.add_constraints(names, [&](const std::string & n) {
             return x + y <= static_cast<double>(n.size());
         });
-        ASSERT_EQ(named("bb").id(), 7);
+        ASSERT_EQ(named("bb").id(), 13);
         ASSERT_THROW(named("c"), std::out_of_range);
         auto tabled = model.add_constraints(
             indexed(std::vector<int>{3, 1}, std::identity{}),
             [&](int k) { return k * x <= 1; });
-        ASSERT_EQ(tabled(3).id(), 8);
-        ASSERT_EQ(tabled(1).id(), 9);
+        ASSERT_EQ(tabled(3).id(), 14);
+        ASSERT_EQ(tabled(1).id(), 15);
         ASSERT_THROW(tabled(2), std::out_of_range);
     });
 }

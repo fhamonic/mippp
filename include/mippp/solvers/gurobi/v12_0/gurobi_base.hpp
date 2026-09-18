@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -145,13 +146,9 @@ protected:
                     new_native_id;
             }
             _shrink_handle_ids_map(_var_handles_to_delete.size());
-#if defined(__cpp_lib_containers_ranges)
-            _free_var_handles.append_range(_var_handles_to_delete);
-#else
             _free_var_handles.insert(_free_var_handles.end(),
                                      _var_handles_to_delete.cbegin(),
                                      _var_handles_to_delete.cend());
-#endif
         }
         _num_var_native_ids = new_num_native_ids;
         _var_handles_to_delete.clear();
@@ -477,21 +474,23 @@ private:
         _register_variables_entries<distinct>(lc.linear_terms());
     }
     template <bool distinct, typename Key, typename LastConstrLambda>
-        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+        requires linear_constraint<
+            detail::key_invoke_result_t<LastConstrLambda &, const Key &>>
     void _register_first_valued_constraint(const Key & key,
                                            LastConstrLambda & lc_lambda) {
-        _register_constraint<distinct>(lc_lambda(key));
+        _register_constraint<distinct>(detail::invoke_key(lc_lambda, key));
     }
     template <bool distinct, typename Key, typename OptConstrLambda,
               typename... Tail>
-        requires detail::optional_type<
-                     std::invoke_result_t<OptConstrLambda, Key>> &&
-                 linear_constraint<detail::optional_type_value_t<
-                     std::invoke_result_t<OptConstrLambda, Key>>>
+        requires detail::optional_type<detail::key_invoke_result_t<
+                     OptConstrLambda &, const Key &>> &&
+                 linear_constraint<
+                     detail::optional_type_value_t<detail::key_invoke_result_t<
+                         OptConstrLambda &, const Key &>>>
     void _register_first_valued_constraint(const Key & key,
                                            OptConstrLambda & opt_lc_lambda,
                                            Tail &... tail) {
-        if(const auto & opt_lc = opt_lc_lambda(key)) {
+        if(const auto & opt_lc = detail::invoke_key(opt_lc_lambda, key)) {
             _register_constraint<distinct>(opt_lc.value());
             return;
         }

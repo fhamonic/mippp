@@ -6,6 +6,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "mippp/detail/invoke_key.hpp"
+
 namespace mippp {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -70,12 +72,12 @@ template <typename R>
 concept named_keys = is_keys_view_v<R> && R::has_name;
 
 template <typename R, typename F>
-concept key_id_fn = std::integral<std::remove_cvref_t<std::invoke_result_t<
+concept key_id_fn = std::integral<std::remove_cvref_t<key_invoke_result_t<
     const std::decay_t<F> &, std::ranges::range_reference_t<R>>>>;
 template <typename R, typename F>
 concept key_name_fn =
-    std::convertible_to<std::invoke_result_t<const std::decay_t<F> &,
-                                             std::ranges::range_reference_t<R>>,
+    std::convertible_to<key_invoke_result_t<const std::decay_t<F> &,
+                                            std::ranges::range_reference_t<R>>,
                         std::string>;
 
 template <typename R, typename Id, typename Name>

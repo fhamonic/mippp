@@ -45,6 +45,7 @@ add_executable(
     concat_view.cpp
     cartesian_product_view.cpp
     entity_range.cpp
+    invoke_key.cpp
     zero.cpp
     dynamic_library.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}

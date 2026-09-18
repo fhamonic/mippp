@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "mippp/detail/concat_view.hpp"
+#include "mippp/detail/invoke_key.hpp"
 #include "mippp/mapping.hpp"
 #include "mippp/utility/zero.hpp"
 
@@ -362,11 +363,12 @@ template <std::ranges::input_range R>
 }
 
 template <std::ranges::input_range R, typename F>
-    requires linear_expression<
-        std::invoke_result_t<F &, std::ranges::range_reference_t<R>>>
+    requires linear_expression<detail::key_invoke_result_t<
+        std::decay_t<F> &, std::ranges::range_reference_t<R>>>
 [[nodiscard]] constexpr auto xsum(R && r, F && f) {
-    return linear_expressions_sum(
-        std::views::transform(std::forward<R>(r), std::forward<F>(f)));
+    return linear_expressions_sum(std::views::transform(
+        std::forward<R>(r),
+        detail::key_fn<std::decay_t<F>>{std::forward<F>(f)}));
 }
 
 }  // namespace operators

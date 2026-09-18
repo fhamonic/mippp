@@ -39,37 +39,29 @@ int main() {
 
     milp_type model;
 
-    auto X = model.add_binary_variables(9 * 9 * 9, [](int i, int j, int v) {
-        return (81 * i) + (9 * j) + (v - 1);
-    });
+    auto X = model.add_binary_variables(
+        std::views::cartesian_product(indices, indices, values));
 
-    // Exactly one value per cell. Inner lambdas capture the outer loop values
-    // by value ([&, i, j]) because add_constraints registers the xsum
-    // expression lazily; a by-reference capture would dangle once the generator
-    // lambda returns.
+    // Exactly one value per cell.
     model.add_constraints(
-        std::views::cartesian_product(indices, indices), [&](auto && p) {
-            auto && [i, j] = p;
+        std::views::cartesian_product(indices, indices), [&](int i, int j) {
             return xsum(values, [&, i, j](int v) { return X(i, j, v); }) == 1;
         });
     // Each value appears once per row and once per column.
     model.add_constraints(
-        std::views::cartesian_product(values, indices), [&](auto && p) {
-            auto && [v, i] = p;
+        std::views::cartesian_product(values, indices), [&](int v, int i) {
             return xsum(indices, [&, v, i](int j) { return X(i, j, v); }) == 1;
         });
     model.add_constraints(
-        std::views::cartesian_product(values, indices), [&](auto && p) {
-            auto && [v, j] = p;
+        std::views::cartesian_product(values, indices), [&](int v, int j) {
             return xsum(indices, [&, v, j](int i) { return X(i, j, v); }) == 1;
         });
     // Each value appears once per 3x3 block.
     model.add_constraints(
-        std::views::cartesian_product(values, coords), [&](auto && p) {
-            auto && [v, b] = p;
-            return xsum(coords, [&, v, b](auto && q) {
-                       return X(3 * std::get<0>(b) + std::get<0>(q),
-                                3 * std::get<1>(b) + std::get<1>(q), v);
+        std::views::cartesian_product(values, coords), [&](int v, auto block) {
+            auto [bi, bj] = block;
+            return xsum(coords, [&, v, bi, bj](int di, int dj) {
+                       return X(3 * bi + di, 3 * bj + dj, v);
                    }) == 1;
         });
 

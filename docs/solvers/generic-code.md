@@ -13,8 +13,8 @@ void build_assignment(Model & model, const instance & data) {
     auto X = model.add_binary_variables(
         data.n * data.n, [n = data.n](int i, int j) { return i * n + j; });
     model.set_minimization();
-    model.set_objective(xsum(data.pairs, [&](auto && p) {
-        auto && [i, j] = p; return data.cost[i][j] * X(i, j); }));
+    model.set_objective(xsum(
+        data.pairs, [&](int i, int j) { return data.cost[i][j] * X(i, j); }));
     // ...
 }
 ```

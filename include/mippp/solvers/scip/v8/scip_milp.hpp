@@ -12,6 +12,7 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -356,21 +357,23 @@ public:
 
 private:
     template <bool distinct, typename Key, typename LastConstrLambda>
-        requires linear_constraint<std::invoke_result_t<LastConstrLambda, Key>>
+        requires linear_constraint<
+            detail::key_invoke_result_t<LastConstrLambda &, const Key &>>
     SCIP_CONS * _add_first_valued_constraint(const Key & key,
                                              LastConstrLambda & lc_lambda) {
-        return _add_constraint<distinct>(lc_lambda(key));
+        return _add_constraint<distinct>(detail::invoke_key(lc_lambda, key));
     }
     template <bool distinct, typename Key, typename OptConstrLambda,
               typename... Tail>
-        requires detail::optional_type<
-                     std::invoke_result_t<OptConstrLambda, Key>> &&
-                 linear_constraint<detail::optional_type_value_t<
-                     std::invoke_result_t<OptConstrLambda, Key>>>
+        requires detail::optional_type<detail::key_invoke_result_t<
+                     OptConstrLambda &, const Key &>> &&
+                 linear_constraint<
+                     detail::optional_type_value_t<detail::key_invoke_result_t<
+                         OptConstrLambda &, const Key &>>>
     SCIP_CONS * _add_first_valued_constraint(const Key & key,
                                              OptConstrLambda & opt_lc_lambda,
                                              Tail &... tail) {
-        if(const auto & opt_lc = opt_lc_lambda(key)) {
+        if(const auto & opt_lc = detail::invoke_key(opt_lc_lambda, key)) {
             return _add_constraint<distinct>(opt_lc.value());
         }
         return _add_first_valued_constraint<distinct>(key, tail...);

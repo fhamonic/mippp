@@ -78,7 +78,7 @@ Every field is optional, with one subtlety. A bare `add_variable()` creates the 
 
 MILP model classes (`highs_milp`, `gurobi_milp`, …) additionally provide `add_integer_variable(s)` and `add_binary_variable(s)`, as well as `set_integer` / `set_binary` / `set_continuous` to change a variable's type afterwards.
 
-Variables are usually created in bulk, either over a range of keys with `add_variables(keys)` or with `add_variables(count, id_lambda)`, which is where MIP++'s indexing shines — that is the subject of [Variables and index sets](../modeling/variables.md).
+Variables are usually created in bulk over a range of keys with `add_variables(keys)` — or, when the keys are not worth materialising, with `add_variables(count, id_lambda)` — which is where MIP++'s indexing shines — that is the subject of [Variables and index sets](../modeling/variables.md).
 
 ## Objective and constraints
 

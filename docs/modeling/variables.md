@@ -1,6 +1,6 @@
 # Variables and index sets
 
-Textbook models are written over meaningful index sets — *x(i,j)* for arcs, *y(p)* for patterns, *z(i,j,v)* for assignments — while solver APIs only know flat column numbers. This page covers how MIP++ bridges the two: variable handles, bulk creation, and the lambda id-maps that let you keep your problem's own coordinates.
+Textbook models are written over meaningful index sets — *x(i,j)* for arcs, *y(p)* for patterns, *z(i,j,v)* for assignments — while solver APIs only know flat column numbers. This page covers how MIP++ bridges the two: variable handles, bulk creation over a range of keys, and the lambda id-maps for the coordinate spaces you would rather not enumerate.
 
 Everything below assumes:
 
@@ -49,49 +49,51 @@ and let a variable's type be changed afterwards with `set_continuous(v)` / `set_
 
 An `*_milp` model with only continuous variables is a perfectly good LP; the split exists because some backends (Clp, SoPlex) are LP-only and others (Cbc, SCIP) MILP-only. See [Choosing a solver](../solvers/index.md).
 
-## Bulk creation and lambda id-maps
+## Bulk creation
 
-`add_variables(count, id_lambda)` creates `count` variables at once and attaches a function mapping *your* coordinates to an offset in `[0, count)`:
+Variables are created in batches, one batch per family of the model. The preferred form takes a **range of keys**, one variable per key, and returns a range callable by key:
 
 ```cpp
 // One binary variable per cell of an n×n board.
 auto X = model.add_binary_variables(
-    n * n, [n](int row, int col) { return row * n + col; });
+    std::views::cartesian_product(std::views::iota(0, n), std::views::iota(0, n)));
 
 auto v = X(row, col);  // handle, by plain arithmetic — O(1), no hash map
 auto w = X[17];        // plain positional access also works
 ```
 
-The returned object is a random-access range of variable handles. Its `operator()` takes exactly the parameters of your lambda — any number, any types — so multi-dimensional and irregular indexings cost nothing more than the arithmetic you write. There is no dictionary, no tuple key, no string lookup anywhere on that path, which is a large part of why model building stays close to C speed.
-
-Out-of-range ids throw `std::out_of_range`, so an off-by-one in the id-map fails loudly rather than silently touching the wrong column.
-
-The same signature exists for every variable kind — `add_variables`, `add_integer_variables`, `add_binary_variables` — each optionally followed by `variable_params`:
+The lookup rules are those of [constraint families](expressions.md#constraint-families), selected at compile time from the key type: arithmetic for `iota` and cartesian products of them, a table for `indexed(keys, id)`, a hash map or a sorted vector for any other key:
 
 ```cpp
+auto F = model.add_variables(indexed(graph.arcs(), [](arc a) { return a.id(); }));
+auto Y = model.add_variables(labels);     // std::vector<std::string>, hashed
+auto Z = model.add_integer_variables(std::views::iota(0, m), {.upper_bound = 10});
+```
+
+The returned object is a random-access range of variable handles. For the arithmetic and table strategies, `X(i, j)` costs the offset computation and nothing else: no dictionary, no tuple key, no string lookup, which is a large part of why model building stays close to C speed. Unknown keys throw `std::out_of_range`, so an off-by-one fails loudly rather than silently touching the wrong column.
+
+The same signature exists for every variable kind — `add_variables`, `add_integer_variables`, `add_binary_variables` — each optionally followed by `variable_params`. Prefer this form: the offsets are derived from the keys instead of written by hand and the range can be [named](#names) in the same call.
+
+### Count and id-map
+
+Sometimes there is no range of keys to hand over: the coordinate space is too large or too irregular to enumerate, it lives in a data structure you do not want to copy into a view, or the offset arithmetic is simply already written. For those cases `add_variables(count, id_lambda)` creates `count` variables and attaches a function mapping *your* coordinates to an offset in `[0, count)`:
+
+```cpp
+auto X = model.add_binary_variables(
+    n * n, [n](int row, int col) { return row * n + col; });
+
 auto flow = model.add_variables(
     num_arcs, [](arc a) { return a.id(); },
     {.lower_bound = 0, .upper_bound = capacity_max});
 ```
 
+`operator()` takes exactly the parameters of the lambda — any number, any types — and out-of-range ids throw `std::out_of_range`. This form is kept for compatibility and for the cases above; it is not deprecated, but it cannot resolve a string or a struct key, does not check that the lambda covers `[0, count)`, and names its variables lazily (see [Names](#names)). When the keys can be materialised, pass them instead.
+
 Without an id-map, `add_variables(count)` returns the same kind of range, indexable positionally.
-
-### Keyed families
-
-Instead of a count and an id-map, `add_variables` also takes a **range of keys**, one variable per key, and returns a range callable by key with the same lookup rules as [constraint families](expressions.md#constraint-families): arithmetic for `iota` and cartesian products of them, a hash map or a sorted vector for other keys, a table for `indexed(keys, id)`:
-
-```cpp
-auto X = model.add_binary_variables(
-    std::views::cartesian_product(std::views::iota(0, n), std::views::iota(0, n)));
-auto v = X(row, col);   // the row-major offset is derived, never written
-auto F = model.add_variables(indexed(graph.arcs(), [](arc a) { return a.id(); }));
-```
-
-Both forms coexist. The key range cannot describe a coordinate space you never enumerate, and the id-map cannot resolve a string or a struct; pick whichever names your problem's structure directly.
 
 ### Choosing an id-map
 
-The id-map is the place where your problem's structure meets the solver's flat indexing. Two rules of thumb:
+When writing an id-map, two rules of thumb:
 
 - **Make it arithmetic.** Row-major offsets (`i * n + j`), block offsets (`81 * i + 9 * j + (v - 1)` in the Sudoku example), or an id already carried by your data structure (a graph's arc id) are all O(1) and branch-free.
 - **Create one batch per family of variables.** A batch is contiguous in the solver, which makes the offsets trivial and keeps the ranges independent — `X` and `Y` can each have their own coordinates.
@@ -111,9 +113,14 @@ Variable names are pure overhead for the solver, so MIP++ assigns none by defaul
 ```cpp
 auto X = model.add_variables(
     named(std::views::iota(0, n), [](int i) { return std::format("x_{}", i); }));
+auto Y = model.add_variables(
+    named(std::views::cartesian_product(std::views::iota(0, n), std::views::iota(0, m)),
+          [](int i, int j) { return std::format("y_{}_{}", i, j); }));
 ```
 
-With an id-map, pass a *name lambda* taking the same coordinates to `add_named_variables`:
+Tuple keys are unpacked into the name function's parameters, as for [every function called on a key](expressions.md#xsum-sums-over-ranges).
+
+With the count and id-map form, pass a *name lambda* taking the same coordinates to `add_named_variables`:
 
 ```cpp
 auto X = model.add_named_variables(

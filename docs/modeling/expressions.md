@@ -26,11 +26,11 @@ Combined with the standard `<ranges>` library, entire objectives are one-liners:
 
 ```cpp
 model.set_objective(
-    xsum(std::views::cartesian_product(cities, cities), [&](auto && p) {
-        auto && [i, j] = p;
-        return dist[i][j] * X(i, j);
-    }));
+    xsum(std::views::cartesian_product(cities, cities),
+         [&](int i, int j) { return dist[i][j] * X(i, j); }));
 ```
+
+The elements of a `cartesian_product` (and of `zip`, `enumerate`, or any range of `std::pair`s or `std::tuple`s) are tuples, and a function that does not accept the tuple itself is called with its **elements unpacked**, one parameter per component. A lambda that does accept the tuple — `[&](auto && p)` with a structured binding inside, or one taking `std::pair<int, int>` — is called with it unchanged, so both spellings coexist. The same rule applies to every function MIP++ calls on a key: `xsum`, the generators of `add_constraints`, and the id and name functions of the [`indexed` and `named` wrappers](#constraint-families).
 
 Because the range comes first, every `<ranges>` adaptor is available to describe the index set — `filter` for sparsity, `iota` for intervals, `cartesian_product` for multi-dimensional families, `zip` to walk coefficients and variables together:
 
@@ -77,9 +77,15 @@ for(int o : orders) price[o] = duals[demand_constraints(o)];
 
 How a key is resolved is decided at compile time from the type of the key range, and never costs more than that range requires:
 
-- **`std::views::iota`, and `cartesian_product`s of such ranges** — the position is computed arithmetically and nothing is stored. Tuple keys may be passed unpacked: `cells(i, j)` is `cells(std::tuple{i, j})`.
+- **`std::views::iota`, and `cartesian_product`s of such ranges** — the position is computed arithmetically and nothing is stored. Tuple keys may be passed unpacked, both to the generator and to the lookup: `cells(i, j)` is `cells(std::tuple{i, j})`.
+
+    ```cpp
+    auto cells = model.add_constraints(
+        std::views::cartesian_product(rows, cols),
+        [&](int i, int j) { return X(i, j) + Y(i, j) <= 1; });
+    ```
 - **Any other range** — the keys are copied into a hash map when `std::hash` is specialized for them, otherwise into a sorted vector when they are totally ordered (`<` and `==`). Duplicate keys resolve to their first constraint.
-- **`indexed(keys, id)`** — you supply a function mapping each key to a dense non-negative integer, and the lookup goes through a table sized to the largest id. It is the counterpart of the id-lambda of [`add_variables`](variables.md#bulk-creation-and-lambda-id-maps), for keys that carry their own index (a struct with an `id` field, a filtered subset of an interval):
+- **`indexed(keys, id)`** — you supply a function mapping each key to a dense non-negative integer, and the lookup goes through a table sized to the largest id. It is the counterpart of the id-lambda of [`add_variables`](variables.md#count-and-id-map), for keys that carry their own index (a struct with an `id` field, a filtered subset of an interval):
 
     ```cpp
     auto demand = model.add_constraints(indexed(orders, &order::id), [&](const order & o) {

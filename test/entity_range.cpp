@@ -293,6 +293,21 @@ struct recording_model {
 };
 struct nameless_model {};
 
+GTEST_TEST(keys_view, functions_may_take_the_elements_of_a_tuple_key) {
+    auto cells = detail::cartesian_product(std::views::iota(0, 2),
+                                           std::views::iota(0, 2));
+    auto keys = indexed_named(
+        cells, [](int i, int j) { return 2 * i + j; },
+        [](int i, int j) { return std::to_string(i) + std::to_string(j); });
+    recording_model model;
+    auto c = detail::keyed_entities(model, keys, detail::set_constraint_name,
+                                    entity_range(constraint{0}, 4));
+    ASSERT_EQ(c(1, 0).id(), 2);
+    ASSERT_EQ(c(std::tuple{0, 1}).id(), 1);
+    ASSERT_EQ(model.names, (std::vector<std::pair<int, std::string>>{
+                               {0, "00"}, {1, "01"}, {2, "10"}, {3, "11"}}));
+}
+
 GTEST_TEST(keys_view, names_are_applied_in_key_order_from_the_first_id) {
     std::vector<order> orders = {{4}, {1}};
     auto keys = named(orders, [](const order & o) {
