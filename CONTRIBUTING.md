@@ -146,7 +146,7 @@ Adjust the base paths to wherever you installed each solver:
 # Replace /path/to/solvers with your own installation directory.
 
 # Gurobi
-export GUROBI_HOME="/path/to/solvers/gurobi1201/linux64"
+export GUROBI_HOME="/path/to/solvers/gurobi1303/linux64"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$GUROBI_HOME/lib"
 
 # COIN-OR (Clp / Cbc, e.g. built with coinbrew)
