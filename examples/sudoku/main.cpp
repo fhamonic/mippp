@@ -66,11 +66,9 @@ int main() {
         });
 
     // Fix the given hints.
-    for(int i : indices) {
-        for(int j : indices) {
-            int v = grid_hints[static_cast<std::size_t>(9 * i + j)];
-            if(v != 0) model.add_constraint(X(i, j, v) == 1);
-        }
+    for(auto [i, j] : std::views::cartesian_product(indices, indices)) {
+        int v = grid_hints[static_cast<std::size_t>(9 * i + j)];
+        if(v != 0) model.add_constraint(X(i, j, v) == 1);
     }
 
     model.solve();

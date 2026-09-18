@@ -531,16 +531,15 @@ public:
         return value;
     }
     auto get_solution() {
-        // Cbc aborts when queried before a solve, and an empty model is never
-        // solved: hand back a mapping nothing can index
-        const double * sol = nullptr;
+        auto solution =
+            std::make_unique_for_overwrite<double[]>(_lazy_num_variables);
         if(_lazy_num_variables != 0u) {
             // bestSolution() is null when the model has no integer variable
-            // (Cbc solved the LP only): fall back to the LP column solution
-            sol = Cbc->bestSolution(model);
+            const double * sol = Cbc->bestSolution(model);
             if(sol == nullptr) sol = Cbc->getColSolution(model);
+            std::copy_n(sol, _lazy_num_variables, solution.get());
         }
-        return variable_mapping(std::move(sol));
+        return variable_mapping(std::move(solution));
     }
 };
 

@@ -614,7 +614,7 @@ public:
     auto get_memory_limit() {
         double gb;
         check(GRB->getdblparam(env, GRB_DBL_PAR_SOFTMEMLIMIT, &gb));
-        return static_cast<std::size_t>(gb);
+        return memory_size<double, std::giga>(gb);
     }
 };
 
