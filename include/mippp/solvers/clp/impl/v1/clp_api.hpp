@@ -51,6 +51,7 @@ CoinBigIndex Clp_getNumElements(Clp_Simplex * model);
 int Clp_lengthNames(Clp_Simplex * model);
 
 const CoinBigIndex * Clp_getVectorStarts(Clp_Simplex * model);
+const int * Clp_getVectorLengths(Clp_Simplex * model);
 const int * Clp_getIndices(Clp_Simplex * model);
 const double * Clp_getElements(Clp_Simplex * model);
 void Clp_modifyCoefficient(Clp_Simplex * model, int row, int column,
@@ -117,6 +118,7 @@ namespace clp::impl::v1 {
     F(Clp_getNumElements, getNumElements)                     \
     F(Clp_lengthNames, lengthNames)                           \
     F(Clp_getVectorStarts, getVectorStarts)                   \
+    F(Clp_getVectorLengths, getVectorLengths)                 \
     F(Clp_getIndices, getIndices)                             \
     F(Clp_getElements, getElements)                           \
     F(Clp_modifyCoefficient, modifyCoefficient)               \

@@ -187,6 +187,26 @@ private:
     }
 
 private:
+    // Clp 1.17.x mis-solves a matrix whose stored elements are all zero
+    // (startup() counts them, so the empty-problem shortcut is skipped, then
+    // createRim() packs them away): every column comes back at 0, bounds
+    // ignored, as optimal. So no zero element reaches Clp_addRows or
+    // Clp_addColumns, whether written as such or left by cancelling
+    // duplicates, which is why the untagged paths merge duplicates here
+    // rather than leave it to Clp. Clp_modifyCoefficient stores no zero
+    // (keepZero = false) and needs nothing.
+    void _drop_zero_entries(std::size_t begin) {
+        std::size_t end = begin;
+        for(std::size_t k = begin; k < tmp_indices.size(); ++k) {
+            if(tmp_scalars[k] == 0.0) continue;
+            tmp_indices[end] = tmp_indices[k];
+            tmp_scalars[end] = tmp_scalars[k];
+            ++end;
+        }
+        tmp_indices.resize(end);
+        tmp_scalars.resize(end);
+    }
+
     template <typename ER>
     inline variable _add_column(ER && entries, const variable_params & params) {
         if(!_free_variable_ids.empty()) {
@@ -197,8 +217,10 @@ private:
             }
             return v;
         }
+        _prepare_coalescing(num_constraints());
         _reset_cache();
-        _register_constraints_entries<true>(entries);
+        _register_constraints_entries<false>(entries);
+        _drop_zero_entries(0);
         const int var_id = static_cast<int>(num_native_ids_variables());
         const auto lb = params.lower_bound.value_or(-COIN_DBL_MAX);
         const auto ub = params.upper_bound.value_or(COIN_DBL_MAX);
@@ -224,15 +246,17 @@ public:
         set_objective_coefficient(v, 0);
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 0);
-        const int * col_starts = Clp->getVectorStarts(model);
+        // Clp_modifyCoefficient packs the column down on each deletion, so
+        // walking Clp's own index array meanwhile skips every other row and
+        // the recycled column keeps them: copy the rows out first, over the
+        // column's length rather than up to the next start, as a deletion
+        // leaves stale entries in between.
+        const int start = Clp->getVectorStarts(model)[v.id()];
+        const int length = Clp->getVectorLengths(model)[v.id()];
         const int * row_indices = Clp->getIndices(model);
-
-        const int * begin = row_indices + col_starts[v.id()];
-        const int * end = row_indices + col_starts[v.id() + 1];
-        for(const int * it = begin; it != end; ++it) {
-            Clp->modifyCoefficient(model, *it, v.id(), 0.0, false);
-        }
-
+        tmp_indices.assign(row_indices + start, row_indices + start + length);
+        for(const int row : tmp_indices)
+            Clp->modifyCoefficient(model, row, v.id(), 0.0, false);
         _free_variable_ids.emplace_back(v.id());
     }
     template <std::ranges::range VR>
@@ -278,10 +302,14 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////////// Constraints ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    constraint add_constraint(linear_constraint auto && lc) {
-        int constr_id = static_cast<int>(num_constraints());
+private:
+    template <bool distinct, linear_constraint LC>
+    constraint _add_constraint(LC && lc) {
+        const int constr_id = static_cast<int>(num_constraints());
+        if constexpr(!distinct) _prepare_coalescing(num_native_ids_variables());
         _reset_cache();
-        _register_variables_entries<true>(lc.linear_terms());
+        _register_variables_entries<distinct>(lc.linear_terms());
+        _drop_zero_entries(0);
         const scalar b = lc.rhs();
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
         Clp->addRows(
@@ -291,13 +319,19 @@ public:
             starts, tmp_indices.data(), tmp_scalars.data());
         return constraint(constr_id);
     }
+
+public:
+    template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
+        return _add_constraint<false>(std::forward<LC>(lc));
+    }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
-        return add_constraint(std::forward<LC>(lc));
+        return _add_constraint<true>(std::forward<LC>(lc));
     }
 
 private:
-    template <linear_constraint LC>
+    template <bool distinct, linear_constraint LC>
     void _register_constraint(LC && lc) {
         tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
         const scalar b = lc.rhs();
@@ -305,19 +339,18 @@ private:
             (lc.sense() == constraint_sense::less_equal) ? -COIN_DBL_MAX : b);
         tmp_upper_bounds.emplace_back(
             (lc.sense() == constraint_sense::greater_equal) ? COIN_DBL_MAX : b);
-        for(auto && [var, coef] : lc.linear_terms()) {
-            tmp_indices.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+        _register_variables_entries<distinct>(lc.linear_terms());
+        _drop_zero_entries(static_cast<std::size_t>(tmp_begins.back()));
     }
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<
             detail::key_invoke_result_t<LastConstrLambda &, const Key &>>
     void _register_first_valued_constraint(const Key & key,
                                            LastConstrLambda & lc_lambda) {
-        _register_constraint(detail::invoke_key(lc_lambda, key));
+        _register_constraint<distinct>(detail::invoke_key(lc_lambda, key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<detail::key_invoke_result_t<
                      OptConstrLambda &, const Key &>> &&
                  linear_constraint<
@@ -327,24 +360,23 @@ private:
                                            OptConstrLambda & opt_lc_lambda,
                                            Tail &... tail) {
         if(const auto & opt_lc = detail::invoke_key(opt_lc_lambda, key)) {
-            _register_constraint(opt_lc.value());
+            _register_constraint<distinct>(opt_lc.value());
             return;
         }
-        _register_first_valued_constraint(key, tail...);
+        _register_first_valued_constraint<distinct>(key, tail...);
     }
-
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
+        if constexpr(!distinct) _prepare_coalescing(num_native_ids_variables());
+        _reset_cache();
         tmp_begins.resize(0);
-        tmp_indices.resize(0);
-        tmp_scalars.resize(0);
         tmp_lower_bounds.resize(0);
         tmp_upper_bounds.resize(0);
         const index offset = static_cast<index>(num_constraints());
         index constr_id = offset;
         for(auto && key : keys) {
-            _register_first_valued_constraint(key, constraint_lambdas...);
+            _register_first_valued_constraint<distinct>(key,
+                                                        constraint_lambdas...);
             ++constr_id;
         }
         tmp_begins.emplace_back(static_cast<index>(tmp_indices.size()));
@@ -356,11 +388,18 @@ public:
             entity_range(constraint{offset},
                          static_cast<std::size_t>(constr_id - offset)));
     }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
-        return add_constraints(std::forward<IR>(keys),
-                               std::forward<CL>(constraint_lambdas)...);
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
     }
 
     void set_constraint_rhs(constraint constr, scalar rhs) {
@@ -396,15 +435,15 @@ public:
                 return;
         }
     }
-    constraint add_ranged_constraint(linear_expression auto && le, scalar lb,
-                                     scalar ub) {
-        index constr_id = static_cast<index>(num_constraints());
-        tmp_indices.resize(0);
-        tmp_scalars.resize(0);
-        for(auto && [var, coef] : le.linear_terms()) {
-            tmp_indices.emplace_back(var.id());
-            tmp_scalars.emplace_back(coef);
-        }
+
+private:
+    template <bool distinct, linear_expression LE>
+    constraint _add_ranged_constraint(LE && le, scalar lb, scalar ub) {
+        const index constr_id = static_cast<index>(num_constraints());
+        if constexpr(!distinct) _prepare_coalescing(num_native_ids_variables());
+        _reset_cache();
+        _register_variables_entries<distinct>(le.linear_terms());
+        _drop_zero_entries(0);
         lb -= le.constant();
         ub -= le.constant();
         index starts[2] = {0, static_cast<index>(tmp_indices.size())};
@@ -412,10 +451,16 @@ public:
                      tmp_scalars.data());
         return constraint(constr_id);
     }
-    constraint add_ranged_constraint(distinct_variables_t,
-                                     linear_expression auto && le, scalar lb,
+
+public:
+    template <linear_expression LE>
+    constraint add_ranged_constraint(LE && le, scalar lb, scalar ub) {
+        return _add_ranged_constraint<false>(std::forward<LE>(le), lb, ub);
+    }
+    template <linear_expression LE>
+    constraint add_ranged_constraint(distinct_variables_t, LE && le, scalar lb,
                                      scalar ub) {
-        return add_ranged_constraint(le, lb, ub);
+        return _add_ranged_constraint<true>(std::forward<LE>(le), lb, ub);
     }
     void set_constraint_name(constraint constr, const std::string & name) {
         Clp->setRowName(model, constr.id(), const_cast<char *>(name.c_str()));

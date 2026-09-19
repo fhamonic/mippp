@@ -587,6 +587,34 @@ TYPED_TEST_P(LpModelTest, solve_lp_constraint_redundant_terms) {
         ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
     });
 }
+// Every row is zero once merged, from cancelling terms or a written zero,
+// through both entry points and both tag forms: only the bounds constrain
+// the optimum. Clp 1.17.x reports every column at 0 when the only elements
+// it stores are zeros, so a backend must not hand such rows to its solver.
+TYPED_TEST_P(LpModelTest, solve_lp_zero_rows) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 =
+            model.add_variable({.lower_bound = -5.0, .upper_bound = -2.0});
+        auto x2 = model.add_variable({.lower_bound = 1.0, .upper_bound = 4.0});
+        model.set_minimization();
+        model.set_objective(-0.5 * x1 + x2 - 7.0);
+        model.add_constraint(-0.5 * x1 + 0.5 * x1 <= 3);
+        model.add_constraint(distinct_variables, 0.0 * x2 >= -1);
+        model.add_constraints(
+            std::views::iota(0, 2),
+            [&](int i) { return OPT((i == 0), x1 - x1 + 0.0 * x2 == 0); },
+            [&](int) { return 2 * x2 - x2 - x2 <= 1; });
+        model.add_constraints(distinct_variables, std::views::iota(0, 1),
+                              [&](int) { return 0.0 * x1 + 0.0 * x2 >= -2; });
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), -5.0, TEST_EPSILON);
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[x1], -2.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x2], 1.0, TEST_EPSILON);
+    });
+}
 TYPED_TEST_P(LpModelTest, solve_lp_distinct_variables) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -720,7 +748,8 @@ REGISTER_TYPED_TEST_SUITE_P(
     solve_lp, solve_lp_add_constraints, solve_lp_with_objective_offset_min,
     solve_lp_with_objective_offset_max, solve_lp_set_objective_offset,
     solve_lp_objective_redundant_terms, solve_lp_constraint_redundant_terms,
-    solve_lp_distinct_variables, solve_lp_mixed_distinct_variables,
-    solve_lp_non_standard_form_max, solve_lp_non_standard_form_min);
+    solve_lp_zero_rows, solve_lp_distinct_variables,
+    solve_lp_mixed_distinct_variables, solve_lp_non_standard_form_max,
+    solve_lp_non_standard_form_min);
 
 }  // namespace mippp
