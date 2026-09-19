@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(Gurobi_api, gurobi_api, "GUROBI")
+
 struct gurobi_lp_test : public model_test<gurobi_api, gurobi_lp> {
     static void SetUpTestSuite() { construct_api("GUROBI"); }
 };

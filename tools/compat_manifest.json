@@ -29,7 +29,7 @@
   "solvers": {
     "clp": {
       "key": "CLP",
-      "wrapper": "v1_17",
+      "wrapper": "impl/v1",
       "gtest_filter": "Clp*",
       "tier": "open-source",
       "source": {
@@ -42,7 +42,7 @@
     },
     "cbc": {
       "key": "CBC",
-      "wrapper": "v2_10_12",
+      "wrapper": "impl/v1",
       "gtest_filter": "Cbc*",
       "tier": "open-source",
       "source": {
@@ -59,7 +59,7 @@
     },
     "glpk": {
       "key": "GLPK",
-      "wrapper": "v5",
+      "wrapper": "impl/v1",
       "gtest_filter": "GLPK*",
       "tier": "open-source",
       "source": {
@@ -72,7 +72,7 @@
     },
     "highs": {
       "key": "HIGHS",
-      "wrapper": "v1_10",
+      "wrapper": "impl/v1",
       "gtest_filter": "HiGHS*",
       "tier": "open-source",
       "source": {
@@ -85,7 +85,7 @@
     },
     "scip": {
       "key": "SCIP",
-      "wrapper": "v8",
+      "wrapper": "impl/v1",
       "gtest_filter": "SCIP*",
       "tier": "open-source",
       "source": {
@@ -105,7 +105,7 @@
     },
     "soplex": {
       "key": "SOPLEX",
-      "wrapper": "v6",
+      "wrapper": "impl/v1",
       "gtest_filter": "SoPlex*",
       "tier": "open-source",
       "source": {
@@ -118,7 +118,7 @@
     },
     "gurobi": {
       "key": "GUROBI",
-      "wrapper": "v12_0",
+      "wrapper": "impl/v1",
       "gtest_filter": "Gurobi*",
       "tier": "commercial",
       "note": "the wheel bundles a size-limited licence, so results only cover small models",
@@ -134,10 +134,10 @@
     },
     "mosek": {
       "key": "MOSEK",
-      "wrapper": "v11",
+      "wrapper": "impl/v1",
       "gtest_filter": "MOSEK*",
       "tier": "commercial",
-      "note": "needs a licence file; without one every test skips on license_error",
+      "note": "needs a licence file; without one every test skips on license_error. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of MOSEK 11.0.14 (2026-09-19)",
       "source": {
         "kind": "pypi",
         "package": "Mosek",
@@ -149,10 +149,10 @@
     },
     "xpress": {
       "key": "XPRESS",
-      "wrapper": "v45_1",
+      "wrapper": "impl/v1",
       "gtest_filter": "Xpress*",
       "tier": "commercial",
-      "note": "community licence caps model size",
+      "note": "community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of Xpress 47.1.1 (2026-09-19)",
       "source": {
         "kind": "pypi",
         "package": "xpresslibs",
@@ -164,10 +164,10 @@
     },
     "copt": {
       "key": "COPT",
-      "wrapper": "v7_2",
+      "wrapper": "impl/v1",
       "gtest_filter": "COPT*",
       "tier": "commercial",
-      "note": "community licence caps model size",
+      "note": "community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of COPT 8.0.5 (2026-09-19)",
       "source": {
         "kind": "pypi",
         "package": "coptpy",
@@ -179,7 +179,7 @@
     },
     "cplex": {
       "key": "CPLEX",
-      "wrapper": "v22_1_2",
+      "wrapper": "impl/v1",
       "gtest_filter": "CPLEX*",
       "tier": "commercial",
       "note": "community edition caps model size",

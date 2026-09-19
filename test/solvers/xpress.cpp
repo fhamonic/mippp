@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(Xpress_api, xpress_api, "XPRESS")
+
 struct xpress_lp_test : public model_test<xpress_api, xpress_lp> {
     static void SetUpTestSuite() { construct_api("XPRESS"); }
 };

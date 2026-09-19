@@ -15,16 +15,22 @@ extending that system without breaking its invariants.
 # When to use
 
 - Adding a new solver backend or a new model class (lp/milp/qp) to one.
-- Bumping a backend to a new vendor API version.
+- Extending a backend to a new vendor release, or starting an `impl/v2/`.
 - Adding a new capability (a new typed suite) across backends.
 - Diagnosing a backend that fails or unexpectedly skips shared suites.
 
 # Architecture invariants
 
-- One header tree per backend: `include/mippp/solvers/<name>/v<version>/`
-  with `<name>_base.hpp`, `<name>_lp.hpp` (+ `_milp`, `_qp` as supported)
-  and an umbrella `all.hpp`. New vendor versions get a **new** versioned
-  directory, not edits to the old one.
+- One header tree per backend: `include/mippp/solvers/<name>/impl/v1/`
+  with `<name>_api.hpp`, `<name>_base.hpp`, `<name>_lp.hpp` (+ `_milp`,
+  `_qp` as supported) and an umbrella `all.hpp`. The api class declares
+  `key`, `library_names` (newest first) and `validated_versions` (half-open
+  `detail::solver_version_range`s backed by the compatibility matrix), and
+  its constructor ends with `check_library_version(...)`. A new vendor
+  release the implementation still drives extends those two lists after a
+  matrix run; only a release it cannot adapt to at runtime (no optional
+  entry point can bridge it) gets a new `impl/v2/` tree, and the `mippp`
+  aliases move to it.
 - One test TU per backend: `test/solvers/<name>.cpp`, registered in
   `test/CMakeLists.txt` (`MIPPP_TEST_ALL_SOLVER_SOURCES`).
 - One fixture per model class:
@@ -105,5 +111,6 @@ extending that system without breaking its invariants.
   duplicate Q-entries, default bounds) instead of the concept's contract —
   expression terms are an unordered multiset; backends must fold duplicates.
 - Comparing solver floating-point output with `ASSERT_EQ`.
-- Editing an old versioned solver directory to accommodate a new vendor
-  version instead of adding a new `v<version>/` tree.
+- Starting an `impl/v2/` tree for a vendor release that an optional entry
+  point (`find_function`) would have bridged, or extending
+  `validated_versions` without a recorded full-suite pass.

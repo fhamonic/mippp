@@ -17,6 +17,7 @@
 // an optional constraint, for the add_constraints lambdas of the suites
 #define OPT(cond, ...) ((cond) ? std::make_optional(__VA_ARGS__) : std::nullopt)
 
+#include "mippp/detail/solver_library.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
 
 // Solvers named in MIPPP_REQUIRED_SOLVERS (';'-separated, e.g. "CLP;CBC;GLPK")
@@ -36,6 +37,27 @@ inline bool is_required_solver(std::string_view solver_key) {
     }
     return false;
 }
+
+// The compatibility matrix runs each backend's suites against every release
+// it can obtain, so a release that passes but lies outside
+// Api::validated_versions, or one inside that fails, fails this test on that
+// row. A library reporting no version cannot be checked and skips.
+#define MIPPP_API_VERSION_TEST(prefix, Api, solver_key)                   \
+    TEST(prefix, loaded_release_is_a_validated_one) {                     \
+        const Api * api = nullptr;                                        \
+        try {                                                             \
+            api = &Api::load();                                           \
+        } catch(const std::exception & e) {                               \
+            if(is_required_solver(solver_key)) FAIL() << e.what();        \
+            GTEST_SKIP() << e.what();                                     \
+        }                                                                 \
+        if(!api->library_version())                                       \
+            GTEST_SKIP() << api->library_path() << " reports no version"; \
+        EXPECT_TRUE(mippp::detail::is_validated(Api::validated_versions,  \
+                                                *api->library_version())) \
+            << "loaded " << api->library_path() << " reporting "          \
+            << mippp::to_string(*api->library_version());                 \
+    }
 
 template <typename Api, typename Model>
 struct model_test : public ::testing::Test {

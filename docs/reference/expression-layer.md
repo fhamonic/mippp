@@ -219,7 +219,7 @@ qe.linear_part();      // itself a linear_expression (terms + constant)
 
 with the variable types matching and the linear scalar convertible to the quadratic one. The corresponding traits mirror the linear ones: `quadratic_term_variable_t`, `quadratic_term_scalar_t`, `quadratic_terms_range_t`, `quadratic_term_t`, `quadratic_expression_variable_t` / `_scalar_t` / `_constant_t`, and `compatible_quadratic_expressions`.
 
-As with linear terms, the stream is a multiset, and the pairs are **unordered**: `square(x1 + x2)` emits all four cartesian products, including both `(x1, x2, 1)` and `(x2, x1, 1)`. Backends fold `(i, j)` and `(j, i)` together and sum duplicates when building the (triangular) Hessian — see [`highs_qp::set_objective`](https://github.com/fhamonic/mippp/blob/main/include/mippp/solvers/highs/v1_10/highs_qp.hpp).
+As with linear terms, the stream is a multiset, and the pairs are **unordered**: `square(x1 + x2)` emits all four cartesian products, including both `(x1, x2, 1)` and `(x2, x1, 1)`. Backends fold `(i, j)` and `(j, i)` together and sum duplicates when building the (triangular) Hessian — see [`highs_qp::set_objective`](https://github.com/fhamonic/mippp/blob/main/include/mippp/solvers/highs/impl/v1/highs_qp.hpp).
 
 ### Products need a second pass
 

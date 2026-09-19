@@ -1,14 +1,17 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
+#include <charconv>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <initializer_list>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -17,6 +20,7 @@
 #include <vector>
 
 #include "mippp/detail/dynamic_library.hpp"
+#include "mippp/utility/solver_version.hpp"
 
 // MSVC deprecates std::getenv (C4996) in favour of its own _dupenv_s; the
 // portable call is kept and the warning silenced for this header only.
@@ -173,10 +177,13 @@ inline std::optional<std::filesystem::path> find_library_in_dir(
 //   1. `path`, if non-null: the exact library file, used verbatim;
 //   2. the `MIPPP_<key>_LIBRARY` env var (e.g. MIPPP_HIGHS_LIBRARY): idem,
 //      letting versioned sonames like libhighs.so.1.10.0 be pinned;
-//   3. each undecorated name of `names` ("highs" -> libhighs.so), in order,
-//      searched across the loader's directories (see system_library_dirs).
-//      Several names cover solvers renamed across releases (Cbc: libCbc /
-//      libCbcSolver).
+//   3. the undecorated names of `names` ("highs" -> libhighs.so) searched
+//      across the loader's directories (see system_library_dirs): the first
+//      directory holding any of them wins, as it would for the loader, and
+//      `names` order breaks ties within a directory. Several names cover
+//      solvers renamed across releases (Cbc: libCbc / libCbcSolver) or
+//      several releases one wrapper drives (Gurobi: libgurobi130 /
+//      libgurobi120, newest first).
 //
 // Only step 3 is memoized: the directory walk costs milliseconds where
 // reopening a known file costs microseconds, so default-constructing many api
@@ -185,9 +192,8 @@ inline std::optional<std::filesystem::path> find_library_in_dir(
 // loads is dropped and searched afresh. Steps 1 and 2 bypass it, which is what
 // lets two versions of one solver be loaded side by side.
 inline dynamic_library load_solver_library(
-    const char * path, const char * key,
-    std::initializer_list<const char *> names,
-    std::initializer_list<const char *> probe_symbols = {}) {
+    const char * path, const char * key, std::span<const char * const> names,
+    std::span<const char * const> probe_symbols = {}) {
     // a candidate must export `probe_symbols`: some distributions ship a
     // matching name without the C API (Ubuntu's libCbc.so vs libCbcSolver.so)
     const auto try_load =
@@ -253,13 +259,16 @@ inline dynamic_library load_solver_library(
         if(auto it = cache_find(cache_key); it != cache.end()) cache.erase(it);
     }
 
-    const auto directories = detail::system_library_dirs();
-    for(const char * n : names) {
-        const std::string base =
-            detail::concat_str(dynamic_library::prefix, n);  // libfoo
-        const std::string decorated =
-            detail::concat_str(base, dynamic_library::suffix);  // libfoo.so
-        for(const auto & directory : directories)
+    std::vector<std::pair<std::string, std::string>> decorated_names;
+    decorated_names.reserve(names.size());
+    for(const char * n : names) {  // libfoo, libfoo.so
+        std::string base = detail::concat_str(dynamic_library::prefix, n);
+        std::string decorated =
+            detail::concat_str(base, dynamic_library::suffix);
+        decorated_names.emplace_back(std::move(base), std::move(decorated));
+    }
+    for(const auto & directory : detail::system_library_dirs()) {
+        for(const auto & [base, decorated] : decorated_names)
             if(auto found = detail::find_library_in_dir(
                    directory, base, decorated, dynamic_library::suffix))
                 if(auto lib = try_load(*found, errors)) {
@@ -287,6 +296,99 @@ inline dynamic_library load_solver_library(
         " to its full path, or add its directory to LD_LIBRARY_PATH.");
 }
 
+// "2.10.12" -> {2,10,12}, "5.0" -> {5}, "45.01.02" -> {45,1,2}; text after
+// the third component or the last number is ignored ("1.15.1-dev",
+// "22.1.2.0"). nullopt when no number leads ("devel", "") or a component
+// does not fit an int.
+constexpr std::optional<solver_version> parse_solver_version(
+    std::string_view text) {
+    int components[3] = {0, 0, 0};
+    const char * it = text.data();
+    const char * const end = it + text.size();
+    for(int & component : components) {
+        const auto [next, ec] = std::from_chars(it, end, component);
+        if(ec != std::errc{}) {
+            if(&component == components) return std::nullopt;
+            break;
+        }
+        it = next;
+        if(it == end || *it != '.') break;
+        ++it;
+    }
+    return solver_version{components[0], components[1], components[2]};
+}
+
+// Releases the wrapper has driven through the full suite, as a half-open
+// interval: {{10}, {14}} is every 10.x.y up to 13.x.y. Both bounds come
+// from a recorded pass -- a row of docs/solvers/compatibility.md or, for the
+// solvers the matrix cannot obtain or license, a maintainer's run noted on
+// that page; `before` is the first release not covered, never "anything
+// newer".
+struct solver_version_range {
+    solver_version from, before;
+
+    constexpr bool contains(const solver_version & v) const noexcept {
+        return from <= v && v < before;
+    }
+};
+
+template <std::size_t N>
+constexpr bool is_validated(const std::array<solver_version_range, N> & ranges,
+                            const solver_version & v) noexcept {
+    static_assert(N > 0, "a wrapper validated for nothing is not a claim");
+    for(const auto & r : ranges)
+        if(r.contains(v)) return true;
+    return false;
+}
+
+template <std::size_t N>
+std::string to_string(const std::array<solver_version_range, N> & ranges) {
+    std::string s;
+    for(const auto & r : ranges) {
+        if(!s.empty()) s += " or ";
+        s += ">= " + to_string(r.from) + " and < " + to_string(r.before);
+    }
+    return s;
+}
+
+// Warns on stderr when the loaded library is a release the wrapper is not
+// validated for -- usually harmless (the C APIs are stable) but worth knowing
+// when behavior differs. `reported` is what the library said, verbatim, for
+// the message; `loaded` its parse, nullopt when not a number ("devel").
+// Set MIPPP_NO_VERSION_WARNING to silence.
+template <std::size_t N>
+void warn_on_unsupported_version(
+    const char * key, const std::array<solver_version_range, N> & validated,
+    std::optional<solver_version> loaded, std::string_view reported) {
+    if((loaded && is_validated(validated, *loaded)) ||
+       std::getenv("MIPPP_NO_VERSION_WARNING") != nullptr)
+        return;
+    std::fprintf(stderr,
+                 "mippp: warning: the %s wrapper is validated for versions %s "
+                 "but the loaded library reports %.*s; behavior may differ. "
+                 "Set MIPPP_%s_LIBRARY to a validated library, or set "
+                 "MIPPP_NO_VERSION_WARNING to silence this warning.\n",
+                 key, to_string(validated).c_str(), int(reported.size()),
+                 reported.data(), key);
+}
+
+// for libraries reporting components (Gurobi, MOSEK, SCIP)
+template <std::size_t N>
+void warn_on_unsupported_version(
+    const char * key, const std::array<solver_version_range, N> & validated,
+    const solver_version & loaded) {
+    warn_on_unsupported_version(key, validated, loaded, to_string(loaded));
+}
+
+// for libraries reporting a string (HiGHS, Cbc, GLPK, Xpress), never null
+template <std::size_t N>
+void warn_on_unsupported_version(
+    const char * key, const std::array<solver_version_range, N> & validated,
+    std::string_view reported) {
+    warn_on_unsupported_version(key, validated, parse_solver_version(reported),
+                                reported);
+}
+
 // Base of every `<solver>_api`: an immortal, interned wrapper over one loaded
 // library file. `Derived::load(path)` is the only way to obtain one, and it
 // hands out the same instance for the same file, whether that file was
@@ -299,8 +401,12 @@ inline dynamic_library load_solver_library(
 // static destruction (see dynamic_library), and the mapping is permanent.
 //
 // Derived declares `friend solver_api;`, a private constructor taking the
-// library by rvalue, and `load()` as
-//   return intern(load_solver_library(path, KEY, {names...}));
+// library by rvalue, and the data `load()` and `check_library_version()`
+// read:
+//   static constexpr const char * key = "HIGHS";   // MIPPP_<key>_LIBRARY
+//   static constexpr std::array library_names = {"highs"};
+//   static constexpr std::array validated_versions = {...};
+//   static constexpr std::array probe_symbols = {...};   // optional
 template <typename Derived>
 class solver_api {
 protected:
@@ -329,51 +435,49 @@ protected:
         return *instances.back().second;
     }
 
+    // Records what the library reports as its release and warns when it is
+    // outside Derived::validated_versions; the constructor calls it once. A
+    // library whose C API reports no version (SoPlex) never does.
+    void check_library_version(const solver_version & loaded) {
+        _library_version = loaded;
+        warn_on_unsupported_version(Derived::key, Derived::validated_versions,
+                                    loaded);
+    }
+    void check_library_version(std::string_view reported) {
+        _library_version = parse_solver_version(reported);
+        warn_on_unsupported_version(Derived::key, Derived::validated_versions,
+                                    _library_version, reported);
+    }
+
+private:
+    std::optional<solver_version> _library_version;
+
 public:
     solver_api(const solver_api &) = delete;
     solver_api & operator=(const solver_api &) = delete;
+
+    // The newest of Derived::library_names found in the first directory
+    // holding any (see load_solver_library), or the given file.
+    static const Derived & load(const char * lib_path = nullptr) {
+        if constexpr(requires { Derived::probe_symbols; })
+            return intern(load_solver_library(lib_path, Derived::key,
+                                              Derived::library_names,
+                                              Derived::probe_symbols));
+        else
+            return intern(load_solver_library(lib_path, Derived::key,
+                                              Derived::library_names));
+    }
 
     // the file this api loaded: tells versions apart when several coexist
     const std::filesystem::path & library_path() const noexcept {
         return lib.path();
     }
+    // the release that file reports; empty when it reports none (SoPlex's C
+    // API has no version call) or not a number (a Cbc "devel" build)
+    std::optional<solver_version> library_version() const noexcept {
+        return _library_version;
+    }
 };
-
-// Warns on stderr when the loaded library's version differs from the one the
-// wrapper was written against — usually harmless (the C APIs are stable) but
-// worth knowing when behavior differs. `wrapped` must be a dotted-component
-// prefix of `loaded`. Set MIPPP_NO_VERSION_WARNING to silence.
-inline void warn_on_version_mismatch(const char * key, const char * wrapped,
-                                     const char * loaded) {
-    if(loaded == nullptr || std::getenv("MIPPP_NO_VERSION_WARNING") != nullptr)
-        return;
-    const auto prefix_match = [](const char * a, const char * b) {
-        while(*a != '\0' && *a == *b) ++a, ++b;
-        return *a == '\0' && (*b == '\0' || *b == '.');
-    };
-    if(prefix_match(wrapped, loaded)) return;
-    std::fprintf(stderr,
-                 "mippp: warning: the %s wrapper targets version %s but the "
-                 "loaded library reports %s; behavior may differ. Set "
-                 "MIPPP_%s_LIBRARY to a matching library, or set "
-                 "MIPPP_NO_VERSION_WARNING to silence this warning.\n",
-                 key, wrapped, loaded, key);
-}
-
-// Idem, comparing major versions only, for wrappers that work across minor
-// releases (e.g. Gurobi, whose version is reported numerically).
-inline void warn_on_version_mismatch(const char * key, int wrapped_major,
-                                     int loaded_major) {
-    if(wrapped_major == loaded_major ||
-       std::getenv("MIPPP_NO_VERSION_WARNING") != nullptr)
-        return;
-    std::fprintf(stderr,
-                 "mippp: warning: the %s wrapper targets major version %d but "
-                 "the loaded library reports %d; behavior may differ. Set "
-                 "MIPPP_%s_LIBRARY to a matching library, or set "
-                 "MIPPP_NO_VERSION_WARNING to silence this warning.\n",
-                 key, wrapped_major, loaded_major, key);
-}
 
 }  // namespace mippp::detail
 

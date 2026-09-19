@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(HiGHS_api, highs_api, "HIGHS")
+
 struct highs_lp_test : public model_test<highs_api, highs_lp> {
     static void SetUpTestSuite() { construct_api("HIGHS"); }
 };

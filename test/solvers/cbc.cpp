@@ -6,6 +6,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(Cbc_api, cbc_api, "CBC")
+
 struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
     static void SetUpTestSuite() { construct_api("CBC"); }
 };

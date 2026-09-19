@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(MOSEK_api, mosek_api, "MOSEK")
+
 struct mosek_lp_test : public model_test<mosek_api, mosek_lp> {
     static void SetUpTestSuite() { construct_api("MOSEK"); }
 };

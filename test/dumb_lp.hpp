@@ -26,13 +26,13 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
-#include "mippp/solvers/clp/v1_17/clp_api.hpp"
+#include "mippp/solvers/clp/impl/v1/clp_api.hpp"
 #include "mippp/solvers/model_base.hpp"
 
 namespace mippp {
-// nested in clp::v1_17 so that CoinBigIndex resolves whether the real Clp
+// nested in clp::impl::v1 so that CoinBigIndex resolves whether the real Clp
 // headers are included or the declarations of clp_api.hpp are used
-namespace clp::v1_17 {
+namespace clp::impl::v1 {
 
 class dumb_lp : protected model_base<int, double> {
 protected:
@@ -481,10 +481,10 @@ public:
     }
 };
 
-}  // namespace clp::v1_17
+}  // namespace clp::impl::v1
 
-using clp_api = clp::v1_17::clp_api;
-using dumb_lp = clp::v1_17::dumb_lp;
+using clp_api = clp::impl::v1::clp_api;
+using dumb_lp = clp::impl::v1::dumb_lp;
 
 static_assert(lp_model<dumb_lp>);
 static_assert(has_num_nonzeros<dumb_lp>);

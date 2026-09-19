@@ -101,18 +101,26 @@ a pointer to the api it was built from that cannot dangle, and whatever the api
 constructor does once per library (version check, licence initialisation) runs
 once per process.
 
-In each directory the search accepts the decorated name (`libhighs.so`) or, when
-the unversioned symlink is absent — usual in runtime-only packages — a versioned
-variant (`libhighs.so.1.10.0`, `libhighs.1.10.0.dylib`), taking the
-lexicographically greatest, which approximates the highest version. Where a
-backend declares probe symbols, a candidate is kept only if it exports them, which
-is how a same-named library without the C API gets rejected rather than
-half-loaded (Ubuntu's `libCbc.so` versus the `libCbcSolver.so` MIP++ needs) — and
-backends are tried under several names when a solver has been renamed across
-releases.
+The names searched for are the backend's `library_names`, newest first: one per
+release where the solver ships its library so (`libgurobi130.so`, `libgurobi120.so`,
+…), two where it was renamed (Cbc's `libCbcSolver` and `libCbc`), one otherwise.
+The first directory holding any of them wins, as it would for the loader, and the
+list order only ranks candidates inside one directory — so `LD_LIBRARY_PATH`
+order chooses between two installed Gurobi releases, and the newest is taken when
+both sit in one directory. In each directory the search accepts the decorated name
+(`libhighs.so`) or, when the unversioned symlink is absent — usual in runtime-only
+packages — a versioned variant (`libhighs.so.1.10.0`, `libhighs.1.10.0.dylib`),
+taking the lexicographically greatest, which approximates the highest version.
+Where a backend declares `probe_symbols`, a candidate is kept only if it exports
+them, which is how a same-named library without the C API gets rejected rather
+than half-loaded (Ubuntu's `libCbc.so` versus the `libCbcSolver.so` MIP++ needs).
 
-Once loaded, the backend compares the library's reported version against the one
-its wrapper was written against and warns on `stderr` when they differ — mostly
+Once loaded, the backend asks the library its release — `api.library_version()`
+returns it, empty when the C API has no version call (SoPlex) or reports something
+that is not a number (a Cbc or Clp `devel` build) — and warns on `stderr` when it
+lies outside the backend's `validated_versions`, the release ranges its
+implementation has been driven through the full test suite on (see the
+[compatibility matrix](#the-version-compatibility-matrix)). The warning is mostly
 harmless, since these C APIs are stable, but it is the first thing to look at when
 a solver misbehaves. Set `MIPPP_NO_VERSION_WARNING` to silence it.
 
@@ -292,12 +300,23 @@ push and pull request to `main` and on every `v*` tag:
 
 ## The version compatibility matrix
 
-MIP++ wraps one version of each solver API but loads the library at runtime, so
-a given wrapper usually drives a range of releases.
-[tools/compat_matrix.py](tools/compat_matrix.py) measures that range: it
-downloads published libraries, points each one at the test binary through
-`MIPPP_<key>_LIBRARY`, and renders
-[docs/solvers/compatibility.md](docs/solvers/compatibility.md).
+Each backend is one implementation, `include/mippp/solvers/<name>/impl/v1/`,
+that adapts at runtime to a range of solver releases (probing for entry points
+that appeared or disappeared along the way) and states that range in its api
+class: `library_names`, the library names it opens, and `validated_versions`, the
+half-open release ranges it has been driven through the full suite on —
+`{{10}, {14}}` reads "every 10.x.y up to 13.x.y".
+[tools/compat_matrix.py](tools/compat_matrix.py) is the evidence behind those
+ranges: it downloads published libraries, points each one at the test binary
+through `MIPPP_<key>_LIBRARY`, and renders
+[docs/solvers/compatibility.md](docs/solvers/compatibility.md). A ✅ row is what
+earns a release its place in `validated_versions`; the two are tied by the
+`<Solver>_api.loaded_release_is_a_validated_one` test each backend instantiates,
+which fails on a row whose release passes the suite but is missing from the claim,
+so the claim cannot silently lag behind the table. For the solvers the matrix
+cannot obtain or license (COPT, MOSEK, Xpress) the ranges rest on a maintainer's
+local full run instead, recorded with its date in the manifest `note` shown above
+the solver's table.
 
 ```bash
 make test                    # once: an all-backends binary
@@ -334,8 +353,12 @@ is slow and depends on the network — and lives in its own workflow instead
 ([.github/workflows/compat.yml](.github/workflows/compat.yml)), which runs monthly
 and on manual dispatch, and opens a pull request when the regenerated table
 differs. So you do not need to run it yourself for an ordinary change: do it when
-you bump a wrapper to a new solver API version, or when you edit the manifest, and
-include the regenerated table in your pull request.
+you extend a backend's `validated_versions` or `library_names` to a new solver
+release, or when you edit the manifest, and include the regenerated table in your
+pull request. A release the implementation cannot adapt to at runtime is the one
+case that calls for a new implementation, `impl/v2`, with its own two lists; the
+`mippp` aliases in `all.hpp` then move to it and `impl/v1` stays available
+unchanged.
 
 ## How the tests are organized
 
@@ -377,28 +400,38 @@ backend supporting it gets coverage, rather than duplicating logic per solver.
 ## Adding a new solver backend
 
 Solver backends live under
-[include/mippp/solvers/](include/mippp/solvers/)`<name>/<version>/`. Follow the
-layout of an existing backend such as
-[glpk](include/mippp/solvers/glpk/v5/) or
-[highs](include/mippp/solvers/highs/v1_10/):
+[include/mippp/solvers/](include/mippp/solvers/)`<name>/impl/v1/` — one
+implementation per solver, in the namespace `mippp::<name>::impl::v1`, driving
+every release it can adapt to at runtime. Follow the layout of an existing backend
+such as [glpk](include/mippp/solvers/glpk/impl/v1/) or
+[highs](include/mippp/solvers/highs/impl/v1/):
 
 - `<name>_api.hpp` — thin binding that loads the solver's C API. It redeclares the
   C prototypes it needs, so the solver's SDK headers are not required to build
   (defining `MIPPP_INCLUDE_<SOLVER>_HEADER` includes the real header instead, to check
   them against a release), lists them in an `X`-macro, and resolves each one in its
-  private constructor, reached only through `load()`: `detail::load_solver_library(path,
-  "KEY", {names}, {probe symbols})` opens the library, then `lib.get_function<F>("name")` fetches a
-  required entry point (throwing `detail::symbol_not_found`) and
-  `lib.find_function<F>("name")` an optional one, returning `nullptr` for
-  entry points absent from older releases (see the `*_OPTIONAL_FUNCTIONS` lists
-  of the HiGHS and Gurobi bindings).
+  private constructor: `lib.get_function<F>("name")` fetches a required entry point
+  (throwing `detail::symbol_not_found`) and `lib.find_function<F>("name")` an
+  optional one, returning `nullptr` for entry points absent from older releases
+  (see the `*_OPTIONAL_FUNCTIONS` lists of the HiGHS and Gurobi bindings). The
+  class derives from `detail::solver_api<<name>_api>`, which provides `load()`,
+  `library_path()` and `library_version()` from four static data members:
+  `key` (the `MIPPP_<KEY>_LIBRARY` stem), `library_names` (newest first),
+  `validated_versions` (half-open `detail::solver_version_range`s, see the
+  [compatibility matrix](#the-version-compatibility-matrix)) and, optionally,
+  `probe_symbols`. The constructor ends by handing the base what the library
+  reports, `check_library_version(...)`, as components (`{major, minor, patch}`)
+  or as the string the solver returns; that call stores it and warns when it is
+  outside the claim. A solver whose C API reports no version (SoPlex) simply
+  does not call it.
 - `<name>_base.hpp` — shared model machinery.
 - `<name>_lp.hpp`, `<name>_milp.hpp`, and (where supported) `<name>_qp.hpp` —
   the model classes exposing the MIP++ interface.
 - an `all.hpp` aggregating the headers for convenience.
 
 Then add a `test/solvers/<name>.cpp` file that instantiates the shared test
-suites (see above) and register it in [test/CMakeLists.txt](test/CMakeLists.txt).
+suites (see above) plus `MIPPP_API_VERSION_TEST(<Name>_api, <name>_api, "<KEY>")`,
+and register it in [test/CMakeLists.txt](test/CMakeLists.txt).
 Update the feature tables in [docs/assets/features_tables/](docs/assets/features_tables/) and
 the solver list in the README. If published builds of the solver are downloadable
 without an account, declare a source for it in

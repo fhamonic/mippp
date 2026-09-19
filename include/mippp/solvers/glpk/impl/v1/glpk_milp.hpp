@@ -1,0 +1,159 @@
+#pragma once
+
+#include <cstddef>
+#include <limits>
+#include <memory>
+#include <ranges>
+#include <utility>
+#include <variant>
+
+#include "mippp/linear_constraint.hpp"
+#include "mippp/model_concepts.hpp"
+#include "mippp/model_entities.hpp"
+
+#include "mippp/solvers/glpk/impl/v1/glpk_base.hpp"
+
+namespace mippp {
+namespace glpk::impl::v1 {
+
+class glpk_milp : public glpk_base {
+private:
+    glp_iocp model_params;
+
+public:
+    [[nodiscard]] glpk_milp() : glpk_milp(glpk_api::load()) {}
+    [[nodiscard]] explicit glpk_milp(const glpk_api & api)
+        : glpk_base(api), model_params() {
+        // See glpk_lp: the untouched fields must carry GLPK's defaults, not
+        // zeros, or out_frq = 0 aborts the process on GLPK <= 4.62.
+        glp->init_iocp(&model_params);
+        model_params.msg_lev = GLP_MSG_ALL;
+        model_params.br_tech = GLP_BR_PCH;
+        model_params.bt_tech = GLP_BT_BLB;
+        model_params.tol_int = 1e-6;
+        model_params.tol_obj = 1e-7;
+        model_params.tm_lim = std::numeric_limits<int>::max();
+        model_params.pp_tech = GLP_PP_ROOT;
+        model_params.mip_gap = 1e-4;
+        model_params.mir_cuts = GLP_ON;
+        model_params.gmi_cuts = GLP_ON;
+        model_params.cov_cuts = GLP_ON;
+        model_params.clq_cuts = GLP_ON;
+        model_params.presolve = GLP_ON;
+        model_params.binarize = GLP_OFF;
+        model_params.fp_heur = GLP_ON;
+        model_params.ps_heur = GLP_OFF;
+        model_params.ps_tm_lim = 1000;
+        model_params.sr_heur = GLP_ON;
+    }
+
+    using model_base<int, double>::add_integer_variable;
+    using model_base<int, double>::add_integer_variables;
+    using model_base<int, double>::add_binary_variable;
+    using model_base<int, double>::add_binary_variables;
+
+private:
+    inline void _add_binary_variables(const std::size_t & offset,
+                                      const std::size_t & count) {
+        if(count == 0u) return;
+        glp->add_cols(model, static_cast<int>(count));
+        for(std::size_t i = offset + 1; i <= offset + count; ++i)
+            glp->set_col_kind(model, static_cast<int>(i), GLP_BV);
+    }
+
+public:
+    void set_continuous(variable v) noexcept {
+        glp->set_col_kind(model, v.id() + 1, GLP_CV);
+    }
+    void set_integer(variable v) noexcept {
+        glp->set_col_kind(model, v.id() + 1, GLP_IV);
+    }
+    void set_binary(variable v) noexcept {
+        glp->set_col_kind(model, v.id() + 1, GLP_BV);
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // glp_iocp::tol_int is how far from an integer a value may sit, i.e. the
+    // integrality tolerance -- not the primal/dual feasibility tolerance
+    // glpk_lp exposes through glp_smcp::tol_bnd/tol_dj.
+    void set_integrality_tolerance(double tol) {
+        model_params.tol_int = tol;
+        model_params.tol_obj = tol / 10;
+    }
+    double get_integrality_tolerance() { return model_params.tol_int; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Solve status ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // clang-format off
+private:
+    using status_variant = std::variant<
+            status::unknown,
+            status::optimal,
+            status::infeasible,
+            status::unbounded,
+            status::time_limit,
+            status::failed,
+            status::interrupted>;
+
+    status_variant _status = status::unknown{};
+    // clang-format on
+public:
+    const status_variant & get_status() const { return _status; }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Solve //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void solve() {
+        const int ret = glp->intopt(model, &model_params);
+        // 0 only says the search completed: infeasibility is reported through
+        // glp_mip_status, and a limit may still leave an incumbent
+        const int mip_status = glp->mip_status(model);
+        const bool has_sol = (mip_status == GLP_FEAS || mip_status == GLP_OPT);
+        switch(ret) {
+            case 0:
+                if(mip_status == GLP_OPT)
+                    _status.emplace<status::optimal>();
+                else if(mip_status == GLP_NOFEAS)
+                    _status.emplace<status::infeasible>();
+                else
+                    _status.emplace<status::unknown>(has_sol);
+                return;
+            case GLP_EMIPGAP:
+                _status.emplace<status::optimal>();
+                return;
+            case GLP_ENOPFS:
+                _status.emplace<status::infeasible>();
+                return;
+            case GLP_ENODFS:
+                _status.emplace<status::unbounded>();
+                return;
+            case GLP_ETMLIM:
+                _status.emplace<status::time_limit>(has_sol);
+                return;
+            case GLP_ESTOP:
+                _status.emplace<status::interrupted>(has_sol);
+                return;
+            case GLP_EBOUND:
+            case GLP_EROOT:
+            case GLP_EFAIL:
+                _status.emplace<status::failed>();
+                return;
+            default:
+                _status.emplace<status::unknown>(has_sol);
+        }
+    }
+    double get_solution_value() {
+        return objective_offset + glp->mip_obj_val(model);
+    }
+    auto get_solution() {
+        auto num_vars = num_variables();
+        auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
+        for(std::size_t var = 0u; var < num_vars; ++var) {
+            solution[var] = glp->mip_col_val(model, static_cast<int>(var) + 1);
+        }
+        return variable_mapping(std::move(solution));
+    }
+};
+
+}  // namespace glpk::impl::v1
+}  // namespace mippp
