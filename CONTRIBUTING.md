@@ -417,14 +417,21 @@ such as [glpk](include/mippp/solvers/glpk/impl/v1/) or
   class derives from `detail::solver_api<<name>_api>`, which provides `load()`,
   `library_path()` and `library_version()` from four static data members:
   `key` (the `MIPPP_<KEY>_LIBRARY` stem), `library_names` (newest first),
-  `validated_versions` (half-open `detail::solver_version_range`s, see the
+  `validated_versions` (half-open `solver_version_range`s, see the
   [compatibility matrix](#the-version-compatibility-matrix)) and, optionally,
   `probe_symbols`. The constructor ends by handing the base what the library
   reports, `check_library_version(...)`, as components (`{major, minor, patch}`)
   or as the string the solver returns; that call stores it and warns when it is
   outside the claim. A solver whose C API reports no version (SoPlex) simply
   does not call it.
-- `<name>_base.hpp` — shared model machinery.
+- `<name>_base.hpp` — shared model machinery. Derive it from `model_base`
+  (`remapping_model_base` when the solver renumbers columns on deletion) with
+  protected inheritance and re-expose `default_variable_params` and
+  `is_infinite` with public using-declarations; define `infinity()` to return
+  the solver's own "no bound" threshold (`GRB_INFINITY`, `CPX_INFBOUND`,
+  `SCIPinfinity(scip)`, ...). Bounds are handed back to the user exactly as the
+  solver stores them — never normalised — which is why the threshold, not a
+  library constant, is what `is_infinite` compares against.
 - `<name>_lp.hpp`, `<name>_milp.hpp`, and (where supported) `<name>_qp.hpp` —
   the model classes exposing the MIP++ interface.
 - an `all.hpp` aggregating the headers for convenience.

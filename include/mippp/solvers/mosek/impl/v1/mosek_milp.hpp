@@ -102,6 +102,9 @@ private:
                 MSKprostae prosta;
                 check(MSK->getprosta(task, soltype, &prosta));
                 switch(prosta) {
+                    // an integer solution has no dual, so an optimal MIP
+                    // reports PRIM_FEAS, not PRIM_AND_DUAL_FEAS
+                    case MSK_PRO_STA_PRIM_FEAS:
                     case MSK_PRO_STA_PRIM_AND_DUAL_FEAS: {
                         MSKsolstae solsta;
                         check(MSK->getsolsta(task, soltype, &solsta));
@@ -118,7 +121,6 @@ private:
                     case MSK_PRO_STA_PRIM_AND_DUAL_INFEAS:
                                                   return primal_and_dual_infeasible{};
                     case MSK_PRO_STA_DUAL_INFEAS: return unbounded{};
-                    case MSK_PRO_STA_PRIM_FEAS:
                     case MSK_PRO_STA_DUAL_FEAS:
                     case MSK_PRO_STA_ILL_POSED:
                     case MSK_PRO_STA_UNKNOWN:

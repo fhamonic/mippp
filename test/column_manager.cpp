@@ -1,4 +1,3 @@
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -95,8 +94,8 @@ GTEST_TEST(column_manager, states_embed_declared_properties) {
 GTEST_TEST(column_manager, emplacement_and_bookkeeping) {
     manager columns;
     fake_model model;
-    ASSERT_TRUE(columns.emplace_column(1));
-    ASSERT_FALSE(columns.emplace_column(1));  // already known
+    ASSERT_TRUE(columns.emplace_pool_column(1));
+    ASSERT_FALSE(columns.emplace_pool_column(1));  // already known
     ASSERT_TRUE(columns.emplace_master_column(2, model.add_variable()));
     ASSERT_FALSE(columns.emplace_master_column(2, model.add_variable()));
 
@@ -118,12 +117,12 @@ GTEST_TEST(column_manager, emplacement_and_bookkeeping) {
 GTEST_TEST(column_manager, emplace_columns_reports_duplicates) {
     manager columns;
     fake_model model;
-    columns.emplace_column(1);
+    columns.emplace_pool_column(1);
     columns.emplace_master_column(2, model.add_variable());
 
     // num_already_in_master flags a pricing oracle regenerating master
     // columns : stale duals or a cycling process
-    auto result = columns.emplace_columns(std::vector<int>{1, 2, 3, 4});
+    auto result = columns.emplace_pool_columns(std::vector<int>{1, 2, 3, 4});
     EXPECT_EQ(result.num_inserted, 2u);
     EXPECT_EQ(result.num_already_in_pool, 1u);
     EXPECT_EQ(result.num_already_in_master, 1u);
@@ -138,9 +137,9 @@ GTEST_TEST(column_manager, emplace_columns_reports_duplicates) {
 GTEST_TEST(column_manager, pool_updates_reach_properties) {
     // 'age' must tick once per round that carries a reduced cost
     manager columns;
-    columns.emplace_column(1);
-    columns.emplace_column(2);
-    columns.emplace_column(3);
+    columns.emplace_pool_column(1);
+    columns.emplace_pool_column(2);
+    columns.emplace_pool_column(3);
     ASSERT_EQ(columns.num_pool_columns(), 3u);
 
     const std::unordered_map<int, double> rc = {{1, -1.5}, {2, 2.0}, {3, -3.0}};
@@ -161,7 +160,7 @@ GTEST_TEST(column_manager, master_refresh_updates_value_and_basis_status) {
     manager columns;
     fake_model model;
     columns.emplace_master_column(10, model.add_variable());
-    columns.emplace_column(20);  // stays in the pool
+    columns.emplace_pool_column(20);
 
     columns.update_master_columns([&](const int &, const auto & var) {
         return master_refreshed<fake_basis_status>{
@@ -184,7 +183,7 @@ GTEST_TEST(column_manager, master_refresh_updates_value_and_basis_status) {
 GTEST_TEST(column_manager, update_columns_reaches_both_states) {
     manager columns;
     fake_model model;
-    columns.emplace_column(1);
+    columns.emplace_pool_column(1);
     columns.emplace_master_column(2, model.add_variable());
 
     // the single-callback overload broadcasts one event to every column
@@ -208,7 +207,7 @@ GTEST_TEST(column_manager, activation_selects_matching_columns) {
     // the add lambda observes each activated seed
     manager columns;
     fake_model model;
-    for(int seed : {1, 2, 3, 4}) columns.emplace_column(seed);
+    for(int seed : {1, 2, 3, 4}) columns.emplace_pool_column(seed);
 
     const std::unordered_map<int, double> rc = {
         {1, -1.0}, {2, 0.5}, {3, -2.0}, {4, 0.0}};
@@ -285,7 +284,7 @@ GTEST_TEST(column_manager, at_most_k_best_ranks_by_state_property) {
     // state property (here : the most negative reduced costs)
     manager columns;
     fake_model model;
-    for(int seed : {1, 2, 3, 4}) columns.emplace_column(seed);
+    for(int seed : {1, 2, 3, 4}) columns.emplace_pool_column(seed);
 
     const std::unordered_map<int, double> rc = {
         {1, -1.0}, {2, -5.0}, {3, -0.2}, {4, -3.0}};
@@ -320,7 +319,7 @@ GTEST_TEST(column_manager, at_most_k_best_ranks_by_state_property) {
 GTEST_TEST(column_manager, age_resets_and_times_activated_persists) {
     manager columns;
     fake_model model;
-    columns.emplace_column(7);
+    columns.emplace_pool_column(7);
 
     auto price = [](const int &) { return priced{-1.0}; };
     columns.update_pool_columns(price);
@@ -353,7 +352,7 @@ GTEST_TEST(column_manager, age_resets_and_times_activated_persists) {
 GTEST_TEST(column_manager, purge_pool_spares_master_columns) {
     manager columns;
     fake_model model;
-    for(int seed : {1, 2, 3}) columns.emplace_column(seed);
+    for(int seed : {1, 2, 3}) columns.emplace_pool_column(seed);
     columns.emplace_master_column(4, model.add_variable());
 
     const std::unordered_map<int, double> rc = {{1, -1.0}, {2, 0.5}, {3, 2.0}};

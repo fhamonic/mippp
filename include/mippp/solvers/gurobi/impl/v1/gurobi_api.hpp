@@ -184,6 +184,7 @@ using callback_func_t = int(GRBmodel *, void *, int, void *);
 int GRBsetcallbackfunc(GRBmodel * model, callback_func_t * cb, void * usrdata);
 int GRBcbproceed(void * cbdata);
 constexpr int GRB_CB_MIPSOL_SOL = 4001;
+constexpr int GRB_CB_MIPSOL_OBJ = 4002;
 int GRBcbget(void * cbdata, int where, int what, void * resultP);
 int GRBcbsetintparam(void * cbdata, const char * paramname, int newvalue);
 int GRBcbsetdblparam(void * cbdata, const char * paramname, double newvalue);
@@ -284,7 +285,6 @@ class gurobi_api : public detail::solver_api<gurobi_api> {
 public:
     GRB_FUNCTIONS(DECLARE_GRB_FUNCTIONS)
     GRB_OPTIONAL_FUNCTIONS(DECLARE_GRB_FUNCTIONS)
-    int major, minor, technical;
 
     static constexpr const char * key = "GUROBI";
     // The libraries this implementation opens, newest first; one per release
@@ -295,7 +295,7 @@ public:
                                                  "gurobi110", "gurobi100"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{10}, {14}}};
+        solver_version_range{{10}, {14}}};
 
 private:
     explicit gurobi_api(detail::dynamic_library && library)
@@ -304,6 +304,7 @@ private:
         if(!emptyenvinternal && !emptyenv)
             throw solver_error(
                 "GRBemptyenv and GRBemptyenvinternal both not found.");
+        int major, minor, technical;
         version(&major, &minor, &technical);
         check_library_version({major, minor, technical});
     }
@@ -311,9 +312,11 @@ private:
 public:
     GRBenv * _empty_env() const {
         GRBenv * env;
-        if(emptyenvinternal)
-            emptyenvinternal(&env, major, minor, technical);
-        else
+        if(emptyenvinternal) {
+            // always engaged: the constructor recorded GRBversion's answer
+            const solver_version v = *library_version();
+            emptyenvinternal(&env, v.major, v.minor, v.patch);
+        } else
             emptyenv(&env);
         return env;
     }

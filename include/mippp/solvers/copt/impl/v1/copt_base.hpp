@@ -49,6 +49,8 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return COPT_INFINITY; }
+    using model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit copt_base(const copt_api & api)
         : model_base<int, double>(), COPT(&api), env(nullptr), prob(nullptr) {
@@ -147,6 +149,10 @@ public:
         check(COPT->ReplaceColObj(prob, static_cast<int>(tmp_indices.size()),
                                   tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
+    }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
     }
     scalar get_objective_offset() {
         scalar objective_offset;

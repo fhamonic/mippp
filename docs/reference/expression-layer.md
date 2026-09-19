@@ -250,7 +250,7 @@ Referencing is safe here because `multipass_linear_terms` implies const-readable
 
     Providing only `const &` accessors — as `linear_expression_square` and `linear_expression_mul_view` do — satisfies the rule trivially, and is the recommended default for user-defined quadratic expressions.
 
-The named operations are `quadratic_expression_add`, `_negate`, `_scalar_add`, `_scalar_mul`, `_scalar_div`, and `quadratic_expression_lexpr_add` for mixing a quadratic and a linear operand (`qe + le` in either order).
+The named operations are `quadratic_expression_add`, `_negate`, `_scalar_add`, `_scalar_mul`, `_scalar_div`, and `quadratic_expression_linear_add` for mixing a quadratic and a linear operand (`qe + le` in either order).
 
 ## Evaluating
 

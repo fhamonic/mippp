@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 #include "assert_helper.hpp"
 
@@ -123,7 +122,7 @@ TYPED_TEST_P(ColumnManagerTest, test) {
                 for(auto && [order_id, satisfaction] :
                     knapsack.solution_items())
                     pattern[order_id] = static_cast<int>(satisfaction);
-                columns.emplace_column(std::move(pattern));
+                columns.emplace_pool_column(std::move(pattern));
             }
 
             columns.update_columns(price);

@@ -111,7 +111,6 @@ private:
             CPX->callbackabort(context);
         }
 
-    public:
         callback_handle_base(const cplex_api * api,
                              CPXCALLBACKCONTEXTptr context_,
                              cplex_milp * model_)
@@ -120,6 +119,7 @@ private:
             , context(context_)
             , model(model_) {}
 
+    public:
         std::size_t num_variables() {
             return static_cast<std::size_t>(
                 CPX->getnumcols(model->env, model->lp));
@@ -128,13 +128,13 @@ private:
 
 public:
     class candidate_solution_callback_handle : public callback_handle_base {
-    public:
+    private:
+        friend cplex_milp;
         candidate_solution_callback_handle(const cplex_api * api,
                                            CPXCALLBACKCONTEXTptr context_,
                                            cplex_milp * model_)
             : callback_handle_base(api, context_, model_) {}
 
-    private:
         template <bool distinct, linear_constraint LC>
         void _add_lazy_constraint(LC && lc) {
             if constexpr(!distinct)
@@ -164,8 +164,10 @@ public:
         }
         double get_solution_value() {
             double obj;
+            // x == nullptr needs an empty [begin, end] range, else
+            // CPXERR_NULL_POINTER
             cbcheck(
-                CPX->callbackgetcandidatepoint(context, nullptr, 0, 0, &obj));
+                CPX->callbackgetcandidatepoint(context, nullptr, 0, -1, &obj));
             return obj;
         }
         auto get_solution() {

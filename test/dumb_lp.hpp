@@ -50,13 +50,13 @@ protected:
     };
 
 public:
-    static constexpr scalar infinity = std::numeric_limits<double>::max();
+    static constexpr scalar _infinity = std::numeric_limits<double>::max();
 
 private:
     struct column_data {
         scalar obj_coef = 0.0;
-        scalar lower_bound = -infinity;
-        scalar upper_bound = infinity;
+        scalar lower_bound = -_infinity;
+        scalar upper_bound = _infinity;
         std::string name;
         bool removed = false;
     };
@@ -87,12 +87,16 @@ private:
 public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return _infinity; }
+    using model_base<int, double>::is_infinite;
 
     [[nodiscard]] dumb_lp() : dumb_lp(clp_api::load()) {}
     [[nodiscard]] explicit dumb_lp(const clp_api & api)
         : model_base<int, double>(), Clp(api) {}
 
     const clp_api & native_api() const noexcept { return Clp; }
+    // no persistent solver object: a Clp model is built per solve
+    std::nullptr_t native_model() const noexcept { return nullptr; }
     int native_id(variable v) const noexcept { return v.id(); }
     int native_id(constraint c) const noexcept { return c.id(); }
 
@@ -132,6 +136,10 @@ public:
             _cols[var.uid()].obj_coef += coef;
         set_objective_offset(get_objective_offset() + le.constant());
     }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
+    }
     void set_objective_coefficient(variable v, scalar c) {
         _cols[v.uid()].obj_coef = c;
     }
@@ -163,8 +171,8 @@ private:
     variable _new_variable(const variable_params & params,
                            const std::string & name) {
         column_data col{.obj_coef = params.obj_coef,
-                        .lower_bound = params.lower_bound.value_or(-infinity),
-                        .upper_bound = params.upper_bound.value_or(infinity),
+                        .lower_bound = params.lower_bound.value_or(-_infinity),
+                        .upper_bound = params.upper_bound.value_or(_infinity),
                         .name = name,
                         .removed = false};
         if(!_free_variable_ids.empty()) {
@@ -182,8 +190,8 @@ private:
         for(std::size_t i = 0; i < count; ++i)
             _cols.emplace_back(column_data{
                 .obj_coef = params.obj_coef,
-                .lower_bound = params.lower_bound.value_or(-infinity),
-                .upper_bound = params.upper_bound.value_or(infinity),
+                .lower_bound = params.lower_bound.value_or(-_infinity),
+                .upper_bound = params.upper_bound.value_or(_infinity),
                 .name = {},
                 .removed = false});
         return offset;
@@ -261,31 +269,43 @@ public:
     // Constraints
     ////////////////////////////////////////////////////////////////////////////
 
-    constraint add_constraint(linear_constraint auto && lc) {
+private:
+    // the map merges a repeat for free; asserted anyway, as the backends do
+    template <bool distinct>
+    constraint _add_constraint(linear_constraint auto && lc) {
         const constraint_id constr_id =
             static_cast<constraint_id>(_rows.size());
         row_data row;
-        for(auto && [var, coef] : lc.linear_terms())
+        if constexpr(distinct) _begin_distinct_check();
+        for(auto && [var, coef] : lc.linear_terms()) {
+            if constexpr(distinct) _check_distinct(var.id());
             row.coefs[var.id()] += coef;
+        }
         row.sense = lc.sense();
         row.rhs = lc.rhs();
         _rows.emplace_back(std::move(row));
         return constraint(constr_id);
     }
+
+public:
+    constraint add_constraint(linear_constraint auto && lc) {
+        return _add_constraint<false>(lc);
+    }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
-        return add_constraint(std::forward<LC>(lc));
+        return _add_constraint<true>(std::forward<LC>(lc));
     }
 
 private:
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<
             detail::key_invoke_result_t<LastConstrLambda &, const Key &>>
     void _add_first_valued_constraint(const Key & key,
                                       const LastConstrLambda & lc_lambda) {
-        add_constraint(detail::invoke_key(lc_lambda, key));
+        _add_constraint<distinct>(detail::invoke_key(lc_lambda, key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<detail::key_invoke_result_t<
                      OptConstrLambda &, const Key &>> &&
                  linear_constraint<
@@ -295,19 +315,17 @@ private:
                                       const OptConstrLambda & opt_lc_lambda,
                                       const Tail &... tail) {
         if(const auto & opt_lc = detail::invoke_key(opt_lc_lambda, key)) {
-            add_constraint(opt_lc.value());
+            _add_constraint<distinct>(opt_lc.value());
             return;
         }
-        _add_first_valued_constraint(key, tail...);
+        _add_first_valued_constraint<distinct>(key, tail...);
     }
-
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, const CL &... constraint_lambdas) {
         const constraint_id offset = static_cast<constraint_id>(_rows.size());
         constraint_id constr_id = offset;
         for(auto && key : keys) {
-            _add_first_valued_constraint(key, constraint_lambdas...);
+            _add_first_valued_constraint<distinct>(key, constraint_lambdas...);
             ++constr_id;
         }
         return detail::keyed_entities(
@@ -315,11 +333,18 @@ public:
             entity_range(constraint{offset},
                          static_cast<std::size_t>(constr_id - offset)));
     }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL... constraint_lambdas) {
-        return add_constraints(std::forward<IR>(keys),
-                               std::forward<CL>(constraint_lambdas)...);
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
     }
 
     template <std::ranges::range ER>
@@ -435,10 +460,10 @@ public:
         std::vector<scalar> row_lb, row_ub;
         for(const row_data & row : _rows) {
             row_lb.emplace_back(row.sense == constraint_sense::less_equal
-                                    ? -infinity
+                                    ? -_infinity
                                     : row.rhs);
             row_ub.emplace_back(row.sense == constraint_sense::greater_equal
-                                    ? infinity
+                                    ? _infinity
                                     : row.rhs);
         }
         auto * model = Clp.newModel();

@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/model_concepts.hpp"
@@ -25,7 +24,7 @@ TYPED_TEST_P(ReadableConstraintBoundsTest, get_constraint_lower_bound) {
         auto c2 = model.add_constraint(x1 + 2 * x2 <= 11);
         auto c3 = model.add_constraint(x1 + x2 == 8);
         ASSERT_EQ(model.get_constraint_lower_bound(c1), 5.0);
-        ASSERT_LE(model.get_constraint_lower_bound(c2), -TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_constraint_lower_bound(c2)));
         ASSERT_EQ(model.get_constraint_lower_bound(c3), 8.0);
         if constexpr(has_ranged_constraints<typename TestFixture::model_type>) {
             auto c4 = model.add_ranged_constraint(x1 + x2, 1.0, 3.0);
@@ -42,7 +41,7 @@ TYPED_TEST_P(ReadableConstraintBoundsTest, get_constraint_upper_bound) {
         auto c1 = model.add_constraint(2 * x1 + x2 >= 5);
         auto c2 = model.add_constraint(x1 + 2 * x2 <= 11);
         auto c3 = model.add_constraint(x1 + x2 == 8);
-        ASSERT_GE(model.get_constraint_upper_bound(c1), TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_constraint_upper_bound(c1)));
         ASSERT_EQ(model.get_constraint_upper_bound(c2), 11.0);
         ASSERT_EQ(model.get_constraint_upper_bound(c3), 8.0);
         if constexpr(has_ranged_constraints<typename TestFixture::model_type>) {

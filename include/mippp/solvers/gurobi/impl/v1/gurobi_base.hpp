@@ -56,6 +56,8 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using remapping_model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return GRB_INFINITY; }
+    using remapping_model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit gurobi_base(const gurobi_api & api)
         : remapping_model_base<int, double>()
@@ -581,6 +583,13 @@ public:
             get_constraint_sense(constr));
     }
 
+    void set_constraint_name(constraint constr, const char * name_ptr) {
+        check(GRB->setstrattrelement(model, GRB_STR_ATTR_CONSTRNAME,
+                                     constr.id(), name_ptr));
+    }
+    void set_constraint_name(constraint constr, const std::string & name) {
+        set_constraint_name(constr, name.c_str());
+    }
     auto get_constraint_name(constraint constr) {
         char * name;
         update_gurobi_model();

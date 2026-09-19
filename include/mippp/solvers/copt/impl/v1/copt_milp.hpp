@@ -66,7 +66,7 @@ public:
         copt_prob * prob;
         void * cbdata;
 
-    public:
+        friend copt_milp;
         candidate_solution_callback_handle(const copt_api * api,
                                            copt_prob * prob_, void * cbdata_)
             : model_base<int, double>()
@@ -76,6 +76,7 @@ public:
 
         void check(const ret_code error) { COPT->_check(nullptr, error); }
 
+    public:
         std::size_t num_variables() {
             int num;
             check(COPT->GetIntAttr(prob, COPT_INTATTR_COLS, &num));

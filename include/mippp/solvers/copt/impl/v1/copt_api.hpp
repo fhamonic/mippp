@@ -282,7 +282,7 @@ public:
     static constexpr std::array library_names = {"copt"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{7, 2}, {8, 1}}};
+        solver_version_range{{7, 2}, {8, 1}}};
 
 private:
     explicit copt_api(detail::dynamic_library && library)

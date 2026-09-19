@@ -1,7 +1,7 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
+#include <cmath>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
@@ -49,7 +49,36 @@ TYPED_TEST_P(CandidateSolutionCallbackTest, reads_every_candidate) {
     });
 }
 
+TYPED_TEST_P(CandidateSolutionCallbackTest, reports_candidate_value) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto a = model.add_binary_variable();
+        auto b = model.add_binary_variable();
+        auto c = model.add_binary_variable();
+        model.set_maximization();
+        model.set_objective(3 * a + 2 * b + c + 10);
+        model.add_constraint(a + b + c <= 2);
+
+        int num_candidates = 0;
+        int num_invalid = 0;
+        model.set_candidate_solution_callback([&](auto & handle) {
+            ++num_candidates;
+            auto solution = handle.get_solution();
+            const double expected =
+                3 * solution[a] + 2 * solution[b] + solution[c] + 10;
+            if(std::fabs(handle.get_solution_value() - expected) > TEST_EPSILON)
+                ++num_invalid;
+        });
+        model.solve();
+
+        ASSERT_GE(num_candidates, 1);
+        ASSERT_EQ(num_invalid, 0);
+        ASSERT_NEAR(model.get_solution_value(), 15, TEST_EPSILON);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(CandidateSolutionCallbackTest,
-                            reads_every_candidate);
+                            reads_every_candidate, reports_candidate_value);
 
 }  // namespace mippp

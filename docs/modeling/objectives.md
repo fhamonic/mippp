@@ -34,7 +34,7 @@ model.set_objective_coefficient(x, 2.0);      // one column
 model.add_to_objective(xsum(penalised, [&](int i) { return mu[i] * X(i); }));
 ```
 
-`add_to_objective(e)` adds the expression to the current objective (and adds its constant to the offset) — the natural primitive for Lagrangian relaxation, where each iteration perturbs the objective by a multiplier-weighted term rather than rebuilding it:
+`add_to_objective(e)` adds the expression to the current objective (and adds its constant to the offset); `add_to_objective(distinct_variables, e)` promises that `e` repeats no variable, which lets a backend skip its coefficient merging. It is the natural primitive for Lagrangian relaxation, where each iteration perturbs the objective by a multiplier-weighted term rather than rebuilding it:
 
 ```cpp
 for(int it = 0; it < max_iters; ++it) {

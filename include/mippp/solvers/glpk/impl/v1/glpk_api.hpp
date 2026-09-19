@@ -272,7 +272,7 @@ public:
     static constexpr std::array library_names = {"glpk"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{4, 59}, {5, 1}}};
+        solver_version_range{{4, 59}, {5, 1}}};
 
 private:
     explicit glpk_api(detail::dynamic_library && library)

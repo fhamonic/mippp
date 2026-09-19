@@ -1,8 +1,8 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
+#include <forward_list>
 #include <functional>
 #include <ranges>
 #include <stdexcept>
@@ -20,6 +20,13 @@ template <typename T>
 struct LpModelTest : public T {
     using typename T::model_type;
     static_assert(lp_model<model_type>);
+    static_assert(constraints_range<std::vector<model_constraint_t<model_type>>,
+                                    model_type>);
+    static_assert(
+        !constraints_range<std::forward_list<model_constraint_t<model_type>>,
+                           model_type>);
+    static_assert(!constraints_range<std::vector<model_variable_t<model_type>>,
+                                     model_type>);
 };
 TYPED_TEST_SUITE_P(LpModelTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LpModelTest);
@@ -202,6 +209,23 @@ TYPED_TEST_P(LpModelTest, set_objective_distinct_variables) {
         ASSERT_EQ(model.num_constraints(), 0);
     });
 }
+TYPED_TEST_P(LpModelTest, distinct_variables_repeat_is_asserted) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        // GTEST_FLAG, not GTEST_FLAG_SET: the recipe allows gtest 1.10
+        ::testing::GTEST_FLAG(death_test_style) = "threadsafe";
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        EXPECT_DEATH(
+            model.add_constraint(distinct_variables, 2 * x + 3 * x + y <= 1),
+            "appears twice");
+        EXPECT_DEATH(
+            model.add_constraints(distinct_variables, std::views::iota(0, 1),
+                                  [&](int) { return 2 * x + 3 * x + y <= 1; }),
+            "appears twice");
+    });
+}
 TYPED_TEST_P(LpModelTest, add_constraint) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -244,6 +268,11 @@ TYPED_TEST_P(LpModelTest, add_constraints) {
         auto c = model.add_constraints(std::views::iota(0, 3), [&](auto i) {
             return (3 - i) * x + i * y <= 5;
         });
+        static_assert(
+            constraints_range<decltype(c), typename TestFixture::model_type>);
+        static_assert(std::ranges::sized_range<decltype(c)>);
+        ASSERT_EQ(c.size(), 3);
+        ASSERT_EQ(c[1].id(), 2);
         ASSERT_EQ(model.num_variables(), 2);
         ASSERT_EQ(model.num_constraints(), 4);
         ASSERT_EQ(c1.id(), 0);
@@ -739,8 +768,8 @@ REGISTER_TYPED_TEST_SUITE_P(
     add_zero_indexed_variables, add_indexed_variables,
     add_indexed_variables_params, add_capturing_indexed_variables,
     add_variable_and_indexed_variables, set_objective,
-    set_objective_distinct_variables, add_constraint,
-    add_constraint_distinct_variables, add_constraints,
+    set_objective_distinct_variables, distinct_variables_repeat_is_asserted,
+    add_constraint, add_constraint_distinct_variables, add_constraints,
     add_constraints_distinct_variables, add_opt_constraints,
     add_opt_constraints_distinct_variables, add_variables_by_key,
     add_constraints_by_key, solve_empty_no_sense, solve_empty_max,

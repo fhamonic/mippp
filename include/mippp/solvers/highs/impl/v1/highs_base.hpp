@@ -41,6 +41,8 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using remapping_model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return Highs->getInfinity(model); }
+    using remapping_model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit highs_base(const highs_api & api)
         : remapping_model_base<int, double>()

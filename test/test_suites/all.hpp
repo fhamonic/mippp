@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include <cstdlib>
@@ -13,7 +12,6 @@
                                    ::testing::Types<model_type>)
 
 #define TEST_EPSILON 1e-6
-#define TEST_INFINITY 1e20
 // an optional constraint, for the add_constraints lambdas of the suites
 #define OPT(cond, ...) ((cond) ? std::make_optional(__VA_ARGS__) : std::nullopt)
 
@@ -53,8 +51,8 @@ inline bool is_required_solver(std::string_view solver_key) {
         }                                                                 \
         if(!api->library_version())                                       \
             GTEST_SKIP() << api->library_path() << " reports no version"; \
-        EXPECT_TRUE(mippp::detail::is_validated(Api::validated_versions,  \
-                                                *api->library_version())) \
+        EXPECT_TRUE(mippp::is_validated(Api::validated_versions,          \
+                                        *api->library_version()))         \
             << "loaded " << api->library_path() << " reporting "          \
             << mippp::to_string(*api->library_version());                 \
     }

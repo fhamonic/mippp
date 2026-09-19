@@ -5,8 +5,8 @@
 #include <variant>
 
 namespace mippp {
-namespace detail {
 
+namespace detail {
 template <template <typename, typename> typename C, typename T,
           typename Variant>
 inline constexpr bool any_alternative_v = false;
@@ -25,7 +25,6 @@ inline constexpr bool all_alternatives_v<C, T, std::variant<Ts...>> =
 
 template <typename Base, typename D>
 using is_derived_from = std::bool_constant<std::derived_from<D, Base>>;
-
 }  // namespace detail
 
 template <typename V, typename T>

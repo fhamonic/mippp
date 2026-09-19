@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -40,7 +41,9 @@ protected:
     }
     template <std::ranges::range Entries>
     void _register_raw_entries(Entries && entries) {
+        _begin_distinct_check();
         for(auto && [entity, coef] : entries) {
+            _check_distinct(entity.id());
             tmp_indices.emplace_back(entity.id() + 1);
             tmp_scalars.emplace_back(coef);
         }
@@ -64,6 +67,10 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept {
+        return std::numeric_limits<double>::max();
+    }
+    using model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit glpk_base(const glpk_api & api)
         : model_base<int, double>()
@@ -134,6 +141,10 @@ public:
         }
         set_objective_offset(get_objective_offset() + le.constant());
     }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
+    }
     double get_objective_offset() { return objective_offset; }
     auto get_objective() {
         return linear_expression_view(
@@ -149,6 +160,25 @@ public:
     //////////////////////////////// Variables ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 protected:
+    // glp_get_col_lb/ub report a missing side as -/+DBL_MAX, and glp_simplex
+    // trusts the column type over the values: a GLP_DB column with ub =
+    // DBL_MAX is bounded there (an unbounded LP then solves to 1.8e308 and
+    // reports optimal), and GLP_DB with lb == ub is refused as GLP_EBOUND.
+    // So the type is chosen from which sides are finite, as _add_variable
+    // does from the optionals.
+    void _set_col_bnds(int col, double lb, double ub) {
+        const bool has_lb = lb > std::numeric_limits<double>::lowest();
+        const bool has_ub = ub < std::numeric_limits<double>::max();
+        if(has_lb && has_ub) {
+            glp->set_col_bnds(model, col, (lb == ub) ? GLP_FX : GLP_DB, lb, ub);
+        } else if(has_lb) {
+            glp->set_col_bnds(model, col, GLP_LO, lb, 0.0);
+        } else if(has_ub) {
+            glp->set_col_bnds(model, col, GLP_UP, 0.0, ub);
+        } else {
+            glp->set_col_bnds(model, col, GLP_FR, 0.0, 0.0);
+        }
+    }
     inline void _add_variable(const int & var_id,
                               const variable_params & params, int type) {
         glp->add_cols(model, 1);
@@ -253,12 +283,10 @@ public:
         glp->set_obj_coef(model, v.id() + 1, c);
     }
     void set_variable_lower_bound(variable v, double lb) {
-        glp->set_col_bnds(model, v.id() + 1, GLP_DB, lb,
-                          get_variable_upper_bound(v));
+        _set_col_bnds(v.id() + 1, lb, get_variable_upper_bound(v));
     }
     void set_variable_upper_bound(variable v, double ub) {
-        glp->set_col_bnds(model, v.id() + 1, GLP_DB,
-                          get_variable_lower_bound(v), ub);
+        _set_col_bnds(v.id() + 1, get_variable_lower_bound(v), ub);
     }
     void set_variable_name(variable v, const std::string & name) {
         glp->set_col_name(model, v.id() + 1, name.c_str());

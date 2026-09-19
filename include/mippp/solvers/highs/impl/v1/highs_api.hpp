@@ -344,7 +344,7 @@ public:
     static constexpr std::array library_names = {"highs"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{1, 8, 1}, {1, 16}}};
+        solver_version_range{{1, 8, 1}, {1, 16}}};
 
 private:
     explicit highs_api(detail::dynamic_library && library)

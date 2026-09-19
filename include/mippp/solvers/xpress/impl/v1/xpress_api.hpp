@@ -57,6 +57,7 @@ int XPRSchgrhs(XPRSprob prob, int nrows, const int rowind[],
 
 enum IntegerAttribute : int {
     XPRS_COLS = 1018,
+    XPRS_INPUTCOLS = 1409,
     XPRS_ROWS = 1001,
     XPRS_ELEMS = 1006,
     XPRS_LPSTATUS = 1010,
@@ -116,6 +117,8 @@ int XPRSmipoptimize(XPRSprob prob, const char * flags);
 
 int XPRSgetsolution(XPRSprob prob, int * status, double x[], int first,
                     int last);
+int XPRSgetcallbacksolution(XPRSprob prob, int * p_available, double x[],
+                            int first, int last);
 int XPRSgetduals(XPRSprob prob, int * status, double duals[], int first,
                  int last);
 int XPRSgetredcosts(XPRSprob prob, int * status, double djs[], int first,
@@ -168,44 +171,45 @@ int XPRSloaddelayedrows(XPRSprob prob, int nrows, const int rowind[]);
 namespace mippp {
 namespace xpress::impl::v1 {
 
-#define XPRESS_FUNCTIONS(F)                     \
-    F(XPRSgetversion, getversion)               \
-    F(XPRSinit, init)                           \
-    F(XPRSfree, free)                           \
-    F(XPRSgetlicerrmsg, getlicerrmsg)           \
-    F(XPRScreateprob, createprob)               \
-    F(XPRSdestroyprob, destroyprob)             \
-    F(XPRSgetlasterror, getlasterror)           \
-    F(XPRSchgobjsense, chgobjsense)             \
-    F(XPRSchgobj, chgobj)                       \
-    F(XPRSgetobj, getobj)                       \
-    F(XPRSchgmqobj, chgmqobj)                   \
-    F(XPRSaddcols, addcols)                     \
-    F(XPRSchgbounds, chgbounds)                 \
-    F(XPRSgetlb, getlb)                         \
-    F(XPRSgetub, getub)                         \
-    F(XPRSchgcoltype, chgcoltype)               \
-    F(XPRSaddrows, addrows)                     \
-    F(XPRSchgrowtype, chgrowtype)               \
-    F(XPRSchgrhs, chgrhs)                       \
-    F(XPRSgetintattrib, getintattrib)           \
-    F(XPRSgetstrattrib, getstrattrib)           \
-    F(XPRSgetdblattrib, getdblattrib)           \
-    F(XPRSaddnames, addnames)                   \
-    F(XPRSgetnamelist, getnamelist)             \
-    F(XPRSlpoptimize, lpoptimize)               \
-    F(XPRSmipoptimize, mipoptimize)             \
-    F(XPRSgetsolution, getsolution)             \
-    F(XPRSgetduals, getduals)                   \
-    F(XPRSgetredcosts, getredcosts)             \
-    F(XPRSsetdblcontrol, setdblcontrol)         \
-    F(XPRSgetdblcontrol, getdblcontrol)         \
-    F(XPRSaddmipsol, addmipsol)                 \
-    F(XPRSaddcbpreintsol, addcbpreintsol)       \
-    F(XPRSremovecbpreintsol, removecbpreintsol) \
-    F(XPRSaddcboptnode, addcboptnode)           \
-    F(XPRSremovecboptnode, removecboptnode)     \
-    F(XPRSaddcuts, addcuts)                     \
+#define XPRESS_FUNCTIONS(F)                         \
+    F(XPRSgetversion, getversion)                   \
+    F(XPRSinit, init)                               \
+    F(XPRSfree, free)                               \
+    F(XPRSgetlicerrmsg, getlicerrmsg)               \
+    F(XPRScreateprob, createprob)                   \
+    F(XPRSdestroyprob, destroyprob)                 \
+    F(XPRSgetlasterror, getlasterror)               \
+    F(XPRSchgobjsense, chgobjsense)                 \
+    F(XPRSchgobj, chgobj)                           \
+    F(XPRSgetobj, getobj)                           \
+    F(XPRSchgmqobj, chgmqobj)                       \
+    F(XPRSaddcols, addcols)                         \
+    F(XPRSchgbounds, chgbounds)                     \
+    F(XPRSgetlb, getlb)                             \
+    F(XPRSgetub, getub)                             \
+    F(XPRSchgcoltype, chgcoltype)                   \
+    F(XPRSaddrows, addrows)                         \
+    F(XPRSchgrowtype, chgrowtype)                   \
+    F(XPRSchgrhs, chgrhs)                           \
+    F(XPRSgetintattrib, getintattrib)               \
+    F(XPRSgetstrattrib, getstrattrib)               \
+    F(XPRSgetdblattrib, getdblattrib)               \
+    F(XPRSaddnames, addnames)                       \
+    F(XPRSgetnamelist, getnamelist)                 \
+    F(XPRSlpoptimize, lpoptimize)                   \
+    F(XPRSmipoptimize, mipoptimize)                 \
+    F(XPRSgetsolution, getsolution)                 \
+    F(XPRSgetcallbacksolution, getcallbacksolution) \
+    F(XPRSgetduals, getduals)                       \
+    F(XPRSgetredcosts, getredcosts)                 \
+    F(XPRSsetdblcontrol, setdblcontrol)             \
+    F(XPRSgetdblcontrol, getdblcontrol)             \
+    F(XPRSaddmipsol, addmipsol)                     \
+    F(XPRSaddcbpreintsol, addcbpreintsol)           \
+    F(XPRSremovecbpreintsol, removecbpreintsol)     \
+    F(XPRSaddcboptnode, addcboptnode)               \
+    F(XPRSremovecboptnode, removecboptnode)         \
+    F(XPRSaddcuts, addcuts)                         \
     F(XPRSloaddelayedrows, loaddelayedrows)
 
 #define DECLARE_XPRESS_FUNCTIONS(FULL, SHORT) \
@@ -224,7 +228,7 @@ public:
     static constexpr std::array library_names = {"xprs"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{45, 1}, {47, 2}}};
+        solver_version_range{{45, 1}, {47, 2}}};
 
 private:
     explicit xpress_api(detail::dynamic_library && library)

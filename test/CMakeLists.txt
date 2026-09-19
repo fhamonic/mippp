@@ -9,6 +9,7 @@ set(MIPPP_TEST_ALL_SOLVER_SOURCES
     solvers/cbc.cpp
     solvers/clp.cpp
     solvers/copt.cpp
+    solvers/dumb.cpp
     solvers/cplex.cpp
     solvers/glpk.cpp
     solvers/gurobi.cpp
@@ -47,10 +48,16 @@ add_executable(
     entity_range.cpp
     invoke_key.cpp
     zero.cpp
+    status.cpp
+    variant.cpp
     dynamic_library.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
+# the suites and the library assert(); keep them live in every configuration
+target_compile_options(
+  mippp_test PRIVATE
+  $<IF:$<CXX_COMPILER_FRONTEND_VARIANT:MSVC>,/UNDEBUG,-UNDEBUG>)
 target_link_libraries(mippp_test mippp)
 target_link_libraries(mippp_test GTest::gmock)
 target_link_libraries(mippp_test melon::melon)

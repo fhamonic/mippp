@@ -20,6 +20,7 @@
 #include "mippp/utility/keys_view.hpp"
 #include "mippp/utility/memory_size.hpp"
 #include "mippp/utility/status.hpp"
+#include "mippp/utility/variant.hpp"
 
 namespace mippp {
 
@@ -138,6 +139,11 @@ concept variables_range =
     std::ranges::random_access_range<VR> &&
     std::same_as<std::ranges::range_value_t<VR>, model_variable_t<T>>;
 
+template <typename CR, typename T>
+concept constraints_range =
+    std::ranges::random_access_range<CR> &&
+    std::same_as<std::ranges::range_value_t<CR>, model_constraint_t<T>>;
+
 struct distinct_variables_t { explicit distinct_variables_t() = default; };
 inline constexpr distinct_variables_t distinct_variables {};
 
@@ -177,15 +183,17 @@ concept lp_model =
         { model.add_constraints(archetype::range<archetype::any_type>(),
                                 [](archetype::any_type) {
                                     return archetype::linear_constraint<T>();
-                                }) } -> std::ranges::range;
+                                }) } -> constraints_range<T>;
         { model.add_constraints(distinct_variables,
                                 archetype::range<archetype::any_type>(),
                                 [](archetype::any_type) {
                                     return archetype::linear_constraint<T>();
-                                }) } -> std::ranges::range;
+                                }) } -> constraints_range<T>;
                                 
         { model.num_variables() } -> std::same_as<std::size_t>;
         { model.num_constraints() } -> std::same_as<std::size_t>;
+        { model.infinity() } -> std::same_as<model_scalar_t<T>>;
+        { model.is_infinite(s) } -> std::same_as<bool>;
         { model.solve() };
         { model.get_status() } -> variant_of<status::any>;
         { model.get_solution_value() } -> std::same_as<model_scalar_t<T>>;
@@ -350,7 +358,8 @@ concept has_named_constraints =
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-using objective_expression_t = decltype(std::declval<T &>().get_objective());
+using model_objective_expression_t =
+    decltype(std::declval<T &>().get_objective());
 // clang-format off
 template <typename T>
 concept has_readable_objective = requires(T & model, model_variable_t<T> v) {
@@ -358,9 +367,9 @@ concept has_readable_objective = requires(T & model, model_variable_t<T> v) {
         { model.get_objective_coefficient(v) }
                 -> std::same_as<model_scalar_t<T>>;
         { model.get_objective() } -> linear_expression;
-    } && std::same_as<linear_expression_variable_t<objective_expression_t<T>>,
+    } && std::same_as<linear_expression_variable_t<model_objective_expression_t<T>>,
                       model_variable_t<T>>
-      && std::same_as<linear_expression_scalar_t<objective_expression_t<T>>,
+      && std::same_as<linear_expression_scalar_t<model_objective_expression_t<T>>,
                       model_scalar_t<T>>;
 // clang-format on
 template <typename T>
@@ -368,12 +377,16 @@ concept has_modifiable_objective =
     requires(T & model, model_variable_t<T> v, model_scalar_t<T> s) {
         { model.set_objective_coefficient(v, s) };
         { model.add_to_objective(archetype::linear_expression<T>()) };
+        {
+            model.add_to_objective(distinct_variables,
+                                   archetype::linear_expression<T>())
+        };
     };
 
 // get_objective() reads the linear part on any model, quadratic ones
 // included; get_quadratic_objective() reads the whole objective
 template <typename T>
-using quadratic_objective_expression_t =
+using model_quadratic_objective_expression_t =
     decltype(std::declval<T &>().get_quadratic_objective());
 // clang-format off
 template <typename T>
@@ -381,10 +394,10 @@ concept has_readable_quadratic_objective =
     has_readable_objective<T> && requires(T & model) {
         { model.get_quadratic_objective() } -> quadratic_expression;
     } && std::same_as<quadratic_expression_variable_t<
-                          quadratic_objective_expression_t<T>>,
+                          model_quadratic_objective_expression_t<T>>,
                       model_variable_t<T>>
       && std::same_as<quadratic_expression_scalar_t<
-                          quadratic_objective_expression_t<T>>,
+                          model_quadratic_objective_expression_t<T>>,
                       model_scalar_t<T>>;
 // clang-format on
 
@@ -413,21 +426,23 @@ concept has_modifiable_variable_bounds =
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename M = T>
-using constraint_lhs_range_t = decltype(std::declval<T &>().get_constraint_lhs(
-    std::declval<model_constraint_t<M> &>()));
+using model_constraint_lhs_range_t =
+    decltype(std::declval<T &>().get_constraint_lhs(
+        std::declval<model_constraint_t<M> &>()));
 
 template <typename T, typename M = T>
 concept has_readable_constraint_lhs =
     requires(T & model, model_constraint_t<M> c) {
         { model.get_constraint_lhs(c) } -> std::ranges::range;
     } &&
-    linear_term<std::ranges::range_value_t<constraint_lhs_range_t<T, M>>> &&
+    linear_term<
+        std::ranges::range_value_t<model_constraint_lhs_range_t<T, M>>> &&
     std::same_as<model_variable_t<M>,
                  linear_term_variable_t<std::ranges::range_value_t<
-                     constraint_lhs_range_t<T, M>>>> &&
+                     model_constraint_lhs_range_t<T, M>>>> &&
     std::same_as<model_scalar_t<M>,
-                 linear_term_scalar_t<
-                     std::ranges::range_value_t<constraint_lhs_range_t<T, M>>>>;
+                 linear_term_scalar_t<std::ranges::range_value_t<
+                     model_constraint_lhs_range_t<T, M>>>>;
 // clang-format off
 template <typename T>
 concept has_modifiable_constraint_lhs =
@@ -511,6 +526,8 @@ concept has_sos2_constraints = requires(
 template <typename T>
 concept has_indicator_constraints = requires(T & model, model_variable_t<T> v) {
     model.add_indicator_constraint(v, true, archetype::linear_constraint<T>());
+    model.add_indicator_constraint(distinct_variables, v, true,
+                                   archetype::linear_constraint<T>());
 };
 
 // lb <= expression <= ub as one row: the usual handle comes back, but only
@@ -648,6 +665,7 @@ concept has_candidate_solution_callback =
     requires(T & model, candidate_solution_callback_handle_t<T> & handle) {
         { model.set_candidate_solution_callback(
                 [](candidate_solution_callback_handle_t<T> &) {}) };
+        { handle.get_solution_value() } -> std::same_as<model_scalar_t<T>>;
         { handle.get_solution() }
                 -> input_mapping_of<model_variable_t<T>, model_scalar_t<T>>;
     };

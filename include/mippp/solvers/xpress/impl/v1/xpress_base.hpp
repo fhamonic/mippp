@@ -45,6 +45,8 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return XPRS_PLUSINFINITY; }
+    using model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit xpress_base(const xpress_api & api)
         : model_base<int, double>(), XPRS(&api), objective_offset(0.0) {
@@ -137,6 +139,10 @@ public:
         check(XPRS->chgobj(prob, static_cast<int>(num_vars), tmp_indices.data(),
                            tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
+    }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
     }
 
     double get_objective_offset() { return objective_offset; }

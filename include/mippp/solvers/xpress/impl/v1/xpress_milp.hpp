@@ -62,7 +62,6 @@ private:
                                      ": " + errmsg);
         }
 
-    public:
         callback_handle_base(const xpress_api * api, XPRSprob prob_,
                              const double obj_offset)
             : model_base<int, double>()
@@ -70,9 +69,12 @@ private:
             , prob(prob_)
             , objective_offset(obj_offset) {}
 
+    public:
+        // XPRS_COLS counts the presolved matrix inside a callback; solutions
+        // come back in the input space, sized XPRS_INPUTCOLS
         std::size_t num_variables() {
             int num_vars;
-            check(XPRS->getintattrib(prob, XPRS_COLS, &num_vars));
+            check(XPRS->getintattrib(prob, XPRS_INPUTCOLS, &num_vars));
             return static_cast<std::size_t>(num_vars);
         }
     };
@@ -82,25 +84,28 @@ public:
     private:
         int * _reject;
 
-    public:
+        friend xpress_milp;
         candidate_solution_callback_handle(const xpress_api * api,
                                            XPRSprob prob_,
                                            const double obj_offset,
                                            int * reject)
             : callback_handle_base(api, prob_, obj_offset), _reject(reject) {}
 
+    public:
         void reject_solution() { *_reject = 1; }
 
+        // the incumbent is not updated yet in preintsol: XPRS_MIPOBJVAL and
+        // XPRSgetsolution would describe the previous one, not the candidate
         double get_solution_value() {
             double val;
-            check(XPRS->getdblattrib(prob, XPRS_MIPOBJVAL, &val));
+            check(XPRS->getdblattrib(prob, XPRS_LPOBJVAL, &val));
             return objective_offset + val;
         }
         auto get_solution() {
             const auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            check(XPRS->getsolution(prob, nullptr, solution.get(), 0,
-                                    static_cast<int>(num_vars) - 1));
+            check(XPRS->getcallbacksolution(prob, nullptr, solution.get(), 0,
+                                            static_cast<int>(num_vars) - 1));
             return variable_mapping(std::move(solution));
         }
     };

@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/linear_constraint.hpp"
@@ -91,6 +90,28 @@ TYPED_TEST_P(LpStatusTest, min_unbounded) {
         ASSERT_TRUE(is_a<status::unbounded>(model.get_status()));
     });
 }
+// not a huge finite bound the solver honours: GLPK solved such a column to
+// 1.8e308 and reported optimal
+TYPED_TEST_P(LpStatusTest, unbounded_after_removing_a_bound) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        if constexpr(has_modifiable_variable_bounds<decltype(model)>) {
+            auto x = model.add_variable({.upper_bound = 3});
+            auto y = model.add_variable({.lower_bound = 1, .upper_bound = 4});
+            model.set_variable_upper_bound(x, model.infinity());
+            model.set_maximization();
+            model.set_objective(x + y);
+            model.add_constraint(x >= y);
+            model.solve();
+            if constexpr(has_refinable_lp_status<decltype(model)>) {
+                if(is<status::infeasible_or_unbounded>(model.get_status()))
+                    model.refine_lp_status();
+            }
+            ASSERT_TRUE(is_a<status::unbounded>(model.get_status()));
+        }
+    });
+}
 TYPED_TEST_P(LpStatusTest, max_infeasible) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -129,7 +150,8 @@ TYPED_TEST_P(LpStatusTest, min_infeasible) {
 }
 
 REGISTER_TYPED_TEST_SUITE_P(LpStatusTest, not_solved, max_bounded, min_bounded,
-                            max_unbounded, min_unbounded, max_infeasible,
+                            max_unbounded, min_unbounded,
+                            unbounded_after_removing_a_bound, max_infeasible,
                             min_infeasible);
 
 }  // namespace mippp

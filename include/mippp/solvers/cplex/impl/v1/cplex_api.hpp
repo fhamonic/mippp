@@ -342,7 +342,7 @@ public:
                                                  "cplex2211", "cplex2210"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{22, 1, 0}, {22, 2, 1}}};
+        solver_version_range{{22, 1, 0}, {22, 2, 1}}};
 
 private:
     explicit cplex_api(detail::dynamic_library && library)

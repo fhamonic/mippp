@@ -35,7 +35,7 @@ The two operations are two concepts, because a solver can fire a candidate callb
 - `has_candidate_solution_rejection<Handle>` promises `handle.reject_solution()`, which discards the candidate without stating why. It needs no model types, so it takes the handle alone;
 - `has_lazy_constraints<Handle, Model>` promises `handle.add_lazy_constraint(c)` on that handle. The second parameter is the model, which supplies the variable and constraint types the handle has no way to declare itself (see [Concepts on callback handles](../reference/concepts.md#concepts-on-callback-handles)).
 
-Both hold, and are validated by the test suite, on **Gurobi, CPLEX and COPT**. **Xpress** provides the callback and `reject_solution()`, without lazy constraints. SCIP has no callback yet.
+The callback, with `get_solution()` and `get_solution_value()`, is validated by the test suite on **Gurobi, CPLEX, COPT and Xpress**; lazy constraints on the first three. **Xpress** offers `reject_solution()` instead. SCIP has no callback yet.
 
 ## Example: TSP subtour elimination
 

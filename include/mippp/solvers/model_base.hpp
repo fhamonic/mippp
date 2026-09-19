@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <optional>
 #include <ranges>
@@ -48,6 +50,16 @@ public:
     // the anchor model_variable_params_t deduces from
     static constexpr variable_params default_variable_params = {
         .obj_coef = 0, .lower_bound = 0, .upper_bound = std::nullopt};
+
+    // Bounds read back exactly as the solver holds them, and every solver
+    // has its own threshold past which a value means "no bound" (1e20, 1e30,
+    // 1e100, DBL_MAX, inf); `infinity()` returns it. Not `== infinity()`: a
+    // solver may store what it was given and treat anything beyond the
+    // threshold as infinite, so the one portable test is the magnitude.
+    [[nodiscard]] bool is_infinite(this const auto & self,
+                                   Scalar value) noexcept {
+        return std::abs(value) >= self.infinity();
+    }
 
 protected:
     std::vector<std::pair<unsigned int, unsigned int>> tmp_entry_index_cache;
@@ -230,14 +242,41 @@ protected:
         tmp_scalars.resize(0);
     }
 
+    // A raw entry list (distinct_variables terms, add_column entries, a MIP
+    // start) must name each entity once, and a repeat is not portable:
+    // HiGHS, Xpress and MOSEK reject the row, GLPK aborts, CPLEX keeps the
+    // first coefficient and corrupts its heap in solve(), COPT keeps the
+    // last. Stamps the entry cache as coalescing does, grown on demand since
+    // the raw paths skip _prepare_coalescing.
+    void _begin_distinct_check() {
+#ifndef NDEBUG
+        ++register_count;
+#endif
+    }
+    void _check_distinct([[maybe_unused]] const Index entity_id) {
+#ifndef NDEBUG
+        const auto i = static_cast<std::size_t>(entity_id);
+        if(i >= tmp_entry_index_cache.size())
+            tmp_entry_index_cache.resize(i + 1);
+        auto & stamp = tmp_entry_index_cache[i].first;
+        assert(stamp != register_count &&
+               "an entity appears twice in an entry list that must be "
+               "distinct (distinct_variables, add_column, add_mip_start)");
+        stamp = register_count;
+#endif
+    }
+
     template <std::ranges::range Entries, typename IdProj = EntityId>
         requires linear_term<std::ranges::range_value_t<Entries>> &&
                  std::is_invocable_r_v<Index, IdProj,
                                        linear_term_variable_t<
                                            std::ranges::range_value_t<Entries>>>
     void _register_raw_entries(Entries && entries, IdProj proj = {}) {
+        _begin_distinct_check();
         for(auto && [entity, coef] : entries) {
-            tmp_indices.emplace_back(proj(entity));
+            const Index entity_id = proj(entity);
+            _check_distinct(entity_id);
+            tmp_indices.emplace_back(entity_id);
             tmp_scalars.emplace_back(coef);
         }
     }

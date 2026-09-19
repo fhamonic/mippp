@@ -50,6 +50,7 @@ void Cbc_setRowLower(Cbc_Model * model, int index, double value);
 void Cbc_setRowUpper(Cbc_Model * model, int index, double value);
 const double * Cbc_getRowLower(Cbc_Model * model);
 const double * Cbc_getRowUpper(Cbc_Model * model);
+void Cbc_setRowName(Cbc_Model * model, int iRow, const char * name);
 void Cbc_getRowName(Cbc_Model * model, int iRow, char * name, size_t maxLength);
 
 void Cbc_setContinuous(Cbc_Model * model, int iColumn);
@@ -135,6 +136,7 @@ namespace cbc::impl::v1 {
     F(Cbc_setRowUpper, setRowUpper)                         \
     F(Cbc_getRowLower, getRowLower)                         \
     F(Cbc_getRowUpper, getRowUpper)                         \
+    F(Cbc_setRowName, setRowName)                           \
     F(Cbc_getRowName, getRowName)                           \
     F(Cbc_setContinuous, setContinuous)                     \
     F(Cbc_setInteger, setInteger)                           \
@@ -184,7 +186,7 @@ public:
     static constexpr std::array probe_symbols = {"Cbc_getVersion"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{2, 10, 9}, {2, 10, 14}}};
+        solver_version_range{{2, 10, 9}, {2, 10, 14}}};
 
 private:
     explicit cbc_api(detail::dynamic_library && library)

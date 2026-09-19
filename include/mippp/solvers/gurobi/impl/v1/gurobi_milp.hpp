@@ -92,14 +92,19 @@ private:
         GRBmodel * master_model;
         void * cbdata;
 
-    public:
+        void check(const int error) const {
+            parent.GRB->_check(parent.env, error);
+        }
+
         callback_handle_base(const gurobi_milp & parent_,
                              GRBmodel * master_model_, void * cbdata_)
             : parent(parent_), master_model(master_model_), cbdata(cbdata_) {}
 
+    public:
         std::size_t num_variables() {
             int num;
-            parent.GRB->getintattr(master_model, GRB_INT_ATTR_NUMVARS, &num);
+            check(parent.GRB->getintattr(master_model, GRB_INT_ATTR_NUMVARS,
+                                         &num));
             return static_cast<std::size_t>(num);
         }
     };
@@ -108,23 +113,23 @@ public:
     class candidate_solution_callback_handle
         : public callback_handle_base,
           protected model_base<int, double> {
-    public:
+    private:
+        friend gurobi_milp;
         candidate_solution_callback_handle(const gurobi_milp & parent_,
                                            GRBmodel * master_model_,
                                            void * cbdata_)
             : callback_handle_base(parent_, master_model_, cbdata_)
             , model_base<int, double>() {}
 
-    private:
         template <bool distinct, linear_constraint LC>
         void _add_lazy_constraint(LC && lc) {
             if constexpr(!distinct) _prepare_coalescing(num_variables());
             _reset_cache();
             _register_variables_entries<distinct>(lc.linear_terms());
-            parent.GRB->cblazy(cbdata, static_cast<int>(tmp_indices.size()),
-                               tmp_indices.data(), tmp_scalars.data(),
-                               constraint_sense_to_gurobi_sense(lc.sense()),
-                               lc.rhs());
+            check(parent.GRB->cblazy(
+                cbdata, static_cast<int>(tmp_indices.size()),
+                tmp_indices.data(), tmp_scalars.data(),
+                constraint_sense_to_gurobi_sense(lc.sense()), lc.rhs()));
         }
 
     public:
@@ -136,11 +141,17 @@ public:
         void add_lazy_constraint(distinct_variables_t, LC && lc) {
             _add_lazy_constraint<true>(std::forward<LC>(lc));
         }
+        double get_solution_value() {
+            double obj;
+            check(parent.GRB->cbget(cbdata, GRB_CB_MIPSOL, GRB_CB_MIPSOL_OBJ,
+                                    &obj));
+            return obj;
+        }
         auto get_solution() {
             auto solution =
                 std::make_unique_for_overwrite<double[]>(num_variables());
-            parent.GRB->cbget(cbdata, GRB_CB_MIPSOL, GRB_CB_MIPSOL_SOL,
-                              solution.get());
+            check(parent.GRB->cbget(cbdata, GRB_CB_MIPSOL, GRB_CB_MIPSOL_SOL,
+                                    solution.get()));
             return variable_mapping(
                 [this, solution = std::move(solution)](const variable & x) {
                     return *(solution.get() + parent._native_id(x));

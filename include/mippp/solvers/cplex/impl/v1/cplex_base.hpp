@@ -52,6 +52,8 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using remapping_model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return CPX_INFBOUND; }
+    using remapping_model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit cplex_base(const cplex_api & api)
         : remapping_model_base<int, double>()
@@ -141,6 +143,10 @@ public:
         check(CPX->chgobj(env, lp, static_cast<int>(num_vars),
                           tmp_indices.data(), tmp_scalars.data()));
         set_objective_offset(get_objective_offset() + le.constant());
+    }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
     }
     double get_objective_offset() {
         double objective_offset;

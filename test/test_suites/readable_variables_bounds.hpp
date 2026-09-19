@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/model_concepts.hpp"
@@ -30,13 +29,13 @@ TYPED_TEST_P(ReadableVariablesBoundsTest, get_variable_lower_bound) {
         auto xis3 = model.add_variables(1, [](int i) { return i; }, {});
         ASSERT_EQ(model.get_variable_lower_bound(x1), 0.0);
         ASSERT_EQ(model.get_variable_lower_bound(x2), 2.5);
-        ASSERT_LE(model.get_variable_lower_bound(x3), -TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_variable_lower_bound(x3)));
         ASSERT_EQ(model.get_variable_lower_bound(xs1[0]), 0.0);
         ASSERT_EQ(model.get_variable_lower_bound(xs2[0]), 3.5);
-        ASSERT_LE(model.get_variable_lower_bound(xs3[0]), -TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_variable_lower_bound(xs3[0])));
         ASSERT_EQ(model.get_variable_lower_bound(xis1(0)), 0.0);
         ASSERT_EQ(model.get_variable_lower_bound(xis2(0)), 4.5);
-        ASSERT_LE(model.get_variable_lower_bound(xis3(0)), -TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_variable_lower_bound(xis3(0))));
     });
 }
 TYPED_TEST_P(ReadableVariablesBoundsTest, get_variable_upper_bound) {
@@ -52,19 +51,36 @@ TYPED_TEST_P(ReadableVariablesBoundsTest, get_variable_upper_bound) {
         auto xis2 = model.add_variables(1, [](int i) { return i; },
                                         {.upper_bound = 4.5});
         auto xis3 = model.add_variables(1, [](int i) { return i; }, {});
-        ASSERT_GE(model.get_variable_upper_bound(x1), TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_variable_upper_bound(x1)));
         ASSERT_EQ(model.get_variable_upper_bound(x2), 2.5);
-        ASSERT_GE(model.get_variable_upper_bound(x3), TEST_INFINITY);
-        ASSERT_GE(model.get_variable_upper_bound(xs1[0]), TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_variable_upper_bound(x3)));
+        ASSERT_TRUE(model.is_infinite(model.get_variable_upper_bound(xs1[0])));
         ASSERT_EQ(model.get_variable_upper_bound(xs2[0]), 3.5);
-        ASSERT_GE(model.get_variable_upper_bound(xs3[0]), TEST_INFINITY);
-        ASSERT_GE(model.get_variable_upper_bound(xis1(0)), TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_variable_upper_bound(xs3[0])));
+        ASSERT_TRUE(model.is_infinite(model.get_variable_upper_bound(xis1(0))));
         ASSERT_EQ(model.get_variable_upper_bound(xis2(0)), 4.5);
-        ASSERT_GE(model.get_variable_upper_bound(xis3(0)), TEST_INFINITY);
+        ASSERT_TRUE(model.is_infinite(model.get_variable_upper_bound(xis3(0))));
+    });
+}
+
+TYPED_TEST_P(ReadableVariablesBoundsTest, infinity_marks_an_absent_bound) {
+    this->SkipOnLicenseError([this]() {
+        auto model = this->new_model();
+        ASSERT_TRUE(model.is_infinite(model.infinity()));
+        ASSERT_TRUE(model.is_infinite(-model.infinity()));
+        ASSERT_FALSE(model.is_infinite(0.0));
+        ASSERT_FALSE(model.is_infinite(1e6));
+        auto x = model.add_variable({});
+        auto y = model.add_variable({.lower_bound = -2.0, .upper_bound = 3.0});
+        ASSERT_TRUE(model.is_infinite(model.get_variable_lower_bound(x)));
+        ASSERT_TRUE(model.is_infinite(model.get_variable_upper_bound(x)));
+        ASSERT_FALSE(model.is_infinite(model.get_variable_lower_bound(y)));
+        ASSERT_FALSE(model.is_infinite(model.get_variable_upper_bound(y)));
     });
 }
 
 REGISTER_TYPED_TEST_SUITE_P(ReadableVariablesBoundsTest,
-                            get_variable_lower_bound, get_variable_upper_bound);
+                            get_variable_lower_bound, get_variable_upper_bound,
+                            infinity_marks_an_absent_bound);
 
 }  // namespace mippp

@@ -24,12 +24,18 @@ namespace mippp {
 namespace soplex::impl::v1 {
 
 class soplex_lp : protected model_base<int, double> {
+private:
+    // soplex::infinity, which the C interface does not export
+    static constexpr double _infinity = 1e100;
+
 protected:
     using variable_id = int;
     using constraint_id = int;
 
 public:
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return _infinity; }
+    using model_base<int, double>::is_infinite;
 
 private:
     const soplex_api * SoPlex;
@@ -101,8 +107,8 @@ public:
 private:
     inline void _add_var(const variable_params & params) {
         SoPlex->addColReal(model, nullptr, 0, 0, params.obj_coef,
-                           params.lower_bound.value_or(-1e100),
-                           params.upper_bound.value_or(1e100));
+                           params.lower_bound.value_or(-_infinity),
+                           params.upper_bound.value_or(_infinity));
     }
 
 private:
@@ -135,8 +141,8 @@ private:
         }
         SoPlex->addColReal(model, tmp_scalars.data(), num_nz,
                            static_cast<int>(num_vars), params.obj_coef,
-                           params.lower_bound.value_or(-1e100),
-                           params.upper_bound.value_or(1e100));
+                           params.lower_bound.value_or(-_infinity),
+                           params.upper_bound.value_or(_infinity));
         return variable(static_cast<int>(num_vars));
     }
 
@@ -155,10 +161,15 @@ public:
     /////////////////////////////// Constraints ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
+    // the dense row merges a repeat for free; the tagged form still asserts
+    // it so that code developed here does not abort on GLPK
+    template <bool distinct>
     void _add_constraint(linear_constraint auto && lc) {
         int num_nz = 0;
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
+        if constexpr(distinct) _begin_distinct_check();
         for(auto && [var, coef] : lc.linear_terms()) {
+            if constexpr(distinct) _check_distinct(var.id());
             if(coef == 0) continue;
             tmp_scalars[var.uid()] += coef;
             num_nz += (tmp_scalars[var.uid()] != 0) ? 1 : -1;
@@ -179,23 +190,27 @@ public:
     constraint add_constraint(LC && lc) {
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
         tmp_scalars.resize(num_variables());
-        _add_constraint(std::forward<LC>(lc));
+        _add_constraint<false>(std::forward<LC>(lc));
         return constraint(constr_id);
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
-        return add_constraint(std::forward<LC>(lc));
+        constraint_id constr_id = static_cast<constraint_id>(num_constraints());
+        tmp_scalars.resize(num_variables());
+        _add_constraint<true>(std::forward<LC>(lc));
+        return constraint(constr_id);
     }
 
 private:
-    template <typename Key, typename LastConstrLambda>
+    template <bool distinct, typename Key, typename LastConstrLambda>
         requires linear_constraint<
             detail::key_invoke_result_t<LastConstrLambda &, const Key &>>
     void _add_first_valued_constraint(const Key & key,
                                       LastConstrLambda & lc_lambda) {
-        _add_constraint(detail::invoke_key(lc_lambda, key));
+        _add_constraint<distinct>(detail::invoke_key(lc_lambda, key));
     }
-    template <typename Key, typename OptConstrLambda, typename... Tail>
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
         requires detail::optional_type<detail::key_invoke_result_t<
                      OptConstrLambda &, const Key &>> &&
                  linear_constraint<
@@ -205,20 +220,18 @@ private:
                                       OptConstrLambda & opt_lc_lambda,
                                       Tail &... tail) {
         if(const auto & opt_lc = detail::invoke_key(opt_lc_lambda, key)) {
-            _add_constraint(opt_lc.value());
+            _add_constraint<distinct>(opt_lc.value());
             return;
         }
-        _add_first_valued_constraint(key, tail...);
+        _add_first_valued_constraint<distinct>(key, tail...);
     }
-
-public:
-    template <std::ranges::range IR, typename... CL>
-    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
         tmp_scalars.resize(num_variables());
         const int offset = static_cast<int>(num_constraints());
         int constr_id = offset;
         for(auto && key : keys) {
-            _add_first_valued_constraint(key, constraint_lambdas...);
+            _add_first_valued_constraint<distinct>(key, constraint_lambdas...);
             ++constr_id;
         }
         return detail::keyed_entities(
@@ -226,11 +239,18 @@ public:
             entity_range(constraint{offset},
                          static_cast<std::size_t>(constr_id - offset)));
     }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
-        return add_constraints(std::forward<IR>(keys),
-                               std::forward<CL>(constraint_lambdas)...);
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////

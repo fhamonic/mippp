@@ -1,5 +1,6 @@
 #pragma once
 
+#include <compare>
 #include <concepts>
 #include <type_traits>
 #include <utility>
@@ -150,6 +151,22 @@ struct zero_t {
     [[nodiscard]] friend constexpr bool operator==(
         zero_t, const S & s) noexcept(noexcept(s == S{0})) {
         return s == S{0};
+    }
+
+    // The conversion to scalar does not give ordering for free: every
+    // built-in `operator<` is viable through the conversion template and none
+    // is best. `<=>` never rewrites `==`, so the overloads above stay.
+    [[nodiscard]] friend constexpr std::strong_ordering operator<=>(
+        zero_t, zero_t) noexcept {
+        return std::strong_ordering::equal;
+    }
+
+    template <typename S>
+        requires(!statically_zero<S>) && std::convertible_to<int, S> &&
+                std::three_way_comparable<S>
+    [[nodiscard]] friend constexpr auto operator<=>(
+        zero_t, const S & s) noexcept(noexcept(S{0} <=> s)) {
+        return S{0} <=> s;
     }
 };
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/linear_constraint.hpp"
@@ -111,8 +110,26 @@ TYPED_TEST_P(QpModelTest, cross_terms_unordered_pairs) {
     });
 }
 
+TYPED_TEST_P(QpModelTest, xsum_objective) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto xs = model.add_variables(2);
+        model.set_minimization();
+        // sum of (x - 3)^2 : minimum 0 at x = 3, before the row moves it
+        model.set_quadratic_objective(
+            xsum(xs, [](auto x) { return square(x - 3.0); }));
+        model.add_constraint(xs[0] + xs[1] <= 4);
+        model.solve();
+        EXPECT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+        auto solution = model.get_solution();
+        EXPECT_NEAR(solution[xs[0]], 2.0, TEST_EPSILON);
+        EXPECT_NEAR(solution[xs[1]], 2.0, TEST_EPSILON);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(QpModelTest, test, set_objective_distinct_variables,
                             linear_objective_replaces_quadratic, cross_terms,
-                            cross_terms_unordered_pairs);
+                            cross_terms_unordered_pairs, xsum_objective);
 
 }  // namespace mippp

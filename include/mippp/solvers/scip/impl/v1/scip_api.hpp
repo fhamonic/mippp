@@ -355,7 +355,7 @@ public:
     static constexpr std::array library_names = {"scip"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{8, 0, 4}, {10, 0, 4}}};
+        solver_version_range{{8, 0, 4}, {10, 0, 4}}};
 
 private:
     explicit scip_api(detail::dynamic_library && library)

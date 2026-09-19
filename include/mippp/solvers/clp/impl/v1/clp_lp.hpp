@@ -37,6 +37,8 @@ private:
 public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return COIN_DBL_MAX; }
+    using model_base<int, double>::is_infinite;
 
     [[nodiscard]] clp_lp() : clp_lp(clp_api::load()) {}
     [[nodiscard]] explicit clp_lp(const clp_api & api)
@@ -108,6 +110,10 @@ public:
             objective[var.id()] += coef;
         }
         set_objective_offset(get_objective_offset() + le.constant());
+    }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
     }
     scalar get_objective_offset() { return -Clp->objectiveOffset(model); }
     auto get_objective() {

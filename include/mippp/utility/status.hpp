@@ -5,7 +5,7 @@
 #include <utility>
 #include <variant>
 
-#include "mippp/detail/variant_helper.hpp"
+#include "mippp/utility/variant.hpp"
 
 namespace mippp {
 

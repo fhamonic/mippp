@@ -1,4 +1,3 @@
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/linear_expression.hpp"

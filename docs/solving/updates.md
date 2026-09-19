@@ -17,6 +17,7 @@ model.set_variable_lower_bound(x, lb);   // has_modifiable_variable_bounds
 model.set_variable_upper_bound(x, ub);
 
 double lb0 = model.get_variable_lower_bound(x);   // has_readable_variable_bounds
+model.set_variable_upper_bound(x, model.infinity());   // drop a side; see is_infinite()
 ```
 
 Changing bounds is the cheapest possible model update — the matrix is untouched — which makes it the right tool for:

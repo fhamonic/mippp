@@ -36,6 +36,19 @@ Every field is optional, with one subtlety worth internalising early:
 
 Passing `.obj_coef` at creation is equivalent to — and cheaper than — mentioning the variable in `set_objective` later; see [Objectives](objectives.md).
 
+### Infinite bounds
+
+An absent side is stored as whatever the solver uses for "no bound" — `1e20` on CPLEX, SCIP and Xpress, `1e30` on COPT and MOSEK, `1e100` on Gurobi, `DBL_MAX` on the COIN-OR solvers and GLPK, `inf` on HiGHS — and `get_variable_lower_bound` / `get_variable_upper_bound` hand that value back untouched. Two members make this portable without hiding it:
+
+```cpp
+double big = model.infinity();                        // the solver's own threshold
+bool free_above = model.is_infinite(model.get_variable_upper_bound(x));
+model.set_variable_upper_bound(x, model.infinity());  // removes the upper bound
+model.set_variable_lower_bound(x, -model.infinity()); // removes the lower bound
+```
+
+`is_infinite(v)` is `|v| >= infinity()`, not `v == infinity()`: a solver may store the value it was given and treat anything beyond its threshold as infinite, so equality would miss a bound set to, say, `1e30` on CPLEX. Both members are part of `lp_model`, so generic code can rely on them; `infinity()` is a member rather than a constant because SCIP's threshold is a runtime parameter.
+
 ## Integer and binary variables
 
 MILP model classes (`highs_milp`, `gurobi_milp`, …) add:

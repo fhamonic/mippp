@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/linear_constraint.hpp"
@@ -95,7 +94,46 @@ TYPED_TEST_P(ModifiableObjectiveTest, add_to_objective) {
     });
 }
 
+TYPED_TEST_P(ModifiableObjectiveTest, add_to_objective_distinct_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 = model.add_variable();
+        auto x2 = model.add_variable({.obj_coef = 2.5, .lower_bound = 0});
+        auto x3 = model.add_variable({.lower_bound = 0});
+        auto xs1 = model.add_variables(1);
+        auto xs2 = model.add_variables(1, {.obj_coef = 3.5, .lower_bound = 0});
+        auto xs3 = model.add_variables(1, {.lower_bound = 0});
+        auto xis1 = model.add_variables(1, [](int i) { return i; });
+        auto xis2 = model.add_variables(1, [](int i) { return i; },
+                                        {.obj_coef = 7.5, .lower_bound = 0});
+        auto xis3 =
+            model.add_variables(1, [](int i) { return i; }, {.lower_bound = 0});
+        model.set_maximization();
+        model.set_objective(distinct_variables, 10 + 3 * x1 + 5 * xs2 + xis3);
+        model.add_to_objective(
+            distinct_variables,
+            6 + -3 * x1 + 2 * x3 + 2.5 * xs1 + 4 * xs3 + 6 * xis1 + 3 * xis3);
+        model.add_constraint(x1 + x2 + x3 <= 1);
+        model.add_constraint(xs1 + xs2 + xs3 <= 2);
+        model.add_constraint(xis1 + xis2 + xis3 <= 3);
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), 46.0, TEST_EPSILON);
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[x1], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x2], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[xs1[0]], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[xs2[0]], 2.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[xs3[0]], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[xis1(0)], 3.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[xis2(0)], 0.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[xis3(0)], 0.0, TEST_EPSILON);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(ModifiableObjectiveTest, set_objective_coefficient,
-                            add_to_objective);
+                            add_to_objective,
+                            add_to_objective_distinct_variables);
 
 }  // namespace mippp

@@ -19,6 +19,7 @@ INSTANTIATE_TEST(Cbc, ReadableVariablesBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, MipStartTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ModifiableVariablesBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, NamedVariablesTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, NamedConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, AddColumnTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableConstraintBoundsTest, cbc_milp_test);

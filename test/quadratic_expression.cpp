@@ -1,4 +1,3 @@
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include <concepts>
@@ -206,8 +205,9 @@ GTEST_TEST(quadratic_expression_operators, product_of_materialized_xsums) {
 
 // Products store their operands like range adaptors store ranges
 // (`detail::expression_all_t`): a named operand is referenced through
-// `detail::linear_expression_ref` -- no deep copy of its term container --
-// while an rvalue operand is moved into the view, which then owns it.
+// `detail::linear_expression_ref`, unless it is a view or a variable, which
+// are copied; an rvalue operand is moved into the view, co-owned when its
+// terms refer to its own storage.
 
 GTEST_TEST(quadratic_expression_concepts, named_operands_are_referenced) {
     std::vector<Var> vars{Var(1), Var(2)};
@@ -224,7 +224,22 @@ GTEST_TEST(quadratic_expression_concepts, named_operands_are_referenced) {
                                    detail::linear_expression_ref<rt_expr>>>);
 
     static_assert(std::same_as<decltype(square(materialize(xsum(vars)))),
-                               linear_expression_square<rt_expr>>);
+                               linear_expression_square<
+                                   detail::shared_linear_expression<rt_expr>>>);
+    static_assert(std::same_as<decltype(Var(1) * Var(2)),
+                               linear_expression_mul_view<Var, Var>>);
+}
+
+GTEST_TEST(quadratic_expression_operators, owned_operand_outlives_the_view) {
+    std::vector<Var> vars{Var(1), Var(2)};
+    auto q = square(materialize(xsum(vars))) + 1.0;
+    // (x1 + x2)^2 + 1, read after the squared temporary is gone
+    ASSERT_QUAD_EXPR(
+        q,
+        {{Var(1), Var(1), 1.0}, {Var(2), Var(2), 1.0}, {Var(1), Var(2), 2.0}},
+        {}, 1.0);
+    auto r = [](auto v) { return v * v; }(vars[0]);
+    ASSERT_QUAD_EXPR(r, {{Var(1), Var(1), 1.0}}, {}, 0.0);
 }
 
 GTEST_TEST(quadratic_expression_operators, square_references_named_operand) {
@@ -305,6 +320,47 @@ GTEST_TEST(quadratic_expression_concepts, compatible_quadratic_expressions) {
     static_assert(compatible_quadratic_expressions<quad, quad>);
     static_assert(!compatible_quadratic_expressions<quad, quad_float_coef>);
     static_assert(!compatible_quadratic_expressions<quad, quad_long_id>);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////// Quadratic sums /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+GTEST_TEST(quadratic_expression_operators, xsum_of_products) {
+    std::vector<Var> vars{Var(1), Var(2)};
+    auto q = xsum(vars, [](auto v) { return v * v; });
+    static_assert(quadratic_expression<decltype(q)>);
+    static_assert(!linear_expression<decltype(q)>);
+    static_assert(
+        statically_zero<quadratic_expression_constant_t<decltype(q)>>);
+    ASSERT_QUAD_EXPR(q, {{Var(1), Var(1), 1.0}, {Var(2), Var(2), 1.0}}, {},
+                     0.0);
+}
+
+GTEST_TEST(quadratic_expression_operators, xsum_of_products_with_linear_part) {
+    std::vector<Var> vars{Var(1), Var(2)};
+    // sum of 2*v*v + v, then of (v + 1)^2
+    ASSERT_QUAD_EXPR(xsum(vars, [](auto v) { return 2.0 * v * v + v; }),
+                     {{Var(1), Var(1), 2.0}, {Var(2), Var(2), 2.0}},
+                     {{Var(1), 1.0}, {Var(2), 1.0}}, 0.0);
+    ASSERT_QUAD_EXPR(xsum(vars, [](auto v) { return square(v + 1.0); }),
+                     {{Var(1), Var(1), 1.0}, {Var(2), Var(2), 1.0}},
+                     {{Var(1), 2.0}, {Var(2), 2.0}}, 2.0);
+}
+
+GTEST_TEST(quadratic_expression_operators, xsum_over_unpacked_pairs) {
+    std::vector<Var> vars{Var(1), Var(2)};
+    auto q = xsum(std::views::cartesian_product(vars, vars),
+                  [](Var a, Var b) { return a * b; });
+    // (x1 + x2)^2, the two cross terms merging into one
+    ASSERT_QUAD_EXPR(
+        q,
+        {{Var(1), Var(1), 1.0}, {Var(1), Var(2), 2.0}, {Var(2), Var(2), 1.0}},
+        {}, 0.0);
+    // the linear overloads are untouched
+    static_assert(linear_expression<decltype(xsum(vars))>);
+    static_assert(linear_expression<decltype(xsum(
+                      vars, [](auto v) { return 2.0 * v; }))>);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

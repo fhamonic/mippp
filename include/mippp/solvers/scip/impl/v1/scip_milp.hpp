@@ -31,6 +31,8 @@ protected:
 
 public:
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return SCIP->infinity(model); }
+    using model_base<int, double>::is_infinite;
 
 protected:
     const scip_api * SCIP;
@@ -52,8 +54,10 @@ protected:
     template <bool distinct, std::ranges::range Entries>
     void _register_variables_entries(Entries && entries) {
         if constexpr(distinct) {
+            _begin_distinct_check();
             for(auto && [entity, coef] : entries) {
                 const int id = entity.id();
+                _check_distinct(id);
                 tmp_vars.emplace_back(*(variables.data() + id));
                 tmp_reals.emplace_back(coef);
             }
@@ -194,15 +198,7 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
-        _free_transform();
-        for(auto && var : variables) {
-            check(SCIP->chgVarObj(model, var, 0.0));
-        }
-        for(auto && [var_, coef] : le.linear_terms()) {
-            const auto & var = variables[var_.uid()];
-            check(SCIP->chgVarObj(model, var, coef));
-        }
-        set_objective_offset(le.constant());
+        set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
         _free_transform();
@@ -211,6 +207,10 @@ public:
             check(SCIP->chgVarObj(model, var, SCIP->varGetObj(var) + coef));
         }
         set_objective_offset(get_objective_offset() + le.constant());
+    }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
     }
     double get_objective_offset() { return SCIP->getOrigObjoffset(model); }
     auto get_objective() {

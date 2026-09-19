@@ -51,6 +51,8 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return MSK_INFINITY; }
+    using model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
         : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr) {

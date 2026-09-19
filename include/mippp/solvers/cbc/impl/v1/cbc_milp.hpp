@@ -43,6 +43,8 @@ private:
 public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept { return COIN_DBL_MAX; }
+    using model_base<int, double>::is_infinite;
 
     [[nodiscard]] cbc_milp() : cbc_milp(cbc_api::load()) {}
     [[nodiscard]] explicit cbc_milp(const cbc_api & api)
@@ -126,6 +128,10 @@ public:
                                       get_objective_coefficient(var) + coef);
         }
         set_objective_offset(get_objective_offset() + le.constant());
+    }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
     }
     double get_objective_offset() { return objective_offset; }
     auto get_objective() {
@@ -378,10 +384,15 @@ public:
                                    -get_constraint_rhs(constr)),
             get_constraint_sense(constr));
     }
+    void set_constraint_name(constraint constr, const std::string & name) {
+        Cbc->setRowName(model, constr.id(), name.c_str());
+    }
     auto get_constraint_name(constraint constr) {
+        // Cbc_getRowName terminates at name[maxLength - 1]: a buffer of
+        // exactly maxNameLength loses the last character of the longest name
         auto max_length = Cbc->maxNameLength(model);
-        std::string name(max_length, '\0');
-        Cbc->getRowName(model, constr.id(), name.data(), max_length);
+        std::string name(max_length + 1, '\0');
+        Cbc->getRowName(model, constr.id(), name.data(), max_length + 1);
         name.resize(std::strlen(name.c_str()));
         return name;
     }

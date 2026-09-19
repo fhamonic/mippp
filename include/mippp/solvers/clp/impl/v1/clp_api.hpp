@@ -157,7 +157,7 @@ public:
     static constexpr std::array library_names = {"Clp"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{1, 17, 4}, {1, 17, 12}}};
+        solver_version_range{{1, 17, 4}, {1, 17, 12}}};
 
 private:
     explicit clp_api(detail::dynamic_library && library)
