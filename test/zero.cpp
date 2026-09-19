@@ -136,13 +136,16 @@ static_assert(zero_t{} <= zero_t{} && !(zero_t{} < zero_t{}));
 static_assert(zero_t{} == 0.0 && 0 == zero_t{} && zero_t{} != 1);
 static_assert(noexcept(zero_t{} < 3.2) && noexcept(3 >= zero_t{}));
 
-GTEST_TEST(zero_t_algebra, ordering_against_nan_matches_double) {
-    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+// a runtime NaN: MSVC folds the constant expression `0.0 < nan` to true
+GTEST_TEST(zero_t_algebra, ordering_against_nan_is_unordered) {
+    const volatile double nan_v = std::numeric_limits<double>::quiet_NaN();
+    const double nan = nan_v;
     ASSERT_EQ(zero_t{} <=> nan, std::partial_ordering::unordered);
-    ASSERT_EQ(zero_t{} < nan, 0.0 < nan);
-    ASSERT_EQ(zero_t{} >= nan, 0.0 >= nan);
-    ASSERT_EQ(nan < zero_t{}, nan < 0.0);
-    ASSERT_EQ(zero_t{} == nan, 0.0 == nan);
+    ASSERT_FALSE(zero_t{} < nan);
+    ASSERT_FALSE(zero_t{} >= nan);
+    ASSERT_FALSE(nan < zero_t{});
+    ASSERT_FALSE(zero_t{} == nan);
+    ASSERT_TRUE(zero_t{} != nan);
     ASSERT_EQ(zero_t{} <=> -0.0, std::partial_ordering::equivalent);
 }
 
