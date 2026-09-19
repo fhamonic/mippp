@@ -55,9 +55,11 @@ add_executable(
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
 # the suites and the library assert(); keep them live in every configuration
-target_compile_options(
-  mippp_test PRIVATE
-  $<IF:$<CXX_COMPILER_FRONTEND_VARIANT:MSVC>,/UNDEBUG,-UNDEBUG>)
+if(MSVC)
+    target_compile_options(mippp_test PRIVATE /UNDEBUG)
+else()
+    target_compile_options(mippp_test PRIVATE -UNDEBUG)
+endif()
 target_link_libraries(mippp_test mippp)
 target_link_libraries(mippp_test GTest::gmock)
 target_link_libraries(mippp_test melon::melon)

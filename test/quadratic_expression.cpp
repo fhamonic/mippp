@@ -350,7 +350,7 @@ GTEST_TEST(quadratic_expression_operators, xsum_of_products_with_linear_part) {
 
 GTEST_TEST(quadratic_expression_operators, xsum_over_unpacked_pairs) {
     std::vector<Var> vars{Var(1), Var(2)};
-    auto q = xsum(std::views::cartesian_product(vars, vars),
+    auto q = xsum(detail::cartesian_product(vars, vars),
                   [](Var a, Var b) { return a * b; });
     // (x1 + x2)^2, the two cross terms merging into one
     ASSERT_QUAD_EXPR(

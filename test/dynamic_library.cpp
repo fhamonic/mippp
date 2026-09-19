@@ -75,6 +75,11 @@ public:
         if(const char * p = std::getenv(name)) _previous = p;
         set(name, value.c_str());
     }
+    // unset for the scope
+    explicit scoped_env(const char * name) : _name(name) {
+        if(const char * p = std::getenv(name)) _previous = p;
+        set(name, nullptr);
+    }
     ~scoped_env() {
         set(_name.c_str(), _previous ? _previous->c_str() : nullptr);
     }
@@ -451,17 +456,10 @@ public:
 };
 
 TEST(solver_api, unvalidated_version_warning_names_the_file) {
-    // the CI may run with MIPPP_NO_VERSION_WARNING set: force the warning on
-    const char * silenced = std::getenv("MIPPP_NO_VERSION_WARNING");
-    std::optional<std::string> saved;
-    if(silenced) {
-        saved = silenced;
-        unsetenv("MIPPP_NO_VERSION_WARNING");
-    }
+    const scoped_env unsilenced("MIPPP_NO_VERSION_WARNING");  // CI may set it
     testing::internal::CaptureStderr();
     const claiming_api & api = claiming_api::load(fixture_path);
     const std::string output = testing::internal::GetCapturedStderr();
-    if(saved) setenv("MIPPP_NO_VERSION_WARNING", saved->c_str(), 1);
     EXPECT_EQ(api.library_version(), (solver_version{0, 1}));
     EXPECT_NE(output.find("TESTCLAIM"), std::string::npos) << output;
     EXPECT_NE(output.find(">= 1 and < 2"), std::string::npos) << output;
