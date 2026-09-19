@@ -14,3 +14,5 @@ CMakeUserPresets.json
 MakeW64.bat
 # compatibility matrix downloads (tools/compat_matrix.py)
 /.compat-cache
+# Local IIS timing artifacts are not publication-ready results.
+*.local.csv
