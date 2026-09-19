@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "mippp/detail/dynamic_library.hpp"
+#include "mippp/detail/diagnostic_text.hpp"
 
 // MSVC deprecates std::getenv (C4996) in favour of its own _dupenv_s; the
 // portable call is kept and the warning silenced for this header only.
@@ -188,6 +189,30 @@ inline dynamic_library load_solver_library(
     const char * path, const char * key,
     std::initializer_list<const char *> names,
     std::initializer_list<const char *> probe_symbols = {}) {
+    // Construct help only on failure. Values are those visible to THIS process,
+    // not a possibly newer setting in a terminal or desktop control panel.
+    const auto help = [&] {
+        const auto variable = concat_str("MIPPP_", key, "_LIBRARY");
+        std::string message = "\nHow to fix this:\n  ";
+        message += "library path argument: current=" + diagnostic_value(path) +
+            "; available=an existing compatible shared-library file, or nullptr to use environment/search settings.";
+        message += "\n  " + environment_help(variable.c_str(),
+            "a full path to a compatible shared-library file; unset or empty to search by name");
+        message += "\n  An explicit path takes priority over environment settings; a nonempty " +
+            variable + " takes priority over directory search. A failing explicit selection is not replaced silently.";
+#if defined(_WIN32)
+        message += "\n  " + environment_help("PATH", "library directories separated by ';', or unset/empty");
+#elif defined(__APPLE__)
+        message += "\n  " + environment_help("DYLD_LIBRARY_PATH", "library directories separated by ':', or unset/empty");
+        message += "\n  " + environment_help("DYLD_FALLBACK_LIBRARY_PATH", "fallback directories separated by ':', or unset/empty");
+#else
+        message += "\n  " + environment_help("LD_LIBRARY_PATH", "library directories separated by ':', or unset/empty");
+#endif
+        message += "\n  Install a library matching this program's operating system and processor architecture, "
+            "including its required libraries. Set search variables before starting the program; "
+            "restart an already-running terminal or application after changing inherited environment settings.";
+        return message;
+    };
     // a candidate must export `probe_symbols`: some distributions ship a
     // matching name without the C API (Ubuntu's libCbc.so vs libCbcSolver.so)
     const auto try_load =
@@ -212,7 +237,7 @@ inline dynamic_library load_solver_library(
             return std::move(*lib);
         throw std::runtime_error("mippp: failed to load the " +
                                  std::string(key) + " solver library:\n  " +
-                                 errors);
+                                 errors + help());
     }
 
     const std::string env_var = detail::concat_str("MIPPP_", key, "_LIBRARY");
@@ -222,7 +247,7 @@ inline dynamic_library load_solver_library(
             return std::move(*lib);
         throw std::runtime_error("mippp: failed to load the " +
                                  std::string(key) + " solver library from " +
-                                 env_var + ":\n  " + errors);
+                                 env_var + ":\n  " + errors + help());
     }
 
     // a handful of entries at most, one per backend actually constructed
@@ -283,8 +308,7 @@ inline dynamic_library load_solver_library(
         " solver library (tried '" + tried + "')." +
         (errors.empty() ? std::string{}
                         : "\nCandidates rejected:\n  " + errors) +
-        "\nSet the environment variable " + env_var +
-        " to its full path, or add its directory to LD_LIBRARY_PATH.");
+        help());
 }
 
 // Base of every `<solver>_api`: an immortal, interned wrapper over one loaded
@@ -343,6 +367,14 @@ public:
 // wrapper was written against — usually harmless (the C APIs are stable) but
 // worth knowing when behavior differs. `wrapped` must be a dotted-component
 // prefix of `loaded`. Set MIPPP_NO_VERSION_WARNING to silence.
+inline std::string version_warning_help(const char * key) {
+    const auto variable = concat_str("MIPPP_", key, "_LIBRARY");
+    return "\n  " + environment_help(variable.c_str(),
+        "a full path to a library matching the expected version; unset/empty to search") +
+        "\n  " + environment_help("MIPPP_NO_VERSION_WARNING",
+        "unset to show warnings; any set value (including '0' or empty) to hide them") +
+        "\n  Hiding this warning does not fix a version mismatch. An explicit library path still takes priority.\n";
+}
 inline void warn_on_version_mismatch(const char * key, const char * wrapped,
                                      const char * loaded) {
     if(loaded == nullptr || std::getenv("MIPPP_NO_VERSION_WARNING") != nullptr)
@@ -353,11 +385,9 @@ inline void warn_on_version_mismatch(const char * key, const char * wrapped,
     };
     if(prefix_match(wrapped, loaded)) return;
     std::fprintf(stderr,
-                 "mippp: warning: the %s wrapper targets version %s but the "
-                 "loaded library reports %s; behavior may differ. Set "
-                 "MIPPP_%s_LIBRARY to a matching library, or set "
-                 "MIPPP_NO_VERSION_WARNING to silence this warning.\n",
-                 key, wrapped, loaded, key);
+                 "mippp: this program expects %s version %s, but loaded version %s; "
+                 "some functions may behave differently.%s",
+                 key, wrapped, loaded, version_warning_help(key).c_str());
 }
 
 // Idem, comparing major versions only, for wrappers that work across minor
@@ -368,11 +398,9 @@ inline void warn_on_version_mismatch(const char * key, int wrapped_major,
        std::getenv("MIPPP_NO_VERSION_WARNING") != nullptr)
         return;
     std::fprintf(stderr,
-                 "mippp: warning: the %s wrapper targets major version %d but "
-                 "the loaded library reports %d; behavior may differ. Set "
-                 "MIPPP_%s_LIBRARY to a matching library, or set "
-                 "MIPPP_NO_VERSION_WARNING to silence this warning.\n",
-                 key, wrapped_major, loaded_major, key);
+                 "mippp: this program expects %s major version %d, but loaded major version %d; "
+                 "some functions may behave differently.%s",
+                 key, wrapped_major, loaded_major, version_warning_help(key).c_str());
 }
 
 }  // namespace mippp::detail

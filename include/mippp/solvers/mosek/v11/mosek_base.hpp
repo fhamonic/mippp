@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <chrono>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -18,6 +20,7 @@
 
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/mosek/v11/mosek_api.hpp"
+#include "mippp/solvers/mosek/v11/mosek_handle_guard.hpp"
 
 namespace mippp {
 namespace mosek::v11 {
@@ -27,6 +30,7 @@ protected:
     const mosek_api * MSK;
     MSKenv_t env;
     MSKtask_t task;
+    resource_detail::mosek_handle_guard<mosek_api> cleanup_;
 
     std::vector<index> tmp_begins;
     std::vector<MSKboundkeye> tmp_boundkeye;
@@ -34,6 +38,26 @@ protected:
     std::vector<MSKvariabletypee> tmp_vartype;
 
     void check(const MSKrescodee error) const { MSK->_check(error); }
+    // A basic solution is not always produced (e.g. interior point with basis
+    // identification disabled). Prefer a decisive solution over an unknown or
+    // merely feasible one; preserve the basic solution on equal quality.
+    std::optional<MSKsoltypee> _pick_continuous_solution() {
+        std::optional<MSKsoltypee> best;
+        int best_rank = -1;
+        for(auto type : {MSK_SOL_BAS, MSK_SOL_ITR}) {
+            MSKbooleant defined = 0;
+            check(MSK->solutiondef(task, type, &defined));
+            if(!defined) continue;
+            MSKsolstae state;
+            check(MSK->getsolsta(task, type, &state));
+            const int rank = state == MSK_SOL_STA_OPTIMAL ||
+                             state == MSK_SOL_STA_PRIM_INFEAS_CER ||
+                             state == MSK_SOL_STA_DUAL_INFEAS_CER ? 2 :
+                             state == MSK_SOL_STA_UNKNOWN ? 0 : 1;
+            if(rank > best_rank) { best = type; best_rank = rank; }
+        }
+        return best;
+    }
     static constexpr MSKboundkeye constraint_sense_to_mosek_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return MSK_BK_UP;
@@ -52,14 +76,12 @@ public:
     using model_base<int, double>::default_variable_params;
 
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
-        : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr) {
+        : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr),
+          cleanup_(api, env, task) {
         check(MSK->makeenv(&env, nullptr));
         check(MSK->makeemptytask(env, &task));
     }
-    ~mosek_base() {
-        if(task) check(MSK->deletetask(&task));
-        if(env) check(MSK->deleteenv(&env));
-    }
+    ~mosek_base() = default;
 
     constexpr mosek_base(const mosek_base &) = delete;
     constexpr mosek_base(mosek_base && other) noexcept
@@ -67,6 +89,7 @@ public:
         , MSK(other.MSK)
         , env(other.env)
         , task(other.task)
+        , cleanup_(*MSK, env, task)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_boundkeye(std::move(other.tmp_boundkeye))
         , tmp_rhs(std::move(other.tmp_rhs))
@@ -103,6 +126,19 @@ public:
     }
     int native_id(variable v) const noexcept { return v.id(); }
     int native_id(constraint c) const noexcept { return c.id(); }
+
+    void set_time_limit(std::chrono::duration<double> limit) {
+        const double seconds = limit.count() == std::numeric_limits<double>::infinity()
+                                   ? -1.0 : limit.count();
+        check(MSK->putdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, seconds));
+    }
+    std::chrono::duration<double> get_time_limit() {
+        double limit;
+        check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &limit));
+        // MOSEK uses a negative sentinel for unlimited, whereas the generic
+        // remaining-time adapter compares ordinary nonnegative durations.
+        return std::chrono::duration<double>(limit < 0 ? std::numeric_limits<double>::infinity() : limit);
+    }
 
 public:
     ///////////////////////////////////////////////////////////////////////////

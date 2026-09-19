@@ -316,7 +316,7 @@ public:
 
     void _check(GRBenv * env, const int error) const {
         if(error == 0) return;
-        if(error == 10009) throw license_error(geterrormsg(env));
+        if(error == 10009) throw license_error(detail::license_diagnostic("Gurobi", geterrormsg(env)).c_str());
         throw solver_error(geterrormsg(env));
     }
 };
