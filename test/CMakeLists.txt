@@ -103,6 +103,18 @@ endif()
 
 gtest_discover_tests(mippp_test)
 
+# IIS tests are separate so the standard-library-only reduction can be run
+# with --gtest_filter=DeletionFilter.* without installing a solver. Integration
+# tests require the selected libraries and deliberately fail if unavailable.
+add_executable(mippp_iis_test iis.cpp iis_diagnostics.cpp)
+target_link_libraries(mippp_iis_test PRIVATE mippp GTest::gtest_main)
+if(MSVC)
+    target_compile_options(mippp_iis_test PRIVATE /bigobj)
+endif()
+set(MIPPP_IIS_TEST_FILTER "DeletionFilter.*:ElasticityFilter.*" CACHE STRING
+    "GoogleTest filter for IIS tests; select integration suites for installed solvers")
+add_test(NAME mippp_iis COMMAND mippp_iis_test --gtest_filter=${MIPPP_IIS_TEST_FILTER})
+
 # ########## Header self-containment check ###########
 # One translation unit per public header, generated at configure time: each
 # header must compile on its own, with nothing included before it. This is
