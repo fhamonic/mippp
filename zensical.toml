@@ -31,6 +31,7 @@ nav = [
     { "Re-solving and model updates" = "solving/updates.md" },
   ] },
   { "Algorithms" = [
+    { "Finding infeasible constraints" = "iis.md" },
     { "Branch-and-cut with lazy constraints" = "algorithms/branch-and-cut.md" },
     { "Column generation" = "algorithms/column-generation.md" },
   ] },
