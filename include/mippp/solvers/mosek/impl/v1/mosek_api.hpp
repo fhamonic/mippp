@@ -447,7 +447,7 @@ public:
     static constexpr std::array library_names = {"mosek64"};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        detail::solver_version_range{{11, 0}, {11, 1}}};
+        detail::solver_version_range{{11, 0}, {11, 3}}};
 
 private:
     explicit mosek_api(detail::dynamic_library && library)
