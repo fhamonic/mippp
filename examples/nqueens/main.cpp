@@ -26,8 +26,8 @@ int main(int argc, char ** argv) {
 
     // One binary variable per board cell; X(row, col) is an O(1) lookup.
     auto X = model.add_binary_variables(
-        n * n, [n](int row, int col) { return row * n + col; });
-        
+        std::views::cartesian_product(indices, indices));
+
     // Exactly one queen per row and per column. The inner lambda captures the
     // outer loop parameter *by value* (e.g. [&, row]) because add_constraints
     // registers the xsum expression lazily: capturing it by reference would

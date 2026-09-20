@@ -259,8 +259,6 @@ public:
 ////////////////////////////// maps::mapping_all //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// Mapping views live in mippp::maps, matching melon: `views` would shadow
-// `std::views` under the `using namespace mippp;` the examples open.
 namespace maps {
 
 namespace detail {
