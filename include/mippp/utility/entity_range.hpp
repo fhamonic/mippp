@@ -375,9 +375,6 @@ using index_key_t = typename index_key<I>::type;
 
 }  // namespace detail
 
-// The variables or constraints of one bulk addition: `count` entities with
-// contiguous ids from `first`. Coordinates or a key resolve to an entity
-// through the index; a range of variables is also a linear expression.
 namespace detail {
 
 template <typename Entity>
@@ -388,8 +385,20 @@ struct entity_from_id {
     }
 };
 
+// Out of line so that a lookup stays small enough to be inlined into the
+// loops filling constraints: with the throw inline, GCC keeps it a call.
+[[noreturn]] inline void throw_index_out_of_range() {
+    throw std::out_of_range("entity's index out of range.");
+}
+[[noreturn]] inline void throw_no_entity_for_key() {
+    throw std::out_of_range("no entity for this key.");
+}
+
 }  // namespace detail
 
+// The variables or constraints of one bulk addition: `count` entities with
+// contiguous ids from `first`. Coordinates or a key resolve to an entity
+// through the index; a range of variables is also a linear expression.
 template <typename Entity, typename Index = detail::positional_index>
 class entity_range {
 private:
@@ -429,18 +438,17 @@ public:
     constexpr auto end() const { return std::ranges::end(_entities); }
 
     constexpr Entity operator[](std::size_t i) const {
-        if(i >= size()) throw std::out_of_range("entity's index out of range.");
-        return begin()[static_cast<std::ranges::range_difference_t<ids_view>>(
-            i)];
+        if(i >= size()) detail::throw_index_out_of_range();
+        return nth(i);
     }
 
     // rows({i, j}): a braced key cannot reach the template below
     constexpr Entity operator()(const detail::index_key_t<Index> & key) const {
-        return (*this)[locate(key)];
+        return checked(locate(key));
     }
     template <typename... Args>
     constexpr Entity operator()(Args &&... args) const {
-        return (*this)[locate(std::forward<Args>(args)...)];
+        return checked(locate(std::forward<Args>(args)...));
     }
 
     constexpr auto linear_terms() const
@@ -471,14 +479,20 @@ private:
                           detail::keyed_by<Index, Args...>,
                       "these arguments are neither the coordinates this index "
                       "takes nor the parts of one of its keys.");
-        std::size_t pos;
         if constexpr(detail::positionable<Index, Args...>)
-            pos = _index.position(std::forward<Args>(args)...);
+            return _index.position(std::forward<Args>(args)...);
         else
-            pos = _index.position(
+            return _index.position(
                 typename Index::key_type(std::forward<Args>(args)...));
-        if(pos == npos) throw std::out_of_range("no entity for this key.");
-        return pos;
+    }
+    // one comparison: npos is never below size
+    constexpr Entity checked(std::size_t pos) const {
+        if(pos >= size()) detail::throw_no_entity_for_key();
+        return nth(pos);
+    }
+    constexpr Entity nth(std::size_t i) const {
+        return begin()[static_cast<std::ranges::range_difference_t<ids_view>>(
+            i)];
     }
 };
 
