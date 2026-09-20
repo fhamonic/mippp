@@ -306,7 +306,7 @@ that appeared or disappeared along the way) and states that range in its api
 class: `library_names`, the library names it opens, and `validated_versions`, the
 half-open release ranges it has been driven through the full suite on —
 `{{10}, {14}}` reads "every 10.x.y up to 13.x.y".
-[tools/compat_matrix.py](tools/compat_matrix.py) is the evidence behind those
+[misc/tools/compat_matrix.py](misc/tools/compat_matrix.py) is the evidence behind those
 ranges: it downloads published libraries, points each one at the test binary
 through `MIPPP_<key>_LIBRARY`, and renders
 [docs/solvers/compatibility.md](docs/solvers/compatibility.md). A ✅ row is what
@@ -326,13 +326,13 @@ make compat_table LIMIT=8    # ... or the 8 newest
 
 The `compat_table` target passes `--commercial`, so rows for solvers you have no
 license for will simply report that the library could not be obtained. Call
-[tools/compat_matrix.py](tools/compat_matrix.py) directly for finer control:
+[misc/tools/compat_matrix.py](misc/tools/compat_matrix.py) directly for finer control:
 `list` shows the published versions a source exposes, `run` downloads and tests
 them, `render` rebuilds the table from the cached results in `.compat-cache/`, and
 `--solvers` restricts the run to a comma-separated subset.
 
 Sources are declared in
-[tools/compat_manifest.json](tools/compat_manifest.json) — conda-forge
+[misc/tools/compat_manifest.json](misc/tools/compat_manifest.json) — conda-forge
 `linux-64` packages and manylinux wheels, both of which enumerate every
 published version over a JSON API without an account. Adding a solver or
 changing where its libraries come from is an edit to that file.
@@ -442,7 +442,7 @@ and register it in [test/CMakeLists.txt](test/CMakeLists.txt).
 Update the feature tables in [docs/assets/features_tables/](docs/assets/features_tables/) and
 the solver list in the README. If published builds of the solver are downloadable
 without an account, declare a source for it in
-[tools/compat_manifest.json](tools/compat_manifest.json) so the new backend gets a
+[misc/tools/compat_manifest.json](misc/tools/compat_manifest.json) so the new backend gets a
 row in the compatibility table.
 
 ## Submitting changes
