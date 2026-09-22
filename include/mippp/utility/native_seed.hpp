@@ -1,6 +1,8 @@
 #pragma once
 #include <algorithm>
 #include <cmath>
+#include <concepts>
+#include <cstddef>
 #include <limits>
 #include <optional>
 #include <span>

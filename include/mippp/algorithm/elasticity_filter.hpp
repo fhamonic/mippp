@@ -5,6 +5,7 @@
 #include <functional>
 #include <span>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "mippp/algorithm/deletion_filter.hpp"

@@ -95,7 +95,7 @@ public:
     ~mosek_base() = default;
 
     constexpr mosek_base(const mosek_base &) = delete;
-    constexpr mosek_base(mosek_base && other) noexcept
+    mosek_base(mosek_base && other) noexcept
         : model_base<int, double>(std::move(other))
         , MSK(other.MSK)
         , env(other.env)

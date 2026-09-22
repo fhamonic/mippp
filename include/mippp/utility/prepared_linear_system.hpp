@@ -1,6 +1,11 @@
 #pragma once
 #include <cmath>
+#include <concepts>
+#include <cstddef>
+#include <optional>
 #include <stdexcept>
+#include <string>
+#include <vector>
 #include "mippp/utility/linear_iis_model.hpp"
 #include "mippp/utility/linear_iis_types.hpp"
 

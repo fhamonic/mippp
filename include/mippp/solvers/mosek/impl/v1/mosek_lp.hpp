@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <variant>
 
 #include "mippp/infeasibility_certificate.hpp"

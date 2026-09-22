@@ -1,6 +1,12 @@
 #pragma once
+#include <algorithm>
+#include <concepts>
+#include <cstddef>
 #include <functional>
+#include <optional>
 #include <span>
+#include <stdexcept>
+#include <type_traits>
 #include <utility>
 #include <vector>
 #include "mippp/utility/prepared_linear_system.hpp"
