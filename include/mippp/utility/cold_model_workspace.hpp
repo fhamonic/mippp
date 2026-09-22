@@ -111,7 +111,7 @@ public:
         if(!detail::prepare_iis_solve(model, limits_, stats_)) return feasibility::unknown;
         ++stats_.solver_runs;
         model.solve();
-        const auto status = model.solve_status();
+        const auto status = model.get_status();
         record_solver_issue(status, stats_);
         const auto state = detail::classify_feasibility(status);
 

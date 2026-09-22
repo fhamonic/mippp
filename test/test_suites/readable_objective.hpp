@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/linear_constraint.hpp"

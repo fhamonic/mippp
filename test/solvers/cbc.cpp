@@ -6,6 +6,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(Cbc_api, cbc_api, "CBC")
+
 struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
     static void SetUpTestSuite() { construct_api("CBC"); }
 };
@@ -17,6 +19,7 @@ INSTANTIATE_TEST(Cbc, ReadableVariablesBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, MipStartTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ModifiableVariablesBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, NamedVariablesTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, NamedConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, AddColumnTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableConstraintBoundsTest, cbc_milp_test);

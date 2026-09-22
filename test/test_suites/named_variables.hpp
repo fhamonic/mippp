@@ -1,9 +1,11 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include <format>
+#include <ranges>
+#include <string>
+#include <vector>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
@@ -51,22 +53,28 @@ TYPED_TEST_P(NamedVariablesTest, add_named_variable) {
 TYPED_TEST_P(NamedVariablesTest, add_named_variables) {
     this->SkipOnLicenseError([this]() {
         auto model = this->new_model();
-        auto x = model.add_named_variables(
-            1, [](auto i) { return std::string("X") + std::to_string(i); });
-        auto y = model.add_named_variables(
-            3, [](auto i) { return std::format("Y{}", i); },
+        auto x = model.add_variables(named(std::views::iota(0, 1), [](auto i) {
+            return std::format("X{}", i);
+        }));
+        auto y = model.add_variables(
+            named(std::views::iota(0, 3),
+                  [](auto i) { return std::format("Y{}", i); }),
             {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
         ASSERT_EQ(model.num_variables(), 4);
         ASSERT_EQ(model.num_constraints(), 0);
         ASSERT_EQ(x[0].id(), 0);
         ASSERT_EQ(y[0].id(), 1);
-        ASSERT_EQ(y[1].id(), 2);
+        ASSERT_EQ(y(1).id(), 2);
         ASSERT_EQ(y[2].id(), 3);
         ASSERT_THROW(y[3], std::out_of_range);
         ASSERT_EQ(model.get_variable_name(x[0]), "X0");
         ASSERT_EQ(model.get_variable_name(y[0]), "Y0");
         ASSERT_EQ(model.get_variable_name(y[1]), "Y1");
         ASSERT_EQ(model.get_variable_name(y[2]), "Y2");
+        std::vector<std::string> keys = {"k", "kk"};
+        auto z = model.add_variables(
+            named(keys, [](const std::string & k) { return "Z_" + k; }));
+        ASSERT_EQ(model.get_variable_name(z("kk")), "Z_kk");
     });
 }
 TYPED_TEST_P(NamedVariablesTest, add_indexed_named_variables) {

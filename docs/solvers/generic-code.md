@@ -13,8 +13,8 @@ void build_assignment(Model & model, const instance & data) {
     auto X = model.add_binary_variables(
         data.n * data.n, [n = data.n](int i, int j) { return i * n + j; });
     model.set_minimization();
-    model.set_objective(xsum(data.pairs, [&](auto && p) {
-        auto && [i, j] = p; return data.cost[i][j] * X(i, j); }));
+    model.set_objective(xsum(
+        data.pairs, [&](int i, int j) { return data.cost[i][j] * X(i, j); }));
     // ...
 }
 ```
@@ -43,7 +43,7 @@ template <typename Model>
 void solve_tsp(Model & model, const instance & data);
 
 template <typename Model>
-    requires lp_model<Model> && has_dual_solution<Model> && has_add_column<Model>
+    requires lp_model<Model> && has_dual_solution<Model> && has_column_generation<Model>
 double column_generation(Model & master, const instance & data);
 ```
 
@@ -67,7 +67,7 @@ if constexpr(has_optimality_tolerance<Model>)
 
 // resolve infeasible_or_unbounded where the backend can, before recording
 if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
-record(model.solve_status());
+record(model.get_status());
 ```
 
 This is the idiom to prefer over `#ifdef`s or per-solver overloads: the feature test lives next to the feature use, and the set of backends a function supports is deduced rather than maintained by hand.

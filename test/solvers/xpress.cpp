@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(Xpress_api, xpress_api, "XPRESS")
+
 struct xpress_lp_test : public model_test<xpress_api, xpress_lp> {
     static void SetUpTestSuite() { construct_api("XPRESS"); }
 };
@@ -30,8 +32,7 @@ INSTANTIATE_TEST(Xpress_milp, ReadableVariablesBoundsTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, ModifiableVariablesBoundsTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, NamedVariablesTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, AddColumnTest, xpress_milp_test);
-// INSTANTIATE_TEST(Xpress_milp, CandidateSolutionCallbackTest,
-// xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, CandidateSolutionCallbackTest, xpress_milp_test);
 static_assert(mippp::has_candidate_solution_callback<mippp::xpress_milp>);
 static_assert(!mippp::has_lazy_constraints<
               mippp::candidate_solution_callback_handle_t<mippp::xpress_milp>,

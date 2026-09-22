@@ -59,10 +59,6 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -c tools.build:skip_test=true
       - name: Build and run the HiGHS tests
         env:
           TEST_SOURCE: highs
@@ -88,10 +84,6 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc14_c++23 -c tools.build:skip_test=true
       - name: Build and run the Clp and Cbc tests
         env:
           TEST_SOURCE: "clp;cbc"
@@ -117,10 +109,6 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/conan-profiles/clang18_c++23 -c tools.build:skip_test=true
       - name: Build and run the GLPK tests
         env:
           TEST_SOURCE: glpk
@@ -150,10 +138,6 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -s build_type=Debug -c tools.build:skip_test=true
       # Two jobs, not the runner's four: a sanitized solver file peaks at
       # 4 to 6 GB (highs.cpp 5.8 GB, cplex and gurobi 4.2 GB, GCC 15) and
       # the big ones are adjacent in build order, so four at once exceed
@@ -303,10 +287,6 @@ jobs:
           echo "${PIPX_BIN_DIR:-$HOME/.local/bin}" >> "$GITHUB_PATH"
       - name: Detect conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/conan-profiles/appleclang21_c++23 -c tools.build:skip_test=true
       # Two jobs: the Apple silicon runner has 7 GB, and a Release solver
       # file peaks at 2 to 3 GB.
       - name: Build and run the whole suite
@@ -322,10 +302,6 @@ jobs:
         run: pip install conan
       - name: Autodetect a default conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing "-pr=.github/conan-profiles/mingw15_c++26" -c tools.build:skip_test=true
       - name: Fetch HiGHS
         run: |
           Invoke-WebRequest -Uri https://github.com/ERGO-Code/HiGHS/releases/download/v1.13.0/highs-1.13.0-x86_64-windows-mit.zip -OutFile highs.zip
@@ -362,10 +338,6 @@ jobs:
         run: pip install conan
       - name: Autodetect a default conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing "-pr=.github/conan-profiles/msvc17.11_c++23" -c tools.build:skip_test=true
       - name: Fetch HiGHS
         run: |
           Invoke-WebRequest -Uri https://github.com/ERGO-Code/HiGHS/releases/download/v1.13.0/highs-1.13.0-x86_64-windows-mit.zip -OutFile highs.zip

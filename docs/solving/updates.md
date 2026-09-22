@@ -13,10 +13,11 @@ This page collects the modification operations and the guarantees around handles
 ## Bounds
 
 ```cpp
-model.set_variable_lower_bound(x, lb);   // has_modifiable_variables_bounds
+model.set_variable_lower_bound(x, lb);   // has_modifiable_variable_bounds
 model.set_variable_upper_bound(x, ub);
 
-double lb0 = model.get_variable_lower_bound(x);   // has_readable_variables_bounds
+double lb0 = model.get_variable_lower_bound(x);   // has_readable_variable_bounds
+model.set_variable_upper_bound(x, model.infinity());   // drop a side; see is_infinite()
 ```
 
 Changing bounds is the cheapest possible model update — the matrix is untouched — which makes it the right tool for:
@@ -27,7 +28,7 @@ Changing bounds is the cheapest possible model update — the matrix is untouche
 
 ## Objective
 
-`set_objective` replaces the objective, `add_objective` increments it, and `set_objective_coefficient` edits a single column — see [Objectives](../modeling/objectives.md#incremental-changes). Switching the sense (`set_maximization` / `set_minimization`) needs no other change.
+`set_objective` replaces the objective, `add_to_objective` increments it, and `set_objective_coefficient` edits a single column — see [Objectives](../modeling/objectives.md#incremental-changes). Switching the sense (`set_maximization` / `set_minimization`) needs no other change.
 
 ## Constraint rows
 

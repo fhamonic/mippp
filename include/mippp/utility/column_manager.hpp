@@ -17,6 +17,8 @@
 
 namespace mippp {
 
+namespace colgen {
+
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Column manager ////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -40,7 +42,7 @@ public:
     using in_master_entry =
         std::pair<const ColumnSeed &, const in_master_state &>;
 
-    struct emplace_columns_result {
+    struct emplace_pool_columns_result {
         std::size_t num_inserted = 0;
         std::size_t num_already_in_pool = 0;
         // pricing regenerated columns already in the master : the pricing
@@ -106,7 +108,7 @@ public:
 
     template <typename S>
         requires std::constructible_from<ColumnSeed, S &&>
-    bool emplace_column(S && seed) {
+    bool emplace_pool_column(S && seed) {
         return _columns.try_emplace(std::forward<S>(seed), in_pool_state{})
             .second;
     }
@@ -126,8 +128,8 @@ public:
     template <std::ranges::input_range R>
         requires std::constructible_from<ColumnSeed,
                                          std::ranges::range_reference_t<R>>
-    emplace_columns_result emplace_columns(R && seeds) {
-        emplace_columns_result result;
+    emplace_pool_columns_result emplace_pool_columns(R && seeds) {
+        emplace_pool_columns_result result;
         for(auto && seed : seeds) {
             auto && [it, inserted] = _columns.try_emplace(
                 std::forward<decltype(seed)>(seed), in_pool_state{});
@@ -340,5 +342,7 @@ public:
                std::views::transform(in_master_entry_proj{});
     }
 };
+
+}  // namespace colgen
 
 }  // namespace mippp

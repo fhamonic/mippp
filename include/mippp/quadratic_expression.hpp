@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <memory>
 #include <ranges>
 #include <tuple>
 #include <type_traits>
@@ -386,13 +387,65 @@ constexpr auto quadratic_expression_scalar_div(E && e, const S c_) {
 }
 
 template <quadratic_expression E1, linear_expression E2>
-constexpr auto quadratic_expression_lexpr_add(E1 && e1, E2 && e2) {
+constexpr auto quadratic_expression_linear_add(E1 && e1, E2 && e2) {
     detail::assert_compatible_qexpr_lexpr<E1, E2>();
     detail::assert_forwardable_quadratic_expressions<E1>();
     return quadratic_expression_view(
         std::forward<E1>(e1).quadratic_terms(),
         linear_expression_add(std::forward<E1>(e1).linear_part(),
                               std::forward<E2>(e2)));
+}
+
+// Quadratic terms and linear parts are two joins over the same elements, so
+// the range is walked once for each (hence forward_range, unless every linear
+// part is statically empty). Each walk produces the elements afresh and the
+// join drops them right after their part is extracted, so a part must not
+// refer to its element -- which `expression_all_t` guarantees for every
+// product of the library.
+template <std::ranges::input_range R>
+    requires quadratic_expression<std::ranges::range_reference_t<R>>
+constexpr auto quadratic_expressions_sum(R && r) {
+    using expression_t = std::ranges::range_reference_t<R>;
+    using linear_part_t = quadratic_expression_linear_part_t<expression_t>;
+    detail::assert_forwardable_quadratic_expressions<expression_t>();
+    auto view = [&r] {
+        auto v = std::views::all(std::forward<R>(r));
+        if constexpr(std::copy_constructible<decltype(v)>) {
+            return v;
+        } else {
+            // a temporary container, or a move-only function: co-owned
+            return detail::shared_view<decltype(v)>(
+                std::make_shared<decltype(v)>(std::move(v)));
+        }
+    }();
+    auto quadratic_terms_of = [](auto && e) {
+        return std::views::all(std::forward<decltype(e)>(e).quadratic_terms());
+    };
+    auto quadratic_terms = std::views::join(
+        std::views::transform(view, std::move(quadratic_terms_of)));
+    if constexpr(std::same_as<
+                     std::remove_cvref_t<linear_terms_range_t<linear_part_t>>,
+                     std::ranges::empty_view<linear_term_t<linear_part_t>>> &&
+                 statically_zero<linear_expression_constant_t<linear_part_t>>) {
+        // pure products: no linear part to join at all
+        return quadratic_expression_view(
+            std::move(quadratic_terms),
+            empty_linear_expression<
+                quadratic_expression_variable_t<expression_t>,
+                linear_expression_scalar_t<linear_part_t>>);
+    } else {
+        static_assert(std::ranges::forward_range<R>,
+                      "summing quadratic expressions with a linear part "
+                      "traverses the range twice (quadratic terms, then "
+                      "linear parts) and requires a forward_range");
+        auto linear_part_of = [](auto && e) {
+            return std::forward<decltype(e)>(e).linear_part();
+        };
+        return quadratic_expression_view(
+            std::move(quadratic_terms),
+            linear_expressions_sum(std::views::transform(
+                std::move(view), std::move(linear_part_of))));
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -480,24 +533,42 @@ template <quadratic_expression E>
 
 template <quadratic_expression QE, linear_expression LE>
 [[nodiscard]] constexpr auto operator+(QE && qe, LE && le) {
-    return quadratic_expression_lexpr_add(std::forward<QE>(qe),
-                                          std::forward<LE>(le));
+    return quadratic_expression_linear_add(std::forward<QE>(qe),
+                                           std::forward<LE>(le));
 }
 template <quadratic_expression QE, linear_expression LE>
 [[nodiscard]] constexpr auto operator+(LE && le, QE && qe) {
-    return quadratic_expression_lexpr_add(std::forward<QE>(qe),
-                                          std::forward<LE>(le));
+    return quadratic_expression_linear_add(std::forward<QE>(qe),
+                                           std::forward<LE>(le));
 }
 template <quadratic_expression QE, linear_expression LE>
 [[nodiscard]] constexpr auto operator-(QE && qe, LE && le) {
-    return quadratic_expression_lexpr_add(
+    return quadratic_expression_linear_add(
         std::forward<QE>(qe), linear_expression_negate(std::forward<LE>(le)));
 }
 template <quadratic_expression QE, linear_expression LE>
 [[nodiscard]] constexpr auto operator-(LE && le, QE && qe) {
-    return quadratic_expression_lexpr_add(
+    return quadratic_expression_linear_add(
         quadratic_expression_negate(std::forward<QE>(qe)),
         std::forward<LE>(le));
+}
+
+// Never ambiguous with the linear overloads: no library type models both
+// concepts (a product has no `linear_terms()`, a linear view no
+// `quadratic_terms()`), and a user type modeling both is rejected as such.
+template <std::ranges::input_range R>
+    requires quadratic_expression<std::ranges::range_reference_t<R>>
+[[nodiscard]] constexpr auto xsum(R && r) {
+    return quadratic_expressions_sum(std::forward<R>(r));
+}
+
+template <std::ranges::input_range R, typename F>
+    requires quadratic_expression<detail::key_invoke_result_t<
+        std::decay_t<F> &, std::ranges::range_reference_t<R>>>
+[[nodiscard]] constexpr auto xsum(R && r, F && f) {
+    return quadratic_expressions_sum(std::views::transform(
+        std::forward<R>(r),
+        detail::key_fn<std::decay_t<F>>{std::forward<F>(f)}));
 }
 
 }  // namespace operators
@@ -514,7 +585,7 @@ constexpr auto evaluate(QE && e, const VM & values_map) {
     static_assert(
         input_mapping<const VM, quadratic_expression_variable_t<QE>>,
         "MIP++: evaluate needs a values map readable by the expression's "
-        "variables; adapt raw storage or a callable with views::mapping_all "
+        "variables; adapt raw storage or a callable with maps::mapping_all "
         "or an entity_mapping.");
     using scalar = quadratic_expression_scalar_t<QE>;
     scalar acc = static_cast<scalar>(evaluate(e.linear_part(), values_map));

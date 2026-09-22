@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(Clp_api, clp_api, "CLP")
+
 struct clp_lp_test : public model_test<clp_api, clp_lp> {
     static void SetUpTestSuite() { construct_api("CLP"); }
 };
@@ -13,6 +15,7 @@ INSTANTIATE_TEST(Clp, ModifiableObjectiveTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReadableVariablesBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ModifiableVariablesBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, NamedVariablesTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, NamedConstraintsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, AddColumnTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, RangedConstraintsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReadableConstraintBoundsTest, clp_lp_test);

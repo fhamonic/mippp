@@ -14,8 +14,8 @@
 namespace mippp::iis::detail {
 
 template <typename Model>
-concept has_deletion_updates = has_modifiable_variables_bounds<Model> &&
-                               has_readable_variables_bounds<Model>;
+concept has_deletion_updates = has_modifiable_variable_bounds<Model> &&
+                               has_readable_variable_bounds<Model>;
 
 // A feasibility model, not an elastic objective: every candidate has a
 // zero-cost continuous slack. Fixed at zero it enforces the original side;
@@ -100,7 +100,7 @@ public:
         ++stats_.solver_runs;
         model_.solve();
         ++solve_count_;
-        const auto status = model_.solve_status();
+        const auto status = model_.get_status();
         record_solver_issue(status, stats_);
         return classify_feasibility(status);
     }

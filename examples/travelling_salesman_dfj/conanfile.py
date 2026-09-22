@@ -7,10 +7,10 @@ class TravellingSalesmanDfjExample(ConanFile):
     generators = "CMakeToolchain", "CMakeDeps"
 
     def requirements(self):
-        # Export MIP++ (and MELON, https://github.com/fhamonic/melon) into your
-        # Conan cache first:
+        # MELON (https://github.com/fhamonic/melon) comes from Conan Center;
+        # until MIP++ is published there too, export it into your Conan cache
+        # first:
         #   conan create <path/to/mippp> -pr=<profile> -b=missing -c tools.build:skip_test=true
-        #   conan create <path/to/melon> -pr=<profile> -b=missing -c tools.build:skip_test=true
         # then build with:
         #   conan build . -of=build -pr=<profile> -b=missing
         self.requires("mippp/1.0.0")

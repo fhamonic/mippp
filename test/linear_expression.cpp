@@ -1,4 +1,3 @@
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include <concepts>
@@ -59,6 +58,14 @@ GTEST_TEST(linear_expression_operators, xsum) {
     ASSERT_LIN_EXPR(e1 + 2 * Var(13), {{Var(3), 1.0}, {Var(13), 2.0}}, 0);
     auto e2 = xsum(vars);
     ASSERT_LIN_EXPR(2 * Var(13) + e2, {{Var(3), 1.0}, {Var(13), 2.0}}, 0);
+}
+
+GTEST_TEST(linear_expression_operators, xsum_unpacks_tuple_keys) {
+    std::vector<std::pair<int, double>> keys = {{3, 2.0}, {13, 4.0}};
+    auto e1 = xsum(keys, [](int id, double c) { return c * Var(id); });
+    ASSERT_LIN_EXPR(e1, {{Var(3), 2.0}, {Var(13), 4.0}}, 0);
+    auto e2 = xsum(keys, [](auto && p) { return p.second * Var(p.first); });
+    ASSERT_LIN_EXPR(e2, {{Var(3), 2.0}, {Var(13), 4.0}}, 0);
 }
 
 GTEST_TEST(empty_linear_expression, test) {

@@ -1,8 +1,8 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
+#include <forward_list>
 #include <functional>
 #include <ranges>
 #include <stdexcept>
@@ -20,6 +20,13 @@ template <typename T>
 struct LpModelTest : public T {
     using typename T::model_type;
     static_assert(lp_model<model_type>);
+    static_assert(constraints_range<std::vector<model_constraint_t<model_type>>,
+                                    model_type>);
+    static_assert(
+        !constraints_range<std::forward_list<model_constraint_t<model_type>>,
+                           model_type>);
+    static_assert(!constraints_range<std::vector<model_variable_t<model_type>>,
+                                     model_type>);
 };
 TYPED_TEST_SUITE_P(LpModelTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LpModelTest);
@@ -202,6 +209,23 @@ TYPED_TEST_P(LpModelTest, set_objective_distinct_variables) {
         ASSERT_EQ(model.num_constraints(), 0);
     });
 }
+TYPED_TEST_P(LpModelTest, distinct_variables_repeat_is_asserted) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        // GTEST_FLAG, not GTEST_FLAG_SET: the recipe allows gtest 1.10
+        ::testing::GTEST_FLAG(death_test_style) = "threadsafe";
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        EXPECT_DEATH(
+            model.add_constraint(distinct_variables, 2 * x + 3 * x + y <= 1),
+            "appears twice");
+        EXPECT_DEATH(
+            model.add_constraints(distinct_variables, std::views::iota(0, 1),
+                                  [&](int) { return 2 * x + 3 * x + y <= 1; }),
+            "appears twice");
+    });
+}
 TYPED_TEST_P(LpModelTest, add_constraint) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -244,6 +268,11 @@ TYPED_TEST_P(LpModelTest, add_constraints) {
         auto c = model.add_constraints(std::views::iota(0, 3), [&](auto i) {
             return (3 - i) * x + i * y <= 5;
         });
+        static_assert(
+            constraints_range<decltype(c), typename TestFixture::model_type>);
+        static_assert(std::ranges::sized_range<decltype(c)>);
+        ASSERT_EQ(c.size(), 3);
+        ASSERT_EQ(c[1].id(), 2);
         ASSERT_EQ(model.num_variables(), 2);
         ASSERT_EQ(model.num_constraints(), 4);
         ASSERT_EQ(c1.id(), 0);
@@ -318,34 +347,65 @@ TYPED_TEST_P(LpModelTest, add_opt_constraints_distinct_variables) {
         ASSERT_THROW(c(3), std::out_of_range);
     });
 }
+TYPED_TEST_P(LpModelTest, add_variables_by_key) {
+    this->SkipOnLicenseError([this]() {
+        auto model = this->new_model();
+        auto grid = model.add_variables(
+            mippp::detail::cartesian_product(std::views::iota(0, 2),
+                                             std::views::iota(0, 3)),
+            {.obj_coef = 1});
+        ASSERT_EQ(model.num_variables(), 6);
+        ASSERT_EQ(grid(1, 2).id(), 5);
+        ASSERT_EQ(grid(std::tuple{0, 1}).id(), 1);
+        ASSERT_EQ(grid[4].id(), 4);
+        ASSERT_THROW(grid(2, 0), std::out_of_range);
+        std::vector<std::string> names = {"a", "bb"};
+        auto named_keys = model.add_variables(names);
+        ASSERT_EQ(named_keys("bb").id(), 7);
+        ASSERT_THROW(named_keys("c"), std::out_of_range);
+        auto tabled = model.add_variables(
+            indexed(std::vector<int>{3, 1}, std::identity{}));
+        ASSERT_EQ(tabled(3).id(), 8);
+        ASSERT_EQ(tabled(1).id(), 9);
+        ASSERT_THROW(tabled(2), std::out_of_range);
+        // the id lambda may be generic
+        auto generic = model.add_variables(2, [](auto i) { return i - 1; });
+        ASSERT_EQ(generic(1).id(), 10);
+        ASSERT_THROW(generic(0), std::out_of_range);
+        ASSERT_EQ(model.num_variables(), 12);
+    });
+}
 TYPED_TEST_P(LpModelTest, add_constraints_by_key) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
         auto x = model.add_variable();
         auto y = model.add_variable();
+        auto cells = mippp::detail::cartesian_product(std::views::iota(0, 2),
+                                                      std::views::iota(0, 3));
         auto grid = model.add_constraints(
-            mippp::detail::cartesian_product(std::views::iota(0, 2),
-                                             std::views::iota(0, 3)),
-            [&](auto && p) {
-                auto [i, j] = p;
-                return i * x + j * y <= 5;
-            });
+            cells, [&](int i, int j) { return i * x + j * y <= 5; });
         ASSERT_EQ(model.num_constraints(), 6);
         ASSERT_EQ(grid(1, 2).id(), 5);
         ASSERT_EQ(grid(std::tuple{0, 1}).id(), 1);
         ASSERT_THROW(grid(2, 0), std::out_of_range);
+        auto grid2 = model.add_constraints(cells, [&](auto && p) {
+            auto [i, j] = p;
+            return i * x - j * y >= -5;
+        });
+        ASSERT_EQ(model.num_constraints(), 12);
+        ASSERT_EQ(grid2(1, 2).id(), 11);
         std::vector<std::string> names = {"a", "bb"};
         auto named = model.add_constraints(names, [&](const std::string & n) {
             return x + y <= static_cast<double>(n.size());
         });
-        ASSERT_EQ(named("bb").id(), 7);
+        ASSERT_EQ(named("bb").id(), 13);
         ASSERT_THROW(named("c"), std::out_of_range);
         auto tabled = model.add_constraints(
             indexed(std::vector<int>{3, 1}, std::identity{}),
             [&](int k) { return k * x <= 1; });
-        ASSERT_EQ(tabled(3).id(), 8);
-        ASSERT_EQ(tabled(1).id(), 9);
+        ASSERT_EQ(tabled(3).id(), 14);
+        ASSERT_EQ(tabled(1).id(), 15);
         ASSERT_THROW(tabled(2), std::out_of_range);
     });
 }
@@ -556,6 +616,34 @@ TYPED_TEST_P(LpModelTest, solve_lp_constraint_redundant_terms) {
         ASSERT_NEAR(solution[x3], 1.0, TEST_EPSILON);
     });
 }
+// Every row is zero once merged, from cancelling terms or a written zero,
+// through both entry points and both tag forms: only the bounds constrain
+// the optimum. Clp 1.17.x reports every column at 0 when the only elements
+// it stores are zeros, so a backend must not hand such rows to its solver.
+TYPED_TEST_P(LpModelTest, solve_lp_zero_rows) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 =
+            model.add_variable({.lower_bound = -5.0, .upper_bound = -2.0});
+        auto x2 = model.add_variable({.lower_bound = 1.0, .upper_bound = 4.0});
+        model.set_minimization();
+        model.set_objective(-0.5 * x1 + x2 - 7.0);
+        model.add_constraint(-0.5 * x1 + 0.5 * x1 <= 3);
+        model.add_constraint(distinct_variables, 0.0 * x2 >= -1);
+        model.add_constraints(
+            std::views::iota(0, 2),
+            [&](int i) { return OPT((i == 0), x1 - x1 + 0.0 * x2 == 0); },
+            [&](int) { return 2 * x2 - x2 - x2 <= 1; });
+        model.add_constraints(distinct_variables, std::views::iota(0, 1),
+                              [&](int) { return 0.0 * x1 + 0.0 * x2 >= -2; });
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), -5.0, TEST_EPSILON);
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[x1], -2.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x2], 1.0, TEST_EPSILON);
+    });
+}
 TYPED_TEST_P(LpModelTest, solve_lp_distinct_variables) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -680,16 +768,17 @@ REGISTER_TYPED_TEST_SUITE_P(
     add_zero_indexed_variables, add_indexed_variables,
     add_indexed_variables_params, add_capturing_indexed_variables,
     add_variable_and_indexed_variables, set_objective,
-    set_objective_distinct_variables, add_constraint,
-    add_constraint_distinct_variables, add_constraints,
+    set_objective_distinct_variables, distinct_variables_repeat_is_asserted,
+    add_constraint, add_constraint_distinct_variables, add_constraints,
     add_constraints_distinct_variables, add_opt_constraints,
-    add_opt_constraints_distinct_variables, add_constraints_by_key,
-    solve_empty_no_sense, solve_empty_max, solve_empty_min,
-    solve_bounded_variables_max, solve_bounded_variables_min, solve_lp,
-    solve_lp_add_constraints, solve_lp_with_objective_offset_min,
+    add_opt_constraints_distinct_variables, add_variables_by_key,
+    add_constraints_by_key, solve_empty_no_sense, solve_empty_max,
+    solve_empty_min, solve_bounded_variables_max, solve_bounded_variables_min,
+    solve_lp, solve_lp_add_constraints, solve_lp_with_objective_offset_min,
     solve_lp_with_objective_offset_max, solve_lp_set_objective_offset,
     solve_lp_objective_redundant_terms, solve_lp_constraint_redundant_terms,
-    solve_lp_distinct_variables, solve_lp_mixed_distinct_variables,
-    solve_lp_non_standard_form_max, solve_lp_non_standard_form_min);
+    solve_lp_zero_rows, solve_lp_distinct_variables,
+    solve_lp_mixed_distinct_variables, solve_lp_non_standard_form_max,
+    solve_lp_non_standard_form_min);
 
 }  // namespace mippp

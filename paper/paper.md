@@ -62,7 +62,7 @@ solver's incremental update cost.
 Beyond model construction, MIP++ exposes the facilities that decomposition and
 cutting-plane methods need: branch-and-cut callbacks with lazy constraints,
 column generation with `add_column` and a column-pool manager, dual values,
-reduced costs, MIP starts, LP basis access, and SOS and indicator constraints.
+reduced costs, MIP starts, and indicator constraints.
 Solve statuses are not flattened into a lowest-common-denominator enum: each
 backend returns a `std::variant` whose alternatives are exactly the outcomes
 that solver reports, arranged in a type hierarchy so that generic queries
@@ -123,17 +123,18 @@ versions, and reproduction instructions are in a companion repository
 
 Solver independence, in turn, makes computational studies portable:
 benchmarking Gurobi against HiGHS or SCIP is a two-line change. The
-per-backend feature matrices (duals, callbacks, MIP starts, basis access) are
-verified by a shared, backend-instantiated test suite; continuous integration
-runs it on the four open-source backends installable there (Clp, Cbc, GLPK,
-HiGHS) across GCC 14, GCC 15, Clang 18 and MinGW, and the same suites are run
-manually against the commercial backends. Because backends are loaded rather
-than linked, a generated compatibility matrix additionally records which
-released versions of each solver library the wrapper still drives correctly: 101
-published libraries across all eleven solvers, each downloaded and run through
-the full backend suite rather than assumed compatible from its version number.
-It documents real breakage — Cbc 2.10.8 and earlier abort inside the MILP
-suite — that version numbers alone would not reveal.
+per-backend feature matrices (duals, reduced costs, callbacks, MIP starts,
+column generation) are verified by a shared, backend-instantiated test suite;
+continuous integration runs it on the four open-source backends installable
+there (Clp, Cbc, GLPK, HiGHS) across GCC 14, GCC 15, Clang 18 and MinGW, and
+the same suites are run manually against the commercial backends. Because
+backends are loaded rather than linked, a generated compatibility matrix
+additionally records which released versions of each solver library the
+wrapper still drives correctly: 64 published libraries across ten of the eleven
+solvers (COPT's Python wheels ship no loadable C library), each downloaded and
+run through the full backend suite rather than assumed compatible from its
+version number. It documents real breakage — Cbc 2.10.8 and earlier abort
+inside the MILP suite — that version numbers alone would not reveal.
 
 MIP++ grew out of the author's doctoral work on optimizing the ecological
 connectivity of landscapes [@hamonic2023], where a flow-based MILP formulation
@@ -151,9 +152,10 @@ or Clang 18 in C++23 mode (GCC 15 in C++26 mode remains the primary target)
 and assumes comfort with modern C++ — ranges, concepts, and template
 diagnostics. Quadratic objectives are currently supported on HiGHS only, and
 several features useful to re-solve-heavy research code — explicit LP basis
-warm-starts, user-cut callbacks, heuristic-solution injection, and access to
-the underlying native solver handle — are on the roadmap rather than in the
-current release. For everyday one-shot modeling in Python or Julia, or for
+warm-starts, SOS constraints, user-cut callbacks, and heuristic-solution
+injection — are on the roadmap rather than in the current release; the native
+solver handle stays reachable through `native_model()` for solver-specific
+parameters. For everyday one-shot modeling in Python or Julia, or for
 constraint programming and scheduling, the mature ecosystems around gurobipy,
 JuMP, Pyomo, and OR-Tools CP-SAT remain the better choice.
 

@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(SCIP_api, scip_api, "SCIP")
+
 struct scip_milp_test : public model_test<scip_api, scip_milp> {
     static void SetUpTestSuite() { construct_api("SCIP"); }
 };

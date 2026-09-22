@@ -68,13 +68,13 @@ A MIP++ model *is* the solver's native model. There is no extraction step, so re
 The library exposes the algorithmic hooks that decomposition and cutting-plane methods need:
 
 - [**Branch-and-cut callbacks**](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) with lazy constraints — the TSP example in `examples/travelling_salesman_dfj/` adds subtour elimination cuts through a typed callback handle using the same `xsum` syntax as the main model.
-- [**Column generation**](https://fhamonic.github.io/mippp/algorithms/column-generation/) via `add_column`, dual values (`get_dual_solution`), and reduced costs (`get_reduced_costs`). A full `column_manager` framework tracks columns across pool and master states, propagates pricing events to per-column properties (reduced cost, age, basis status) through compile-time event dispatch, and provides pluggable activation/eviction strategies — all at zero runtime overhead for unused properties.
-- **MIP starts**, **SOS1/SOS2 constraints**, **indicator constraints**, and [**in-place model updates**](https://fhamonic.github.io/mippp/solving/updates/) (bound changes, coefficient changes, variable/constraint removal). When columns are evicted, solvers compact their internal arrays, invalidating external indices. MIP++ keeps user-facing variable handles stable through a bidirectional handle/native-ID map — but the map is only allocated on the first deletion; models that never remove variables pay nothing beyond a branch prediction.
+- [**Column generation**](https://fhamonic.github.io/mippp/algorithms/column-generation/) via `add_column`, dual values (`get_dual_solution`), and reduced costs (`get_reduced_costs`). A full `column_manager` framework tracks columns across pool and master states, propagates pricing events to per-column properties (reduced cost, primal value, age) through compile-time event dispatch, and provides pluggable activation/eviction strategies — all at zero runtime overhead for unused properties.
+- **MIP starts**, **indicator constraints**, and [**in-place model updates**](https://fhamonic.github.io/mippp/solving/updates/) (bound changes, coefficient changes, variable removal). When columns are evicted, solvers compact their internal arrays, invalidating external indices. MIP++ keeps user-facing variable handles stable through a bidirectional handle/native-ID map — but the map is only allocated on the first deletion; models that never remove variables pay nothing beyond a branch prediction.
 
 
 ### Solve statuses that survive the backend swap
 
-Solver-agnostic code usually hides backend-specific outcomes behind a lowest-common-denominator enum. MIP++ does the opposite: each backend's `solve_status()` returns a `std::variant` whose alternatives are exactly the statuses *that solver actually reports*. MOSEK's LP variant distinguishes `primal_and_dual_infeasible` from plain `infeasible`; Clp's only carries `optimal`, `infeasible`, and `unbounded`. Nothing is erased.
+Solver-agnostic code usually hides backend-specific outcomes behind a lowest-common-denominator enum. MIP++ does the opposite: each backend's `get_status()` returns a `std::variant` whose alternatives are exactly the statuses *that solver actually reports*. MOSEK's LP variant distinguishes `primal_and_dual_infeasible` from plain `infeasible`; Clp's carries nothing beyond `unknown` (the pre-solve state every backend starts in), `optimal`, `infeasible`, and `unbounded`. Nothing is erased.
 
 Generic queries work through the status type hierarchy: `primal_and_dual_infeasible` inherits from `infeasible`, which inherits from `infeasible_or_unbounded`. Calling `is_a<status::infeasible_or_unbounded>` matches any of them — one question, every solver. Calling `is<status::primal_and_dual_infeasible>` asks the exact question instead, and will only compile if the backend can report it. This abstraction is free at runtime — the inheritance check is resolved at compile time, so the compiler reduces it to a direct index check. ([Status and limits](https://fhamonic.github.io/mippp/solving/status-and-limits/))
 
@@ -129,7 +129,7 @@ Full tables (N=100–1000 in steps of 100), per-backend results for eight solver
 | Cbc, SCIP | | ✓ | |
 | Clp, SoPlex | ✓ | | |
 
-Per-feature support (duals, reduced costs, callbacks, MIP starts, basis access, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).
+Per-feature support (duals, reduced costs, callbacks, MIP starts, indicator constraints, variable removal, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).
 
 
 ## Is MIP++ for you?
@@ -171,7 +171,7 @@ Solver shared libraries are discovered at runtime; only the solvers you actually
 
 ## Roadmap
 
-The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, SOS/indicator constraints, in-place model updates.
+The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates.
 
 Planned, roughly by priority:
 
@@ -180,6 +180,7 @@ Planned, roughly by priority:
 | 🔴 | **LP basis warm-starts** | Concepts specified (`has_lp_basis`, `has_lp_basis_warm_start`); no backend implements `get_basis`/`set_basis` yet |
 | 🔴 | **User-cut callbacks** | For cutting-plane methods at node relaxations |
 | 🔴 | **Heuristic-solution injection** | Injecting primal solutions from within callbacks |
+| 🟠 | **SOS1/SOS2 constraints** | Concepts specified (`has_sos1_constraints`, `has_sos2_constraints`); no backend implements `add_sos1_constraint`/`add_sos2_constraint` yet |
 | 🟠 | **QP objectives beyond HiGHS** | Extend Hessian support to Gurobi, CPLEX, MOSEK, etc. |
 | 🟡 | **QCP/SOCP constraints** | Quadratically constrained programs |
 | 🟡 | **Model file I/O** | Read/write LP and MPS files |

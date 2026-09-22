@@ -256,10 +256,10 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////// views::mapping_all //////////////////////////////
+////////////////////////////// maps::mapping_all //////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-namespace views {
+namespace maps {
 
 namespace detail {
 
@@ -310,7 +310,7 @@ using mapping_all_t = decltype(mapping_all(std::declval<Map>()));
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename F>
-[[nodiscard]] constexpr auto map(F && f) {
+[[nodiscard]] constexpr auto function(F && f) {
     return mapping_owning_view<std::decay_t<F>>(
         std::decay_t<F>(std::forward<F>(f)));
 }
@@ -327,7 +327,7 @@ struct false_map : public mapping_view_base {
     }
 };
 
-struct identity_map : public mapping_view_base {
+struct identity : public mapping_view_base {
     template <typename T>
     [[nodiscard]] constexpr auto operator[](T && e) const
         noexcept(std::is_nothrow_constructible_v<std::decay_t<T>, T>) {
@@ -354,6 +354,6 @@ public:
     }
 };
 
-}  // namespace views
+}  // namespace maps
 
 }  // namespace mippp

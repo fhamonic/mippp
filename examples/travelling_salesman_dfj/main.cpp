@@ -46,9 +46,7 @@ int main() {
 
     milp_type model;
 
-    auto X =
-        model.add_binary_variables(graph.num_arcs(), [](arc a) { return a; });
-
+    auto X = model.add_binary_variables(graph.arcs());
     model.set_minimization();
     model.set_objective(xsum(
         graph.arcs(), [&](const arc & a) { return arc_length(a) * X(a); }));

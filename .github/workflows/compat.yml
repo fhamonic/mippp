@@ -31,17 +31,13 @@ jobs:
           echo "/github/home/.local/bin" >> $GITHUB_PATH
       - name: Detect conan profile
         run: conan profile detect --name=default
-      - name: Fetch Melon
-        run: |
-          git clone https://github.com/fhamonic/melon.git
-          conan create melon -u -b=missing -pr=.github/conan-profiles/gcc15_c++26 -c tools.build:skip_test=true
       # Every backend must be compiled in: the matrix only swaps the library the
       # binary dlopens, so one build serves every row.
       - name: Build the test binary
         run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26
       - name: Run the compatibility matrix
         run: |
-          python3 tools/compat_matrix.py run \
+          python3 misc/tools/compat_matrix.py run \
             --limit "${{ inputs.limit || 6 }}" \
             ${{ inputs.solvers && format('--solvers {0}', inputs.solvers) || '' }}
       - name: Upload raw results

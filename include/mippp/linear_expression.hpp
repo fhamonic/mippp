@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "mippp/detail/concat_view.hpp"
+#include "mippp/detail/invoke_key.hpp"
 #include "mippp/mapping.hpp"
 #include "mippp/utility/zero.hpp"
 
@@ -132,14 +133,52 @@ public:
     }
 };
 
-// Mirror of `std::views::all_t` at the expression level: an rvalue operand is
-// stored by value (the view takes ownership of it), a named operand is stored
-// by reference through `linear_expression_ref`.
-template <typename E>
-using expression_all_t =
-    std::conditional_t<std::is_lvalue_reference_v<E>,
-                       linear_expression_ref<std::remove_cvref_t<E>>,
-                       std::decay_t<E>>;
+// A view over a range it co-owns: unlike `ref_view` the range outlives every
+// copy of the view, unlike `owning_view` several copies can share it.
+template <std::ranges::range R>
+class shared_view : public std::ranges::view_interface<shared_view<R>> {
+private:
+    std::shared_ptr<R> _range;
+
+public:
+    constexpr explicit shared_view(std::shared_ptr<R> r) noexcept
+        : _range(std::move(r)) {}
+    [[nodiscard]] constexpr auto begin() const {
+        return std::ranges::begin(*_range);
+    }
+    [[nodiscard]] constexpr auto end() const {
+        return std::ranges::end(*_range);
+    }
+};
+
+// Owns an rvalue operand whose `linear_terms() const &` refers to its own
+// storage (a runtime_linear_expression's term vector). The ranges a product
+// derives from such an operand are consumed after the product object may be
+// gone -- an rvalue product forwarded into another operation, or an element
+// of an xsum() join -- so every derived range holds a share of the operand.
+template <linear_expression E>
+    requires const_readable_linear_terms<E> &&
+             std::is_reference_v<linear_terms_range_t<const E>>
+class shared_linear_expression {
+private:
+    using terms_t = std::remove_reference_t<linear_terms_range_t<const E>>;
+    std::shared_ptr<const E> _expression;
+
+public:
+    // by value: a const xvalue operand (`square(std::move(const_e))`) copies
+    // into the parameter instead of failing to bind `E &&`
+    constexpr explicit shared_linear_expression(E e)
+        : _expression(std::make_shared<const E>(std::move(e))) {}
+
+    [[nodiscard]] constexpr shared_view<terms_t> linear_terms() const noexcept {
+        return shared_view<terms_t>(std::shared_ptr<terms_t>(
+            _expression, std::addressof(_expression->linear_terms())));
+    }
+    [[nodiscard]] constexpr decltype(auto) constant() const
+        noexcept(noexcept(_expression->constant())) {
+        return _expression->constant();
+    }
+};
 
 }  // namespace detail
 
@@ -202,6 +241,54 @@ linear_expression_view(Terms &&, Constant)
 template <typename V, typename S>
 constexpr auto empty_linear_expression =
     linear_expression_view(std::views::empty<std::pair<V, S>>, zero);
+
+namespace detail {
+
+// A view holding a whole expression (the products) reads it through `const &`
+// after the operator that built it has returned, so how the operand is stored
+// decides what may dangle. Mirror of `std::views::all_t`:
+//  - a named operand is referenced through `linear_expression_ref`, unless
+//    it is a `linear_expression_view` (what `views::all` copies, and what the
+//    linear operators already copy) or no bigger than that pointer and
+//    trivially copyable (a variable): `[](auto v) { return v * v; }` and
+//    `auto d = x(i) - x(j); return square(d);` then stay valid;
+//  - an rvalue operand is moved into the view, or into a
+//    `shared_linear_expression` when its `const &` terms refer to its own
+//    storage, since the ranges derived from it may outlive the view.
+template <typename E>
+inline constexpr bool is_linear_expression_view_v = false;
+template <typename T, typename C>
+inline constexpr bool
+    is_linear_expression_view_v<linear_expression_view<T, C>> = true;
+
+template <typename E>
+concept value_stored_operand =
+    is_linear_expression_view_v<std::remove_cvref_t<E>> ||
+    (std::is_trivially_copyable_v<std::remove_cvref_t<E>> &&
+     sizeof(std::remove_cvref_t<E>) <= sizeof(void *));
+
+template <typename E>
+concept self_referencing_terms =
+    std::is_reference_v<linear_terms_range_t<const std::remove_cvref_t<E>>>;
+
+template <typename E>
+struct expression_all {
+    using type = std::decay_t<E>;
+};
+template <typename E>
+    requires std::is_lvalue_reference_v<E> && (!value_stored_operand<E>)
+struct expression_all<E> {
+    using type = linear_expression_ref<std::remove_cvref_t<E>>;
+};
+template <typename E>
+    requires(!std::is_lvalue_reference_v<E>) && self_referencing_terms<E>
+struct expression_all<E> {
+    using type = shared_linear_expression<std::decay_t<E>>;
+};
+template <typename E>
+using expression_all_t = typename expression_all<E>::type;
+
+}  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// Operations //////////////////////////////////
@@ -362,11 +449,12 @@ template <std::ranges::input_range R>
 }
 
 template <std::ranges::input_range R, typename F>
-    requires linear_expression<
-        std::invoke_result_t<F &, std::ranges::range_reference_t<R>>>
+    requires linear_expression<detail::key_invoke_result_t<
+        std::decay_t<F> &, std::ranges::range_reference_t<R>>>
 [[nodiscard]] constexpr auto xsum(R && r, F && f) {
-    return linear_expressions_sum(
-        std::views::transform(std::forward<R>(r), std::forward<F>(f)));
+    return linear_expressions_sum(std::views::transform(
+        std::forward<R>(r),
+        detail::key_fn<std::decay_t<F>>{std::forward<F>(f)}));
 }
 
 }  // namespace operators
@@ -450,7 +538,7 @@ constexpr auto evaluate(LE && e, const VM & values_map) {
     static_assert(
         input_mapping<const VM, linear_expression_variable_t<LE>>,
         "MIP++: evaluate needs a values map readable by the expression's "
-        "variables; adapt raw storage or a callable with views::mapping_all "
+        "variables; adapt raw storage or a callable with maps::mapping_all "
         "or an entity_mapping.");
     using scalar = linear_expression_scalar_t<LE>;
     scalar acc = static_cast<scalar>(e.constant());

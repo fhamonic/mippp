@@ -1,0 +1,268 @@
+#pragma once
+
+#include <array>
+
+#include <filesystem>
+#include <utility>
+
+#if defined(MIPPP_INCLUDE_XPRESS_HEADER) && MIPPP_INCLUDE_XPRESS_HEADER
+#include "xprs.h"
+#else
+
+namespace mippp {
+namespace xpress::impl::v1 {
+
+constexpr double XPRS_PLUSINFINITY = 1.0e+20;
+constexpr double XPRS_MINUSINFINITY = (-1.0e+20);
+
+using XPRSprob = struct xo_prob_struct *;
+
+int XPRSgetversion(char * version);
+
+int XPRSinit(const char * path);
+int XPRSfree(void);
+int XPRSgetlicerrmsg(char * buffer, int maxbytes);
+
+int XPRScreateprob(XPRSprob * p_prob);
+int XPRSdestroyprob(XPRSprob prob);
+int XPRSgetlasterror(XPRSprob prob, char * errmsg);
+
+enum ObjSense : int { XPRS_OBJ_MINIMIZE = 1, XPRS_OBJ_MAXIMIZE = -1 };
+int XPRSchgobjsense(XPRSprob prob, int objsense);
+int XPRSchgobj(XPRSprob prob, int ncols, const int colind[],
+               const double objcoef[]);
+int XPRSgetobj(XPRSprob prob, double objcoef[], int first, int last);
+
+int XPRSchgmqobj(XPRSprob prob, int ncoefs, const int objqcol1[],
+                 const int objqcol2[], const double objqcoef[]);
+
+int XPRSaddcols(XPRSprob prob, int ncols, int ncoefs, const double objcoef[],
+                const int start[], const int rowind[], const double rowcoef[],
+                const double lb[], const double ub[]);
+int XPRSchgbounds(XPRSprob prob, int nbounds, const int colind[],
+                  const char bndtype[], const double bndval[]);
+
+int XPRSgetlb(XPRSprob prob, double lb[], int first, int last);
+int XPRSgetub(XPRSprob prob, double ub[], int first, int last);
+int XPRSchgcoltype(XPRSprob prob, int ncols, const int colind[],
+                   const char coltype[]);
+
+int XPRSaddrows(XPRSprob prob, int nrows, int ncoefs, const char rowtype[],
+                const double rhs[], const double rng[], const int start[],
+                const int colind[], const double rowcoef[]);
+int XPRSchgrowtype(XPRSprob prob, int nrows, const int rowind[],
+                   const char rowtype[]);
+int XPRSchgrhs(XPRSprob prob, int nrows, const int rowind[],
+               const double rhs[]);
+
+enum IntegerAttribute : int {
+    XPRS_COLS = 1018,
+    XPRS_INPUTCOLS = 1409,
+    XPRS_ROWS = 1001,
+    XPRS_ELEMS = 1006,
+    XPRS_LPSTATUS = 1010,
+    XPRS_MIPSTATUS = 1011,
+    XPRS_STOPSTATUS = 1179
+};
+enum LPStatus : int {
+    XPRS_LP_UNSTARTED = 0,
+    XPRS_LP_OPTIMAL = 1,
+    XPRS_LP_INFEAS = 2,
+    XPRS_LP_CUTOFF = 3,
+    XPRS_LP_UNFINISHED = 4,
+    XPRS_LP_UNBOUNDED = 5,
+    XPRS_LP_CUTOFF_IN_DUAL = 6,
+    XPRS_LP_UNSOLVED = 7,
+    XPRS_LP_NONCONVEX = 8
+};
+enum MIPStatus : int {
+    XPRS_MIP_NOT_LOADED = 0,
+    XPRS_MIP_LP_NOT_OPTIMAL = 1,
+    XPRS_MIP_LP_OPTIMAL = 2,
+    XPRS_MIP_NO_SOL_FOUND = 3,
+    XPRS_MIP_SOLUTION = 4,
+    XPRS_MIP_INFEAS = 5,
+    XPRS_MIP_OPTIMAL = 6,
+    XPRS_MIP_UNBOUNDED = 7
+};
+enum STOPStatus : int {
+    XPRS_STOP_NONE = 0,
+    XPRS_STOP_TIMELIMIT = 1,
+    XPRS_STOP_CTRLC = 2,
+    XPRS_STOP_NODELIMIT = 3,
+    XPRS_STOP_ITERLIMIT = 4,
+    XPRS_STOP_MIPGAP = 5,
+    XPRS_STOP_SOLLIMIT = 6,
+    XPRS_STOP_GENERICERROR = 7,
+    XPRS_STOP_MEMORYERROR = 8,
+    XPRS_STOP_USER = 9,
+    XPRS_STOP_SOLVECOMPLETE = 10,
+    XPRS_STOP_LICENSELOST = 11,
+    XPRS_STOP_NUMERICALERROR = 13,
+    XPRS_STOP_WORKLIMIT = 14
+};
+int XPRSgetintattrib(XPRSprob prob, int attrib, int * p_value);
+int XPRSgetstrattrib(XPRSprob prob, int attrib, char * value);
+enum DoubleAttribute : int { XPRS_LPOBJVAL = 2001, XPRS_MIPOBJVAL = 2003 };
+int XPRSgetdblattrib(XPRSprob prob, int attrib, double * p_value);
+
+enum NameType : int { XPRS_NAMES_ROW = 1, XPRS_NAMES_COLUMN = 2 };
+int XPRSaddnames(XPRSprob prob, int type, const char names[], int first,
+                 int last);
+int XPRSgetnamelist(XPRSprob prob, int type, char names[], int maxbytes,
+                    int * p_nbytes, int first, int last);
+
+int XPRSlpoptimize(XPRSprob prob, const char * flags);
+int XPRSmipoptimize(XPRSprob prob, const char * flags);
+
+int XPRSgetsolution(XPRSprob prob, int * status, double x[], int first,
+                    int last);
+int XPRSgetcallbacksolution(XPRSprob prob, int * p_available, double x[],
+                            int first, int last);
+int XPRSgetduals(XPRSprob prob, int * status, double duals[], int first,
+                 int last);
+int XPRSgetredcosts(XPRSprob prob, int * status, double djs[], int first,
+                    int last);
+
+enum DblCtrlPar : int {
+    XPRS_FEASTOL = 7003,
+    XPRS_MIPTOL = 7009,
+    XPRS_TIMELIMIT = 7158
+};
+int XPRSsetdblcontrol(XPRSprob prob, int control, double value);
+int XPRSgetdblcontrol(XPRSprob prob, int control, double * p_value);
+
+int XPRSaddmipsol(XPRSprob prob, int length, const double solval[],
+                  const int colind[], const char * name);
+
+int XPRSaddcbpreintsol(XPRSprob prob,
+                       void (*preintsol)(XPRSprob cbprob, void * cbdata,
+                                         int soltype, int * p_reject,
+                                         double * p_cutoff),
+                       void * data, int priority);
+int XPRSremovecbpreintsol(XPRSprob prob,
+                          void (*preintsol)(XPRSprob cbprob, void * cbdata,
+                                            int soltype, int * p_reject,
+                                            double * p_cutoff),
+                          void * data);
+int XPRSaddcboptnode(XPRSprob prob,
+                     void (*optnode)(XPRSprob cbprob, void * cbdata,
+                                     int * p_infeasible),
+                     void * data, int priority);
+int XPRSremovecboptnode(XPRSprob prob,
+                        void (*optnode)(XPRSprob cbprob, void * cbdata,
+                                        int * p_infeasible),
+                        void * data);
+
+int XPRSaddcuts(XPRSprob prob, int ncuts, const int cuttype[],
+                const char rowtype[], const double rhs[], const int start[],
+                const int colind[], const double cutcoef[]);
+int XPRSloaddelayedrows(XPRSprob prob, int nrows, const int rowind[]);
+
+}  // namespace xpress::impl::v1
+}  // namespace mippp
+#endif
+
+#include "mippp/detail/dynamic_library.hpp"
+
+#include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
+
+namespace mippp {
+namespace xpress::impl::v1 {
+
+#define XPRESS_FUNCTIONS(F)                         \
+    F(XPRSgetversion, getversion)                   \
+    F(XPRSinit, init)                               \
+    F(XPRSfree, free)                               \
+    F(XPRSgetlicerrmsg, getlicerrmsg)               \
+    F(XPRScreateprob, createprob)                   \
+    F(XPRSdestroyprob, destroyprob)                 \
+    F(XPRSgetlasterror, getlasterror)               \
+    F(XPRSchgobjsense, chgobjsense)                 \
+    F(XPRSchgobj, chgobj)                           \
+    F(XPRSgetobj, getobj)                           \
+    F(XPRSchgmqobj, chgmqobj)                       \
+    F(XPRSaddcols, addcols)                         \
+    F(XPRSchgbounds, chgbounds)                     \
+    F(XPRSgetlb, getlb)                             \
+    F(XPRSgetub, getub)                             \
+    F(XPRSchgcoltype, chgcoltype)                   \
+    F(XPRSaddrows, addrows)                         \
+    F(XPRSchgrowtype, chgrowtype)                   \
+    F(XPRSchgrhs, chgrhs)                           \
+    F(XPRSgetintattrib, getintattrib)               \
+    F(XPRSgetstrattrib, getstrattrib)               \
+    F(XPRSgetdblattrib, getdblattrib)               \
+    F(XPRSaddnames, addnames)                       \
+    F(XPRSgetnamelist, getnamelist)                 \
+    F(XPRSlpoptimize, lpoptimize)                   \
+    F(XPRSmipoptimize, mipoptimize)                 \
+    F(XPRSgetsolution, getsolution)                 \
+    F(XPRSgetcallbacksolution, getcallbacksolution) \
+    F(XPRSgetduals, getduals)                       \
+    F(XPRSgetredcosts, getredcosts)                 \
+    F(XPRSsetdblcontrol, setdblcontrol)             \
+    F(XPRSgetdblcontrol, getdblcontrol)             \
+    F(XPRSaddmipsol, addmipsol)                     \
+    F(XPRSaddcbpreintsol, addcbpreintsol)           \
+    F(XPRSremovecbpreintsol, removecbpreintsol)     \
+    F(XPRSaddcboptnode, addcboptnode)               \
+    F(XPRSremovecboptnode, removecboptnode)         \
+    F(XPRSaddcuts, addcuts)                         \
+    F(XPRSloaddelayedrows, loaddelayedrows)
+
+#define DECLARE_XPRESS_FUNCTIONS(FULL, SHORT) \
+    using SHORT##_fun_t = decltype(FULL);     \
+    SHORT##_fun_t * const SHORT;
+#define CONSTRUCT_XPRESS_FUNCTIONS(FULL, SHORT) \
+    , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
+
+class xpress_api : public detail::solver_api<xpress_api> {
+    friend detail::solver_api<xpress_api>;
+
+public:
+    XPRESS_FUNCTIONS(DECLARE_XPRESS_FUNCTIONS)
+
+    static constexpr const char * key = "XPRESS";
+    static constexpr std::array library_names = {"xprs"};
+    // the releases driven through the full suite, see solver_version_range
+    static constexpr std::array validated_versions = {
+        solver_version_range{{45, 1}, {47, 2}}};
+
+private:
+    explicit xpress_api(detail::dynamic_library && library)
+        : solver_api(std::move(library))
+              XPRESS_FUNCTIONS(CONSTRUCT_XPRESS_FUNCTIONS) {
+        if(init("")) {
+            char msg[512];
+            getlicerrmsg(msg, 512);
+            throw license_error(msg);
+        }
+        char text[16];  // "45.01.02"
+        getversion(text);
+        check_library_version(text);
+    }
+
+public:
+    // no XPRSfree: instances are immortal (see solver_api) and the licence
+    // is returned at process exit
+
+    void _check(XPRSprob prob, const int error) const {
+        if(error == 0) return;
+        char errmsg[512];
+        getlasterror(prob, errmsg);
+        for(int license_err_code :
+            {36, 52, 73, 107, 120, 129, 293, 319, 352, 392, 395, 717, 1054,
+             1081, 1090, 1128, 1148, 1151, 1152})
+            if(error == license_err_code) throw license_error(errmsg);
+        throw solver_error(errmsg);
+    }
+};
+
+#undef CONSTRUCT_XPRESS_FUNCTIONS
+#undef DECLARE_XPRESS_FUNCTIONS
+#undef XPRESS_FUNCTIONS
+
+}  // namespace xpress::impl::v1
+}  // namespace mippp

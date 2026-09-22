@@ -50,7 +50,9 @@ The first model of a backend constructed in a process locates and loads the solv
 
     Recognized keys: `GUROBI`, `CPLEX`, `XPRESS`, `MOSEK`, `COPT`, `SCIP`, `HIGHS`, `SOPLEX`, `CLP`, `CBC`, `GLPK`.
 
-3. **The dynamic loader's search directories** — `LD_LIBRARY_PATH` and the system library directories on Linux (with `/etc/ld.so.conf` honored), `DYLD_LIBRARY_PATH` and the usual locations on macOS, `PATH` on Windows. The conventional decorated name (`libhighs.so`) is preferred; if only version-suffixed variants exist (`libhighs.so.1.10.0`), the lexicographically greatest filename — usually the highest version — is picked. The result of this search is remembered for the rest of the process.
+3. **The dynamic loader's search directories** — `LD_LIBRARY_PATH` and the system library directories on Linux (with `/etc/ld.so.conf` honored), `DYLD_LIBRARY_PATH` and the usual locations on macOS, `PATH` on Windows. The first directory holding any of the backend's library names wins, as it would for the loader; when a backend drives several releases (`libgurobi130.so`, `libgurobi120.so`, …) and a directory holds more than one, the newest is taken. The conventional decorated name (`libhighs.so`) is preferred; if only version-suffixed variants exist (`libhighs.so.1.10.0`), the lexicographically greatest filename — usually the highest version — is picked. The result of this search is remembered for the rest of the process.
+
+Whichever way the library was found, the backend then checks the release it reports against the ranges it has been validated on (the [compatibility table](../solvers/compatibility.md)) and warns on `stderr` when it lies outside them; the library is used regardless, and `MIPPP_NO_VERSION_WARNING` silences the warning.
 
 Solvers installed through the system package manager (e.g. `apt install coinor-clp coinor-libclp-dev libglpk-dev`) are found without any configuration. Commercial and source-built solvers usually live outside the system directories, so export their locations from your shell profile, adjusting the base paths to your installation:
 

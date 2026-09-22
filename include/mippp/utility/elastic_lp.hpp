@@ -73,7 +73,7 @@ elastic_trial read_elastic_trial(
     Model & model,
     const std::vector<std::pair<std::size_t, model_variable_t<Model>>> & slacks,
     Scalar tolerance, work_statistics & stats, const std::vector<bool> * fixed = nullptr) {
-    const auto status_value = model.solve_status();
+    const auto status_value = model.get_status();
     record_solver_issue(status_value, stats);
     const auto state = classify_feasibility(status_value);
     if(state != feasibility::feasible) return {state, {}};
@@ -119,7 +119,7 @@ elastic_trial solve_elastic_lp(
 // state. Actual reuse depends on the solver and algorithm; a MIP wrapper may
 // restart internally even though this model contains only continuous variables.
 template <typename Model, typename Scalar>
-    requires has_modifiable_variables_bounds<Model>
+    requires has_modifiable_variable_bounds<Model>
 class elastic_lp_workspace {
     Model model_;
     std::vector<std::pair<std::size_t, model_variable_t<Model>>> slacks_;

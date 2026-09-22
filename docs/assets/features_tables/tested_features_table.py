@@ -47,11 +47,13 @@ formated_test_names = [
     ("ModifiableObjectiveTest", "Increment objective"),
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
     ("NamedVariablesTest", "Named variables"),
+    ("NamedConstraintsTest", "Named constraints"),
     ("LpStatusTest", "LP status"),
     ("AddColumnTest", "Add column"),
     ("RemoveVariableTest", "Remove variable"),
     ("DualSolutionTest", "Dual solution"),
     ("ReducedCostsTest", "Reduced costs"),
+    ("ColumnManagerTest", "Column manager"),
     ("CuttingStockTest", "Cutting stock example"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),
     ("LazyConstraintsTest", "Lazy constraints"),
@@ -59,7 +61,7 @@ formated_test_names = [
     ("TimeLimitTest", "Time limit"),
     ("MipStartTest", "MIP start"),
     ("SudokuTest", "Sudoku example"),
-    ("FuzzyTest", "Fuzzing tested"),
+    ("LpFuzzyTest", "Fuzzing tested"),
 ]
 
 

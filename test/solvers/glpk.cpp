@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(GLPK_api, glpk_api, "GLPK")
+
 struct glpk_lp_test : public model_test<glpk_api, glpk_lp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
 };

@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -220,7 +219,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             auto end = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<seconds>(end - start);
 
-            return std::make_pair(duration, model.solve_status());
+            return std::make_pair(duration, model.get_status());
         };
 
         constexpr seconds limit{1.0};
@@ -237,7 +236,7 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             ASSERT_LE(solve_time.count(), (limit + overshoot).count())
                 << "with " << num_items << " items";
             if(solve_time < 0.9 * limit) continue;
-            if(++interrupted_solves == 2) {
+            if(++interrupted_solves == 3) {
                 ASSERT_TRUE(is_a<status::time_limit>(result.second));
                 return;
             }

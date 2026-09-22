@@ -72,7 +72,7 @@ template <linear_policy Policy = {}, typename Factory, std::floating_point Scala
     diagnostics.time_limit_seconds = config.limits.time_limit.count();
     diagnostics.deadline = config.limits.deadline;
     diagnostics.deletion_reuse_supported = detail::has_deletion_updates<Model>;
-    diagnostics.elastic_reuse_supported = has_modifiable_variables_bounds<Model>;
+    diagnostics.elastic_reuse_supported = has_modifiable_variable_bounds<Model>;
     diagnostics.solver_time_limit_supported = has_time_limit<Model> &&
         requires(Model & model, std::chrono::duration<double> t) { model.set_time_limit(t); };
     if constexpr(Policy.native_seed) diagnostics.native_seed = original_mip ? seed_outcome::integer_model :
@@ -207,7 +207,7 @@ template <linear_policy Policy = {}, typename Factory, std::floating_point Scala
                 const auto filter_opts = budget.remaining(config.elastic.max_solves);
                 auto seed = [&] {
                     if constexpr(Policy.elasticity == elasticity_strategy::reuse &&
-                                 has_modifiable_variables_bounds<Model>) {
+                                 has_modifiable_variable_bounds<Model>) {
                         // Lazy construction: a stopped filter never loads a solver.
                         std::optional<detail::elastic_lp_workspace<Model, Scalar>> workspace;
                         auto retained_oracle = [&](std::span<const std::size_t> hard) {

@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(COPT_api, copt_api, "COPT")
+
 struct copt_lp_test : public model_test<copt_api, copt_lp> {
     static void SetUpTestSuite() { construct_api("COPT"); }
 };

@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(CPLEX_api, cplex_api, "CPLEX")
+
 struct cplex_lp_test : public model_test<cplex_api, cplex_lp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
 };

@@ -78,7 +78,7 @@ Every field is optional, with one subtlety. A bare `add_variable()` creates the 
 
 MILP model classes (`highs_milp`, `gurobi_milp`, …) additionally provide `add_integer_variable(s)` and `add_binary_variable(s)`, as well as `set_integer` / `set_binary` / `set_continuous` to change a variable's type afterwards.
 
-Variables are usually created in bulk with `add_variables(count, id_lambda)`, which is where MIP++'s lambda-indexing shines — that is the subject of [Variables and index sets](../modeling/variables.md).
+Variables are usually created in bulk over a range of keys with `add_variables(keys)` — or, when the keys are not worth materialising, with `add_variables(count, id_lambda)` — which is where MIP++'s indexing shines — that is the subject of [Variables and index sets](../modeling/variables.md).
 
 ## Objective and constraints
 
@@ -104,13 +104,13 @@ double v1  = sol[x1];
 
 ```cpp
 model.solve();
-const auto & r = model.solve_status();
+const auto & r = model.get_status();
 if(is_a<status::optimal>(r))         { /* ... */ }
 else if(is_a<status::infeasible>(r)) { /* ... */ }
 else if(is_a<status::unbounded>(r))  { /* ... */ }
 ```
 
-`solve_status()` returns a `std::variant` of tag types organized in a hierarchy, and `is_a` tests a whole branch of it. (The full hierarchy, time limits, tolerances and the rest are covered in [Status, limits and tolerances](../solving/status-and-limits.md).)
+`get_status()` returns a `std::variant` of tag types organized in a hierarchy, and `is_a` tests a whole branch of it. (The full hierarchy, time limits, tolerances and the rest are covered in [Status, limits and tolerances](../solving/status-and-limits.md).)
 
 LP backends supporting dual solutions expose them the same way, indexed by constraint handles:
 

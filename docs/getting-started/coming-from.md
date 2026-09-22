@@ -64,14 +64,14 @@ If you already write models in Python or Julia, almost everything transfers: MIP
 | :--- | :--- | :--- | :--- | :--- |
 | create a model | `gp.Model()` | `Model(Opt)` | `LpProblem()` | `highs_milp model(api);` |
 | one variable | `addVar(ub=3)` | `@variable(m, x <= 3)` | `LpVariable("x", upBound=3)` | `add_variable({.lower_bound=0, .upper_bound=3})` |
-| indexed variables | `addVars(n, m)` | `@variable(m, x[1:n,1:m])` | `LpVariable.dicts` | `add_variables(n*m, [m](int i,int j){return i*m+j;})` |
+| indexed variables | `addVars(n, m)` | `@variable(m, x[1:n,1:m])` | `LpVariable.dicts` | `add_variables(cartesian_product(iota(0,n), iota(0,m)))` or `add_variables(n*m, [m](int i,int j){return i*m+j;})` |
 | binary / integer | `vtype=GRB.BINARY` | `Bin` / `Int` | `cat="Binary"` | `add_binary_variables`, `add_integer_variables` |
 | sum over a set | `quicksum(...)` | `sum(...)` | `lpSum(...)` | `xsum(range, lambda)` |
 | objective | `setObjective` | `@objective` | `prob += expr` | `set_objective` + `set_maximization` |
 | one constraint | `addConstr` | `@constraint` | `prob += lhs <= rhs` | `add_constraint(lhs <= rhs)` |
 | constraint family | `addConstrs(... for i in I)` | `@constraint(m, [i in I], ...)` | loop | `add_constraints(I, generator)` |
 | solve | `optimize()` | `optimize!` | `solve()` | `solve()` |
-| status | `model.Status` | `termination_status` | `LpStatus` | `is_a<status::optimal>(model.solve_status())` |
+| status | `model.Status` | `termination_status` | `LpStatus` | `is_a<status::optimal>(model.get_status())` |
 | a value | `x.X` | `value(x)` | `x.varValue` | `sol[x]` after `auto sol = model.get_solution();` |
 | dual | `constr.Pi` | `dual(c)` | `c.pi` | `duals[c]` after `get_dual_solution()` |
 | reduced cost | `x.RC` | `reduced_cost(x)` | `x.dj` | `rc[x]` after `get_reduced_costs()` |
@@ -119,7 +119,7 @@ There is no `solver=` argument at solve time. The backend appears in an include 
 
 ### 6. Not everything is there yet
 
-MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, IIS-based infeasibility diagnosis, solution pools, native multi-objective, quadratic *constraints*, and logging control. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names-assigned-lazily) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
+MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, IIS-based infeasibility diagnosis, solution pools, native multi-objective, quadratic *constraints*, and logging control. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
 
 ## What you gain in exchange
 

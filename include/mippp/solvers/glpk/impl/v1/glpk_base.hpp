@@ -1,0 +1,406 @@
+#pragma once
+
+#include <cstddef>
+#include <limits>
+#include <optional>
+#include <ranges>
+#include <string>
+#include <type_traits>
+#include <utility>
+
+#include "mippp/detail/invoke_key.hpp"
+#include "mippp/linear_constraint.hpp"
+#include "mippp/linear_expression.hpp"
+#include "mippp/model_concepts.hpp"
+#include "mippp/model_entities.hpp"
+
+#include "mippp/solvers/glpk/impl/v1/glpk_api.hpp"
+#include "mippp/solvers/model_base.hpp"
+
+namespace mippp {
+namespace glpk::impl::v1 {
+
+class glpk_base : protected model_base<int, double> {
+protected:
+    const glpk_api * glp;
+    glp_prob * model;
+    double objective_offset;
+
+    static constexpr int constraint_sense_to_glp_row_type(
+        constraint_sense rel) {
+        if(rel == constraint_sense::less_equal) return GLP_UP;
+        if(rel == constraint_sense::equal) return GLP_FX;
+        return GLP_LO;
+    }
+    // GLPK arrays are 1-based: slot 0 is a dummy, so the caches keep one
+    // element and every length passed to glp_set_mat_* is size() - 1.
+    // Resizing to 0 here, as model_base does, makes GLPK read past the array.
+    void _reset_cache() {
+        tmp_indices.resize(1);
+        tmp_scalars.resize(1);
+    }
+    template <std::ranges::range Entries>
+    void _register_raw_entries(Entries && entries) {
+        _begin_distinct_check();
+        for(auto && [entity, coef] : entries) {
+            _check_distinct(entity.id());
+            tmp_indices.emplace_back(entity.id() + 1);
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+    template <std::ranges::range Entries>
+    void _register_coalescing_entries(Entries && entries) {
+        ++register_count;
+        for(auto && [entity, coef] : entries) {
+            const int id = entity.id();
+            auto & p = *(tmp_entry_index_cache.data() + id);
+            if(p.first == register_count) {
+                tmp_scalars[p.second] += static_cast<scalar>(coef);
+                continue;
+            }
+            p = std::make_pair(register_count, tmp_indices.size());
+            tmp_indices.emplace_back(id + 1);
+            tmp_scalars.emplace_back(coef);
+        }
+    }
+
+public:
+    // the anchor model_variable_params_t deduces from
+    using model_base<int, double>::default_variable_params;
+    double infinity() const noexcept {
+        return std::numeric_limits<double>::max();
+    }
+    using model_base<int, double>::is_infinite;
+
+    [[nodiscard]] explicit glpk_base(const glpk_api & api)
+        : model_base<int, double>()
+        , glp(&api)
+        , model(glp->create_prob())
+        , objective_offset(0.0) {}
+    ~glpk_base() {
+        if(model) glp->delete_prob(model);
+    }
+
+    constexpr glpk_base(const glpk_base &) = delete;
+    constexpr glpk_base(glpk_base && other) noexcept
+        : model_base<int, double>(std::move(other))
+        , glp(other.glp)
+        , model(other.model)
+        , objective_offset(other.objective_offset) {
+        other.model = nullptr;
+    }
+
+    constexpr glpk_base & operator=(const glpk_base &) = delete;
+    constexpr glpk_base & operator=(glpk_base && other) = delete;
+
+    std::size_t num_variables() {
+        return static_cast<std::size_t>(glp->get_num_cols(model));
+    }
+    std::size_t num_constraints() {
+        return static_cast<std::size_t>(glp->get_num_rows(model));
+    }
+    std::size_t num_nonzeros() {
+        return static_cast<std::size_t>(glp->get_num_nz(model));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// Native handles /////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+public:
+    const glpk_api & native_api() const noexcept { return *glp; }
+    glp_prob * native_model() const noexcept { return model; }
+    int native_id(variable v) const noexcept { return v.id() + 1; }
+    int native_id(constraint c) const noexcept { return c.id() + 1; }
+
+public:
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Objective ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_maximization() { glp->set_obj_dir(model, GLP_MAX); }
+    void set_minimization() { glp->set_obj_dir(model, GLP_MIN); }
+
+    void set_objective_offset(double constant) { objective_offset = constant; }
+    void set_objective(linear_expression auto && le) {
+        auto num_vars = static_cast<int>(num_variables());
+        for(int var = 0; var < num_vars; ++var) {
+            glp->set_obj_coef(model, var + 1, 0.0);
+        }
+        for(auto && [var, coef] : le.linear_terms()) {
+            glp->set_obj_coef(model, var.id() + 1,
+                              glp->get_obj_coef(model, var.id() + 1) + coef);
+        }
+        set_objective_offset(le.constant());
+    }
+    template <linear_expression LE>
+    void set_objective(distinct_variables_t, LE && le) {
+        set_objective(std::forward<LE>(le));
+    }
+    void add_to_objective(linear_expression auto && le) {
+        for(auto && [var, coef] : le.linear_terms()) {
+            glp->set_obj_coef(model, var.id() + 1,
+                              glp->get_obj_coef(model, var.id() + 1) + coef);
+        }
+        set_objective_offset(get_objective_offset() + le.constant());
+    }
+    template <linear_expression LE>
+    void add_to_objective(distinct_variables_t, LE && le) {
+        add_to_objective(std::forward<LE>(le));
+    }
+    double get_objective_offset() { return objective_offset; }
+    auto get_objective() {
+        return linear_expression_view(
+            std::views::transform(
+                std::views::iota(index{0}, static_cast<index>(num_variables())),
+                [this](auto i) {
+                    return std::make_pair(variable(i),
+                                          glp->get_obj_coef(model, i + 1));
+                }),
+            get_objective_offset());
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Variables ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+protected:
+    // glp_get_col_lb/ub report a missing side as -/+DBL_MAX, and glp_simplex
+    // trusts the column type over the values: a GLP_DB column with ub =
+    // DBL_MAX is bounded there (an unbounded LP then solves to 1.8e308 and
+    // reports optimal), and GLP_DB with lb == ub is refused as GLP_EBOUND.
+    // So the type is chosen from which sides are finite, as _add_variable
+    // does from the optionals.
+    void _set_col_bnds(int col, double lb, double ub) {
+        const bool has_lb = lb > std::numeric_limits<double>::lowest();
+        const bool has_ub = ub < std::numeric_limits<double>::max();
+        if(has_lb && has_ub) {
+            glp->set_col_bnds(model, col, (lb == ub) ? GLP_FX : GLP_DB, lb, ub);
+        } else if(has_lb) {
+            glp->set_col_bnds(model, col, GLP_LO, lb, 0.0);
+        } else if(has_ub) {
+            glp->set_col_bnds(model, col, GLP_UP, 0.0, ub);
+        } else {
+            glp->set_col_bnds(model, col, GLP_FR, 0.0, 0.0);
+        }
+    }
+    inline void _add_variable(const int & var_id,
+                              const variable_params & params, int type) {
+        glp->add_cols(model, 1);
+        if(params.obj_coef != 0.0) {
+            glp->set_obj_coef(model, var_id + 1, params.obj_coef);
+        }
+        if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
+            double lb = params.lower_bound.value();
+            double ub = params.upper_bound.value();
+            glp->set_col_bnds(model, var_id + 1, (lb == ub) ? GLP_FX : GLP_DB,
+                              lb, ub);
+        } else if(params.lower_bound.has_value()) {
+            glp->set_col_bnds(model, var_id + 1, GLP_LO,
+                              params.lower_bound.value(), 0.0);
+        } else if(params.upper_bound.has_value()) {
+            glp->set_col_bnds(model, var_id + 1, GLP_UP, 0.0,
+                              params.upper_bound.value());
+        } else {
+            glp->set_col_bnds(model, var_id + 1, GLP_FR, 0.0, 0.0);
+        }
+        if(type != GLP_CV) {
+            glp->set_col_kind(model, var_id + 1, type);
+        }
+    }
+    inline void _add_variables(std::size_t offset, std::size_t count,
+                               const variable_params & params, int type) {
+        if(count == 0u) return;
+        glp->add_cols(model, static_cast<int>(count));
+        if(auto obj = params.obj_coef; obj != 0.0) {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp->set_obj_coef(model, static_cast<int>(i), obj);
+        }
+        if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
+            double lb = params.lower_bound.value();
+            double ub = params.upper_bound.value();
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp->set_col_bnds(model, static_cast<int>(i),
+                                  (lb == ub) ? GLP_FX : GLP_DB, lb, ub);
+        } else if(params.lower_bound.has_value()) {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp->set_col_bnds(model, static_cast<int>(i), GLP_LO,
+                                  params.lower_bound.value(), 0.0);
+        } else if(params.upper_bound.has_value()) {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp->set_col_bnds(model, static_cast<int>(i), GLP_UP, 0.0,
+                                  params.upper_bound.value());
+        } else {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp->set_col_bnds(model, static_cast<int>(i), GLP_FR, 0.0, 0.0);
+        }
+        if(type != GLP_CV) {
+            for(std::size_t i = offset + 1; i <= offset + count; ++i)
+                glp->set_col_kind(model, static_cast<int>(i), type);
+        }
+    }
+
+public:
+    friend model_base<int, double>;
+    using model_base<int, double>::add_variable;
+    using model_base<int, double>::add_variables;
+    using model_base<int, double>::add_named_variable;
+    using model_base<int, double>::add_named_variables;
+
+private:
+    std::size_t _new_variables(std::size_t count,
+                               const variable_params & params,
+                               variable_kind kind) {
+        const std::size_t offset = num_variables();
+        _add_variables(offset, count, params,
+                       kind == variable_kind::continuous ? GLP_CV
+                       : kind == variable_kind::integer  ? GLP_IV
+                                                         : GLP_BV);
+        return offset;
+    }
+
+private:
+    template <typename ER>
+    inline variable _add_column(ER && entries, const variable_params & params) {
+        const int var_id = static_cast<int>(num_variables());
+        _add_variable(var_id, params, GLP_CV);
+        _reset_cache();
+        _register_raw_entries(entries);
+        glp->set_mat_col(model, var_id + 1,
+                         static_cast<int>(tmp_indices.size()) - 1,
+                         tmp_indices.data(), tmp_scalars.data());
+        return variable(var_id);
+    }
+
+public:
+    template <std::ranges::range ER>
+    variable add_column(
+        ER && entries, const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+    variable add_column(
+        std::initializer_list<std::pair<constraint, scalar>> entries,
+        const variable_params params = default_variable_params) {
+        return _add_column(entries, params);
+    }
+
+    void set_objective_coefficient(variable v, double c) {
+        glp->set_obj_coef(model, v.id() + 1, c);
+    }
+    void set_variable_lower_bound(variable v, double lb) {
+        _set_col_bnds(v.id() + 1, lb, get_variable_upper_bound(v));
+    }
+    void set_variable_upper_bound(variable v, double ub) {
+        _set_col_bnds(v.id() + 1, get_variable_lower_bound(v), ub);
+    }
+    void set_variable_name(variable v, const std::string & name) {
+        glp->set_col_name(model, v.id() + 1, name.c_str());
+    }
+
+    double get_objective_coefficient(variable v) {
+        return glp->get_obj_coef(model, v.id() + 1);
+    }
+    double get_variable_lower_bound(variable v) {
+        return glp->get_col_lb(model, v.id() + 1);
+    }
+    double get_variable_upper_bound(variable v) {
+        return glp->get_col_ub(model, v.id() + 1);
+    }
+    std::string get_variable_name(variable v) {
+        // glp_get_col_name returns NULL for a column that was never named,
+        // and std::string(nullptr) is undefined behaviour
+        const char * name = glp->get_col_name(model, v.id() + 1);
+        return name != nullptr ? std::string(name) : std::string();
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////// Constraints ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    template <bool distinct, linear_constraint LC>
+    void _add_constraint(const int & constr_id, LC && lc) {
+        glp->add_rows(model, 1);
+        _reset_cache();
+        if constexpr(distinct) {
+            _register_raw_entries(lc.linear_terms());
+        } else {
+            _register_coalescing_entries(lc.linear_terms());
+        }
+        glp->set_mat_row(model, constr_id + 1,
+                         static_cast<int>(tmp_indices.size()) - 1,
+                         tmp_indices.data(), tmp_scalars.data());
+        const double b = lc.rhs();
+        glp->set_row_bnds(model, constr_id + 1,
+                          constraint_sense_to_glp_row_type(lc.sense()), b, b);
+    }
+
+public:
+    template <linear_constraint LC>
+    constraint add_constraint(LC && lc) {
+        tmp_entry_index_cache.resize(num_variables());
+        int constr_id = static_cast<int>(num_constraints());
+        _add_constraint<false>(constr_id, std::forward<LC>(lc));
+        return constraint(constr_id);
+    }
+    template <linear_constraint LC>
+    constraint add_constraint(distinct_variables_t, LC && lc) {
+        tmp_entry_index_cache.resize(num_variables());
+        int constr_id = static_cast<int>(num_constraints());
+        _add_constraint<true>(constr_id, std::forward<LC>(lc));
+        return constraint(constr_id);
+    }
+
+private:
+    template <bool distinct, typename Key, typename LastConstrLambda>
+        requires linear_constraint<
+            detail::key_invoke_result_t<LastConstrLambda &, const Key &>>
+    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+                                      LastConstrLambda & lc_lambda) {
+        _add_constraint<distinct>(constr_id,
+                                  detail::invoke_key(lc_lambda, key));
+    }
+    template <bool distinct, typename Key, typename OptConstrLambda,
+              typename... Tail>
+        requires detail::optional_type<detail::key_invoke_result_t<
+                     OptConstrLambda &, const Key &>> &&
+                 linear_constraint<
+                     detail::optional_type_value_t<detail::key_invoke_result_t<
+                         OptConstrLambda &, const Key &>>>
+    void _add_first_valued_constraint(const int & constr_id, const Key & key,
+                                      OptConstrLambda & opt_lc_lambda,
+                                      Tail &... tail) {
+        if(const auto & opt_lc = detail::invoke_key(opt_lc_lambda, key)) {
+            _add_constraint<distinct>(constr_id, opt_lc.value());
+            return;
+        }
+        _add_first_valued_constraint<distinct>(constr_id, key, tail...);
+    }
+
+    template <bool distinct, std::ranges::range IR, typename... CL>
+    auto _add_constraints(IR && keys, CL &... constraint_lambdas) {
+        if constexpr(!distinct) {
+            tmp_entry_index_cache.resize(num_variables());
+        }
+        const int offset = static_cast<int>(num_constraints());
+        int constr_id = offset;
+        for(auto && key : keys) {
+            _add_first_valued_constraint<distinct>(constr_id, key,
+                                                   constraint_lambdas...);
+            ++constr_id;
+        }
+        return detail::keyed_entities(
+            *this, keys, detail::set_constraint_name,
+            entity_range(constraint{offset},
+                         static_cast<std::size_t>(constr_id - offset)));
+    }
+
+public:
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        return _add_constraints<false>(std::forward<IR>(keys),
+                                       constraint_lambdas...);
+    }
+    template <std::ranges::range IR, typename... CL>
+    auto add_constraints(distinct_variables_t, IR && keys,
+                         CL &&... constraint_lambdas) {
+        return _add_constraints<true>(std::forward<IR>(keys),
+                                      constraint_lambdas...);
+    }
+};
+
+}  // namespace glpk::impl::v1
+}  // namespace mippp

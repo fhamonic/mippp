@@ -1,0 +1,196 @@
+{
+  "_comment": [
+    "Sources for the solver compatibility matrix, see tools/compat_matrix.py.",
+    "",
+    "'kind' is either 'conda' (conda-forge linux-64 packages) or 'pypi'",
+    "(manylinux x86-64 wheels). Both enumerate every published version over a",
+    "JSON API and need no account. GitHub releases are deliberately not used:",
+    "HiGHS, for one, only started attaching binaries at v1.13.0, which would",
+    "silently drop the older versions the table is most interesting for.",
+    "",
+    "'package' is not always the package a user would pip install: FICO splits",
+    "the Xpress binding from the solver, so 'xpress' is a 1.6MB pure binding",
+    "that declares a dependency on 'xpresslibs', and only the latter carries",
+    "libxprs.so. COPT has no usable source: the coptpy wheel exports a C++ API",
+    "only, with no COPT_* symbol in any of its shared objects from 7.0 to 8.0,",
+    "and the C library is published neither on PyPI nor on conda-forge, so its",
+    "rows can only ever read 'no library in archive'.",
+    "",
+    "'lib_patterns' are globs, relative to the extracted archive, tried in",
+    "order; the candidate exporting the most wrapper symbols wins. Wheels keep",
+    "their real library in an auditwheel '.libs' directory -- the top-level",
+    "'*.cpython-*.so' is an extension module that cannot be dlopen'd on its own.",
+    "",
+    "'version_regex' pulls the *solver* version out of the library filename,",
+    "since a wheel's version is the binding's, not the solver's (PySCIPOpt",
+    "5.2.1 ships libscip 9.1). When it does not match, the package version is",
+    "reported instead and marked with '~'."
+  ],
+  "solvers": {
+    "clp": {
+      "key": "CLP",
+      "wrapper": "impl/v1",
+      "gtest_filter": "Clp*",
+      "tier": "open-source",
+      "source": {
+        "kind": "conda",
+        "package": "coin-or-clp",
+        "lib_patterns": [
+          "lib/libClp.so*"
+        ]
+      }
+    },
+    "cbc": {
+      "key": "CBC",
+      "wrapper": "impl/v1",
+      "gtest_filter": "Cbc*",
+      "tier": "open-source",
+      "source": {
+        "kind": "conda",
+        "package": "coin-or-cbc",
+        "lib_patterns": [
+          "lib/libCbcSolver.so*",
+          "lib/libCbc.so*"
+        ],
+        "depends": [
+          "coin-or-cgl"
+        ]
+      }
+    },
+    "glpk": {
+      "key": "GLPK",
+      "wrapper": "impl/v1",
+      "gtest_filter": "GLPK*",
+      "tier": "open-source",
+      "source": {
+        "kind": "conda",
+        "package": "glpk",
+        "lib_patterns": [
+          "lib/libglpk.so*"
+        ]
+      }
+    },
+    "highs": {
+      "key": "HIGHS",
+      "wrapper": "impl/v1",
+      "gtest_filter": "HiGHS*",
+      "tier": "open-source",
+      "source": {
+        "kind": "conda",
+        "package": "highs",
+        "lib_patterns": [
+          "lib/libhighs.so*"
+        ]
+      }
+    },
+    "scip": {
+      "key": "SCIP",
+      "wrapper": "impl/v1",
+      "gtest_filter": "SCIP*",
+      "tier": "open-source",
+      "source": {
+        "kind": "conda",
+        "package": "scip",
+        "lib_patterns": [
+          "lib/libscip.so*"
+        ],
+        "depends": [
+          "ipopt",
+          "mumps-seq",
+          "libspral",
+          "libscotch",
+          "metis"
+        ]
+      }
+    },
+    "soplex": {
+      "key": "SOPLEX",
+      "wrapper": "impl/v1",
+      "gtest_filter": "SoPlex*",
+      "tier": "open-source",
+      "source": {
+        "kind": "conda",
+        "package": "soplex",
+        "lib_patterns": [
+          "lib/libsoplexshared.so*"
+        ]
+      }
+    },
+    "gurobi": {
+      "key": "GUROBI",
+      "wrapper": "impl/v1",
+      "gtest_filter": "Gurobi*",
+      "tier": "commercial",
+      "note": "the wheel bundles a size-limited licence, so results only cover small models",
+      "source": {
+        "kind": "pypi",
+        "package": "gurobipy",
+        "lib_patterns": [
+          "**/.libs/libgurobi*.so*",
+          "**/libgurobi*.so*"
+        ],
+        "version_regex": "libgurobi(\\d+)\\.so"
+      }
+    },
+    "mosek": {
+      "key": "MOSEK",
+      "wrapper": "impl/v1",
+      "gtest_filter": "MOSEK*",
+      "tier": "commercial",
+      "note": "needs a licence file; without one every test skips on license_error. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of MOSEK 11.0.14 (2026-09-19)",
+      "source": {
+        "kind": "pypi",
+        "package": "Mosek",
+        "lib_patterns": [
+          "**/libmosek64.so*"
+        ],
+        "version_regex": "libmosek64\\.so\\.([0-9.]+)"
+      }
+    },
+    "xpress": {
+      "key": "XPRESS",
+      "wrapper": "impl/v1",
+      "gtest_filter": "Xpress*",
+      "tier": "commercial",
+      "note": "community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of Xpress 47.1.1 (2026-09-19)",
+      "source": {
+        "kind": "pypi",
+        "package": "xpresslibs",
+        "lib_patterns": [
+          "**/libxprs.so*"
+        ],
+        "version_regex": "libxprs\\.so\\.([0-9.]+)"
+      }
+    },
+    "copt": {
+      "key": "COPT",
+      "wrapper": "impl/v1",
+      "gtest_filter": "COPT*",
+      "tier": "commercial",
+      "note": "community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of COPT 8.0.5 (2026-09-19)",
+      "source": {
+        "kind": "pypi",
+        "package": "coptpy",
+        "lib_patterns": [
+          "**/libcopt.so*"
+        ],
+        "version_regex": "libcopt\\.so\\.([0-9.]+)"
+      }
+    },
+    "cplex": {
+      "key": "CPLEX",
+      "wrapper": "impl/v1",
+      "gtest_filter": "CPLEX*",
+      "tier": "commercial",
+      "note": "community edition caps model size",
+      "source": {
+        "kind": "pypi",
+        "package": "cplex",
+        "lib_patterns": [
+          "**/libcplex*.so*"
+        ],
+        "version_regex": "libcplex(\\d+)\\.so"
+      }
+    }
+  }
+}

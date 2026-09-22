@@ -53,10 +53,12 @@ struct policy_probe_model {
     decltype(auto) num_variables(Args &&... args) { return model.num_variables(std::forward<Args>(args)...); }
     template <typename... Args>
     decltype(auto) num_constraints(Args &&... args) { return model.num_constraints(std::forward<Args>(args)...); }
+    double infinity() const noexcept { return model.infinity(); }
+    bool is_infinite(double value) const noexcept { return model.is_infinite(value); }
     template <typename... Args>
     decltype(auto) solve(Args &&... args) { return model.solve(std::forward<Args>(args)...); }
     template <typename... Args>
-    decltype(auto) solve_status(Args &&... args) { return model.solve_status(std::forward<Args>(args)...); }
+    decltype(auto) get_status(Args &&... args) { return model.get_status(std::forward<Args>(args)...); }
     template <typename... Args>
     decltype(auto) get_solution_value(Args &&... args) { return model.get_solution_value(std::forward<Args>(args)...); }
     template <typename... Args>
@@ -189,8 +191,8 @@ struct fake_full_certificate_provider {
     }
 };
 struct fake_mosek_cleanup {
-    using Env = mippp::mosek::v11::MSKenv_t;
-    using Task = mippp::mosek::v11::MSKtask_t;
+    using Env = mippp::mosek::impl::v1::MSKenv_t;
+    using Task = mippp::mosek::impl::v1::MSKtask_t;
     std::vector<char> & released;
     int deletetask(Task *) const { released.push_back('t'); return -1; }
     int deleteenv(Env *) const { released.push_back('e'); return -1; }
@@ -225,7 +227,7 @@ TEST(DeletionFilter, PreparedSystemAndMalformedSeedProviderNeedNoSolver) {
 }
 
 TEST(DeletionFilter, MosekCleanupUnwindsPartialConstructionWithoutThrowing) {
-    using namespace mippp::mosek::v11;
+    using namespace mippp::mosek::impl::v1;
     int storage;
     for(unsigned stage : {0u, 1u, 2u}) {
         std::vector<char> released;
@@ -403,7 +405,7 @@ TEST(ClpRay, ExtractsOwnedRowRayWithoutAnotherSolve) {
     std::vector<std::pair<decltype(x), double>> terms{{x, 1.}};
     model.add_constraint(mippp::operators::operator>=(mippp::linear_expression_view(terms, 0.), 2.));
     model.solve();
-    ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.solve_status()));
+    ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.get_status()));
     const auto ray = model.get_infeasibility_ray();
     ASSERT_TRUE(ray);
     ASSERT_EQ(ray->size(), 1u);
@@ -534,7 +536,7 @@ TEST(SoPlexRay, OptionalEntryPointsAndOwnedRay) {
         std::vector<std::pair<decltype(x), double>> terms{{x, 1.}};
         model.add_constraint(mippp::operators::operator>=(mippp::linear_expression_view(terms, 0.), 2.));
         model.solve();
-        ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.solve_status()));
+        ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.get_status()));
         // Moving an already solved model must preserve the status gate too.
         auto moved = std::move(model);
         copy = moved.get_infeasibility_ray();
@@ -625,7 +627,7 @@ TEST(SoPlexStock, MissingSymbolsFallBackWithoutBreakingLibraryLoading) {
 
 namespace {
 mippp::mosek_lp mosek_certificate_model(int optimizer) {
-    using namespace mippp::mosek::v11;
+    using namespace mippp::mosek::impl::v1;
     mippp::mosek_lp model;
     const auto & api = model.native_api();
     const auto task = model.native_model().second;
@@ -637,18 +639,18 @@ mippp::mosek_lp mosek_certificate_model(int optimizer) {
     return model;
 }
 
-mippp::mosek::v11::MSKint32t count_mosek_optimizations(
-    mippp::mosek::v11::MSKtask_t, void * count,
-    mippp::mosek::v11::MSKcallbackcodee caller, const double *,
-    const mippp::mosek::v11::MSKint32t *, const mippp::mosek::v11::MSKint64t *) {
-    if(caller == mippp::mosek::v11::MSK_CALLBACK_BEGIN_OPTIMIZER)
+mippp::mosek::impl::v1::MSKint32t count_mosek_optimizations(
+    mippp::mosek::impl::v1::MSKtask_t, void * count,
+    mippp::mosek::impl::v1::MSKcallbackcodee caller, const double *,
+    const mippp::mosek::impl::v1::MSKint32t *, const mippp::mosek::impl::v1::MSKint64t *) {
+    if(caller == mippp::mosek::impl::v1::MSK_CALLBACK_BEGIN_OPTIMIZER)
         ++*static_cast<unsigned *>(count);
     return 0;
 }
 }
 
 TEST(MosekCertificate, SimplexAndInteriorPointOwnAllFourMultiplierArrays) {
-    using namespace mippp::mosek::v11;
+    using namespace mippp::mosek::impl::v1;
     for(int optimizer : {MSK_OPTIMIZER_PRIMAL_SIMPLEX, MSK_OPTIMIZER_DUAL_SIMPLEX, MSK_OPTIMIZER_INTPNT}) {
         auto model = mosek_certificate_model(optimizer);
         EXPECT_FALSE(model.get_infeasibility_certificate());
@@ -661,7 +663,7 @@ TEST(MosekCertificate, SimplexAndInteriorPointOwnAllFourMultiplierArrays) {
             model.native_model().second, count_mosek_optimizations, &optimizations));
         model.solve();
         EXPECT_EQ(optimizations, 1u);
-        ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.solve_status()));
+        ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.get_status()));
         const auto certificate = model.get_infeasibility_certificate();
         ASSERT_TRUE(certificate);
         ASSERT_EQ(certificate->row_lower.size(), 1u);
@@ -679,7 +681,7 @@ TEST(MosekCertificate, SimplexAndInteriorPointOwnAllFourMultiplierArrays) {
         model.set_variable_upper_bound(x, 3.);
         model.solve();
         EXPECT_EQ(optimizations, 2u);
-        EXPECT_TRUE(std::holds_alternative<mippp::status::optimal>(model.solve_status()));
+        EXPECT_TRUE(std::holds_alternative<mippp::status::optimal>(model.get_status()));
         EXPECT_FALSE(model.get_infeasibility_certificate());
         EXPECT_GE(model.get_solution()[x], 2. - 1e-6);
         EXPECT_LE(model.get_solution()[x], 3. + 1e-6);
@@ -688,7 +690,7 @@ TEST(MosekCertificate, SimplexAndInteriorPointOwnAllFourMultiplierArrays) {
 }
 
 TEST(MosekCertificate, BoundAwareSeedAndInvalidSupportFallback) {
-    using namespace mippp::mosek::v11;
+    using namespace mippp::mosek::impl::v1;
     for(int optimizer : {MSK_OPTIMIZER_PRIMAL_SIMPLEX, MSK_OPTIMIZER_INTPNT}) {
         SCOPED_TRACE(optimizer);
         auto factory = [&] { return mosek_certificate_model(optimizer); };
@@ -721,7 +723,7 @@ TEST(MosekCertificate, BoundAwareSeedAndInvalidSupportFallback) {
 }
 
 TEST(MosekCertificate, SharedBudgetsAndCancellationPreserveEvidence) {
-    using namespace mippp::mosek::v11;
+    using namespace mippp::mosek::impl::v1;
     for(std::size_t budget = 0; budget < 7; ++budget) {
         std::size_t constructions = 0;
         auto factory = [&] { ++constructions; return mosek_certificate_model(MSK_OPTIMIZER_INTPNT); };
@@ -751,7 +753,7 @@ TEST(MosekCertificate, SharedBudgetsAndCancellationPreserveEvidence) {
 }
 
 TEST(MosekCertificate, WeightedOrderWithFullCertificateAndRetainedDeletion) {
-    using namespace mippp::mosek::v11;
+    using namespace mippp::mosek::impl::v1;
     auto factory = [] { return mosek_certificate_model(MSK_OPTIMIZER_PRIMAL_SIMPLEX); };
     for(std::size_t budget : {1u, 3u, 30u}) {
         const auto answer = compute_linear_iis<linear_policy{
@@ -778,7 +780,7 @@ TEST(MosekCertificate, MilpWrapperOptimizesOnceAndCanReadContinuousSolutions) {
         model.native_model().second, count_mosek_optimizations, &optimizations));
     model.solve();
     EXPECT_EQ(optimizations, 1u);
-    EXPECT_TRUE(std::holds_alternative<mippp::status::optimal>(model.solve_status()));
+    EXPECT_TRUE(std::holds_alternative<mippp::status::optimal>(model.get_status()));
     EXPECT_NEAR(model.get_solution()[x], 1., 1e-6);
     EXPECT_NEAR(model.get_solution_value(), 1., 1e-6);
     EXPECT_EQ(optimizations, 1u);
@@ -873,7 +875,7 @@ struct timed_model {
     unsigned writes = 0;
     void set_time_limit(std::chrono::duration<double> value) { limit = value; ++writes; }
     auto get_time_limit() { return limit; }
-    std::variant<mippp::status::time_limit> solve_status();
+    std::variant<mippp::status::time_limit> get_status();
 };
 static_assert(mippp::has_time_limit<timed_model>);
 }
@@ -1708,7 +1710,7 @@ TYPED_TEST(LinearIis, ElasticWarmStartPreservesIisAndReusesModel) {
                   warm.members.end());
     EXPECT_TRUE(warm.elasticity_seed_used);
     EXPECT_EQ(constructions + warm.elasticity_reoptimizations, warm.reduction.solve_count);
-    if constexpr(mippp::has_modifiable_variables_bounds<TypeParam>) {
+    if constexpr(mippp::has_modifiable_variable_bounds<TypeParam>) {
         ASSERT_GT(warm.elasticity_calls, 1u);
         EXPECT_EQ(warm.elasticity_reoptimizations, warm.elasticity_calls - 1);
     } else {
@@ -1746,7 +1748,7 @@ TYPED_TEST(LinearIis, WarmStateDoesNotLeakIntoFallback) {
     EXPECT_TRUE(answer.reduction.irreducible);
     EXPECT_FALSE(answer.elasticity_seed_used);
     EXPECT_EQ(answer.members.size(), 2u);
-    if constexpr(mippp::has_modifiable_variables_bounds<TypeParam>) {
+    if constexpr(mippp::has_modifiable_variable_bounds<TypeParam>) {
         EXPECT_EQ(answer.elasticity_reoptimizations, 1u);
     }
 }

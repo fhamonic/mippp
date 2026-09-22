@@ -1,7 +1,8 @@
-#undef NDEBUG
 #include <gtest/gtest.h>
 
+#include <compare>
 #include <concepts>
+#include <limits>
 #include <ranges>
 #include <type_traits>
 #include <vector>
@@ -99,6 +100,55 @@ static_assert(times_assignable_by_zero<zero_t>);
 // `s *= zero` and `s / zero` are deliberately absent for scalars: collapsing a
 // scalar to zero should be spelled out
 
+namespace {
+template <typename L, typename R>
+concept orderable_with = requires(L l, R r) {
+    l < r;
+    l <= r;
+    l > r;
+    l >= r;
+    l <=> r;
+};
+}  // namespace
+static_assert(orderable_with<zero_t, zero_t>);
+static_assert(orderable_with<zero_t, double> && orderable_with<double, zero_t>);
+static_assert(orderable_with<zero_t, int> && orderable_with<int, zero_t>);
+static_assert(orderable_with<zero_t, float> &&
+              orderable_with<unsigned, zero_t>);
+static_assert(!orderable_with<zero_t, not_zeroable>);
+static_assert(std::totally_ordered_with<zero_t, double>);
+static_assert(std::three_way_comparable_with<zero_t, double>);
+
+static_assert(
+    std::same_as<decltype(zero_t{} <=> zero_t{}), std::strong_ordering>);
+static_assert(std::same_as<decltype(zero_t{} <=> 3.2), std::partial_ordering>);
+static_assert(std::same_as<decltype(3 <=> zero_t{}), std::strong_ordering>);
+
+static_assert((zero_t{} <=> zero_t{}) == std::strong_ordering::equal);
+static_assert((zero_t{} <=> 3.2) == std::partial_ordering::less);
+static_assert((3.2 <=> zero_t{}) == std::partial_ordering::greater);
+static_assert(zero_t{} < 3.2 && !(3.2 < zero_t{}));
+static_assert(3.2 > zero_t{} && !(zero_t{} > 3.2));
+static_assert(-1 < zero_t{} && zero_t{} > -1);
+static_assert(zero_t{} <= 0 && zero_t{} >= 0 && 0 <= zero_t{} && 0 >= zero_t{});
+static_assert(!(zero_t{} < 0) && !(0 < zero_t{}));
+static_assert(zero_t{} <= zero_t{} && !(zero_t{} < zero_t{}));
+static_assert(zero_t{} == 0.0 && 0 == zero_t{} && zero_t{} != 1);
+static_assert(noexcept(zero_t{} < 3.2) && noexcept(3 >= zero_t{}));
+
+// a runtime NaN: MSVC folds the constant expression `0.0 < nan` to true
+GTEST_TEST(zero_t_algebra, ordering_against_nan_is_unordered) {
+    const volatile double nan_v = std::numeric_limits<double>::quiet_NaN();
+    const double nan = nan_v;
+    ASSERT_EQ(zero_t{} <=> nan, std::partial_ordering::unordered);
+    ASSERT_FALSE(zero_t{} < nan);
+    ASSERT_FALSE(zero_t{} >= nan);
+    ASSERT_FALSE(nan < zero_t{});
+    ASSERT_FALSE(zero_t{} == nan);
+    ASSERT_TRUE(zero_t{} != nan);
+    ASSERT_EQ(zero_t{} <=> -0.0, std::partial_ordering::equivalent);
+}
+
 GTEST_TEST(zero_t_algebra, arithmetic_values) {
     ASSERT_EQ(zero_t{} + 3.2, 3.2);
     ASSERT_EQ(3.2 + zero_t{}, 3.2);
@@ -166,6 +216,13 @@ static_assert(linear_expression<decltype(zero * Var(1))>);
 static_assert(linear_expression<decltype(Var(1) * zero)>);
 static_assert(zero_dividable<double>);
 static_assert(!zero_dividable<Var>);
+
+GTEST_TEST(zero_t_propagation, constant_orders_against_scalar) {
+    auto negative_offset = [](const auto & e) { return e.constant() < 0; };
+    ASSERT_FALSE(negative_offset(3.2 * Var(1)));
+    ASSERT_FALSE(negative_offset(3.2 * Var(1) + 5));
+    ASSERT_TRUE(negative_offset(3.2 * Var(1) - 5));
+}
 
 GTEST_TEST(zero_t_propagation, existing_helpers_still_work) {
     // ASSERT_LIN_EXPR compares constant() against a double through the

@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/linear_constraint.hpp"
@@ -20,7 +19,7 @@ TYPED_TEST_P(LpStatusTest, not_solved) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
-        ASSERT_TRUE(is<status::unknown>(model.solve_status()));
+        ASSERT_TRUE(is<status::unknown>(model.get_status()));
     });
 }
 TYPED_TEST_P(LpStatusTest, max_bounded) {
@@ -33,7 +32,7 @@ TYPED_TEST_P(LpStatusTest, max_bounded) {
         model.set_objective(2 * x + 1.5 * y);
         model.add_constraint(x + y <= 5);
         model.solve();
-        ASSERT_TRUE(is_a<status::optimal>(model.solve_status()));
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
         ASSERT_DOUBLE_EQ(model.get_solution_value(), 9.0);
         auto solution = model.get_solution();
         ASSERT_DOUBLE_EQ(solution[x], 3.0);
@@ -50,7 +49,7 @@ TYPED_TEST_P(LpStatusTest, min_bounded) {
         model.set_objective(-2 * x - 1.5 * y);
         model.add_constraint(x + y <= 5);
         model.solve();
-        ASSERT_TRUE(is_a<status::optimal>(model.solve_status()));
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
         ASSERT_DOUBLE_EQ(model.get_solution_value(), -9.0);
         auto solution = model.get_solution();
         ASSERT_DOUBLE_EQ(solution[x], 3.0);
@@ -68,10 +67,10 @@ TYPED_TEST_P(LpStatusTest, max_unbounded) {
         model.add_constraint(x + y <= 5);
         model.solve();
         if constexpr(has_refinable_lp_status<decltype(model)>) {
-            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+            if(is<status::infeasible_or_unbounded>(model.get_status()))
                 model.refine_lp_status();
         }
-        ASSERT_TRUE(is_a<status::unbounded>(model.solve_status()));
+        ASSERT_TRUE(is_a<status::unbounded>(model.get_status()));
     });
 }
 TYPED_TEST_P(LpStatusTest, min_unbounded) {
@@ -85,10 +84,32 @@ TYPED_TEST_P(LpStatusTest, min_unbounded) {
         model.add_constraint(x + y <= 5);
         model.solve();
         if constexpr(has_refinable_lp_status<decltype(model)>) {
-            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+            if(is<status::infeasible_or_unbounded>(model.get_status()))
                 model.refine_lp_status();
         }
-        ASSERT_TRUE(is_a<status::unbounded>(model.solve_status()));
+        ASSERT_TRUE(is_a<status::unbounded>(model.get_status()));
+    });
+}
+// not a huge finite bound the solver honours: GLPK solved such a column to
+// 1.8e308 and reported optimal
+TYPED_TEST_P(LpStatusTest, unbounded_after_removing_a_bound) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        if constexpr(has_modifiable_variable_bounds<decltype(model)>) {
+            auto x = model.add_variable({.upper_bound = 3});
+            auto y = model.add_variable({.lower_bound = 1, .upper_bound = 4});
+            model.set_variable_upper_bound(x, model.infinity());
+            model.set_maximization();
+            model.set_objective(x + y);
+            model.add_constraint(x >= y);
+            model.solve();
+            if constexpr(has_refinable_lp_status<decltype(model)>) {
+                if(is<status::infeasible_or_unbounded>(model.get_status()))
+                    model.refine_lp_status();
+            }
+            ASSERT_TRUE(is_a<status::unbounded>(model.get_status()));
+        }
     });
 }
 TYPED_TEST_P(LpStatusTest, max_infeasible) {
@@ -103,10 +124,10 @@ TYPED_TEST_P(LpStatusTest, max_infeasible) {
         model.add_constraint(y >= 3 - x);
         model.solve();
         if constexpr(has_refinable_lp_status<decltype(model)>) {
-            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+            if(is<status::infeasible_or_unbounded>(model.get_status()))
                 model.refine_lp_status();
         }
-        ASSERT_TRUE(is_a<status::infeasible>(model.solve_status()));
+        ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
     });
 }
 TYPED_TEST_P(LpStatusTest, min_infeasible) {
@@ -121,15 +142,16 @@ TYPED_TEST_P(LpStatusTest, min_infeasible) {
         model.add_constraint(y >= 3 - x);
         model.solve();
         if constexpr(has_refinable_lp_status<decltype(model)>) {
-            if(is<status::infeasible_or_unbounded>(model.solve_status()))
+            if(is<status::infeasible_or_unbounded>(model.get_status()))
                 model.refine_lp_status();
         }
-        ASSERT_TRUE(is_a<status::infeasible>(model.solve_status()));
+        ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
     });
 }
 
 REGISTER_TYPED_TEST_SUITE_P(LpStatusTest, not_solved, max_bounded, min_bounded,
-                            max_unbounded, min_unbounded, max_infeasible,
+                            max_unbounded, min_unbounded,
+                            unbounded_after_removing_a_bound, max_infeasible,
                             min_infeasible);
 
 }  // namespace mippp

@@ -4,6 +4,8 @@ using namespace mippp;
 
 #include "test_suites/all.hpp"
 
+MIPPP_API_VERSION_TEST(Gurobi_api, gurobi_api, "GUROBI")
+
 struct gurobi_lp_test : public model_test<gurobi_api, gurobi_lp> {
     static void SetUpTestSuite() { construct_api("GUROBI"); }
 };
@@ -13,6 +15,7 @@ INSTANTIATE_TEST(Gurobi_lp, ModifiableObjectiveTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableVariablesBoundsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ModifiableVariablesBoundsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, NamedVariablesTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, NamedConstraintsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, AddColumnTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, RemoveVariableTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableConstraintsTest, gurobi_lp_test);
@@ -33,6 +36,7 @@ INSTANTIATE_TEST(Gurobi_milp, ModifiableObjectiveTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ReadableVariablesBoundsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ModifiableVariablesBoundsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, NamedVariablesTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, NamedConstraintsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, AddColumnTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, RemoveVariableTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ReadableConstraintsTest, gurobi_milp_test);

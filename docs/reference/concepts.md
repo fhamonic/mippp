@@ -62,7 +62,7 @@ model.set_candidate_solution_callback(
 ```
 
 The concepts declared this way are `has_dual_solution`, `has_reduced_costs`,
-`has_readable_variables_bounds`, `has_modifiable_variables_bounds`,
+`has_readable_variable_bounds`, `has_modifiable_variable_bounds`,
 `has_readable_constraints` and its three finer-grained forms,
 `has_readable_constraint_bounds`, and `has_lazy_constraints`. The others describe whole models and stay
 single-parameter.
@@ -79,14 +79,14 @@ single-parameter.
 
 | Concept           | Requires |
 | :---------------- | :------- |
-| `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params` and id-lambdas); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `solve`; `solve_status`; `get_solution` / `get_solution_value`. |
+| `lp_model` | The modeling core: `set_minimization` / `set_maximization`; `add_variable(s)` (with optional `variable_params`, over a count, a count and an id-lambda, or a key range); `set_objective` / `set_objective_offset`; `add_constraint` / `add_constraints`; `num_variables` / `num_constraints`; `infinity()` / `is_infinite(v)` (the solver's own "no bound" threshold and the portable test for it, see [Bounds](../modeling/variables.md#bounds-and-objective-coefficient)); `solve`; `get_status`; `get_solution` / `get_solution_value`. |
 | `milp_model` | `lp_model`, plus `add_integer_variable(s)`, `add_binary_variable(s)`, and per-variable type changes `set_continuous` / `set_integer` / `set_binary`. |
 | `qp_model` | `lp_model`, plus `set_quadratic_objective(expr)` (and its `distinct_variables` form) accepting a quadratic expression. `set_objective` stays linear on every model and replaces the whole objective, quadratic part included. |
-| `sized_model` | `num_entries()` (number of nonzeros). |
+| `has_num_nonzeros` | `num_nonzeros()`, the number of coefficients in the constraint matrix. |
 
 ## Solve status
 
-`solve_status()` is required by `lp_model` itself: every model class returns a `std::variant` over the tag hierarchy of namespace `status` (`optimal` and its refinements, `infeasible_or_unbounded` with its refinements `infeasible` and `unbounded`, `interrupted`, `failed`, `numerical_failure`, `out_of_memory`, `limit_reached` and its five refinements, `unknown`). Query it with `is<S>(r)` (exact tag), `is_a<S>(r)` (whole branch) and `status::solution_available(r)`; the variant type is `model_solve_status_t<M>`. Two concepts refine what a given model class can report:
+`get_status()` is required by `lp_model` itself: every model class returns a `std::variant` over the tag hierarchy of namespace `status` (`optimal` and its refinements, `infeasible_or_unbounded` with its refinements `infeasible` and `unbounded`, `interrupted`, `failed`, `numerical_failure`, `out_of_memory`, `limit_reached` and its five refinements, `unknown`). Query it with `is<S>(r)` (exact tag), `is_a<S>(r)` (whole branch) and `status::solution_available(r)`; the variant type is `model_status_t<M>`. `is`, `is_a` and the `variant_*` concepts behind them live in `utility/variant.hpp` and serve the basis statuses too. Two concepts refine what a given model class can report:
 
 | Concept           | Provides |
 | :---------- | --- |
@@ -107,7 +107,7 @@ hierarchy and how to branch on it.
 | `has_memory_limit` | `set_memory_limit(size)` for any `memory_size` unit, `get_memory_limit()`. |
 
 Each limit concept additionally requires that the matching `status::*_limit`
-tag is among those the backend's `solve_status()` can return — a limit you can
+tag is among those the backend's `get_status()` can return — a limit you can
 set is a limit you can detect.
 
 ## Solution information
@@ -125,10 +125,10 @@ set is a limit you can detect.
 |      Concept      | Provides |
 | :--- | :--- |
 | `has_readable_objective` | `get_objective()`, `get_objective_coefficient(v)`, `get_objective_offset()`. |
-| `has_modifiable_objective` | `set_objective_coefficient(v, s)`, `add_objective(expr)`. |
+| `has_modifiable_objective` | `set_objective_coefficient(v, s)`, `add_to_objective(expr)` and its `distinct_variables` form. |
 | `has_readable_quadratic_objective` | `has_readable_objective`, plus `get_quadratic_objective()` returning the whole objective as a quadratic expression; on such a model `get_objective()` reads the linear part only. Satisfied by `highs_qp`. |
-| `has_readable_variables_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
-| `has_modifiable_variables_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
+| `has_readable_variable_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
+| `has_modifiable_variable_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
 | `has_readable_constraints` | `get_constraint(c)` plus the three finer-grained concepts `has_readable_constraint_lhs` / `_sense` / `_rhs`. |
 | `has_readable_constraint_bounds` | `get_constraint_lower_bound(c)`, `get_constraint_upper_bound(c)` — defined on every row, including [ranged](../modeling/special-constraints.md#ranged-constraints) ones, where `get_constraint_sense` / `_rhs` are not. Satisfied by `clp_lp` and `cbc_milp`. |
 | `has_modifiable_constraint_lhs` / `_sense` / `_rhs` | `set_constraint_lhs(c, entries)`, `set_constraint_sense(c, s)`, `set_constraint_rhs(c, s)`. |
@@ -139,14 +139,14 @@ See [Re-solving and model updates](../solving/updates.md).
 
 | Concept                                | Provides |
 | :--- | :--- |
-| `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../modeling/variables.md#names-assigned-lazily) id-lambda + name-lambda form). |
+| `has_named_variables` | `set_variable_name` / `get_variable_name`, `add_named_variable(s)` (including the [lazily-named](../modeling/variables.md#names) id-lambda + name-lambda form), and `add_variables` over keys wrapped with `named(keys, name)`. Reading the name of an entity you never named is [backend-defined](../modeling/variables.md#names). |
 | `has_named_constraints` | `set_constraint_name` / `get_constraint_name`. |
 
 ## Special constraints
 
 | Concept | Provides |
 | --- | --- |
-| `has_indicator_constraints` | `add_indicator_constraint(v, value, constraint)` — the constraint holds whenever binary variable `v` takes `value`. Satisfied by `gurobi_milp` and `cplex_milp`; see [Special constraints](../modeling/special-constraints.md). |
+| `has_indicator_constraints` | `add_indicator_constraint(v, value, constraint)` and its `distinct_variables` form — the constraint holds whenever binary variable `v` takes `value`. Satisfied by `gurobi_milp` and `cplex_milp`; see [Special constraints](../modeling/special-constraints.md). |
 | `has_sos1_constraints` | `add_sos1_constraint(variables)`. *(no backend yet)* |
 | `has_sos2_constraints` | `add_sos2_constraint(variables)`. *(no backend yet)* |
 | `has_ranged_constraints` | `add_ranged_constraint(expr, lb, ub)` and the `distinct_variables` form: `lb <= expr <= ub` as a single row, returning the usual `constraint` handle. Satisfied by `clp_lp` and `cbc_milp`; see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints). |
@@ -157,10 +157,10 @@ Neither the SOS nor the indicator functions require a return type. SOS and indic
 
 | Concept | Provides |
 | --- | --- |
-| `has_add_column` | `add_column(entries, params)` from `(constraint, coefficient)` pairs — see [Column generation](../algorithms/column-generation.md). |
+| `has_column_generation` | `add_column(entries, params)` from `(constraint, coefficient)` pairs — see [Column generation](../algorithms/column-generation.md). |
 | `has_remove_variable` | `remove_variable(v)`, `remove_variables(range)`. |
 | `has_mip_start` | `add_mip_start(entries)` from `(variable, value)` pairs. |
-| `has_candidate_solution_callback` | `set_candidate_solution_callback(f)` where `f` takes the backend's `candidate_solution_callback_handle`, whose `get_solution()` returns the candidate indexed by the model's variable handles — see [Branch-and-cut](../algorithms/branch-and-cut.md). |
+| `has_candidate_solution_callback` | `set_candidate_solution_callback(f)` where `f` takes the backend's `candidate_solution_callback_handle`, whose `get_solution()` returns the candidate indexed by the model's variable handles and `get_solution_value()` its objective value — see [Branch-and-cut](../algorithms/branch-and-cut.md). |
 | `has_lazy_constraints` | On a callback handle: `add_lazy_constraint(constraint)` and the `distinct_variables` form, taking the model as second parameter (see [above](#concepts-on-callback-handles)). Satisfied by the handles of `gurobi_milp`, `cplex_milp` and `copt_milp`. |
 | `has_candidate_solution_rejection` | On a callback handle: `reject_solution()` discards the candidate without adding a constraint. Satisfied by the handle of `xpress_milp`. |
 | `has_node_relaxation_callback` | `set_node_relaxation_callback(f)`, for user cuts on fractional solutions. *(no backend yet)* |
@@ -177,7 +177,7 @@ Neither the SOS nor the indicator functions require a return type. SOS and indic
 | --- | --- |
 | `has_feasibility_tolerance` | `get`/`set_feasibility_tolerance`. |
 | `has_optimality_tolerance` | `get`/`set_optimality_tolerance`. |
-| `has_integrality_tolerance` | `get`/`set_integrality_tolerance`. *(no backend yet)* |
+| `has_integrality_tolerance` | `get`/`set_integrality_tolerance`. |
 
 ## Expression concepts
 

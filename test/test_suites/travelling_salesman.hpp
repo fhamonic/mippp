@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -58,7 +57,7 @@ TYPED_TEST_P(TravellingSalesmanTest, test) {
         }
         auto [graph, length_map] = builder.build();
 
-        auto X_vars = model.add_binary_variables(graph.num_arcs());
+        auto X_vars = model.add_binary_variables(graph.arcs());
 
         model.set_minimization();
         model.set_objective(xsum(graph.arcs(), [&](auto && a) {

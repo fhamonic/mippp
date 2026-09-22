@@ -259,7 +259,7 @@ int main(int argc, char ** argv) {
             // Benchmark-only diagnostics, resolved from that exact library;
             // no extra required symbols are added to the production wrapper.
             mippp::detail::dynamic_library library(api.library_path());
-            auto log_level = library.get_function<void(mippp::clp::v1_17::Clp_Simplex *, int)>("Clp_setLogLevel");
+            auto log_level = library.get_function<void(mippp::clp::impl::v1::Clp_Simplex *, int)>("Clp_setLogLevel");
             auto version = library.get_function<const char *()>("Clp_Version");
             auto factory = [&] {
                 mippp::clp_lp model(api);

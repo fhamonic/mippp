@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/linear_constraint.hpp"
@@ -158,7 +157,7 @@ TYPED_TEST_P(RemoveVariableTest, remove_addcol_solve) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
-        if constexpr(!has_add_column<decltype(model)>) GTEST_SKIP();
+        if constexpr(!has_column_generation<decltype(model)>) GTEST_SKIP();
         auto x1 = model.add_variable();
         auto x2 = model.add_variable();
         auto x3 = model.add_variable();
@@ -190,7 +189,7 @@ TYPED_TEST_P(RemoveVariableTest, solve_remove_addcol_solve) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         auto model = this->new_model();
-        if constexpr(!has_add_column<decltype(model)>) GTEST_SKIP();
+        if constexpr(!has_column_generation<decltype(model)>) GTEST_SKIP();
         auto x1 = model.add_variable();
         auto x2 = model.add_variable();
         auto x3 = model.add_variable();
@@ -302,10 +301,36 @@ TYPED_TEST_P(RemoveVariableTest, solve_remove_addnamedvar_solve) {
     });
 }
 
+// The removed column has three entries and the variable recycling it wants
+// to grow, so any coefficient left behind caps the optimum. A backend that
+// deletes the entries one by one while walking the solver's own index array
+// (which Clp packs down on each deletion) leaves the middle one.
+TYPED_TEST_P(RemoveVariableTest, remove_three_entries_addvar_solve) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 = model.add_variable({.upper_bound = 3.0});
+        auto x2 = model.add_variable();
+        model.add_constraint(x1 + x2 <= 3);
+        model.add_constraint(x1 + 2 * x2 <= 3);
+        model.add_constraint(x1 + 3 * x2 <= 3);
+        model.remove_variable(x2);
+        auto x3 = model.add_variable({.upper_bound = 4.0});
+        model.set_maximization();
+        model.set_objective(x1 + x3);
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), 7.0, TEST_EPSILON);
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[x1], 3.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[x3], 4.0, TEST_EPSILON);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(RemoveVariableTest, remove_solve,
                             solve_remove_solve, remove_addvar_solve,
                             solve_remove_addvar_solve, remove_addcol_solve,
                             solve_remove_addcol_solve, remove_addnamedvar_solve,
-                            solve_remove_addnamedvar_solve);
+                            solve_remove_addnamedvar_solve,
+                            remove_three_entries_addvar_solve);
 
 }  // namespace mippp

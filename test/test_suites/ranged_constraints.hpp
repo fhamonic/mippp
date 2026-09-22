@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/model_concepts.hpp"
@@ -78,9 +77,26 @@ TYPED_TEST_P(RangedConstraintsTest, distinct_variables_form) {
     });
 }
 
+// see LpModelTest.solve_lp_zero_rows
+TYPED_TEST_P(RangedConstraintsTest, zero_rows) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x1 =
+            model.add_variable({.lower_bound = -5.0, .upper_bound = -2.0});
+        auto x2 = model.add_variable({.lower_bound = 1.0, .upper_bound = 4.0});
+        model.add_ranged_constraint(x1 - x1, -1.0, 3.0);
+        model.add_ranged_constraint(distinct_variables, 0.0 * x2, -1.0, 3.0);
+        model.set_minimization();
+        model.set_objective(-0.5 * x1 + x2);
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(RangedConstraintsTest, add_ranged_constraint,
                             constant_moves_to_the_bounds,
                             repeated_variables_are_coalesced,
-                            distinct_variables_form);
+                            distinct_variables_form, zero_rows);
 
 }  // namespace mippp

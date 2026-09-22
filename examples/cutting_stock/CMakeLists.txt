@@ -7,6 +7,10 @@ project(cutting_stock LANGUAGES CXX)
 if(NOT TARGET mippp::mippp)
   find_package(mippp 1.0 CONFIG REQUIRED)
 endif()
+# This example also uses the MELON graph library for solving unbounded knapsack.
+if(NOT TARGET melon::melon)
+  find_package(melon REQUIRED)
+endif()
 
 add_executable(cutting_stock main.cpp)
-target_link_libraries(cutting_stock PRIVATE mippp::mippp)
+target_link_libraries(cutting_stock PRIVATE mippp::mippp melon::melon)

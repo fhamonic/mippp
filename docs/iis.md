@@ -410,7 +410,7 @@ auto answer = mippp::iis::compute_linear_iis<warm>(system, factory);
 ```
 
 Warm starts retain a single elastic LP when the model satisfies
-`has_modifiable_variables_bounds`. Every candidate initially has a slack column;
+`has_modifiable_variable_bounds`. Every candidate initially has a slack column;
 hardening a candidate fixes its slack's upper bound to zero. The rows, columns,
 coefficients and objective remain unchanged, allowing the solver to reuse its
 basis or other optimization state. Fixed slacks are excluded from subsequent

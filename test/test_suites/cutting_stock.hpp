@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 #include "assert_helper.hpp"
 
@@ -20,7 +19,7 @@ struct CuttingStockTest : public T {
     using typename T::model_type;
     static_assert(lp_model<model_type>);
     static_assert(has_dual_solution<model_type>);
-    static_assert(has_add_column<model_type>);
+    static_assert(has_column_generation<model_type>);
 };
 TYPED_TEST_SUITE_P(CuttingStockTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CuttingStockTest);

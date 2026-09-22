@@ -219,7 +219,7 @@ qe.linear_part();      // itself a linear_expression (terms + constant)
 
 with the variable types matching and the linear scalar convertible to the quadratic one. The corresponding traits mirror the linear ones: `quadratic_term_variable_t`, `quadratic_term_scalar_t`, `quadratic_terms_range_t`, `quadratic_term_t`, `quadratic_expression_variable_t` / `_scalar_t` / `_constant_t`, and `compatible_quadratic_expressions`.
 
-As with linear terms, the stream is a multiset, and the pairs are **unordered**: `square(x1 + x2)` emits all four cartesian products, including both `(x1, x2, 1)` and `(x2, x1, 1)`. Backends fold `(i, j)` and `(j, i)` together and sum duplicates when building the (triangular) Hessian — see [`highs_qp::set_objective`](https://github.com/fhamonic/mippp/blob/main/include/mippp/solvers/highs/v1_10/highs_qp.hpp).
+As with linear terms, the stream is a multiset, and the pairs are **unordered**: `square(x1 + x2)` emits all four cartesian products, including both `(x1, x2, 1)` and `(x2, x1, 1)`. Backends fold `(i, j)` and `(j, i)` together and sum duplicates when building the (triangular) Hessian — see [`highs_qp::set_objective`](https://github.com/fhamonic/mippp/blob/main/include/mippp/solvers/highs/impl/v1/highs_qp.hpp).
 
 ### Products need a second pass
 
@@ -250,11 +250,11 @@ Referencing is safe here because `multipass_linear_terms` implies const-readable
 
     Providing only `const &` accessors — as `linear_expression_square` and `linear_expression_mul_view` do — satisfies the rule trivially, and is the recommended default for user-defined quadratic expressions.
 
-The named operations are `quadratic_expression_add`, `_negate`, `_scalar_add`, `_scalar_mul`, `_scalar_div`, and `quadratic_expression_lexpr_add` for mixing a quadratic and a linear operand (`qe + le` in either order).
+The named operations are `quadratic_expression_add`, `_negate`, `_scalar_add`, `_scalar_mul`, `_scalar_div`, and `quadratic_expression_linear_add` for mixing a quadratic and a linear operand (`qe + le` in either order).
 
 ## Evaluating
 
-`evaluate(expr, values_map)` folds an expression against any [`input_mapping`](mappings.md) readable by the expression's variable handles — a solution, an `entity_mapping`, or raw storage lifted with `views::mapping_all`. A values map that isn't one is rejected by a `static_assert` naming that remedy, before any template noise:
+`evaluate(expr, values_map)` folds an expression against any [`input_mapping`](mappings.md) readable by the expression's variable handles — a solution, an `entity_mapping`, or raw storage lifted with `maps::mapping_all`. A values map that isn't one is rejected by a `static_assert` naming that remedy, before any template noise:
 
 ```cpp
 auto sol = model.get_solution();

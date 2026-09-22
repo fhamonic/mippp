@@ -16,3 +16,6 @@ MakeW64.bat
 /.compat-cache
 # Local IIS timing artifacts are not publication-ready results.
 *.local.csv
+
+# Python bytecode from tools/
+__pycache__/

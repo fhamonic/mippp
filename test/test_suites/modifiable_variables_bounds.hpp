@@ -1,6 +1,5 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
 #include "mippp/model_concepts.hpp"
@@ -10,7 +9,7 @@ namespace mippp {
 template <typename T>
 struct ModifiableVariablesBoundsTest : public T {
     using typename T::model_type;
-    static_assert(has_modifiable_variables_bounds<model_type>);
+    static_assert(has_modifiable_variable_bounds<model_type>);
 };
 TYPED_TEST_SUITE_P(ModifiableVariablesBoundsTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ModifiableVariablesBoundsTest);
@@ -122,8 +121,51 @@ TYPED_TEST_P(ModifiableVariablesBoundsTest, resolve_after_bounding_free_range) {
     });
 }
 
+TYPED_TEST_P(ModifiableVariablesBoundsTest, infinity_removes_a_bound) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable({.lower_bound = 0.0, .upper_bound = 3.0});
+        model.set_variable_upper_bound(x, model.infinity());
+        model.set_variable_lower_bound(x, -model.infinity());
+        if constexpr(has_readable_variable_bounds<decltype(model)>) {
+            ASSERT_TRUE(model.is_infinite(model.get_variable_upper_bound(x)));
+            ASSERT_TRUE(model.is_infinite(model.get_variable_lower_bound(x)));
+        }
+        model.add_constraint(x <= 7.0);
+        model.add_constraint(x >= -7.0);
+        model.set_objective(x);
+        model.set_maximization();
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), 7.0, TEST_EPSILON);
+        model.set_minimization();
+        model.solve();
+        ASSERT_NEAR(model.get_solution_value(), -7.0, TEST_EPSILON);
+    });
+}
+
+// GLPK refuses a double-bounded column with lb == ub
+TYPED_TEST_P(ModifiableVariablesBoundsTest, equal_bounds_fix_the_variable) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable();
+        auto y = model.add_variable({.lower_bound = 0.0, .upper_bound = 10.0});
+        model.set_variable_lower_bound(x, 2.0);
+        model.set_variable_upper_bound(x, 2.0);
+        model.set_objective(x + y);
+        model.set_minimization();
+        model.solve();
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+        ASSERT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+        ASSERT_NEAR(model.get_solution()[x], 2.0, TEST_EPSILON);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(ModifiableVariablesBoundsTest,
                             set_variable_lower_bound, set_variable_upper_bound,
-                            resolve_after_bounding_free_range);
+                            resolve_after_bounding_free_range,
+                            infinity_removes_a_bound,
+                            equal_bounds_fix_the_variable);
 
 }  // namespace mippp

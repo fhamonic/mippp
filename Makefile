@@ -8,7 +8,7 @@ CONAN_PROFILE = gcc14_c++23
 
 CONAN_CXXFLAGS = -c 'tools.build:cxxflags=["-fconcepts-diagnostics-depth=30"]'
 
-.PHONY: all test examples package check-format check-includes features_tables compat_table doc paper clean
+.PHONY: all test examples package check-format check-includes check features_tables compat_table doc paper clean
 
 all: test
 
@@ -33,16 +33,16 @@ package:
 check-format:
 	find include test -name "*.hpp" -o -name "*.cpp" | xargs clang-format --dry-run -Werror
 
-# Public headers only: a test .cpp leaning on a transitive include harms
-# nobody, a header leaning on a consumer's include order does.
 check-includes:
 	python3 misc/tools/check_std_includes.py include
+
+check: check-format check-includes
 
 features_tables:
 	python docs/assets/features_tables/tested_features_table.py
 
 compat_table:
-	python3 tools/compat_matrix.py run --limit $(or $(LIMIT),5) --commercial
+	python3 misc/tools/compat_matrix.py run --limit $(or $(LIMIT),10) --commercial
 
 doc:
 	zensical serve

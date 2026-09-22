@@ -1,8 +1,15 @@
 #pragma once
 
-#undef NDEBUG
 #include <gtest/gtest.h>
 
+#include <functional>
+#include <ranges>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <vector>
+
+#include "mippp/detail/cartesian_product_view.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
@@ -253,6 +260,37 @@ TYPED_TEST_P(MilpModelTest, add_zero_binary_variables) {
         ASSERT_THROW(x[0], std::out_of_range);
     });
 }
+TYPED_TEST_P(MilpModelTest, add_integer_and_binary_variables_by_key) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_integer_variables(std::views::iota(0, 2));
+        auto y = model.add_integer_variables(
+            mippp::detail::cartesian_product(std::views::iota(0, 2),
+                                             std::views::iota(0, 2)),
+            {.obj_coef = 1, .lower_bound = 2, .upper_bound = 10});
+        std::vector<std::string> names = {"a", "b"};
+        auto z = model.add_binary_variables(names);
+        auto t = model.add_binary_variables(
+            indexed(std::vector<int>{7, 3}, std::identity{}));
+        ASSERT_EQ(model.num_variables(), 10);
+        ASSERT_EQ(x(1).id(), 1);
+        ASSERT_EQ(y(1, 0).id(), 4);
+        ASSERT_EQ(y(std::tuple{1, 1}).id(), 5);
+        ASSERT_EQ(z("b").id(), 7);
+        ASSERT_EQ(t(3).id(), 9);
+        ASSERT_THROW(x(2), std::out_of_range);
+        ASSERT_THROW(y(2, 0), std::out_of_range);
+        ASSERT_THROW(z("c"), std::out_of_range);
+        ASSERT_THROW(t(5), std::out_of_range);
+        model.set_maximization();
+        model.set_objective(z("a") + z("b") + t(7));
+        model.solve();
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[z("a")], 1.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[t(7)], 1.0, TEST_EPSILON);
+    });
+}
 TYPED_TEST_P(MilpModelTest, add_binary_variables) {
     this->SkipOnLicenseError([this]() {
         auto model = this->new_model();
@@ -439,6 +477,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     add_zero_indexed_integer_variables, add_indexed_integer_variables,
     add_indexed_integer_variables_params,
     add_capturing_indexed_integer_variables,
+    add_integer_and_binary_variables_by_key,
     add_integer_variable_and_indexed_integer_variables,
     solve_bounded_integer_variables_max, solve_bounded_integer_variables_min,
     solve_unbounded_knapsack, add_binary_variable, add_zero_binary_variables,
