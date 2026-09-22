@@ -10,18 +10,18 @@
 #include <thread>
 
 #include "mippp/algorithm/deletion_filter.hpp"
-#include "mippp/utility/linear_iis.hpp"
 #include "mippp/solvers/cbc/all.hpp"
 #include "mippp/solvers/clp/all.hpp"
-#include "mippp/solvers/highs/all.hpp"
-#include "mippp/solvers/gurobi/all.hpp"
-#include "mippp/solvers/cplex/all.hpp"
 #include "mippp/solvers/copt/all.hpp"
+#include "mippp/solvers/cplex/all.hpp"
 #include "mippp/solvers/glpk/all.hpp"
+#include "mippp/solvers/gurobi/all.hpp"
+#include "mippp/solvers/highs/all.hpp"
 #include "mippp/solvers/mosek/all.hpp"
 #include "mippp/solvers/scip/all.hpp"
 #include "mippp/solvers/soplex/all.hpp"
 #include "mippp/solvers/xpress/all.hpp"
+#include "mippp/utility/linear_iis.hpp"
 
 using namespace mippp::iis;
 
@@ -33,57 +33,93 @@ struct policy_probe_model {
     mippp::clp_lp model;
     using variable = mippp::model_variable_t<mippp::clp_lp>;
     using params = mippp::model_variable_params_t<mippp::clp_lp>;
-    static constexpr auto default_variable_params = mippp::clp_lp::default_variable_params;
-    auto add_variable(params p = default_variable_params) { return model.add_variable(p); }
+    static constexpr auto default_variable_params =
+        mippp::clp_lp::default_variable_params;
+    auto add_variable(params p = default_variable_params) {
+        return model.add_variable(p);
+    }
     template <typename... Args>
-    decltype(auto) add_variables(Args &&... args) { return model.add_variables(std::forward<Args>(args)...); }
+    decltype(auto) add_variables(Args &&... args) {
+        return model.add_variables(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) set_maximization(Args &&... args) { return model.set_maximization(std::forward<Args>(args)...); }
+    decltype(auto) set_maximization(Args &&... args) {
+        return model.set_maximization(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) set_minimization(Args &&... args) { return model.set_minimization(std::forward<Args>(args)...); }
+    decltype(auto) set_minimization(Args &&... args) {
+        return model.set_minimization(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) set_objective_offset(Args &&... args) { return model.set_objective_offset(std::forward<Args>(args)...); }
+    decltype(auto) set_objective_offset(Args &&... args) {
+        return model.set_objective_offset(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) set_objective(Args &&... args) { return model.set_objective(std::forward<Args>(args)...); }
+    decltype(auto) set_objective(Args &&... args) {
+        return model.set_objective(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) add_constraint(Args &&... args) { return model.add_constraint(std::forward<Args>(args)...); }
+    decltype(auto) add_constraint(Args &&... args) {
+        return model.add_constraint(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) add_constraints(Args &&... args) { return model.add_constraints(std::forward<Args>(args)...); }
+    decltype(auto) add_constraints(Args &&... args) {
+        return model.add_constraints(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) num_variables(Args &&... args) { return model.num_variables(std::forward<Args>(args)...); }
+    decltype(auto) num_variables(Args &&... args) {
+        return model.num_variables(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) num_constraints(Args &&... args) { return model.num_constraints(std::forward<Args>(args)...); }
+    decltype(auto) num_constraints(Args &&... args) {
+        return model.num_constraints(std::forward<Args>(args)...);
+    }
     double infinity() const noexcept { return model.infinity(); }
-    bool is_infinite(double value) const noexcept { return model.is_infinite(value); }
+    bool is_infinite(double value) const noexcept {
+        return model.is_infinite(value);
+    }
     template <typename... Args>
-    decltype(auto) solve(Args &&... args) { return model.solve(std::forward<Args>(args)...); }
+    decltype(auto) solve(Args &&... args) {
+        return model.solve(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) get_status(Args &&... args) { return model.get_status(std::forward<Args>(args)...); }
+    decltype(auto) get_status(Args &&... args) {
+        return model.get_status(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) get_solution_value(Args &&... args) { return model.get_solution_value(std::forward<Args>(args)...); }
+    decltype(auto) get_solution_value(Args &&... args) {
+        return model.get_solution_value(std::forward<Args>(args)...);
+    }
     template <typename... Args>
-    decltype(auto) get_solution(Args &&... args) { return model.get_solution(std::forward<Args>(args)...); }
+    decltype(auto) get_solution(Args &&... args) {
+        return model.get_solution(std::forward<Args>(args)...);
+    }
     template <typename T = void>
     std::optional<std::vector<double>> get_infeasibility_ray() {
-        static_assert(!std::same_as<T, T>, "Disabled native path was instantiated");
+        static_assert(!std::same_as<T, T>,
+                      "Disabled native path was instantiated");
         return {};
     }
     template <typename T = void>
     void set_variable_lower_bound(variable, double) {
-        static_assert(!std::same_as<T, T>, "Disabled update path was instantiated");
+        static_assert(!std::same_as<T, T>,
+                      "Disabled update path was instantiated");
     }
     template <typename T = void>
     void set_variable_upper_bound(variable, double) {
-        static_assert(!std::same_as<T, T>, "Disabled update path was instantiated");
+        static_assert(!std::same_as<T, T>,
+                      "Disabled update path was instantiated");
     }
     template <typename T = void>
     double get_variable_lower_bound(variable) {
-        static_assert(!std::same_as<T, T>, "Disabled bound-read path was instantiated");
+        static_assert(!std::same_as<T, T>,
+                      "Disabled bound-read path was instantiated");
         return 0;
     }
     template <typename T = void>
     double get_variable_upper_bound(variable) {
-        static_assert(!std::same_as<T, T>, "Disabled bound-read path was instantiated");
+        static_assert(!std::same_as<T, T>,
+                      "Disabled bound-read path was instantiated");
         return 0;
     }
 };
@@ -93,18 +129,24 @@ static_assert(mippp::iis::detail::has_deletion_updates<policy_probe_model>);
 static_assert(valid_linear_policy<linear_policy{}>);
 static_assert(!valid_linear_policy<linear_policy{.prune_bounds = true}>);
 static_assert(!valid_linear_policy<linear_policy{.order_by_weight = true}>);
-static_assert(!valid_linear_policy<linear_policy{.elasticity = static_cast<elasticity_strategy>(99)}>);
-static_assert(!valid_linear_policy<linear_policy{.deletion = static_cast<deletion_strategy>(99)}>);
-static_assert(!valid_linear_policy<linear_policy{.analyzed_domain = static_cast<domain>(99)}>);
-static_assert(std::is_empty_v<decltype(mippp::iis::detail::native_seed_data<false>{}.weights)>);
-}
+static_assert(!valid_linear_policy<linear_policy{
+                  .elasticity = static_cast<elasticity_strategy>(99)}>);
+static_assert(!valid_linear_policy<linear_policy{
+                  .deletion = static_cast<deletion_strategy>(99)}>);
+static_assert(!valid_linear_policy<linear_policy{
+                  .analyzed_domain = static_cast<domain>(99)}>);
+static_assert(std::is_empty_v<
+              decltype(mippp::iis::detail::native_seed_data<false>{}.weights)>);
+}  // namespace
 
 TEST(ClpRay, DefaultPolicyDoesNotInstantiateDisabledFeatures) {
     linear_system<> system;
     system.variables = {{std::nullopt, 1., false}};
     system.rows = {{{{0, 1.}}, 2., std::nullopt}};
-    const auto answer = compute_linear_iis(system, [] { return policy_probe_model{}; },
-        {.elastic = {.violation_tolerance = std::numeric_limits<double>::quiet_NaN()},
+    const auto answer = compute_linear_iis(
+        system, [] { return policy_probe_model{}; },
+        {.elastic = {.violation_tolerance =
+                         std::numeric_limits<double>::quiet_NaN()},
          .native = {.relative_tolerance = -1}});
     EXPECT_TRUE(answer.reduction.irreducible);
     EXPECT_EQ(answer.members.size(), 2u);
@@ -123,11 +165,15 @@ TEST(ClpRay, CohesiveOptionsOwnMoveOnlyComparatorState) {
         ++*state;
         return rows_first_order{}(a, b);
     };
-    auto config = linear_options{.limits = {.max_solves = 10}, .order = std::move(order)};
+    auto config =
+        linear_options{.limits = {.max_solves = 10}, .order = std::move(order)};
     static_assert(!std::copy_constructible<decltype(config)>);
     // Check the counter during extraction: options owns and destroys its state.
     unsigned calls_seen = 0;
-    auto factory = [&] { calls_seen = *count; return mippp::clp_lp{}; };
+    auto factory = [&] {
+        calls_seen = *count;
+        return mippp::clp_lp{};
+    };
     const auto answer = compute_linear_iis(system, factory, std::move(config));
     EXPECT_TRUE(answer.reduction.irreducible);
     EXPECT_GT(calls_seen, 0u);
@@ -135,19 +181,27 @@ TEST(ClpRay, CohesiveOptionsOwnMoveOnlyComparatorState) {
 
 TEST(DeletionFilter, PolicyValidatesOnlyActiveParametersBeforeLoadingSolver) {
     unsigned calls = 0;
-    auto factory = [&] { ++calls; return mippp::clp_lp{}; };
+    auto factory = [&] {
+        ++calls;
+        return mippp::clp_lp{};
+    };
     linear_system<> system;
     constexpr linear_policy native{.native_seed = true};
     constexpr linear_policy elastic{.elasticity = elasticity_strategy::reuse};
-    EXPECT_THROW((void)compute_linear_iis<native>(system, factory,
-        {.native = {.relative_tolerance = -1}}), std::invalid_argument);
-    EXPECT_THROW((void)compute_linear_iis<elastic>(system, factory,
-        {.elastic = {.violation_tolerance = std::numeric_limits<double>::quiet_NaN()}}),
+    EXPECT_THROW((void)compute_linear_iis<native>(
+                     system, factory, {.native = {.relative_tolerance = -1}}),
+                 std::invalid_argument);
+    EXPECT_THROW(
+        (void)compute_linear_iis<elastic>(
+            system, factory,
+            {.elastic = {.violation_tolerance =
+                             std::numeric_limits<double>::quiet_NaN()}}),
         std::invalid_argument);
     EXPECT_EQ(calls, 0u);
 }
 
-// Exercise structural alternatives without a runtime-config compatibility layer.
+// Exercise structural alternatives without a runtime-config compatibility
+// layer.
 template <typename F>
 void for_each_bool(F && test) {
     test.template operator()<false>();
@@ -155,7 +209,8 @@ void for_each_bool(F && test) {
 }
 
 TEST(DeletionFilter, PhaseBudgetRejectsOverspendingAndPreservesDeadline) {
-    mippp::iis::detail::phase_budget budget({.max_solves = 5, .time_limit = std::chrono::seconds(2)});
+    mippp::iis::detail::phase_budget budget(
+        {.max_solves = 5, .time_limit = std::chrono::seconds(2)});
     const auto deadline = budget.limits().deadline;
     EXPECT_EQ(budget.remaining(1).max_solves, 1u);
     budget.consume(2);
@@ -174,7 +229,8 @@ TEST(DeletionFilter, PhaseBudgetRejectsOverspendingAndPreservesDeadline) {
 
 namespace {
 struct fake_ray_provider {
-    mippp::model_variable_t<mippp::clp_lp> add_variable(); // type deduction only
+    mippp::model_variable_t<mippp::clp_lp>
+    add_variable();  // type deduction only
     std::size_t rows = 1, columns = 1;
     std::vector<double> ray{1.};
     auto num_constraints() const { return rows; }
@@ -183,10 +239,12 @@ struct fake_ray_provider {
 };
 struct fake_full_certificate_provider {
     mippp::model_variable_t<mippp::clp_lp> add_variable();
-    mippp::linear_infeasibility_certificate<double> certificate{{1.}, {0.}, {0.}, {1.}};
+    mippp::linear_infeasibility_certificate<double> certificate{
+        {1.}, {0.}, {0.}, {1.}};
     std::size_t num_constraints() const { return 1; }
     std::size_t num_variables() const { return 1; }
-    std::optional<mippp::linear_infeasibility_certificate<double>> get_infeasibility_certificate() {
+    std::optional<mippp::linear_infeasibility_certificate<double>>
+    get_infeasibility_certificate() {
         return certificate;
     }
 };
@@ -194,25 +252,35 @@ struct fake_mosek_cleanup {
     using Env = mippp::mosek::impl::v1::MSKenv_t;
     using Task = mippp::mosek::impl::v1::MSKtask_t;
     std::vector<char> & released;
-    int deletetask(Task *) const { released.push_back('t'); return -1; }
-    int deleteenv(Env *) const { released.push_back('e'); return -1; }
+    int deletetask(Task *) const {
+        released.push_back('t');
+        return -1;
+    }
+    int deleteenv(Env *) const {
+        released.push_back('e');
+        return -1;
+    }
 };
-}
+}  // namespace
 
 TEST(DeletionFilter, PreparedSystemAndMalformedSeedProviderNeedNoSolver) {
     linear_system<> input;
     input.variables = {{std::nullopt, 1., false}};
     input.rows = {{{{0, 1.}}, 2., std::nullopt}};
-    mippp::iis::detail::prepared_linear_system prepared(input, domain::original, false);
+    mippp::iis::detail::prepared_linear_system prepared(input, domain::original,
+                                                        false);
     ASSERT_EQ(prepared.candidates.size(), 2u);
     EXPECT_EQ(prepared.candidates[0], (member{member_kind::variable_upper, 0}));
     EXPECT_EQ(prepared.inequalities().size(), 2u);
     fake_ray_provider provider;
     const std::vector<std::size_t> active{0, 1};
-    auto capture = [&] { return mippp::iis::detail::collect_native_seed<true, true>(provider, active, prepared, {}); };
+    auto capture = [&] {
+        return mippp::iis::detail::collect_native_seed<true, true>(
+            provider, active, prepared, {});
+    };
     ASSERT_TRUE(capture().members);
     EXPECT_EQ(capture().members->size(), 2u);
-    provider.rows = 100; // formerly could underflow bounds.reserve()
+    provider.rows = 100;  // formerly could underflow bounds.reserve()
     EXPECT_FALSE(capture().members);
     provider.rows = 1;
     provider.columns = 0;
@@ -223,7 +291,9 @@ TEST(DeletionFilter, PreparedSystemAndMalformedSeedProviderNeedNoSolver) {
     provider.ray = {std::numeric_limits<double>::quiet_NaN()};
     EXPECT_FALSE(capture().members);
     input.rows[0].terms[0].first = 2;
-    EXPECT_THROW((mippp::iis::detail::prepared_linear_system(input, domain::original, false)), std::invalid_argument);
+    EXPECT_THROW((mippp::iis::detail::prepared_linear_system(
+                     input, domain::original, false)),
+                 std::invalid_argument);
 }
 
 TEST(DeletionFilter, MosekCleanupUnwindsPartialConstructionWithoutThrowing) {
@@ -244,9 +314,12 @@ TEST(DeletionFilter, MosekCleanupUnwindsPartialConstructionWithoutThrowing) {
         }
         EXPECT_EQ(env, nullptr);
         EXPECT_EQ(task, nullptr);
-        const std::vector<char> expected = stage == 2 ? std::vector<char>{'t', 'e'} :
-                                          stage == 1 ? std::vector<char>{'e'} : std::vector<char>{};
-        EXPECT_EQ(released, expected); // error returns never prevent env cleanup
+        const std::vector<char> expected = stage == 2
+                                               ? std::vector<char>{'t', 'e'}
+                                           : stage == 1 ? std::vector<char>{'e'}
+                                                        : std::vector<char>{};
+        EXPECT_EQ(released,
+                  expected);  // error returns never prevent env cleanup
     }
     static_assert(std::is_nothrow_destructible_v<mippp::mosek_lp>);
 }
@@ -255,15 +328,20 @@ TEST(DeletionFilter, FullCertificateProviderRejectsMalformedArrays) {
     linear_system<> input;
     input.variables = {{std::nullopt, 1., false}};
     input.rows = {{{{0, 1.}}, 2., std::nullopt}};
-    mippp::iis::detail::prepared_linear_system prepared(input, domain::original, false);
+    mippp::iis::detail::prepared_linear_system prepared(input, domain::original,
+                                                        false);
     const std::vector<std::size_t> active{0, 1};
     fake_full_certificate_provider provider;
-    auto capture = [&] { return mippp::iis::detail::collect_native_seed<false, true>(provider, active, prepared, {}); };
+    auto capture = [&] {
+        return mippp::iis::detail::collect_native_seed<false, true>(
+            provider, active, prepared, {});
+    };
     ASSERT_TRUE(capture().members);
     EXPECT_EQ(capture().weights, (std::vector<long double>{1., 1.}));
     provider.certificate.variable_upper.clear();
     EXPECT_FALSE(capture().members);
-    provider.certificate.variable_upper = {std::numeric_limits<double>::quiet_NaN()};
+    provider.certificate.variable_upper = {
+        std::numeric_limits<double>::quiet_NaN()};
     EXPECT_FALSE(capture().members);
     provider.certificate.variable_upper = {0.};
     provider.certificate.row_lower = {0.};
@@ -272,20 +350,28 @@ TEST(DeletionFilter, FullCertificateProviderRejectsMalformedArrays) {
 }
 
 TEST(DeletionFilter, InternalContinuationPreservesProofAndLimits) {
-    auto oracle = [](std::span<const std::size_t>) { return feasibility::infeasible; };
+    auto oracle = [](std::span<const std::size_t>) {
+        return feasibility::infeasible;
+    };
     const auto known = deletion_filter(3, oracle, {.max_solves = 1});
     ASSERT_TRUE(known.proven_infeasible());
-    for(auto reason : {termination::solve_limit, termination::time_limit, termination::cancelled}) {
+    for(auto reason : {termination::solve_limit, termination::time_limit,
+                       termination::cancelled}) {
         options opts;
         std::stop_source stop;
         if(reason == termination::solve_limit) opts.max_solves = 1;
-        if(reason == termination::time_limit) opts.deadline = std::chrono::steady_clock::now();
-        if(reason == termination::cancelled) { stop.request_stop(); opts.stop = stop.get_token(); }
+        if(reason == termination::time_limit)
+            opts.deadline = std::chrono::steady_clock::now();
+        if(reason == termination::cancelled) {
+            stop.request_stop();
+            opts.stop = stop.get_token();
+        }
         auto no_calls = [](std::span<const std::size_t>) {
             ADD_FAILURE() << "Stopped continuation must not invoke the oracle";
             return feasibility::unknown;
         };
-        const auto answer = mippp::iis::detail::deletion_filter_impl(known, no_calls, opts, input_order{});
+        const auto answer = mippp::iis::detail::deletion_filter_impl(
+            known, no_calls, opts, input_order{});
         EXPECT_EQ(answer.members, known.members);
         EXPECT_TRUE(answer.proven_infeasible());
         EXPECT_FALSE(answer.irreducible);
@@ -293,10 +379,11 @@ TEST(DeletionFilter, InternalContinuationPreservesProofAndLimits) {
         EXPECT_EQ(answer.reason, reason);
     }
     auto unknown = [](std::span<const std::size_t> subset) {
-        EXPECT_EQ(subset.size(), 2u); // never recheck the proven full set
+        EXPECT_EQ(subset.size(), 2u);  // never recheck the proven full set
         return feasibility::unknown;
     };
-    const auto answer = mippp::iis::detail::deletion_filter_impl(known, unknown, {}, input_order{});
+    const auto answer = mippp::iis::detail::deletion_filter_impl(
+        known, unknown, {}, input_order{});
     EXPECT_TRUE(answer.proven_infeasible());
     EXPECT_FALSE(answer.irreducible);
     EXPECT_EQ(answer.reason, termination::indeterminate);
@@ -307,14 +394,16 @@ TEST(DeletionFilter, RaySupportRejectsMalformedAndNormalizesMagnitude) {
     const std::vector<double> ray{0., -4e100, 2e100, 1e80};
     ASSERT_TRUE(ray_support<double>(ray));
     EXPECT_EQ(*ray_support<double>(ray), (std::vector<std::size_t>{1, 2}));
-    EXPECT_EQ(*ray_support<double>(ray, 0), (std::vector<std::size_t>{1, 2, 3}));
+    EXPECT_EQ(*ray_support<double>(ray, 0),
+              (std::vector<std::size_t>{1, 2, 3}));
     const std::vector<double> zero{0., 0.};
     EXPECT_FALSE(ray_support<double>(zero));
     for(double bad : {std::numeric_limits<double>::infinity(),
                       std::numeric_limits<double>::quiet_NaN()}) {
         const std::vector<double> invalid{1., bad};
         EXPECT_FALSE(ray_support<double>(invalid));
-        EXPECT_THROW((void)ray_support<double>(ray, bad), std::invalid_argument);
+        EXPECT_THROW((void)ray_support<double>(ray, bad),
+                     std::invalid_argument);
     }
     EXPECT_THROW((void)ray_support<double>(ray, -1), std::invalid_argument);
 }
@@ -330,7 +419,7 @@ linear_system<> clp_ray_system() {
         system.rows.push_back({{{1, 1.}}, std::nullopt, 200. + i});
     return system;
 }
-}
+}  // namespace
 
 TEST(DeletionFilter, RayColumnsUseSignedFullRayAndRejectMalformedInput) {
     std::vector<std::vector<std::pair<std::size_t, double>>> rows{
@@ -350,49 +439,58 @@ TEST(DeletionFilter, RayColumnsUseSignedFullRayAndRejectMalformedInput) {
     EXPECT_FALSE(ray_column_magnitudes<double>(3, ray, terms));
     const std::vector<double> zero{0., 0.};
     EXPECT_FALSE(ray_column_magnitudes<double>(3, zero, terms));
-    const std::vector<double> invalid{0., std::numeric_limits<double>::quiet_NaN()};
+    const std::vector<double> invalid{0.,
+                                      std::numeric_limits<double>::quiet_NaN()};
     EXPECT_FALSE(ray_column_magnitudes<double>(3, invalid, terms));
 }
 
 TEST(ClpRay, ColumnSupportShrinksSeedAndWeightOrderingPreservesProof) {
     auto system = clp_ray_system();
-    for(unsigned i = 0; i < 40; ++i) system.variables.push_back({-10., 10., false});
+    for(unsigned i = 0; i < 40; ++i)
+        system.variables.push_back({-10., 10., false});
     auto factory = [] { return mippp::clp_lp{}; };
-    auto baseline = compute_linear_iis<linear_policy{.native_seed = true}>(system, factory);
+    auto baseline =
+        compute_linear_iis<linear_policy{.native_seed = true}>(system, factory);
     for_each_bool([&]<bool order>() {
         for_each_bool([&]<bool reuse>() {
             auto answer = compute_linear_iis<linear_policy{
-                .deletion = (reuse ? deletion_strategy::reuse : deletion_strategy::rebuild),
+                .deletion = (reuse ? deletion_strategy::reuse
+                                   : deletion_strategy::rebuild),
                 .native_seed = true,
                 .prune_bounds = true,
-                .order_by_weight = order}>(
-                system, factory);
+                .order_by_weight = order}>(system, factory);
             ASSERT_TRUE(answer.reduction.irreducible);
             EXPECT_TRUE(answer.native_seed_used);
             EXPECT_EQ(answer.members.size(), 2u);
             EXPECT_EQ(answer.native_seed_size, 2u);
-            EXPECT_LT(answer.reduction.solve_count, baseline.reduction.solve_count);
+            EXPECT_LT(answer.reduction.solve_count,
+                      baseline.reduction.solve_count);
             for(auto m : baseline.members)
-                EXPECT_NE(std::find(answer.members.begin(), answer.members.end(), m), answer.members.end());
+                EXPECT_NE(
+                    std::find(answer.members.begin(), answer.members.end(), m),
+                    answer.members.end());
         });
     });
     for(std::size_t budget = 0; budget < 7; ++budget) {
-        auto answer = compute_linear_iis<linear_policy{
-            .native_seed = true,
-            .prune_bounds = true,
-            .order_by_weight = true}>(
-            system, factory, linear_options{.limits = {.max_solves = budget}});
+        auto answer =
+            compute_linear_iis<linear_policy{.native_seed = true,
+                                             .prune_bounds = true,
+                                             .order_by_weight = true}>(
+                system, factory,
+                linear_options{.limits = {.max_solves = budget}});
         EXPECT_LE(answer.reduction.solve_count, budget);
         EXPECT_EQ(answer.reduction.proven_infeasible(), budget > 0);
     }
     // Aggressive thresholding destroys support. Its failed validation still
     // falls back to the known full set under the new ordering/reuse options.
-    auto rejected = compute_linear_iis<linear_policy{
-        .deletion = deletion_strategy::reuse,
-        .native_seed = true,
-        .prune_bounds = true,
-        .order_by_weight = true}>(
-        system, factory, linear_options{.native = {.relative_tolerance = 1.}, .order = bounds_first_order{}});
+    auto rejected =
+        compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse,
+                                         .native_seed = true,
+                                         .prune_bounds = true,
+                                         .order_by_weight = true}>(
+            system, factory,
+            linear_options{.native = {.relative_tolerance = 1.},
+                           .order = bounds_first_order{}});
     EXPECT_TRUE(rejected.reduction.irreducible);
     EXPECT_FALSE(rejected.native_seed_used);
     EXPECT_EQ(rejected.members.size(), 2u);
@@ -401,11 +499,14 @@ TEST(ClpRay, ColumnSupportShrinksSeedAndWeightOrderingPreservesProof) {
 TEST(ClpRay, ExtractsOwnedRowRayWithoutAnotherSolve) {
     mippp::clp_lp model;
     EXPECT_FALSE(model.get_infeasibility_ray());
-    const auto x = model.add_variable({.lower_bound = std::nullopt, .upper_bound = 1.});
+    const auto x =
+        model.add_variable({.lower_bound = std::nullopt, .upper_bound = 1.});
     std::vector<std::pair<decltype(x), double>> terms{{x, 1.}};
-    model.add_constraint(mippp::operators::operator>=(mippp::linear_expression_view(terms, 0.), 2.));
+    model.add_constraint(mippp::operators::operator>=(
+        mippp::linear_expression_view(terms, 0.), 2.));
     model.solve();
-    ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.get_status()));
+    ASSERT_TRUE(
+        std::holds_alternative<mippp::status::infeasible>(model.get_status()));
     const auto ray = model.get_infeasibility_ray();
     ASSERT_TRUE(ray);
     ASSERT_EQ(ray->size(), 1u);
@@ -423,9 +524,10 @@ TEST(ClpRay, SmallerSeedPreservesBoundsAndOriginalRowSides) {
     const auto baseline = compute_linear_iis(system, factory);
     for_each_bool([&]<bool elastic>() {
         const auto answer = compute_linear_iis<linear_policy{
-            .elasticity = (elastic ? elasticity_strategy::reuse : elasticity_strategy::off),
-            .native_seed = true}>(
-            system, factory, linear_options{.order = rows_first_order{}});
+            .elasticity = (elastic ? elasticity_strategy::reuse
+                                   : elasticity_strategy::off),
+            .native_seed = true}>(system, factory,
+                                  linear_options{.order = rows_first_order{}});
         ASSERT_TRUE(answer.native_seed_used);
         EXPECT_LT(answer.native_seed_size, 17u);
         EXPECT_EQ(answer.elasticity_calls, 0u);
@@ -433,9 +535,11 @@ TEST(ClpRay, SmallerSeedPreservesBoundsAndOriginalRowSides) {
         ASSERT_TRUE(answer.reduction.irreducible);
         ASSERT_EQ(answer.members.size(), 2u);
         EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-            member{member_kind::variable_upper, 0}), answer.members.end());
+                            member{member_kind::variable_upper, 0}),
+                  answer.members.end());
         EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-            member{member_kind::row_lower, 0}), answer.members.end());
+                            member{member_kind::row_lower, 0}),
+                  answer.members.end());
     });
 }
 
@@ -445,51 +549,67 @@ TEST(ClpRay, ThresholdedInvalidSeedFallsBackAndBudgetsStayShared) {
         for(double tolerance : {1e-9, 1.}) {
             for(std::size_t budget = 0; budget < 12; ++budget) {
                 std::size_t calls = 0;
-                auto factory = [&] { ++calls; return mippp::clp_lp{}; };
+                auto factory = [&] {
+                    ++calls;
+                    return mippp::clp_lp{};
+                };
                 const auto answer = compute_linear_iis<linear_policy{
-                    .elasticity = (elastic ? elasticity_strategy::reuse : elasticity_strategy::off),
+                    .elasticity = (elastic ? elasticity_strategy::reuse
+                                           : elasticity_strategy::off),
                     .native_seed = true}>(
                     system, factory,
-                    linear_options{
-                        .limits = {.max_solves = budget, .initial_batch_size = 2},
-                        .native = {.relative_tolerance = tolerance},
-                        .order = bounds_first_order{}
-                    });
+                    linear_options{.limits = {.max_solves = budget,
+                                              .initial_batch_size = 2},
+                                   .native = {.relative_tolerance = tolerance},
+                                   .order = bounds_first_order{}});
                 EXPECT_LE(answer.reduction.solve_count, budget);
-                EXPECT_EQ(calls + answer.elasticity_reoptimizations, answer.reduction.solve_count);
+                EXPECT_EQ(calls + answer.elasticity_reoptimizations,
+                          answer.reduction.solve_count);
                 EXPECT_EQ(answer.reduction.proven_infeasible(), budget != 0);
-                if(tolerance == 1.) { EXPECT_FALSE(answer.native_seed_used); }
-                if(answer.reduction.irreducible) EXPECT_EQ(answer.members.size(), 2u);
-                else EXPECT_EQ(answer.reduction.reason, termination::solve_limit);
+                if(tolerance == 1.) {
+                    EXPECT_FALSE(answer.native_seed_used);
+                }
+                if(answer.reduction.irreducible)
+                    EXPECT_EQ(answer.members.size(), 2u);
+                else
+                    EXPECT_EQ(answer.reduction.reason,
+                              termination::solve_limit);
             }
         }
         // A tolerance of one deliberately drops every row from the ray. The
         // bounds-only proposal is feasible and MUST NOT become a certificate.
         const auto answer = compute_linear_iis<linear_policy{
-            .elasticity = (elastic ? elasticity_strategy::rebuild : elasticity_strategy::off),
+            .elasticity = (elastic ? elasticity_strategy::rebuild
+                                   : elasticity_strategy::off),
             .native_seed = true}>(
-            system, [] { return mippp::clp_lp{}; }, linear_options{.native = {.relative_tolerance = 1.}});
+            system, [] { return mippp::clp_lp{}; },
+            linear_options{.native = {.relative_tolerance = 1.}});
         EXPECT_FALSE(answer.native_seed_used);
         EXPECT_TRUE(answer.reduction.irreducible);
         EXPECT_EQ(answer.members.size(), 2u);
         if(!elastic) {
-            const auto baseline = compute_linear_iis(system, [] { return mippp::clp_lp{}; });
+            const auto baseline =
+                compute_linear_iis(system, [] { return mippp::clp_lp{}; });
             // Exactly one extra call validates (and rejects) the native seed;
             // returning to the unchanged full set must not verify it again.
-            EXPECT_EQ(answer.reduction.solve_count, baseline.reduction.solve_count + 1);
+            EXPECT_EQ(answer.reduction.solve_count,
+                      baseline.reduction.solve_count + 1);
         }
     });
 }
 
 TEST(ClpRay, MissingRayAndZeroDeadlineFallBackSafely) {
     linear_system<> system;
-    system.variables = {{2., 1., false}}; // certified without a native solve/ray
+    system.variables = {
+        {2., 1., false}};  // certified without a native solve/ray
     auto factory = [] { return mippp::clp_lp{}; };
-    auto answer = compute_linear_iis<linear_policy{.native_seed = true}>(system, factory);
+    auto answer =
+        compute_linear_iis<linear_policy{.native_seed = true}>(system, factory);
     EXPECT_TRUE(answer.reduction.irreducible);
     EXPECT_FALSE(answer.native_seed_used);
     answer = compute_linear_iis<linear_policy{.native_seed = true}>(
-        system, factory, linear_options{.limits = {.time_limit = std::chrono::seconds(0)}});
+        system, factory,
+        linear_options{.limits = {.time_limit = std::chrono::seconds(0)}});
     EXPECT_EQ(answer.reduction.solve_count, 0u);
     EXPECT_EQ(answer.reduction.reason, termination::time_limit);
     EXPECT_FALSE(answer.reduction.proven_infeasible());
@@ -503,16 +623,16 @@ TEST(ClpRay, CancellationDuringSeedVerificationKeepsFullProof) {
         return mippp::clp_lp{};
     };
     const auto answer = compute_linear_iis<linear_policy{
-        .elasticity = elasticity_strategy::rebuild,
-        .native_seed = true}>(
-        clp_ray_system(), factory, linear_options{.limits = {.stop = stop.get_token()}});
+        .elasticity = elasticity_strategy::rebuild, .native_seed = true}>(
+        clp_ray_system(), factory,
+        linear_options{.limits = {.stop = stop.get_token()}});
     EXPECT_EQ(constructions, 2u);
     EXPECT_EQ(answer.reduction.solve_count, 2u);
     EXPECT_EQ(answer.reduction.reason, termination::cancelled);
     EXPECT_TRUE(answer.reduction.proven_infeasible());
     EXPECT_FALSE(answer.reduction.irreducible);
     EXPECT_FALSE(answer.native_seed_used);
-    EXPECT_EQ(answer.members.size(), 17u); // seed was never verified
+    EXPECT_EQ(answer.members.size(), 17u);  // seed was never verified
 }
 
 namespace {
@@ -520,10 +640,11 @@ mippp::soplex_lp soplex_ray_model() {
     mippp::soplex_lp model;
     // Certificate availability is not guaranteed when a simplifier establishes
     // infeasibility. Opt out in this test factory, never inside the accessor.
-    model.native_api().setIntParam(model.native_model(), 10, 0); // SIMPLIFIER_OFF
+    model.native_api().setIntParam(model.native_model(), 10,
+                                   0);  // SIMPLIFIER_OFF
     return model;
 }
-}
+}  // namespace
 
 TEST(SoPlexRay, OptionalEntryPointsAndOwnedRay) {
     std::optional<std::vector<double>> copy;
@@ -532,11 +653,14 @@ TEST(SoPlexRay, OptionalEntryPointsAndOwnedRay) {
         ASSERT_NE(model.native_api().hasDualFarkas, nullptr);
         ASSERT_NE(model.native_api().getDualFarkasReal, nullptr);
         EXPECT_FALSE(model.get_infeasibility_ray());
-        const auto x = model.add_variable({.lower_bound = std::nullopt, .upper_bound = 1.});
+        const auto x = model.add_variable(
+            {.lower_bound = std::nullopt, .upper_bound = 1.});
         std::vector<std::pair<decltype(x), double>> terms{{x, 1.}};
-        model.add_constraint(mippp::operators::operator>=(mippp::linear_expression_view(terms, 0.), 2.));
+        model.add_constraint(mippp::operators::operator>=(
+            mippp::linear_expression_view(terms, 0.), 2.));
         model.solve();
-        ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.get_status()));
+        ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(
+            model.get_status()));
         // Moving an already solved model must preserve the status gate too.
         auto moved = std::move(model);
         copy = moved.get_infeasibility_ray();
@@ -551,29 +675,29 @@ TEST(SoPlexRay, OptionalEntryPointsAndOwnedRay) {
         EXPECT_EQ(api.getDualFarkasReal(nullptr, &sentinel, 1), 0);
         EXPECT_EQ(api.hasDualFarkas(nullptr), 0);
     }
-    EXPECT_NE((*copy)[0], 0.); // no borrowed solver allocation
+    EXPECT_NE((*copy)[0], 0.);  // no borrowed solver allocation
 }
 
 TEST(SoPlexRay, VerifiedSeedAndThresholdFallback) {
     const auto system = clp_ray_system();
     for_each_bool([&]<bool elastic>() {
         auto answer = compute_linear_iis<linear_policy{
-            .elasticity = (elastic ? elasticity_strategy::rebuild : elasticity_strategy::off),
-            .native_seed = true}>(
-            system, soplex_ray_model, linear_options{.order = rows_first_order{}});
+            .elasticity = (elastic ? elasticity_strategy::rebuild
+                                   : elasticity_strategy::off),
+            .native_seed = true}>(system, soplex_ray_model,
+                                  linear_options{.order = rows_first_order{}});
         EXPECT_TRUE(answer.native_seed_used);
         EXPECT_LT(answer.native_seed_size, 17u);
         EXPECT_TRUE(answer.reduction.irreducible);
         EXPECT_EQ(answer.members.size(), 2u);
         EXPECT_EQ(answer.elasticity_calls, 0u);
         answer = compute_linear_iis<linear_policy{
-            .elasticity = (elastic ? elasticity_strategy::rebuild : elasticity_strategy::off),
+            .elasticity = (elastic ? elasticity_strategy::rebuild
+                                   : elasticity_strategy::off),
             .native_seed = true}>(
             system, soplex_ray_model,
-            linear_options{
-                .native = {.relative_tolerance = 1.},
-                .order = bounds_first_order{}
-            });
+            linear_options{.native = {.relative_tolerance = 1.},
+                           .order = bounds_first_order{}});
         EXPECT_FALSE(answer.native_seed_used);
         EXPECT_TRUE(answer.reduction.irreducible);
         EXPECT_EQ(answer.members.size(), 2u);
@@ -583,18 +707,25 @@ TEST(SoPlexRay, VerifiedSeedAndThresholdFallback) {
 TEST(SoPlexRay, SharedBudgetAndDefaultPresolveRemainSafe) {
     for(std::size_t budget = 0; budget < 9; ++budget) {
         std::size_t calls = 0;
-        auto factory = [&] { ++calls; return soplex_ray_model(); };
-        const auto answer = compute_linear_iis<linear_policy{.native_seed = true}>(
-            clp_ray_system(), factory, linear_options{.limits = {.max_solves = budget}});
+        auto factory = [&] {
+            ++calls;
+            return soplex_ray_model();
+        };
+        const auto answer =
+            compute_linear_iis<linear_policy{.native_seed = true}>(
+                clp_ray_system(), factory,
+                linear_options{.limits = {.max_solves = budget}});
         EXPECT_LE(answer.reduction.solve_count, budget);
         EXPECT_EQ(answer.reduction.solve_count, calls);
         EXPECT_EQ(answer.reduction.proven_infeasible(), budget != 0);
-        if(answer.reduction.irreducible) { EXPECT_EQ(answer.members.size(), 2u); }
+        if(answer.reduction.irreducible) {
+            EXPECT_EQ(answer.members.size(), 2u);
+        }
     }
-    // Do not require a certificate from presolve; only correctness and fallback.
+    // Do not require a certificate from presolve; only correctness and
+    // fallback.
     const auto answer = compute_linear_iis<linear_policy{
-        .elasticity = elasticity_strategy::rebuild,
-        .native_seed = true}>(
+        .elasticity = elasticity_strategy::rebuild, .native_seed = true}>(
         clp_ray_system(), [] { return mippp::soplex_lp{}; });
     EXPECT_TRUE(answer.reduction.irreducible);
     EXPECT_EQ(answer.members.size(), 2u);
@@ -602,9 +733,7 @@ TEST(SoPlexRay, SharedBudgetAndDefaultPresolveRemainSafe) {
 
 TEST(SoPlexRay, ColumnScreeningAndWeightedOrder) {
     const auto answer = compute_linear_iis<linear_policy{
-        .native_seed = true,
-        .prune_bounds = true,
-        .order_by_weight = true}>(
+        .native_seed = true, .prune_bounds = true, .order_by_weight = true}>(
         clp_ray_system(), soplex_ray_model);
     EXPECT_TRUE(answer.native_seed_used);
     EXPECT_EQ(answer.native_seed_size, 2u);
@@ -614,7 +743,8 @@ TEST(SoPlexRay, ColumnScreeningAndWeightedOrder) {
 
 TEST(SoPlexStock, MissingSymbolsFallBackWithoutBreakingLibraryLoading) {
     const auto path = std::getenv("MIPPP_SOPLEX_STOCK_LIBRARY");
-    ASSERT_NE(path, nullptr) << "Select this suite with an unmodified SoPlex library";
+    ASSERT_NE(path, nullptr)
+        << "Select this suite with an unmodified SoPlex library";
     const auto & api = mippp::soplex_api::load(path);
     ASSERT_EQ(api.hasDualFarkas, nullptr);
     ASSERT_EQ(api.getDualFarkasReal, nullptr);
@@ -635,35 +765,42 @@ mippp::mosek_lp mosek_certificate_model(int optimizer) {
     api._check(api.putintparam(task, MSK_IPAR_NUM_THREADS, 1));
     api._check(api.putintparam(task, MSK_IPAR_PRESOLVE_USE, 0));
     if(optimizer == MSK_OPTIMIZER_INTPNT)
-        api._check(api.putintparam(task, MSK_IPAR_INTPNT_BASIS, 0)); // no basic solution
+        api._check(api.putintparam(task, MSK_IPAR_INTPNT_BASIS,
+                                   0));  // no basic solution
     return model;
 }
 
 mippp::mosek::impl::v1::MSKint32t count_mosek_optimizations(
     mippp::mosek::impl::v1::MSKtask_t, void * count,
     mippp::mosek::impl::v1::MSKcallbackcodee caller, const double *,
-    const mippp::mosek::impl::v1::MSKint32t *, const mippp::mosek::impl::v1::MSKint64t *) {
+    const mippp::mosek::impl::v1::MSKint32t *,
+    const mippp::mosek::impl::v1::MSKint64t *) {
     if(caller == mippp::mosek::impl::v1::MSK_CALLBACK_BEGIN_OPTIMIZER)
         ++*static_cast<unsigned *>(count);
     return 0;
 }
-}
+}  // namespace
 
 TEST(MosekCertificate, SimplexAndInteriorPointOwnAllFourMultiplierArrays) {
     using namespace mippp::mosek::impl::v1;
-    for(int optimizer : {MSK_OPTIMIZER_PRIMAL_SIMPLEX, MSK_OPTIMIZER_DUAL_SIMPLEX, MSK_OPTIMIZER_INTPNT}) {
+    for(int optimizer : {MSK_OPTIMIZER_PRIMAL_SIMPLEX,
+                         MSK_OPTIMIZER_DUAL_SIMPLEX, MSK_OPTIMIZER_INTPNT}) {
         auto model = mosek_certificate_model(optimizer);
         EXPECT_FALSE(model.get_infeasibility_certificate());
-        const auto x = model.add_variable({.lower_bound = std::nullopt, .upper_bound = 1.});
+        const auto x = model.add_variable(
+            {.lower_bound = std::nullopt, .upper_bound = 1.});
         model.add_variable({.lower_bound = -100., .upper_bound = 100.});
         std::vector<std::pair<decltype(x), double>> terms{{x, 1.}};
-        model.add_constraint(mippp::operators::operator>=(mippp::linear_expression_view(terms, 0.), 2.));
+        model.add_constraint(mippp::operators::operator>=(
+            mippp::linear_expression_view(terms, 0.), 2.));
         unsigned optimizations = 0;
         model.native_api()._check(model.native_api().putcallbackfunc(
-            model.native_model().second, count_mosek_optimizations, &optimizations));
+            model.native_model().second, count_mosek_optimizations,
+            &optimizations));
         model.solve();
         EXPECT_EQ(optimizations, 1u);
-        ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(model.get_status()));
+        ASSERT_TRUE(std::holds_alternative<mippp::status::infeasible>(
+            model.get_status()));
         const auto certificate = model.get_infeasibility_certificate();
         ASSERT_TRUE(certificate);
         ASSERT_EQ(certificate->row_lower.size(), 1u);
@@ -672,20 +809,24 @@ TEST(MosekCertificate, SimplexAndInteriorPointOwnAllFourMultiplierArrays) {
         ASSERT_EQ(certificate->variable_upper.size(), 2u);
         EXPECT_GT(certificate->row_lower[0], 0.);
         EXPECT_GT(certificate->variable_upper[0], 0.);
-        EXPECT_EQ(optimizations, 1u); // status/certificate reads cannot optimize
+        EXPECT_EQ(optimizations,
+                  1u);  // status/certificate reads cannot optimize
         if(optimizer == MSK_OPTIMIZER_INTPNT) {
             MSKbooleant basic = 1;
-            model.native_api()._check(model.native_api().solutiondef(model.native_model().second, MSK_SOL_BAS, &basic));
+            model.native_api()._check(model.native_api().solutiondef(
+                model.native_model().second, MSK_SOL_BAS, &basic));
             EXPECT_EQ(basic, 0);
         }
         model.set_variable_upper_bound(x, 3.);
         model.solve();
         EXPECT_EQ(optimizations, 2u);
-        EXPECT_TRUE(std::holds_alternative<mippp::status::optimal>(model.get_status()));
+        EXPECT_TRUE(
+            std::holds_alternative<mippp::status::optimal>(model.get_status()));
         EXPECT_FALSE(model.get_infeasibility_certificate());
         EXPECT_GE(model.get_solution()[x], 2. - 1e-6);
         EXPECT_LE(model.get_solution()[x], 3. + 1e-6);
-        EXPECT_GT(certificate->variable_upper[0], 0.); // independent of re-solve
+        EXPECT_GT(certificate->variable_upper[0],
+                  0.);  // independent of re-solve
     }
 }
 
@@ -696,28 +837,39 @@ TEST(MosekCertificate, BoundAwareSeedAndInvalidSupportFallback) {
         auto factory = [&] { return mosek_certificate_model(optimizer); };
         const auto system = clp_ray_system();
         // An interior-point certificate can legitimately be dense. A coarser
-        // support threshold is a heuristic, made safe by mandatory revalidation.
+        // support threshold is a heuristic, made safe by mandatory
+        // revalidation.
         const double tolerance = optimizer == MSK_OPTIMIZER_INTPNT ? .01 : 1e-9;
         const auto answer = compute_linear_iis<linear_policy{
-            .elasticity = elasticity_strategy::reuse,
-            .native_seed = true}>(
-            system, factory, linear_options{.native = {.relative_tolerance = tolerance}, .order = rows_first_order{}});
+            .elasticity = elasticity_strategy::reuse, .native_seed = true}>(
+            system, factory,
+            linear_options{.native = {.relative_tolerance = tolerance},
+                           .order = rows_first_order{}});
         ASSERT_TRUE(answer.native_seed_used);
-        EXPECT_EQ(answer.native_seed_size, 2u); // redundant variable bounds excluded
+        EXPECT_EQ(answer.native_seed_size,
+                  2u);  // redundant variable bounds excluded
         ASSERT_TRUE(answer.reduction.irreducible);
         EXPECT_EQ(answer.members.size(), 2u);
         EXPECT_EQ(answer.elasticity_calls, 0u);
-        EXPECT_NE(std::find(answer.members.begin(), answer.members.end(), member{member_kind::row_lower, 0}), answer.members.end());
-        EXPECT_NE(std::find(answer.members.begin(), answer.members.end(), member{member_kind::variable_upper, 0}), answer.members.end());
+        EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
+                            member{member_kind::row_lower, 0}),
+                  answer.members.end());
+        EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
+                            member{member_kind::variable_upper, 0}),
+                  answer.members.end());
         const auto fallback = compute_linear_iis<linear_policy{
-            .elasticity = elasticity_strategy::rebuild,
-            .native_seed = true}>(
-            system, factory, linear_options{.native = {.relative_tolerance = 1.}, .order = bounds_first_order{}});
+            .elasticity = elasticity_strategy::rebuild, .native_seed = true}>(
+            system, factory,
+            linear_options{.native = {.relative_tolerance = 1.},
+                           .order = bounds_first_order{}});
         EXPECT_FALSE(fallback.native_seed_used);
         EXPECT_TRUE(fallback.reduction.irreducible);
         EXPECT_EQ(fallback.members.size(), 2u);
-        const auto defaults = compute_linear_iis<linear_policy{.native_seed = true}>(system, factory);
-        EXPECT_TRUE(defaults.reduction.irreducible); // dense support may fall back
+        const auto defaults =
+            compute_linear_iis<linear_policy{.native_seed = true}>(system,
+                                                                   factory);
+        EXPECT_TRUE(
+            defaults.reduction.irreducible);  // dense support may fall back
         EXPECT_EQ(defaults.members.size(), 2u);
     }
 }
@@ -726,24 +878,34 @@ TEST(MosekCertificate, SharedBudgetsAndCancellationPreserveEvidence) {
     using namespace mippp::mosek::impl::v1;
     for(std::size_t budget = 0; budget < 7; ++budget) {
         std::size_t constructions = 0;
-        auto factory = [&] { ++constructions; return mosek_certificate_model(MSK_OPTIMIZER_INTPNT); };
-        const auto answer = compute_linear_iis<linear_policy{.native_seed = true}>(
-            clp_ray_system(), factory,
-            linear_options{
-                .limits = {.max_solves = budget, .time_limit = std::chrono::seconds(30)},
-                .native = {.relative_tolerance = .01}
-            });
+        auto factory = [&] {
+            ++constructions;
+            return mosek_certificate_model(MSK_OPTIMIZER_INTPNT);
+        };
+        const auto answer =
+            compute_linear_iis<linear_policy{.native_seed = true}>(
+                clp_ray_system(), factory,
+                linear_options{
+                    .limits = {.max_solves = budget,
+                               .time_limit = std::chrono::seconds(30)},
+                    .native = {.relative_tolerance = .01}});
         EXPECT_EQ(answer.reduction.solve_count, constructions);
         EXPECT_LE(constructions, budget);
         EXPECT_EQ(answer.reduction.proven_infeasible(), budget != 0);
-        if(answer.reduction.irreducible) { EXPECT_EQ(answer.members.size(), 2u); }
+        if(answer.reduction.irreducible) {
+            EXPECT_EQ(answer.members.size(), 2u);
+        }
     }
     std::stop_source stop;
     unsigned calls = 0;
-    const auto answer = compute_linear_iis<linear_policy{.native_seed = true}>(clp_ray_system(), [&] {
-        if(++calls == 2) stop.request_stop();
-        return mosek_certificate_model(MSK_OPTIMIZER_INTPNT);
-    }, linear_options{.limits = {.stop = stop.get_token()}, .native = {.relative_tolerance = .01}});
+    const auto answer = compute_linear_iis<linear_policy{.native_seed = true}>(
+        clp_ray_system(),
+        [&] {
+            if(++calls == 2) stop.request_stop();
+            return mosek_certificate_model(MSK_OPTIMIZER_INTPNT);
+        },
+        linear_options{.limits = {.stop = stop.get_token()},
+                       .native = {.relative_tolerance = .01}});
     EXPECT_EQ(calls, 2u);
     EXPECT_EQ(answer.reduction.reason, termination::cancelled);
     EXPECT_TRUE(answer.reduction.proven_infeasible());
@@ -754,14 +916,18 @@ TEST(MosekCertificate, SharedBudgetsAndCancellationPreserveEvidence) {
 
 TEST(MosekCertificate, WeightedOrderWithFullCertificateAndRetainedDeletion) {
     using namespace mippp::mosek::impl::v1;
-    auto factory = [] { return mosek_certificate_model(MSK_OPTIMIZER_PRIMAL_SIMPLEX); };
+    auto factory = [] {
+        return mosek_certificate_model(MSK_OPTIMIZER_PRIMAL_SIMPLEX);
+    };
     for(std::size_t budget : {1u, 3u, 30u}) {
         const auto answer = compute_linear_iis<linear_policy{
             .deletion = deletion_strategy::reuse,
             .native_seed = true,
             .prune_bounds = true,
             .order_by_weight = true}>(
-            clp_ray_system(), factory, linear_options{.limits = {.max_solves = budget}, .order = rows_first_order{}});
+            clp_ray_system(), factory,
+            linear_options{.limits = {.max_solves = budget},
+                           .order = rows_first_order{}});
         EXPECT_TRUE(answer.reduction.proven_infeasible());
         EXPECT_LE(answer.reduction.solve_count, budget);
         if(budget == 30) {
@@ -773,14 +939,17 @@ TEST(MosekCertificate, WeightedOrderWithFullCertificateAndRetainedDeletion) {
 
 TEST(MosekCertificate, MilpWrapperOptimizesOnceAndCanReadContinuousSolutions) {
     mippp::mosek_milp model;
-    const auto x = model.add_variable({.obj_coef = 1., .lower_bound = 0., .upper_bound = 1.});
+    const auto x = model.add_variable(
+        {.obj_coef = 1., .lower_bound = 0., .upper_bound = 1.});
     model.set_maximization();
     unsigned optimizations = 0;
     model.native_api()._check(model.native_api().putcallbackfunc(
-        model.native_model().second, count_mosek_optimizations, &optimizations));
+        model.native_model().second, count_mosek_optimizations,
+        &optimizations));
     model.solve();
     EXPECT_EQ(optimizations, 1u);
-    EXPECT_TRUE(std::holds_alternative<mippp::status::optimal>(model.get_status()));
+    EXPECT_TRUE(
+        std::holds_alternative<mippp::status::optimal>(model.get_status()));
     EXPECT_NEAR(model.get_solution()[x], 1., 1e-6);
     EXPECT_NEAR(model.get_solution_value(), 1., 1e-6);
     EXPECT_EQ(optimizations, 1u);
@@ -791,18 +960,29 @@ TEST(DeletionFilter, RelativeTimeLimitNormalizationAndValidation) {
     const auto now = steady_clock::now();
     auto opts = detail::normalize_limits({.time_limit = 250ms}, now);
     EXPECT_EQ(opts.deadline, now + 250ms);
-    EXPECT_EQ(detail::normalize_limits(opts, now + 100ms).deadline, opts.deadline);
+    EXPECT_EQ(detail::normalize_limits(opts, now + 100ms).deadline,
+              opts.deadline);
     EXPECT_EQ(detail::normalize_limits(
-        {.deadline = now + 50ms, .time_limit = 250ms}, now).deadline, now + 50ms);
-    EXPECT_EQ(detail::normalize_limits({.time_limit = duration<double>::max()}, now).deadline,
-              steady_clock::time_point::max());
-    auto oracle = [](auto) { ADD_FAILURE(); return feasibility::unknown; };
+                  {.deadline = now + 50ms, .time_limit = 250ms}, now)
+                  .deadline,
+              now + 50ms);
+    EXPECT_EQ(
+        detail::normalize_limits({.time_limit = duration<double>::max()}, now)
+            .deadline,
+        steady_clock::time_point::max());
+    auto oracle = [](auto) {
+        ADD_FAILURE();
+        return feasibility::unknown;
+    };
     auto answer = deletion_filter(1, oracle, {.time_limit = 0s});
     EXPECT_EQ(answer.reason, termination::time_limit);
     EXPECT_EQ(answer.solve_count, 0u);
-    EXPECT_THROW((void)deletion_filter(1, oracle, {.time_limit = -1s}), std::invalid_argument);
-    EXPECT_THROW((void)deletion_filter(1, oracle,
-        {.time_limit = duration<double>(std::numeric_limits<double>::quiet_NaN())}),
+    EXPECT_THROW((void)deletion_filter(1, oracle, {.time_limit = -1s}),
+                 std::invalid_argument);
+    EXPECT_THROW(
+        (void)deletion_filter(1, oracle,
+                              {.time_limit = duration<double>(
+                                   std::numeric_limits<double>::quiet_NaN())}),
         std::invalid_argument);
 }
 
@@ -814,9 +994,13 @@ TEST(DeletionFilter, StopReasonPriorityAndExactCompletion) {
     source.request_stop();
     EXPECT_EQ(detail::stop_reason(opts, 0, now), termination::cancelled);
     // Completing the proof on the last permitted call is success, not a limit.
-    const auto answer = deletion_filter(1, [](auto ids) {
-        return ids.empty() ? feasibility::feasible : feasibility::infeasible;
-    }, {.max_solves = 2});
+    const auto answer =
+        deletion_filter(1,
+                        [](auto ids) {
+                            return ids.empty() ? feasibility::feasible
+                                               : feasibility::infeasible;
+                        },
+                        {.max_solves = 2});
     EXPECT_TRUE(answer.irreducible);
     EXPECT_EQ(answer.reason, termination::completed);
     EXPECT_EQ(answer.solve_count, 2u);
@@ -827,9 +1011,9 @@ TEST(DeletionFilter, UnknownOnLastCallReportsExhaustedBudget) {
         auto oracle = [](auto ids) {
             return ids.empty() ? feasibility::unknown : feasibility::infeasible;
         };
-        auto answer = ordered
-            ? deletion_filter(1, oracle, {.max_solves = 2}, std::less<std::size_t>{})
-            : deletion_filter(1, oracle, {.max_solves = 2});
+        auto answer = ordered ? deletion_filter(1, oracle, {.max_solves = 2},
+                                                std::less<std::size_t>{})
+                              : deletion_filter(1, oracle, {.max_solves = 2});
         EXPECT_TRUE(answer.proven_infeasible());
         EXPECT_FALSE(answer.irreducible);
         EXPECT_EQ(answer.members.size(), 1u);
@@ -839,32 +1023,48 @@ TEST(DeletionFilter, UnknownOnLastCallReportsExhaustedBudget) {
 
 TEST(DeletionFilter, DeadlineExpiringInsideOraclePreservesProof) {
     for(bool final_proof : {false, true}) {
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(3);
-        const auto answer = deletion_filter(1, [&](auto ids) {
-            if(!ids.empty()) return feasibility::infeasible;
-            std::this_thread::sleep_until(deadline);
-            return final_proof ? feasibility::feasible : feasibility::unknown;
-        }, {.deadline = deadline});
+        const auto deadline =
+            std::chrono::steady_clock::now() + std::chrono::milliseconds(3);
+        const auto answer =
+            deletion_filter(1,
+                            [&](auto ids) {
+                                if(!ids.empty()) return feasibility::infeasible;
+                                std::this_thread::sleep_until(deadline);
+                                return final_proof ? feasibility::feasible
+                                                   : feasibility::unknown;
+                            },
+                            {.deadline = deadline});
         // No precise timing assertions: sleep_until merely forces clock expiry.
         EXPECT_TRUE(answer.proven_infeasible());
         EXPECT_EQ(answer.irreducible, final_proof);
-        EXPECT_EQ(answer.reason, final_proof ? termination::completed : termination::time_limit);
+        EXPECT_EQ(answer.reason, final_proof ? termination::completed
+                                             : termination::time_limit);
     }
 }
 
 TEST(ElasticityFilter, UnknownAfterCancellationReportsCancellation) {
     std::stop_source source;
-    const auto answer = elasticity_filter(1, [&](auto) -> elastic_trial {
-        source.request_stop();
-        return {};
-    }, {.stop = source.get_token()});
+    const auto answer = elasticity_filter(1,
+                                          [&](auto) -> elastic_trial {
+                                              source.request_stop();
+                                              return {};
+                                          },
+                                          {.stop = source.get_token()});
     EXPECT_EQ(answer.reason, termination::cancelled);
     EXPECT_FALSE(answer.proven_infeasible);
     EXPECT_EQ(answer.solve_count, 1u);
     EXPECT_EQ(elasticity_filter(1, [](auto) -> elastic_trial { return {}; },
-        {.max_solves = 1}).reason, termination::solve_limit);
-    EXPECT_EQ(elasticity_filter(1, [](auto) -> elastic_trial { ADD_FAILURE(); return {}; },
-        {.time_limit = std::chrono::seconds(0)}).solve_count, 0u);
+                                {.max_solves = 1})
+                  .reason,
+              termination::solve_limit);
+    EXPECT_EQ(elasticity_filter(1,
+                                [](auto) -> elastic_trial {
+                                    ADD_FAILURE();
+                                    return {};
+                                },
+                                {.time_limit = std::chrono::seconds(0)})
+                  .solve_count,
+              0u);
 }
 
 namespace {
@@ -873,12 +1073,15 @@ namespace {
 struct timed_model {
     std::chrono::duration<double> limit{100};
     unsigned writes = 0;
-    void set_time_limit(std::chrono::duration<double> value) { limit = value; ++writes; }
+    void set_time_limit(std::chrono::duration<double> value) {
+        limit = value;
+        ++writes;
+    }
     auto get_time_limit() { return limit; }
     std::variant<mippp::status::time_limit> get_status();
 };
 static_assert(mippp::has_time_limit<timed_model>);
-}
+}  // namespace
 
 TEST(DeletionFilter, NativeDeadlineForwardingPreservesTighterCaps) {
     work_statistics stats;
@@ -897,13 +1100,17 @@ TEST(DeletionFilter, NativeDeadlineForwardingPreservesTighterCaps) {
     EXPECT_FALSE(detail::prepare_iis_solve(model, opts, stats, opts.deadline));
     EXPECT_EQ(model.writes, writes);
     ASSERT_TRUE(detail::prepare_iis_solve(model, {}, stats, now));
-    EXPECT_EQ(model.writes, writes); // unlimited means leave factory settings alone
-    struct unsupported {} fallback;
+    EXPECT_EQ(model.writes,
+              writes);  // unlimited means leave factory settings alone
+    struct unsupported {
+    } fallback;
     EXPECT_TRUE(detail::prepare_iis_solve(fallback, opts, stats, now));
-    EXPECT_FALSE(detail::prepare_iis_solve(fallback, opts, stats, opts.deadline));
+    EXPECT_FALSE(
+        detail::prepare_iis_solve(fallback, opts, stats, opts.deadline));
     std::stop_source stop;
     stop.request_stop();
-    EXPECT_FALSE(detail::prepare_iis_solve(model, {.stop = stop.get_token()}, stats, now));
+    EXPECT_FALSE(detail::prepare_iis_solve(model, {.stop = stop.get_token()},
+                                           stats, now));
     EXPECT_EQ(model.writes, writes);
 }
 
@@ -926,11 +1133,11 @@ TEST(ElasticityFilter, AccumulatesViolationsUntilInfeasibility) {
 
 TEST(ElasticityFilter, UnknownAndNoProgressCannotCertifySeed) {
     EXPECT_FALSE(elasticity_filter(3, [](auto) -> elastic_trial {
-        return {};
-    }).proven_infeasible);
+                     return {};
+                 }).proven_infeasible);
     EXPECT_FALSE(elasticity_filter(3, [](auto) -> elastic_trial {
-        return {feasibility::feasible, {}};
-    }).proven_infeasible);
+                     return {feasibility::feasible, {}};
+                 }).proven_infeasible);
     auto malformed = [](auto) -> elastic_trial {
         return {feasibility::feasible, {9}};
     };
@@ -951,8 +1158,9 @@ TEST(ElasticityFilter, CancellationAndDeadline) {
     EXPECT_EQ(elasticity_filter(1, oracle, {.stop = stop.get_token()}).reason,
               termination::cancelled);
     EXPECT_EQ(elasticity_filter(1, oracle,
-        {.deadline = std::chrono::steady_clock::now()}).reason,
-        termination::time_limit);
+                                {.deadline = std::chrono::steady_clock::now()})
+                  .reason,
+              termination::time_limit);
 }
 
 TEST(DeletionFilter, ExhaustiveMonotoneOracles) {
@@ -972,28 +1180,36 @@ TEST(DeletionFilter, ExhaustiveMonotoneOracles) {
             return feasibility::feasible;
         };
         for(auto batch : {0u, 1u, 2u, 3u, 4u, 32u}) {
-          for(bool prioritized : {false, true}) {
-            SCOPED_TRACE(::testing::Message() << "family=" << family << " batch=" << batch);
-            const auto answer = prioritized
-                ? deletion_filter(4, oracle, {.initial_batch_size = batch}, std::greater<std::size_t>{})
-                : deletion_filter(4, oracle, {.initial_batch_size = batch});
-            if(batch <= 1) { ASSERT_LE(answer.solve_count, 5u); }
-            if(family == 0) {
-                ASSERT_EQ(answer.initial_status, feasibility::feasible);
-                ASSERT_FALSE(answer.irreducible);
-                continue;
+            for(bool prioritized : {false, true}) {
+                SCOPED_TRACE(::testing::Message()
+                             << "family=" << family << " batch=" << batch);
+                const auto answer =
+                    prioritized ? deletion_filter(4, oracle,
+                                                  {.initial_batch_size = batch},
+                                                  std::greater<std::size_t>{})
+                                : deletion_filter(
+                                      4, oracle, {.initial_batch_size = batch});
+                if(batch <= 1) {
+                    ASSERT_LE(answer.solve_count, 5u);
+                }
+                if(family == 0) {
+                    ASSERT_EQ(answer.initial_status, feasibility::feasible);
+                    ASSERT_FALSE(answer.irreducible);
+                    continue;
+                }
+                ASSERT_TRUE(answer.proven_infeasible());
+                ASSERT_TRUE(answer.irreducible);
+                ASSERT_EQ(oracle(answer.members), feasibility::infeasible);
+                // Check the defining property directly, without assuming a
+                // particular IIS or traversal order: every single-member
+                // deletion must be feasible.
+                for(std::size_t i = 0; i < answer.members.size(); ++i) {
+                    auto subset = answer.members;
+                    subset.erase(subset.begin() +
+                                 static_cast<std::ptrdiff_t>(i));
+                    ASSERT_EQ(oracle(subset), feasibility::feasible);
+                }
             }
-            ASSERT_TRUE(answer.proven_infeasible());
-            ASSERT_TRUE(answer.irreducible);
-            ASSERT_EQ(oracle(answer.members), feasibility::infeasible);
-            // Check the defining property directly, without assuming a particular
-            // IIS or traversal order: every single-member deletion must be feasible.
-            for(std::size_t i = 0; i < answer.members.size(); ++i) {
-                auto subset = answer.members;
-                subset.erase(subset.begin() + static_cast<std::ptrdiff_t>(i));
-                ASSERT_EQ(oracle(subset), feasibility::feasible);
-            }
-          }
         }
     }
 }
@@ -1004,12 +1220,14 @@ TEST(DeletionFilter, PriorityIsPreservedAfterSuccessfulRemoval) {
     auto oracle = [&](std::span<const std::size_t> ids) {
         if(ids.size() < previous.size()) {
             for(auto id : previous)
-                if(std::find(ids.begin(), ids.end(), id) == ids.end()) removed.push_back(id);
+                if(std::find(ids.begin(), ids.end(), id) == ids.end())
+                    removed.push_back(id);
         }
         previous.assign(ids.begin(), ids.end());
         return ids.empty() ? feasibility::feasible : feasibility::infeasible;
     };
-    auto order = [state = std::make_unique<int>(0)](std::size_t a, std::size_t b) {
+    auto order = [state = std::make_unique<int>(0)](std::size_t a,
+                                                    std::size_t b) {
         ++*state;
         return a > b;
     };
@@ -1021,9 +1239,12 @@ TEST(DeletionFilter, PriorityIsPreservedAfterSuccessfulRemoval) {
 
 TEST(DeletionFilter, OrderingChangesSelectedConflictWithoutChangingGuarantees) {
     auto oracle = [](std::span<const std::size_t> ids) {
-        const auto has = [&](auto id) { return std::find(ids.begin(), ids.end(), id) != ids.end(); };
+        const auto has = [&](auto id) {
+            return std::find(ids.begin(), ids.end(), id) != ids.end();
+        };
         return (has(0) && has(1)) || (has(2) && has(3))
-                   ? feasibility::infeasible : feasibility::feasible;
+                   ? feasibility::infeasible
+                   : feasibility::feasible;
     };
     auto first = deletion_filter(4, oracle, {}, std::less<std::size_t>{});
     auto last = deletion_filter(4, oracle, {}, std::greater<std::size_t>{});
@@ -1043,7 +1264,8 @@ TEST(DeletionFilter, OrderedUnknownAndLimitsRetainProof) {
     EXPECT_TRUE(answer.proven_infeasible());
     EXPECT_FALSE(answer.irreducible);
     EXPECT_EQ(answer.members.size(), 4u);
-    answer = deletion_filter(4, oracle, {.max_solves = 2}, std::greater<std::size_t>{});
+    answer = deletion_filter(4, oracle, {.max_solves = 2},
+                             std::greater<std::size_t>{});
     EXPECT_EQ(answer.reason, termination::solve_limit);
     EXPECT_TRUE(answer.proven_infeasible());
     EXPECT_EQ(answer.members.size(), 4u);
@@ -1051,7 +1273,10 @@ TEST(DeletionFilter, OrderedUnknownAndLimitsRetainProof) {
 
 TEST(DeletionFilter, EquivalentPrioritiesAndNoSortingAfterBudgetExhaustion) {
     std::size_t comparisons = 0;
-    auto equal = [&](std::size_t, std::size_t) { ++comparisons; return false; };
+    auto equal = [&](std::size_t, std::size_t) {
+        ++comparisons;
+        return false;
+    };
     auto oracle = [](auto ids) {
         return ids.empty() ? feasibility::feasible : feasibility::infeasible;
     };
@@ -1068,7 +1293,8 @@ TEST(DeletionFilter, BatchingReducesCallsForSparseConflict) {
     auto oracle = [](std::span<const std::size_t> ids) {
         return std::find(ids.begin(), ids.end(), 17u) != ids.end() &&
                        std::find(ids.begin(), ids.end(), 900u) != ids.end()
-                   ? feasibility::infeasible : feasibility::feasible;
+                   ? feasibility::infeasible
+                   : feasibility::feasible;
     };
     auto single = deletion_filter(1024, oracle);
     auto batched = deletion_filter(1024, oracle, {.initial_batch_size = 64});
@@ -1099,11 +1325,12 @@ TEST(DeletionFilter, UnknownBatchCanStillProduceCertifiedIis) {
 TEST(DeletionFilter, BatchBudgetKeepsOnlyProvenDeletions) {
     auto oracle = [](std::span<const std::size_t> ids) {
         return std::find(ids.begin(), ids.end(), 7u) != ids.end()
-                   ? feasibility::infeasible : feasibility::feasible;
+                   ? feasibility::infeasible
+                   : feasibility::feasible;
     };
     for(std::size_t budget = 0; budget < 16; ++budget) {
-        auto answer = deletion_filter(8, oracle,
-            {.max_solves = budget, .initial_batch_size = 4});
+        auto answer = deletion_filter(
+            8, oracle, {.max_solves = budget, .initial_batch_size = 4});
         EXPECT_LE(answer.solve_count, budget);
         if(answer.proven_infeasible()) {
             EXPECT_EQ(oracle(answer.members), feasibility::infeasible);
@@ -1125,8 +1352,8 @@ TEST(DeletionFilter, CancellationAfterUnknownBatchRestoresFullSet) {
         source.request_stop();
         return feasibility::unknown;
     };
-    auto answer = deletion_filter(8, oracle,
-        {.stop = source.get_token(), .initial_batch_size = 4});
+    auto answer = deletion_filter(
+        8, oracle, {.stop = source.get_token(), .initial_batch_size = 4});
     EXPECT_TRUE(answer.proven_infeasible());
     EXPECT_FALSE(answer.irreducible);
     EXPECT_EQ(answer.members.size(), 8u);
@@ -1161,7 +1388,8 @@ TEST(DeletionFilter, LimitsAndCancellation) {
     answer = deletion_filter(3, oracle, {.max_solves = 0});
     EXPECT_EQ(answer.solve_count, 0u);
     EXPECT_FALSE(answer.proven_infeasible());
-    answer = deletion_filter(3, oracle, {.deadline = std::chrono::steady_clock::now()});
+    answer = deletion_filter(3, oracle,
+                             {.deadline = std::chrono::steady_clock::now()});
     EXPECT_EQ(answer.reason, termination::time_limit);
     EXPECT_EQ(answer.solve_count, 0u);
     std::stop_source source;
@@ -1177,13 +1405,16 @@ TEST(DeletionFilter, MoveOnlyOracleAndExceptions) {
         return subset.empty() ? feasibility::feasible : feasibility::infeasible;
     };
     EXPECT_TRUE(deletion_filter(1, std::move(oracle)).irreducible);
-    auto throws = [](auto) -> feasibility { throw std::runtime_error("oracle"); };
+    auto throws = [](auto) -> feasibility {
+        throw std::runtime_error("oracle");
+    };
     EXPECT_THROW((void)deletion_filter(1, throws), std::runtime_error);
 }
 
 TEST(DeletionFilter, EmptyCandidateSet) {
-    auto answer = deletion_filter(0, [](auto) { return feasibility::infeasible; });
-    EXPECT_TRUE(answer.irreducible); // fixed background itself is infeasible
+    auto answer =
+        deletion_filter(0, [](auto) { return feasibility::infeasible; });
+    EXPECT_TRUE(answer.irreducible);  // fixed background itself is infeasible
     EXPECT_TRUE(answer.members.empty());
     EXPECT_EQ(answer.solve_count, 1u);
 }
@@ -1204,12 +1435,12 @@ TEST(DeletionFilter, CancellationDuringOracleKeepsLastProvenSubset) {
 
 template <typename Model>
 class LinearIis : public ::testing::Test {};
-using Backends = ::testing::Types<mippp::highs_lp, mippp::highs_milp,
-                                  mippp::clp_lp, mippp::cbc_milp,
-                                  mippp::gurobi_milp, mippp::cplex_milp,
-                                  mippp::copt_milp, mippp::glpk_milp,
-                                  mippp::mosek_milp, mippp::scip_milp,
-                                  mippp::soplex_lp, mippp::xpress_milp, mippp::mosek_lp>;
+using Backends =
+    ::testing::Types<mippp::highs_lp, mippp::highs_milp, mippp::clp_lp,
+                     mippp::cbc_milp, mippp::gurobi_milp, mippp::cplex_milp,
+                     mippp::copt_milp, mippp::glpk_milp, mippp::mosek_milp,
+                     mippp::scip_milp, mippp::soplex_lp, mippp::xpress_milp,
+                     mippp::mosek_lp>;
 TYPED_TEST_SUITE(LinearIis, Backends);
 
 // Tests deliberately do not catch exceptions: missing or broken libraries
@@ -1224,17 +1455,21 @@ TYPED_TEST(LinearIis, RemovesRedundantRowsAndBounds) {
     ASSERT_TRUE(answer.reduction.irreducible);
     ASSERT_EQ(answer.members.size(), 2u);
     EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-                        member{member_kind::row_lower, 0}), answer.members.end());
+                        member{member_kind::row_lower, 0}),
+              answer.members.end());
     EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-                        member{member_kind::row_upper, 1}), answer.members.end());
+                        member{member_kind::row_upper, 1}),
+              answer.members.end());
 }
 
 TYPED_TEST(LinearIis, NativeSeedOptionIsOptionalAcrossBackends) {
     auto system = clp_ray_system();
-    const auto answer = compute_linear_iis<linear_policy{.native_seed = true}>(system, [] { return TypeParam{}; });
+    const auto answer = compute_linear_iis<linear_policy{.native_seed = true}>(
+        system, [] { return TypeParam{}; });
     EXPECT_TRUE(answer.reduction.irreducible);
     EXPECT_EQ(answer.members.size(), 2u);
-    if constexpr(!has_infeasibility_ray<TypeParam> && !has_infeasibility_certificate<TypeParam>) {
+    if constexpr(!has_infeasibility_ray<TypeParam> &&
+                 !has_infeasibility_certificate<TypeParam>) {
         EXPECT_FALSE(answer.native_seed_used);
         EXPECT_EQ(answer.native_seed_size, 0u);
     }
@@ -1243,20 +1478,24 @@ TYPED_TEST(LinearIis, NativeSeedOptionIsOptionalAcrossBackends) {
 TYPED_TEST(LinearIis, TimeLimitsAndCancellationDoNotLoadOrSolveUnnecessarily) {
     linear_system<> system;
     system.variables = {{std::nullopt, std::nullopt, false}};
-    system.rows = {{{{0, 1.}}, 2., std::nullopt}, {{{0, 1.}}, std::nullopt, 1.}};
+    system.rows = {{{{0, 1.}}, 2., std::nullopt},
+                   {{{0, 1.}}, std::nullopt, 1.}};
     std::size_t constructions = 0;
     std::stop_source stop;
     auto factory = [&] {
         ++constructions;
-        stop.request_stop(); // simulate cancellation during model construction
+        stop.request_stop();  // simulate cancellation during model construction
         return TypeParam{};
     };
-    auto answer = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::reuse}>(
-        system, factory, linear_options{.limits = {.time_limit = std::chrono::seconds(0)}});
+    auto answer = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::reuse}>(
+        system, factory,
+        linear_options{.limits = {.time_limit = std::chrono::seconds(0)}});
     EXPECT_EQ(constructions, 0u);
     EXPECT_EQ(answer.reduction.solve_count, 0u);
     EXPECT_EQ(answer.reduction.reason, termination::time_limit);
-    answer = compute_linear_iis(system, factory, linear_options{.limits = {.stop = stop.get_token()}});
+    answer = compute_linear_iis(
+        system, factory, linear_options{.limits = {.stop = stop.get_token()}});
     EXPECT_EQ(constructions, 1u);
     EXPECT_EQ(answer.reduction.solve_count, 1u);
     EXPECT_EQ(answer.reduction.reason, termination::cancelled);
@@ -1271,36 +1510,48 @@ TYPED_TEST(LinearIis, NativeTimeLimitCapabilityAndPipelineBudgets) {
         TypeParam model;
         const auto now = steady_clock::now();
         model.set_time_limit(duration<double>(5));
-        ASSERT_TRUE(detail::prepare_iis_solve(model, {.deadline = now + 250ms}, stats, now));
-        EXPECT_NEAR(duration<double>(model.get_time_limit()).count(), .25, 1e-6);
+        ASSERT_TRUE(detail::prepare_iis_solve(model, {.deadline = now + 250ms},
+                                              stats, now));
+        EXPECT_NEAR(duration<double>(model.get_time_limit()).count(), .25,
+                    1e-6);
         model.set_time_limit(duration<double>(.125));
-        ASSERT_TRUE(detail::prepare_iis_solve(model, {.deadline = now + 250ms}, stats, now));
-        EXPECT_NEAR(duration<double>(model.get_time_limit()).count(), .125, 1e-6);
+        ASSERT_TRUE(detail::prepare_iis_solve(model, {.deadline = now + 250ms},
+                                              stats, now));
+        EXPECT_NEAR(duration<double>(model.get_time_limit()).count(), .125,
+                    1e-6);
     }
     linear_system<> system;
     system.variables = {{std::nullopt, std::nullopt, false}};
-    system.rows = {{{{0, 1.}}, 2., std::nullopt}, {{{0, 1.}}, std::nullopt, 1.},
+    system.rows = {{{{0, 1.}}, 2., std::nullopt},
+                   {{{0, 1.}}, std::nullopt, 1.},
                    {{{0, 1.}}, std::nullopt, 10.}};
     for_each_bool([&]<bool warm>() {
         for(std::size_t budget = 0; budget < 12; ++budget) {
             std::size_t constructions = 0;
-            auto factory = [&] { ++constructions; return TypeParam{}; };
+            auto factory = [&] {
+                ++constructions;
+                return TypeParam{};
+            };
             const auto answer = compute_linear_iis<linear_policy{
-                .elasticity = (warm ? elasticity_strategy::reuse : elasticity_strategy::rebuild)}>(
+                .elasticity = (warm ? elasticity_strategy::reuse
+                                    : elasticity_strategy::rebuild)}>(
                 system, factory,
-                linear_options{
-                    .limits = {.max_solves = budget, .initial_batch_size = 2, .time_limit = 30s},
-                    .order = rows_first_order{}
-                });
+                linear_options{.limits = {.max_solves = budget,
+                                          .initial_batch_size = 2,
+                                          .time_limit = 30s},
+                               .order = rows_first_order{}});
             EXPECT_LE(answer.reduction.solve_count, budget);
             EXPECT_EQ(constructions + answer.elasticity_reoptimizations,
                       answer.reduction.solve_count);
-            if(budget == 0) EXPECT_FALSE(answer.reduction.proven_infeasible());
-            else EXPECT_TRUE(answer.reduction.proven_infeasible());
+            if(budget == 0)
+                EXPECT_FALSE(answer.reduction.proven_infeasible());
+            else
+                EXPECT_TRUE(answer.reduction.proven_infeasible());
             if(answer.reduction.irreducible) {
                 EXPECT_EQ(answer.reduction.reason, termination::completed);
                 EXPECT_EQ(answer.members.size(), 2u);
-            } else EXPECT_EQ(answer.reduction.reason, termination::solve_limit);
+            } else
+                EXPECT_EQ(answer.reduction.reason, termination::solve_limit);
         }
     });
 }
@@ -1323,7 +1574,8 @@ TYPED_TEST(LinearIis, RangedRowAndVariableBound) {
     ASSERT_TRUE(answer.reduction.irreducible);
     ASSERT_EQ(answer.members.size(), 2u);
     EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-                        member{member_kind::row_lower, 0}), answer.members.end());
+                        member{member_kind::row_lower, 0}),
+              answer.members.end());
 }
 
 TYPED_TEST(LinearIis, IntegerOnlyInfeasibilityAndRelaxation) {
@@ -1339,9 +1591,11 @@ TYPED_TEST(LinearIis, IntegerOnlyInfeasibilityAndRelaxation) {
         ASSERT_TRUE(answer.reduction.irreducible);
         EXPECT_EQ(answer.members.size(), 2u);
     } else {
-        EXPECT_THROW((void)compute_linear_iis(system, factory), std::invalid_argument);
+        EXPECT_THROW((void)compute_linear_iis(system, factory),
+                     std::invalid_argument);
     }
-    auto relaxed = compute_linear_iis<linear_policy{.analyzed_domain = domain::lp_relaxation}>(system, factory);
+    auto relaxed = compute_linear_iis<linear_policy{
+        .analyzed_domain = domain::lp_relaxation}>(system, factory);
     EXPECT_EQ(relaxed.reduction.initial_status, feasibility::feasible);
     EXPECT_TRUE(relaxed.members.empty());
     EXPECT_FALSE(relaxed.reduction.irreducible);
@@ -1353,11 +1607,13 @@ TYPED_TEST(LinearIis, RejectsInvalidInputAndNonemptyFactory) {
     EXPECT_THROW((void)compute_linear_iis(system, [] { return TypeParam{}; }),
                  std::invalid_argument);
     system.rows.clear();
-    EXPECT_THROW((void)compute_linear_iis(system, [] {
-        auto model = TypeParam{};
-        model.add_variable();
-        return model;
-    }), std::invalid_argument);
+    EXPECT_THROW((void)compute_linear_iis(system,
+                                          [] {
+                                              auto model = TypeParam{};
+                                              model.add_variable();
+                                              return model;
+                                          }),
+                 std::invalid_argument);
 }
 
 TYPED_TEST(LinearIis, EmptyAndConstantSystems) {
@@ -1382,9 +1638,11 @@ TYPED_TEST(LinearIis, DuplicateTermsAndOriginalIndices) {
     ASSERT_TRUE(answer.reduction.irreducible);
     ASSERT_EQ(answer.members.size(), 2u);
     EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-                        member{member_kind::variable_upper, 1}), answer.members.end());
+                        member{member_kind::variable_upper, 1}),
+              answer.members.end());
     EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-                        member{member_kind::row_lower, 1}), answer.members.end());
+                        member{member_kind::row_lower, 1}),
+              answer.members.end());
 }
 
 TYPED_TEST(LinearIis, ScratchReuseResetsBoundsAndRowTerms) {
@@ -1404,12 +1662,17 @@ TYPED_TEST(LinearIis, ScratchReuseResetsBoundsAndRowTerms) {
         for_each_bool([&]<bool warm>() {
             for(std::size_t batch : {1u, 4u}) {
                 const auto answer = compute_linear_iis<linear_policy{
-                    .elasticity = (elastic ? (warm ? elasticity_strategy::reuse : elasticity_strategy::rebuild) : elasticity_strategy::off)}>(
-                    system, factory, linear_options{.limits = {.initial_batch_size = batch}});
+                    .elasticity =
+                        (elastic ? (warm ? elasticity_strategy::reuse
+                                         : elasticity_strategy::rebuild)
+                                 : elasticity_strategy::off)}>(
+                    system, factory,
+                    linear_options{.limits = {.initial_batch_size = batch}});
                 ASSERT_TRUE(answer.reduction.irreducible);
                 ASSERT_EQ(answer.members.size(), expected.size());
                 for(auto m : expected)
-                    EXPECT_NE(std::find(answer.members.begin(), answer.members.end(), m),
+                    EXPECT_NE(std::find(answer.members.begin(),
+                                        answer.members.end(), m),
                               answer.members.end());
             }
         });
@@ -1426,28 +1689,46 @@ TYPED_TEST(LinearIis, RetainedDeletionMatchesRebuildAndCountsModels) {
     for_each_bool([&]<bool elastic>() {
         for(std::size_t batch : {1u, 4u}) {
             std::size_t constructions = 0;
-            auto factory = [&] { ++constructions; return TypeParam{}; };
+            auto factory = [&] {
+                ++constructions;
+                return TypeParam{};
+            };
             auto cold = compute_linear_iis<linear_policy{
-                .elasticity = (elastic ? elasticity_strategy::reuse : elasticity_strategy::off)}>(
-                system, factory, linear_options{.limits = {.initial_batch_size = batch}, .order = bounds_first_order{}});
+                .elasticity = (elastic ? elasticity_strategy::reuse
+                                       : elasticity_strategy::off)}>(
+                system, factory,
+                linear_options{.limits = {.initial_batch_size = batch},
+                               .order = bounds_first_order{}});
             constructions = 0;
             auto warm = compute_linear_iis<linear_policy{
-                .elasticity = (elastic ? elasticity_strategy::reuse : elasticity_strategy::off),
+                .elasticity = (elastic ? elasticity_strategy::reuse
+                                       : elasticity_strategy::off),
                 .deletion = deletion_strategy::reuse}>(
-                system, factory, linear_options{.limits = {.initial_batch_size = batch}, .order = bounds_first_order{}});
+                system, factory,
+                linear_options{.limits = {.initial_batch_size = batch},
+                               .order = bounds_first_order{}});
             ASSERT_TRUE(cold.reduction.irreducible);
             ASSERT_TRUE(warm.reduction.irreducible);
             ASSERT_EQ(warm.members.size(), cold.members.size());
             for(auto m : cold.members)
-                EXPECT_NE(std::find(warm.members.begin(), warm.members.end(), m), warm.members.end());
-            EXPECT_EQ(constructions + warm.elasticity_reoptimizations + warm.deletion_reoptimizations,
+                EXPECT_NE(
+                    std::find(warm.members.begin(), warm.members.end(), m),
+                    warm.members.end());
+            EXPECT_EQ(constructions + warm.elasticity_reoptimizations +
+                          warm.deletion_reoptimizations,
                       warm.reduction.solve_count);
-            EXPECT_EQ(warm.deletion_model_reused, mippp::iis::detail::has_deletion_updates<TypeParam>);
+            EXPECT_EQ(warm.deletion_model_reused,
+                      mippp::iis::detail::has_deletion_updates<TypeParam>);
             if constexpr(mippp::iis::detail::has_deletion_updates<TypeParam>) {
                 EXPECT_GT(warm.deletion_reoptimizations, 0u);
-                if(!elastic) { EXPECT_EQ(constructions, 1u); }
+                if(!elastic) {
+                    EXPECT_EQ(constructions, 1u);
+                }
             }
-            if(!elastic) { EXPECT_EQ(warm.reduction.solve_count, cold.reduction.solve_count); }
+            if(!elastic) {
+                EXPECT_EQ(warm.reduction.solve_count,
+                          cold.reduction.solve_count);
+            }
         }
     });
 }
@@ -1455,26 +1736,42 @@ TYPED_TEST(LinearIis, RetainedDeletionMatchesRebuildAndCountsModels) {
 TYPED_TEST(LinearIis, RetainedDeletionBudgetsAndCancellation) {
     for(std::size_t budget = 0; budget < 8; ++budget) {
         std::size_t constructions = 0;
-        auto factory = [&] { ++constructions; return TypeParam{}; };
-        const auto answer = compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(
-            clp_ray_system(), factory, linear_options{.limits = {.max_solves = budget}});
+        auto factory = [&] {
+            ++constructions;
+            return TypeParam{};
+        };
+        const auto answer = compute_linear_iis<linear_policy{
+            .deletion = deletion_strategy::reuse}>(
+            clp_ray_system(), factory,
+            linear_options{.limits = {.max_solves = budget}});
         EXPECT_LE(answer.reduction.solve_count, budget);
         EXPECT_EQ(answer.reduction.proven_infeasible(), budget > 0);
-        EXPECT_EQ(constructions + answer.deletion_reoptimizations, answer.reduction.solve_count);
-        if(budget == 0) { EXPECT_EQ(constructions, 0u); }
+        EXPECT_EQ(constructions + answer.deletion_reoptimizations,
+                  answer.reduction.solve_count);
+        if(budget == 0) {
+            EXPECT_EQ(constructions, 0u);
+        }
     }
     std::stop_source stop;
     std::size_t constructions = 0;
-    auto factory = [&] { ++constructions; stop.request_stop(); return TypeParam{}; };
-    const auto answer = compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(
-        clp_ray_system(), factory, linear_options{.limits = {.stop = stop.get_token()}});
+    auto factory = [&] {
+        ++constructions;
+        stop.request_stop();
+        return TypeParam{};
+    };
+    const auto answer =
+        compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(
+            clp_ray_system(), factory,
+            linear_options{.limits = {.stop = stop.get_token()}});
     EXPECT_EQ(constructions, 1u);
     EXPECT_EQ(answer.reduction.reason, termination::cancelled);
     EXPECT_FALSE(answer.reduction.proven_infeasible());
     EXPECT_EQ(answer.deletion_reoptimizations, 0u);
     constructions = 0;
-    const auto timed = compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(
-        clp_ray_system(), factory, linear_options{.limits = {.time_limit = std::chrono::seconds(0)}});
+    const auto timed =
+        compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(
+            clp_ray_system(), factory,
+            linear_options{.limits = {.time_limit = std::chrono::seconds(0)}});
     EXPECT_EQ(constructions, 0u);
     EXPECT_EQ(timed.reduction.reason, termination::time_limit);
 }
@@ -1483,27 +1780,33 @@ TYPED_TEST(LinearIis, RetainedDeletionPreservesIntegralityAndConstantRows) {
     auto factory = [] { return TypeParam{}; };
     linear_system<> system;
     system.variables = {{2., 1., false}};
-    auto bounds = compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(system, factory);
+    auto bounds =
+        compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(
+            system, factory);
     EXPECT_TRUE(bounds.reduction.irreducible);
     EXPECT_EQ(bounds.members.size(), 2u);
     system.variables.clear();
     system.rows = {{{}, 1., std::nullopt}};
-    auto constant = compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(system, factory);
+    auto constant =
+        compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(
+            system, factory);
     EXPECT_TRUE(constant.reduction.irreducible);
     EXPECT_EQ(constant.members.size(), 1u);
     system.rows.clear();
-    auto empty = compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(system, factory);
+    auto empty =
+        compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(
+            system, factory);
     EXPECT_EQ(empty.reduction.initial_status, feasibility::feasible);
     if constexpr(mippp::milp_model<TypeParam>) {
         system.variables = {{std::nullopt, std::nullopt, true}};
         system.rows = {{{{0, 1.}}, .5, .5}};
-        auto integral = compute_linear_iis<linear_policy{.deletion = deletion_strategy::reuse}>(system, factory);
+        auto integral = compute_linear_iis<linear_policy{
+            .deletion = deletion_strategy::reuse}>(system, factory);
         EXPECT_TRUE(integral.reduction.irreducible);
         EXPECT_EQ(integral.members.size(), 2u);
         auto relaxed = compute_linear_iis<linear_policy{
             .analyzed_domain = domain::lp_relaxation,
-            .deletion = deletion_strategy::reuse}>(
-            system, factory);
+            .deletion = deletion_strategy::reuse}>(system, factory);
         EXPECT_EQ(relaxed.reduction.initial_status, feasibility::feasible);
     }
 }
@@ -1511,16 +1814,22 @@ TYPED_TEST(LinearIis, RetainedDeletionPreservesIntegralityAndConstantRows) {
 TEST(ClpRay, RetainedDeletionRestoresRejectedSeedAndSharesBudget) {
     for(double tolerance : {1e-9, 1.}) {
         std::size_t constructions = 0;
-        auto factory = [&] { ++constructions; return mippp::clp_lp{}; };
+        auto factory = [&] {
+            ++constructions;
+            return mippp::clp_lp{};
+        };
         const auto answer = compute_linear_iis<linear_policy{
-            .deletion = deletion_strategy::reuse,
-            .native_seed = true}>(
-            clp_ray_system(), factory, linear_options{.native = {.relative_tolerance = tolerance}});
+            .deletion = deletion_strategy::reuse, .native_seed = true}>(
+            clp_ray_system(), factory,
+            linear_options{.native = {.relative_tolerance = tolerance}});
         EXPECT_TRUE(answer.reduction.irreducible);
         EXPECT_EQ(answer.members.size(), 2u);
         EXPECT_EQ(answer.native_seed_used, tolerance < 1.);
-        EXPECT_EQ(constructions, 2u); // original certificate model + retained feasibility model
-        EXPECT_EQ(constructions + answer.deletion_reoptimizations, answer.reduction.solve_count);
+        EXPECT_EQ(
+            constructions,
+            2u);  // original certificate model + retained feasibility model
+        EXPECT_EQ(constructions + answer.deletion_reoptimizations,
+                  answer.reduction.solve_count);
     }
 }
 
@@ -1529,9 +1838,13 @@ TEST(ClpRay, RetainedWorkspaceRestoresNonmonotoneSubsets) {
     const std::vector<mippp::iis::detail::linear_inequality<double>> rows{
         {{{0, 1.}}, 2., true}, {{{0, 1.}}, 1., false}};
     work_statistics stats;
-    mippp::iis::detail::deletion_workspace<mippp::clp_lp, double> workspace({false}, rows, factory, {}, stats);
-    for(const auto & subset : std::vector<std::vector<std::size_t>>{{0, 1}, {0}, {1}, {}, {0, 1}, {1}, {0, 1}})
-        EXPECT_EQ(workspace(subset), subset.size() == 2 ? feasibility::infeasible : feasibility::feasible);
+    mippp::iis::detail::deletion_workspace<mippp::clp_lp, double> workspace(
+        {false}, rows, factory, {}, stats);
+    for(const auto & subset : std::vector<std::vector<std::size_t>>{
+            {0, 1}, {0}, {1}, {}, {0, 1}, {1}, {0, 1}})
+        EXPECT_EQ(workspace(subset), subset.size() == 2
+                                         ? feasibility::infeasible
+                                         : feasibility::feasible);
     EXPECT_EQ(workspace.reoptimizations(), 6u);
     std::size_t calls = 0;
     auto unknown_trial = [&](std::span<const std::size_t> subset) {
@@ -1558,12 +1871,14 @@ TYPED_TEST(LinearIis, BatchedReductionMatchesSingleForUniqueConflict) {
         system.rows.push_back({{{0, 1.}}, std::nullopt, 10. + i});
     auto factory = [] { return TypeParam{}; };
     auto single = compute_linear_iis(system, factory);
-    auto batched = compute_linear_iis(system, factory, linear_options{.limits = {.initial_batch_size = 8}});
+    auto batched = compute_linear_iis(
+        system, factory, linear_options{.limits = {.initial_batch_size = 8}});
     ASSERT_TRUE(single.reduction.irreducible);
     ASSERT_TRUE(batched.reduction.irreducible);
     ASSERT_EQ(batched.members.size(), single.members.size());
     for(auto candidate : single.members)
-        EXPECT_NE(std::find(batched.members.begin(), batched.members.end(), candidate),
+        EXPECT_NE(std::find(batched.members.begin(), batched.members.end(),
+                            candidate),
                   batched.members.end());
     EXPECT_LT(batched.reduction.solve_count, single.reduction.solve_count);
 }
@@ -1577,14 +1892,16 @@ TYPED_TEST(LinearIis, ElasticPrefilterFindsAndRevalidatesSmallSeed) {
         system.rows.push_back({{{0, 1.}}, std::nullopt, 10. + i});
     auto factory = [] { return TypeParam{}; };
     auto single = compute_linear_iis(system, factory);
-    auto filtered = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(system, factory);
+    auto filtered = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::rebuild}>(system, factory);
     ASSERT_TRUE(filtered.reduction.irreducible);
     EXPECT_TRUE(filtered.elasticity_seed_used);
     EXPECT_GE(filtered.elasticity_calls, 3u);
     EXPECT_LT(filtered.reduction.solve_count, single.reduction.solve_count);
     ASSERT_EQ(filtered.members.size(), 2u);
     for(auto candidate : single.members)
-        EXPECT_NE(std::find(filtered.members.begin(), filtered.members.end(), candidate),
+        EXPECT_NE(std::find(filtered.members.begin(), filtered.members.end(),
+                            candidate),
                   filtered.members.end());
 }
 
@@ -1592,13 +1909,15 @@ TYPED_TEST(LinearIis, ElasticBoundsAndEmptyRows) {
     auto factory = [] { return TypeParam{}; };
     linear_system<> system;
     system.variables = {{2., 1., false}};
-    auto bounds = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(system, factory);
+    auto bounds = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::rebuild}>(system, factory);
     ASSERT_TRUE(bounds.reduction.irreducible);
     EXPECT_TRUE(bounds.elasticity_seed_used);
     EXPECT_EQ(bounds.members.size(), 2u);
     system.variables.clear();
     system.rows = {{{}, 1., std::nullopt}};
-    auto empty_row = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(system, factory);
+    auto empty_row = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::rebuild}>(system, factory);
     EXPECT_TRUE(empty_row.reduction.irreducible);
     EXPECT_EQ(empty_row.members.size(), 1u);
 }
@@ -1610,20 +1929,28 @@ TYPED_TEST(LinearIis, ElasticBudgetAndNoProgressFallBackSafely) {
                    {{{0, 1.}}, std::nullopt, 1.}};
     auto factory = [] { return TypeParam{}; };
     for(std::size_t budget = 0; budget < 10; ++budget) {
-        auto answer = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(
+        auto answer = compute_linear_iis<linear_policy{
+            .elasticity = elasticity_strategy::rebuild}>(
             system, factory, linear_options{.limits = {.max_solves = budget}});
         EXPECT_LE(answer.reduction.solve_count, budget);
-        if(budget > 0) { EXPECT_TRUE(answer.reduction.proven_infeasible()); }
-        if(answer.reduction.irreducible) { EXPECT_EQ(answer.members.size(), 2u); }
+        if(budget > 0) {
+            EXPECT_TRUE(answer.reduction.proven_infeasible());
+        }
+        if(answer.reduction.irreducible) {
+            EXPECT_EQ(answer.members.size(), 2u);
+        }
     }
-    auto capped = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(
+    auto capped = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::rebuild}>(
         system, factory, linear_options{.elastic = {.max_solves = 1}});
     EXPECT_TRUE(capped.reduction.irreducible);
     EXPECT_FALSE(capped.elasticity_seed_used);
     // Deliberately hide all violations behind a huge tolerance. The prefilter
     // must be abandoned; the ordinary formulation still proves infeasibility.
-    auto stalled = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(
-        system, factory, linear_options{.elastic = {.violation_tolerance = 1e6}});
+    auto stalled = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::rebuild}>(
+        system, factory,
+        linear_options{.elastic = {.violation_tolerance = 1e6}});
     EXPECT_TRUE(stalled.reduction.irreducible);
     EXPECT_FALSE(stalled.elasticity_seed_used);
 }
@@ -1635,22 +1962,25 @@ TYPED_TEST(LinearIis, FallbackReusesFullProofWithExactBudget) {
                    {{{0, 1.}}, std::nullopt, 1.},
                    {{{0, 1.}}, std::nullopt, 10.}};
     std::size_t constructions = 0;
-    auto factory = [&] { ++constructions; return TypeParam{}; };
+    auto factory = [&] {
+        ++constructions;
+        return TypeParam{};
+    };
     auto check = [&](auto order, std::size_t batch) {
         options opts;
         opts.initial_batch_size = batch;
-        const auto baseline = compute_linear_iis(system, factory, linear_options{.limits = opts, .order = order});
+        const auto baseline = compute_linear_iis(
+            system, factory, linear_options{.limits = opts, .order = order});
         ASSERT_TRUE(baseline.reduction.irreducible);
         for(std::size_t elastic_cap : {0u, 1u}) {
             constructions = 0;
             opts.max_solves = baseline.reduction.solve_count + elastic_cap;
-            const auto answer = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(
+            const auto answer = compute_linear_iis<linear_policy{
+                .elasticity = elasticity_strategy::rebuild}>(
                 system, factory,
-                linear_options{
-                    .limits = opts,
-                    .elastic = {.max_solves = elastic_cap},
-                    .order = order
-                });
+                linear_options{.limits = opts,
+                               .elastic = {.max_solves = elastic_cap},
+                               .order = order});
             EXPECT_FALSE(answer.elasticity_seed_used);
             EXPECT_EQ(answer.elasticity_calls, elastic_cap);
             EXPECT_TRUE(answer.reduction.irreducible);
@@ -1672,14 +2002,14 @@ TYPED_TEST(LinearIis, ElasticityDoesNotSilentlyRelaxIntegers) {
         system.variables = {{std::nullopt, std::nullopt, true}};
         system.rows = {{{{0, 1.}}, 0.5, 0.5}};
         auto factory = [] { return TypeParam{}; };
-        auto answer = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::reuse}>(system, factory);
+        auto answer = compute_linear_iis<linear_policy{
+            .elasticity = elasticity_strategy::reuse}>(system, factory);
         EXPECT_TRUE(answer.reduction.irreducible);
         EXPECT_EQ(answer.elasticity_calls, 0u);
         EXPECT_EQ(answer.elasticity_reoptimizations, 0u);
         auto relaxed = compute_linear_iis<linear_policy{
             .analyzed_domain = domain::lp_relaxation,
-            .elasticity = elasticity_strategy::rebuild}>(
-            system, factory);
+            .elasticity = elasticity_strategy::rebuild}>(system, factory);
         EXPECT_EQ(relaxed.reduction.initial_status, feasibility::feasible);
         EXPECT_EQ(relaxed.elasticity_calls, 0u);
     }
@@ -1697,19 +2027,23 @@ TYPED_TEST(LinearIis, ElasticWarmStartPreservesIisAndReusesModel) {
         ++constructions;
         return TypeParam{};
     };
-    const auto cold = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(system, factory);
+    const auto cold = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::rebuild}>(system, factory);
     EXPECT_EQ(constructions, cold.reduction.solve_count);
     EXPECT_EQ(cold.elasticity_reoptimizations, 0u);
     constructions = 0;
-    const auto warm = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::reuse}>(system, factory);
+    const auto warm = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::reuse}>(system, factory);
     ASSERT_TRUE(cold.reduction.irreducible);
     ASSERT_TRUE(warm.reduction.irreducible);
     ASSERT_EQ(warm.members.size(), cold.members.size());
     for(auto candidate : cold.members)
-        EXPECT_NE(std::find(warm.members.begin(), warm.members.end(), candidate),
-                  warm.members.end());
+        EXPECT_NE(
+            std::find(warm.members.begin(), warm.members.end(), candidate),
+            warm.members.end());
     EXPECT_TRUE(warm.elasticity_seed_used);
-    EXPECT_EQ(constructions + warm.elasticity_reoptimizations, warm.reduction.solve_count);
+    EXPECT_EQ(constructions + warm.elasticity_reoptimizations,
+              warm.reduction.solve_count);
     if constexpr(mippp::has_modifiable_variable_bounds<TypeParam>) {
         ASSERT_GT(warm.elasticity_calls, 1u);
         EXPECT_EQ(warm.elasticity_reoptimizations, warm.elasticity_calls - 1);
@@ -1727,13 +2061,17 @@ TYPED_TEST(LinearIis, ElasticWarmStartRespectsBudgetsAndLifetime) {
             ++constructions;
             return TypeParam{};
         };
-        const auto answer = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::reuse}>(
+        const auto answer = compute_linear_iis<linear_policy{
+            .elasticity = elasticity_strategy::reuse}>(
             system, factory, linear_options{.limits = {.max_solves = budget}});
         EXPECT_LE(answer.reduction.solve_count, budget);
         EXPECT_EQ(constructions + answer.elasticity_reoptimizations,
                   answer.reduction.solve_count);
-        if(budget == 0) { EXPECT_EQ(constructions, 0u); }
-        else { EXPECT_TRUE(answer.reduction.proven_infeasible()); }
+        if(budget == 0) {
+            EXPECT_EQ(constructions, 0u);
+        } else {
+            EXPECT_TRUE(answer.reduction.proven_infeasible());
+        }
     }
 }
 
@@ -1743,7 +2081,8 @@ TYPED_TEST(LinearIis, WarmStateDoesNotLeakIntoFallback) {
     system.rows = {{{{0, 1.}}, 2., std::nullopt},
                    {{{0, 1.}}, std::nullopt, 1.}};
     auto factory = [] { return TypeParam{}; };
-    const auto answer = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::reuse}>(
+    const auto answer = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::reuse}>(
         system, factory, linear_options{.elastic = {.max_solves = 2}});
     EXPECT_TRUE(answer.reduction.irreducible);
     EXPECT_FALSE(answer.elasticity_seed_used);
@@ -1761,17 +2100,25 @@ TYPED_TEST(LinearIis, OrderingPreservesOriginalIdentitiesThroughElasticSeed) {
     auto factory = [] { return TypeParam{}; };
     for_each_bool([&]<bool elastic>() {
         const auto answer = compute_linear_iis<linear_policy{
-            .elasticity = (elastic ? elasticity_strategy::reuse : elasticity_strategy::off)}>(
-            system, factory, linear_options{.limits = {.initial_batch_size = 2}, .order = rows_first_order{}});
+            .elasticity = (elastic ? elasticity_strategy::reuse
+                                   : elasticity_strategy::off)}>(
+            system, factory,
+            linear_options{.limits = {.initial_batch_size = 2},
+                           .order = rows_first_order{}});
         ASSERT_TRUE(answer.reduction.irreducible);
         ASSERT_EQ(answer.members.size(), 2u);
         EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-                            member{member_kind::row_lower, 1}), answer.members.end());
+                            member{member_kind::row_lower, 1}),
+                  answer.members.end());
         EXPECT_NE(std::find(answer.members.begin(), answer.members.end(),
-                            member{member_kind::variable_upper, 1}), answer.members.end());
+                            member{member_kind::variable_upper, 1}),
+                  answer.members.end());
     });
-    const auto fallback = compute_linear_iis<linear_policy{.elasticity = elasticity_strategy::rebuild}>(
-        system, factory, linear_options{.elastic = {.max_solves = 1}, .order = bounds_first_order{}});
+    const auto fallback = compute_linear_iis<linear_policy{
+        .elasticity = elasticity_strategy::rebuild}>(
+        system, factory,
+        linear_options{.elastic = {.max_solves = 1},
+                       .order = bounds_first_order{}});
     EXPECT_TRUE(fallback.reduction.irreducible);
     EXPECT_EQ(fallback.members.size(), 2u);
 }

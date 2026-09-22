@@ -110,8 +110,10 @@ private:
     explicit soplex_api(detail::dynamic_library && library)
         : solver_api(std::move(library))
               SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUNCTIONS)
-        , hasDualFarkas(lib.find_function<hasDualFarkas_fun_t>("SoPlex_hasDualFarkas"))
-        , getDualFarkasReal(lib.find_function<getDualFarkasReal_fun_t>("SoPlex_getDualFarkasReal")) {}
+        , hasDualFarkas(
+              lib.find_function<hasDualFarkas_fun_t>("SoPlex_hasDualFarkas"))
+        , getDualFarkasReal(lib.find_function<getDualFarkasReal_fun_t>(
+              "SoPlex_getDualFarkasReal")) {}
 };
 
 #undef CONSTRUCT_SOPLEX_FUNCTIONS

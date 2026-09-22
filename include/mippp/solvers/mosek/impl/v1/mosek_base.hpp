@@ -1,8 +1,8 @@
 #pragma once
 
 #include <algorithm>
-#include <cstddef>
 #include <chrono>
+#include <cstddef>
 #include <limits>
 #include <memory>
 #include <numeric>
@@ -52,10 +52,15 @@ protected:
             MSKsolstae state;
             check(MSK->getsolsta(task, type, &state));
             const int rank = state == MSK_SOL_STA_OPTIMAL ||
-                             state == MSK_SOL_STA_PRIM_INFEAS_CER ||
-                             state == MSK_SOL_STA_DUAL_INFEAS_CER ? 2 :
-                             state == MSK_SOL_STA_UNKNOWN ? 0 : 1;
-            if(rank > best_rank) { best = type; best_rank = rank; }
+                                     state == MSK_SOL_STA_PRIM_INFEAS_CER ||
+                                     state == MSK_SOL_STA_DUAL_INFEAS_CER
+                                 ? 2
+                             : state == MSK_SOL_STA_UNKNOWN ? 0
+                                                            : 1;
+            if(rank > best_rank) {
+                best = type;
+                best_rank = rank;
+            }
         }
         return best;
     }
@@ -79,8 +84,11 @@ public:
     using model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
-        : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr),
-          cleanup_(api, env, task) {
+        : model_base<int, double>()
+        , MSK(&api)
+        , env(nullptr)
+        , task(nullptr)
+        , cleanup_(api, env, task) {
         check(MSK->makeenv(&env, nullptr));
         check(MSK->makeemptytask(env, &task));
     }
@@ -131,8 +139,10 @@ public:
     int native_id(constraint c) const noexcept { return c.id(); }
 
     void set_time_limit(std::chrono::duration<double> limit) {
-        const double seconds = limit.count() == std::numeric_limits<double>::infinity()
-                                   ? -1.0 : limit.count();
+        const double seconds =
+            limit.count() == std::numeric_limits<double>::infinity()
+                ? -1.0
+                : limit.count();
         check(MSK->putdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, seconds));
     }
     std::chrono::duration<double> get_time_limit() {
@@ -140,7 +150,8 @@ public:
         check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &limit));
         // MOSEK uses a negative sentinel for unlimited, whereas the generic
         // remaining-time adapter compares ordinary nonnegative durations.
-        return std::chrono::duration<double>(limit < 0 ? std::numeric_limits<double>::infinity() : limit);
+        return std::chrono::duration<double>(
+            limit < 0 ? std::numeric_limits<double>::infinity() : limit);
     }
 
 public:

@@ -34,8 +34,10 @@ std::optional<std::vector<long double>> ray_column_magnitudes(
     for(std::size_t row = 0; row < ray.size(); ++row) {
         const auto multiplier = static_cast<long double>(ray[row]) / scale;
         for(const auto & [column, coefficient] : std::invoke(row_terms, row)) {
-            if(column >= columns || !std::isfinite(coefficient)) return std::nullopt;
-            weights[column] += multiplier * static_cast<long double>(coefficient);
+            if(column >= columns || !std::isfinite(coefficient))
+                return std::nullopt;
+            weights[column] +=
+                multiplier * static_cast<long double>(coefficient);
             if(!std::isfinite(weights[column])) return std::nullopt;
         }
     }
@@ -50,8 +52,10 @@ template <std::floating_point Scalar>
 std::optional<std::vector<std::size_t>> ray_support(
     std::span<const Scalar> ray, double relative_tolerance = 1e-9) {
     if(!std::isfinite(relative_tolerance) || relative_tolerance < 0)
-        throw std::invalid_argument("The solver-hint threshold is invalid. " +
-            detail::setting_help("relative_tolerance", detail::setting_value(relative_tolerance),
+        throw std::invalid_argument(
+            "The solver-hint threshold is invalid. " +
+            detail::setting_help("relative_tolerance",
+                                 detail::setting_value(relative_tolerance),
                                  "any finite number >= 0 (default 1e-9)"));
     Scalar scale = 0;
     for(auto value : ray) {

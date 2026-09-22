@@ -339,9 +339,11 @@ public:
     std::optional<std::vector<scalar>> get_infeasibility_ray() {
         if(!std::holds_alternative<status::infeasible>(_status) ||
            !SoPlex->hasDualFarkas || !SoPlex->getDualFarkasReal ||
-           !SoPlex->hasDualFarkas(model)) return std::nullopt;
+           !SoPlex->hasDualFarkas(model))
+            return std::nullopt;
         std::vector<scalar> ray(num_constraints());
-        if(!SoPlex->getDualFarkasReal(model, ray.data(), static_cast<int>(ray.size())))
+        if(!SoPlex->getDualFarkasReal(model, ray.data(),
+                                      static_cast<int>(ray.size())))
             return std::nullopt;
         return ray;
     }

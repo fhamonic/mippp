@@ -10,7 +10,8 @@ namespace mippp::iis::detail {
 // Build a fresh model for each check, reusing temporary buffer capacity.
 // The observer can read a certificate before the model is destroyed, but must
 // not run the optimizer again: all solves count toward the shared budget.
-template <typename Factory, std::floating_point Scalar, domain Mode = domain::original>
+template <typename Factory, std::floating_point Scalar,
+          domain Mode = domain::original>
 class cold_model_workspace {
     using Model = std::invoke_result_t<Factory &>;
     using Variable = model_variable_t<Model>;
@@ -21,14 +22,21 @@ class cold_model_workspace {
     std::vector<model_variable_params_t<Model>> params_;
     std::vector<Variable> variables_;
     std::vector<std::pair<Variable, Scalar>> terms_;
+
 public:
     cold_model_workspace(const prepared_linear_system<Scalar> & prepared,
-                         Factory & factory, const options & limits, work_statistics & stats)
-        : prepared_(prepared), factory_(factory), limits_(limits), stats_(stats) {}
+                         Factory & factory, const options & limits,
+                         work_statistics & stats)
+        : prepared_(prepared)
+        , factory_(factory)
+        , limits_(limits)
+        , stats_(stats) {}
 
     template <typename Observer>
-        requires std::invocable<Observer &, Model &, std::span<const std::size_t>>
-    feasibility operator()(std::span<const std::size_t> active, Observer && observe) {
+        requires std::invocable<Observer &, Model &,
+                                std::span<const std::size_t>>
+    feasibility operator()(std::span<const std::size_t> active,
+                           Observer && observe) {
         const auto & system = prepared_.system;
         const auto & candidates = prepared_.candidates;
         auto model = std::invoke(factory_);
@@ -38,10 +46,14 @@ public:
         struct clear_handles {
             std::vector<Variable> & variables_;
             std::vector<std::pair<Variable, Scalar>> & terms_;
-            ~clear_handles() { terms_.clear(); variables_.clear(); }
+            ~clear_handles() {
+                terms_.clear();
+                variables_.clear();
+            }
         } cleanup{variables_, terms_};
         if(model.num_variables() != 0 || model.num_constraints() != 0)
-            throw std::invalid_argument(nonempty_model_message(model.num_variables(), model.num_constraints()));
+            throw std::invalid_argument(nonempty_model_message(
+                model.num_variables(), model.num_constraints()));
         model.set_minimization();
         params_.resize(system.variables.size());
         for(auto & p : params_) {
@@ -74,7 +86,8 @@ public:
             // belong to the fixed background and column indices remain stable.
             if constexpr(milp_model<Model> && Mode == domain::original) {
                 if(system.variables[i].integer) {
-                    variables_.push_back(model.add_integer_variable(params_[i]));
+                    variables_.push_back(
+                        model.add_integer_variable(params_[i]));
                     continue;
                 }
             }
@@ -104,19 +117,24 @@ public:
             // support. The expression borrows terms_ only until add_constraint
             // has consumed it; no borrowed view is kept across oracle calls.
             if(kind == member_kind::row_lower)
-                model.add_constraint(operators::operator>=(expression, *row.lower));
-            else model.add_constraint(operators::operator<=(expression, *row.upper));
+                model.add_constraint(
+                    operators::operator>=(expression, *row.lower));
+            else
+                model.add_constraint(
+                    operators::operator<=(expression, *row.upper));
         }
         stats_.model_built(std::max(params_.size(), std::size_t{1}), row_count);
-        if(!detail::prepare_iis_solve(model, limits_, stats_)) return feasibility::unknown;
+        if(!detail::prepare_iis_solve(model, limits_, stats_))
+            return feasibility::unknown;
         ++stats_.solver_runs;
         model.solve();
         const auto status = model.get_status();
         record_solver_issue(status, stats_);
         const auto state = detail::classify_feasibility(status);
 
-        if(state == feasibility::infeasible) std::invoke(observe, model, active);
+        if(state == feasibility::infeasible)
+            std::invoke(observe, model, active);
         return state;
     }
 };
-} // namespace mippp::iis::detail
+}  // namespace mippp::iis::detail

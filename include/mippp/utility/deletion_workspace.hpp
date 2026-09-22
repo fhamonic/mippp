@@ -23,7 +23,7 @@ concept has_deletion_updates = has_modifiable_variable_bounds<Model> &&
 // fixed so the backend may retain a basis, but basis reuse is not guaranteed.
 template <typename Model, typename Scalar>
 class deletion_workspace {
-    Model model_; // outlives all stored variable handles
+    Model model_;  // outlives all stored variable handles
     std::vector<model_variable_t<Model>> slacks_;
     std::vector<Scalar> released_upper_;
     std::vector<bool> active_, requested_;
@@ -34,13 +34,18 @@ class deletion_workspace {
 public:
     template <typename Factory>
         requires has_deletion_updates<Model>
-    deletion_workspace(const std::vector<bool> & integer,
-                       const std::vector<linear_inequality<Scalar>> & inequalities,
-                       Factory & factory, options limits, work_statistics & stats)
-        : model_(std::invoke(factory)), active_(inequalities.size(), false),
-          requested_(inequalities.size(), false), limits_(limits), stats_(stats) {
+    deletion_workspace(
+        const std::vector<bool> & integer,
+        const std::vector<linear_inequality<Scalar>> & inequalities,
+        Factory & factory, options limits, work_statistics & stats)
+        : model_(std::invoke(factory))
+        , active_(inequalities.size(), false)
+        , requested_(inequalities.size(), false)
+        , limits_(limits)
+        , stats_(stats) {
         if(model_.num_variables() || model_.num_constraints())
-            throw std::invalid_argument(nonempty_model_message(model_.num_variables(), model_.num_constraints()));
+            throw std::invalid_argument(nonempty_model_message(
+                model_.num_variables(), model_.num_constraints()));
         model_.set_minimization();
         using Variable = model_variable_t<Model>;
         std::vector<Variable> variables;
@@ -61,8 +66,10 @@ public:
         released_upper_.reserve(inequalities.size());
         std::vector<std::pair<Variable, Scalar>> terms;
         for(const auto & row : inequalities) {
-            const auto slack = model_.add_variable({.obj_coef = Scalar{0},
-                .lower_bound = Scalar{0}, .upper_bound = std::nullopt});
+            const auto slack =
+                model_.add_variable({.obj_coef = Scalar{0},
+                                     .lower_bound = Scalar{0},
+                                     .upper_bound = std::nullopt});
             slacks_.push_back(slack);
             // Read the backend's own infinity representation rather than
             // assuming IEEE infinity or hard-coding a solver-specific value.
@@ -73,14 +80,20 @@ public:
                 terms.emplace_back(variables[column], value);
             terms.emplace_back(slack, row.lower ? Scalar{1} : Scalar{-1});
             auto expression = linear_expression_view(terms, Scalar{0});
-            if(row.lower) model_.add_constraint(operators::operator>=(expression, row.rhs));
-            else model_.add_constraint(operators::operator<=(expression, row.rhs));
+            if(row.lower)
+                model_.add_constraint(
+                    operators::operator>=(expression, row.rhs));
+            else
+                model_.add_constraint(
+                    operators::operator<=(expression, row.rhs));
         }
         if(model_.num_variables() == 0)
-            model_.add_variable({.obj_coef = Scalar{0}, .lower_bound = Scalar{0},
+            model_.add_variable({.obj_coef = Scalar{0},
+                                 .lower_bound = Scalar{0},
                                  .upper_bound = Scalar{0}});
-        stats_.model_built(std::max(integer.size() + inequalities.size(), std::size_t{1}),
-                           inequalities.size());
+        stats_.model_built(
+            std::max(integer.size() + inequalities.size(), std::size_t{1}),
+            inequalities.size());
     }
 
     feasibility operator()(std::span<const std::size_t> active) {
@@ -91,12 +104,13 @@ public:
         // needed, updating only those that changed.
         for(std::size_t id = 0; id < slacks_.size(); ++id) {
             if(active_[id] == requested_[id]) continue;
-            model_.set_variable_upper_bound(slacks_[id],
-                requested_[id] ? Scalar{0} : released_upper_[id]);
+            model_.set_variable_upper_bound(
+                slacks_[id], requested_[id] ? Scalar{0} : released_upper_[id]);
             ++stats_.bound_updates;
             active_[id] = requested_[id];
         }
-        if(!prepare_iis_solve(model_, limits_, stats_)) return feasibility::unknown;
+        if(!prepare_iis_solve(model_, limits_, stats_))
+            return feasibility::unknown;
         ++stats_.solver_runs;
         model_.solve();
         ++solve_count_;
@@ -110,4 +124,4 @@ public:
     }
 };
 
-} // namespace mippp::iis::detail
+}  // namespace mippp::iis::detail

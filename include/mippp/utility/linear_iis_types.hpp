@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "mippp/algorithm/deletion_filter.hpp"
-#include "mippp/model_concepts.hpp"
 #include "mippp/infeasibility_certificate.hpp"
+#include "mippp/model_concepts.hpp"
 #include "mippp/utility/iis_statistics.hpp"
 
 namespace mippp::iis {
@@ -48,26 +48,32 @@ struct linear_system {
 // this ray: by default the adapter keeps ALL finite variable bounds.
 template <typename Model>
 concept has_infeasibility_ray = requires(Model & model) {
-    { model.get_infeasibility_ray() } ->
-        std::same_as<std::optional<std::vector<model_scalar_t<Model>>>>;
+    {
+        model.get_infeasibility_ray()
+    } -> std::same_as<std::optional<std::vector<model_scalar_t<Model>>>>;
 };
 
 template <typename Model>
 concept has_infeasibility_certificate = requires(Model & model) {
-    { model.get_infeasibility_certificate() } ->
-        std::same_as<std::optional<linear_infeasibility_certificate<model_scalar_t<Model>>>>;
+    {
+        model.get_infeasibility_certificate()
+    }
+    -> std::same_as<
+        std::optional<linear_infeasibility_certificate<model_scalar_t<Model>>>>;
 };
 
 // Adapter comparators see original row/bound identities, never temporary solver
 // handles or seed-local indices. Return true when a should be tried before b.
 template <typename Order>
-concept linear_candidate_order = std::same_as<Order, input_order> ||
+concept linear_candidate_order =
+    std::same_as<Order, input_order> ||
     std::strict_weak_order<Order &, member, member>;
 
 struct rows_first_order {
     bool operator()(member a, member b) const noexcept {
         const auto row = [](member m) {
-            return m.kind == member_kind::row_lower || m.kind == member_kind::row_upper;
+            return m.kind == member_kind::row_lower ||
+                   m.kind == member_kind::row_upper;
         };
         return row(a) && !row(b);
     }
@@ -96,10 +102,13 @@ struct linear_policy {
 
 template <linear_policy Policy>
 concept valid_linear_policy =
-    (Policy.analyzed_domain == domain::original || Policy.analyzed_domain == domain::lp_relaxation) &&
-    (Policy.elasticity == elasticity_strategy::off || Policy.elasticity == elasticity_strategy::rebuild ||
+    (Policy.analyzed_domain == domain::original ||
+     Policy.analyzed_domain == domain::lp_relaxation) &&
+    (Policy.elasticity == elasticity_strategy::off ||
+     Policy.elasticity == elasticity_strategy::rebuild ||
      Policy.elasticity == elasticity_strategy::reuse) &&
-    (Policy.deletion == deletion_strategy::rebuild || Policy.deletion == deletion_strategy::reuse) &&
+    (Policy.deletion == deletion_strategy::rebuild ||
+     Policy.deletion == deletion_strategy::reuse) &&
     (Policy.native_seed || (!Policy.prune_bounds && !Policy.order_by_weight));
 
 struct elasticity_parameters {
@@ -128,7 +137,8 @@ struct linear_diagnostics {
     certificate_parameters native{};
     std::size_t max_solves = std::numeric_limits<std::size_t>::max();
     double time_limit_seconds = std::numeric_limits<double>::infinity();
-    std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::time_point::max();
+    std::chrono::steady_clock::time_point deadline =
+        std::chrono::steady_clock::time_point::max();
     bool cancellation_requested = false;
     bool deletion_reuse_supported = false;
     bool elastic_reuse_supported = false;
@@ -158,6 +168,6 @@ struct linear_result {
 
 namespace detail {
 struct disabled_feature {};
-}
+}  // namespace detail
 
-} // namespace mippp::iis
+}  // namespace mippp::iis

@@ -12,8 +12,10 @@ class mosek_handle_guard {
     const Api & api_;
     MSKenv_t & env_;
     MSKtask_t & task_;
+
 public:
-    mosek_handle_guard(const Api & api, MSKenv_t & env, MSKtask_t & task) noexcept
+    mosek_handle_guard(const Api & api, MSKenv_t & env,
+                       MSKtask_t & task) noexcept
         : api_(api), env_(env), task_(task) {}
     mosek_handle_guard(const mosek_handle_guard &) = delete;
     mosek_handle_guard & operator=(const mosek_handle_guard &) = delete;
@@ -26,4 +28,4 @@ public:
         env_ = nullptr;
     }
 };
-} // namespace mippp::mosek::impl::v1::resource_detail
+}  // namespace mippp::mosek::impl::v1::resource_detail

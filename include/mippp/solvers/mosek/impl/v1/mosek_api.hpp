@@ -434,7 +434,7 @@ namespace mosek::impl::v1 {
     F(MSK_getsolsta, getsolsta)                         \
     F(MSK_getsolution, getsolution)                     \
     F(MSK_deletesolution, deletesolution)               \
-    F(MSK_getreducedcosts, getreducedcosts)               \
+    F(MSK_getreducedcosts, getreducedcosts)             \
     F(MSK_putcallbackfunc, putcallbackfunc)
 
 #define DECLARE_MOSEK_FUNCTIONS(FULL, SHORT) \
@@ -469,7 +469,9 @@ public:
         if(error == 0) return;
         char str[MSK_MAX_STR_LEN];
         getcodedesc(error, nullptr, str);
-        if(error == 1001) throw license_error(detail::license_diagnostic("MOSEK", str).c_str());
+        if(error == 1001)
+            throw license_error(
+                detail::license_diagnostic("MOSEK", str).c_str());
         throw solver_error(str);
     }
 };

@@ -17,14 +17,17 @@ bool prepare_iis_solve(Model & model, const options & limits,
         ++stats.solves_skipped;
         return false;
     }
-    if constexpr(has_time_limit<Model> && requires(std::chrono::duration<double> t) {
-        model.set_time_limit(t);
-    }) {
+    if constexpr(has_time_limit<Model> &&
+                 requires(std::chrono::duration<double> t) {
+                     model.set_time_limit(t);
+                 }) {
         if(limits.deadline != budget_clock::time_point::max()) {
-            const auto remaining = std::chrono::duration<double>(limits.deadline - now);
+            const auto remaining =
+                std::chrono::duration<double>(limits.deadline - now);
             // Never loosen a factory's per-solve limit. Recompute for retained
             // models too; their original allowance must not restart each solve.
-            const auto current = std::chrono::duration<double>(model.get_time_limit());
+            const auto current =
+                std::chrono::duration<double>(model.get_time_limit());
             stats.observed_solver_time_limit = current.count();
             model.set_time_limit(std::min(remaining, current));
         }

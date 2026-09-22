@@ -3,9 +3,9 @@
 #include <memory>
 #include <variant>
 
+#include "mippp/infeasibility_certificate.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
-#include "mippp/infeasibility_certificate.hpp"
 
 #include "mippp/solvers/mosek/impl/v1/mosek_base.hpp"
 
@@ -118,8 +118,8 @@ public:
     auto get_dual_solution() {
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
-        check(MSK->getsolution(task, _require_solution(), nullptr, nullptr, nullptr,
-                               nullptr, nullptr, nullptr, nullptr,
+        check(MSK->getsolution(task, _require_solution(), nullptr, nullptr,
+                               nullptr, nullptr, nullptr, nullptr, nullptr,
                                dual_solution.get(), nullptr, nullptr, nullptr,
                                nullptr, nullptr));
         return constraint_mapping(std::move(dual_solution));
@@ -133,8 +133,10 @@ public:
         return variable_mapping(std::move(reduced_costs));
     }
 
-    std::optional<linear_infeasibility_certificate<double>> get_infeasibility_certificate() {
-        if(!std::holds_alternative<status::infeasible>(_status)) return std::nullopt;
+    std::optional<linear_infeasibility_certificate<double>>
+    get_infeasibility_certificate() {
+        if(!std::holds_alternative<status::infeasible>(_status))
+            return std::nullopt;
         // Check certificate status independently for BOTH continuous solution
         // types. Problem infeasibility alone does not guarantee usable duals.
         for(auto type : {MSK_SOL_BAS, MSK_SOL_ITR}) {
@@ -145,16 +147,19 @@ public:
             MSKsolstae solution;
             check(MSK->getprosta(task, type, &problem));
             check(MSK->getsolsta(task, type, &solution));
-            if(problem != MSK_PRO_STA_PRIM_INFEAS || solution != MSK_SOL_STA_PRIM_INFEAS_CER)
+            if(problem != MSK_PRO_STA_PRIM_INFEAS ||
+               solution != MSK_SOL_STA_PRIM_INFEAS_CER)
                 continue;
             linear_infeasibility_certificate<double> certificate;
             certificate.row_lower.resize(num_constraints());
             certificate.row_upper.resize(num_constraints());
             certificate.variable_lower.resize(num_variables());
             certificate.variable_upper.resize(num_variables());
-            check(MSK->getsolution(task, type, nullptr, nullptr, nullptr, nullptr, nullptr,
-                nullptr, nullptr, nullptr, certificate.row_lower.data(), certificate.row_upper.data(),
-                certificate.variable_lower.data(), certificate.variable_upper.data(), nullptr));
+            check(MSK->getsolution(
+                task, type, nullptr, nullptr, nullptr, nullptr, nullptr,
+                nullptr, nullptr, nullptr, certificate.row_lower.data(),
+                certificate.row_upper.data(), certificate.variable_lower.data(),
+                certificate.variable_upper.data(), nullptr));
             return certificate;
         }
         return std::nullopt;

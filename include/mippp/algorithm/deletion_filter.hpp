@@ -26,9 +26,12 @@ enum class feasibility { feasible, infeasible, unknown };
 struct check_statistics {
     std::size_t feasible = 0, infeasible = 0, unknown = 0;
     void record(feasibility state) noexcept {
-        if(state == feasibility::feasible) ++feasible;
-        else if(state == feasibility::infeasible) ++infeasible;
-        else ++unknown;
+        if(state == feasibility::feasible)
+            ++feasible;
+        else if(state == feasibility::infeasible)
+            ++infeasible;
+        else
+            ++unknown;
     }
 };
 struct reduction_statistics {
@@ -61,16 +64,17 @@ struct result {
 // Invoke through a reference: stateful and move-only oracles need no copying.
 // The span is borrowed for one call and its order is not part of the contract.
 template <typename Oracle>
-concept feasibility_oracle = requires(Oracle & oracle,
-                                      std::span<const std::size_t> subset) {
-    { std::invoke(oracle, subset) } -> std::same_as<feasibility>;
-};
+concept feasibility_oracle =
+    requires(Oracle & oracle, std::span<const std::size_t> subset) {
+        { std::invoke(oracle, subset) } -> std::same_as<feasibility>;
+    };
 
 // Default traversal requires neither sorting nor comparator calls.
 struct input_order {};
 
 template <typename Order>
-concept candidate_order = std::same_as<Order, input_order> ||
+concept candidate_order =
+    std::same_as<Order, input_order> ||
     std::strict_weak_order<Order &, std::size_t, std::size_t>;
 
 // Without batching, at most candidate_count + 1 oracle calls. Batching can
@@ -122,11 +126,12 @@ template <feasibility_oracle Oracle, candidate_order Order>
         // Smaller priority comes first. Resolve equivalent priorities by ID
         // for deterministic trials. Capture by reference so move-only scorers
         // work without type erasure or copies by the sorting implementation.
-        std::sort(answer.members.begin(), answer.members.end(), [&](auto a, auto b) {
-            if(std::invoke(order, a, b)) return true;
-            if(std::invoke(order, b, a)) return false;
-            return a < b;
-        });
+        std::sort(answer.members.begin(), answer.members.end(),
+                  [&](auto a, auto b) {
+                      if(std::invoke(order, a, b)) return true;
+                      if(std::invoke(order, b, a)) return false;
+                      return a < b;
+                  });
     }
     auto batch_size = std::min(opts.initial_batch_size, candidate_count);
     if(batch_size > 1) {
@@ -138,11 +143,13 @@ template <feasibility_oracle Oracle, candidate_order Order>
         for(; batch_size > 1; batch_size /= 2) {
             std::size_t begin = 0;
             while(begin < answer.members.size()) {
-                const auto count = std::min(batch_size, answer.members.size() - begin);
-                if(count == 1) break; // leave a singleton tail to the final pass
+                const auto count =
+                    std::min(batch_size, answer.members.size() - begin);
+                if(count == 1)
+                    break;  // leave a singleton tail to the final pass
                 if(stopped()) return answer;
-                const auto first = answer.members.begin() +
-                                   static_cast<std::ptrdiff_t>(begin);
+                const auto first =
+                    answer.members.begin() + static_cast<std::ptrdiff_t>(begin);
                 const auto last = first + static_cast<std::ptrdiff_t>(count);
                 trial.clear();
                 trial.insert(trial.end(), answer.members.begin(), first);
@@ -182,14 +189,17 @@ template <feasibility_oracle Oracle, candidate_order Order>
                 ++answer.statistics.removed_by_singletons;
                 continue;
             }
-            if(status == feasibility::feasible) ++answer.statistics.necessary_members;
-            else ++answer.statistics.unresolved_members;
+            if(status == feasibility::feasible)
+                ++answer.statistics.necessary_members;
+            else
+                ++answer.statistics.unresolved_members;
             answer.members.push_back(candidate);
             std::swap(answer.members[index], answer.members.back());
             if(status == feasibility::unknown) all_decided = false;
         }
         answer.irreducible = all_decided;
-        answer.reason = all_decided ? termination::completed : termination::indeterminate;
+        answer.reason =
+            all_decided ? termination::completed : termination::indeterminate;
         if(!all_decided) stopped();
         return answer;
     }
@@ -210,8 +220,10 @@ template <feasibility_oracle Oracle, candidate_order Order>
             ++answer.statistics.removed_by_singletons;
             continue;
         }
-        if(status == feasibility::feasible) ++answer.statistics.necessary_members;
-        else ++answer.statistics.unresolved_members;
+        if(status == feasibility::feasible)
+            ++answer.statistics.necessary_members;
+        else
+            ++answer.statistics.unresolved_members;
         // Restore both the candidate and the traversal partition. A feasible
         // trial proves necessity; an unknown trial merely forbids deletion.
         answer.members.push_back(candidate);
@@ -224,7 +236,8 @@ template <feasibility_oracle Oracle, candidate_order Order>
     // An empty result can be an IIS relative to the fixed background: it means
     // the background alone is infeasible and there is no candidate to remove.
     answer.irreducible = all_decided;
-    answer.reason = all_decided ? termination::completed : termination::indeterminate;
+    answer.reason =
+        all_decided ? termination::completed : termination::indeterminate;
     if(!all_decided) stopped();
     return answer;
 }
@@ -233,12 +246,14 @@ template <feasibility_oracle Oracle, candidate_order Order>
 
 template <feasibility_oracle Oracle, candidate_order Order = input_order>
 [[nodiscard]] result deletion_filter(std::size_t candidate_count,
-                                     Oracle && oracle, options opts = {}, Order order = {}) {
+                                     Oracle && oracle, options opts = {},
+                                     Order order = {}) {
     result answer;
     answer.members.resize(candidate_count);
     std::iota(answer.members.begin(), answer.members.end(), std::size_t{0});
     return detail::deletion_filter_impl(std::move(answer),
-        std::forward<Oracle>(oracle), opts, std::move(order));
+                                        std::forward<Oracle>(oracle), opts,
+                                        std::move(order));
 }
 
 }  // namespace mippp::iis

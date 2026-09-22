@@ -592,7 +592,8 @@ public:
     std::optional<std::vector<scalar>> get_infeasibility_ray() {
         if(!Clp->isProvenPrimalInfeasible(model)) return std::nullopt;
         auto release = [this](double * ray) { Clp->freeRay(model, ray); };
-        std::unique_ptr<double, decltype(release)> ray(Clp->infeasibilityRay(model), release);
+        std::unique_ptr<double, decltype(release)> ray(
+            Clp->infeasibilityRay(model), release);
         if(!ray) return std::nullopt;
         return std::vector<scalar>(ray.get(), ray.get() + num_constraints());
     }

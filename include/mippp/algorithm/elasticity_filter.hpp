@@ -30,33 +30,37 @@ struct elasticity_result {
 };
 
 template <typename Oracle>
-concept elastic_oracle = requires(Oracle & oracle,
-                                  std::span<const std::size_t> hard) {
-    { std::invoke(oracle, hard) } -> std::same_as<elastic_trial>;
-};
+concept elastic_oracle =
+    requires(Oracle & oracle, std::span<const std::size_t> hard) {
+        { std::invoke(oracle, hard) } -> std::same_as<elastic_trial>;
+    };
 
 // The checker builds and solves the elastic problem. The first violated set
 // may not conflict: another solution could satisfy it while violating other
-// candidates. Keep enforcing new violations until the checker proves a conflict.
+// candidates. Keep enforcing new violations until the checker proves a
+// conflict.
 template <elastic_oracle Oracle>
-[[nodiscard]] elasticity_result elasticity_filter(
-    std::size_t candidate_count, Oracle && oracle, options opts = {}) {
+[[nodiscard]] elasticity_result elasticity_filter(std::size_t candidate_count,
+                                                  Oracle && oracle,
+                                                  options opts = {}) {
     opts = detail::normalize_limits(opts);
     elasticity_result answer;
     std::vector<bool> hard(candidate_count, false);
     for(;;) {
-        if(auto reason = detail::stop_reason(opts, answer.solve_count)) answer.reason = *reason;
+        if(auto reason = detail::stop_reason(opts, answer.solve_count))
+            answer.reason = *reason;
         else {
             ++answer.solve_count;
-            auto trial = std::invoke(oracle,
-                std::span<const std::size_t>(answer.members));
+            auto trial = std::invoke(
+                oracle, std::span<const std::size_t>(answer.members));
             answer.outcomes.record(trial.status);
             if(trial.status == feasibility::infeasible) {
                 answer.proven_infeasible = true;
                 return answer;
             }
             if(trial.status == feasibility::unknown || trial.violated.empty()) {
-                answer.no_progress = trial.status == feasibility::feasible && trial.violated.empty();
+                answer.no_progress = trial.status == feasibility::feasible &&
+                                     trial.violated.empty();
                 // No progress is not evidence for an infeasible seed. The
                 // caller may fall back to ordinary deletion on the full model.
                 answer.reason = detail::stop_reason(opts, answer.solve_count)
@@ -65,10 +69,14 @@ template <elastic_oracle Oracle>
             }
             for(auto id : trial.violated) {
                 if(id >= candidate_count || hard[id])
-                    throw std::invalid_argument("The soft-constraint check returned candidate " +
-                        std::to_string(id) + " which is out of range or was already enforced. "
-                        "Return only new candidate IDs from 0 through candidate_count - 1; "
-                        "candidate_count=" + std::to_string(candidate_count) + ".");
+                    throw std::invalid_argument(
+                        "The soft-constraint check returned candidate " +
+                        std::to_string(id) +
+                        " which is out of range or was already enforced. "
+                        "Return only new candidate IDs from 0 through "
+                        "candidate_count - 1; "
+                        "candidate_count=" +
+                        std::to_string(candidate_count) + ".");
                 hard[id] = true;
                 answer.members.push_back(id);
             }

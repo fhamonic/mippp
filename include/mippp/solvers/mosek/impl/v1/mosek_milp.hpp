@@ -162,9 +162,12 @@ public:
         MSKrescodee trm = MSK_RES_OK;
         check(MSK->optimizetrm(task, &trm));
         // The MIP optimizer may not create a solution slot for an empty task.
-        // Only a genuinely empty model is trivially optimal (not constant rows).
-        _status = trm == MSK_RES_OK && num_variables() == 0 && num_constraints() == 0
-                      ? status_variant{status::optimal{}} : _get_status(trm);
+        // Only a genuinely empty model is trivially optimal (not constant
+        // rows).
+        _status =
+            trm == MSK_RES_OK && num_variables() == 0 && num_constraints() == 0
+                ? status_variant{status::optimal{}}
+                : _get_status(trm);
     }
     double get_solution_value() {
         double val = 0.0;
@@ -175,7 +178,8 @@ public:
     auto get_solution() {
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        if(num_vars > 0) check(MSK->getxx(task, _require_solution(), solution.get()));
+        if(num_vars > 0)
+            check(MSK->getxx(task, _require_solution(), solution.get()));
         return variable_mapping(std::move(solution));
     }
 };

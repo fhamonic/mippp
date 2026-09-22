@@ -19,8 +19,8 @@
 #include <utility>
 #include <vector>
 
-#include "mippp/detail/dynamic_library.hpp"
 #include "mippp/detail/diagnostic_text.hpp"
+#include "mippp/detail/dynamic_library.hpp"
 #include "mippp/utility/solver_version.hpp"
 
 // MSVC deprecates std::getenv (C4996) in favour of its own _dupenv_s; the
@@ -132,25 +132,39 @@ inline std::string solver_library_help(const char * key,
     std::string message = "\nHow to fix this:";
     if(explicit_path)
         message += "\n  library path argument: current=" +
-            diagnostic_value(explicit_path) +
-            "; available=an existing compatible shared-library file.";
-    message += "\n  " + environment_help(variable.c_str(),
-        "a full path to a compatible shared-library file; unset or empty to search by name");
+                   diagnostic_value(explicit_path) +
+                   "; available=an existing compatible shared-library file.";
+    message +=
+        "\n  " + environment_help(variable.c_str(),
+                                  "a full path to a compatible shared-library "
+                                  "file; unset or empty to search by name");
 #if defined(_WIN32)
-    message += "\n  " + environment_help(
-        "PATH", "library directories separated by ';', or unset/empty");
+    message +=
+        "\n  " +
+        environment_help(
+            "PATH", "library directories separated by ';', or unset/empty");
 #elif defined(__APPLE__)
-    message += "\n  " + environment_help(
-        "DYLD_LIBRARY_PATH", "library directories separated by ':', or unset/empty");
-    message += "\n  " + environment_help(
-        "DYLD_FALLBACK_LIBRARY_PATH", "fallback directories separated by ':', or unset/empty");
+    message +=
+        "\n  " + environment_help(
+                     "DYLD_LIBRARY_PATH",
+                     "library directories separated by ':', or unset/empty");
+    message +=
+        "\n  " + environment_help(
+                     "DYLD_FALLBACK_LIBRARY_PATH",
+                     "fallback directories separated by ':', or unset/empty");
 #else
-    message += "\n  " + environment_help(
-        "LD_LIBRARY_PATH", "library directories separated by ':', or unset/empty");
+    message +=
+        "\n  " + environment_help(
+                     "LD_LIBRARY_PATH",
+                     "library directories separated by ':', or unset/empty");
 #endif
-    message += "\n  An explicit path takes priority over environment settings; a nonempty " +
-        variable + " takes priority over directory search. Install a compatible "
-        "library for this operating system and processor architecture. Set search "
+    message +=
+        "\n  An explicit path takes priority over environment settings; a "
+        "nonempty " +
+        variable +
+        " takes priority over directory search. Install a compatible "
+        "library for this operating system and processor architecture. Set "
+        "search "
         "variables before starting the program; restart an already-running "
         "terminal or application after changing them.";
     return message;
@@ -158,11 +172,15 @@ inline std::string solver_library_help(const char * key,
 
 inline std::string version_warning_help(const char * key) {
     const auto variable = concat_str("MIPPP_", key, "_LIBRARY");
-    return "\n  " + environment_help(variable.c_str(),
-        "a full path to a validated library; unset or empty to search") +
-        "\n  " + environment_help("MIPPP_NO_VERSION_WARNING",
-        "unset to show warnings; any set value (including '0' or empty) to hide them") +
-        "\n  Hiding this warning does not fix a version mismatch.\n";
+    return "\n  " +
+           environment_help(
+               variable.c_str(),
+               "a full path to a validated library; unset or empty to search") +
+           "\n  " +
+           environment_help("MIPPP_NO_VERSION_WARNING",
+                            "unset to show warnings; any set value (including "
+                            "'0' or empty) to hide them") +
+           "\n  Hiding this warning does not fix a version mismatch.\n";
 }
 
 // entry.path().filename() without materializing the intermediate path.
