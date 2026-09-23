@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <variant>
@@ -23,7 +25,8 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void set_iteration_limit(std::size_t count) {
         check(CPX->setintparam(env, CPXPARAM_Simplex_Limits_Iterations,
-                               static_cast<int>(count)));
+                               static_cast<int>(std::min<std::size_t>(
+                                   count, std::numeric_limits<int>::max()))));
     }
     auto get_iteration_limit() {
         int count;

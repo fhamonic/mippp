@@ -151,6 +151,7 @@ MSKrescodee MSK_putintparam(MSKtask_t task, MSKiparame param,
 MSKrescodee MSK_getintparam(MSKtask_t task, MSKiparame param,
                             MSKint32t * parvalue);
 using MSKdparame = int;
+constexpr MSKdparame MSK_DPAR_OPTIMIZER_MAX_TIME = 50;
 MSKrescodee MSK_putdouparam(MSKtask_t task, MSKdparame param,
                             MSKrealt parvalue);
 MSKrescodee MSK_getdouparam(MSKtask_t task, MSKdparame param,

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <variant>
 
@@ -23,8 +25,10 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_iteration_limit(std::size_t n) {
-        check(Highs->setIntOptionValue(model, "simplex_iteration_limit",
-                                       static_cast<int>(n)));
+        check(
+            Highs->setIntOptionValue(model, "simplex_iteration_limit",
+                                     static_cast<int>(std::min<std::size_t>(
+                                         n, std::numeric_limits<int>::max()))));
     }
     std::size_t get_iteration_limit() {
         int n;
@@ -53,27 +57,33 @@ private:
 
     status_variant _get_status() {
         using namespace status;
-        switch (Highs->getModelStatus(model)) {            
+        const int status_ = Highs->getModelStatus(model);
+        switch (status_) {
             case kHighsModelStatusOptimal:        return optimal{};
             case kHighsModelStatusUnboundedOrInfeasible: 
                                                   return infeasible_or_unbounded{};
             case kHighsModelStatusInfeasible:     return infeasible{};
             case kHighsModelStatusUnbounded:      return unbounded{};
-            case kHighsModelStatusInterrupt:      return interrupted{};
+        }
+        int psolstatus;
+        check(Highs->getIntInfoValue(model, "primal_solution_status", &psolstatus));
+        const bool has_sol = (psolstatus == kHighsSolutionStatusFeasible);
+        switch (status_) {
+            case kHighsModelStatusInterrupt:      return interrupted{has_sol};
             case kHighsModelStatusLoadError:
             case kHighsModelStatusModelError:
             case kHighsModelStatusPresolveError:
             case kHighsModelStatusSolveError:
-            case kHighsModelStatusPostsolveError: return failed{};
+            case kHighsModelStatusPostsolveError: return failed{has_sol};
             case kHighsModelStatusObjectiveBound:
-            case kHighsModelStatusObjectiveTarget: return limit_reached{};
-            case kHighsModelStatusTimeLimit:      return time_limit{};
-            case kHighsModelStatusIterationLimit: return iteration_limit{};
+            case kHighsModelStatusObjectiveTarget: return limit_reached{has_sol};
+            case kHighsModelStatusTimeLimit:      return time_limit{has_sol};
+            case kHighsModelStatusIterationLimit: return iteration_limit{has_sol};
             case kHighsModelStatusModelEmpty:
             case kHighsModelStatusNotset:
-            case kHighsModelStatusUnknown:        return unknown{};        
+            case kHighsModelStatusUnknown:        return unknown{has_sol};
             default:
-                return unknown{};
+                return unknown{has_sol};
         }
     }
     // clang-format on

@@ -26,6 +26,7 @@ INSTANTIATE_TEST(Gurobi_lp, CuttingStockTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ColumnManagerTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpFuzzyTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, TimeLimitTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, IterationLimitTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, VerbosityTest, gurobi_lp_test);
 
 struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {

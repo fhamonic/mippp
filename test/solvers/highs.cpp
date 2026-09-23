@@ -25,8 +25,8 @@ INSTANTIATE_TEST(HiGHS_lp, LpStatusTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, CuttingStockTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ColumnManagerTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpFuzzyTest, highs_lp_test);
-// throws kHighsStatusWarning at the limit
-// INSTANTIATE_TEST(HiGHS_lp, TimeLimitTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, TimeLimitTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, IterationLimitTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, VerbosityTest, highs_lp_test);
 
 struct highs_milp_test : public model_test<highs_api, highs_milp> {
@@ -45,8 +45,7 @@ INSTANTIATE_TEST(HiGHS_milp, RemoveVariableTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ReadableConstraintsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, SudokuTest, highs_milp_test);
 // INSTANTIATE_TEST(HiGHS_milp, MipStartTest, highs_milp_test);
-// throws kHighsStatusWarning at the limit
-// INSTANTIATE_TEST(HiGHS_milp, TimeLimitTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, TimeLimitTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, VerbosityTest, highs_milp_test);
 
 struct highs_qp_test : public model_test<highs_api, highs_qp> {
@@ -68,6 +67,6 @@ INSTANTIATE_TEST(HiGHS_qp, DualSolutionTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, LpStatusTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, CuttingStockTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ColumnManagerTest, highs_qp_test);
-// throws kHighsStatusWarning at the limit
-// INSTANTIATE_TEST(HiGHS_qp, TimeLimitTest, highs_qp_test);
+INSTANTIATE_TEST(HiGHS_qp, TimeLimitTest, highs_qp_test);
+INSTANTIATE_TEST(HiGHS_qp, IterationLimitTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, VerbosityTest, highs_qp_test);

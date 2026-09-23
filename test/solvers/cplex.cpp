@@ -25,6 +25,7 @@ INSTANTIATE_TEST(CPLEX_lp, CuttingStockTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ColumnManagerTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, LpFuzzyTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, TimeLimitTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, IterationLimitTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, VerbosityTest, cplex_lp_test);
 
 struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {

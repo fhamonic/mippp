@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <memory>
@@ -421,6 +422,18 @@ public:
                          CL &&... constraint_lambdas) {
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(MSK->putdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &t));
+        return std::chrono::duration<double>(t);
     }
 
     ///////////////////////////////////////////////////////////////////////////

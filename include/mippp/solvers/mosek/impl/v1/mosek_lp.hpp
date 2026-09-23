@@ -37,10 +37,19 @@ private:
 
     status_variant _status = status::unknown{};
 
-    status_variant _get_status() {
+    // whether a stopped solve left the solution get_solution() reads
+    bool _has_solution() {
+        MSKbooleant defined = 0;
+        check(MSK->solutiondef(task, MSK_SOL_BAS, &defined));
+        if(!defined) return false;
+        MSKsolstae solsta;
+        check(MSK->getsolsta(task, MSK_SOL_BAS, &solsta));
+        return solsta == MSK_SOL_STA_OPTIMAL || solsta == MSK_SOL_STA_PRIM_FEAS ||
+               solsta == MSK_SOL_STA_PRIM_AND_DUAL_FEAS;
+    }
+
+    status_variant _get_status(MSKrestrmcode trm) {
         using namespace status;
-        MSKrestrmcode trm;
-        check(MSK->optimizetrm(task, &trm));
         switch(trm) {
             case MSK_RES_OK: {
                 MSKprostae prosta;
@@ -70,16 +79,16 @@ private:
                         return unknown{};
                 }
             }
-            case MSK_RES_TRM_MAX_TIME:          return time_limit{};
-            case MSK_RES_TRM_MAX_ITERATIONS:    return iteration_limit{};
-            case MSK_RES_TRM_OBJECTIVE_RANGE:   return limit_reached{};
-            case MSK_RES_TRM_USER_CALLBACK:     return interrupted{};
+            case MSK_RES_TRM_MAX_TIME:          return time_limit{_has_solution()};
+            case MSK_RES_TRM_MAX_ITERATIONS:    return iteration_limit{_has_solution()};
+            case MSK_RES_TRM_OBJECTIVE_RANGE:   return limit_reached{_has_solution()};
+            case MSK_RES_TRM_USER_CALLBACK:     return interrupted{_has_solution()};
             case MSK_RES_TRM_NUMERICAL_PROBLEM:
             case MSK_RES_TRM_MAX_NUM_SETBACKS:
-            case MSK_RES_TRM_STALL:             return numerical_failure{};
+            case MSK_RES_TRM_STALL:             return numerical_failure{_has_solution()};
             case MSK_RES_TRM_LOST_RACE:
             case MSK_RES_TRM_INTERNAL:
-            case MSK_RES_TRM_INTERNAL_STOP:     return failed{};
+            case MSK_RES_TRM_INTERNAL_STOP:     return failed{_has_solution()};
             default: 
                 return unknown{};
         }
@@ -91,8 +100,11 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(MSK->optimize(task));
-        _status = (num_variables() > 0) ? _get_status() : status::optimal{};
+        // MSK_optimize reports a limit as an error code; MSK_optimizetrm
+        // returns it as the termination code, and is the solve itself
+        MSKrestrmcode trm;
+        check(MSK->optimizetrm(task, &trm));
+        _status = (num_variables() > 0) ? _get_status(trm) : status::optimal{};
     }
     double get_solution_value() {
         double val;

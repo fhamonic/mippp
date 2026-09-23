@@ -257,7 +257,8 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
         constexpr seconds overshoot{1.0};
         const std::vector<std::size_t> sizes =
             milp ? std::vector<std::size_t>{15, 25, 32, 40, 50, 63, 79, 100}
-                 : std::vector<std::size_t>{100, 200, 283, 400, 566, 800, 1131};
+                 : std::vector<std::size_t>{100, 200, 283,  400,
+                                            566, 800, 1131, 1600};
 
         int interrupted_solves = 0;
         for(const std::size_t size : sizes) {

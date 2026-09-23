@@ -59,6 +59,7 @@ formated_test_names = [
     ("LazyConstraintsTest", "Lazy constraints"),
     ("TravellingSalesmanTest", "Travelling Salesman example"),
     ("TimeLimitTest", "Time limit"),
+    ("IterationLimitTest", "Iteration limit"),
     ("VerbosityTest", "Verbosity control"),
     ("MipStartTest", "MIP start"),
     ("SudokuTest", "Sudoku example"),

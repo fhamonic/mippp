@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <variant>
@@ -28,6 +29,9 @@ public:
     std::size_t get_iteration_limit() {
         double n;
         check(GRB->getdblparam(env, GRB_DBL_PAR_ITERATIONLIMIT, &n));
+        // the default, 1e100, is beyond std::size_t: casting it is undefined
+        constexpr auto max = std::numeric_limits<std::size_t>::max();
+        if(n >= static_cast<double>(max)) return max;
         return static_cast<std::size_t>(n);
     }
     ///////////////////////////////////////////////////////////////////////////

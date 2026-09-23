@@ -84,8 +84,8 @@ if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
 
 | Concept | Setter / getter | Backends |
 | :--- | :--- | :--- |
-| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, SoPlex, Xpress |
-| `has_iteration_limit` | `set_iteration_limit(n)`, `get_iteration_limit()` | Gurobi, HiGHS |
+| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, MOSEK, SoPlex, Xpress |
+| `has_iteration_limit` | `set_iteration_limit(n)`, `get_iteration_limit()` | CPLEX, Gurobi, HiGHS *(LP and QP models)* |
 | `has_node_limit` | `set_node_limit(n)`, `get_node_limit()` | CPLEX, Gurobi |
 | `has_solution_limit` | `set_solution_limit(n)`, `get_solution_limit()` | CPLEX, Gurobi |
 | `has_memory_limit` | `set_memory_limit(size)`, `get_memory_limit()` | CPLEX, Gurobi |
@@ -105,6 +105,8 @@ model.set_memory_limit(mebibytes{4096u});
 ```
 
 A limit is a property of the model and survives across `solve()` calls, so setting it once before a benchmark loop is enough.
+
+An iteration limit counts simplex iterations; on `highs_qp` it also caps HiGHS's QP solver, which a quadratic objective runs instead. Barrier iterations are not counted: Gurobi's own `BarIterLimit`, for one, is set through `native_api()`. A limit larger than the solver can store (HiGHS and CPLEX keep an `int`) means no limit.
 
 SoPlex keeps its own default clock, the CPU time of the process: in a program whose other threads are busy, its time limit runs out before the wall-clock duration. Its wall-clock timer stopped short solves spuriously in our measurements, hence the default.
 
