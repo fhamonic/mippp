@@ -76,6 +76,7 @@ If you already write models in Python or Julia, almost everything transfers: MIP
 | dual | `constr.Pi` | `dual(c)` | `c.pi` | `duals[c]` after `get_dual_solution()` |
 | reduced cost | `x.RC` | `reduced_cost(x)` | `x.dj` | `rc[x]` after `get_reduced_costs()` |
 | time limit | `setParam("TimeLimit", 60)` | `set_time_limit_sec` | `PULP_CBC_CMD(timeLimit=)` | `set_time_limit(60s)` |
+| solver log | on; `setParam("OutputFlag", 0)` | on; `set_silent(m)` | on; `PULP_CBC_CMD(msg=False)` | off; `set_verbose(true)` |
 | MIP start | `x.Start = v` | `set_start_value` | `x.setInitialValue` | `add_mip_start(entries)` |
 | lazy constraint | `model.cbLazy(...)` | `MOI.submit(..., LazyConstraint)` | — | `handle.add_lazy_constraint(...)` |
 | change solver | rewrite in another API | `set_optimizer(...)` | `prob.solve(SOLVER())` | change two type aliases, recompile |
@@ -119,7 +120,7 @@ There is no `solver=` argument at solve time. The backend appears in an include 
 
 ### 6. Not everything is there yet
 
-MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, IIS-based infeasibility diagnosis, solution pools, native multi-objective, quadratic *constraints*, and logging control. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
+MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, IIS-based infeasibility diagnosis, solution pools, native multi-objective, and quadratic *constraints*. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
 
 ## What you gain in exchange
 

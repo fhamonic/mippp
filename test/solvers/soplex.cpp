@@ -13,3 +13,5 @@ INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, AddColumnTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, DualSolutionTest, soplex_lp_test);
 // INSTANTIATE_TEST(SoPlex, CuttingStockTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, TimeLimitTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, VerbosityTest, soplex_lp_test);

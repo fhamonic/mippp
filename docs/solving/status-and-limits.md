@@ -84,7 +84,7 @@ if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
 
 | Concept | Setter / getter | Backends |
 | :--- | :--- | :--- |
-| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, Xpress |
+| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, SoPlex, Xpress |
 | `has_iteration_limit` | `set_iteration_limit(n)`, `get_iteration_limit()` | Gurobi, HiGHS |
 | `has_node_limit` | `set_node_limit(n)`, `get_node_limit()` | CPLEX, Gurobi |
 | `has_solution_limit` | `set_solution_limit(n)`, `get_solution_limit()` | CPLEX, Gurobi |
@@ -106,6 +106,8 @@ model.set_memory_limit(mebibytes{4096u});
 
 A limit is a property of the model and survives across `solve()` calls, so setting it once before a benchmark loop is enough.
 
+SoPlex keeps its own default clock, the CPU time of the process: in a program whose other threads are busy, its time limit runs out before the wall-clock duration. Its wall-clock timer stopped short solves spuriously in our measurements, hence the default.
+
 ## Tolerances
 
 | Concept | Provides | Backends |
@@ -118,6 +120,25 @@ Two habits worth adopting in experimental code:
 
 - **Read the tolerance instead of hard-coding `1e-9`.** Post-processing that rounds a binary (`sol[x] > 0.5`) or tests a reduced cost should be expressed against the solver's own tolerance where one is available, so the same code stays correct when you change backend or tighten the setting.
 - **Report the tolerances with the results.** An optimality tolerance is part of what "optimal" meant in a table of results; the getters make dumping them into the run log a one-liner.
+
+## Solver output
+
+Models are quiet: building one, setting its parameters and solving it print nothing, on every backend. The solver's own log is one call away:
+
+| Concept | Provides | Backends |
+| :--- | :--- | :--- |
+| `has_verbosity` | `set_verbose(bool)`, `is_verbose()` | all |
+
+```cpp
+model.set_verbose(true);  // the solver's log, on stdout
+model.solve();
+```
+
+Both calls drive the solver's own switch: HiGHS `output_flag`, Gurobi `OutputFlag`, CPLEX `ScreenOutput`, COPT `Logging`, SCIP `display/verblevel`, the Cbc and Clp log levels, SoPlex `VERBOSITY`, GLPK `msg_lev`, Xpress `OUTPUTLOG` and MOSEK `MSK_IPAR_LOG`. MIP++ never redirects the standard output. Three backends need more than the switch:
+
+- Xpress and MOSEK hand their log to a callback rather than printing it, so their models install one that prints it on `stdout`.
+- GLPK prints the setup of its cover and clique cuts whatever `msg_lev` says, so a quiet `glpk_milp` also switches GLPK's terminal output off (`glp_term_out`) for the duration of `solve()` and restores it afterwards. That switch belongs to the calling thread's GLPK environment, or to the whole process on a GLPK built without thread-local storage.
+- Gurobi prints its licence banner when an environment starts, before any setter could run, so the switch is set on the environment before it starts.
 
 ## Reproducible experiments
 

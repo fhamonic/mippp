@@ -8,6 +8,7 @@
 #include <chrono>
 #include <random>
 #include <ranges>
+#include <vector>
 
 // detail::cartesian_product, not std::views::cartesian_product: libc++ has
 // no cartesian_product (Apple clang), and the suites must compile there.
@@ -20,7 +21,7 @@ namespace mippp {
 template <typename T>
 struct TimeLimitTest : public T {
     using typename T::model_type;
-    static_assert(milp_model<model_type>);
+    static_assert(lp_model<model_type>);
     static_assert(has_time_limit<model_type>);
 };
 TYPED_TEST_SUITE_P(TimeLimitTest);
@@ -50,13 +51,16 @@ TYPED_TEST_P(TimeLimitTest, set_get_time_limit) {
 // Instead the instance grows until the interruption becomes observable: while
 // the solver closes an instance before the limit, the next one is harder, so
 // solve times grow with the instance size until the limit clamps them.
-// Observing that clamp on two growing sizes is the interruption signature.
+// Observing that clamp on three growing sizes is the interruption signature.
 // Every solve runs with the limit set, so no step can run away and the whole
 // test stays fast on any machine: a solver that ignores its limit trips the
 // overshoot bound at the first size that is hard enough, and a solver that
 // closes even the largest instance before the limit cannot be exercised here
-// and skips.
+// and skips. MILP models solve a quadratic knapsack under a 1 s limit, LP
+// models a dense random LP under a 50 ms limit: an LP that outlasts 1 s takes
+// longer to build than to solve.
 TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
+    using model_type = typename TestFixture::model_type;
     this->SkipOnLicenseError([this]() {
         using namespace operators;
         using seconds = std::chrono::duration<double>;
@@ -172,7 +176,9 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             return qvalues[i][j - i - 1];
         };
 
-        auto solve_within = [&, this](std::size_t num_items, seconds limit) {
+        // generic: its body uses MILP members, so must not be instantiated
+        // for LP models
+        auto build_knapsack = [&](auto & model, std::size_t num_items) {
             auto items = std::views::iota(std::size_t{0}, num_items);
             auto num_items_pairs = num_items * (num_items - 1) / 2;
             auto items_pairs = std::views::filter(
@@ -181,7 +187,6 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             const int budget =
                 static_cast<int>(6.69 * static_cast<double>(num_items));
 
-            auto model = this->new_model();
             auto ref_X = model.add_binary_variables(num_items);
             auto ref_Z = model.add_variables(
                 num_items_pairs, [&](std::size_t i, std::size_t j) {
@@ -210,7 +215,32 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             model.add_constraint(xsum(items, [&](auto i) {
                                      return costs[i] * ref_X(i);
                                  }) <= budget);
+        };
+        // positive coefficients over x >= 0 keep it bounded
+        auto build_dense_lp = [](model_type & model, std::size_t size) {
+            std::mt19937 rng(42);
+            std::uniform_int_distribution<int> coef(1, 1000);
+            auto columns = std::views::iota(std::size_t{0}, size);
+            auto x = model.add_variables(size);
+            std::vector<int> row(size);
+            for(int & a : row) a = coef(rng);
+            model.set_maximization();
+            model.set_objective(
+                xsum(columns, [&](auto j) { return row[j] * x(j); }));
+            for(std::size_t i = 0; i < size; ++i) {
+                for(int & a : row) a = coef(rng);
+                model.add_constraint(xsum(columns, [&](auto j) {
+                                         return row[j] * x(j);
+                                     }) <= 1000.0 * static_cast<double>(size));
+            }
+        };
 
+        auto solve_within = [&, this](std::size_t size, seconds limit) {
+            auto model = this->new_model();
+            if constexpr(milp_model<model_type>)
+                build_knapsack(model, size);
+            else
+                build_dense_lp(model, size);
             model.set_time_limit(limit);
 
             // steady_clock: monotonic, unaffected by wall-clock adjustments.
@@ -222,19 +252,22 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
             return std::make_pair(duration, model.get_status());
         };
 
-        constexpr seconds limit{1.0};
+        constexpr bool milp = milp_model<model_type>;
+        constexpr seconds limit{milp ? 1.0 : 0.05};
         constexpr seconds overshoot{1.0};
-        constexpr std::size_t sizes[] = {15, 25, 32, 40, 50, 63, 79, 100};
+        const std::vector<std::size_t> sizes =
+            milp ? std::vector<std::size_t>{15, 25, 32, 40, 50, 63, 79, 100}
+                 : std::vector<std::size_t>{100, 200, 283, 400, 566, 800, 1131};
 
         int interrupted_solves = 0;
-        for(const std::size_t num_items : sizes) {
-            const auto result = solve_within(num_items, limit);
+        for(const std::size_t size : sizes) {
+            const auto result = solve_within(size, limit);
             const seconds solve_time = result.first;
-            std::cout << num_items << " items: " << solve_time.count() << "s"
+            std::cout << "size " << size << ": " << solve_time.count() << "s"
                       << std::endl;
 
             ASSERT_LE(solve_time.count(), (limit + overshoot).count())
-                << "with " << num_items << " items";
+                << "at size " << size;
             if(solve_time < 0.9 * limit) continue;
             if(++interrupted_solves == 3) {
                 ASSERT_TRUE(is_a<status::time_limit>(result.second));

@@ -431,7 +431,10 @@ such as [glpk](include/mippp/solvers/glpk/impl/v1/) or
   the solver's own "no bound" threshold (`GRB_INFINITY`, `CPX_INFBOUND`,
   `SCIPinfinity(scip)`, ...). Bounds are handed back to the user exactly as the
   solver stores them — never normalised — which is why the threshold, not a
-  library constant, is what `is_infinite` compares against.
+  library constant, is what `is_infinite` compares against. A model is quiet
+  from construction: switch the solver's log off in the constructor through its
+  own parameter, never by redirecting the standard output, and expose that
+  parameter as `set_verbose(bool)`/`is_verbose()`; `VerbosityTest` checks both.
 - `<name>_lp.hpp`, `<name>_milp.hpp`, and (where supported) `<name>_qp.hpp` —
   the model classes exposing the MIP++ interface.
 - an `all.hpp` aggregating the headers for convenience.

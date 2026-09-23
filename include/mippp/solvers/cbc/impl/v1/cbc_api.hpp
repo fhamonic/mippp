@@ -21,6 +21,8 @@ using Cbc_Model = void;
 const char * Cbc_getVersion(void);
 Cbc_Model * Cbc_newModel(void);
 void Cbc_deleteModel(Cbc_Model * model);
+void Cbc_setLogLevel(Cbc_Model * model, int logLevel);
+int Cbc_getLogLevel(Cbc_Model * model);
 
 void Cbc_setObjSense(Cbc_Model * model, double sense);
 
@@ -115,6 +117,8 @@ namespace cbc::impl::v1 {
     F(Cbc_getVersion, getVersion)                           \
     F(Cbc_newModel, newModel)                               \
     F(Cbc_deleteModel, deleteModel)                         \
+    F(Cbc_setLogLevel, setLogLevel)                         \
+    F(Cbc_getLogLevel, getLogLevel)                         \
     F(Cbc_setObjSense, setObjSense)                         \
     F(Cbc_addCol, addCol)                                   \
     F(Cbc_addRow, addRow)                                   \

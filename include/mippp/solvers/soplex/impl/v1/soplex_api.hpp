@@ -26,6 +26,7 @@ int SoPlex_numRows(void * soplex);
 
 void SoPlex_setIntParam(void * soplex, int paramcode, int paramvalue);
 int SoPlex_getIntParam(void * soplex, int paramcode);
+void SoPlex_setRealParam(void * soplex, int paramcode, double paramvalue);
 
 int SoPlex_optimize(void * soplex);
 double SoPlex_objValueReal(void * soplex);
@@ -36,6 +37,12 @@ void SoPlex_getDualReal(void * soplex, double * dual, int dim);
 #endif
 
 namespace mippp::soplex::impl::v1 {
+// SoPlexBase parameter codes and values, unchanged from 6.0 to 8.1
+constexpr int SOPLEX_VERBOSITY = 9;  // IntParam
+constexpr int SOPLEX_VERBOSITY_ERROR = 0;
+constexpr int SOPLEX_VERBOSITY_NORMAL = 3;  // the default
+constexpr int SOPLEX_TIMELIMIT = 7;         // RealParam
+
 enum Status {
     ERROR_ = -15,  // ERROR clashes with a macro imported by <windows.h>...
     NO_RATIOTESTER = -14,
@@ -62,6 +69,7 @@ enum Status {
 #include "mippp/detail/dynamic_library.hpp"
 
 #include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace soplex::impl::v1 {
@@ -81,33 +89,42 @@ namespace soplex::impl::v1 {
     F(SoPlex_getPrimalReal, getPrimalReal) \
     F(SoPlex_getDualReal, getDualReal)
 
+// absent before SoPlex 7.0
+#define SOPLEX_OPTIONAL_FUNCTIONS(F) F(SoPlex_setRealParam, setRealParam)
+
 #define DECLARE_SOPLEX_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);     \
     SHORT##_fun_t * const SHORT;
 #define CONSTRUCT_SOPLEX_FUNCTIONS(FULL, SHORT) \
     , SHORT(lib.get_function<SHORT##_fun_t>(#FULL))
+#define CONSTRUCT_SOPLEX_OPTIONAL_FUNCTIONS(FULL, SHORT) \
+    , SHORT(lib.find_function<SHORT##_fun_t>(#FULL))
 
 class soplex_api : public detail::solver_api<soplex_api> {
     friend detail::solver_api<soplex_api>;
 
 public:
     SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUNCTIONS)
+    SOPLEX_OPTIONAL_FUNCTIONS(DECLARE_SOPLEX_FUNCTIONS)
 
     static constexpr const char * key = "SOPLEX";
     static constexpr std::array library_names = {"soplexshared"};
     // the releases driven through the full suite, see solver_version_range;
     // not checked at runtime, the C API reports no version
     static constexpr std::array validated_versions = {
-        solver_version_range{{6, 0, 3}, {8, 0, 4}}};
+        solver_version_range{{7, 1, 1}, {8, 0, 4}}};
 
 private:
     explicit soplex_api(detail::dynamic_library && library)
-        : solver_api(std::move(library))
-              SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUNCTIONS) {}
+        : solver_api(std::move(library)) SOPLEX_FUNCTIONS(
+              CONSTRUCT_SOPLEX_FUNCTIONS)
+              SOPLEX_OPTIONAL_FUNCTIONS(CONSTRUCT_SOPLEX_OPTIONAL_FUNCTIONS) {}
 };
 
+#undef CONSTRUCT_SOPLEX_OPTIONAL_FUNCTIONS
 #undef CONSTRUCT_SOPLEX_FUNCTIONS
 #undef DECLARE_SOPLEX_FUNCTIONS
+#undef SOPLEX_OPTIONAL_FUNCTIONS
 #undef SOPLEX_FUNCTIONS
 
 }  // namespace soplex::impl::v1

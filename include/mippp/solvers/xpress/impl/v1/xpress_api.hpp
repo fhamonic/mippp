@@ -132,6 +132,15 @@ enum DblCtrlPar : int {
 int XPRSsetdblcontrol(XPRSprob prob, int control, double value);
 int XPRSgetdblcontrol(XPRSprob prob, int control, double * p_value);
 
+enum IntCtrlPar : int { XPRS_OUTPUTLOG = 8035 };
+int XPRSsetintcontrol(XPRSprob prob, int control, int value);
+int XPRSgetintcontrol(XPRSprob prob, int control, int * p_value);
+
+int XPRSaddcbmessage(XPRSprob prob,
+                     void (*message)(XPRSprob cbprob, void * cbdata,
+                                     const char * msg, int msglen, int msgtype),
+                     void * data, int priority);
+
 int XPRSaddmipsol(XPRSprob prob, int length, const double solval[],
                   const int colind[], const char * name);
 
@@ -204,6 +213,9 @@ namespace xpress::impl::v1 {
     F(XPRSgetredcosts, getredcosts)                 \
     F(XPRSsetdblcontrol, setdblcontrol)             \
     F(XPRSgetdblcontrol, getdblcontrol)             \
+    F(XPRSsetintcontrol, setintcontrol)             \
+    F(XPRSgetintcontrol, getintcontrol)             \
+    F(XPRSaddcbmessage, addcbmessage)               \
     F(XPRSaddmipsol, addmipsol)                     \
     F(XPRSaddcbpreintsol, addcbpreintsol)           \
     F(XPRSremovecbpreintsol, removecbpreintsol)     \

@@ -47,7 +47,9 @@ public:
     [[nodiscard]] explicit highs_base(const highs_api & api)
         : remapping_model_base<int, double>()
         , Highs(&api)
-        , model(Highs->create()) {}
+        , model(Highs->create()) {
+        check(Highs->setBoolOptionValue(model, "output_flag", false));
+    }
     ~highs_base() {
         if(model) Highs->destroy(model);
     }
@@ -629,6 +631,17 @@ public:
         double t;
         check(Highs->getDoubleOptionValue(model, "time_limit", &t));
         return std::chrono::duration<double>(t);
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        check(Highs->setBoolOptionValue(model, "output_flag", verbose));
+    }
+    bool is_verbose() {
+        HighsInt verbose;
+        check(Highs->getBoolOptionValue(model, "output_flag", &verbose));
+        return verbose != 0;
     }
 };
 

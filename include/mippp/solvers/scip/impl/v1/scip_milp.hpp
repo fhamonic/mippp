@@ -82,6 +82,8 @@ public:
     [[nodiscard]] explicit scip_milp(const scip_api & api) : SCIP(&api) {
         SCIP->create(&model);
         SCIP->includeDefaultPlugins(model);
+        check(
+            SCIP->setIntParam(model, "display/verblevel", SCIP_VERBLEVEL_NONE));
         SCIP->createProbBasic(model, "MILP");
     }
     ~scip_milp() {
@@ -428,6 +430,19 @@ public:
         double tol;
         check(SCIP->getRealParam(model, "limits/gap", &tol));
         return tol;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        check(SCIP->setIntParam(
+            model, "display/verblevel",
+            verbose ? SCIP_VERBLEVEL_HIGH : SCIP_VERBLEVEL_NONE));
+    }
+    bool is_verbose() {
+        int level;
+        check(SCIP->getIntParam(model, "display/verblevel", &level));
+        return level != SCIP_VERBLEVEL_NONE;
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////

@@ -26,3 +26,4 @@ INSTANTIATE_TEST(Cbc, ReadableConstraintBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, RangedConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, SudokuTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, TimeLimitTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, VerbosityTest, cbc_milp_test);

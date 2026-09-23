@@ -24,6 +24,8 @@ INSTANTIATE_TEST(CPLEX_lp, LpStatusTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, CuttingStockTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ColumnManagerTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, LpFuzzyTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, TimeLimitTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, VerbosityTest, cplex_lp_test);
 
 struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
@@ -44,3 +46,4 @@ INSTANTIATE_TEST(CPLEX_milp, LazyConstraintsTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, TravellingSalesmanTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, TimeLimitTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, MipStartTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, VerbosityTest, cplex_milp_test);

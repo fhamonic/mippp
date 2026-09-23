@@ -134,7 +134,7 @@ MSKrescodee MSK_getnumvar(MSKtask_t task, MSKint32t * numvar);
 MSKrescodee MSK_getnumcon(MSKtask_t task, MSKint32t * numcon);
 MSKrescodee MSK_getnumanz(MSKtask_t task, MSKint32t * numanz);
 
-enum MSKiparame : int { MSK_IPAR_OPTIMIZER = 110 };
+enum MSKiparame : int { MSK_IPAR_LOG = 34, MSK_IPAR_OPTIMIZER = 110 };
 enum MSKoptimizertypee : int {
     MSK_OPTIMIZER_CONIC = 0,
     MSK_OPTIMIZER_DUAL_SIMPLEX = 1,

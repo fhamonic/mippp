@@ -179,6 +179,12 @@ Neither the SOS nor the indicator functions require a return type. SOS and indic
 | `has_optimality_tolerance` | `get`/`set_optimality_tolerance`. |
 | `has_integrality_tolerance` | `get`/`set_integrality_tolerance`. |
 
+## Verbosity
+
+| Concept | Provides |
+| --- | --- |
+| `has_verbosity` | `set_verbose(bool)`, `is_verbose()`. Models start quiet; a verbose model prints the solver's log on standard output. Satisfied by every model class; see [Solver output](../solving/status-and-limits.md#solver-output). |
+
 ## Expression concepts
 
 The expression layer has concepts of its own, defined in

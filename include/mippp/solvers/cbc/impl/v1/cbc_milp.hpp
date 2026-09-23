@@ -54,7 +54,9 @@ public:
         , objective_offset(0.0)
         , feasibility_tol(1e-4)
         , _lazy_num_variables(0)
-        , _lazy_num_constraints(0) {}
+        , _lazy_num_constraints(0) {
+        Cbc->setLogLevel(model, 0);
+    }
     ~cbc_milp() {
         if(model) Cbc->deleteModel(model);
     }
@@ -454,6 +456,11 @@ public:
     double get_optimality_tolerance() {
         return Cbc->getAllowableFractionGap(model);
     }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) { Cbc->setLogLevel(model, verbose ? 1 : 0); }
+    bool is_verbose() { return Cbc->getLogLevel(model) > 0; }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

@@ -129,3 +129,4 @@ struct model_test : public ::testing::Test {
 #include "sudoku.hpp"
 #include "time_limit.hpp"
 #include "travelling_salesman.hpp"
+#include "verbosity.hpp"

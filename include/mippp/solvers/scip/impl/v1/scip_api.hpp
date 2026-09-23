@@ -163,6 +163,12 @@ SCIP_Longint SCIPgetNNZs(SCIP * scip);
 SCIP_RETCODE SCIPsetRealParam(SCIP * scip, const char * name, SCIP_Real value);
 SCIP_RETCODE SCIPgetRealParam(SCIP * scip, const char * name,
                               SCIP_Real * value);
+SCIP_RETCODE SCIPsetIntParam(SCIP * scip, const char * name, int value);
+SCIP_RETCODE SCIPgetIntParam(SCIP * scip, const char * name, int * value);
+enum SCIP_VERBLEVEL : int {
+    SCIP_VERBLEVEL_NONE = 0,
+    SCIP_VERBLEVEL_HIGH = 4  // the default of display/verblevel
+};
 
 enum SCIP_STATUS : int {
     SCIP_STATUS_UNKNOWN = 0,
@@ -304,6 +310,8 @@ namespace scip::impl::v1 {
     F(SCIPinfinity, infinity)                           \
     F(SCIPsetRealParam, setRealParam)                   \
     F(SCIPgetRealParam, getRealParam)                   \
+    F(SCIPsetIntParam, setIntParam)                     \
+    F(SCIPgetIntParam, getIntParam)                     \
     F(SCIPsetObjsense, setObjsense)                     \
     F(SCIPaddOrigObjoffset, addOrigObjoffset)           \
     F(SCIPgetOrigObjoffset, getOrigObjoffset)           \
