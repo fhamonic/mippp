@@ -67,8 +67,6 @@ public:
         check(MSK->makeenv(&env, nullptr));
         check(MSK->makeemptytask(env, &task));
         check(MSK->putintparam(task, MSK_IPAR_LOG, 0));
-        check(MSK->linkfunctotaskstream(task, MSK_STREAM_LOG, nullptr,
-                                        print_log));
     }
     ~mosek_base() {
         if(task) check(MSK->deletetask(&task));
@@ -439,7 +437,14 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+    // The stream stays unlinked while quiet: MSK_IPAR_LOG = 0 does not stop
+    // warnings, such as the one about explicit zero coefficients.
     void set_verbose(bool verbose) {
+        if(verbose)
+            check(MSK->linkfunctotaskstream(task, MSK_STREAM_LOG, nullptr,
+                                            print_log));
+        else
+            check(MSK->unlinkfuncfromtaskstream(task, MSK_STREAM_LOG));
         check(MSK->putintparam(task, MSK_IPAR_LOG,
                                verbose ? default_log_level : 0));
     }

@@ -111,7 +111,14 @@ if(MIPPP_SANITIZE)
     # a failure.
 endif()
 
-gtest_discover_tests(mippp_test)
+# The interruption tests time their solves against the wall clock: run next to
+# the rest by a parallel ctest, a loaded machine stretches a solve past the
+# limit plus its overshoot.
+gtest_discover_tests(mippp_test TEST_LIST MIPPP_TESTS
+    TEST_FILTER "-*/TimeLimitTest/*.interrupts_long_solve")
+gtest_discover_tests(mippp_test TEST_LIST MIPPP_TIMED_TESTS
+    TEST_FILTER "*/TimeLimitTest/*.interrupts_long_solve"
+    PROPERTIES RUN_SERIAL TRUE)
 
 # ########## Header self-containment check ###########
 # One translation unit per public header, generated at configure time: each

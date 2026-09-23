@@ -108,7 +108,7 @@ A limit is a property of the model and survives across `solve()` calls, so setti
 
 An iteration limit counts simplex iterations; on `highs_qp` it also caps HiGHS's QP solver, which a quadratic objective runs instead. Barrier iterations are not counted: Gurobi's own `BarIterLimit`, for one, is set through `native_api()`. A limit larger than the solver can store (HiGHS and CPLEX keep an `int`) means no limit.
 
-SoPlex keeps its own default clock, the CPU time of the process: in a program whose other threads are busy, its time limit runs out before the wall-clock duration. Its wall-clock timer stopped short solves spuriously in our measurements, hence the default.
+SoPlex keeps its own default clock, the CPU time of the whole process: time spent by the program's other threads counts, so its limit can run out before the wall-clock duration. Very short limits are unreliable on SoPlex whichever clock it uses: in our measurements a 50 ms limit stopped solves after about 15 ms, while a 1 s limit stopped them at 1.07 s.
 
 ## Tolerances
 

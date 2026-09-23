@@ -92,7 +92,8 @@ struct VerbosityTest : public T {
     static_assert(has_verbosity<model_type>);
 
     // Binaries under a knapsack row, so that MILP solvers run their cut
-    // setup: GLPK prints that part whatever its message level.
+    // setup: GLPK prints that part whatever its message level. The explicit
+    // zero coefficient makes MOSEK warn.
     static void build(model_type & model) {
         using namespace operators;
         auto x = [&model] {
@@ -104,6 +105,7 @@ struct VerbosityTest : public T {
         model.set_maximization();
         model.set_objective(5 * x[0] + 4 * x[1] + 3 * x[2]);
         model.add_constraint(2 * x[0] + 3 * x[1] + x[2] <= 4);
+        model.add_constraint(0.0 * x[0] + x[1] <= 1);
     }
     // Gurobi and COPT echo parameter changes when they log.
     static void set_parameters(model_type & model) {
@@ -121,6 +123,8 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(VerbosityTest);
 TYPED_TEST_P(VerbosityTest, set_get_verbose) {
     this->SkipOnLicenseError([this]() {
         auto model = this->new_model();
+        ASSERT_FALSE(model.is_verbose());
+        model.set_verbose(false);  // already quiet: a no-op, not an error
         ASSERT_FALSE(model.is_verbose());
         output_of([&] { model.set_verbose(true); });
         ASSERT_TRUE(model.is_verbose());
