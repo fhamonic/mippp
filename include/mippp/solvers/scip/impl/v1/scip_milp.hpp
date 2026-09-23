@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -413,6 +414,17 @@ public:
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(SCIP->setRealParam(model, "limits/time", t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(SCIP->getRealParam(model, "limits/time", &t));
+        return std::chrono::duration<double>(t);
+    }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_feasibility_tolerance(double tol) {
@@ -468,27 +480,30 @@ private:
 
     status_variant _get_status() {
         using namespace status;
+        const bool has_sol = SCIP->getBestSol(model) != nullptr;
         switch(SCIP->getStatus(model)) {
-            case SCIP_STATUS_OPTIMAL:       return optimal{};
+            case SCIP_STATUS_OPTIMAL:
+            // limits/gap is the optimality tolerance: stopping there is
+            // optimal, as on the other backends
+            case SCIP_STATUS_GAPLIMIT:      return optimal{};
             case SCIP_STATUS_INFORUNBD:     return infeasible_or_unbounded{};
             case SCIP_STATUS_INFEASIBLE:    return infeasible{};
             case SCIP_STATUS_UNBOUNDED:     return unbounded{};
-            case SCIP_STATUS_TIMELIMIT:     return time_limit{};
-            case SCIP_STATUS_MEMLIMIT:      return memory_limit{};
-            case SCIP_STATUS_NODELIMIT:     return node_limit{};
-            case SCIP_STATUS_SOLLIMIT:      return solution_limit{};
+            case SCIP_STATUS_TIMELIMIT:     return time_limit{has_sol};
+            case SCIP_STATUS_MEMLIMIT:      return memory_limit{has_sol};
+            case SCIP_STATUS_NODELIMIT:     return node_limit{has_sol};
+            case SCIP_STATUS_SOLLIMIT:      return solution_limit{has_sol};
             case SCIP_STATUS_TOTALNODELIMIT:
-            case SCIP_STATUS_GAPLIMIT:
+            case SCIP_STATUS_STALLNODELIMIT:
             case SCIP_STATUS_PRIMALLIMIT:
             case SCIP_STATUS_DUALLIMIT:
             case SCIP_STATUS_BESTSOLLIMIT:
-            case SCIP_STATUS_RESTARTLIMIT:   return limit_reached{};
-            case SCIP_STATUS_STALLNODELIMIT: return numerical_failure{};
+            case SCIP_STATUS_RESTARTLIMIT:  return limit_reached{has_sol};
             case SCIP_STATUS_TERMINATE:
-            case SCIP_STATUS_USERINTERRUPT:  return interrupted{};
+            case SCIP_STATUS_USERINTERRUPT: return interrupted{has_sol};
             case SCIP_STATUS_UNKNOWN:
             default:
-                return unknown{};
+                return unknown{has_sol};
         }
     }
     // clang-format on

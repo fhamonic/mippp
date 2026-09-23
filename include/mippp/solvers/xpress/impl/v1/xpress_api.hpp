@@ -114,6 +114,7 @@ int XPRSgetnamelist(XPRSprob prob, int type, char names[], int maxbytes,
 
 int XPRSlpoptimize(XPRSprob prob, const char * flags);
 int XPRSmipoptimize(XPRSprob prob, const char * flags);
+int XPRSpostsolve(XPRSprob prob);
 
 int XPRSgetsolution(XPRSprob prob, int * status, double x[], int first,
                     int last);
@@ -127,6 +128,7 @@ int XPRSgetredcosts(XPRSprob prob, int * status, double djs[], int first,
 enum DblCtrlPar : int {
     XPRS_FEASTOL = 7003,
     XPRS_MIPTOL = 7009,
+    XPRS_MIPRELSTOP = 7020,
     XPRS_TIMELIMIT = 7158
 };
 int XPRSsetdblcontrol(XPRSprob prob, int control, double value);
@@ -207,6 +209,7 @@ namespace xpress::impl::v1 {
     F(XPRSgetnamelist, getnamelist)                 \
     F(XPRSlpoptimize, lpoptimize)                   \
     F(XPRSmipoptimize, mipoptimize)                 \
+    F(XPRSpostsolve, postsolve)                     \
     F(XPRSgetsolution, getsolution)                 \
     F(XPRSgetcallbacksolution, getcallbacksolution) \
     F(XPRSgetduals, getduals)                       \

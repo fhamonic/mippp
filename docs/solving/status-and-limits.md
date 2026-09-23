@@ -84,7 +84,7 @@ if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
 
 | Concept | Setter / getter | Backends |
 | :--- | :--- | :--- |
-| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, MOSEK, SoPlex, Xpress |
+| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, MOSEK, SCIP, SoPlex, Xpress |
 | `has_iteration_limit` | `set_iteration_limit(n)`, `get_iteration_limit()` | CPLEX, Gurobi, HiGHS *(LP and QP models)* |
 | `has_node_limit` | `set_node_limit(n)`, `get_node_limit()` | CPLEX, Gurobi |
 | `has_solution_limit` | `set_solution_limit(n)`, `get_solution_limit()` | CPLEX, Gurobi |
@@ -115,8 +115,12 @@ SoPlex keeps its own default clock, the CPU time of the whole process: time spen
 | Concept | Provides | Backends |
 | :--- | :--- | :--- |
 | `has_feasibility_tolerance` | `get`/`set_feasibility_tolerance` | Cbc, Clp, COPT, CPLEX, GLPK *(LP only)*, Gurobi, SCIP, Xpress |
-| `has_optimality_tolerance` | `get`/`set_optimality_tolerance` (the MIP gap, where applicable) | Cbc, COPT, CPLEX, Gurobi, SCIP, Xpress |
-| `has_integrality_tolerance` | `get`/`set_integrality_tolerance` | GLPK *(MILP only)* |
+| `has_optimality_tolerance` | `get`/`set_optimality_tolerance` (the MIP gap, where applicable) | Cbc, COPT, CPLEX, Gurobi, HiGHS, SCIP, Xpress |
+| `has_integrality_tolerance` | `get`/`set_integrality_tolerance` | GLPK, HiGHS, Xpress *(MILP only)* |
+
+On a MILP model the optimality tolerance is the relative gap between the incumbent and the best bound, and a solve that stops there reports `optimal` on every backend. So `optimal` means optimal within that gap, 1e-4 by default on every backend but SCIP, where it is 0: set it to 0 where the exact optimum matters. On `cplex_lp` it is the simplex's reduced-cost tolerance instead.
+
+HiGHS has no integrality tolerance of its own: `set_integrality_tolerance` sets its `mip_feasibility_tolerance`, which also bounds the row and bound violations its MIP solver accepts.
 
 Two habits worth adopting in experimental code:
 

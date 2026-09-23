@@ -26,6 +26,7 @@ INSTANTIATE_TEST(CPLEX_lp, ColumnManagerTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, LpFuzzyTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, TimeLimitTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, IterationLimitTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, OptimalityToleranceTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, VerbosityTest, cplex_lp_test);
 
 struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {
@@ -46,5 +47,9 @@ INSTANTIATE_TEST(CPLEX_milp, CandidateSolutionCallbackTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, LazyConstraintsTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, TravellingSalesmanTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, TimeLimitTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, TimeLimitIncumbentTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, MipStartTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, OptimalityToleranceTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, MipGapTest, cplex_milp_test);
+// INSTANTIATE_TEST(CPLEX_milp, IntegralityToleranceTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, VerbosityTest, cplex_milp_test);

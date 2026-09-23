@@ -37,4 +37,8 @@ INSTANTIATE_TEST(MOSEK_milp, AddColumnTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, SudokuTest, mosek_milp_test);
 // INSTANTIATE_TEST(MOSEK_milp, MipStartTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, TimeLimitTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, TimeLimitIncumbentTest, mosek_milp_test);
+// INSTANTIATE_TEST(MOSEK_milp, OptimalityToleranceTest, mosek_milp_test);
+// INSTANTIATE_TEST(MOSEK_milp, MipGapTest, mosek_milp_test);
+// INSTANTIATE_TEST(MOSEK_milp, IntegralityToleranceTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, VerbosityTest, mosek_milp_test);

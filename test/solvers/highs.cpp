@@ -46,6 +46,10 @@ INSTANTIATE_TEST(HiGHS_milp, ReadableConstraintsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, SudokuTest, highs_milp_test);
 // INSTANTIATE_TEST(HiGHS_milp, MipStartTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, TimeLimitTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, TimeLimitIncumbentTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, OptimalityToleranceTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, MipGapTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, IntegralityToleranceTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, VerbosityTest, highs_milp_test);
 
 struct highs_qp_test : public model_test<highs_api, highs_qp> {

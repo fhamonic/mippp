@@ -18,4 +18,8 @@ INSTANTIATE_TEST(SCIP, ModifiableVariablesBoundsTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, NamedVariablesTest, scip_milp_test);
 // INSTANTIATE_TEST(SCIP, CandidateSolutionCallbackTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, SudokuTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, TimeLimitTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, TimeLimitIncumbentTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, OptimalityToleranceTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, MipGapTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, VerbosityTest, scip_milp_test);

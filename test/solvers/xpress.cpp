@@ -43,5 +43,9 @@ static_assert(mippp::has_candidate_solution_rejection<
               mippp::candidate_solution_callback_handle_t<mippp::xpress_milp>>);
 INSTANTIATE_TEST(Xpress_milp, SudokuTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, TimeLimitTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, TimeLimitIncumbentTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, MipStartTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, OptimalityToleranceTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, MipGapTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);

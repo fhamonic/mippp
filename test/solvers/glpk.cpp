@@ -33,4 +33,7 @@ INSTANTIATE_TEST(GLPK_milp, ReadableVariablesBoundsTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, ModifiableVariablesBoundsTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, NamedVariablesTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, AddColumnTest, glpk_milp_test);
+// INSTANTIATE_TEST(GLPK_milp, OptimalityToleranceTest, glpk_milp_test);
+// INSTANTIATE_TEST(GLPK_milp, MipGapTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, IntegralityToleranceTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, VerbosityTest, glpk_milp_test);

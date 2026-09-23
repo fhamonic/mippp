@@ -383,9 +383,10 @@ When you add a capability, add its test to the shared suite so that **every**
 backend supporting it gets coverage, rather than duplicating logic per solver.
 
 Tests that time solves against the wall clock, `TimeLimitTest.interrupts_long_solve`
-for now, are registered with ctest's `RUN_SERIAL`: a parallel `ctest` runs them one
-at a time, since a loaded machine stretches a solve past any fixed tolerance. A new
-timing-dependent test belongs in the same `TEST_FILTER` of
+and `TimeLimitIncumbentTest.keeps_the_incumbent` for now, are registered with ctest's
+`RUN_SERIAL`: a parallel `ctest` runs them one at a time, since a loaded machine
+stretches a solve past any fixed tolerance, or stops it before its first incumbent.
+A new timing-dependent test belongs in the same `TEST_FILTER` of
 [test/CMakeLists.txt](test/CMakeLists.txt).
 
 ## Coding style
