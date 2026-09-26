@@ -253,6 +253,46 @@ Note that `TEST_SOURCE` is sticky in the CMake cache: after `make test highs`, t
 build directory keeps producing a HiGHS-only binary until you run `make test` (or
 `make clean`) again — the compatibility matrix below needs an all-backends one.
 
+### Building HiGHS for the tests
+
+Solver downloads are off by default. To build a pinned HiGHS 1.12.0 shared
+library for a local test run, opt in through Conan:
+
+```bash
+TEST_SOURCE=highs conan build . -of=build -b=missing -pr=gcc15_c++26 -c user.mippp:test_fetch_highs=True
+```
+
+In PowerShell, set `$env:TEST_SOURCE = "highs"` before running `conan build`
+with your Windows profile. With test dependencies already available to CMake,
+the equivalent configure option is `-DMIPPP_TEST_FETCH_HIGHS=ON` alongside
+`-DENABLE_TESTING=ON -DTEST_SOURCE=highs`.
+
+An explicit `MIPPP_HIGHS_LIBRARY` environment variable takes precedence and
+prevents fetching, even if that library cannot load. Otherwise the opt-in
+always builds the pinned revision; it does not probe or replace an installed
+solver automatically. FetchContent needs Git and network access on the first
+configure. Sources and generated files live under the build directory. For
+offline use, set `FETCHCONTENT_SOURCE_DIR_MIPPP_TEST_HIGHS` to a checkout of
+the pinned revision.
+
+Build the test target normally and run it through CTest. CTest sets
+`MIPPP_HIGHS_LIBRARY` to the selected configuration's shared library and adds
+`HIGHS` to `MIPPP_REQUIRED_SOLVERS`, preserving other required solvers. A load
+failure therefore fails the tests instead of skipping them. When running
+`mippp_test` directly, supply these environment variables yourself. Reconfigure
+and rebuild after changing an explicit library path or turning fetching off.
+
+The fetched solver is only a test build dependency: it is not linked into
+MIP++, exported, or installed with the package. Existing compatibility jobs
+continue to use their installed solver versions. The standalone build check
+requires no GoogleTest or MELON packages:
+
+```bash
+cmake -S test/cmake/fetch_highs -B build/fetch-highs -DMIPPP_TEST_FETCH_HIGHS=ON
+cmake --build build/fetch-highs --config Release
+ctest --test-dir build/fetch-highs -C Release --output-on-failure
+```
+
 The tests can be built with sanitizers, in which case a Debug build is what
 makes their reports precise:
 

@@ -93,6 +93,10 @@ class MipppConan(ConanFile):
             variables["TEST_SOURCE"] = test_source
         if test_sanitize:
             variables["MIPPP_SANITIZE"] = test_sanitize
+        # Explicit opt-in; installed solver libraries remain the default.
+        variables["MIPPP_TEST_FETCH_HIGHS"] = self.conf.get(
+            "user.mippp:test_fetch_highs", default=False, check_type=bool
+        )
 
         cmake = CMake(self)
         cmake.configure(variables=variables)

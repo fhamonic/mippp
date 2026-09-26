@@ -111,7 +111,16 @@ if(MIPPP_SANITIZE)
     # a failure.
 endif()
 
-gtest_discover_tests(mippp_test)
+include(TestHighs)
+mippp_test_highs(mippp_test _highs_environment)
+if(_highs_environment)
+    # Preserve the modification list as one GoogleTest property value.
+    string(REPLACE ";" "\\;" _highs_environment "${_highs_environment}")
+    gtest_discover_tests(mippp_test
+        PROPERTIES ENVIRONMENT_MODIFICATION "${_highs_environment}")
+else()
+    gtest_discover_tests(mippp_test)
+endif()
 
 # ########## Header self-containment check ###########
 # One translation unit per public header, generated at configure time: each
