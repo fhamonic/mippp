@@ -78,6 +78,7 @@ private:
     std::vector<row_data> _rows;
     std::vector<variable_id> _free_variable_ids;
     scalar _feasibility_tolerance = 1e-7;
+    bool _verbose = false;
 
     status_variant _status;
     scalar _solution_value = 0.0;
@@ -396,6 +397,8 @@ public:
 
     void set_feasibility_tolerance(scalar tol) { _feasibility_tolerance = tol; }
     scalar get_feasibility_tolerance() { return _feasibility_tolerance; }
+    void set_verbose(bool verbose) { _verbose = verbose; }
+    bool is_verbose() { return _verbose; }
 
     ////////////////////////////////////////////////////////////////////////////
     // Solve
@@ -473,6 +476,7 @@ public:
             col_ub.data(), obj.data(), row_lb.data(), row_ub.data());
         Clp.setObjSense(model, _maximize ? -1 : 1);
         Clp.setPrimalTolerance(model, _feasibility_tolerance);
+        Clp.setLogLevel(model, _verbose ? 1 : 0);
         Clp.primal(model, 0);
         switch(Clp.status(model)) {
             case 0:
@@ -528,5 +532,6 @@ static_assert(has_modifiable_constraint_rhs<dumb_lp>);
 static_assert(has_column_generation<dumb_lp>);
 static_assert(has_remove_variable<dumb_lp>);
 static_assert(has_feasibility_tolerance<dumb_lp>);
+static_assert(has_verbosity<dumb_lp>);
 
 }  // namespace mippp

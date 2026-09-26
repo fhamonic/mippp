@@ -65,6 +65,8 @@ public:
         , env(GRB->_empty_env())
         , _num_var_native_ids(0)
         , _lazy_num_constraints(0) {
+        // before GRBstartenv, which otherwise prints the licence banner
+        check(GRB->setintparam(env, GRB_INT_PAR_OUTPUTFLAG, 0));
         check(GRB->startenv(env));
         check(GRB->newmodel(env, &model, "GUROBI", 0, nullptr, nullptr, nullptr,
                             nullptr, nullptr));
@@ -624,6 +626,16 @@ public:
         double gb;
         check(GRB->getdblparam(env, GRB_DBL_PAR_SOFTMEMLIMIT, &gb));
         return memory_size<double, std::giga>(gb);
+    }
+
+    //////////////////////////////// Verbosity ////////////////////////////////
+    void set_verbose(bool verbose) {
+        check(GRB->setintparam(env, GRB_INT_PAR_OUTPUTFLAG, verbose));
+    }
+    bool is_verbose() {
+        int verbose;
+        check(GRB->getintparam(env, GRB_INT_PAR_OUTPUTFLAG, &verbose));
+        return verbose != 0;
     }
 };
 

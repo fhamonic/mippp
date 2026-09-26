@@ -56,6 +56,7 @@ public:
         : model_base<int, double>(), COPT(&api), env(nullptr), prob(nullptr) {
         check(COPT->CreateEnv(&env));
         check(COPT->CreateProb(env, &prob));
+        check(COPT->SetIntParam(prob, COPT_INTPARAM_LOGGING, 0));
     }
     ~copt_base() {
         if(prob) check(COPT->DeleteProb(&prob));
@@ -392,6 +393,18 @@ public:
                          CL &&... constraint_lambdas) {
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        check(COPT->SetIntParam(prob, COPT_INTPARAM_LOGGING, verbose));
+    }
+    bool is_verbose() {
+        int verbose;
+        check(COPT->GetIntParam(prob, COPT_INTPARAM_LOGGING, &verbose));
+        return verbose != 0;
     }
 };
 

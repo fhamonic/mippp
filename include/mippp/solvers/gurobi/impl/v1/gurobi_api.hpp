@@ -70,6 +70,7 @@ int GRBoptimize(GRBmodel * model);
 
 constexpr const char * GRB_INT_PAR_DUALREDUCTIONS = "DualReductions";
 constexpr const char * GRB_INT_PAR_LAZYCONSTRAINTS = "LazyConstraints";
+constexpr const char * GRB_INT_PAR_OUTPUTFLAG = "OutputFlag";
 int GRBsetintparam(GRBenv * env, const char * paramname, int value);
 int GRBgetintparam(GRBenv * env, const char * paramname, int * valueP);
 constexpr const char * GRB_DBL_PAR_TIMELIMIT = "TimeLimit";

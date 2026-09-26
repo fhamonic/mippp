@@ -382,6 +382,13 @@ INSTANTIATE_TEST(HiGHS_lp, LpModelTest, highs_lp_test);
 When you add a capability, add its test to the shared suite so that **every**
 backend supporting it gets coverage, rather than duplicating logic per solver.
 
+Tests that time solves against the wall clock, `TimeLimitTest.interrupts_long_solve`
+and `TimeLimitIncumbentTest.keeps_the_incumbent` for now, are registered with ctest's
+`RUN_SERIAL`: a parallel `ctest` runs them one at a time, since a loaded machine
+stretches a solve past any fixed tolerance, or stops it before its first incumbent.
+A new timing-dependent test belongs in the same `TEST_FILTER` of
+[test/CMakeLists.txt](test/CMakeLists.txt).
+
 ## Coding style
 
 - Format all C++ with **clang-format** using the repository's
@@ -431,7 +438,10 @@ such as [glpk](include/mippp/solvers/glpk/impl/v1/) or
   the solver's own "no bound" threshold (`GRB_INFINITY`, `CPX_INFBOUND`,
   `SCIPinfinity(scip)`, ...). Bounds are handed back to the user exactly as the
   solver stores them — never normalised — which is why the threshold, not a
-  library constant, is what `is_infinite` compares against.
+  library constant, is what `is_infinite` compares against. A model is quiet
+  from construction: switch the solver's log off in the constructor through its
+  own parameter, never by redirecting the standard output, and expose that
+  parameter as `set_verbose(bool)`/`is_verbose()`; `VerbosityTest` checks both.
 - `<name>_lp.hpp`, `<name>_milp.hpp`, and (where supported) `<name>_qp.hpp` —
   the model classes exposing the MIP++ interface.
 - an `all.hpp` aggregating the headers for convenience.

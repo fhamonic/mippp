@@ -4,8 +4,8 @@ The original IIS implementation checklist is **not complete**. The existing
 `compute_linear_iis` utility accepts an explicit linear system and creates
 temporary models. It is useful independently, but does not implement the
 requested model-level API. There is no recorded approval of this substitution
-in the supplied checklist. Its companion design document and six open questions
-were not supplied; the existing `docs/iis.md` is the earlier utility's guide.
+in the supplied checklist. The companion design document and checklist are now
+available in `misc/design/iis/`; `docs/iis.md` is the earlier utility's guide.
 
 | Checklist step | Verified source state |
 | --- | --- |

@@ -559,6 +559,17 @@ public:
         check(CPX->getdblparam(env, CPXPARAM_TimeLimit, &t));
         return std::chrono::duration<double>(t);
     }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        check(CPX->setintparam(env, CPXPARAM_ScreenOutput, verbose));
+    }
+    bool is_verbose() {
+        int verbose;
+        check(CPX->getintparam(env, CPXPARAM_ScreenOutput, &verbose));
+        return verbose != 0;
+    }
 };
 
 }  // namespace cplex::impl::v1

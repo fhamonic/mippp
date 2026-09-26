@@ -21,6 +21,8 @@ using CoinBigIndex = int;
 
 Clp_Simplex * Clp_newModel(void);
 void Clp_deleteModel(Clp_Simplex * model);
+void Clp_setLogLevel(Clp_Simplex * model, int value);
+int Clp_logLevel(Clp_Simplex * model);
 
 void Clp_setObjSense(Clp_Simplex * model, double objsen);
 void Clp_setObjectiveOffset(Clp_Simplex * model, double value);
@@ -143,7 +145,9 @@ namespace clp::impl::v1 {
     F(Clp_dualColumnSolution, dualColumnSolution)             \
     F(Clp_infeasibilityRay, infeasibilityRay)                 \
     F(Clp_freeRay, freeRay)                                   \
-    F(Clp_loadProblem, loadProblem)
+    F(Clp_loadProblem, loadProblem)                           \
+    F(Clp_setLogLevel, setLogLevel)                           \
+    F(Clp_logLevel, logLevel)
 
 #define DECLARE_CLP_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);  \

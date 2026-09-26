@@ -126,6 +126,7 @@ int CPXgetdblparam(CPXCENVptr env, int whichparam, double * value_p);
 int CPXsetdblparam(CPXENVptr env, int whichparam, double newvalue);
 
 constexpr int CPXPARAM_Advance = 1001;
+constexpr int CPXPARAM_ScreenOutput = 1035;
 constexpr int CPXPARAM_Preprocessing_Reduce = 1057;
 enum PrereduceType : int {
     CPX_PREREDUCE_NOPRIMALORDUAL = 0,

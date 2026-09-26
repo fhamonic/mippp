@@ -114,6 +114,7 @@ int XPRSgetnamelist(XPRSprob prob, int type, char names[], int maxbytes,
 
 int XPRSlpoptimize(XPRSprob prob, const char * flags);
 int XPRSmipoptimize(XPRSprob prob, const char * flags);
+int XPRSpostsolve(XPRSprob prob);
 
 int XPRSgetsolution(XPRSprob prob, int * status, double x[], int first,
                     int last);
@@ -127,10 +128,20 @@ int XPRSgetredcosts(XPRSprob prob, int * status, double djs[], int first,
 enum DblCtrlPar : int {
     XPRS_FEASTOL = 7003,
     XPRS_MIPTOL = 7009,
+    XPRS_MIPRELSTOP = 7020,
     XPRS_TIMELIMIT = 7158
 };
 int XPRSsetdblcontrol(XPRSprob prob, int control, double value);
 int XPRSgetdblcontrol(XPRSprob prob, int control, double * p_value);
+
+enum IntCtrlPar : int { XPRS_OUTPUTLOG = 8035 };
+int XPRSsetintcontrol(XPRSprob prob, int control, int value);
+int XPRSgetintcontrol(XPRSprob prob, int control, int * p_value);
+
+int XPRSaddcbmessage(XPRSprob prob,
+                     void (*message)(XPRSprob cbprob, void * cbdata,
+                                     const char * msg, int msglen, int msgtype),
+                     void * data, int priority);
 
 int XPRSaddmipsol(XPRSprob prob, int length, const double solval[],
                   const int colind[], const char * name);
@@ -198,12 +209,16 @@ namespace xpress::impl::v1 {
     F(XPRSgetnamelist, getnamelist)                 \
     F(XPRSlpoptimize, lpoptimize)                   \
     F(XPRSmipoptimize, mipoptimize)                 \
+    F(XPRSpostsolve, postsolve)                     \
     F(XPRSgetsolution, getsolution)                 \
     F(XPRSgetcallbacksolution, getcallbacksolution) \
     F(XPRSgetduals, getduals)                       \
     F(XPRSgetredcosts, getredcosts)                 \
     F(XPRSsetdblcontrol, setdblcontrol)             \
     F(XPRSgetdblcontrol, getdblcontrol)             \
+    F(XPRSsetintcontrol, setintcontrol)             \
+    F(XPRSgetintcontrol, getintcontrol)             \
+    F(XPRSaddcbmessage, addcbmessage)               \
     F(XPRSaddmipsol, addmipsol)                     \
     F(XPRSaddcbpreintsol, addcbpreintsol)           \
     F(XPRSremovecbpreintsol, removecbpreintsol)     \

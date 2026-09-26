@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdio>
 #include <limits>
 #include <memory>
 #include <numeric>
@@ -66,6 +67,12 @@ protected:
         }
         return best;
     }
+    // MOSEK hands its log to stream callbacks and prints nothing itself: this
+    // one prints it on stdout, where the other solvers print theirs.
+    static void print_log(MSKuserhandle_t, const char * str) {
+        std::fputs(str, stdout);
+    }
+    static constexpr MSKint32t default_log_level = 10;  // MSK_IPAR_LOG's own
     static constexpr MSKboundkeye constraint_sense_to_mosek_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return MSK_BK_UP;
@@ -93,6 +100,7 @@ public:
         , cleanup_(api, env, task) {
         check(MSK->makeenv(&env, nullptr));
         check(MSK->makeemptytask(env, &task));
+        check(MSK->putintparam(task, MSK_IPAR_LOG, 0));
     }
     ~mosek_base() = default;
 
@@ -139,22 +147,6 @@ public:
     }
     int native_id(variable v) const noexcept { return v.id(); }
     int native_id(constraint c) const noexcept { return c.id(); }
-
-    void set_time_limit(std::chrono::duration<double> limit) {
-        const double seconds =
-            limit.count() == std::numeric_limits<double>::infinity()
-                ? -1.0
-                : limit.count();
-        check(MSK->putdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, seconds));
-    }
-    std::chrono::duration<double> get_time_limit() {
-        double limit;
-        check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &limit));
-        // MOSEK uses a negative sentinel for unlimited, whereas the generic
-        // remaining-time adapter compares ordinary nonnegative durations.
-        return std::chrono::duration<double>(
-            limit < 0 ? std::numeric_limits<double>::infinity() : limit);
-    }
 
 public:
     ///////////////////////////////////////////////////////////////////////////
@@ -460,6 +452,45 @@ public:
                          CL &&... constraint_lambdas) {
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> limit) {
+        const double seconds =
+            limit.count() == std::numeric_limits<double>::infinity()
+                ? -1.0
+                : limit.count();
+        check(MSK->putdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, seconds));
+    }
+    std::chrono::duration<double> get_time_limit() {
+        double limit;
+        check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &limit));
+        // MOSEK uses a negative sentinel for unlimited, whereas the generic
+        // remaining-time adapter compares ordinary nonnegative durations.
+        return std::chrono::duration<double>(
+            limit < 0 ? std::numeric_limits<double>::infinity() : limit);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // The stream stays unlinked while quiet: MSK_IPAR_LOG = 0 does not stop
+    // warnings, such as the one about explicit zero coefficients.
+    void set_verbose(bool verbose) {
+        if(verbose)
+            check(MSK->linkfunctotaskstream(task, MSK_STREAM_LOG, nullptr,
+                                            print_log));
+        else
+            check(MSK->unlinkfuncfromtaskstream(task, MSK_STREAM_LOG));
+        check(MSK->putintparam(task, MSK_IPAR_LOG,
+                               verbose ? default_log_level : 0));
+    }
+    bool is_verbose() {
+        MSKint32t level;
+        check(MSK->getintparam(task, MSK_IPAR_LOG, &level));
+        return level != 0;
     }
 };
 

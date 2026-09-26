@@ -20,6 +20,8 @@ INSTANTIATE_TEST(MOSEK_lp, DualSolutionTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReducedCostsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, CuttingStockTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, TimeLimitTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, VerbosityTest, mosek_lp_test);
 
 struct mosek_milp_test : public model_test<mosek_api, mosek_milp> {
     static void SetUpTestSuite() { construct_api("MOSEK"); }
@@ -33,5 +35,10 @@ INSTANTIATE_TEST(MOSEK_milp, ModifiableVariablesBoundsTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, NamedVariablesTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, AddColumnTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, SudokuTest, mosek_milp_test);
-INSTANTIATE_TEST(MOSEK_milp, TimeLimitTest, mosek_milp_test);
 // INSTANTIATE_TEST(MOSEK_milp, MipStartTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, TimeLimitTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, TimeLimitIncumbentTest, mosek_milp_test);
+// INSTANTIATE_TEST(MOSEK_milp, OptimalityToleranceTest, mosek_milp_test);
+// INSTANTIATE_TEST(MOSEK_milp, MipGapTest, mosek_milp_test);
+// INSTANTIATE_TEST(MOSEK_milp, IntegralityToleranceTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, VerbosityTest, mosek_milp_test);

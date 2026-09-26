@@ -40,6 +40,15 @@ private:
     status_variant _status = status::unknown{};
     std::optional<MSKsoltypee> _solution;
 
+    // whether a stopped solve left the solution get_solution() reads
+    bool _has_solution() {
+        if(!_solution) return false;
+        MSKsolstae solsta;
+        check(MSK->getsolsta(task, *_solution, &solsta));
+        return solsta == MSK_SOL_STA_OPTIMAL || solsta == MSK_SOL_STA_PRIM_FEAS ||
+               solsta == MSK_SOL_STA_PRIM_AND_DUAL_FEAS;
+    }
+
     status_variant _get_status(MSKrescodee trm) {
         using namespace status;
         switch(trm) {
@@ -72,16 +81,16 @@ private:
                         return unknown{};
                 }
             }
-            case MSK_RES_TRM_MAX_TIME:          return time_limit{};
-            case MSK_RES_TRM_MAX_ITERATIONS:    return iteration_limit{};
-            case MSK_RES_TRM_OBJECTIVE_RANGE:   return limit_reached{};
-            case MSK_RES_TRM_USER_CALLBACK:     return interrupted{};
+            case MSK_RES_TRM_MAX_TIME:          return time_limit{_has_solution()};
+            case MSK_RES_TRM_MAX_ITERATIONS:    return iteration_limit{_has_solution()};
+            case MSK_RES_TRM_OBJECTIVE_RANGE:   return limit_reached{_has_solution()};
+            case MSK_RES_TRM_USER_CALLBACK:     return interrupted{_has_solution()};
             case MSK_RES_TRM_NUMERICAL_PROBLEM:
             case MSK_RES_TRM_MAX_NUM_SETBACKS:
-            case MSK_RES_TRM_STALL:             return numerical_failure{};
+            case MSK_RES_TRM_STALL:             return numerical_failure{_has_solution()};
             case MSK_RES_TRM_LOST_RACE:
             case MSK_RES_TRM_INTERNAL:
-            case MSK_RES_TRM_INTERNAL_STOP:     return failed{};
+            case MSK_RES_TRM_INTERNAL_STOP:     return failed{_has_solution()};
             default: 
                 return unknown{};
         }

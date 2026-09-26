@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <ranges>
 #include <tuple>
@@ -172,14 +173,21 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+    // A linear objective is solved by the simplex method and a quadratic one
+    // by the QP solver, each with its own limit: both are set.
     void set_iteration_limit(std::size_t n) {
-        check(Highs->setIntOptionValue(model, "qp_iteration_limit",
-                                       static_cast<int>(n)));
+        const int limit = static_cast<int>(
+            std::min<std::size_t>(n, std::numeric_limits<int>::max()));
+        check(
+            Highs->setIntOptionValue(model, "simplex_iteration_limit", limit));
+        check(Highs->setIntOptionValue(model, "qp_iteration_limit", limit));
     }
     std::size_t get_iteration_limit() {
-        int n;
-        check(Highs->getIntOptionValue(model, "qp_iteration_limit", &n));
-        return static_cast<std::size_t>(n);
+        int simplex_limit, qp_limit;
+        check(Highs->getIntOptionValue(model, "simplex_iteration_limit",
+                                       &simplex_limit));
+        check(Highs->getIntOptionValue(model, "qp_iteration_limit", &qp_limit));
+        return static_cast<std::size_t>(std::min(simplex_limit, qp_limit));
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
@@ -202,27 +210,33 @@ private:
 
     status_variant _get_status() {
         using namespace status;
-        switch (Highs->getModelStatus(model)) {            
+        const int status_ = Highs->getModelStatus(model);
+        switch (status_) {
             case kHighsModelStatusOptimal:        return optimal{};
             case kHighsModelStatusUnboundedOrInfeasible: 
                                                   return infeasible_or_unbounded{};
             case kHighsModelStatusInfeasible:     return infeasible{};
             case kHighsModelStatusUnbounded:      return unbounded{};
-            case kHighsModelStatusInterrupt:      return interrupted{};
+        }
+        int psolstatus;
+        check(Highs->getIntInfoValue(model, "primal_solution_status", &psolstatus));
+        const bool has_sol = (psolstatus == kHighsSolutionStatusFeasible);
+        switch (status_) {
+            case kHighsModelStatusInterrupt:      return interrupted{has_sol};
             case kHighsModelStatusLoadError:
             case kHighsModelStatusModelError:
             case kHighsModelStatusPresolveError:
             case kHighsModelStatusSolveError:
-            case kHighsModelStatusPostsolveError: return failed{};
+            case kHighsModelStatusPostsolveError: return failed{has_sol};
             case kHighsModelStatusObjectiveBound:
-            case kHighsModelStatusObjectiveTarget: return limit_reached{};
-            case kHighsModelStatusTimeLimit:      return time_limit{};
-            case kHighsModelStatusIterationLimit: return iteration_limit{};
+            case kHighsModelStatusObjectiveTarget: return limit_reached{has_sol};
+            case kHighsModelStatusTimeLimit:      return time_limit{has_sol};
+            case kHighsModelStatusIterationLimit: return iteration_limit{has_sol};
             case kHighsModelStatusModelEmpty:
             case kHighsModelStatusNotset:
-            case kHighsModelStatusUnknown:        return unknown{};        
+            case kHighsModelStatusUnknown:        return unknown{has_sol};
             default:
-                return unknown{};
+                return unknown{has_sol};
         }
     }
     // clang-format on

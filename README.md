@@ -186,7 +186,7 @@ Planned, roughly by priority:
 | 🟡 | **Model file I/O** | Read/write LP and MPS files |
 | 🟡 | **Model-level and native IIS** | [Explicit linear-system extraction](docs/iis.md) is available; handle-based snapshots and native conflict routines remain planned |
 | 🟡 | **MILP fuzzy tests** | Differential fuzzing of the MILP interface against a reference implementation, as `lp_fuzzy_tests` does for LPs; the hand-written suites left gaps in the backends |
-| ⚪ | Solution pools, multi-objective, semi-continuous variables, logging control, progress getters | |
+| ⚪ | Solution pools, multi-objective, semi-continuous variables, progress getters | |
 
 > [!NOTE]
 > Since a MIP++ model *is* the solver's native model, re-solves after in-place modifications (adding rows, changing bounds) almost always warm-start from the last basis implicitly. The roadmap item above is about explicit basis get/set — transferring a basis between models or storing one for later.

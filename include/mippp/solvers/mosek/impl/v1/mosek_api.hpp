@@ -52,6 +52,8 @@ enum MSKstreamtypee : int {
 };
 using MSKuserhandle_t = void *;
 using MSKstreamfunc = void(MSKuserhandle_t handle, const char * str);
+MSKrescodee MSK_unlinkfuncfromtaskstream(MSKtask_t task,
+                                         MSKstreamtypee whichstream);
 MSKrescodee MSK_linkfunctotaskstream(MSKtask_t task, MSKstreamtypee whichstream,
                                      MSKuserhandle_t handle,
                                      MSKstreamfunc func);
@@ -136,6 +138,7 @@ MSKrescodee MSK_getnumanz(MSKtask_t task, MSKint32t * numanz);
 
 enum MSKiparame : int {
     MSK_IPAR_INTPNT_BASIS = 17,
+    MSK_IPAR_LOG = 34,
     MSK_IPAR_NUM_THREADS = 100,
     MSK_IPAR_OPTIMIZER = 110,
     MSK_IPAR_PRESOLVE_USE = 121
@@ -155,7 +158,8 @@ MSKrescodee MSK_putintparam(MSKtask_t task, MSKiparame param,
                             MSKint32t parvalue);
 MSKrescodee MSK_getintparam(MSKtask_t task, MSKiparame param,
                             MSKint32t * parvalue);
-enum MSKdparame : int { MSK_DPAR_OPTIMIZER_MAX_TIME = 50 };
+using MSKdparame = int;
+constexpr MSKdparame MSK_DPAR_OPTIMIZER_MAX_TIME = 50;
 MSKrescodee MSK_putdouparam(MSKtask_t task, MSKdparame param,
                             MSKrealt parvalue);
 MSKrescodee MSK_getdouparam(MSKtask_t task, MSKdparame param,
@@ -374,67 +378,68 @@ MSKrescodee MSK_putcallbackfunc(MSKtask_t task, MSKcallbackfunc func,
 namespace mippp {
 namespace mosek::impl::v1 {
 
-#define MOSEK_FUNCTIONS(F)                              \
-    F(MSK_getversion, getversion)                       \
-    F(MSK_makeenv, makeenv)                             \
-    F(MSK_makeemptytask, makeemptytask)                 \
-    F(MSK_getprobtype, getprobtype)                     \
-    F(MSK_deletetask, deletetask)                       \
-    F(MSK_deleteenv, deleteenv)                         \
-    F(MSK_getcodedesc, getcodedesc)                     \
-    F(MSK_linkfunctotaskstream, linkfunctotaskstream)   \
-    F(MSK_putobjsense, putobjsense)                     \
-    F(MSK_getobjsense, getobjsense)                     \
-    F(MSK_putcslice, putcslice)                         \
-    F(MSK_putclist, putclist)                           \
-    F(MSK_putcfix, putcfix)                             \
-    F(MSK_getcfix, getcfix)                             \
-    F(MSK_appendvars, appendvars)                       \
-    F(MSK_appendcons, appendcons)                       \
-    F(MSK_putcj, putcj)                                 \
-    F(MSK_getcj, getcj)                                 \
-    F(MSK_getc, getc)                                   \
-    F(MSK_putvarbound, putvarbound)                     \
-    F(MSK_putvarboundsliceconst, putvarboundsliceconst) \
-    F(MSK_chgvarbound, chgvarbound)                     \
-    F(MSK_getvarbound, getvarbound)                     \
-    F(MSK_putvarname, putvarname)                       \
-    F(MSK_getvarnamelen, getvarnamelen)                 \
-    F(MSK_getvarname, getvarname)                       \
-    F(MSK_putvartype, putvartype)                       \
-    F(MSK_putvartypelist, putvartypelist)               \
-    F(MSK_putarow, putarow)                             \
-    F(MSK_getarow, getarow)                             \
-    F(MSK_putarowslice, putarowslice)                   \
-    F(MSK_putconbound, putconbound)                     \
-    F(MSK_chgconbound, chgconbound)                     \
-    F(MSK_getconbound, getconbound)                     \
-    F(MSK_putconboundslice, putconboundslice)           \
-    F(MSK_putconname, putconname)                       \
-    F(MSK_getconnamelen, getconnamelen)                 \
-    F(MSK_getconname, getconname)                       \
-    F(MSK_putacol, putacol)                             \
-    F(MSK_getacol, getacol)                             \
-    F(MSK_getaij, getaij)                               \
-    F(MSK_getnumvar, getnumvar)                         \
-    F(MSK_getnumcon, getnumcon)                         \
-    F(MSK_getnumanz, getnumanz)                         \
-    F(MSK_putintparam, putintparam)                     \
-    F(MSK_getintparam, getintparam)                     \
-    F(MSK_putdouparam, putdouparam)                     \
-    F(MSK_getdouparam, getdouparam)                     \
-    F(MSK_optimize, optimize)                           \
-    F(MSK_optimizetrm, optimizetrm)                     \
-    F(MSK_getprosta, getprosta)                         \
-    F(MSK_getprimalobj, getprimalobj)                   \
-    F(MSK_putxx, putxx)                                 \
-    F(MSK_putxxslice, putxxslice)                       \
-    F(MSK_getxx, getxx)                                 \
-    F(MSK_solutiondef, solutiondef)                     \
-    F(MSK_getsolsta, getsolsta)                         \
-    F(MSK_getsolution, getsolution)                     \
-    F(MSK_deletesolution, deletesolution)               \
-    F(MSK_getreducedcosts, getreducedcosts)             \
+#define MOSEK_FUNCTIONS(F)                                    \
+    F(MSK_getversion, getversion)                             \
+    F(MSK_makeenv, makeenv)                                   \
+    F(MSK_makeemptytask, makeemptytask)                       \
+    F(MSK_getprobtype, getprobtype)                           \
+    F(MSK_deletetask, deletetask)                             \
+    F(MSK_deleteenv, deleteenv)                               \
+    F(MSK_getcodedesc, getcodedesc)                           \
+    F(MSK_linkfunctotaskstream, linkfunctotaskstream)         \
+    F(MSK_unlinkfuncfromtaskstream, unlinkfuncfromtaskstream) \
+    F(MSK_putobjsense, putobjsense)                           \
+    F(MSK_getobjsense, getobjsense)                           \
+    F(MSK_putcslice, putcslice)                               \
+    F(MSK_putclist, putclist)                                 \
+    F(MSK_putcfix, putcfix)                                   \
+    F(MSK_getcfix, getcfix)                                   \
+    F(MSK_appendvars, appendvars)                             \
+    F(MSK_appendcons, appendcons)                             \
+    F(MSK_putcj, putcj)                                       \
+    F(MSK_getcj, getcj)                                       \
+    F(MSK_getc, getc)                                         \
+    F(MSK_putvarbound, putvarbound)                           \
+    F(MSK_putvarboundsliceconst, putvarboundsliceconst)       \
+    F(MSK_chgvarbound, chgvarbound)                           \
+    F(MSK_getvarbound, getvarbound)                           \
+    F(MSK_putvarname, putvarname)                             \
+    F(MSK_getvarnamelen, getvarnamelen)                       \
+    F(MSK_getvarname, getvarname)                             \
+    F(MSK_putvartype, putvartype)                             \
+    F(MSK_putvartypelist, putvartypelist)                     \
+    F(MSK_putarow, putarow)                                   \
+    F(MSK_getarow, getarow)                                   \
+    F(MSK_putarowslice, putarowslice)                         \
+    F(MSK_putconbound, putconbound)                           \
+    F(MSK_chgconbound, chgconbound)                           \
+    F(MSK_getconbound, getconbound)                           \
+    F(MSK_putconboundslice, putconboundslice)                 \
+    F(MSK_putconname, putconname)                             \
+    F(MSK_getconnamelen, getconnamelen)                       \
+    F(MSK_getconname, getconname)                             \
+    F(MSK_putacol, putacol)                                   \
+    F(MSK_getacol, getacol)                                   \
+    F(MSK_getaij, getaij)                                     \
+    F(MSK_getnumvar, getnumvar)                               \
+    F(MSK_getnumcon, getnumcon)                               \
+    F(MSK_getnumanz, getnumanz)                               \
+    F(MSK_putintparam, putintparam)                           \
+    F(MSK_getintparam, getintparam)                           \
+    F(MSK_putdouparam, putdouparam)                           \
+    F(MSK_getdouparam, getdouparam)                           \
+    F(MSK_optimize, optimize)                                 \
+    F(MSK_optimizetrm, optimizetrm)                           \
+    F(MSK_getprosta, getprosta)                               \
+    F(MSK_getprimalobj, getprimalobj)                         \
+    F(MSK_putxx, putxx)                                       \
+    F(MSK_putxxslice, putxxslice)                             \
+    F(MSK_getxx, getxx)                                       \
+    F(MSK_solutiondef, solutiondef)                           \
+    F(MSK_getsolsta, getsolsta)                               \
+    F(MSK_getsolution, getsolution)                           \
+    F(MSK_deletesolution, deletesolution)                     \
+    F(MSK_getreducedcosts, getreducedcosts)                   \
     F(MSK_putcallbackfunc, putcallbackfunc)
 
 #define DECLARE_MOSEK_FUNCTIONS(FULL, SHORT) \

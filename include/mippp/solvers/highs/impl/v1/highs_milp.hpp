@@ -64,6 +64,29 @@ public:
         _add_mip_start(entries);
     }
     ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////// Tolerance parameters ///////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_optimality_tolerance(double tol) {
+        check(Highs->setDoubleOptionValue(model, "mip_rel_gap", tol));
+    }
+    double get_optimality_tolerance() {
+        double tol;
+        check(Highs->getDoubleOptionValue(model, "mip_rel_gap", &tol));
+        return tol;
+    }
+    // HiGHS has no integrality tolerance of its own: this one also bounds the
+    // row and bound violations its MIP solver accepts.
+    void set_integrality_tolerance(double tol) {
+        check(Highs->setDoubleOptionValue(model, "mip_feasibility_tolerance",
+                                          tol));
+    }
+    double get_integrality_tolerance() {
+        double tol;
+        check(Highs->getDoubleOptionValue(model, "mip_feasibility_tolerance",
+                                          &tol));
+        return tol;
+    }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     // clang-format off

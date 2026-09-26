@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <limits>
 #include <memory>
@@ -41,11 +42,17 @@ private:
     const soplex_api * SoPlex;
     void * model;
     double objective_offset;
+    std::chrono::duration<double> _time_limit;
 
 public:
     [[nodiscard]] soplex_lp() : soplex_lp(soplex_api::load()) {}
     [[nodiscard]] explicit soplex_lp(const soplex_api & api)
-        : SoPlex(&api), model(SoPlex->create()), objective_offset(0.0) {}
+        : SoPlex(&api)
+        , model(SoPlex->create())
+        , objective_offset(0.0)
+        , _time_limit(_infinity) {
+        SoPlex->setIntParam(model, SOPLEX_VERBOSITY, SOPLEX_VERBOSITY_ERROR);
+    }
     ~soplex_lp() {
         if(model) SoPlex->free(model);
     }
@@ -56,6 +63,7 @@ public:
         , SoPlex(other.SoPlex)
         , model(other.model)
         , objective_offset(other.objective_offset)
+        , _time_limit(other._time_limit)
         , _status(other._status) {
         other.model = nullptr;
     }
@@ -254,6 +262,30 @@ public:
                                       constraint_lambdas...);
     }
     ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // The C interface of SoPlex has no getter for real parameters, so the
+    // limit is read back from the copy kept here.
+    void set_time_limit(std::chrono::duration<double> t) {
+        if(!SoPlex->setRealParam)
+            throw solver_error("SoPlex_setRealParam not available.");
+        SoPlex->setRealParam(model, SOPLEX_TIMELIMIT, t.count());
+        _time_limit = t;
+    }
+    auto get_time_limit() { return _time_limit; }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        SoPlex->setIntParam(
+            model, SOPLEX_VERBOSITY,
+            verbose ? SOPLEX_VERBOSITY_NORMAL : SOPLEX_VERBOSITY_ERROR);
+    }
+    bool is_verbose() {
+        return SoPlex->getIntParam(model, SOPLEX_VERBOSITY) !=
+               SOPLEX_VERBOSITY_ERROR;
+    }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     // clang-format off
@@ -265,6 +297,7 @@ private:
             status::infeasible_or_unbounded,
             status::infeasible,
             status::unbounded,
+            status::time_limit,
             status::failed>;
 
     status_variant _status = status::unknown{};
@@ -301,8 +334,10 @@ public:
             case NO_PRICER:
             case NO_SOLVER:
             case NOT_INIT:
-            case ABORT_CYCLING:
             case ABORT_TIME:
+                _status.emplace<time_limit>();
+                return;
+            case ABORT_CYCLING:
             case ABORT_ITER:
             case ABORT_VALUE:
                 _status.emplace<failed>();
