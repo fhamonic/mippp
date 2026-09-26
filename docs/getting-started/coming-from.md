@@ -119,7 +119,7 @@ There is no `solver=` argument at solve time. The backend appears in an include 
 
 ### 6. Not everything is there yet
 
-MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, IIS-based infeasibility diagnosis, solution pools, native multi-objective, quadratic *constraints*, and logging control. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
+MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, solution pools, native multi-objective, quadratic *constraints*, and logging control. For infeasibility diagnosis, use the solver-independent [IIS extraction utility](../iis.md). If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
 
 ## What you gain in exchange
 

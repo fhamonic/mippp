@@ -51,12 +51,14 @@ protected:
             if(!defined) continue;
             MSKsolstae state;
             check(MSK->getsolsta(task, type, &state));
-            const int rank = state == MSK_SOL_STA_OPTIMAL ||
-                                     state == MSK_SOL_STA_PRIM_INFEAS_CER ||
-                                     state == MSK_SOL_STA_DUAL_INFEAS_CER
-                                 ? 2
-                             : state == MSK_SOL_STA_UNKNOWN ? 0
-                                                            : 1;
+            int rank = 1;
+            switch(state) {
+                case MSK_SOL_STA_OPTIMAL:
+                case MSK_SOL_STA_PRIM_INFEAS_CER:
+                case MSK_SOL_STA_DUAL_INFEAS_CER: rank = 2; break;
+                case MSK_SOL_STA_UNKNOWN: rank = 0; break;
+                default: break;
+            }
             if(rank > best_rank) {
                 best = type;
                 best_rank = rank;

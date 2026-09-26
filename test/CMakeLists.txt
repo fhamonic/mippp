@@ -116,12 +116,31 @@ gtest_discover_tests(mippp_test)
 # IIS tests are separate so the standard-library-only reduction can be run
 # with --gtest_filter=DeletionFilter.* without installing a solver. Integration
 # tests require the selected libraries and deliberately fail if unavailable.
-add_executable(mippp_iis_test iis.cpp iis_diagnostics.cpp)
+add_executable(mippp_iis_test iis.cpp iis_diagnostics.cpp iis_vectors.cpp)
 target_link_libraries(mippp_iis_test PRIVATE mippp GTest::gtest_main)
 if(MSVC)
-    target_compile_options(mippp_iis_test PRIVATE /bigobj)
+    target_compile_options(mippp_iis_test PRIVATE /bigobj /UNDEBUG)
+    target_compile_definitions(mippp_iis_test PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(mippp_iis_test PRIVATE -UNDEBUG)
 endif()
-set(MIPPP_IIS_TEST_FILTER "DeletionFilter.*:ElasticityFilter.*" CACHE STRING
+set(_iis_filter "DeletionFilter.*:ElasticityFilter.*:IisVectors.*")
+# CI declares installed solvers through the same variable as model_test.
+# Exercise their IIS integrations as well; missing required libraries must fail.
+set(_iis_required_solvers "$ENV{MIPPP_REQUIRED_SOLVERS}")
+if("HIGHS" IN_LIST _iis_required_solvers)
+    string(APPEND _iis_filter ":LinearIis/0.*:LinearIis/1.*:PublishedIis/0.*:PublishedIis/1.*")
+endif()
+if("CLP" IN_LIST _iis_required_solvers)
+    string(APPEND _iis_filter ":LinearIis/2.*:ClpRay.*:PublishedIis/2.*")
+endif()
+if("CBC" IN_LIST _iis_required_solvers)
+    string(APPEND _iis_filter ":LinearIis/3.*:PublishedIis/3.*")
+endif()
+if("GLPK" IN_LIST _iis_required_solvers)
+    string(APPEND _iis_filter ":LinearIis/7.*")
+endif()
+set(MIPPP_IIS_TEST_FILTER "${_iis_filter}" CACHE STRING
     "GoogleTest filter for IIS tests; select integration suites for installed solvers")
 add_test(NAME mippp_iis COMMAND mippp_iis_test --gtest_filter=${MIPPP_IIS_TEST_FILTER})
 

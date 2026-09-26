@@ -48,44 +48,42 @@ template <elastic_oracle Oracle>
     elasticity_result answer;
     std::vector<bool> hard(candidate_count, false);
     for(;;) {
-        if(auto reason = detail::stop_reason(opts, answer.solve_count))
+        if(auto reason = detail::stop_reason(opts, answer.solve_count)) {
             answer.reason = *reason;
-        else {
-            ++answer.solve_count;
-            auto trial = std::invoke(
-                oracle, std::span<const std::size_t>(answer.members));
-            answer.outcomes.record(trial.status);
-            if(trial.status == feasibility::infeasible) {
-                answer.proven_infeasible = true;
-                return answer;
-            }
-            if(trial.status == feasibility::unknown || trial.violated.empty()) {
-                answer.no_progress = trial.status == feasibility::feasible &&
-                                     trial.violated.empty();
-                // No progress is not evidence for an infeasible seed. The
-                // caller may fall back to ordinary deletion on the full model.
-                answer.reason = detail::stop_reason(opts, answer.solve_count)
-                                    .value_or(termination::indeterminate);
-                return answer;
-            }
-            for(auto id : trial.violated) {
-                if(id >= candidate_count || hard[id])
-                    throw std::invalid_argument(
-                        "The soft-constraint check returned candidate " +
-                        std::to_string(id) +
-                        " which is out of range or was already enforced. "
-                        "Return only new candidate IDs from 0 through "
-                        "candidate_count - 1; "
-                        "candidate_count=" +
-                        std::to_string(candidate_count) + ".");
-                hard[id] = true;
-                answer.members.push_back(id);
-            }
-            // At least one new candidate per successful iteration implies at
-            // most N+1 calls, even if the oracle never finds a small seed.
-            continue;
+            return answer;
         }
-        return answer;
+        ++answer.solve_count;
+        auto trial = std::invoke(
+            oracle, std::span<const std::size_t>(answer.members));
+        answer.outcomes.record(trial.status);
+        if(trial.status == feasibility::infeasible) {
+            answer.proven_infeasible = true;
+            return answer;
+        }
+        if(trial.status == feasibility::unknown || trial.violated.empty()) {
+            answer.no_progress = trial.status == feasibility::feasible &&
+                                 trial.violated.empty();
+            // No progress is not evidence for an infeasible seed. The
+            // caller may fall back to ordinary deletion on the full model.
+            answer.reason = detail::stop_reason(opts, answer.solve_count)
+                                .value_or(termination::indeterminate);
+            return answer;
+        }
+        for(auto id : trial.violated) {
+            if(id >= candidate_count || hard[id])
+                throw std::invalid_argument(
+                    "The soft-constraint check returned candidate " +
+                    std::to_string(id) +
+                    " which is out of range or was already enforced. "
+                    "Return only new candidate IDs from 0 through "
+                    "candidate_count - 1; "
+                    "candidate_count=" +
+                    std::to_string(candidate_count) + ".");
+            hard[id] = true;
+            answer.members.push_back(id);
+        }
+        // At least one new candidate per successful iteration implies at
+        // most N+1 calls, even if the oracle never finds a small seed.
     }
 }
 

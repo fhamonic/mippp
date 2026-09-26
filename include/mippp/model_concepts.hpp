@@ -289,7 +289,7 @@ template <typename T>
 concept has_iteration_limit = requires(T & model, std::size_t n) {
     { model.set_iteration_limit(n) };
     { model.get_iteration_limit() } -> std::same_as<std::size_t>;
-    { model.get_status() } 
+    { model.get_status() }
             -> variant_containing_a<status::iteration_limit>;
 };
 

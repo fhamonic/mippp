@@ -184,7 +184,7 @@ Planned, roughly by priority:
 | 🟠 | **QP objectives beyond HiGHS** | Extend Hessian support to Gurobi, CPLEX, MOSEK, etc. |
 | 🟡 | **QCP/SOCP constraints** | Quadratically constrained programs |
 | 🟡 | **Model file I/O** | Read/write LP and MPS files |
-| 🟡 | **Infeasibility diagnosis (IIS)** | Irreducible infeasible subsystem extraction |
+| 🟡 | **Model-level and native IIS** | [Explicit linear-system extraction](docs/iis.md) is available; handle-based snapshots and native conflict routines remain planned |
 | 🟡 | **MILP fuzzy tests** | Differential fuzzing of the MILP interface against a reference implementation, as `lp_fuzzy_tests` does for LPs; the hand-written suites left gaps in the backends |
 | ⚪ | Solution pools, multi-objective, semi-continuous variables, logging control, progress getters | |
 

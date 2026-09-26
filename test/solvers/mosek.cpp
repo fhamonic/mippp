@@ -33,4 +33,5 @@ INSTANTIATE_TEST(MOSEK_milp, ModifiableVariablesBoundsTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, NamedVariablesTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, AddColumnTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, SudokuTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, TimeLimitTest, mosek_milp_test);
 // INSTANTIATE_TEST(MOSEK_milp, MipStartTest, mosek_milp_test);

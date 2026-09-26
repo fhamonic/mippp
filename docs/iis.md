@@ -6,6 +6,11 @@ Removing any one member makes that subsystem feasible. An IIS helps you locate
 contradictory requirements or incorrect input data; it does not choose which
 requirement to change, and it need not be the smallest or only conflict.
 
+This page documents the explicit linear-system utility. The planned model-level
+`compute_iis()` API, handle-based snapshots, row-bound capability, and native IIS
+routines are not implemented. See the [implementation audit](iis-implementation-status.md)
+for the status of the original checklist.
+
 MIP++ provides `compute_linear_iis` for linear and mixed-integer systems.
 Supply the rows and variable bounds, choose a solver through a model factory,
 and inspect the returned conflict. The default method repeatedly tries removing
@@ -844,7 +849,7 @@ nonfinite arrays, and exhausted/overreported phase budgets.
 ## Running validation
 
 Build `mippp_iis_test`. Run
-`--gtest_filter=DeletionFilter.*:ElasticityFilter.*` without solvers.
+`--gtest_filter=DeletionFilter.*:ElasticityFilter.*:IisVectors.*` without solvers.
 The typed integration tests compile for all eleven backend families. Suite
 indices are 0: HiGHS LP, 1: HiGHS MIP, 2: Clp, 3: CBC, 4: Gurobi, 5: CPLEX,
 6: COPT, 7: GLPK, 8: MOSEK MIP, 9: SCIP, 10: SoPlex, 11: Xpress,
@@ -853,7 +858,9 @@ Select their numbered `LinearIis/N.*` suites when only some are installed.
 These tests fail on unavailable libraries or license errors rather than silently
 skipping validation.
 
-CTest runs only the solver-free core tests by default. Set the CMake cache value
+CTest runs the solver-free core tests by default. On a fresh configure,
+`MIPPP_REQUIRED_SOLVERS` adds the matching HiGHS, Clp, CBC, and GLPK integration
+suites, including the published-vector tests where available. Set the CMake cache value
 `MIPPP_IIS_TEST_FILTER` to include installed backends, for example
 `DeletionFilter.*:ElasticityFilter.*:LinearIis/2.*:LinearIis/3.*` for Clp and CBC. The executable
 also accepts the usual GoogleTest `--gtest_filter` option directly.
@@ -862,6 +869,13 @@ The core tests exhaust every family of conflicts over four candidates and check
 both returned infeasibility and feasibility after removing each reported member.
 Integration tests include bounds, ranged rows, redundant constraints and
 integer-only infeasibility with a feasible LP relaxation.
+
+[Published HiGHS vectors](https://github.com/ERGO-Code/HiGHS/blob/755a8e027a99a8d4ecf153a8dde4b2a767cdf384/check/TestIis.cpp)
+also exercise competing conflicts, coupled rows and both signs of empty rows.
+`PublishedIis/0.*` through `PublishedIis/3.*` select HiGHS LP, HiGHS MIP, Clp,
+and CBC respectively. An independent Fourier-Motzkin checker verifies each
+returned conflict and every single-member removal. See `test/data/iis/README.md`
+for provenance, transformations, licensing and the checker's limited scope.
 
 ## Further reading
 
