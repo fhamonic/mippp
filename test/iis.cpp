@@ -1032,11 +1032,15 @@ TEST(DeletionFilter, DeadlineExpiringInsideOraclePreservesProof) {
                             [&](auto ids) {
                                 if(!ids.empty()) return feasibility::infeasible;
                                 std::this_thread::sleep_until(deadline);
+                                // Some sleep_until implementations can wake a
+                                // fraction early relative to steady_clock.
+                                while(std::chrono::steady_clock::now() < deadline)
+                                    std::this_thread::yield();
                                 return final_proof ? feasibility::feasible
                                                    : feasibility::unknown;
                             },
                             {.deadline = deadline});
-        // No precise timing assertions: sleep_until merely forces clock expiry.
+        // The clock check above forces expiry without asserting elapsed time.
         EXPECT_TRUE(answer.proven_infeasible());
         EXPECT_EQ(answer.irreducible, final_proof);
         EXPECT_EQ(answer.reason, final_proof ? termination::completed
