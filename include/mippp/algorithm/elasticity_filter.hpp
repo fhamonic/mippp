@@ -53,16 +53,16 @@ template <elastic_oracle Oracle>
             return answer;
         }
         ++answer.solve_count;
-        auto trial = std::invoke(
-            oracle, std::span<const std::size_t>(answer.members));
+        auto trial =
+            std::invoke(oracle, std::span<const std::size_t>(answer.members));
         answer.outcomes.record(trial.status);
         if(trial.status == feasibility::infeasible) {
             answer.proven_infeasible = true;
             return answer;
         }
         if(trial.status == feasibility::unknown || trial.violated.empty()) {
-            answer.no_progress = trial.status == feasibility::feasible &&
-                                 trial.violated.empty();
+            answer.no_progress =
+                trial.status == feasibility::feasible && trial.violated.empty();
             // No progress is not evidence for an infeasible seed. The
             // caller may fall back to ordinary deletion on the full model.
             answer.reason = detail::stop_reason(opts, answer.solve_count)

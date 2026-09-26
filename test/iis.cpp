@@ -1118,10 +1118,10 @@ TEST(DeletionFilter, NativeDeadlineSetterFailuresAreNotHidden) {
     } model;
     work_statistics stats;
     const auto now = std::chrono::steady_clock::now();
-    EXPECT_THROW(detail::prepare_iis_solve(
-                     model, {.deadline = now + std::chrono::seconds(1)},
-                     stats, now),
-                 std::runtime_error);
+    EXPECT_THROW(
+        detail::prepare_iis_solve(
+            model, {.deadline = now + std::chrono::seconds(1)}, stats, now),
+        std::runtime_error);
 }
 
 TEST(DeletionFilter, NativeDeadlineForwardingPreservesTighterCaps) {
@@ -1511,8 +1511,8 @@ TYPED_TEST(LinearIis, FactoryLoggingIsPreservedAcrossIisWorkspaces) {
                     .elasticity = warm ? elasticity_strategy::reuse
                                        : elasticity_strategy::rebuild,
                     .deletion = warm ? deletion_strategy::reuse
-                                     : deletion_strategy::rebuild}>(
-                    system, factory);
+                                     : deletion_strategy::rebuild}>(system,
+                                                                    factory);
                 EXPECT_TRUE(answer.reduction.irreducible);
                 EXPECT_GT(answer.statistics.elastic.solver_runs, 0u);
             }

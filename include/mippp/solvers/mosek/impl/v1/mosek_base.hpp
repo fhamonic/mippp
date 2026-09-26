@@ -62,9 +62,14 @@ protected:
             switch(state) {
                 case MSK_SOL_STA_OPTIMAL:
                 case MSK_SOL_STA_PRIM_INFEAS_CER:
-                case MSK_SOL_STA_DUAL_INFEAS_CER: rank = 2; break;
-                case MSK_SOL_STA_UNKNOWN: rank = 0; break;
-                default: break;
+                case MSK_SOL_STA_DUAL_INFEAS_CER:
+                    rank = 2;
+                    break;
+                case MSK_SOL_STA_UNKNOWN:
+                    rank = 0;
+                    break;
+                default:
+                    break;
             }
             if(rank > best_rank) {
                 best = type;

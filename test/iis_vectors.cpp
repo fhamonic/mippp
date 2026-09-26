@@ -26,30 +26,28 @@ struct test_vector {
 
 std::vector<test_vector> published_vectors() {
     const auto free = std::nullopt;
-    return {
-        {"lp-incompatible-bounds",
-         {{{0., 1.}, {0., 1.}, {0., -1.}},
-          {{{{1, 1.}, {2, 1.}}, 1., 0.},
-           {{{0, 1.}, {2, 1.}}, 0., 1.}}},
-         {2, 3}},
-        {"lp-empty-infeasible-row/lower",
-         {{{0., free}, {0., free}},
-          {{{{0, 2.}, {1, 1.}}, free, 8.},
-           {{}, 1., 2.},
-           {{{0, 1.}, {1, 3.}}, free, 9.}}},
-         {1}},
-        {"lp-empty-infeasible-row/upper",
-         {{{0., free}, {0., free}},
-          {{{{0, 2.}, {1, 1.}}, free, 8.},
-           {{}, -2., -1.},
-           {{{0, 1.}, {1, 3.}}, free, 9.}}},
-         {1}},
-        {"lp-get-iis",
-         {{{0., free}, {0., free}},
-          {{{{0, 2.}, {1, 1.}}, free, 8.},
-           {{{0, 1.}, {1, 3.}}, free, 9.},
-           {{{0, 1.}, {1, 1.}}, free, -2.}}},
-         {3}}};
+    return {{"lp-incompatible-bounds",
+             {{{0., 1.}, {0., 1.}, {0., -1.}},
+              {{{{1, 1.}, {2, 1.}}, 1., 0.}, {{{0, 1.}, {2, 1.}}, 0., 1.}}},
+             {2, 3}},
+            {"lp-empty-infeasible-row/lower",
+             {{{0., free}, {0., free}},
+              {{{{0, 2.}, {1, 1.}}, free, 8.},
+               {{}, 1., 2.},
+               {{{0, 1.}, {1, 3.}}, free, 9.}}},
+             {1}},
+            {"lp-empty-infeasible-row/upper",
+             {{{0., free}, {0., free}},
+              {{{{0, 2.}, {1, 1.}}, free, 8.},
+               {{}, -2., -1.},
+               {{{0, 1.}, {1, 3.}}, free, 9.}}},
+             {1}},
+            {"lp-get-iis",
+             {{{0., free}, {0., free}},
+              {{{{0, 2.}, {1, 1.}}, free, 8.},
+               {{{0, 1.}, {1, 3.}}, free, 9.},
+               {{{0, 1.}, {1, 1.}}, free, -2.}}},
+             {3}}};
 }
 
 std::vector<member> all_members(const linear_system<> & system) {
@@ -83,11 +81,13 @@ bool feasible(const linear_system<> & system, std::span<const member> subset) {
             const auto & source = system.rows.at(index);
             for(auto [column, value] : source.terms)
                 row.at(column) += sign * value;
-            row[n] = sign * (lower ? source.lower.value() : source.upper.value());
+            row[n] =
+                sign * (lower ? source.lower.value() : source.upper.value());
         } else {
             const auto & source = system.variables.at(index);
             row.at(index) = sign;
-            row[n] = sign * (lower ? source.lower.value() : source.upper.value());
+            row[n] =
+                sign * (lower ? source.lower.value() : source.upper.value());
         }
         rows.push_back(std::move(row));
     }
@@ -108,9 +108,8 @@ bool feasible(const linear_system<> & system, std::span<const member> subset) {
         }
         rows = std::move(next);
     }
-    return std::ranges::all_of(rows, [n](const auto & row) {
-        return row[n] >= 0.;
-    });
+    return std::ranges::all_of(rows,
+                               [n](const auto & row) { return row[n] >= 0.; });
 }
 
 void verify_iis(const test_vector & input, const linear_result & answer) {
@@ -145,12 +144,14 @@ TEST(IisVectors, IndependentOracleAndPublishedConflicts) {
             ++mask) {
             std::vector<member> subset;
             for(std::size_t i = 0; i < candidates.size(); ++i)
-                if(mask & (std::size_t{1} << i)) subset.push_back(candidates[i]);
+                if(mask & (std::size_t{1} << i))
+                    subset.push_back(candidates[i]);
             if(feasible(input.system, subset)) continue;
             bool minimal = true;
             for(std::size_t i = 0; i < subset.size(); ++i) {
                 auto remaining = subset;
-                remaining.erase(remaining.begin() + static_cast<std::ptrdiff_t>(i));
+                remaining.erase(remaining.begin() +
+                                static_cast<std::ptrdiff_t>(i));
                 minimal &= feasible(input.system, remaining);
             }
             if(minimal) {
@@ -197,7 +198,8 @@ TYPED_TEST(PublishedIis, RebuiltDeletion) {
     check_vectors<linear_policy{}, TypeParam>();
 }
 TYPED_TEST(PublishedIis, RetainedDeletion) {
-    check_vectors<linear_policy{.deletion = deletion_strategy::reuse}, TypeParam>();
+    check_vectors<linear_policy{.deletion = deletion_strategy::reuse},
+                  TypeParam>();
 }
 TYPED_TEST(PublishedIis, RebuiltElasticity) {
     check_vectors<linear_policy{.elasticity = elasticity_strategy::rebuild},
@@ -205,7 +207,8 @@ TYPED_TEST(PublishedIis, RebuiltElasticity) {
 }
 TYPED_TEST(PublishedIis, RetainedElasticityAndDeletion) {
     check_vectors<linear_policy{.elasticity = elasticity_strategy::reuse,
-                               .deletion = deletion_strategy::reuse}, TypeParam>();
+                                .deletion = deletion_strategy::reuse},
+                  TypeParam>();
 }
 
 TYPED_TEST(PublishedIis, IntegerBoundsWithFeasibleRelaxation) {
@@ -222,8 +225,8 @@ TYPED_TEST(PublishedIis, IntegerBoundsWithFeasibleRelaxation) {
             ASSERT_TRUE(answer.reduction.irreducible);
             ASSERT_TRUE(answer.reduction.proven_infeasible());
             ASSERT_EQ(answer.members.size(), 2u);
-            for(auto kind : {member_kind::variable_lower,
-                             member_kind::variable_upper})
+            for(auto kind :
+                {member_kind::variable_lower, member_kind::variable_upper})
                 EXPECT_NE(std::ranges::find(answer.members, member{kind, 1}),
                           answer.members.end());
             // Independent proof: no integer is in [1/4,3/4]. Dropping the
@@ -232,9 +235,9 @@ TYPED_TEST(PublishedIis, IntegerBoundsWithFeasibleRelaxation) {
             EXPECT_EQ(answer.elasticity_calls, 0u);
         };
         check.template operator()<linear_policy{}>();
-        check.template operator()<linear_policy{
-            .elasticity = elasticity_strategy::reuse,
-            .deletion = deletion_strategy::reuse}>();
+        check.template
+        operator()<linear_policy{.elasticity = elasticity_strategy::reuse,
+                                 .deletion = deletion_strategy::reuse}>();
     }
     const auto relaxed = compute_linear_iis<linear_policy{
         .analyzed_domain = domain::lp_relaxation}>(system, factory);

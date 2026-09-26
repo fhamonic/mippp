@@ -126,8 +126,9 @@ template <linear_policy Policy = {}, typename Factory,
         deletion_model;
     auto rebuilt_model = [&] {
         if constexpr(needs_rebuilt_model)
-            return detail::cold_model_workspace<decltype(factory), Scalar, mode>(
-                prepared, factory, opts, statistics.rebuild);
+            return detail::cold_model_workspace<decltype(factory), Scalar,
+                                                mode>(prepared, factory, opts,
+                                                      statistics.rebuild);
         else
             return detail::disabled_feature{};
     }();
