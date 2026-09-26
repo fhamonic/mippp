@@ -1027,19 +1027,19 @@ TEST(DeletionFilter, DeadlineExpiringInsideOraclePreservesProof) {
         // second oracle call still holds the deadline until it expires.
         const auto deadline =
             std::chrono::steady_clock::now() + std::chrono::seconds(1);
-        const auto answer =
-            deletion_filter(1,
-                            [&](auto ids) {
-                                if(!ids.empty()) return feasibility::infeasible;
-                                std::this_thread::sleep_until(deadline);
-                                // Some sleep_until implementations can wake a
-                                // fraction early relative to steady_clock.
-                                while(std::chrono::steady_clock::now() < deadline)
-                                    std::this_thread::yield();
-                                return final_proof ? feasibility::feasible
-                                                   : feasibility::unknown;
-                            },
-                            {.deadline = deadline});
+        const auto answer = deletion_filter(
+            1,
+            [&](auto ids) {
+                if(!ids.empty()) return feasibility::infeasible;
+                std::this_thread::sleep_until(deadline);
+                // Some sleep_until implementations can wake a
+                // fraction early relative to steady_clock.
+                while(std::chrono::steady_clock::now() < deadline)
+                    std::this_thread::yield();
+                return final_proof ? feasibility::feasible
+                                   : feasibility::unknown;
+            },
+            {.deadline = deadline});
         // The clock check above forces expiry without asserting elapsed time.
         EXPECT_TRUE(answer.proven_infeasible());
         EXPECT_EQ(answer.irreducible, final_proof);
