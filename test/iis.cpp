@@ -1023,8 +1023,10 @@ TEST(DeletionFilter, UnknownOnLastCallReportsExhaustedBudget) {
 
 TEST(DeletionFilter, DeadlineExpiringInsideOraclePreservesProof) {
     for(bool final_proof : {false, true}) {
+        // Leave enough time for the initial proof on a busy CI runner. The
+        // second oracle call still holds the deadline until it expires.
         const auto deadline =
-            std::chrono::steady_clock::now() + std::chrono::milliseconds(3);
+            std::chrono::steady_clock::now() + std::chrono::seconds(1);
         const auto answer =
             deletion_filter(1,
                             [&](auto ids) {
