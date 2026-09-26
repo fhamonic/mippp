@@ -200,6 +200,99 @@ TEST(load_solver_library, environment_variable_failure_names_it) {
     }
 }
 
+TEST(load_solver_library,
+     errors_show_current_values_available_values_and_precedence) {
+    const std::string missing =
+        (fixture_path.parent_path() / "missing diagnostic library.so").string();
+    scoped_env env("MIPPP_TESTDIAGNOSTIC_LIBRARY", missing);
+    scoped_env search(loader_path_var, "first diagnostic directory");
+    try {
+        find_solver_library("TESTDIAGNOSTIC", std::array{"mippp_no_such_name"});
+        FAIL();
+    } catch(const std::runtime_error & e) {
+        const std::string text = e.what();
+        EXPECT_NE(text.find("MIPPP_TESTDIAGNOSTIC_LIBRARY: current=" +
+                            diagnostic_value(missing.c_str())),
+                  std::string::npos);
+        EXPECT_NE(text.find(std::string(loader_path_var) +
+                            ": current=\"first diagnostic directory\""),
+                  std::string::npos);
+        EXPECT_NE(text.find("available=a full path"), std::string::npos);
+        EXPECT_NE(text.find("takes priority"), std::string::npos);
+        EXPECT_NE(text.find("restart"), std::string::npos);
+#if defined(_WIN32)
+        EXPECT_EQ(text.find("LD_LIBRARY_PATH"), std::string::npos);
+        EXPECT_NE(text.find("separated by ';'"), std::string::npos);
+#else
+        EXPECT_NE(text.find("separated by ':'"), std::string::npos);
+#endif
+    }
+    try {
+        load_solver_library("explicit missing file", "TESTDIAGNOSTIC", {});
+        FAIL();
+    } catch(const std::runtime_error & e) {
+        EXPECT_NE(std::string(e.what()).find(
+                      "library path argument: current=\"explicit missing "
+                      "file\"; available="),
+                  std::string::npos);
+    }
+}
+
+TEST(load_solver_library,
+     diagnostic_values_are_quoted_and_warnings_explain_boolean_semantics) {
+    EXPECT_EQ(diagnostic_value(nullptr), "<not set>");
+    EXPECT_EQ(diagnostic_value(""), "\"\"");
+    EXPECT_EQ(diagnostic_value("a\n\"b"), "\"a\\n\\\"b\"");
+    scoped_env env("MIPPP_TESTWARNING_LIBRARY", "chosen library");
+    scoped_env suppression("MIPPP_NO_VERSION_WARNING", "0");
+    const auto text = version_warning_help("TESTWARNING");
+    EXPECT_NE(text.find("MIPPP_TESTWARNING_LIBRARY: current=\"chosen "
+                        "library\"; available="),
+              std::string::npos);
+    EXPECT_NE(text.find("MIPPP_NO_VERSION_WARNING: current=\"0\"; available="),
+              std::string::npos);
+    EXPECT_NE(text.find("including '0' or empty"), std::string::npos);
+    EXPECT_NE(text.find("does not fix a version mismatch"), std::string::npos);
+}
+
+TEST(load_solver_library,
+     license_help_lists_settings_without_exposing_keys_or_embedded_licenses) {
+    scoped_env gurobi("GRB_LICENSE_FILE", "/test/licenses/gurobi.lic");
+    scoped_env cplex("CPLEX_STUDIO_KEY", "private-subscription-key");
+    scoped_env mosek("MOSEKLM_LICENSE_FILE", "private-inline-license");
+    const auto g = license_diagnostic("Gurobi", "license unavailable");
+    EXPECT_NE(g.find("GRB_LICENSE_FILE: current=\"/test/licenses/gurobi.lic\"; "
+                     "available="),
+              std::string::npos);
+    const auto c =
+        license_diagnostic("CPLEX", "rejected private-subscription-key");
+    EXPECT_NE(
+        c.find("CPLEX_STUDIO_KEY: current=<set; value hidden>; available="),
+        std::string::npos);
+    EXPECT_EQ(c.find("private-subscription-key"), std::string::npos);
+    const auto m =
+        license_diagnostic("MOSEK", "rejected private-inline-license");
+    EXPECT_NE(
+        m.find("MOSEKLM_LICENSE_FILE: current=<set; value hidden>; available="),
+        std::string::npos);
+    EXPECT_EQ(m.find("private-inline-license"), std::string::npos);
+}
+
+TEST(load_solver_library, license_help_redacts_endpoints_containing_the_key) {
+    const std::string key = "private-subscription-key";
+    const std::string endpoint =
+        "https://license.invalid/" + key + "/private-account";
+    scoped_env subscription("CPLEX_STUDIO_KEY", key);
+    scoped_env server("CPLEX_STUDIO_KEY_SERVER", endpoint);
+    const auto text = license_diagnostic(
+        "CPLEX", ("rejected " + endpoint + " and " + key).c_str());
+    EXPECT_EQ(text.find(key), std::string::npos);
+    EXPECT_EQ(text.find("license.invalid"), std::string::npos);
+    EXPECT_EQ(text.find("private-account"), std::string::npos);
+    EXPECT_NE(text.find("Solver details: rejected <redacted> and <redacted>"),
+              std::string::npos);
+}
+
 TEST(load_solver_library, name_search_over_loader_directories) {
     scoped_env env(loader_path_var,
                    loader_path_with({fixture_path.parent_path()}));

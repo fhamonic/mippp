@@ -79,6 +79,8 @@ double Clp_getObjValue(Clp_Simplex * model);
 double * Clp_primalColumnSolution(Clp_Simplex * model);
 double * Clp_dualRowSolution(Clp_Simplex * model);
 double * Clp_dualColumnSolution(Clp_Simplex * model);
+double * Clp_infeasibilityRay(Clp_Simplex * model);
+void Clp_freeRay(Clp_Simplex * model, double * ray);
 
 void Clp_loadProblem(Clp_Simplex * model, const int numcols, const int numrows,
                      const CoinBigIndex * start, const int * index,
@@ -141,6 +143,8 @@ namespace clp::impl::v1 {
     F(Clp_primalColumnSolution, primalColumnSolution)         \
     F(Clp_dualRowSolution, dualRowSolution)                   \
     F(Clp_dualColumnSolution, dualColumnSolution)             \
+    F(Clp_infeasibilityRay, infeasibilityRay)                 \
+    F(Clp_freeRay, freeRay)                                   \
     F(Clp_loadProblem, loadProblem)                           \
     F(Clp_setLogLevel, setLogLevel)                           \
     F(Clp_logLevel, logLevel)

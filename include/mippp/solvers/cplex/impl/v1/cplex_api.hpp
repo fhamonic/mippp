@@ -381,7 +381,9 @@ public:
         char errmsg[CPXMESSAGEBUFSIZE];
         if(geterrorstring(env, retcode, errmsg) == nullptr)
             throw solver_error("CPLEX: unknown error code");
-        if(retcode == 1016) throw license_error(errmsg);
+        if(retcode == 1016)
+            throw license_error(
+                detail::license_diagnostic("CPLEX", errmsg).c_str());
         throw solver_error(errmsg);
     }
 };

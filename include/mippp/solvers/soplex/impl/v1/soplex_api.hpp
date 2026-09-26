@@ -106,7 +106,12 @@ class soplex_api : public detail::solver_api<soplex_api> {
 public:
     SOPLEX_FUNCTIONS(DECLARE_SOPLEX_FUNCTIONS)
     SOPLEX_OPTIONAL_FUNCTIONS(DECLARE_SOPLEX_FUNCTIONS)
-
+    // Optional C API extension. Spell out types so unmodified SoPlex headers
+    // remain usable too; missing symbols must not break ordinary LP solving.
+    using hasDualFarkas_fun_t = int(void *);
+    using getDualFarkasReal_fun_t = int(void *, double *, int);
+    hasDualFarkas_fun_t * const hasDualFarkas;
+    getDualFarkasReal_fun_t * const getDualFarkasReal;
     static constexpr const char * key = "SOPLEX";
     static constexpr std::array library_names = {"soplexshared"};
     // the releases driven through the full suite, see solver_version_range;
@@ -116,9 +121,13 @@ public:
 
 private:
     explicit soplex_api(detail::dynamic_library && library)
-        : solver_api(std::move(library)) SOPLEX_FUNCTIONS(
-              CONSTRUCT_SOPLEX_FUNCTIONS)
-              SOPLEX_OPTIONAL_FUNCTIONS(CONSTRUCT_SOPLEX_OPTIONAL_FUNCTIONS) {}
+        : solver_api(std::move(library))
+              SOPLEX_FUNCTIONS(CONSTRUCT_SOPLEX_FUNCTIONS)
+                  SOPLEX_OPTIONAL_FUNCTIONS(CONSTRUCT_SOPLEX_OPTIONAL_FUNCTIONS)
+        , hasDualFarkas(
+              lib.find_function<hasDualFarkas_fun_t>("SoPlex_hasDualFarkas"))
+        , getDualFarkasReal(lib.find_function<getDualFarkasReal_fun_t>(
+              "SoPlex_getDualFarkasReal")) {}
 };
 
 #undef CONSTRUCT_SOPLEX_OPTIONAL_FUNCTIONS

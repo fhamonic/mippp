@@ -63,7 +63,8 @@ public:
         , SoPlex(other.SoPlex)
         , model(other.model)
         , objective_offset(other.objective_offset)
-        , _time_limit(other._time_limit) {
+        , _time_limit(other._time_limit)
+        , _status(other._status) {
         other.model = nullptr;
     }
 
@@ -265,6 +266,9 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     // The C interface of SoPlex has no getter for real parameters, so the
     // limit is read back from the copy kept here.
+    bool time_limit_available() const noexcept {
+        return SoPlex->setRealParam != nullptr;
+    }
     void set_time_limit(std::chrono::duration<double> t) {
         if(!SoPlex->setRealParam)
             throw solver_error("SoPlex_setRealParam not available.");
@@ -366,6 +370,20 @@ public:
         SoPlex->getDualReal(model, solution.get(),
                             static_cast<int>(num_constrs));
         return constraint_mapping(std::move(solution));
+    }
+    // Copy the original-row Farkas multipliers before the model is destroyed.
+    // Both runtime capability and certificate availability are optional. This
+    // accessor never reoptimizes, changes presolve, or consumes a hidden solve.
+    std::optional<std::vector<scalar>> get_infeasibility_ray() {
+        if(!std::holds_alternative<status::infeasible>(_status) ||
+           !SoPlex->hasDualFarkas || !SoPlex->getDualFarkasReal ||
+           !SoPlex->hasDualFarkas(model))
+            return std::nullopt;
+        std::vector<scalar> ray(num_constraints());
+        if(!SoPlex->getDualFarkasReal(model, ray.data(),
+                                      static_cast<int>(ray.size())))
+            return std::nullopt;
+        return ray;
     }
 };
 

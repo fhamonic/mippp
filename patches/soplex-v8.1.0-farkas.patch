@@ -1,0 +1,123 @@
+diff --git a/src/soplex_interface.cpp b/src/soplex_interface.cpp
+index 606d60e..7143e87 100644
+--- a/src/soplex_interface.cpp
++++ b/src/soplex_interface.cpp
+@@ -260,6 +260,32 @@ void SoPlex_getDualReal(void* soplex, double* dual, int dim)
+    so->getDualReal(dual, dim);
+ }
+ 
++int SoPlex_hasDualFarkas(void* soplex)
++{
++   if(soplex == nullptr)
++      return 0;
++   SoPlex* so = (SoPlex*)(soplex);
++   return so->hasDualFarkas() ? 1 : 0;
++}
++
++int SoPlex_getDualFarkasReal(void* soplex, double* farkas, int dim)
++{
++   if(soplex == nullptr || farkas == nullptr || dim < 0)
++      return 0;
++   SoPlex* so = (SoPlex*)(soplex);
++   if(dim < so->numRows() || !so->hasDualFarkas())
++      return 0;
++   try
++   {
++      return so->getDualFarkasReal(farkas, dim) ? 1 : 0;
++   }
++   catch(...)
++   {
++      // Do not propagate extraction/allocation failures through the C ABI.
++      return 0;
++   }
++}
++
+ /** gets reduced cost vector **/
+ void SoPlex_getRedCostReal(void* soplex, double* rc, int dim)
+ {
+diff --git a/src/soplex_interface.h b/src/soplex_interface.h
+index 34e8663..b8c7065 100644
+--- a/src/soplex_interface.h
++++ b/src/soplex_interface.h
+@@ -75,6 +75,18 @@ char* SoPlex_getPrimalRationalString(void* soplex, int dim);
+ /** gets dual solution **/
+ void SoPlex_getDualReal(void* soplex, double* dual, int dim);
+ 
++/** returns 1 if a Farkas certificate for the current LP is available, otherwise 0;
++ *  does not optimize the LP. A null handle returns 0.
++ **/
++int SoPlex_hasDualFarkas(void* soplex);
++
++/** copies the floating-point Farkas certificate in original row order into caller-owned storage;
++ *  returns 1 on success, 0 if unavailable, invalid arguments, or extraction fails.
++ *  dim must be at least the number of rows. No optimization is performed.
++ *  On failure the buffer must not be interpreted as a certificate.
++ **/
++int SoPlex_getDualFarkasReal(void* soplex, double* farkas, int dim);
++
+ /** gets reduced cost vector **/
+ void SoPlex_getRedCostReal(void* soplex, double* rc, int dim);
+ 
+diff --git a/tests/c_interface/main.c b/tests/c_interface/main.c
+index 8bbb827..3135ab8 100644
+--- a/tests/c_interface/main.c
++++ b/tests/c_interface/main.c
+@@ -2,6 +2,7 @@
+ #include <soplex_interface.h>
+ #include <assert.h>
+ #include <string.h>
++#include <stdlib.h>
+ 
+ #define UNUSED(x) ((void)(x))
+ 
+@@ -134,8 +135,50 @@ void test_rational(void)
+ }
+ #endif
+ 
++/* Explicit checks remain active in Release builds where assert is disabled. */
++static void check_farkas(int condition)
++{
++   if(!condition)
++   {
++      fprintf(stderr, "Farkas C interface test failed\n");
++      abort();
++   }
++}
++
++void test_farkas(void)
++{
++   void* soplex = SoPlex_create();
++   double coefficient = 1.0;
++   double ray[2] = {123.0, 456.0};
++   const double infty = 1e100;
++   /* Disable simplification so infeasibility is detected by simplex. */
++   SoPlex_setIntParam(soplex, 10, 0);
++   SoPlex_addColReal(soplex, NULL, 0, 0, 0.0, -infty, infty);
++   SoPlex_addRowReal(soplex, &coefficient, 1, 1, 2.0, infty);
++   SoPlex_addRowReal(soplex, &coefficient, 1, 1, -infty, 1.0);
++   check_farkas(!SoPlex_hasDualFarkas(soplex));
++   check_farkas(!SoPlex_getDualFarkasReal(soplex, ray, 2));
++   check_farkas(SoPlex_optimize(soplex) == 3);
++   check_farkas(SoPlex_hasDualFarkas(soplex));
++   check_farkas(!SoPlex_hasDualFarkas(NULL));
++   check_farkas(!SoPlex_getDualFarkasReal(NULL, ray, 2));
++   check_farkas(!SoPlex_getDualFarkasReal(soplex, NULL, 2));
++   check_farkas(!SoPlex_getDualFarkasReal(soplex, ray, -1));
++   check_farkas(!SoPlex_getDualFarkasReal(soplex, ray, 1));
++   check_farkas(ray[0] == 123.0 && ray[1] == 456.0);
++   check_farkas(SoPlex_getDualFarkasReal(soplex, ray, 2));
++   check_farkas(ray[0] * ray[1] < 0.0);
++   SoPlex_changeRowRhsReal(soplex, 1, 3.0);
++   check_farkas(SoPlex_optimize(soplex) == 1);
++   check_farkas(!SoPlex_hasDualFarkas(soplex));
++   check_farkas(!SoPlex_getDualFarkasReal(soplex, ray, 2));
++   SoPlex_free(soplex);
++}
++
+ int main(void)
+ {
++   printf("testing Farkas certificate... \n");
++   test_farkas();
+    printf("testing real... \n");
+    test_real();
+ 

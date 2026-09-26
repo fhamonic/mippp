@@ -136,7 +136,13 @@ MSKrescodee MSK_getnumvar(MSKtask_t task, MSKint32t * numvar);
 MSKrescodee MSK_getnumcon(MSKtask_t task, MSKint32t * numcon);
 MSKrescodee MSK_getnumanz(MSKtask_t task, MSKint32t * numanz);
 
-enum MSKiparame : int { MSK_IPAR_LOG = 34, MSK_IPAR_OPTIMIZER = 110 };
+enum MSKiparame : int {
+    MSK_IPAR_INTPNT_BASIS = 17,
+    MSK_IPAR_LOG = 34,
+    MSK_IPAR_NUM_THREADS = 100,
+    MSK_IPAR_OPTIMIZER = 110,
+    MSK_IPAR_PRESOLVE_USE = 121
+};
 enum MSKoptimizertypee : int {
     MSK_OPTIMIZER_CONIC = 0,
     MSK_OPTIMIZER_DUAL_SIMPLEX = 1,
@@ -180,7 +186,7 @@ enum MSKrestrmcode : MSKrescodee {
     MSK_RES_TRM_SERVER_MAX_TIME = 100032,
     MSK_RES_TRM_SERVER_MAX_MEMORY = 100033
 };
-MSKrescodee MSK_optimizetrm(MSKtask_t task, MSKrestrmcode * trmcode);
+MSKrescodee MSK_optimizetrm(MSKtask_t task, MSKrescodee * trmcode);
 
 enum MSKprostae : int {
     MSK_PRO_STA_UNKNOWN = 0,
@@ -433,7 +439,8 @@ namespace mosek::impl::v1 {
     F(MSK_getsolsta, getsolsta)                               \
     F(MSK_getsolution, getsolution)                           \
     F(MSK_deletesolution, deletesolution)                     \
-    F(MSK_getreducedcosts, getreducedcosts)
+    F(MSK_getreducedcosts, getreducedcosts)                   \
+    F(MSK_putcallbackfunc, putcallbackfunc)
 
 #define DECLARE_MOSEK_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);    \
@@ -467,7 +474,9 @@ public:
         if(error == 0) return;
         char str[MSK_MAX_STR_LEN];
         getcodedesc(error, nullptr, str);
-        if(error == 1001) throw license_error(str);
+        if(error == 1001)
+            throw license_error(
+                detail::license_diagnostic("MOSEK", str).c_str());
         throw solver_error(str);
     }
 };

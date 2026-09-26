@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <utility>
 #include <variant>
@@ -85,29 +86,34 @@ private:
 
     status_variant _status = status::unknown{};
 
-    MSKsoltypee _pick_sol() {
+    std::optional<MSKsoltypee> _pick_sol() {
         MSKbooleant def = 0;
-        if (MSK->solutiondef(task, MSK_SOL_ITG, &def) == MSK_RES_OK && def) return MSK_SOL_ITG;
-        if (MSK->solutiondef(task, MSK_SOL_BAS, &def) == MSK_RES_OK && def) return MSK_SOL_BAS;
-        return MSK_SOL_ITR;
+        check(MSK->solutiondef(task, MSK_SOL_ITG, &def));
+        if(def) return MSK_SOL_ITG;
+        if(auto continuous = _pick_continuous_solution()) return *continuous;
+        return std::nullopt;
+    }
+    MSKsoltypee _require_solution() {
+        if(auto solution = _pick_sol()) return *solution;
+        throw solver_error("MOSEK has no solution");
     }
 
     // whether a stopped solve left the solution get_solution() reads
     bool _has_solution() {
-        MSKbooleant defined = 0;
-        check(MSK->solutiondef(task, MSK_SOL_ITG, &defined));
-        if(!defined) return false;
+        const auto solution = _pick_sol();
+        if(!solution) return false;
         MSKsolstae solsta;
-        check(MSK->getsolsta(task, MSK_SOL_ITG, &solsta));
-        return solsta == MSK_SOL_STA_PRIM_FEAS ||
-               solsta == MSK_SOL_STA_INTEGER_OPTIMAL;
+        check(MSK->getsolsta(task, *solution, &solsta));
+        return _has_primal_solution(solsta);
     }
 
-    status_variant _get_status(MSKrestrmcode trm) {
+    status_variant _get_status(MSKrescodee trm) {
         using namespace status;
         switch(trm) {
             case MSK_RES_OK: {
-                MSKsoltypee soltype = _pick_sol();
+                const auto solution = _pick_sol();
+                if(!solution) return unknown{};
+                const auto soltype = *solution;
                 MSKprostae prosta;
                 check(MSK->getprosta(task, soltype, &prosta));
                 switch(prosta) {
@@ -162,22 +168,28 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        // MSK_optimize reports a limit as an error code; MSK_optimizetrm
-        // returns it as the termination code, and is the solve itself
-        MSKrestrmcode trm;
+        _status = status::unknown{};
+        MSKrescodee trm = MSK_RES_OK;
         check(MSK->optimizetrm(task, &trm));
-        _status = (num_variables() > 0) ? _get_status(trm) : status::optimal{};
+        // The MIP optimizer may not create a solution slot for an empty task.
+        // Only a genuinely empty model is trivially optimal (not constant
+        // rows).
+        _status =
+            trm == MSK_RES_OK && num_variables() == 0 && num_constraints() == 0
+                ? status_variant{status::optimal{}}
+                : _get_status(trm);
     }
     double get_solution_value() {
         double val = 0.0;
         if(num_variables() > 0)
-            check(MSK->getprimalobj(task, MSK_SOL_ITG, &val));
+            check(MSK->getprimalobj(task, _require_solution(), &val));
         return val;
     }
     auto get_solution() {
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-        if(num_vars > 0) check(MSK->getxx(task, MSK_SOL_ITG, solution.get()));
+        if(num_vars > 0)
+            check(MSK->getxx(task, _require_solution(), solution.get()));
         return variable_mapping(std::move(solution));
     }
 };

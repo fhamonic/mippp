@@ -23,6 +23,7 @@ project(
 # ################### Options ####################
 option(ENABLE_TESTING "Enable Test Builds" OFF)
 option(ENABLE_EXAMPLES "Build Examples" OFF)
+option(ENABLE_IIS_BENCHMARK "Build local HiGHS/Clp IIS strategy benchmark" OFF)
 
 # ################### Modules ####################
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -40,6 +41,11 @@ target_include_directories(
                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 # dlopen lives in libdl on older glibc; empty elsewhere
 target_link_libraries(mippp INTERFACE ${CMAKE_DL_LIBS})
+
+if(ENABLE_IIS_BENCHMARK)
+  add_executable(mippp_iis_benchmark benchmarks/iis.cpp)
+  target_link_libraries(mippp_iis_benchmark PRIVATE mippp)
+endif()
 
 # ################# Installation #################
 install(

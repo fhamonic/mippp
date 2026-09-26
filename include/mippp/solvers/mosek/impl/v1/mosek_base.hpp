@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdio>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -21,6 +22,7 @@
 
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/mosek/impl/v1/mosek_api.hpp"
+#include "mippp/solvers/mosek/impl/v1/mosek_handle_guard.hpp"
 
 namespace mippp {
 namespace mosek::impl::v1 {
@@ -30,6 +32,7 @@ protected:
     const mosek_api * MSK;
     MSKenv_t env;
     MSKtask_t task;
+    resource_detail::mosek_handle_guard<mosek_api> cleanup_;
 
     std::vector<index> tmp_begins;
     std::vector<MSKboundkeye> tmp_boundkeye;
@@ -37,6 +40,44 @@ protected:
     std::vector<MSKvariabletypee> tmp_vartype;
 
     void check(const MSKrescodee error) const { MSK->_check(error); }
+    static bool _has_primal_solution(MSKsolstae state) noexcept {
+        return state == MSK_SOL_STA_OPTIMAL ||
+               state == MSK_SOL_STA_INTEGER_OPTIMAL ||
+               state == MSK_SOL_STA_PRIM_FEAS ||
+               state == MSK_SOL_STA_PRIM_AND_DUAL_FEAS;
+    }
+    // A basic solution is not always produced (e.g. interior point with basis
+    // identification disabled). Prefer a decisive solution over an unknown or
+    // merely feasible one; preserve the basic solution on equal quality.
+    std::optional<MSKsoltypee> _pick_continuous_solution() {
+        std::optional<MSKsoltypee> best;
+        int best_rank = -1;
+        for(auto type : {MSK_SOL_BAS, MSK_SOL_ITR}) {
+            MSKbooleant defined = 0;
+            check(MSK->solutiondef(task, type, &defined));
+            if(!defined) continue;
+            MSKsolstae state;
+            check(MSK->getsolsta(task, type, &state));
+            int rank = 1;
+            switch(state) {
+                case MSK_SOL_STA_OPTIMAL:
+                case MSK_SOL_STA_PRIM_INFEAS_CER:
+                case MSK_SOL_STA_DUAL_INFEAS_CER:
+                    rank = 2;
+                    break;
+                case MSK_SOL_STA_UNKNOWN:
+                    rank = 0;
+                    break;
+                default:
+                    break;
+            }
+            if(rank > best_rank) {
+                best = type;
+                best_rank = rank;
+            }
+        }
+        return best;
+    }
     // MOSEK hands its log to stream callbacks and prints nothing itself: this
     // one prints it on stdout, where the other solvers print theirs.
     static void print_log(MSKuserhandle_t, const char * str) {
@@ -63,22 +104,24 @@ public:
     using model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
-        : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr) {
+        : model_base<int, double>()
+        , MSK(&api)
+        , env(nullptr)
+        , task(nullptr)
+        , cleanup_(api, env, task) {
         check(MSK->makeenv(&env, nullptr));
         check(MSK->makeemptytask(env, &task));
         check(MSK->putintparam(task, MSK_IPAR_LOG, 0));
     }
-    ~mosek_base() {
-        if(task) check(MSK->deletetask(&task));
-        if(env) check(MSK->deleteenv(&env));
-    }
+    ~mosek_base() = default;
 
     constexpr mosek_base(const mosek_base &) = delete;
-    constexpr mosek_base(mosek_base && other) noexcept
+    mosek_base(mosek_base && other) noexcept
         : model_base<int, double>(std::move(other))
         , MSK(other.MSK)
         , env(other.env)
         , task(other.task)
+        , cleanup_(*MSK, env, task)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_boundkeye(std::move(other.tmp_boundkeye))
         , tmp_rhs(std::move(other.tmp_rhs))
@@ -425,13 +468,20 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_time_limit(std::chrono::duration<double> t) {
-        check(MSK->putdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, t.count()));
+    void set_time_limit(std::chrono::duration<double> limit) {
+        const double seconds =
+            limit.count() == std::numeric_limits<double>::infinity()
+                ? -1.0
+                : limit.count();
+        check(MSK->putdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, seconds));
     }
-    auto get_time_limit() {
-        double t;
-        check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &t));
-        return std::chrono::duration<double>(t);
+    std::chrono::duration<double> get_time_limit() {
+        double limit;
+        check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &limit));
+        // MOSEK uses a negative sentinel for unlimited, whereas the generic
+        // remaining-time adapter compares ordinary nonnegative durations.
+        return std::chrono::duration<double>(
+            limit < 0 ? std::numeric_limits<double>::infinity() : limit);
     }
 
     ///////////////////////////////////////////////////////////////////////////

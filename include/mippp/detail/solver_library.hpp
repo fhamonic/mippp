@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/detail/diagnostic_text.hpp"
 #include "mippp/detail/dynamic_library.hpp"
 #include "mippp/utility/solver_version.hpp"
 
@@ -125,6 +126,63 @@ std::string concat_str(Ts &&... strs) {
     return result;
 }
 
+inline std::string solver_library_help(const char * key,
+                                       const char * explicit_path = nullptr) {
+    const auto variable = concat_str("MIPPP_", key, "_LIBRARY");
+    std::string message = "\nHow to fix this:";
+    if(explicit_path)
+        message += "\n  library path argument: current=" +
+                   diagnostic_value(explicit_path) +
+                   "; available=an existing compatible shared-library file.";
+    message +=
+        "\n  " + environment_help(variable.c_str(),
+                                  "a full path to a compatible shared-library "
+                                  "file; unset or empty to search by name");
+#if defined(_WIN32)
+    message +=
+        "\n  " +
+        environment_help(
+            "PATH", "library directories separated by ';', or unset/empty");
+#elif defined(__APPLE__)
+    message +=
+        "\n  " + environment_help(
+                     "DYLD_LIBRARY_PATH",
+                     "library directories separated by ':', or unset/empty");
+    message +=
+        "\n  " + environment_help(
+                     "DYLD_FALLBACK_LIBRARY_PATH",
+                     "fallback directories separated by ':', or unset/empty");
+#else
+    message +=
+        "\n  " + environment_help(
+                     "LD_LIBRARY_PATH",
+                     "library directories separated by ':', or unset/empty");
+#endif
+    message +=
+        "\n  An explicit path takes priority over environment settings; a "
+        "nonempty " +
+        variable +
+        " takes priority over directory search. Install a compatible "
+        "library for this operating system and processor architecture. Set "
+        "search "
+        "variables before starting the program; restart an already-running "
+        "terminal or application after changing them.";
+    return message;
+}
+
+inline std::string version_warning_help(const char * key) {
+    const auto variable = concat_str("MIPPP_", key, "_LIBRARY");
+    return "\n  " +
+           environment_help(
+               variable.c_str(),
+               "a full path to a validated library; unset or empty to search") +
+           "\n  " +
+           environment_help("MIPPP_NO_VERSION_WARNING",
+                            "unset to show warnings; any set value (including "
+                            "'0' or empty) to hide them") +
+           "\n  Hiding this warning does not fix a version mismatch.\n";
+}
+
 // entry.path().filename() without materializing the intermediate path.
 #if defined(_WIN32)
 // the native encoding is wide: narrowing to std::string cannot be avoided
@@ -198,7 +256,8 @@ inline dynamic_library load_solver_library(
     if(auto lib = try_load_solver_library(file, probe_symbols, errors))
         return std::move(*lib);
     throw std::runtime_error("mippp: failed to load the " + std::string(key) +
-                             " solver library:\n  " + errors);
+                             " solver library:\n  " + errors +
+                             solver_library_help(key, file.string().c_str()));
 }
 
 // Steps 2 and 3 of the precedence (first match wins):
@@ -231,7 +290,8 @@ inline dynamic_library find_solver_library(
             return std::move(*lib);
         throw std::runtime_error("mippp: failed to load the " +
                                  std::string(key) + " solver library from " +
-                                 env_var + ":\n  " + errors);
+                                 env_var + ":\n  " + errors +
+                                 solver_library_help(key));
     }
 
     // a handful of entries at most, one per backend actually constructed
@@ -297,8 +357,7 @@ inline dynamic_library find_solver_library(
         " solver library (tried '" + tried + "')." +
         (errors.empty() ? std::string{}
                         : "\nCandidates rejected:\n  " + errors) +
-        "\nSet the environment variable " + env_var +
-        " to its full path, or add its directory to LD_LIBRARY_PATH.");
+        solver_library_help(key));
 }
 
 // "2.10.12" -> {2,10,12}, "5.0" -> {5}, "45.01.02" -> {45,1,2}; text after
@@ -336,13 +395,14 @@ void warn_on_unsupported_version(
     if((loaded && is_validated(validated, *loaded)) ||
        std::getenv("MIPPP_NO_VERSION_WARNING") != nullptr)
         return;
+    const auto help = version_warning_help(key);
     std::fprintf(stderr,
                  "mippp: warning: the %s wrapper is validated for versions %s "
                  "but the loaded library '%s' reports %.*s; behavior may "
                  "differ. Set MIPPP_%s_LIBRARY to a validated library, or set "
-                 "MIPPP_NO_VERSION_WARNING to silence this warning.\n",
+                 "MIPPP_NO_VERSION_WARNING to silence this warning.%s",
                  key, to_string(validated).c_str(), file.string().c_str(),
-                 int(reported.size()), reported.data(), key);
+                 int(reported.size()), reported.data(), key, help.c_str());
 }
 
 // Base of every `<solver>_api`: an immortal, interned wrapper over one loaded
