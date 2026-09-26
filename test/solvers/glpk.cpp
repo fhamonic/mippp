@@ -20,6 +20,7 @@ INSTANTIATE_TEST(GLPK_lp, DualSolutionTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ReducedCostsTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, LpStatusTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, CuttingStockTest, glpk_lp_test);
+INSTANTIATE_TEST(GLPK_lp, VerbosityTest, glpk_lp_test);
 
 struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
@@ -32,3 +33,7 @@ INSTANTIATE_TEST(GLPK_milp, ReadableVariablesBoundsTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, ModifiableVariablesBoundsTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, NamedVariablesTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, AddColumnTest, glpk_milp_test);
+// INSTANTIATE_TEST(GLPK_milp, OptimalityToleranceTest, glpk_milp_test);
+// INSTANTIATE_TEST(GLPK_milp, MipGapTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, IntegralityToleranceTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, VerbosityTest, glpk_milp_test);

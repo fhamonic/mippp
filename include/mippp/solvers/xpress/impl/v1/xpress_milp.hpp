@@ -155,9 +155,17 @@ public:
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_optimality_tolerance(double tol) {
-        check(XPRS->setdblcontrol(prob, XPRS_MIPTOL, tol));
+        check(XPRS->setdblcontrol(prob, XPRS_MIPRELSTOP, tol));
     }
     double get_optimality_tolerance() {
+        double tol;
+        check(XPRS->getdblcontrol(prob, XPRS_MIPRELSTOP, &tol));
+        return tol;
+    }
+    void set_integrality_tolerance(double tol) {
+        check(XPRS->setdblcontrol(prob, XPRS_MIPTOL, tol));
+    }
+    double get_integrality_tolerance() {
         double tol;
         check(XPRS->getdblcontrol(prob, XPRS_MIPTOL, &tol));
         return tol;
@@ -239,6 +247,10 @@ public:
     void solve() {
         check(XPRS->mipoptimize(prob, nullptr));
         _status = _get_status();
+        // A stopped search leaves the problem presolved, where XPRS_COLS and
+        // the column getters and setters describe the presolved columns.
+        // Postsolving keeps the incumbent but drops the search tree.
+        check(XPRS->postsolve(prob));
     }
 
     double get_solution_value() {

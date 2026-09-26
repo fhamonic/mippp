@@ -47,7 +47,9 @@ public:
     [[nodiscard]] explicit highs_base(const highs_api & api)
         : remapping_model_base<int, double>()
         , Highs(&api)
-        , model(Highs->create()) {}
+        , model(Highs->create()) {
+        check(Highs->setBoolOptionValue(model, "output_flag", false));
+    }
     ~highs_base() {
         if(model) Highs->destroy(model);
     }
@@ -249,14 +251,16 @@ protected:
             _new_var_handle_range(offset, count);
 
         const auto diff_count = static_cast<std::ptrdiff_t>(count);
-        tmp_scalars.resize(3 * count);
-        std::fill(tmp_scalars.begin(), tmp_scalars.begin() + diff_count,
-                  params.obj_coef);
-        std::fill(tmp_scalars.begin() + diff_count,
-                  tmp_scalars.begin() + 2 * diff_count,
-                  params.lower_bound.value_or(-Highs->getInfinity(model)));
-        std::fill(tmp_scalars.begin() + 2 * diff_count, tmp_scalars.end(),
-                  params.upper_bound.value_or(Highs->getInfinity(model)));
+        // not resize(3 * count) then fill: GCC 14 -O3 then reports a null
+        // dereference inside vector::resize, a false positive
+        tmp_scalars.reserve(3 * count);
+        tmp_scalars.assign(count, params.obj_coef);
+        tmp_scalars.insert(
+            tmp_scalars.end(), count,
+            params.lower_bound.value_or(-Highs->getInfinity(model)));
+        tmp_scalars.insert(
+            tmp_scalars.end(), count,
+            params.upper_bound.value_or(Highs->getInfinity(model)));
         check(Highs->addCols(
             model, static_cast<HighsInt>(count), tmp_scalars.data(),
             tmp_scalars.data() + diff_count,
@@ -629,6 +633,17 @@ public:
         double t;
         check(Highs->getDoubleOptionValue(model, "time_limit", &t));
         return std::chrono::duration<double>(t);
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        check(Highs->setBoolOptionValue(model, "output_flag", verbose));
+    }
+    bool is_verbose() {
+        HighsInt verbose;
+        check(Highs->getBoolOptionValue(model, "output_flag", &verbose));
+        return verbose != 0;
     }
 };
 

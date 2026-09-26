@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdio>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -35,6 +36,17 @@ protected:
     std::vector<double> tmp_rhs;
 
     void check(const int error) { XPRS->_check(prob, error); }
+    // Xpress hands its log to message callbacks and prints nothing itself:
+    // this one prints it on stdout, where the other solvers print theirs.
+    static void print_message(XPRSprob, void *, const char * msg, int msglen,
+                              int msgtype) {
+        if(msgtype < 0) {  // the end of a solve
+            std::fflush(stdout);
+            return;
+        }
+        if(msg) std::fwrite(msg, 1, static_cast<std::size_t>(msglen), stdout);
+        std::fputc('\n', stdout);
+    }
     static constexpr char constraint_sense_to_xpress_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
@@ -51,6 +63,8 @@ public:
     [[nodiscard]] explicit xpress_base(const xpress_api & api)
         : model_base<int, double>(), XPRS(&api), objective_offset(0.0) {
         check(XPRS->createprob(&prob));
+        check(XPRS->setintcontrol(prob, XPRS_OUTPUTLOG, 0));
+        check(XPRS->addcbmessage(prob, print_message, nullptr, 0));
     }
     ~xpress_base() {
         if(!prob) return;
@@ -415,6 +429,17 @@ public:
         double t;
         check(XPRS->getdblcontrol(prob, XPRS_TIMELIMIT, &t));
         return std::chrono::duration<double>(t);
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        check(XPRS->setintcontrol(prob, XPRS_OUTPUTLOG, verbose));
+    }
+    bool is_verbose() {
+        int verbose;
+        check(XPRS->getintcontrol(prob, XPRS_OUTPUTLOG, &verbose));
+        return verbose != 0;
     }
 };
 

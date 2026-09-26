@@ -26,7 +26,7 @@ public:
         // untouched below must not stay zero. GLPK <= 4.62 rejects out_frq = 0
         // outright, and xerror() aborts the process rather than reporting it.
         glp->init_smcp(&model_params);
-        model_params.msg_lev = GLP_MSG_ALL;
+        model_params.msg_lev = GLP_MSG_OFF;
         model_params.meth = GLP_PRIMAL;
         model_params.pricing = GLP_PT_STD;
         model_params.r_test = GLP_RT_STD;
@@ -50,6 +50,13 @@ public:
         model_params.tol_piv = tol / 100;
     }
     double get_feasibility_tolerance() { return model_params.tol_bnd; }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        model_params.msg_lev = verbose ? GLP_MSG_ALL : GLP_MSG_OFF;
+    }
+    bool is_verbose() { return model_params.msg_lev != GLP_MSG_OFF; }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

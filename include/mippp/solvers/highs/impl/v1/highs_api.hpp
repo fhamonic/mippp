@@ -355,12 +355,12 @@ private:
     }
 
 public:
+    // A warning means the call took effect: Highs_run stopped at a limit or
+    // an interrupt, which the model status reports, or HiGHS adjusted the
+    // input (dropped a tiny coefficient, kept inconsistent bounds).
     void _check(const int status) const {
-        if(status == kHighsStatusOk) return;
         if(status == kHighsStatusError)
             throw solver_error("HiGHS kHighsStatusError");
-        if(status == kHighsStatusWarning)
-            throw solver_error("HiGHS kHighsStatusWarning");
     }
 };
 

@@ -116,11 +116,17 @@ mippp_test_highs(mippp_test _highs_environment)
 if(_highs_environment)
     # Preserve the modification list as one GoogleTest property value.
     string(REPLACE ";" "\\;" _highs_environment "${_highs_environment}")
-    gtest_discover_tests(mippp_test
-        PROPERTIES ENVIRONMENT_MODIFICATION "${_highs_environment}")
-else()
-    gtest_discover_tests(mippp_test)
 endif()
+# The interruption tests time their solves against the wall clock: run next to
+# the rest by a parallel ctest, a loaded machine stretches a solve past the
+# limit plus its overshoot, or stops it before its first incumbent.
+gtest_discover_tests(mippp_test TEST_LIST MIPPP_TESTS
+    TEST_FILTER "-*/TimeLimitTest/*.interrupts_long_solve:*/TimeLimitIncumbentTest/*"
+    PROPERTIES ENVIRONMENT_MODIFICATION "${_highs_environment}")
+gtest_discover_tests(mippp_test TEST_LIST MIPPP_TIMED_TESTS
+    TEST_FILTER "*/TimeLimitTest/*.interrupts_long_solve:*/TimeLimitIncumbentTest/*"
+    PROPERTIES RUN_SERIAL TRUE
+               ENVIRONMENT_MODIFICATION "${_highs_environment}")
 
 # ########## Header self-containment check ###########
 # One translation unit per public header, generated at configure time: each

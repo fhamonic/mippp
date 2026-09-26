@@ -42,7 +42,9 @@ public:
 
     [[nodiscard]] clp_lp() : clp_lp(clp_api::load()) {}
     [[nodiscard]] explicit clp_lp(const clp_api & api)
-        : model_base<int, double>(), Clp(&api), model(Clp->newModel()) {}
+        : model_base<int, double>(), Clp(&api), model(Clp->newModel()) {
+        Clp->setLogLevel(model, 0);
+    }
     ~clp_lp() {
         if(model) Clp->deleteModel(model);
     }
@@ -512,6 +514,11 @@ public:
         Clp->setPrimalTolerance(model, tol);
     }
     scalar get_feasibility_tolerance() { return Clp->primalTolerance(model); }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) { Clp->setLogLevel(model, verbose ? 1 : 0); }
+    bool is_verbose() { return Clp->logLevel(model) > 0; }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

@@ -48,6 +48,11 @@ constexpr const char * COPT_DBLPARAM_FEASTOL = "FeasTol";
 constexpr const char * COPT_DBLPARAM_DUALTOL = "DualTol";
 constexpr const char * COPT_DBLPARAM_INTTOL = "IntTol";
 constexpr const char * COPT_DBLPARAM_RELGAP = "RelGap";
+constexpr const char * COPT_INTPARAM_LOGGING = "Logging";
+ret_code COPT_SetIntParam(copt_prob * prob, const char * paramName,
+                          int intParam);
+ret_code COPT_GetIntParam(copt_prob * prob, const char * paramName,
+                          int * p_intParam);
 ret_code COPT_SetDblParam(copt_prob * prob, const char * paramName,
                           double dblParam);
 ret_code COPT_GetDblParam(copt_prob * prob, const char * paramName,
@@ -166,6 +171,8 @@ enum MipStatus : int {
 };
 constexpr const char * COPT_INTATTR_LPSTATUS = "LpStatus";
 constexpr const char * COPT_INTATTR_MIPSTATUS = "MipStatus";
+constexpr const char * COPT_INTATTR_HASLPSOL = "HasLpSol";
+constexpr const char * COPT_INTATTR_HASMIPSOL = "HasMipSol";
 constexpr const char * COPT_DBLATTR_LPOBJVAL = "LpObjval";
 constexpr const char * COPT_DBLATTR_BESTOBJ = "BestObj";
 ret_code COPT_GetSolution(copt_prob * prob, double * colVal);
@@ -229,6 +236,8 @@ namespace copt::impl::v1 {
     F(COPT_GetLicenseMsg, GetLicenseMsg)             \
     F(COPT_SetDblParam, SetDblParam)                 \
     F(COPT_GetDblParam, GetDblParam)                 \
+    F(COPT_SetIntParam, SetIntParam)                 \
+    F(COPT_GetIntParam, GetIntParam)                 \
     F(COPT_GetIntAttr, GetIntAttr)                   \
     F(COPT_GetDblAttr, GetDblAttr)                   \
     F(COPT_SetObjSense, SetObjSense)                 \

@@ -27,7 +27,7 @@ public:
         // See glpk_lp: the untouched fields must carry GLPK's defaults, not
         // zeros, or out_frq = 0 aborts the process on GLPK <= 4.62.
         glp->init_iocp(&model_params);
-        model_params.msg_lev = GLP_MSG_ALL;
+        model_params.msg_lev = GLP_MSG_OFF;
         model_params.br_tech = GLP_BR_PCH;
         model_params.bt_tech = GLP_BT_BLB;
         model_params.tol_int = 1e-6;
@@ -83,6 +83,13 @@ public:
     }
     double get_integrality_tolerance() { return model_params.tol_int; }
     ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_verbose(bool verbose) {
+        model_params.msg_lev = verbose ? GLP_MSG_ALL : GLP_MSG_OFF;
+    }
+    bool is_verbose() { return model_params.msg_lev != GLP_MSG_OFF; }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     // clang-format off
@@ -104,7 +111,13 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        // GLPK prints its cover and clique cut setup whatever msg_lev says.
+        // glp_term_out switches the calling thread's GLPK environment (the
+        // whole process's, on a GLPK built without thread-local storage).
+        const bool quiet = !is_verbose();
+        const int term_out = quiet ? glp->term_out(GLP_OFF) : GLP_ON;
         const int ret = glp->intopt(model, &model_params);
+        if(quiet) glp->term_out(term_out);
         // 0 only says the search completed: infeasibility is reported through
         // glp_mip_status, and a limit may still leave an incumbent
         const int mip_status = glp->mip_status(model);

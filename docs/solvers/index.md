@@ -18,12 +18,14 @@ Each backend lives in `mippp/solvers/<name>/all.hpp` and provides an api class p
 | [Cbc](https://github.com/coin-or/Cbc) | `cbc/all.hpp` | `cbc_api` | `cbc_milp` | 2.10.9 – 2.10.13 |
 | [Clp](https://github.com/coin-or/Clp) | `clp/all.hpp` | `clp_api` | `clp_lp` | 1.17.4 – 1.17.11 |
 | [GLPK](https://www.gnu.org/software/glpk/) | `glpk/all.hpp` | `glpk_api` | `glpk_lp`, `glpk_milp` | 4.59 – 5.0 |
-| [SoPlex](https://soplex.zib.de) | `soplex/all.hpp` | `soplex_api` | `soplex_lp` | 6.0.3 – 8.0.3 |
+| [SoPlex](https://soplex.zib.de) | `soplex/all.hpp` | `soplex_api` | `soplex_lp` | 7.1.1 – 8.0.3 |
 
 Notes:
 
 - `*_lp` classes model continuous problems; `*_milp` classes add integer and binary variables (a `*_milp` model with only continuous variables is of course a valid LP). SCIP and Cbc expose only a MILP class; Clp and SoPlex only an LP class.
 - Quadratic objectives (`*_qp`) are currently supported through HiGHS only.
+- SoPlex's C interface gained `SoPlex_setRealParam` in 7.0, so on an older SoPlex `set_time_limit` throws although `has_time_limit` holds. It has no getter for real parameters: `get_time_limit()` returns the last limit `set_time_limit` passed.
+- Xpress leaves a MILP search that stopped at a limit in its presolved form, so `xpress_milp::solve()` postsolves it before returning. The incumbent stays available, but the search tree is dropped: a second `solve()` starts the search over rather than resuming it.
 
 ## Switching backends
 

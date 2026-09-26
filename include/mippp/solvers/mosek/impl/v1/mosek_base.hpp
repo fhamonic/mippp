@@ -1,7 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
+#include <cstdio>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -35,6 +37,12 @@ protected:
     std::vector<MSKvariabletypee> tmp_vartype;
 
     void check(const MSKrescodee error) const { MSK->_check(error); }
+    // MOSEK hands its log to stream callbacks and prints nothing itself: this
+    // one prints it on stdout, where the other solvers print theirs.
+    static void print_log(MSKuserhandle_t, const char * str) {
+        std::fputs(str, stdout);
+    }
+    static constexpr MSKint32t default_log_level = 10;  // MSK_IPAR_LOG's own
     static constexpr MSKboundkeye constraint_sense_to_mosek_sense(
         constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return MSK_BK_UP;
@@ -58,6 +66,7 @@ public:
         : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr) {
         check(MSK->makeenv(&env, nullptr));
         check(MSK->makeemptytask(env, &task));
+        check(MSK->putintparam(task, MSK_IPAR_LOG, 0));
     }
     ~mosek_base() {
         if(task) check(MSK->deletetask(&task));
@@ -411,6 +420,38 @@ public:
                          CL &&... constraint_lambdas) {
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(MSK->putdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &t));
+        return std::chrono::duration<double>(t);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Verbosity ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // The stream stays unlinked while quiet: MSK_IPAR_LOG = 0 does not stop
+    // warnings, such as the one about explicit zero coefficients.
+    void set_verbose(bool verbose) {
+        if(verbose)
+            check(MSK->linkfunctotaskstream(task, MSK_STREAM_LOG, nullptr,
+                                            print_log));
+        else
+            check(MSK->unlinkfuncfromtaskstream(task, MSK_STREAM_LOG));
+        check(MSK->putintparam(task, MSK_IPAR_LOG,
+                               verbose ? default_log_level : 0));
+    }
+    bool is_verbose() {
+        MSKint32t level;
+        check(MSK->getintparam(task, MSK_IPAR_LOG, &level));
+        return level != 0;
     }
 };
 

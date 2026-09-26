@@ -15,6 +15,7 @@ namespace glpk::impl::v1 {
 using glp_prob = struct glp_prob;
 
 const char * glp_version(void);
+int glp_term_out(int flag);
 glp_prob * glp_create_prob(void);
 void glp_delete_prob(glp_prob * P);
 constexpr int GLP_EBADB = 0x01;    // invalid basis
@@ -210,6 +211,7 @@ namespace glpk::impl::v1 {
 
 #define GLPK_FUNCTIONS(F)               \
     F(glp_version, version)             \
+    F(glp_term_out, term_out)           \
     F(glp_create_prob, create_prob)     \
     F(glp_delete_prob, delete_prob)     \
     F(glp_set_obj_dir, set_obj_dir)     \

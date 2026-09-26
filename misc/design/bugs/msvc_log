@@ -1,0 +1,564 @@
+======== Calling build() ========
+>>> Build step for conanfile.py (mippp/1.0.0)
+conanfile.py (mippp/1.0.0): Calling build()
+conanfile.py (mippp/1.0.0): Running CMake.configure()
+conanfile.py (mippp/1.0.0): RUN: cmake -G "Visual Studio 17 2022" -DCMAKE_TOOLCHAIN_FILE="conan_toolchain.cmake" -DCMAKE_INSTALL_PREFIX="D:/a/mippp/mippp/build" -DCMAKE_POLICY_DEFAULT_CMP0091="NEW" -DENABLE_TESTING="ON" -DENABLE_EXAMPLES="OFF" -DTEST_SOURCE="highs" "D:/a/mippp/mippp"
+-- Using Conan toolchain: D:/a/mippp/mippp/build/conan_toolchain.cmake
+-- Conan toolchain: CMAKE_GENERATOR_TOOLSET=v143,version=14.41
+-- Conan toolchain: Setting CMAKE_MSVC_RUNTIME_LIBRARY=$<$<CONFIG:Release>:MultiThreadedDLL>
+-- Conan toolchain: C++ Standard 23 with extensions OFF
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.20348.
+-- The CXX compiler identification is MSVC 19.41.34123.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+Building Tests.
+-- Conan: Component target declared 'GTest::gtest'
+-- Conan: Component target declared 'GTest::gtest_main'
+-- Conan: Component target declared 'GTest::gmock'
+-- Conan: Component target declared 'GTest::gmock_main'
+-- Conan: Target declared 'gtest::gtest'
+-- Conan: Target declared 'melon::melon'
+-- Configuring done (1.7s)
+-- Generating done (0.0s)
+-- Build files have been written to: D:/a/mippp/mippp/build
+
+conanfile.py (mippp/1.0.0): Running CMake.build()
+conanfile.py (mippp/1.0.0): RUN: cmake --build "D:\a\mippp\mippp\build" --config Release
+MSBuild version 17.14.51+25f168cee for .NET Framework
+
+  Checking File Globs
+  1>Checking Build System
+  Building Custom Rule D:/a/mippp/mippp/test/CMakeLists.txt
+  mippp_container_unordered_dense_map_hpp.cpp
+  mippp_detail_cartesian_product_view_hpp.cpp
+  mippp_detail_concat_view_hpp.cpp
+  mippp_detail_dynamic_library_hpp.cpp
+  mippp_detail_invoke_key_hpp.cpp
+  mippp_detail_solver_library_hpp.cpp
+  mippp_detail_variadic_helper_hpp.cpp
+  mippp_linear_constraint_hpp.cpp
+  mippp_linear_expression_hpp.cpp
+  mippp_mapping_hpp.cpp
+  mippp_model_concepts_hpp.cpp
+  mippp_model_entities_hpp.cpp
+  mippp_quadratic_expression_hpp.cpp
+  mippp_solvers_cbc_all_hpp.cpp
+  mippp_solvers_cbc_impl_v1_cbc_api_hpp.cpp
+  mippp_solvers_cbc_impl_v1_cbc_milp_hpp.cpp
+  mippp_solvers_clp_all_hpp.cpp
+  mippp_solvers_clp_impl_v1_clp_api_hpp.cpp
+  mippp_solvers_clp_impl_v1_clp_lp_hpp.cpp
+  mippp_solvers_copt_all_hpp.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267: '=': conversion from 'size_t' to '_Ty2', possible loss of data [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267:         with [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267:         [ [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267:             _Ty2=unsigned int [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267:         ] [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+  (compiling source file 'header_check/mippp_solvers_clp_all_hpp.cpp')
+      C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39):
+      the template instantiation context (the oldest one first) is
+          D:\a\mippp\mippp\include\mippp\solvers\clp\impl\v1\clp_lp.hpp(250,16):
+          see reference to function template instantiation 'mippp::model_variable<Index,Scalar> mippp::clp::impl::v1::clp_lp::_add_column<std::initializer_list<std::pair<mippp::model_constraint<Index>,double>>&>(ER,const mippp::model_base<Index,Scalar>::variable_params &)' being compiled
+          with
+          [
+              Index=int,
+              Scalar=double,
+              ER=std::initializer_list<std::pair<mippp::model_constraint<int>,double>> &
+          ]
+          D:\a\mippp\mippp\include\mippp\solvers\clp\impl\v1\clp_lp.hpp(230,9):
+          see reference to function template instantiation 'void mippp::model_base<int,double>::_register_constraints_entries<false,std::initializer_list<std::pair<mippp::model_constraint<Index>,double>>&>(Entries)' being compiled
+          with
+          [
+              Index=int,
+              Entries=std::initializer_list<std::pair<mippp::model_constraint<int>,double>> &
+          ]
+          D:\a\mippp\mippp\include\mippp\solvers\model_base.hpp(326,13):
+          see reference to function template instantiation 'void mippp::model_base<int,double>::_register_coalescing_entries<std::initializer_list<std::pair<mippp::model_constraint<Index>,double>>&,mippp::model_base<Index,double>::EntityId>(Entries,IdProj)' being compiled
+          with
+          [
+              Index=int,
+              Entries=std::initializer_list<std::pair<mippp::model_constraint<int>,double>> &,
+              IdProj=mippp::model_base<int,double>::EntityId
+          ]
+          D:\a\mippp\mippp\include\mippp\solvers\model_base.hpp(298,15):
+          see reference to function template instantiation 'std::pair<unsigned int,unsigned int> &std::pair<unsigned int,unsigned int>::operator =<unsigned int,unsigned __int64,0>(std::pair<unsigned int,unsigned __int64> &&) noexcept' being compiled
+  
+  mippp_solvers_copt_impl_v1_copt_api_hpp.cpp
+  mippp_solvers_copt_impl_v1_copt_base_hpp.cpp
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267: '=': conversion from 'size_t' to '_Ty2', possible loss of data [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267:         with [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267:         [ [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267:             _Ty2=unsigned int [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39): warning C4267:         ] [D:\a\mippp\mippp\build\test\mippp_header_check.vcxproj]
+  (compiling source file 'header_check/mippp_solvers_clp_impl_v1_clp_lp_hpp.cpp')
+      C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\utility(399,39):
+      the template instantiation context (the oldest one first) is
+          D:\a\mippp\mippp\include\mippp\solvers\clp\impl\v1\clp_lp.hpp(250,16):
+          see reference to function template instantiation 'mippp::model_variable<Index,Scalar> mippp::clp::impl::v1::clp_lp::_add_column<std::initializer_list<std::pair<mippp::model_constraint<Index>,double>>&>(ER,const mippp::model_base<Index,Scalar>::variable_params &)' being compiled
+          with
+          [
+              Index=int,
+              Scalar=double,
+              ER=std::initializer_list<std::pair<mippp::model_constraint<int>,double>> &
+          ]
+          D:\a\mippp\mippp\include\mippp\solvers\clp\impl\v1\clp_lp.hpp(230,9):
+          see reference to function template instantiation 'void mippp::model_base<int,double>::_register_constraints_entries<false,std::initializer_list<std::pair<mippp::model_constraint<Index>,double>>&>(Entries)' being compiled
+          with
+          [
+              Index=int,
+              Entries=std::initializer_list<std::pair<mippp::model_constraint<int>,double>> &
+          ]
+          D:\a\mippp\mippp\include\mippp\solvers\model_base.hpp(326,13):
+          see reference to function template instantiation 'void mippp::model_base<int,double>::_register_coalescing_entries<std::initializer_list<std::pair<mippp::model_constraint<Index>,double>>&,mippp::model_base<Index,double>::EntityId>(Entries,IdProj)' being compiled
+          with
+          [
+              Index=int,
+              Entries=std::initializer_list<std::pair<mippp::model_constraint<int>,double>> &,
+              IdProj=mippp::model_base<int,double>::EntityId
+          ]
+          D:\a\mippp\mippp\include\mippp\solvers\model_base.hpp(298,15):
+          see reference to function template instantiation 'std::pair<unsigned int,unsigned int> &std::pair<unsigned int,unsigned int>::operator =<unsigned int,unsigned __int64,0>(std::pair<unsigned int,unsigned __int64> &&) noexcept' being compiled
+  
+  mippp_solvers_copt_impl_v1_copt_lp_hpp.cpp
+  mippp_solvers_copt_impl_v1_copt_milp_hpp.cpp
+  mippp_solvers_cplex_all_hpp.cpp
+  mippp_solvers_cplex_impl_v1_cplex_api_hpp.cpp
+  mippp_solvers_cplex_impl_v1_cplex_base_hpp.cpp
+  mippp_solvers_cplex_impl_v1_cplex_lp_hpp.cpp
+  mippp_solvers_cplex_impl_v1_cplex_milp_hpp.cpp
+  mippp_solvers_glpk_all_hpp.cpp
+  mippp_solvers_glpk_impl_v1_glpk_api_hpp.cpp
+  mippp_solvers_glpk_impl_v1_glpk_base_hpp.cpp
+  mippp_solvers_glpk_impl_v1_glpk_lp_hpp.cpp
+  mippp_solvers_glpk_impl_v1_glpk_milp_hpp.cpp
+  mippp_solvers_gurobi_all_hpp.cpp
+  mippp_solvers_gurobi_impl_v1_gurobi_api_hpp.cpp
+  mippp_solvers_gurobi_impl_v1_gurobi_base_hpp.cpp
+  mippp_solvers_gurobi_impl_v1_gurobi_lp_hpp.cpp
+  mippp_solvers_gurobi_impl_v1_gurobi_milp_hpp.cpp
+  mippp_solvers_highs_all_hpp.cpp
+  mippp_solvers_highs_impl_v1_highs_api_hpp.cpp
+  mippp_solvers_highs_impl_v1_highs_base_hpp.cpp
+  mippp_solvers_highs_impl_v1_highs_lp_hpp.cpp
+  mippp_solvers_highs_impl_v1_highs_milp_hpp.cpp
+  mippp_solvers_highs_impl_v1_highs_qp_hpp.cpp
+  mippp_solvers_model_base_hpp.cpp
+  mippp_solvers_mosek_all_hpp.cpp
+  mippp_solvers_mosek_impl_v1_mosek_api_hpp.cpp
+  mippp_solvers_mosek_impl_v1_mosek_base_hpp.cpp
+  mippp_solvers_mosek_impl_v1_mosek_lp_hpp.cpp
+  mippp_solvers_mosek_impl_v1_mosek_milp_hpp.cpp
+  mippp_solvers_remapping_model_base_hpp.cpp
+  mippp_solvers_scip_all_hpp.cpp
+  mippp_solvers_scip_impl_v1_scip_api_hpp.cpp
+  mippp_solvers_scip_impl_v1_scip_milp_hpp.cpp
+  mippp_solvers_soplex_all_hpp.cpp
+  mippp_solvers_soplex_impl_v1_soplex_api_hpp.cpp
+  mippp_solvers_soplex_impl_v1_soplex_lp_hpp.cpp
+  mippp_solvers_xpress_all_hpp.cpp
+  mippp_solvers_xpress_impl_v1_xpress_api_hpp.cpp
+  mippp_solvers_xpress_impl_v1_xpress_base_hpp.cpp
+  mippp_solvers_xpress_impl_v1_xpress_lp_hpp.cpp
+  mippp_solvers_xpress_impl_v1_xpress_milp_hpp.cpp
+  mippp_utility_column_generation_hpp.cpp
+  mippp_utility_column_manager_hpp.cpp
+  mippp_utility_entity_range_hpp.cpp
+  mippp_utility_keys_view_hpp.cpp
+  mippp_utility_memory_size_hpp.cpp
+  mippp_utility_solver_exceptions_hpp.cpp
+  mippp_utility_solver_version_hpp.cpp
+  mippp_utility_status_hpp.cpp
+  mippp_utility_variant_hpp.cpp
+  mippp_utility_zero_hpp.cpp
+  mippp_version_hpp.cpp
+  mippp_header_check.vcxproj -> D:\a\mippp\mippp\build\test\mippp_header_check.dir\Release\mippp_header_check.lib
+  Building Custom Rule D:/a/mippp/mippp/test/CMakeLists.txt
+  dynamic_library_fixture.cpp
+     Creating library D:/a/mippp/mippp/build/test/Release/mippp_test_library.lib and object D:/a/mippp/mippp/build/test/Release/mippp_test_library.exp
+  mippp_test_library.vcxproj -> D:\a\mippp\mippp\build\test\Release\mippp_test_library.dll
+  Building Custom Rule D:/a/mippp/mippp/test/CMakeLists.txt
+  dynamic_library_fixture.cpp
+     Creating library D:/a/mippp/mippp/build/test/variant_b/Release/mippp_test_library.lib and object D:/a/mippp/mippp/build/test/variant_b/Release/mippp_test_library.exp
+  mippp_test_library_b.vcxproj -> D:\a\mippp\mippp\build\test\variant_b\Release\mippp_test_library.dll
+  Building Custom Rule D:/a/mippp/mippp/test/CMakeLists.txt
+cl : command line  warning D9025: overriding '/DNDEBUG' with '/UNDEBUG' [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+cl : command line  warning D9025: overriding '/DNDEBUG' with '/UNDEBUG' [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+cl : command line  warning D9025: overriding '/DNDEBUG' with '/UNDEBUG' [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+cl : command line  warning D9025: overriding '/DNDEBUG' with '/UNDEBUG' [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  main.cpp
+  model_variable.cpp
+  linear_expression.cpp
+cl : command line  warning D9025: overriding '/DNDEBUG' with '/UNDEBUG' [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  linear_constraint.cpp
+  quadratic_expression.cpp
+  unordered_dense_map.cpp
+  column_manager.cpp
+  mapping.cpp
+  concat_view.cpp
+  cartesian_product_view.cpp
+  entity_range.cpp
+  invoke_key.cpp
+  zero.cpp
+  status.cpp
+  variant.cpp
+  dynamic_library.cpp
+  highs.cpp
+D:\a\mippp\mippp\test\test_suites\lp_fuzzy_tests.hpp(997,40): warning C4101: 'e': unreferenced local variable [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  (compiling source file '../../test/solvers/highs.cpp')
+      D:\a\mippp\mippp\test\test_suites\lp_fuzzy_tests.hpp(997,40):
+      the template instantiation context (the oldest one first) is
+          D:\a\mippp\mippp\test\solvers\highs.cpp(27,1):
+          see reference to class template instantiation 'testing::internal::TypeParameterizedTestSuite<mippp::LpFuzzyTest,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>' being compiled
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(756,15):
+          while compiling class template member function 'bool testing::internal::TypeParameterizedTestSuite<mippp::LpFuzzyTest,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register(const char *,testing::internal::CodeLocation,const testing::internal::TypedTestSuitePState *,const char *,const char *,const std::vector<std::string,std::allocator<std::string>> &)'
+              D:\a\mippp\mippp\test\solvers\highs.cpp(27,1):
+              see the first reference to 'testing::internal::TypeParameterizedTestSuite<mippp::LpFuzzyTest,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register' in 'void __cdecl `dynamic initializer for 'gtest_HiGHS_lp_LpFuzzyTest''(void)'
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(777,50):
+          see reference to class template instantiation 'testing::internal::TypeParameterizedTest<Fixture,testing::internal::TypeParameterizedTestSuite<Fixture,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register::Head,Types>' being compiled
+          with
+          [
+              Fixture=mippp::LpFuzzyTest,
+              Types=testing::internal::Types<highs_lp_test>
+          ]
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(701,15):
+          while compiling class template member function 'bool testing::internal::TypeParameterizedTest<Fixture,testing::internal::TypeParameterizedTestSuite<Fixture,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register::Head,Types>::Register(const char *,testing::internal::CodeLocation,const char *,const char *,int,const std::vector<std::string,std::allocator<std::string>> &)'
+          with
+          [
+              Fixture=mippp::LpFuzzyTest,
+              Types=testing::internal::Types<highs_lp_test>
+          ]
+              C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(777,58):
+              see the first reference to 'testing::internal::TypeParameterizedTest<Fixture,testing::internal::TypeParameterizedTestSuite<Fixture,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register::Head,Types>::Register' in 'testing::internal::TypeParameterizedTestSuite<mippp::LpFuzzyTest,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register'
+          with
+          [
+              Fixture=mippp::LpFuzzyTest,
+              Types=testing::internal::Types<highs_lp_test>
+          ]
+              D:\a\mippp\mippp\test\solvers\highs.cpp(27,1):
+              see the first reference to 'testing::internal::TypeParameterizedTestSuite<mippp::LpFuzzyTest,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register' in 'void __cdecl `dynamic initializer for 'gtest_HiGHS_lp_LpFuzzyTest''(void)'
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(718,38):
+          see reference to class template instantiation 'testing::internal::SuiteApiResolver<testing::internal::TypeParameterizedTest<Fixture,testing::internal::TypeParameterizedTestSuite<Fixture,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register::Head,Types>::Register::TestClass>' being compiled
+          with
+          [
+              Fixture=mippp::LpFuzzyTest,
+              Types=testing::internal::Types<highs_lp_test>
+          ]
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(498,27):
+          see reference to class template instantiation 'mippp::gtest_suite_LpFuzzyTest_::random_operations<T>' being compiled
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::LpFuzzyTest,testing::internal::TypeParameterizedTestSuite<mippp::LpFuzzyTest,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register::Head,testing::internal::Types<highs_lp_test>>::Register::Type
+          ]
+          D:\a\mippp\mippp\test\test_suites\lp_fuzzy_tests.hpp(977,46):
+          while compiling class template member function 'void mippp::gtest_suite_LpFuzzyTest_::random_operations<T>::TestBody(void)'
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::LpFuzzyTest,testing::internal::TypeParameterizedTestSuite<mippp::LpFuzzyTest,mippp::gtest_suite_LpFuzzyTest_::gtest_AllTests_,testing::internal::Types<highs_lp_test>>::Register::Head,testing::internal::Types<highs_lp_test>>::Register::Type
+          ]
+  
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(77,51): error C2676: binary '+': 'Entity' does not define this operator or a conversion to a type acceptable to the predefined operator [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(77,51): error C2676:         with [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(77,51): error C2676:         [ [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(77,51): error C2676:             Entity=mippp::model_variable<int,double> [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(77,51): error C2676:         ] [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  (compiling source file '../../test/solvers/highs.cpp')
+      D:\a\mippp\mippp\test\test_suites\time_limit.hpp(77,51):
+      the template instantiation context (the oldest one first) is
+          D:\a\mippp\mippp\test\solvers\highs.cpp(48,1):
+          see reference to class template instantiation 'testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,mippp::gtest_suite_TimeLimitTest_::gtest_AllTests_,testing::internal::Types<highs_milp_test>>' being compiled
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(756,15):
+          while compiling class template member function 'bool testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,mippp::gtest_suite_TimeLimitTest_::gtest_AllTests_,testing::internal::Types<highs_milp_test>>::Register(const char *,testing::internal::CodeLocation,const testing::internal::TypedTestSuitePState *,const char *,const char *,const std::vector<std::string,std::allocator<std::string>> &)'
+              D:\a\mippp\mippp\test\solvers\highs.cpp(48,1):
+              see the first reference to 'testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,mippp::gtest_suite_TimeLimitTest_::gtest_AllTests_,testing::internal::Types<highs_milp_test>>::Register' in 'void __cdecl `dynamic initializer for 'gtest_HiGHS_milp_TimeLimitTest''(void)'
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(782,47):
+          see reference to class template instantiation 'testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>' being compiled
+          with
+          [
+              Fixture=mippp::TimeLimitTest,
+              Types=testing::internal::Types<highs_milp_test>
+          ]
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(756,15):
+          while compiling class template member function 'bool testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>::Register(const char *,testing::internal::CodeLocation,const testing::internal::TypedTestSuitePState *,const char *,const char *,const std::vector<std::string,std::allocator<std::string>> &)'
+          with
+          [
+              Fixture=mippp::TimeLimitTest,
+              Types=testing::internal::Types<highs_milp_test>
+          ]
+              C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(781,5):
+              see the first reference to 'testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>::Register' in 'testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,mippp::gtest_suite_TimeLimitTest_::gtest_AllTests_,testing::internal::Types<highs_milp_test>>::Register'
+          with
+          [
+              Fixture=mippp::TimeLimitTest,
+              Types=testing::internal::Types<highs_milp_test>
+          ]
+              D:\a\mippp\mippp\test\solvers\highs.cpp(48,1):
+              see the first reference to 'testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,mippp::gtest_suite_TimeLimitTest_::gtest_AllTests_,testing::internal::Types<highs_milp_test>>::Register' in 'void __cdecl `dynamic initializer for 'gtest_HiGHS_milp_TimeLimitTest''(void)'
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(777,50):
+          see reference to class template instantiation 'testing::internal::TypeParameterizedTest<Fixture,testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>::Register::Head,Types>' being compiled
+          with
+          [
+              Fixture=mippp::TimeLimitTest,
+              Types=testing::internal::Types<highs_milp_test>
+          ]
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(701,15):
+          while compiling class template member function 'bool testing::internal::TypeParameterizedTest<Fixture,testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>::Register::Head,Types>::Register(const char *,testing::internal::CodeLocation,const char *,const char *,int,const std::vector<std::string,std::allocator<std::string>> &)'
+          with
+          [
+              Fixture=mippp::TimeLimitTest,
+              Types=testing::internal::Types<highs_milp_test>
+          ]
+              C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(777,58):
+              see the first reference to 'testing::internal::TypeParameterizedTest<Fixture,testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>::Register::Head,Types>::Register' in 'testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>::Register'
+          with
+          [
+              Fixture=mippp::TimeLimitTest,
+              Types=testing::internal::Types<highs_milp_test>
+          ]
+              C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(781,5):
+              see the first reference to 'testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>::Register' in 'testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,mippp::gtest_suite_TimeLimitTest_::gtest_AllTests_,testing::internal::Types<highs_milp_test>>::Register'
+          with
+          [
+              Fixture=mippp::TimeLimitTest,
+              Types=testing::internal::Types<highs_milp_test>
+          ]
+              D:\a\mippp\mippp\test\solvers\highs.cpp(48,1):
+              see the first reference to 'testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,mippp::gtest_suite_TimeLimitTest_::gtest_AllTests_,testing::internal::Types<highs_milp_test>>::Register' in 'void __cdecl `dynamic initializer for 'gtest_HiGHS_milp_TimeLimitTest''(void)'
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(718,38):
+          see reference to class template instantiation 'testing::internal::SuiteApiResolver<testing::internal::TypeParameterizedTest<Fixture,testing::internal::TypeParameterizedTestSuite<Fixture,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,Types>::Register::Head,Types>::Register::TestClass>' being compiled
+          with
+          [
+              Fixture=mippp::TimeLimitTest,
+              Types=testing::internal::Types<highs_milp_test>
+          ]
+          C:\Users\runneradmin\.conan2\p\b\gtest62b7a934e7974\p\include\gtest\internal\gtest-internal.h(498,27):
+          see reference to class template instantiation 'mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>' being compiled
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(59,52):
+          while compiling class template member function 'void mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody(void)'
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(111,17):
+          see reference to function template instantiation 'auto mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::operator ()<Model>(_T1 &,unsigned __int64) const' being compiled
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type,
+              Model=mippp::highs_milp,
+              _T1=mippp::highs_milp
+          ]
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(76,17):
+          see reference to function template instantiation 'auto mippp::operators::xsum(R &&,F &&)' being compiled
+          D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(62,14):
+          while evaluating concept 'key_invocable<```mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<highs_milp_test>::TestBody'::`2'::<lambda_1>::operator()'::`2'::<lambda_1>::operator()<mippp::highs::impl::v1::highs_milp>'::`2'::<lambda_1> &,unsigned __int64>'
+          D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,30):
+          while evaluating concept 'invocable<```mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<highs_milp_test>::TestBody'::`2'::<lambda_1>::operator()'::`2'::<lambda_1>::operator()<mippp::highs::impl::v1::highs_milp>'::`2'::<lambda_1> &,unsigned __int64>'
+          C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\concepts(262,10):
+          see reference to function template instantiation 'unknown-type std::invoke(_Callable &&,_Ty1 &&,_Types2 ...) noexcept(<expr>)' being compiled
+          C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\type_traits(1711,45):
+          while compiling class template member function 'unknown-type std::_Invoker_functor::_Call(_Callable &&,_Types ...) noexcept(<expr>)'
+          C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\type_traits(1610,46):
+          see reference to function template instantiation 'auto mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_1>::operator ()<_Ty1>(_T8) const' being compiled
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type,
+              _Ty1=unsigned __int64,
+              _T8=unsigned __int64
+          ]
+  
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(76,17): error C2672: 'xsum': no matching overloaded function found [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  (compiling source file '../../test/solvers/highs.cpp')
+      D:\a\mippp\mippp\include\mippp\quadratic_expression.hpp(568,30):
+      could be 'auto mippp::operators::xsum(R &&,F &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(76,17):
+          the associated constraints are not satisfied
+              D:\a\mippp\mippp\include\mippp\quadratic_expression.hpp(566,43):
+              'mippp::detail::key_invoke_result_t': the associated constraints are not satisfied
+                  D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(62,14):
+                  the concept 'mippp::detail::key_invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_1>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                      D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,25):
+                      the concept 'std::invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_1>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                      D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,51):
+                      the concept 'mippp::detail::unpacked_invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_1>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                          D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(34,5):
+                          the constraint was not satisfied
+              D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(64,1):
+              see declaration of 'mippp::detail::key_invoke_result_t'
+      D:\a\mippp\mippp\include\mippp\quadratic_expression.hpp(561,30):
+      or       'auto mippp::operators::xsum(R &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(76,17):
+          'auto mippp::operators::xsum(R &&)': expects 1 arguments - 2 provided
+      D:\a\mippp\mippp\include\mippp\linear_expression.hpp(454,30):
+      or       'auto mippp::operators::xsum(R &&,F &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(76,17):
+          the associated constraints are not satisfied
+              D:\a\mippp\mippp\include\mippp\linear_expression.hpp(452,40):
+              'mippp::detail::key_invoke_result_t': the associated constraints are not satisfied
+                  D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(62,14):
+                  the concept 'mippp::detail::key_invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_1>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                      D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,25):
+                      the concept 'std::invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_1>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                      D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,51):
+                      the concept 'mippp::detail::unpacked_invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_1>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                          D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(34,5):
+                          the constraint was not satisfied
+              D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(64,1):
+              see declaration of 'mippp::detail::key_invoke_result_t'
+      D:\a\mippp\mippp\include\mippp\linear_expression.hpp(447,30):
+      or       'auto mippp::operators::xsum(R &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(76,17):
+          'auto mippp::operators::xsum(R &&)': expects 1 arguments - 2 provided
+  
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(75,19): error C2672: 'mippp::highs::impl::v1::highs_base::set_objective': no matching overloaded function found [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  (compiling source file '../../test/solvers/highs.cpp')
+      D:\a\mippp\mippp\include\mippp\solvers\highs\impl\v1\highs_base.hpp(117,10):
+      could be 'void mippp::highs::impl::v1::highs_base::set_objective(mippp::distinct_variables_t,LE &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(75,19):
+          'void mippp::highs::impl::v1::highs_base::set_objective(mippp::distinct_variables_t,LE &&)': expects 2 arguments - 1 provided
+      D:\a\mippp\mippp\include\mippp\solvers\highs\impl\v1\highs_base.hpp(105,10):
+      or       'void mippp::highs::impl::v1::highs_base::set_objective(LE &&)'
+  
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(84,54): error C2677: binary '*': no global operator found which takes type 'Entity' (or there is no acceptable conversion) [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(84,54): error C2677:         with [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(84,54): error C2677:         [ [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(84,54): error C2677:             Entity=mippp::model_variable<int,double> [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(84,54): error C2677:         ] [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  (compiling source file '../../test/solvers/highs.cpp')
+      D:\a\mippp\mippp\test\test_suites\time_limit.hpp(84,54):
+      the template instantiation context (the oldest one first) is
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(83,21):
+          see reference to function template instantiation 'auto mippp::operators::xsum(R &&,F &&)' being compiled
+          D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(62,14):
+          while evaluating concept 'key_invocable<```mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<highs_milp_test>::TestBody'::`2'::<lambda_1>::operator()'::`2'::<lambda_1>::operator()<mippp::highs::impl::v1::highs_milp>'::`5'::<lambda_2> &,unsigned __int64>'
+          D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,30):
+          while evaluating concept 'invocable<```mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<highs_milp_test>::TestBody'::`2'::<lambda_1>::operator()'::`2'::<lambda_1>::operator()<mippp::highs::impl::v1::highs_milp>'::`5'::<lambda_2> &,unsigned __int64>'
+          C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\concepts(262,10):
+          see reference to function template instantiation 'unknown-type std::invoke(_Callable &&,_Ty1 &&,_Types2 ...) noexcept(<expr>)' being compiled
+          C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\type_traits(1711,45):
+          while compiling class template member function 'unknown-type std::_Invoker_functor::_Call(_Callable &&,_Types ...) noexcept(<expr>)'
+          C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.41.34120\include\type_traits(1610,46):
+          see reference to function template instantiation 'auto mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_2>::operator ()<_Ty1>(_T9) const' being compiled
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type,
+              _Ty1=unsigned __int64,
+              _T9=unsigned __int64
+          ]
+  
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(83,21): error C2672: 'xsum': no matching overloaded function found [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  (compiling source file '../../test/solvers/highs.cpp')
+      D:\a\mippp\mippp\include\mippp\quadratic_expression.hpp(568,30):
+      could be 'auto mippp::operators::xsum(R &&,F &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(83,21):
+          the associated constraints are not satisfied
+              D:\a\mippp\mippp\include\mippp\quadratic_expression.hpp(566,43):
+              'mippp::detail::key_invoke_result_t': the associated constraints are not satisfied
+                  D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(62,14):
+                  the concept 'mippp::detail::key_invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_2>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                      D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,25):
+                      the concept 'std::invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_2>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                      D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,51):
+                      the concept 'mippp::detail::unpacked_invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_2>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                          D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(34,5):
+                          the constraint was not satisfied
+              D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(64,1):
+              see declaration of 'mippp::detail::key_invoke_result_t'
+      D:\a\mippp\mippp\include\mippp\quadratic_expression.hpp(561,30):
+      or       'auto mippp::operators::xsum(R &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(83,21):
+          'auto mippp::operators::xsum(R &&)': expects 1 arguments - 2 provided
+      D:\a\mippp\mippp\include\mippp\linear_expression.hpp(454,30):
+      or       'auto mippp::operators::xsum(R &&,F &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(83,21):
+          the associated constraints are not satisfied
+              D:\a\mippp\mippp\include\mippp\linear_expression.hpp(452,40):
+              'mippp::detail::key_invoke_result_t': the associated constraints are not satisfied
+                  D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(62,14):
+                  the concept 'mippp::detail::key_invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_2>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                      D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,25):
+                      the concept 'std::invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_2>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                      D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(40,51):
+                      the concept 'mippp::detail::unpacked_invocable<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve<T>::TestBody::<lambda_1>::()::<lambda_1>::()::<lambda_2>&,unsigned __int64>' evaluated to false
+          with
+          [
+              T=testing::internal::TypeParameterizedTest<mippp::TimeLimitTest,testing::internal::TypeParameterizedTestSuite<mippp::TimeLimitTest,testing::internal::Templates<mippp::gtest_suite_TimeLimitTest_::interrupts_long_solve>,testing::internal::Types<highs_milp_test>>::Register::Head,testing::internal::Types<highs_milp_test>>::Register::Type
+          ]
+                          D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(34,5):
+                          the constraint was not satisfied
+              D:\a\mippp\mippp\include\mippp\detail\invoke_key.hpp(64,1):
+              see declaration of 'mippp::detail::key_invoke_result_t'
+      D:\a\mippp\mippp\include\mippp\linear_expression.hpp(447,30):
+      or       'auto mippp::operators::xsum(R &&)'
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(83,21):
+          'auto mippp::operators::xsum(R &&)': expects 1 arguments - 2 provided
+  
+D:\a\mippp\mippp\test\test_suites\time_limit.hpp(82,23): error C2672: 'mippp::highs::impl::v1::highs_base::add_constraint': no matching overloaded function found [D:\a\mippp\mippp\build\test\mippp_test.vcxproj]
+  (compiling source file '../../test/solvers/highs.cpp')
+      D:\a\mippp\mippp\include\mippp\solvers\highs\impl\v1\highs_base.hpp(438,16):
+      could be 'mippp::model_constraint<Index> mippp::highs::impl::v1::highs_base::add_constraint(mippp::distinct_variables_t,LC &&)'
+          with
+          [
+              Index=int
+          ]
+          D:\a\mippp\mippp\test\test_suites\time_limit.hpp(82,23):
+          'mippp::model_constraint<Index> mippp::highs::impl::v1::highs_base::add_constraint(mippp::distinct_variables_t,LC &&)': expects 2 arguments - 1 provided
+          with
+          [
+              Index=int
+          ]
+      D:\a\mippp\mippp\include\mippp\solvers\highs\impl\v1\highs_base.hpp(434,16):
+      or       'mippp::model_constraint<Index> mippp::highs::impl::v1::highs_base::add_constraint(LC &&)'
+          with
+          [
+              Index=int
+          ]

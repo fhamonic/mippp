@@ -84,8 +84,8 @@ if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
 
 | Concept | Setter / getter | Backends |
 | :--- | :--- | :--- |
-| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, Xpress |
-| `has_iteration_limit` | `set_iteration_limit(n)`, `get_iteration_limit()` | Gurobi, HiGHS |
+| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, MOSEK, SCIP, SoPlex, Xpress |
+| `has_iteration_limit` | `set_iteration_limit(n)`, `get_iteration_limit()` | CPLEX, Gurobi, HiGHS *(LP and QP models)* |
 | `has_node_limit` | `set_node_limit(n)`, `get_node_limit()` | CPLEX, Gurobi |
 | `has_solution_limit` | `set_solution_limit(n)`, `get_solution_limit()` | CPLEX, Gurobi |
 | `has_memory_limit` | `set_memory_limit(size)`, `get_memory_limit()` | CPLEX, Gurobi |
@@ -106,18 +106,45 @@ model.set_memory_limit(mebibytes{4096u});
 
 A limit is a property of the model and survives across `solve()` calls, so setting it once before a benchmark loop is enough.
 
+An iteration limit counts simplex iterations; on `highs_qp` it also caps HiGHS's QP solver, which a quadratic objective runs instead. Barrier iterations are not counted: Gurobi's own `BarIterLimit`, for one, is set through `native_api()`. A limit larger than the solver can store (HiGHS and CPLEX keep an `int`) means no limit.
+
+SoPlex keeps its own default clock, the CPU time of the whole process: time spent by the program's other threads counts, so its limit can run out before the wall-clock duration. Very short limits are unreliable on SoPlex whichever clock it uses: in our measurements a 50 ms limit stopped solves after about 15 ms, while a 1 s limit stopped them at 1.07 s.
+
 ## Tolerances
 
 | Concept | Provides | Backends |
 | :--- | :--- | :--- |
 | `has_feasibility_tolerance` | `get`/`set_feasibility_tolerance` | Cbc, Clp, COPT, CPLEX, GLPK *(LP only)*, Gurobi, SCIP, Xpress |
-| `has_optimality_tolerance` | `get`/`set_optimality_tolerance` (the MIP gap, where applicable) | Cbc, COPT, CPLEX, Gurobi, SCIP, Xpress |
-| `has_integrality_tolerance` | `get`/`set_integrality_tolerance` | GLPK *(MILP only)* |
+| `has_optimality_tolerance` | `get`/`set_optimality_tolerance` (the MIP gap, where applicable) | Cbc, COPT, CPLEX, Gurobi, HiGHS, SCIP, Xpress |
+| `has_integrality_tolerance` | `get`/`set_integrality_tolerance` | GLPK, HiGHS, Xpress *(MILP only)* |
+
+On a MILP model the optimality tolerance is the relative gap between the incumbent and the best bound, and a solve that stops there reports `optimal` on every backend. So `optimal` means optimal within that gap, 1e-4 by default on every backend but SCIP, where it is 0: set it to 0 where the exact optimum matters. On `cplex_lp` it is the simplex's reduced-cost tolerance instead.
+
+HiGHS has no integrality tolerance of its own: `set_integrality_tolerance` sets its `mip_feasibility_tolerance`, which also bounds the row and bound violations its MIP solver accepts.
 
 Two habits worth adopting in experimental code:
 
 - **Read the tolerance instead of hard-coding `1e-9`.** Post-processing that rounds a binary (`sol[x] > 0.5`) or tests a reduced cost should be expressed against the solver's own tolerance where one is available, so the same code stays correct when you change backend or tighten the setting.
 - **Report the tolerances with the results.** An optimality tolerance is part of what "optimal" meant in a table of results; the getters make dumping them into the run log a one-liner.
+
+## Solver output
+
+Models are quiet: building one, setting its parameters and solving it print nothing, on every backend. The solver's own log is one call away:
+
+| Concept | Provides | Backends |
+| :--- | :--- | :--- |
+| `has_verbosity` | `set_verbose(bool)`, `is_verbose()` | all |
+
+```cpp
+model.set_verbose(true);  // the solver's log, on stdout
+model.solve();
+```
+
+Both calls drive the solver's own switch: HiGHS `output_flag`, Gurobi `OutputFlag`, CPLEX `ScreenOutput`, COPT `Logging`, SCIP `display/verblevel`, the Cbc and Clp log levels, SoPlex `VERBOSITY`, GLPK `msg_lev`, Xpress `OUTPUTLOG` and MOSEK `MSK_IPAR_LOG`. MIP++ never redirects the standard output. Three backends need more than the switch:
+
+- Xpress and MOSEK hand their log to a callback rather than printing it, so their models install one that prints it on `stdout`.
+- GLPK prints the setup of its cover and clique cuts whatever `msg_lev` says, so a quiet `glpk_milp` also switches GLPK's terminal output off (`glp_term_out`) for the duration of `solve()` and restores it afterwards. That switch belongs to the calling thread's GLPK environment, or to the whole process on a GLPK built without thread-local storage.
+- Gurobi prints its licence banner when an environment starts, before any setter could run, so the switch is set on the environment before it starts.
 
 ## Reproducible experiments
 

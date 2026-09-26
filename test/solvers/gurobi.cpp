@@ -25,6 +25,9 @@ INSTANTIATE_TEST(Gurobi_lp, ReducedCostsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, CuttingStockTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ColumnManagerTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpFuzzyTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, TimeLimitTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, IterationLimitTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, VerbosityTest, gurobi_lp_test);
 
 struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {
     static void SetUpTestSuite() { construct_api("GUROBI"); }
@@ -45,4 +48,9 @@ INSTANTIATE_TEST(Gurobi_milp, CandidateSolutionCallbackTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, LazyConstraintsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, TravellingSalesmanTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, TimeLimitTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, TimeLimitIncumbentTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, MipStartTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, OptimalityToleranceTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, MipGapTest, gurobi_milp_test);
+// INSTANTIATE_TEST(Gurobi_milp, IntegralityToleranceTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, VerbosityTest, gurobi_milp_test);

@@ -20,3 +20,4 @@ INSTANTIATE_TEST(Dumb, DualSolutionTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, LpStatusTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, CuttingStockTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, LpFuzzyTest, dumb_lp_test);
+INSTANTIATE_TEST(Dumb, VerbosityTest, dumb_lp_test);

@@ -20,6 +20,8 @@ INSTANTIATE_TEST(Xpress_lp, DualSolutionTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, ReducedCostsTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, LpStatusTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, CuttingStockTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_lp, TimeLimitTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_lp, VerbosityTest, xpress_lp_test);
 
 struct xpress_milp_test : public model_test<xpress_api, xpress_milp> {
     static void SetUpTestSuite() { construct_api("XPRESS"); }
@@ -41,4 +43,9 @@ static_assert(mippp::has_candidate_solution_rejection<
               mippp::candidate_solution_callback_handle_t<mippp::xpress_milp>>);
 INSTANTIATE_TEST(Xpress_milp, SudokuTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, TimeLimitTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, TimeLimitIncumbentTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, MipStartTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, OptimalityToleranceTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, MipGapTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);

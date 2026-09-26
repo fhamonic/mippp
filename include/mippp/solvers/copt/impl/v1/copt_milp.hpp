@@ -210,35 +210,39 @@ private:
         using namespace status;
         int status_;
         check(COPT->GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &status_));
+        int has_sol;
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_HASLPSOL, &has_sol));
         switch(status_) {
             case COPT_LPSTATUS_OPTIMAL:     return optimal{};
             case COPT_LPSTATUS_INFEASIBLE:  return infeasible{};
             case COPT_LPSTATUS_UNBOUNDED:   return unbounded{};
-            case COPT_LPSTATUS_TIMEOUT:     return time_limit{};
+            case COPT_LPSTATUS_TIMEOUT:     return time_limit{has_sol != 0};
             case COPT_LPSTATUS_NUMERICAL:
             case COPT_LPSTATUS_IMPRECISE:
-            case COPT_LPSTATUS_UNFINISHED:  return numerical_failure{};
-            case COPT_LPSTATUS_INTERRUPTED: return interrupted{};
+            case COPT_LPSTATUS_UNFINISHED:  return numerical_failure{has_sol != 0};
+            case COPT_LPSTATUS_INTERRUPTED: return interrupted{has_sol != 0};
             case COPT_LPSTATUS_UNSTARTED:   return unknown{};
             default:
-                return unknown{};
+                return unknown{has_sol != 0};
         }
     }
     status_variant _get_status_milp() {
         using namespace status;
         int status_;
         check(COPT->GetIntAttr(prob, COPT_INTATTR_MIPSTATUS, &status_));
+        int has_sol;
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_HASMIPSOL, &has_sol));
         switch(status_) {
             case COPT_MIPSTATUS_OPTIMAL:     return optimal{};
             case COPT_MIPSTATUS_INF_OR_UNB:  return infeasible_or_unbounded{};
             case COPT_MIPSTATUS_INFEASIBLE:  return infeasible{};
             case COPT_MIPSTATUS_UNBOUNDED:   return unbounded{};
-            case COPT_MIPSTATUS_TIMEOUT:     return time_limit{};
-            case COPT_MIPSTATUS_NODELIMIT:   return node_limit{};
-            case COPT_MIPSTATUS_UNFINISHED:  return numerical_failure{};
-            case COPT_MIPSTATUS_INTERRUPTED: return interrupted{};
+            case COPT_MIPSTATUS_TIMEOUT:     return time_limit{has_sol != 0};
+            case COPT_MIPSTATUS_NODELIMIT:   return node_limit{has_sol != 0};
+            case COPT_MIPSTATUS_UNFINISHED:  return numerical_failure{has_sol != 0};
+            case COPT_MIPSTATUS_INTERRUPTED: return interrupted{has_sol != 0};
             default:
-                return unknown{};
+                return unknown{has_sol != 0};
         }
     }
     // clang-format on
