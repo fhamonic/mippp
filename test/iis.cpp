@@ -1081,7 +1081,48 @@ struct timed_model {
     std::variant<mippp::status::time_limit> get_status();
 };
 static_assert(mippp::has_time_limit<timed_model>);
+struct optional_timed_model : timed_model {
+    bool available = false;
+    bool time_limit_available() const { return available; }
+    void set_time_limit(std::chrono::duration<double> value) {
+        if(!available) throw std::runtime_error("missing time-limit setter");
+        timed_model::set_time_limit(value);
+    }
+};
 }  // namespace
+
+TEST(DeletionFilter, OptionalNativeDeadlineFallsBackWithoutCallingSetter) {
+    using namespace std::chrono;
+    const auto now = steady_clock::now();
+    options opts{.deadline = now + 250ms};
+    work_statistics stats;
+    optional_timed_model model;
+    EXPECT_FALSE(detail::native_time_limit_available(model));
+    EXPECT_TRUE(detail::prepare_iis_solve(model, opts, stats, now));
+    EXPECT_EQ(model.writes, 0u);
+    EXPECT_FALSE(stats.observed_solver_time_limit);
+    EXPECT_FALSE(detail::prepare_iis_solve(model, opts, stats, opts.deadline));
+    EXPECT_THROW(model.set_time_limit(1s), std::runtime_error);
+    model.available = true;
+    EXPECT_TRUE(detail::native_time_limit_available(model));
+    EXPECT_TRUE(detail::prepare_iis_solve(model, opts, stats, now));
+    EXPECT_EQ(model.writes, 1u);
+    EXPECT_DOUBLE_EQ(model.limit.count(), .25);
+}
+
+TEST(DeletionFilter, NativeDeadlineSetterFailuresAreNotHidden) {
+    struct failing_model : timed_model {
+        void set_time_limit(std::chrono::duration<double>) {
+            throw std::runtime_error("native setter failed");
+        }
+    } model;
+    work_statistics stats;
+    const auto now = std::chrono::steady_clock::now();
+    EXPECT_THROW(detail::prepare_iis_solve(
+                     model, {.deadline = now + std::chrono::seconds(1)},
+                     stats, now),
+                 std::runtime_error);
+}
 
 TEST(DeletionFilter, NativeDeadlineForwardingPreservesTighterCaps) {
     work_statistics stats;
@@ -1443,6 +1484,71 @@ using Backends =
                      mippp::mosek_lp>;
 TYPED_TEST_SUITE(LinearIis, Backends);
 
+TYPED_TEST(LinearIis, FactoryLoggingIsPreservedAcrossIisWorkspaces) {
+    if constexpr(mippp::has_verbosity<TypeParam>) {
+        // Check the setting at every native solve, not just at construction.
+        // Backend log emission itself is covered by the shared VerbosityTest.
+        struct logging_model : TypeParam {
+            bool expected_verbose = false;
+            void solve() {
+                EXPECT_EQ(this->is_verbose(), expected_verbose);
+                TypeParam::solve();
+            }
+        };
+        linear_system<> system;
+        system.variables = {{std::nullopt, 1., false}};
+        system.rows = {{{{0, 1.}}, 2., std::nullopt}};
+        for_each_bool([&]<bool warm>() {
+            for(bool verbose : {false, true}) {
+                auto factory = [&] {
+                    logging_model model;
+                    EXPECT_FALSE(model.is_verbose());
+                    model.expected_verbose = verbose;
+                    if(verbose) model.set_verbose(true);
+                    return model;
+                };
+                const auto answer = compute_linear_iis<linear_policy{
+                    .elasticity = warm ? elasticity_strategy::reuse
+                                       : elasticity_strategy::rebuild,
+                    .deletion = warm ? deletion_strategy::reuse
+                                     : deletion_strategy::rebuild}>(
+                    system, factory);
+                EXPECT_TRUE(answer.reduction.irreducible);
+                EXPECT_GT(answer.statistics.elastic.solver_runs, 0u);
+            }
+        });
+    }
+}
+
+TYPED_TEST(LinearIis,
+           RuntimeMissingTimeLimitPreservesExtractionAndDiagnostics) {
+    // Simulate a library without its optional setter while using a real solver
+    // for feasibility. No ABI mutation or licensed solver is needed for HiGHS.
+    struct model_without_timer : TypeParam {
+        bool time_limit_available() const { return false; }
+        void set_time_limit(std::chrono::duration<double>) {
+            throw std::runtime_error("optional setter must not be called");
+        }
+    };
+    linear_system<> system;
+    system.variables = {{std::nullopt, 1., false}};
+    system.rows = {{{{0, 1.}}, 2., std::nullopt}};
+    for_each_bool([&]<bool warm>() {
+        const auto answer = compute_linear_iis<linear_policy{
+            .elasticity = warm ? elasticity_strategy::reuse
+                               : elasticity_strategy::rebuild,
+            .deletion =
+                warm ? deletion_strategy::reuse : deletion_strategy::rebuild}>(
+            system, [] { return model_without_timer{}; },
+            linear_options{.limits = {.time_limit = std::chrono::seconds(30)}});
+        EXPECT_TRUE(answer.reduction.irreducible);
+        EXPECT_FALSE(answer.diagnostics.solver_time_limit_supported);
+        EXPECT_FALSE(answer.statistics.rebuild.observed_solver_time_limit);
+        EXPECT_FALSE(answer.statistics.deletion.observed_solver_time_limit);
+        EXPECT_FALSE(answer.statistics.elastic.observed_solver_time_limit);
+    });
+}
+
 // Tests deliberately do not catch exceptions: missing or broken libraries
 // must fail this explicitly selected integration executable.
 TYPED_TEST(LinearIis, RemovesRedundantRowsAndBounds) {
@@ -1509,16 +1615,22 @@ TYPED_TEST(LinearIis, NativeTimeLimitCapabilityAndPipelineBudgets) {
     if constexpr(mippp::has_time_limit<TypeParam>) {
         TypeParam model;
         const auto now = steady_clock::now();
-        model.set_time_limit(duration<double>(5));
-        ASSERT_TRUE(detail::prepare_iis_solve(model, {.deadline = now + 250ms},
-                                              stats, now));
-        EXPECT_NEAR(duration<double>(model.get_time_limit()).count(), .25,
-                    1e-6);
-        model.set_time_limit(duration<double>(.125));
-        ASSERT_TRUE(detail::prepare_iis_solve(model, {.deadline = now + 250ms},
-                                              stats, now));
-        EXPECT_NEAR(duration<double>(model.get_time_limit()).count(), .125,
-                    1e-6);
+        if(detail::native_time_limit_available(model)) {
+            model.set_time_limit(duration<double>(5));
+            ASSERT_TRUE(detail::prepare_iis_solve(
+                model, {.deadline = now + 250ms}, stats, now));
+            EXPECT_NEAR(duration<double>(model.get_time_limit()).count(), .25,
+                        1e-6);
+            model.set_time_limit(duration<double>(.125));
+            ASSERT_TRUE(detail::prepare_iis_solve(
+                model, {.deadline = now + 250ms}, stats, now));
+            EXPECT_NEAR(duration<double>(model.get_time_limit()).count(), .125,
+                        1e-6);
+        } else {
+            EXPECT_TRUE(detail::prepare_iis_solve(
+                model, {.deadline = now + 250ms}, stats, now));
+            EXPECT_FALSE(stats.observed_solver_time_limit);
+        }
     }
     linear_system<> system;
     system.variables = {{std::nullopt, std::nullopt, false}};

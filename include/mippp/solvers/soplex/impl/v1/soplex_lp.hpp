@@ -266,6 +266,9 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     // The C interface of SoPlex has no getter for real parameters, so the
     // limit is read back from the copy kept here.
+    bool time_limit_available() const noexcept {
+        return SoPlex->setRealParam != nullptr;
+    }
     void set_time_limit(std::chrono::duration<double> t) {
         if(!SoPlex->setRealParam)
             throw solver_error("SoPlex_setRealParam not available.");

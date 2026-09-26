@@ -2,12 +2,31 @@
 
 #include <algorithm>
 #include <chrono>
+#include <concepts>
 
 #include "mippp/algorithm/iis_limits.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/iis_statistics.hpp"
 
 namespace mippp::iis::detail {
+
+// An optional C API symbol can make a compile-time capability unavailable in
+// the loaded library. Do not catch setter errors: genuine failures must escape.
+template <typename Model>
+bool native_time_limit_available(Model & model) {
+    if constexpr(has_time_limit<Model> &&
+                 requires(std::chrono::duration<double> t) {
+                     model.set_time_limit(t);
+                 }) {
+        if constexpr(requires {
+                         { model.time_limit_available() } -> std::same_as<bool>;
+                     })
+            return model.time_limit_available();
+        else
+            return true;
+    } else
+        return false;
+}
 
 // Check cancellation and time after building/updating the model, just before
 // each solve. Pass remaining time to the solver when supported; otherwise
@@ -24,7 +43,8 @@ bool prepare_iis_solve(Model & model, const options & limits,
                  requires(std::chrono::duration<double> t) {
                      model.set_time_limit(t);
                  }) {
-        if(limits.deadline != budget_clock::time_point::max()) {
+        if(limits.deadline != budget_clock::time_point::max() &&
+           native_time_limit_available(model)) {
             const auto remaining =
                 std::chrono::duration<double>(limits.deadline - now);
             // Never loosen a factory's per-solve limit. Recompute for retained

@@ -44,3 +44,11 @@ Commercial solver execution and the complete shared backend suites were not
 run. Feature-table regeneration requires the missing Pillow/LaTeX rendering
 environment; generated images have not been updated for the MOSEK time-limit
 registration. No new claim of runtime-validated MOSEK support is made here.
+
+After merging main, the debug verification passed 105 solver-independent and
+HiGHS LP/MIP tests with HiGHS 1.12.0. New regressions check factory verbosity at
+each IIS solve, optional native deadline fallback and diagnostics, preservation
+of setter errors, and MOSEK primal-status classification. All 93 public headers
+compiled and the standard-include audit passed. The missing-setter path uses
+capability stubs and real HiGHS feasibility solves; native SoPlex and licensed
+MOSEK execution were not tested in this run.

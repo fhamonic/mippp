@@ -40,6 +40,12 @@ protected:
     std::vector<MSKvariabletypee> tmp_vartype;
 
     void check(const MSKrescodee error) const { MSK->_check(error); }
+    static bool _has_primal_solution(MSKsolstae state) noexcept {
+        return state == MSK_SOL_STA_OPTIMAL ||
+               state == MSK_SOL_STA_INTEGER_OPTIMAL ||
+               state == MSK_SOL_STA_PRIM_FEAS ||
+               state == MSK_SOL_STA_PRIM_AND_DUAL_FEAS;
+    }
     // A basic solution is not always produced (e.g. interior point with basis
     // identification disabled). Prefer a decisive solution over an unknown or
     // merely feasible one; preserve the basic solution on equal quality.

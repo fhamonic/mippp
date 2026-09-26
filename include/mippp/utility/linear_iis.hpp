@@ -34,7 +34,7 @@ template <linear_policy Policy = {}, typename Factory,
              std::same_as<Scalar,
                           model_scalar_t<std::invoke_result_t<Factory &>>>
 [[nodiscard]] linear_result compute_linear_iis(
-    const linear_system<Scalar> & system, Factory && factory,
+    const linear_system<Scalar> & system, Factory && make_model,
     linear_options<Order> config = {}) {
     detail::budget_clock::time_point started{};
     if constexpr(Policy.measure_time) started = detail::budget_clock::now();
@@ -96,6 +96,14 @@ template <linear_policy Policy = {}, typename Factory,
         requires(Model & model, std::chrono::duration<double> t) {
             model.set_time_limit(t);
         };
+    // Inspect the actual library without constructing an extra solver model.
+    // A factory may return models backed by different library versions.
+    auto factory = [&] {
+        auto model = std::invoke(make_model);
+        diagnostics.solver_time_limit_supported &=
+            detail::native_time_limit_available(model);
+        return model;
+    };
     if constexpr(Policy.native_seed)
         diagnostics.native_seed =
             original_mip ? seed_outcome::integer_model
@@ -118,7 +126,7 @@ template <linear_policy Policy = {}, typename Factory,
         deletion_model;
     auto rebuilt_model = [&] {
         if constexpr(needs_rebuilt_model)
-            return detail::cold_model_workspace<Factory, Scalar, mode>(
+            return detail::cold_model_workspace<decltype(factory), Scalar, mode>(
                 prepared, factory, opts, statistics.rebuild);
         else
             return detail::disabled_feature{};

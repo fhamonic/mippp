@@ -104,10 +104,7 @@ private:
         if(!solution) return false;
         MSKsolstae solsta;
         check(MSK->getsolsta(task, *solution, &solsta));
-        return solsta == MSK_SOL_STA_PRIM_FEAS ||
-               solsta == MSK_SOL_STA_INTEGER_OPTIMAL ||
-               solsta == MSK_SOL_STA_OPTIMAL ||
-               solsta == MSK_SOL_STA_PRIM_AND_DUAL_FEAS;
+        return _has_primal_solution(solsta);
     }
 
     status_variant _get_status(MSKrescodee trm) {

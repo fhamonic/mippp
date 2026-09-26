@@ -96,6 +96,12 @@ The default strategy rebuilds each trial, paying model construction costs and
 not transferring bases or MIP starts. Both deletion and elasticity can instead
 use retained models, as described below.
 
+Models are quiet by default. To see the solver logs for IIS trials, call
+`model.set_verbose(true)` in the factory before returning the model (for models
+satisfying `mippp::has_verbosity`). IIS preserves this setting for both rebuilt
+and retained models, including elasticity trials; it has no separate logging
+switch.
+
 For repeated trials, load a backend's API once and capture it in the factory,
 instead of using the default model constructor each time. For example, with
 `mippp/solvers/cbc/all.hpp`:
@@ -147,9 +153,9 @@ path. Every extraction still uses a solver for feasibility checks.
 | `glpk_milp` | LP, MIP | F | — | F | F + N | F |
 | `mosek_lp` | LP | F | N: row and variable-bound weights | F | F + N | F + N |
 | `mosek_milp` | LP, MIP | F | — | F | F + N | F + N |
-| `scip_milp` | LP, MIP | F | — | F | F + N | F |
-| `soplex_lp` (stock 8.1.0) | LP | F | — | F | —; rebuilds | F |
-| `soplex_lp` (patched 8.1.0) | LP | F | N: row weights | F | —; rebuilds | F |
+| `scip_milp` | LP, MIP | F | — | F | F + N | F + N |
+| `soplex_lp` (stock 8.1.0) | LP | F | — | F | —; rebuilds | F + N* |
+| `soplex_lp` (patched 8.1.0) | LP | F | N: row weights | F | —; rebuilds | F + N* |
 | `xpress_lp` | LP | F | — | F | F + N | F + N |
 | `xpress_milp` | LP, MIP | F | — | F | F + N | F + N |
 
@@ -182,6 +188,13 @@ How to read the feature columns:
 The [SoPlex patch](#soplex) adds optional certificate functions to the C interface;
 it does not add bound updates to the MIP++ wrapper. Stock SoPlex still supports
 fallback IIS extraction and rebuilt elasticity.
+
+*SoPlex native time limits require the optional `SoPlex_setRealParam` symbol in
+the loaded library. If absent, IIS falls back to between-solve deadline checks
+and reports native time limits as unsupported once it constructs a model.
+`model.time_limit_available()` exposes this runtime capability. An explicit
+`model.set_time_limit(...)` still throws when unavailable; other setter failures
+are not suppressed by IIS.
 
 These entries reflect the current model interfaces and compile-time capability
 checks, not a claim that every solver/version/platform combination has been
@@ -262,6 +275,13 @@ native solve. A backend may account for retained-model time cumulatively and
 stop earlier. An inconclusive native status before the overall deadline remains
 `indeterminate` unless another global limit is exhausted; it is never an IIS
 certificate.
+
+Stopped solves can still prove a trial feasible when the backend reports a
+usable primal solution; a stop without one remains unknown. In particular,
+MOSEK's basic, interior-point, and integer solution statuses distinguish primal
+solutions from dual-only solutions and infeasibility certificates. Numerical
+failure remains unknown even if a solution is present. None of these stopped
+statuses is treated as proof of infeasibility.
 
 For example, pass `{.limits = {.max_solves = 100, .time_limit = std::chrono::seconds(5)}}`
 as the options argument to budget the entire extraction, not each phase.

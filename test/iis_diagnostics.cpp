@@ -4,6 +4,7 @@
 #include <limits>
 #include <string>
 #include "mippp/solvers/clp/all.hpp"
+#include "mippp/solvers/mosek/all.hpp"
 #include "mippp/utility/linear_iis.hpp"
 
 using namespace mippp::iis;
@@ -157,6 +158,43 @@ TEST(DeletionFilter, NumericalFailureCannotProveFeasibility) {
     const std::variant<mippp::status::time_limit> limited{
         mippp::status::time_limit{true}};
     EXPECT_EQ(detail::classify_feasibility(limited), feasibility::feasible);
+}
+
+TEST(DeletionFilter, MosekPrimalStatesAndStoppedSolveEvidence) {
+    using namespace mippp::mosek::impl::v1;
+    // Expose only the pure shared predicate; never construct a MOSEK model.
+    struct probe : mosek_base {
+        using mosek_base::_has_primal_solution;
+    };
+    for(auto state : {MSK_SOL_STA_OPTIMAL, MSK_SOL_STA_INTEGER_OPTIMAL,
+                      MSK_SOL_STA_PRIM_FEAS, MSK_SOL_STA_PRIM_AND_DUAL_FEAS})
+        EXPECT_TRUE(probe::_has_primal_solution(state));
+    for(auto state :
+        {MSK_SOL_STA_UNKNOWN, MSK_SOL_STA_DUAL_FEAS,
+         MSK_SOL_STA_PRIM_INFEAS_CER, MSK_SOL_STA_DUAL_INFEAS_CER,
+         MSK_SOL_STA_PRIM_ILLPOSED_CER, MSK_SOL_STA_DUAL_ILLPOSED_CER})
+        EXPECT_FALSE(probe::_has_primal_solution(state));
+
+    using namespace mippp::status;
+    for(bool incumbent : {false, true}) {
+        const auto expected =
+            incumbent ? feasibility::feasible : feasibility::unknown;
+        auto check = [&](auto status) {
+            EXPECT_EQ(detail::classify_feasibility(
+                          std::variant<decltype(status)>{status}),
+                      expected);
+        };
+        check(time_limit{incumbent});
+        check(iteration_limit{incumbent});
+        check(node_limit{incumbent});
+        check(solution_limit{incumbent});
+        check(limit_reached{incumbent});
+        check(interrupted{incumbent});
+        check(failed{incumbent});
+        EXPECT_EQ(detail::classify_feasibility(std::variant<numerical_failure>{
+                      numerical_failure{incumbent}}),
+                  feasibility::unknown);
+    }
 }
 
 TEST(DeletionFilter, LicenseFailuresRemainCatchableAndExplainExpansion) {
