@@ -55,6 +55,7 @@ struct copt_lp_test : public model_test<copt_api, copt_lp> {
     static void SetUpTestSuite() { construct_api("COPT"); }
 };
 INSTANTIATE_TEST(COPT_lp, LpModelTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_lp, EnumerableEntitiesTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ReadableObjectiveTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ModifiableObjectiveTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ReadableVariablesBoundsTest, copt_lp_test);
@@ -73,6 +74,7 @@ struct copt_milp_test : public model_test<copt_api, copt_milp> {
 };
 INSTANTIATE_TEST(COPT_milp, LpModelTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, MilpModelTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, EnumerableEntitiesTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, ReadableObjectiveTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, ModifiableObjectiveTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, ReadableVariablesBoundsTest, copt_milp_test);

@@ -58,6 +58,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 
+#include "assert_helper.hpp"
 #include "dumb_lp.hpp"
 
 namespace mippp {
@@ -353,6 +354,31 @@ private:
             EXPECT_NEAR(0.0, reference_coef, data_tolerance)
                 << "coefficient of " << _variables[index].label;
         }
+    }
+
+    // After every mutation, not among the periodic checks: a later addition
+    // recycling a removed id can hide a handle the removal left listed.
+    void _expect_matching_enumeration() {
+        if constexpr(has_enumerable_variables<Tested>) {
+            EXPECT_EQ(entity_uids(_tested.variables()),
+                      sorted_entity_uids(std::views::transform(
+                          _variables, &variable_entry::tested)))
+                << "tested variables()";
+        }
+        if constexpr(has_enumerable_constraints<Tested>) {
+            EXPECT_EQ(entity_uids(_tested.constraints()),
+                      sorted_entity_uids(std::views::transform(
+                          _constraints, &constraint_entry::tested)))
+                << "tested constraints()";
+        }
+        EXPECT_EQ(entity_uids(_reference.variables()),
+                  sorted_entity_uids(std::views::transform(
+                      _variables, &variable_entry::reference)))
+            << "reference variables()";
+        EXPECT_EQ(entity_uids(_reference.constraints()),
+                  sorted_entity_uids(std::views::transform(
+                      _constraints, &constraint_entry::reference)))
+            << "reference constraints()";
     }
 
     static double _clamp_infinite(double value) {
@@ -930,6 +956,7 @@ public:
                                          round, step, ev.name));
                 ev.action();
                 ++step;
+                _expect_matching_enumeration();
                 if(::testing::Test::HasFailure()) {
                     print_trace();
                     return;

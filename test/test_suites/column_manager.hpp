@@ -22,6 +22,7 @@ struct ColumnManagerTest : public T {
     static_assert(has_dual_solution<model_type>);
     static_assert(has_column_generation<model_type>);
     static_assert(has_remove_variable<model_type>);
+    static_assert(has_enumerable_variables<model_type>);
 };
 TYPED_TEST_SUITE_P(ColumnManagerTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ColumnManagerTest);
@@ -129,6 +130,10 @@ TYPED_TEST_P(ColumnManagerTest, test) {
             auto result = columns.manage_columns(
                 model, colgen::all<colgen::negative<colgen::reduced_cost>>{},
                 add_pattern_column);
+            std::vector<model_variable_t<decltype(model)>> master_vars;
+            for(auto && [pattern, state] : columns.master_columns())
+                master_vars.push_back(state.var);
+            EXPECT_ENUMERATED_VARIABLES(model, master_vars);
             if(result.num_activated == 0) break;
         }
 

@@ -62,6 +62,7 @@ struct cplex_lp_test : public model_test<cplex_api, cplex_lp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
 };
 INSTANTIATE_TEST(CPLEX_lp, LpModelTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, EnumerableEntitiesTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ReadableObjectiveTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ModifiableObjectiveTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ReadableVariablesBoundsTest, cplex_lp_test);
@@ -86,6 +87,7 @@ struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {
 };
 INSTANTIATE_TEST(CPLEX_milp, LpModelTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, MilpModelTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, EnumerableEntitiesTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, ReadableObjectiveTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, ModifiableObjectiveTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, ReadableVariablesBoundsTest, cplex_milp_test);

@@ -105,6 +105,14 @@ public:
         return _cols.size() - _free_variable_ids.size();
     }
     std::size_t num_constraints() { return _rows.size(); }
+    std::vector<variable> variables() {
+        std::vector<variable> live;
+        for(std::size_t i = 0; i < _cols.size(); ++i)
+            if(!_cols[i].removed)
+                live.emplace_back(static_cast<variable_id>(i));
+        return live;
+    }
+    using model_base<int, double>::constraints;
     std::size_t num_nonzeros() {
         std::size_t count = 0;
         for(const row_data & row : _rows)
@@ -517,6 +525,8 @@ using dumb_lp = clp::impl::v1::dumb_lp;
 
 static_assert(lp_model<dumb_lp>);
 static_assert(has_num_nonzeros<dumb_lp>);
+static_assert(has_enumerable_variables<dumb_lp>);
+static_assert(has_enumerable_constraints<dumb_lp>);
 static_assert(has_lp_status<dumb_lp>);
 static_assert(has_dual_solution<dumb_lp>);
 static_assert(has_named_variables<dumb_lp>);

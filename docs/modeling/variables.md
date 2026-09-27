@@ -148,6 +148,18 @@ Those names are assigned **lazily**, the first time each variable is accessed th
 
     Keep your own mapping if you need names to round-trip.
 
+## Enumerating the model
+
+`model.variables()` and `model.constraints()` list every live variable and constraint once, in increasing id order, on every backend (concepts `has_enumerable_variables` and `has_enumerable_constraints`):
+
+```cpp
+model.set_objective(xsum(model.variables()));   // the sum of all variables
+for(auto v : model.variables())
+    model.set_variable_upper_bound(v, 100.0);
+```
+
+The result is a snapshot of the call. It holds no reference to the model, so it stays valid while the model changes and even after the model is gone, but it lists nothing added later, and a variable [removed](../solving/updates.md#adding-and-removing-entities) since is still listed with a dead handle. On the backends that never remove variables it is a lazy range built in constant time; on those that do (Clp, CPLEX, Gurobi, HiGHS) it is a `std::vector` of the live handles. Rely only on its range interface, random access and `std::ranges::size`, since that is all the two kinds of result share.
+
 ## Next
 
 [Expressions and constraints](expressions.md) — how these handles combine into objectives and whole constraint families over your index sets.

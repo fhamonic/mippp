@@ -140,6 +140,7 @@ TEST_F(mosek_lp_test, column_less_model_is_optimal_only_if_its_rows_hold) {
     });
 }
 INSTANTIATE_TEST(MOSEK_lp, LpModelTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, EnumerableEntitiesTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableObjectiveTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ModifiableObjectiveTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableVariablesBoundsTest, mosek_lp_test);
@@ -164,6 +165,7 @@ TEST_F(mosek_milp_test, column_less_model_is_optimal_only_if_its_rows_hold) {
 }
 INSTANTIATE_TEST(MOSEK_milp, LpModelTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, MilpModelTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, EnumerableEntitiesTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ReadableObjectiveTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ModifiableObjectiveTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ReadableVariablesBoundsTest, mosek_milp_test);

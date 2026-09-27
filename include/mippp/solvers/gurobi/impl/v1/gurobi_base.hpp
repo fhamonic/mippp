@@ -56,6 +56,14 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using remapping_model_base<int, double>::default_variable_params;
+    // From the counters, not num_variables() and num_constraints(): their
+    // GRBupdatemodel would flush the queued changes at every listing.
+    std::vector<variable> variables() {
+        return _live_variables(_num_var_native_ids);
+    }
+    auto constraints() {
+        return entity_range(constraint(0), _lazy_num_constraints);
+    }
     double infinity() const noexcept { return GRB_INFINITY; }
     using remapping_model_base<int, double>::is_infinite;
 

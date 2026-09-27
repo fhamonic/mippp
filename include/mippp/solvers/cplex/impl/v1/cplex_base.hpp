@@ -65,6 +65,10 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using remapping_model_base<int, double>::default_variable_params;
+    std::vector<variable> variables() {
+        return _live_variables(num_variables());
+    }
+    using model_base<int, double>::constraints;
     double infinity() const noexcept { return CPX_INFBOUND; }
     using remapping_model_base<int, double>::is_infinite;
 

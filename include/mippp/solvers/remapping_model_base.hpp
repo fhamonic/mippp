@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <optional>
@@ -67,6 +68,21 @@ protected:
         _handle_ids_map[static_cast<std::size_t>(new_native_id)] =
             new_handle_id;
         return variable(new_handle_id);
+    }
+    // Walks native ids, which are dense: through _native_id, handle ids
+    // would read the stale entries of removed handles.
+    std::vector<variable> _live_variables(
+        const std::size_t num_native_ids) const {
+        std::vector<variable> live;
+        live.reserve(num_native_ids);
+        for(std::size_t i = 0; i < num_native_ids; ++i)
+            live.emplace_back(_var_handle(static_cast<Index>(i)));
+        // a lambda, not &variable::id: GCC's -O3 inlining of the
+        // member-pointer projection trips -Warray-bounds
+        if(_remap_ids)
+            std::ranges::sort(live, {},
+                              [](const variable v) { return v.id(); });
+        return live;
     }
     std::size_t _new_var_handle_range(const std::size_t num_native_ids,
                                       const std::size_t count) {

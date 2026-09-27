@@ -117,6 +117,7 @@ TEST_F(glpk_lp_test, crossing_variable_bounds_fail) {
     EXPECT_TRUE(is<status::failed>(model.get_status()));
 }
 INSTANTIATE_TEST(GLPK_lp, LpModelTest, glpk_lp_test);
+INSTANTIATE_TEST(GLPK_lp, EnumerableEntitiesTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ReadableObjectiveTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ModifiableObjectiveTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ReadableVariablesBoundsTest, glpk_lp_test);
@@ -148,6 +149,7 @@ TEST_F(glpk_milp_test,
 }
 INSTANTIATE_TEST(GLPK_milp, LpModelTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, MilpModelTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, EnumerableEntitiesTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, ReadableObjectiveTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, ModifiableObjectiveTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, ReadableVariablesBoundsTest, glpk_milp_test);

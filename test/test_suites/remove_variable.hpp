@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <ranges>
+#include <vector>
+
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 
@@ -13,6 +16,7 @@ template <typename T>
 struct RemoveVariableTest : public T {
     using typename T::model_type;
     static_assert(has_remove_variable<model_type>);
+    static_assert(has_enumerable_variables<model_type>);
 };
 TYPED_TEST_SUITE_P(RemoveVariableTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(RemoveVariableTest);
@@ -447,14 +451,81 @@ TYPED_TEST_P(RemoveVariableTest, remove_addlazy_distinct_variables_solve) {
     });
 }
 
-REGISTER_TYPED_TEST_SUITE_P(RemoveVariableTest, remove_solve,
-                            solve_remove_solve, remove_addvar_solve,
-                            solve_remove_addvar_solve, remove_addcol_solve,
-                            solve_remove_addcol_solve, remove_addnamedvar_solve,
-                            solve_remove_addnamedvar_solve,
-                            remove_three_entries_addvar_solve,
-                            remove_settype_solve, remove_addindicator_solve,
-                            remove_addlazy_solve,
-                            remove_addlazy_distinct_variables_solve);
+// A tail removal keeps the identity mapping on HiGHS and Gurobi, and the
+// perforating one then switches to remapped ids.
+TYPED_TEST_P(RemoveVariableTest, enumeration_skips_removed_variables) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto xs = model.add_variables(5);
+        auto c = model.add_constraint(xsum(xs) >= 1);
+        model.remove_variable(xs[4]);
+        EXPECT_ENUMERATED_VARIABLES(model,
+                                    std::vector{xs[0], xs[1], xs[2], xs[3]});
+        model.remove_variable(xs[1]);
+        EXPECT_ENUMERATED_VARIABLES(model, std::vector{xs[0], xs[2], xs[3]});
+        EXPECT_ENUMERATED_CONSTRAINTS(model, std::vector{c});
+    });
+}
+
+TYPED_TEST_P(RemoveVariableTest, enumeration_lists_recycled_ids_in_order) {
+    this->SkipOnLicenseError([this]() {
+        auto model = this->new_model();
+        auto xs = model.add_variables(4);
+        model.remove_variable(xs[1]);
+        auto y = model.add_variable();
+        auto zs = model.add_variables(2);
+        EXPECT_ENUMERATED_VARIABLES(
+            model, std::vector{xs[0], y, xs[2], xs[3], zs[0], zs[1]});
+    });
+}
+
+TYPED_TEST_P(RemoveVariableTest, solution_reads_every_enumerated_variable) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto xs = model.add_variables(6);
+        model.remove_variable(xs[1]);
+        model.remove_variable(xs[3]);
+        model.add_variable();
+        for(auto v : model.variables())
+            model.add_constraint(v >= static_cast<double>(v.uid()));
+        model.set_minimization();
+        model.set_objective(xsum(model.variables()));
+        model.solve();
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+        auto solution = model.get_solution();
+        for(auto v : model.variables())
+            EXPECT_NEAR(solution[v], static_cast<double>(v.uid()),
+                        TEST_EPSILON);
+    });
+}
+
+TYPED_TEST_P(RemoveVariableTest,
+             removing_every_enumerated_variable_empties_the_model) {
+    this->SkipOnLicenseError([this]() {
+        auto model = this->new_model();
+        model.add_variables(3);
+        for(auto v : model.variables()) model.remove_variable(v);
+        EXPECT_EQ(model.num_variables(), 0u);
+        EXPECT_TRUE(std::ranges::empty(model.variables()));
+        model.add_variables(2);
+        model.remove_variables(model.variables());
+        EXPECT_EQ(model.num_variables(), 0u);
+        EXPECT_TRUE(std::ranges::empty(model.variables()));
+    });
+}
+
+REGISTER_TYPED_TEST_SUITE_P(
+    RemoveVariableTest, remove_solve, solve_remove_solve, remove_addvar_solve,
+    solve_remove_addvar_solve, remove_addcol_solve, solve_remove_addcol_solve,
+    remove_addnamedvar_solve, solve_remove_addnamedvar_solve,
+    remove_three_entries_addvar_solve, remove_settype_solve,
+    remove_addindicator_solve, remove_addlazy_solve,
+    remove_addlazy_distinct_variables_solve,
+    enumeration_skips_removed_variables,
+    enumeration_lists_recycled_ids_in_order,
+    solution_reads_every_enumerated_variable,
+    removing_every_enumerated_variable_empties_the_model);
 
 }  // namespace mippp

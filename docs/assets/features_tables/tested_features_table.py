@@ -39,6 +39,7 @@ def parse_instantiate_lines(cpp_files):
 formated_test_names = [
     ("LpModelTest", "LP Model"),
     ("MilpModelTest", "MILP Model"),
+    ("EnumerableEntitiesTest", "Enumerate variables and constraints"),
     ("ReadableObjectiveTest", "Read objective"),
     ("ReadableVariablesBoundsTest", "Read variables bounds"),
     ("ReadableConstraintsTest", "Read constraints"),

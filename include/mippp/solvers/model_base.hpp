@@ -61,6 +61,22 @@ public:
         return std::abs(value) >= self.infinity();
     }
 
+    // Ids are [0, count) only where nothing is ever removed. The
+    // requires-clauses keep the concepts false on a callback handle, whose
+    // missing counters would otherwise be a hard error under Clang.
+    template <typename Self>
+        requires requires(Self & model) { model.num_variables(); }
+    [[nodiscard]] auto variables(this Self & self) {
+        static_assert(!has_remove_variable<std::remove_cv_t<Self>>,
+                      "a backend that removes variables overrides variables()");
+        return entity_range(variable(Index{0}), self.num_variables());
+    }
+    template <typename Self>
+        requires requires(Self & model) { model.num_constraints(); }
+    [[nodiscard]] auto constraints(this Self & self) {
+        return entity_range(constraint(Index{0}), self.num_constraints());
+    }
+
 protected:
     std::vector<std::pair<unsigned int, unsigned int>> tmp_entry_index_cache;
     std::vector<Index> tmp_indices;

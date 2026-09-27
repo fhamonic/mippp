@@ -67,6 +67,8 @@ protected:
 public:
     // the anchor model_variable_params_t deduces from
     using model_base<int, double>::default_variable_params;
+    using model_base<int, double>::variables;
+    using model_base<int, double>::constraints;
     double infinity() const noexcept {
         return std::numeric_limits<double>::max();
     }

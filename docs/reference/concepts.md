@@ -64,7 +64,8 @@ model.set_candidate_solution_callback(
 The concepts declared this way are `has_dual_solution`, `has_reduced_costs`,
 `has_readable_variable_bounds`, `has_modifiable_variable_bounds`,
 `has_readable_constraints` and its three finer-grained forms,
-`has_readable_constraint_bounds`, `has_modifiable_constraint_bounds`, and
+`has_readable_constraint_bounds`, `has_modifiable_constraint_bounds`,
+`has_enumerable_variables`, `has_enumerable_constraints` and
 `has_lazy_constraints`. The others describe whole models and stay
 single-parameter.
 
@@ -84,6 +85,8 @@ single-parameter.
 | `milp_model` | `lp_model`, plus `add_integer_variable(s)`, `add_binary_variable(s)`, and per-variable type changes `set_continuous` / `set_integer` / `set_binary`. |
 | `qp_model` | `lp_model`, plus `set_quadratic_objective(expr)` (and its `distinct_variables` form) accepting a quadratic expression. `set_objective` stays linear on every model and replaces the whole objective, quadratic part included. |
 | `has_num_nonzeros` | `num_nonzeros()`, the number of coefficients in the constraint matrix. |
+| `has_enumerable_variables` | `variables()`, every live variable once, in increasing id order, as a random-access range whose `std::ranges::size` is `num_variables()`. The range is a snapshot of the call: it holds no reference to the model, lists nothing added later, and still lists a variable removed since, whose handle is then dead. Only that range interface is portable: backends that never remove variables return the lazy range of a bulk addition, the others a `std::vector`. Satisfied by every model, but not part of `lp_model`, so a model written against `lp_model` need not provide it. See [Enumerating the model](../modeling/variables.md#enumerating-the-model). |
+| `has_enumerable_constraints` | `constraints()`, the same for constraints, sized by `num_constraints()`. Satisfied by every model, and not part of `lp_model` either. |
 
 ## Solve status
 

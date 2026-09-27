@@ -33,6 +33,8 @@ protected:
 
 public:
     using model_base<int, double>::default_variable_params;
+    using model_base<int, double>::variables;
+    using model_base<int, double>::constraints;
     double infinity() const noexcept { return SCIP->infinity(model); }
     using model_base<int, double>::is_infinite;
 

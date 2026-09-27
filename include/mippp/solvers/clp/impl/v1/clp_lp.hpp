@@ -72,6 +72,19 @@ public:
     std::size_t num_constraints() {
         return static_cast<std::size_t>(Clp->getNumRows(model));
     }
+    // removed columns stay in Clp, fixed at [0, 0], until their id is reused
+    std::vector<variable> variables() {
+        const std::size_t num_ids = num_native_ids_variables();
+        std::vector<bool> is_free(num_ids, false);
+        for(const int id : _free_variable_ids)
+            is_free[static_cast<std::size_t>(id)] = true;
+        std::vector<variable> live;
+        live.reserve(num_ids - _free_variable_ids.size());
+        for(std::size_t i = 0; i < num_ids; ++i)
+            if(!is_free[i]) live.emplace_back(static_cast<index>(i));
+        return live;
+    }
+    using model_base<int, double>::constraints;
     std::size_t num_nonzeros() {
         return static_cast<std::size_t>(Clp->getNumElements(model));
     }

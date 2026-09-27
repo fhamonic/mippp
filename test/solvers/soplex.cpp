@@ -10,6 +10,7 @@ struct soplex_lp_test : public model_test<soplex_api, soplex_lp> {
     static void SetUpTestSuite() { construct_api("SOPLEX"); }
 };
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, EnumerableEntitiesTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, AddColumnTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, DualSolutionTest, soplex_lp_test);
 // INSTANTIATE_TEST(SoPlex, CuttingStockTest, soplex_lp_test);

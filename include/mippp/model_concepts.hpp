@@ -251,6 +251,21 @@ concept has_num_nonzeros = requires(T & model) {
     { model.num_nonzeros() } -> std::same_as<std::size_t>;
 };
 
+// Every live entity once, in increasing id order, as a snapshot of the call:
+// it lists nothing added later, and still lists a variable removed since,
+// whose handle is then dead.
+template <typename T, typename M = T>
+concept has_enumerable_variables =
+    requires(T & model) {
+        { model.variables() } -> variables_range<M>;
+    } && std::ranges::sized_range<decltype(std::declval<T &>().variables())>;
+
+template <typename T, typename M = T>
+concept has_enumerable_constraints =
+    requires(T & model) {
+        { model.constraints() } -> constraints_range<M>;
+    } && std::ranges::sized_range<decltype(std::declval<T &>().constraints())>;
+
 template <typename T>
 concept has_lp_status =
     variant_containing_a<model_status_t<T>, status::infeasible> &&

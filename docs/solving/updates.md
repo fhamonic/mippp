@@ -72,7 +72,7 @@ New variables and constraints can be added to a solved model at any time; that i
 - `remove_variable(v)` / `remove_variables(range)` — on backends satisfying `has_remove_variable` (Clp, CPLEX, Gurobi, HiGHS).
 
 !!! warning "Handles after a removal"
-    Handles of the **surviving** entities stay valid across `remove_variable` — MIP++ keeps its own handle-to-column mapping, so you do not renumber anything. The handle of a **removed** variable, on the other hand, is dead and may later be recycled for a new variable: drop it from your own containers at the moment you remove it.
+    Handles of the **surviving** entities stay valid across `remove_variable` — MIP++ keeps its own handle-to-column mapping, so you do not renumber anything. The handle of a **removed** variable, on the other hand, is dead and may later be recycled for a new variable: drop it from your own containers at the moment you remove it. `model.variables()` never lists a removed variable, so it rebuilds the list of live variables after any sequence of removals and recycled additions ([Enumerating the model](../modeling/variables.md#enumerating-the-model)).
 
 !!! note "That guarantee is free until you use it"
     The mapping is **not** maintained eagerly. A model starts in *identity* mode: a variable handle's id **is** the solver's column index, `add_constraint` writes `handle.id()` straight into the index buffer handed to the C API, and neither id map is allocated.

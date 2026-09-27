@@ -56,6 +56,7 @@ TEST_F(clp_lp_test, infeasible_once_unscaled_is_not_plain_optimal) {
     EXPECT_TRUE(is<status::optimal_infeasible_unscaled>(model.get_status()));
 }
 INSTANTIATE_TEST(Clp, LpModelTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, EnumerableEntitiesTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReadableObjectiveTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ModifiableObjectiveTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReadableVariablesBoundsTest, clp_lp_test);

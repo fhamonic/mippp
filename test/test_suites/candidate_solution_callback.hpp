@@ -13,6 +13,12 @@ struct CandidateSolutionCallbackTest : public T {
     using typename T::model_type;
     static_assert(milp_model<model_type>);
     static_assert(has_candidate_solution_callback<model_type>);
+    static_assert(
+        !has_enumerable_variables<
+            candidate_solution_callback_handle_t<model_type>, model_type>);
+    static_assert(
+        !has_enumerable_constraints<
+            candidate_solution_callback_handle_t<model_type>, model_type>);
 };
 TYPED_TEST_SUITE_P(CandidateSolutionCallbackTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CandidateSolutionCallbackTest);

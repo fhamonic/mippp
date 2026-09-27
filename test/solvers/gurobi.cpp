@@ -10,6 +10,7 @@ struct gurobi_lp_test : public model_test<gurobi_api, gurobi_lp> {
     static void SetUpTestSuite() { construct_api("GUROBI"); }
 };
 INSTANTIATE_TEST(Gurobi_lp, LpModelTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, EnumerableEntitiesTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableObjectiveTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ModifiableObjectiveTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableVariablesBoundsTest, gurobi_lp_test);
@@ -34,6 +35,7 @@ struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {
 };
 INSTANTIATE_TEST(Gurobi_milp, LpModelTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, MilpModelTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, EnumerableEntitiesTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ReadableObjectiveTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ModifiableObjectiveTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ReadableVariablesBoundsTest, gurobi_milp_test);

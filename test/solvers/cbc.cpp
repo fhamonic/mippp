@@ -13,6 +13,7 @@ struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
 };
 INSTANTIATE_TEST(Cbc, LpModelTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, MilpModelTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, EnumerableEntitiesTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableObjectiveTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ModifiableObjectiveTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableVariablesBoundsTest, cbc_milp_test);

@@ -1,8 +1,11 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <initializer_list>
 #include <map>
 #include <ranges>
+#include <vector>
 
 #include "mippp/linear_expression.hpp"
 #include "mippp/quadratic_expression.hpp"
@@ -94,4 +97,32 @@ void ASSERT_CONSTRAINT(
     ASSERT_LIN_TERMS(constr.linear_terms(), expected_terms);
     ASSERT_EQ(constr.sense(), rel);
     ASSERT_EQ(constr.rhs(), bound);
+}
+
+template <std::ranges::input_range R>
+std::vector<std::size_t> entity_uids(R && entities) {
+    std::vector<std::size_t> uids;
+    for(auto && e : entities) uids.push_back(e.uid());
+    return uids;
+}
+template <std::ranges::input_range R>
+std::vector<std::size_t> sorted_entity_uids(R && entities) {
+    std::vector<std::size_t> uids = entity_uids(entities);
+    std::ranges::sort(uids);
+    return uids;
+}
+
+// The enumeration equals the sorted uids of the handles a test kept, which
+// pins uniqueness and increasing order at once.
+template <typename M, typename R>
+void EXPECT_ENUMERATED_VARIABLES(M & model, R && live) {
+    const auto listed = model.variables();
+    EXPECT_EQ(std::ranges::size(listed), model.num_variables());
+    EXPECT_EQ(entity_uids(listed), sorted_entity_uids(live));
+}
+template <typename M, typename R>
+void EXPECT_ENUMERATED_CONSTRAINTS(M & model, R && live) {
+    const auto listed = model.constraints();
+    EXPECT_EQ(std::ranges::size(listed), model.num_constraints());
+    EXPECT_EQ(entity_uids(listed), sorted_entity_uids(live));
 }

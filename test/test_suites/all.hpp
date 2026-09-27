@@ -107,6 +107,7 @@ struct model_test : public ::testing::Test {
 #include "column_manager.hpp"
 #include "cutting_stock.hpp"
 #include "dual_solution.hpp"
+#include "enumerable_entities.hpp"
 #include "integrality_tolerance.hpp"
 #include "iteration_limit.hpp"
 #include "lazy_constraints.hpp"

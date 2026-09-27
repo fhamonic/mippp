@@ -10,6 +10,7 @@ struct highs_lp_test : public model_test<highs_api, highs_lp> {
     static void SetUpTestSuite() { construct_api("HIGHS"); }
 };
 INSTANTIATE_TEST(HiGHS_lp, LpModelTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, EnumerableEntitiesTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ReadableObjectiveTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ModifiableObjectiveTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ReadableVariablesBoundsTest, highs_lp_test);
@@ -34,6 +35,7 @@ struct highs_milp_test : public model_test<highs_api, highs_milp> {
 };
 INSTANTIATE_TEST(HiGHS_milp, LpModelTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, MilpModelTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, EnumerableEntitiesTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ReadableObjectiveTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ModifiableObjectiveTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ReadableVariablesBoundsTest, highs_milp_test);
@@ -57,6 +59,7 @@ struct highs_qp_test : public model_test<highs_api, highs_qp> {
 };
 INSTANTIATE_TEST(HiGHS_qp, LpModelTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, QpModelTest, highs_qp_test);
+INSTANTIATE_TEST(HiGHS_qp, EnumerableEntitiesTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ReadableObjectiveTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ReadableQuadraticObjectiveTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ModifiableObjectiveTest, highs_qp_test);
