@@ -20,6 +20,7 @@ INSTANTIATE_TEST(COPT_lp, DualSolutionTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ReducedCostsTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, LpStatusTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, CuttingStockTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_lp, TimeLimitTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, VerbosityTest, copt_lp_test);
 
 struct copt_milp_test : public model_test<copt_api, copt_milp> {

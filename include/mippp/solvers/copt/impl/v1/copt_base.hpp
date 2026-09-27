@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <memory>
 #include <numeric>
@@ -393,6 +394,18 @@ public:
                          CL &&... constraint_lambdas) {
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_time_limit(std::chrono::duration<double> t) {
+        check(COPT->SetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, t.count()));
+    }
+    auto get_time_limit() {
+        double t;
+        check(COPT->GetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, &t));
+        return std::chrono::duration<double>(t);
     }
 
     ///////////////////////////////////////////////////////////////////////////
