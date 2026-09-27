@@ -97,6 +97,7 @@ private:
     using status_variant = std::variant<
             status::unknown,
             status::optimal,
+            status::infeasible_or_unbounded,
             status::infeasible,
             status::unbounded,
             status::time_limit,
@@ -104,6 +105,31 @@ private:
             status::interrupted>;
 
     status_variant _status = status::unknown{};
+
+protected:
+    // 0 only says the search completed: infeasibility is reported through
+    // glp_mip_status, and a stop may still leave an incumbent
+    static status_variant _intopt_status(int ret, int mip_status) noexcept {
+        using namespace status;
+        const bool has_sol = (mip_status == GLP_FEAS || mip_status == GLP_OPT);
+        switch(ret) {
+            case 0:
+                if(mip_status == GLP_OPT)    return optimal{};
+                if(mip_status == GLP_NOFEAS) return infeasible{};
+                return unknown{has_sol};
+            case GLP_EMIPGAP: return optimal{};
+            case GLP_ENOPFS:  return infeasible{};
+            // the LP relaxation has no dual feasible solution: the search
+            // stops before knowing whether any integer point exists
+            case GLP_ENODFS:  return infeasible_or_unbounded{};
+            case GLP_ETMLIM:  return time_limit{has_sol};
+            case GLP_ESTOP:   return interrupted{has_sol};
+            case GLP_EBOUND:
+            case GLP_EROOT:
+            case GLP_EFAIL:   return failed{has_sol};
+            default:          return unknown{has_sol};
+        }
+    }
     // clang-format on
 public:
     const status_variant & get_status() const { return _status; }
@@ -118,42 +144,7 @@ public:
         const int term_out = quiet ? glp->term_out(GLP_OFF) : GLP_ON;
         const int ret = glp->intopt(model, &model_params);
         if(quiet) glp->term_out(term_out);
-        // 0 only says the search completed: infeasibility is reported through
-        // glp_mip_status, and a limit may still leave an incumbent
-        const int mip_status = glp->mip_status(model);
-        const bool has_sol = (mip_status == GLP_FEAS || mip_status == GLP_OPT);
-        switch(ret) {
-            case 0:
-                if(mip_status == GLP_OPT)
-                    _status.emplace<status::optimal>();
-                else if(mip_status == GLP_NOFEAS)
-                    _status.emplace<status::infeasible>();
-                else
-                    _status.emplace<status::unknown>(has_sol);
-                return;
-            case GLP_EMIPGAP:
-                _status.emplace<status::optimal>();
-                return;
-            case GLP_ENOPFS:
-                _status.emplace<status::infeasible>();
-                return;
-            case GLP_ENODFS:
-                _status.emplace<status::unbounded>();
-                return;
-            case GLP_ETMLIM:
-                _status.emplace<status::time_limit>(has_sol);
-                return;
-            case GLP_ESTOP:
-                _status.emplace<status::interrupted>(has_sol);
-                return;
-            case GLP_EBOUND:
-            case GLP_EROOT:
-            case GLP_EFAIL:
-                _status.emplace<status::failed>();
-                return;
-            default:
-                _status.emplace<status::unknown>(has_sol);
-        }
+        _status = _intopt_status(ret, glp->mip_status(model));
     }
     double get_solution_value() {
         return objective_offset + glp->mip_obj_val(model);

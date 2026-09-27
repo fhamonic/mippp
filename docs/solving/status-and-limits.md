@@ -66,11 +66,11 @@ Which tags a backend can return is part of its type (`model_status_t<M>`, a `std
 
 ## `infeasible_or_unbounded` and `refine_lp_status()`
 
-Solvers whose presolve applies dual reductions can terminate knowing the model is infeasible *or* unbounded without knowing which; backends where this happens carry the exact `status::infeasible_or_unbounded` tag in their variant. The test for this undecided outcome is the exact `is<status::infeasible_or_unbounded>(r)` — `is_a` would also match the decided `infeasible` and `unbounded` tags, which derive from it.
+Solvers whose presolve applies dual reductions can terminate knowing the model is infeasible *or* unbounded without knowing which; backends where this happens carry the exact `status::infeasible_or_unbounded` tag in their variant. `glpk_milp` carries it for another reason: GLPK stops as soon as the LP relaxation has no dual feasible solution, before it knows whether any integer point exists, so an unbounded MIP ends `infeasible_or_unbounded` there. The test for this undecided outcome is the exact `is<status::infeasible_or_unbounded>(r)` — `is_a` would also match the decided `infeasible` and `unbounded` tags, which derive from it.
 
 Two concepts describe what a model class can tell you:
 
-- `has_lp_status<Model>` — the status variant can report `infeasible` and `unbounded` as distinct tags. Every model class satisfies it except `glpk_milp`, which cannot report `infeasible`.
+- `has_lp_status<Model>` — the status variant can report `infeasible` and `unbounded` as distinct tags. Every model class satisfies it, though `glpk_milp` leaves an unbounded MIP undecided, as above.
 - `has_refinable_lp_status<Model>` — the model provides `refine_lp_status()`: if the current status is exactly `infeasible_or_unbounded`, it re-solves with the offending reductions disabled, so that `get_status()` afterwards reports `infeasible` or `unbounded`; on any other status it is a no-op. Currently satisfied by `gurobi_lp` and `cplex_lp`.
 
 Because refining may mean a full re-solve, it never happens behind your back — the cost is only paid where the call is written:

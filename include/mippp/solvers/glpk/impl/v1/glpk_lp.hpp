@@ -66,9 +66,48 @@ private:
             status::unknown,
             status::optimal,
             status::infeasible,
-            status::unbounded>;
+            status::unbounded,
+            status::limit_reached,
+            status::failed,
+            status::numerical_failure>;
 
     status_variant _status = status::unknown{};
+
+protected:
+    // Only a return code of 0 makes glp_get_status a verdict: after any other
+    // code the basic solution is wherever the search stopped.
+    static status_variant _simplex_status(int ret, int generic_status,
+                                          int primal_status,
+                                          double objective) noexcept {
+        using namespace status;
+        const bool has_sol = (primal_status == GLP_FEAS);
+        switch(ret) {
+            case 0:          break;
+            case GLP_ENOPFS: return infeasible{};
+            case GLP_ENODFS: return unbounded{};
+            case GLP_EOBJLL:
+            case GLP_EOBJUL:
+            case GLP_EITLIM:
+            case GLP_ETMLIM: return limit_reached{has_sol};
+            case GLP_ESING:
+            case GLP_ECOND:  return numerical_failure{has_sol};
+            case GLP_EBADB:
+            case GLP_EBOUND:
+            case GLP_EFAIL:  return failed{has_sol};
+            default:         return unknown{has_sol};
+        }
+        switch(generic_status) {
+            // DBL_MAX bounds a GLP_DB column, so an unbounded model can end
+            // GLP_OPT on an objective that overflowed
+            case GLP_OPT:    return std::isfinite(objective)
+                                    ? status_variant(optimal{})
+                                    : status_variant(unbounded{});
+            case GLP_NOFEAS: return infeasible{};
+            case GLP_UNBND:  return unbounded{};
+            // GLP_INFEAS only says that this basic solution violates a bound
+            default:         return unknown{has_sol};
+        }
+    }
     // clang-format on
 
 public:
@@ -77,30 +116,10 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        // an error code leaves the solution undefined: never keep the status
-        // of the previous solve
-        _status = status::unknown{};
-        switch(glp->simplex(model, &model_params)) {
-            case GLP_ENOPFS:
-                _status.emplace<status::infeasible>();
-                return;
-            case GLP_ENODFS:
-                _status.emplace<status::unbounded>();
-                return;
-        }
-        const int primal_status = glp->get_status(model);
-        if(primal_status == GLP_UNBND || !std::isfinite(get_solution_value())) {
-            _status.emplace<status::unbounded>();
-            return;
-        }
-        if(primal_status == GLP_OPT) {
-            _status.emplace<status::optimal>();
-            return;
-        }
-        if(primal_status == GLP_INFEAS || primal_status == GLP_NOFEAS) {
-            _status.emplace<status::infeasible>();
-            return;
-        }
+        const int ret = glp->simplex(model, &model_params);
+        _status =
+            _simplex_status(ret, glp->get_status(model),
+                            glp->get_prim_stat(model), get_solution_value());
     }
     double get_solution_value() {
         return objective_offset + glp->get_obj_val(model);
