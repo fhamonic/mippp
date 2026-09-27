@@ -44,6 +44,7 @@ add_executable(
     column_manager.cpp
     deletion_filter.cpp
     iis_snapshot.cpp
+    iis_oracle.cpp
     mapping.cpp
     concat_view.cpp
     cartesian_product_view.cpp
