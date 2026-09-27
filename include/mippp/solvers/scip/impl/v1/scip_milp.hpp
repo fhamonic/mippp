@@ -39,8 +39,8 @@ public:
 protected:
     const scip_api * SCIP;
     struct Scip * model;
-    std::vector<SCIP_VAR *> variables;
-    std::vector<SCIP_CONS *> constraints;
+    std::vector<SCIP_VAR *> _scip_vars;
+    std::vector<SCIP_CONS *> _scip_conss;
 
     std::vector<SCIP_VAR *> tmp_vars;
     std::vector<SCIP_Real> tmp_reals;
@@ -60,7 +60,7 @@ protected:
             for(auto && [entity, coef] : entries) {
                 const int id = entity.id();
                 _check_distinct(id);
-                tmp_vars.emplace_back(*(variables.data() + id));
+                tmp_vars.emplace_back(*(_scip_vars.data() + id));
                 tmp_reals.emplace_back(coef);
             }
         } else {
@@ -73,7 +73,7 @@ protected:
                     continue;
                 }
                 p = std::make_pair(register_count, tmp_vars.size());
-                tmp_vars.emplace_back(*(variables.data() + id));
+                tmp_vars.emplace_back(*(_scip_vars.data() + id));
                 tmp_reals.emplace_back(coef);
             }
         }
@@ -90,10 +90,10 @@ public:
     }
     ~scip_milp() {
         if(!model) return;
-        for(auto & var : variables) {
+        for(auto & var : _scip_vars) {
             SCIP->releaseVar(model, &var);
         }
-        for(auto & cons : constraints) {
+        for(auto & cons : _scip_conss) {
             SCIP->releaseCons(model, &cons);
         }
         SCIP->free(&model);
@@ -104,8 +104,8 @@ public:
         : model_base<int, double>(std::move(other))
         , SCIP(other.SCIP)
         , model(other.model)
-        , variables(std::move(other.variables))
-        , constraints(std::move(other.constraints))
+        , _scip_vars(std::move(other._scip_vars))
+        , _scip_conss(std::move(other._scip_conss))
         , _solved(other._solved)
         , _status(other._status) {
         other.model = nullptr;
@@ -143,8 +143,8 @@ private:
     }
 
 public:
-    std::size_t num_variables() { return variables.size(); }
-    std::size_t num_constraints() { return constraints.size(); }
+    std::size_t num_variables() { return _scip_vars.size(); }
+    std::size_t num_constraints() { return _scip_conss.size(); }
     std::size_t num_nonzeros() {
         return static_cast<std::size_t>(SCIP->getNNZs(model));
     }
@@ -155,10 +155,10 @@ public:
     const scip_api & native_api() const noexcept { return *SCIP; }
     struct Scip * native_model() const noexcept { return model; }
     SCIP_VAR * native_id(variable v) const noexcept {
-        return variables[v.uid()];
+        return _scip_vars[v.uid()];
     }
     SCIP_CONS * native_id(constraint c) const noexcept {
-        return constraints[c.uid()];
+        return _scip_conss[c.uid()];
     }
 
 private:
@@ -192,11 +192,11 @@ public:
     }
     void set_objective(linear_expression auto && le) {
         _free_transform();
-        for(auto && var : variables) {
+        for(auto && var : _scip_vars) {
             check(SCIP->chgVarObj(model, var, 0.0));
         }
         for(auto && [var_, coef] : le.linear_terms()) {
-            const auto & var = variables[var_.uid()];
+            const auto & var = _scip_vars[var_.uid()];
             check(SCIP->chgVarObj(model, var, SCIP->varGetObj(var) + coef));
         }
         set_objective_offset(le.constant());
@@ -208,7 +208,7 @@ public:
     void add_to_objective(linear_expression auto && le) {
         _free_transform();
         for(auto && [var_, coef] : le.linear_terms()) {
-            const auto & var = variables[var_.uid()];
+            const auto & var = _scip_vars[var_.uid()];
             check(SCIP->chgVarObj(model, var, SCIP->varGetObj(var) + coef));
         }
         set_objective_offset(get_objective_offset() + le.constant());
@@ -227,7 +227,7 @@ public:
                     return std::make_pair(
                         variable(i),
                         SCIP->varGetObj(
-                            variables[static_cast<std::size_t>(i)]));
+                            _scip_vars[static_cast<std::size_t>(i)]));
                 }),
             get_objective_offset());
     }
@@ -245,7 +245,7 @@ private:
             params.upper_bound.value_or(SCIP->infinity(model)), params.obj_coef,
             type));
         check(SCIP->addVar(model, var));
-        variables.emplace_back(var);
+        _scip_vars.emplace_back(var);
     }
 
 public:
@@ -277,13 +277,13 @@ public:
     void set_continuous(variable v) {
         _free_transform();
         unsigned int infeas;
-        check(SCIP->chgVarType(model, variables[v.uid()],
+        check(SCIP->chgVarType(model, _scip_vars[v.uid()],
                                SCIP_VARTYPE_CONTINUOUS, &infeas));
     }
     void set_integer(variable v) {
         _free_transform();
         unsigned int infeas;
-        check(SCIP->chgVarType(model, variables[v.uid()], SCIP_VARTYPE_INTEGER,
+        check(SCIP->chgVarType(model, _scip_vars[v.uid()], SCIP_VARTYPE_INTEGER,
                                &infeas));
     }
     void set_binary(variable v) {
@@ -291,36 +291,36 @@ public:
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);
         unsigned int infeas;
-        check(SCIP->chgVarType(model, variables[v.uid()], SCIP_VARTYPE_BINARY,
+        check(SCIP->chgVarType(model, _scip_vars[v.uid()], SCIP_VARTYPE_BINARY,
                                &infeas));
     }
     void set_objective_coefficient(variable v, double c) {
         _free_transform();
-        check(SCIP->chgVarObj(model, variables[v.uid()], c));
+        check(SCIP->chgVarObj(model, _scip_vars[v.uid()], c));
     }
     void set_variable_lower_bound(variable v, double lb) {
         _free_transform();
-        check(SCIP->chgVarLb(model, variables[v.uid()], lb));
+        check(SCIP->chgVarLb(model, _scip_vars[v.uid()], lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
         _free_transform();
-        check(SCIP->chgVarUb(model, variables[v.uid()], ub));
+        check(SCIP->chgVarUb(model, _scip_vars[v.uid()], ub));
     }
     void set_variable_name(variable v, std::string name) {
         _free_transform();
-        check(SCIP->chgVarName(model, variables[v.uid()], name.c_str()));
+        check(SCIP->chgVarName(model, _scip_vars[v.uid()], name.c_str()));
     }
     double get_objective_coefficient(variable v) {
-        return SCIP->varGetObj(variables[v.uid()]);
+        return SCIP->varGetObj(_scip_vars[v.uid()]);
     }
     double get_variable_lower_bound(variable v) {
-        return SCIP->varGetLbGlobal(variables[v.uid()]);
+        return SCIP->varGetLbGlobal(_scip_vars[v.uid()]);
     }
     double get_variable_upper_bound(variable v) {
-        return SCIP->varGetUbGlobal(variables[v.uid()]);
+        return SCIP->varGetUbGlobal(_scip_vars[v.uid()]);
     }
     std::string get_variable_name(variable v) {
-        return std::string(SCIP->varGetName(variables[v.uid()]));
+        return std::string(SCIP->varGetName(_scip_vars[v.uid()]));
     }
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////////// Constraints ///////////////////////////////
@@ -351,13 +351,13 @@ public:
     constraint add_constraint(LC && lc) {
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
         _prepare_coalescing(num_variables());
-        constraints.emplace_back(_add_constraint<false>(std::forward<LC>(lc)));
+        _scip_conss.emplace_back(_add_constraint<false>(std::forward<LC>(lc)));
         return constraint(constr_id);
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
-        constraints.emplace_back(_add_constraint<true>(std::forward<LC>(lc)));
+        _scip_conss.emplace_back(_add_constraint<true>(std::forward<LC>(lc)));
         return constraint(constr_id);
     }
 
@@ -392,7 +392,7 @@ private:
             static_cast<constraint_id>(num_constraints());
         constraint_id constr_id = offset;
         for(auto && key : keys) {
-            constraints.emplace_back(_add_first_valued_constraint<distinct>(
+            _scip_conss.emplace_back(_add_first_valued_constraint<distinct>(
                 key, constraint_lambdas...));
             ++constr_id;
         }
@@ -528,7 +528,7 @@ public:
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         SCIP_SOL * sol = SCIP->getBestSol(model);
         check(SCIP->getSolVals(model, sol, static_cast<int>(num_vars),
-                               variables.data(), solution.get()));
+                               _scip_vars.data(), solution.get()));
         return variable_mapping(std::move(solution));
     }
 };
