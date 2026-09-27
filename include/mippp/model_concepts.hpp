@@ -277,6 +277,14 @@ concept has_refinable_lp_status =
                              status::infeasible_or_unbounded> &&
     requires(T & model) { model.refine_lp_status(); };
 
+// Resets what get_status() reports, not the solver: its warm start survives.
+template <typename T>
+concept has_status_reset =
+    variant_with_alternative<model_status_t<T>, status::unknown> &&
+    requires(T & model) {
+        { model.reset_status() } noexcept;
+    };
+
 template <typename T, typename M = T>
 concept has_dual_solution = requires(T & model) {
     { model.get_dual_solution() }

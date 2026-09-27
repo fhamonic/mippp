@@ -93,6 +93,17 @@ model.solve();
 if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
 ```
 
+## Resetting the status
+
+`get_status()` keeps reporting the last solve until the next `solve()`, even after the model has changed. Code that changes a model and solves it on its own behalf, as an algorithm probing variants of the caller's model does, leaves behind the status of its own last solve, which says nothing about the model the caller gets back. `reset_status()` makes `get_status()` report `unknown` again, without a solution, as on a model never solved:
+
+```cpp
+model.reset_status();
+assert(is<status::unknown>(model.get_status()));
+```
+
+It changes nothing else: the model's data stay, and so does what the solver keeps for a warm start. Every model class provides it, under the concept `has_status_reset<Model>`, which a generic algorithm can require.
+
 ## Limits
 
 | Concept | Setter / getter | Backends |

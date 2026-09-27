@@ -759,6 +759,28 @@ TYPED_TEST_P(LpModelTest, move_preserves_status) {
     });
 }
 
+TYPED_TEST_P(LpModelTest, reset_status_reports_unknown) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        static_assert(has_status_reset<typename TestFixture::model_type>);
+        auto model = this->new_model();
+        auto x = model.add_variable({.upper_bound = 3});
+        auto y = model.add_variable();
+        model.set_maximization();
+        model.set_objective(x + y);
+        model.add_constraint(x + 2 * y <= 4);
+        model.solve();
+        const auto solved = model.get_status();
+        ASSERT_TRUE(is_a<status::optimal>(solved));
+        model.reset_status();
+        ASSERT_TRUE(is<status::unknown>(model.get_status()));
+        ASSERT_FALSE(status::solution_available(model.get_status()));
+        model.solve();
+        ASSERT_EQ(model.get_status().index(), solved.index());
+        ASSERT_NEAR(model.get_solution_value(), 3.5, TEST_EPSILON);
+    });
+}
+
 TYPED_TEST_P(LpModelTest, native_ids) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -799,6 +821,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     solve_lp_objective_redundant_terms, solve_lp_constraint_redundant_terms,
     solve_lp_zero_rows, solve_lp_distinct_variables,
     solve_lp_mixed_distinct_variables, solve_lp_non_standard_form_max,
-    solve_lp_non_standard_form_min, move_preserves_status);
+    solve_lp_non_standard_form_min, move_preserves_status,
+    reset_status_reports_unknown);
 
 }  // namespace mippp

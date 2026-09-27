@@ -80,7 +80,7 @@ private:
     scalar _feasibility_tolerance = 1e-7;
     bool _verbose = false;
 
-    status_variant _status;
+    status_variant _status = status::unknown{};
     scalar _solution_value = 0.0;
     std::vector<scalar> _primal_solution;
     std::vector<scalar> _dual_solution;
@@ -427,6 +427,12 @@ private:
 
 public:
     const status_variant & get_status() const { return _status; }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _solution_value = 0.0;
+        _primal_solution.clear();
+        _dual_solution.clear();
+    }
     void solve() {
         const std::size_t num_cols = _cols.size();
         const std::size_t num_rows = _rows.size();
@@ -528,6 +534,7 @@ static_assert(has_num_nonzeros<dumb_lp>);
 static_assert(has_enumerable_variables<dumb_lp>);
 static_assert(has_enumerable_constraints<dumb_lp>);
 static_assert(has_lp_status<dumb_lp>);
+static_assert(has_status_reset<dumb_lp>);
 static_assert(has_dual_solution<dumb_lp>);
 static_assert(has_named_variables<dumb_lp>);
 static_assert(has_named_constraints<dumb_lp>);

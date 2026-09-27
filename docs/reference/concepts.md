@@ -90,12 +90,13 @@ single-parameter.
 
 ## Solve status
 
-`get_status()` is required by `lp_model` itself: every model class returns a `std::variant` over the tag hierarchy of namespace `status` (`optimal` and its refinements, `infeasible_or_unbounded` with its refinements `infeasible` and `unbounded`, `interrupted`, `failed`, `numerical_failure`, `out_of_memory`, `limit_reached` and its five refinements, `unknown`). Query it with `is<S>(r)` (exact tag), `is_a<S>(r)` (whole branch) and `status::solution_available(r)`; the variant type is `model_status_t<M>`. `is`, `is_a` and the `variant_*` concepts behind them live in `utility/variant.hpp` and serve the basis statuses too. Two concepts refine what a given model class can report:
+`get_status()` is required by `lp_model` itself: every model class returns a `std::variant` over the tag hierarchy of namespace `status` (`optimal` and its refinements, `infeasible_or_unbounded` with its refinements `infeasible` and `unbounded`, `interrupted`, `failed`, `numerical_failure`, `out_of_memory`, `limit_reached` and its five refinements, `unknown`). Query it with `is<S>(r)` (exact tag), `is_a<S>(r)` (whole branch) and `status::solution_available(r)`; the variant type is `model_status_t<M>`. `is`, `is_a` and the `variant_*` concepts behind them live in `utility/variant.hpp` and serve the basis statuses too. Three concepts refine what a given model class can report or do with it:
 
 | Concept           | Provides |
 | :---------- | --- |
 | `has_lp_status` | The status variant can report `infeasible` and `unbounded` as distinct tags, not only the coarse `infeasible_or_unbounded`. |
 | `has_refinable_lp_status` | The variant carries the exact `infeasible_or_unbounded` tag and the model provides `refine_lp_status()` to resolve it into `infeasible` or `unbounded` — possibly by re-solving; a no-op on any other status. |
+| `has_status_reset` | `reset_status()`, `noexcept`, after which `get_status()` reports `unknown`, without a solution, until the next `solve()`. Only the reported status changes: the model's data and the solver's warm start stay. Satisfied by every model class, but not part of `lp_model`. See [Resetting the status](../solving/status-and-limits.md#resetting-the-status). |
 
 See [Status, limits and tolerances](../solving/status-and-limits.md) for the
 hierarchy and how to branch on it.
