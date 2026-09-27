@@ -79,7 +79,7 @@ private:
         if constexpr(!distinct) _prepare_coalescing(_num_var_native_ids());
         _reset_cache();
         _register_variables_entries<distinct>(lc.linear_terms());
-        check(CPX->addindconstr(env, lp, x.id(), static_cast<int>(!val),
+        check(CPX->addindconstr(env, lp, _native_id(x), static_cast<int>(!val),
                                 static_cast<int>(tmp_indices.size()), lc.rhs(),
                                 constraint_sense_to_cplex_sense(lc.sense()),
                                 tmp_indices.data(), tmp_scalars.data(),
@@ -140,11 +140,13 @@ public:
             if constexpr(!distinct)
                 _prepare_coalescing(model->_num_var_native_ids());
             _reset_cache();
-            _register_variables_entries<distinct>(lc.linear_terms());
-            if(model->_remap_ids) {
-                for(auto & id : tmp_indices)
-                    id = model->_native_ids_map[static_cast<std::size_t>(id)];
-            }
+            const auto native_id = [this](const variable & v) {
+                return model->_native_id(v);
+            };
+            if constexpr(distinct)
+                _register_raw_entries(lc.linear_terms(), native_id);
+            else
+                _register_coalescing_entries(lc.linear_terms(), native_id);
             int matbegin = 0;
             const double b = lc.rhs();
             const char sense = constraint_sense_to_cplex_sense(lc.sense());

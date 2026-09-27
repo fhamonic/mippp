@@ -45,15 +45,15 @@ private:
 
 public:
     void set_continuous(variable v) {
-        check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
+        check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, _native_id(v),
                                       GRB_CONTINUOUS));
     }
     void set_integer(variable v) {
-        check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
+        check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, _native_id(v),
                                       GRB_INTEGER));
     }
     void set_binary(variable v) {
-        check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, v.id(),
+        check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, _native_id(v),
                                       GRB_BINARY));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -66,7 +66,7 @@ private:
         _reset_cache();
         _register_variables_entries<distinct>(lc.linear_terms());
         check(GRB->addgenconstrIndicator(
-            model, nullptr, x.id(), static_cast<int>(val),
+            model, nullptr, _native_id(x), static_cast<int>(val),
             static_cast<int>(tmp_indices.size()), tmp_indices.data(),
             tmp_scalars.data(), constraint_sense_to_gurobi_sense(lc.sense()),
             lc.rhs()));
@@ -125,7 +125,13 @@ public:
         void _add_lazy_constraint(LC && lc) {
             if constexpr(!distinct) _prepare_coalescing(num_variables());
             _reset_cache();
-            _register_variables_entries<distinct>(lc.linear_terms());
+            const auto native_id = [this](const variable & v) {
+                return parent._native_id(v);
+            };
+            if constexpr(distinct)
+                _register_raw_entries(lc.linear_terms(), native_id);
+            else
+                _register_coalescing_entries(lc.linear_terms(), native_id);
             check(parent.GRB->cblazy(
                 cbdata, static_cast<int>(tmp_indices.size()),
                 tmp_indices.data(), tmp_scalars.data(),

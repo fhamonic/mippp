@@ -326,11 +326,135 @@ TYPED_TEST_P(RemoveVariableTest, remove_three_entries_addvar_solve) {
     });
 }
 
+// These cases remove the first variable: removing the last one leaves every
+// surviving column index equal to its handle id.
+TYPED_TEST_P(RemoveVariableTest, remove_settype_solve) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        if constexpr(!milp_model<decltype(model)>) {
+            GTEST_SKIP();
+        } else {
+            auto x0 = model.add_variable();
+            auto a = model.add_integer_variable();
+            auto b = model.add_variable();
+            auto c = model.add_variable();
+            auto d = model.add_variable({.lower_bound = 0, .upper_bound = 0.5});
+            model.remove_variable(x0);
+            model.set_continuous(a);
+            model.set_integer(b);
+            model.set_binary(c);
+            // rows, not bounds: Gurobi rounds the bounds of an integer column
+            model.add_constraint(2 * a <= 3);
+            model.add_constraint(2 * b <= 5);
+            model.add_constraint(2 * c <= 1);
+            model.set_maximization();
+            model.set_objective(a + b + c + d);
+
+            model.solve();
+            ASSERT_NEAR(model.get_solution_value(), 4.0, TEST_EPSILON);
+            auto solution = model.get_solution();
+            ASSERT_NEAR(solution[a], 1.5, TEST_EPSILON);
+            ASSERT_NEAR(solution[b], 2.0, TEST_EPSILON);
+            ASSERT_NEAR(solution[c], 0.0, TEST_EPSILON);
+            ASSERT_NEAR(solution[d], 0.5, TEST_EPSILON);
+        }
+    });
+}
+
+TYPED_TEST_P(RemoveVariableTest, remove_addindicator_solve) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        if constexpr(!has_indicator_constraints<decltype(model)>) {
+            GTEST_SKIP();
+        } else {
+            auto x0 = model.add_variable();
+            auto z = model.add_binary_variable();
+            auto w = model.add_binary_variable();
+            auto x = model.add_variable({.lower_bound = 0, .upper_bound = 10});
+            model.remove_variable(x0);
+            model.add_constraint(z >= 1);
+            model.add_indicator_constraint(z, true, x <= 1);
+            model.set_maximization();
+            model.set_objective(x + w);
+
+            model.solve();
+            ASSERT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+            auto solution = model.get_solution();
+            ASSERT_NEAR(solution[x], 1.0, TEST_EPSILON);
+            ASSERT_NEAR(solution[w], 1.0, TEST_EPSILON);
+        }
+    });
+}
+
+namespace detail {
+template <typename M>
+concept has_candidate_lazy_constraints =
+    has_candidate_solution_callback<M> &&
+    has_lazy_constraints<candidate_solution_callback_handle_t<M>, M>;
+
+template <typename Test, typename Separate>
+void remove_then_cut_off_candidates(Test & test, Separate && separate) {
+    auto model = test.new_model();
+    if constexpr(!has_candidate_lazy_constraints<decltype(model)>) {
+        GTEST_SKIP();
+    } else {
+        using namespace operators;
+        auto x0 = model.add_binary_variable();
+        auto a = model.add_binary_variable();
+        auto b = model.add_binary_variable();
+        auto c = model.add_binary_variable();
+        model.remove_variable(x0);
+        model.set_maximization();
+        model.set_objective(3 * a + 2 * b + c);
+
+        int num_cuts = 0;
+        model.set_candidate_solution_callback([&](auto & handle) {
+            using namespace operators;
+            auto solution = handle.get_solution();
+            if(solution[a] + solution[b] + solution[c] <= 2 + TEST_EPSILON)
+                return;
+            ++num_cuts;
+            separate(handle, a + b + c <= 2);
+        });
+        model.solve();
+
+        ASSERT_GE(num_cuts, 1);
+        ASSERT_NEAR(model.get_solution_value(), 5.0, TEST_EPSILON);
+        auto solution = model.get_solution();
+        ASSERT_NEAR(solution[a], 1.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[b], 1.0, TEST_EPSILON);
+        ASSERT_NEAR(solution[c], 0.0, TEST_EPSILON);
+    }
+}
+}  // namespace detail
+
+TYPED_TEST_P(RemoveVariableTest, remove_addlazy_solve) {
+    this->SkipOnLicenseError([this]() {
+        detail::remove_then_cut_off_candidates(
+            *this,
+            [](auto & handle, auto && lc) { handle.add_lazy_constraint(lc); });
+    });
+}
+
+TYPED_TEST_P(RemoveVariableTest, remove_addlazy_distinct_variables_solve) {
+    this->SkipOnLicenseError([this]() {
+        detail::remove_then_cut_off_candidates(
+            *this, [](auto & handle, auto && lc) {
+                handle.add_lazy_constraint(distinct_variables, lc);
+            });
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(RemoveVariableTest, remove_solve,
                             solve_remove_solve, remove_addvar_solve,
                             solve_remove_addvar_solve, remove_addcol_solve,
                             solve_remove_addcol_solve, remove_addnamedvar_solve,
                             solve_remove_addnamedvar_solve,
-                            remove_three_entries_addvar_solve);
+                            remove_three_entries_addvar_solve,
+                            remove_settype_solve, remove_addindicator_solve,
+                            remove_addlazy_solve,
+                            remove_addlazy_distinct_variables_solve);
 
 }  // namespace mippp
