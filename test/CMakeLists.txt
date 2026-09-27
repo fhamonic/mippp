@@ -42,6 +42,7 @@ add_executable(
     quadratic_expression.cpp
     unordered_dense_map.cpp
     column_manager.cpp
+    deletion_filter.cpp
     mapping.cpp
     concat_view.cpp
     cartesian_product_view.cpp
