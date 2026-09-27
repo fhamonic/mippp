@@ -69,7 +69,8 @@ public:
         , objective_offset(other.objective_offset)
         , feasibility_tol(other.feasibility_tol)
         , _lazy_num_variables(other._lazy_num_variables)
-        , _lazy_num_constraints(other._lazy_num_constraints) {
+        , _lazy_num_constraints(other._lazy_num_constraints)
+        , _status(other._status) {
         other.model = nullptr;
     }
 

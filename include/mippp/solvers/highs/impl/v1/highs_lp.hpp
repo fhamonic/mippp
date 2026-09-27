@@ -65,7 +65,9 @@ private:
             case kHighsModelStatusInfeasible:     return infeasible{};
             case kHighsModelStatusUnbounded:      return unbounded{};
         }
-        int psolstatus;
+        // HiGHS leaves it unwritten whenever its info is invalid, and returns
+        // a warning that check() lets through
+        int psolstatus = kHighsSolutionStatusNone;
         check(Highs->getIntInfoValue(model, "primal_solution_status", &psolstatus));
         const bool has_sol = (psolstatus == kHighsSolutionStatusFeasible);
         switch (status_) {

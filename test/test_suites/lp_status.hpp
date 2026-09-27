@@ -149,9 +149,25 @@ TYPED_TEST_P(LpStatusTest, min_infeasible) {
     });
 }
 
+// Without columns there is nothing to optimize, yet a row can be violated:
+// a backend that skips its solver must not report such a model optimal.
+TYPED_TEST_P(LpStatusTest, constant_row_without_variables_is_not_optimal) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        constexpr auto & no_terms =
+            empty_linear_expression<model_variable_t<decltype(model)>, double>;
+        model.add_constraint(no_terms >= 1.0);
+        model.solve();
+        ASSERT_TRUE(is_a<status::infeasible>(model.get_status()) ||
+                    is<status::unknown>(model.get_status()));
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(LpStatusTest, not_solved, max_bounded, min_bounded,
                             max_unbounded, min_unbounded,
                             unbounded_after_removing_a_bound, max_infeasible,
-                            min_infeasible);
+                            min_infeasible,
+                            constant_row_without_variables_is_not_optimal);
 
 }  // namespace mippp

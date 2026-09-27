@@ -105,7 +105,8 @@ public:
         , model(other.model)
         , variables(std::move(other.variables))
         , constraints(std::move(other.constraints))
-        , _solved(other._solved) {
+        , _solved(other._solved)
+        , _status(other._status) {
         other.model = nullptr;
     }
 

@@ -2,12 +2,14 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <forward_list>
 #include <functional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "mippp/detail/cartesian_product_view.hpp"
@@ -739,6 +741,24 @@ TYPED_TEST_P(LpModelTest, solve_lp_non_standard_form_min) {
     });
 }
 
+TYPED_TEST_P(LpModelTest, move_preserves_status) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto x = model.add_variable({.upper_bound = 3});
+        auto y = model.add_variable({.lower_bound = 1});
+        model.set_maximization();
+        model.set_objective(2 * x + 1.5 * y);
+        model.add_constraint(x + y <= 5);
+        model.solve();
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+        const std::size_t solved = model.get_status().index();
+        auto moved = std::move(model);
+        ASSERT_EQ(moved.get_status().index(), solved);
+        ASSERT_NEAR(moved.get_solution_value(), 9.0, TEST_EPSILON);
+    });
+}
+
 TYPED_TEST_P(LpModelTest, native_ids) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -779,6 +799,6 @@ REGISTER_TYPED_TEST_SUITE_P(
     solve_lp_objective_redundant_terms, solve_lp_constraint_redundant_terms,
     solve_lp_zero_rows, solve_lp_distinct_variables,
     solve_lp_mixed_distinct_variables, solve_lp_non_standard_form_max,
-    solve_lp_non_standard_form_min);
+    solve_lp_non_standard_form_min, move_preserves_status);
 
 }  // namespace mippp

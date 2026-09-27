@@ -57,7 +57,8 @@ public:
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_lower_bounds(std::move(other.tmp_lower_bounds))
         , tmp_upper_bounds(std::move(other.tmp_upper_bounds))
-        , _free_variable_ids(std::move(other._free_variable_ids)) {
+        , _free_variable_ids(std::move(other._free_variable_ids))
+        , _status(other._status) {
         other.model = nullptr;
     }
 

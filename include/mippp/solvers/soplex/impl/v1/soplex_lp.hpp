@@ -63,7 +63,8 @@ public:
         , SoPlex(other.SoPlex)
         , model(other.model)
         , objective_offset(other.objective_offset)
-        , _time_limit(other._time_limit) {
+        , _time_limit(other._time_limit)
+        , _status(other._status) {
         other.model = nullptr;
     }
 
