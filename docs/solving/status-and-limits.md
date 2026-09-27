@@ -21,7 +21,7 @@ any
 ├── completed
 │   ├── optimal
 │   │   ├── optimal_face_unbounded          (infinitely many optima)
-│   │   └── optimal_infeasible_unscaled
+│   │   └── optimal_infeasible_unscaled     (violated once unscaled)
 │   └── infeasible_or_unbounded
 │       ├── infeasible → primal_and_dual_infeasible
 │       └── unbounded
@@ -48,6 +48,19 @@ else if(is_a<status::failed>(r))        record_failure(model);
 
 These are *proofs*, not a partition: a solve stopped by a time limit is in none of the `completed` branches. Never treat `!is_a<status::infeasible>(r)` as "feasible".
 
+Nor is every `optimal` a feasible point. `optimal_infeasible_unscaled` means the solver reached an optimum of its internally rescaled problem that violates a bound or constraint of your model beyond the feasibility tolerance. Only the Clp, CPLEX and SoPlex models report it, and a model that is in fact infeasible can end there. `is_a<status::optimal>(r)` accepts it, so code that relies on feasibility also checks for this exact tag. `is<S>(r)` does not compile on a variant without the alternative `S`, so generic code guards the check with the `variant_with_alternative` concept:
+
+```cpp
+template <typename Model>
+bool feasible_optimum(const Model & model) {
+    const auto & r = model.get_status();
+    if constexpr(variant_with_alternative<model_status_t<Model>,
+                                          status::optimal_infeasible_unscaled>)
+        if(is<status::optimal_infeasible_unscaled>(r)) return false;
+    return is_a<status::optimal>(r);
+}
+```
+
 Crucially, a stopped solve may or may not leave an incumbent behind, and that is reported separately:
 
 ```cpp
@@ -62,7 +75,7 @@ Reading a solution when no solution is available is a solver-level error — alw
 Which tags a backend can return is part of its type (`model_status_t<M>`, a `std::variant`), and a limit setter only exists on a backend whose `get_status()` can actually report that limit — the concepts require it.
 
 !!! note "A backend's tag list may grow in a minor release"
-    As a solver outcome that MIP++ used to fold into a coarser tag gets its own, the tag is added to that backend's variant in a minor release. `is`, `is_a` and `solution_available` are unaffected. An exhaustive `std::visit` is a compile-time check against the pinned version only: give the visitor a catch-all `auto` overload, or expect to add a case when you upgrade. Removing or renaming a tag stays a major-version change.
+    As a solver outcome that MIP++ used to fold into a coarser tag gets its own, the tag is added to that backend's variant in a minor release. It derives from the coarser tag, so `is_a` and `solution_available` answer as before, but the exact `is` on the coarser tag turns false on those solves. An exhaustive `std::visit` is a compile-time check against the pinned version only: give the visitor a catch-all `auto` overload, or expect to add a case when you upgrade. Removing or renaming a tag stays a major-version change.
 
 ## `infeasible_or_unbounded` and `refine_lp_status()`
 

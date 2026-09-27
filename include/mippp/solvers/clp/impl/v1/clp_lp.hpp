@@ -528,19 +528,26 @@ private:
     using status_variant = std::variant<
             status::unknown,
             status::optimal,
+            status::optimal_infeasible_unscaled,
             status::infeasible,
             status::unbounded>;
 
     status_variant _status = status::unknown{};
 
-    status_variant _get_status() {
+protected:
+    static status_variant _simplex_status(int problem_status,
+                                          int secondary_status) noexcept {
         using namespace status;
-        switch(Clp->status(model)) {
-            case 0: return optimal{};
-            case 1: return infeasible{};
-            case 2: return unbounded{};
-            default:
-                return unknown{};
+        switch(problem_status) {
+            // ClpModel::secondaryStatus(): 2 and 4 leave primal
+            // infeasibilities once unscaled, while 3 leaves only dual ones
+            // and the point stays feasible
+            case 0:  return secondary_status == 2 || secondary_status == 4
+                            ? status_variant(optimal_infeasible_unscaled{})
+                            : status_variant(optimal{});
+            case 1:  return infeasible{};
+            case 2:  return unbounded{};
+            default: return unknown{};
         }
     }
     // clang-format on
@@ -563,7 +570,8 @@ public:
         Clp->scaling(model, 0);
         Clp->scaling(model, scaling_mode);
         Clp->primal(model, 0);
-        _status = _get_status();
+        _status =
+            _simplex_status(Clp->status(model), Clp->secondaryStatus(model));
     }
     scalar get_solution_value() { return Clp->getObjValue(model); }
 
