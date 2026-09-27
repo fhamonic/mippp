@@ -25,6 +25,8 @@ using MSKstring_t = char *;
 using MSKbooleant = int;
 
 using MSKrescodee = int;
+constexpr MSKrescodee MSK_RES_ERR_LICENSE = 1000;
+constexpr MSKrescodee MSK_RES_ERR_LICENSE_NO_SERVER_LINE = 1028;
 
 constexpr double MSK_INFINITY = 1.0e30;
 constexpr int MSK_MAX_STR_LEN = 1024;
@@ -467,7 +469,10 @@ public:
         if(error == 0) return;
         char str[MSK_MAX_STR_LEN];
         getcodedesc(error, nullptr, str);
-        if(error == 1001) throw license_error(str);
+        // every license code of MOSEK 11.0 lies in this block
+        if(error >= MSK_RES_ERR_LICENSE &&
+           error <= MSK_RES_ERR_LICENSE_NO_SERVER_LINE)
+            throw license_error(str);
         throw solver_error(str);
     }
 };

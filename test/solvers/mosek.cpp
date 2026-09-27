@@ -118,6 +118,19 @@ TEST(MOSEK_slots, a_missing_slot_is_never_picked) {
 struct mosek_lp_test : public model_test<mosek_api, mosek_lp> {
     static void SetUpTestSuite() { construct_api("MOSEK"); }
 };
+TEST_F(mosek_lp_test, license_codes_throw_license_error) {
+    for(int code = 1000; code <= 1028; ++code)
+        EXPECT_THROW(api->_check(code), license_error) << code;
+    for(int code : {999, 1029, 1050}) {
+        try {
+            api->_check(code);
+            ADD_FAILURE() << code << " did not throw";
+        } catch(const license_error &) {
+            ADD_FAILURE() << code << " is not a license code";
+        } catch(const solver_error &) {
+        }
+    }
+}
 TEST_F(mosek_lp_test, column_less_model_is_optimal_only_if_its_rows_hold) {
     SkipOnLicenseError([this]() {
         expect_column_less_status_follows_rows(new_model(), new_model(),
