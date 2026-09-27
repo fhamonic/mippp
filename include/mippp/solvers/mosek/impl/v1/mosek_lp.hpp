@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <variant>
 
 #include "mippp/model_concepts.hpp"
@@ -36,28 +37,27 @@ private:
             status::interrupted>;
 
     status_variant _status = status::unknown{};
+    std::optional<MSKsoltypee> _solution;
 
     // whether a stopped solve left the solution get_solution() reads
     bool _has_solution() {
-        MSKbooleant defined = 0;
-        check(MSK->solutiondef(task, MSK_SOL_BAS, &defined));
-        if(!defined) return false;
+        if(!_solution) return false;
         MSKsolstae solsta;
-        check(MSK->getsolsta(task, MSK_SOL_BAS, &solsta));
-        return solsta == MSK_SOL_STA_OPTIMAL || solsta == MSK_SOL_STA_PRIM_FEAS ||
-               solsta == MSK_SOL_STA_PRIM_AND_DUAL_FEAS;
+        check(MSK->getsolsta(task, *_solution, &solsta));
+        return _has_primal_solution(solsta);
     }
 
-    status_variant _get_status(MSKrestrmcode trm) {
+    status_variant _get_status(MSKrescodee trm) {
         using namespace status;
         switch(trm) {
             case MSK_RES_OK: {
+                if(!_solution) return unknown{};
                 MSKprostae prosta;
-                check(MSK->getprosta(task, MSK_SOL_BAS, &prosta));
+                check(MSK->getprosta(task, *_solution, &prosta));
                 switch(prosta) {
                     case MSK_PRO_STA_PRIM_AND_DUAL_FEAS: {
                         MSKsolstae solsta;
-                        check(MSK->getsolsta(task, MSK_SOL_BAS, &solsta));
+                        check(MSK->getsolsta(task, *_solution, &solsta));
                         switch (solsta) {
                             case MSK_SOL_STA_OPTIMAL:
                             case MSK_SOL_STA_INTEGER_OPTIMAL:  return optimal{};
@@ -93,6 +93,10 @@ private:
                 return unknown{};
         }
     }
+    MSKsoltypee _require_solution() const {
+        if(!_solution) throw solver_error("MOSEK holds no solution");
+        return *_solution;
+    }
     // clang-format on
 public:
     const status_variant & get_status() const { return _status; }
@@ -100,28 +104,31 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        _status = status::unknown{};
+        _solution.reset();
         // MSK_optimize reports a limit as an error code; MSK_optimizetrm
         // returns it as the termination code, and is the solve itself
-        MSKrestrmcode trm;
+        MSKrescodee trm = MSK_RES_OK;
         check(MSK->optimizetrm(task, &trm));
-        _status = (num_variables() > 0) ? _get_status(trm) : status::optimal{};
+        _solution = _pick_continuous_solution();
+        _status = _get_status(trm);
     }
     double get_solution_value() {
         double val;
-        check(MSK->getprimalobj(task, MSK_SOL_BAS, &val));
+        check(MSK->getprimalobj(task, _require_solution(), &val));
         return val;
     }
     auto get_solution() {
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
-        check(MSK->getxx(task, MSK_SOL_BAS, solution.get()));
+        check(MSK->getxx(task, _require_solution(), solution.get()));
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
-        check(MSK->getsolution(task, MSK_SOL_BAS, nullptr, nullptr, nullptr,
-                               nullptr, nullptr, nullptr, nullptr,
+        check(MSK->getsolution(task, _require_solution(), nullptr, nullptr,
+                               nullptr, nullptr, nullptr, nullptr, nullptr,
                                dual_solution.get(), nullptr, nullptr, nullptr,
                                nullptr, nullptr));
         return constraint_mapping(std::move(dual_solution));
@@ -129,7 +136,7 @@ public:
     auto get_reduced_costs() {
         const auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
-        check(MSK->getreducedcosts(task, MSK_SOL_BAS, 0,
+        check(MSK->getreducedcosts(task, _require_solution(), 0,
                                    static_cast<int>(num_vars),
                                    reduced_costs.get()));
         return variable_mapping(std::move(reduced_costs));

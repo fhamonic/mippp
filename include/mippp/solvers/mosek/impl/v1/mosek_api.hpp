@@ -180,7 +180,7 @@ enum MSKrestrmcode : MSKrescodee {
     MSK_RES_TRM_SERVER_MAX_TIME = 100032,
     MSK_RES_TRM_SERVER_MAX_MEMORY = 100033
 };
-MSKrescodee MSK_optimizetrm(MSKtask_t task, MSKrestrmcode * trmcode);
+MSKrescodee MSK_optimizetrm(MSKtask_t task, MSKrescodee * trmcode);
 
 enum MSKprostae : int {
     MSK_PRO_STA_UNKNOWN = 0,

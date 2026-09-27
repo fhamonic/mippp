@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "mippp/detail/invoke_key.hpp"
+#include "mippp/detail/mosek_handle_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -30,6 +31,8 @@ protected:
     const mosek_api * MSK;
     MSKenv_t env;
     MSKtask_t task;
+    // declared after env and task, which it releases
+    detail::mosek_handle_guard<mosek_api, MSKenv_t, MSKtask_t> handle_guard;
 
     std::vector<index> tmp_begins;
     std::vector<MSKboundkeye> tmp_boundkeye;
@@ -37,6 +40,54 @@ protected:
     std::vector<MSKvariabletypee> tmp_vartype;
 
     void check(const MSKrescodee error) const { MSK->_check(error); }
+
+    static bool _has_primal_solution(MSKsolstae state) noexcept {
+        return state == MSK_SOL_STA_OPTIMAL ||
+               state == MSK_SOL_STA_INTEGER_OPTIMAL ||
+               state == MSK_SOL_STA_PRIM_FEAS ||
+               state == MSK_SOL_STA_PRIM_AND_DUAL_FEAS;
+    }
+    static int _continuous_slot_rank(MSKsolstae state) noexcept {
+        switch(state) {
+            case MSK_SOL_STA_OPTIMAL:
+            case MSK_SOL_STA_PRIM_INFEAS_CER:
+            case MSK_SOL_STA_DUAL_INFEAS_CER:
+                return 3;
+            case MSK_SOL_STA_PRIM_FEAS:
+            case MSK_SOL_STA_PRIM_AND_DUAL_FEAS:
+                return 2;
+            case MSK_SOL_STA_UNKNOWN:
+                return 0;
+            default:
+                return 1;
+        }
+    }
+    // The basic slot is missing when basis identification is off, and a
+    // stopped solve can leave the two slots in different states.
+    static std::optional<MSKsoltypee> _pick_continuous_slot(
+        std::optional<MSKsolstae> basic,
+        std::optional<MSKsolstae> interior) noexcept {
+        if(!interior) {
+            if(!basic) return std::nullopt;
+            return MSK_SOL_BAS;
+        }
+        if(!basic) return MSK_SOL_ITR;
+        return _continuous_slot_rank(*interior) > _continuous_slot_rank(*basic)
+                   ? MSK_SOL_ITR
+                   : MSK_SOL_BAS;
+    }
+    std::optional<MSKsolstae> _slot_state(MSKsoltypee slot) const {
+        MSKbooleant defined = 0;
+        check(MSK->solutiondef(task, slot, &defined));
+        if(!defined) return std::nullopt;
+        MSKsolstae state;
+        check(MSK->getsolsta(task, slot, &state));
+        return state;
+    }
+    std::optional<MSKsoltypee> _pick_continuous_solution() const {
+        return _pick_continuous_slot(_slot_state(MSK_SOL_BAS),
+                                     _slot_state(MSK_SOL_ITR));
+    }
     // MOSEK hands its log to stream callbacks and prints nothing itself: this
     // one prints it on stdout, where the other solvers print theirs.
     static void print_log(MSKuserhandle_t, const char * str) {
@@ -63,22 +114,23 @@ public:
     using model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit mosek_base(const mosek_api & api)
-        : model_base<int, double>(), MSK(&api), env(nullptr), task(nullptr) {
+        : model_base<int, double>()
+        , MSK(&api)
+        , env(nullptr)
+        , task(nullptr)
+        , handle_guard(api, env, task) {
         check(MSK->makeenv(&env, nullptr));
         check(MSK->makeemptytask(env, &task));
         check(MSK->putintparam(task, MSK_IPAR_LOG, 0));
     }
-    ~mosek_base() {
-        if(task) check(MSK->deletetask(&task));
-        if(env) check(MSK->deleteenv(&env));
-    }
 
     constexpr mosek_base(const mosek_base &) = delete;
-    constexpr mosek_base(mosek_base && other) noexcept
+    mosek_base(mosek_base && other) noexcept
         : model_base<int, double>(std::move(other))
         , MSK(other.MSK)
         , env(other.env)
         , task(other.task)
+        , handle_guard(*MSK, env, task)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_boundkeye(std::move(other.tmp_boundkeye))
         , tmp_rhs(std::move(other.tmp_rhs))
