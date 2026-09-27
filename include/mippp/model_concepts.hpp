@@ -17,6 +17,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/quadratic_expression.hpp"
+#include "mippp/utility/iis_outcome.hpp"
 #include "mippp/utility/keys_view.hpp"
 #include "mippp/utility/memory_size.hpp"
 #include "mippp/utility/status.hpp"
@@ -637,6 +638,43 @@ template <typename T>
 concept has_lp_basis_warm_start =
     has_lp_basis<T> &&
     requires(T & model, model_basis_t<T> b) { model.set_basis(b); };
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////// IIS /////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Test membership with is_a<member>. On a variant that also lists member,
+// is<member> compiles but misses the sided tags.
+namespace iis_status {
+struct absent {};
+struct member {};
+struct member_lower : member {};
+struct member_upper : member {};
+struct member_both : member {};
+}  // namespace iis_status
+
+template <typename S>
+concept lp_iis_status = variant_containing_a<S, iis_status::absent> &&
+                        variant_containing_a<S, iis_status::member>;
+
+template <typename I, typename T>
+concept lp_iis =
+    requires(const I & iis, model_variable_t<T> v, model_constraint_t<T> c) {
+        { iis.get_status(v) } -> lp_iis_status;
+        { iis.get_status(c) } -> lp_iis_status;
+        { iis.get_outcome() } -> std::same_as<iis_outcome>;
+        { iis.get_reason() } -> std::same_as<std::optional<iis_reason>>;
+        { iis.num_variable_members() } -> std::same_as<std::size_t>;
+        { iis.num_constraint_members() } -> std::same_as<std::size_t>;
+    };
+
+template <typename T>
+using model_iis_t = std::decay_t<decltype(std::declval<T &>().compute_iis())>;
+
+// The model has a native IIS routine. A model without one may still run the
+// deletion filter, which is a separate path.
+template <typename T>
+concept has_iis = lp_iis<model_iis_t<T>, T>;
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// MIP start //////////////////////////////////

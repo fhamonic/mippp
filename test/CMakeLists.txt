@@ -43,6 +43,7 @@ add_executable(
     unordered_dense_map.cpp
     column_manager.cpp
     deletion_filter.cpp
+    iis_snapshot.cpp
     mapping.cpp
     concat_view.cpp
     cartesian_product_view.cpp
