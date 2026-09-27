@@ -116,6 +116,7 @@ struct model_test : public ::testing::Test {
 #include "milp_model.hpp"
 #include "mip_gap.hpp"
 #include "mip_start.hpp"
+#include "modifiable_constraint_bounds.hpp"
 #include "modifiable_objective.hpp"
 #include "modifiable_variables_bounds.hpp"
 #include "named_constraints.hpp"

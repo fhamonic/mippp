@@ -46,6 +46,7 @@ formated_test_names = [
     ("RangedConstraintsTest", "Ranged constraints"),
     ("ModifiableObjectiveTest", "Increment objective"),
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
+    ("ModifiableConstraintBoundsTest", "Modify constraint bounds"),
     ("NamedVariablesTest", "Named variables"),
     ("NamedConstraintsTest", "Named constraints"),
     ("LpStatusTest", "LP status"),

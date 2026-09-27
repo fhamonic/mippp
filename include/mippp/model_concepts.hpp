@@ -483,6 +483,15 @@ concept has_readable_constraint_bounds =
     };
 // clang-format on
 
+// A row whose two sides are finite and distinct is ranged, including an ==
+// row with one side moved: get_constraint_sense/rhs no longer apply to it.
+template <typename T, typename M = T>
+concept has_modifiable_constraint_bounds =
+    requires(T & model, model_constraint_t<M> c, model_scalar_t<M> s) {
+        { model.set_constraint_lower_bound(c, s) };
+        { model.set_constraint_upper_bound(c, s) };
+    };
+
 template <typename T>
 concept has_modifiable_constraint_rhs =
     requires(T & model, model_constraint_t<T> c, model_scalar_t<T> s) {

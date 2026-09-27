@@ -444,6 +444,12 @@ public:
                 return;
         }
     }
+    void set_constraint_lower_bound(constraint constr, scalar lb) {
+        Clp->rowLower(model)[constr.id()] = lb;
+    }
+    void set_constraint_upper_bound(constraint constr, scalar ub) {
+        Clp->rowUpper(model)[constr.id()] = ub;
+    }
 
 private:
     template <bool distinct, linear_expression LE>

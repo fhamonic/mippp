@@ -64,7 +64,8 @@ model.set_candidate_solution_callback(
 The concepts declared this way are `has_dual_solution`, `has_reduced_costs`,
 `has_readable_variable_bounds`, `has_modifiable_variable_bounds`,
 `has_readable_constraints` and its three finer-grained forms,
-`has_readable_constraint_bounds`, and `has_lazy_constraints`. The others describe whole models and stay
+`has_readable_constraint_bounds`, `has_modifiable_constraint_bounds`, and
+`has_lazy_constraints`. The others describe whole models and stay
 single-parameter.
 
 !!! note "Concept declared ≠ backend provides"
@@ -131,6 +132,7 @@ set is a limit you can detect.
 | `has_modifiable_variable_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
 | `has_readable_constraints` | `get_constraint(c)` plus the three finer-grained concepts `has_readable_constraint_lhs` / `_sense` / `_rhs`. |
 | `has_readable_constraint_bounds` | `get_constraint_lower_bound(c)`, `get_constraint_upper_bound(c)` — defined on every row, including [ranged](../modeling/special-constraints.md#ranged-constraints) ones, where `get_constraint_sense` / `_rhs` are not. Satisfied by `clp_lp` and `cbc_milp`. |
+| `has_modifiable_constraint_bounds` | `set_constraint_lower_bound(c, s)`, `set_constraint_upper_bound(c, s)` — either side of any row, ranged ones included; `infinity()` frees a side. A row left with two distinct finite sides, such as a `<=` row given a finite lower side or an `==` row with one side moved, is ranged. Satisfied by `clp_lp`. |
 | `has_modifiable_constraint_lhs` / `_sense` / `_rhs` | `set_constraint_lhs(c, entries)`, `set_constraint_sense(c, s)`, `set_constraint_rhs(c, s)`. |
 
 See [Re-solving and model updates](../solving/updates.md).

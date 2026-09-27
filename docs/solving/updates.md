@@ -51,6 +51,18 @@ double b  = model.get_constraint_rhs(row);
 
 Right-hand-side updates are the standard way to run an **ε-constraint** or **budget sweep**: build the row once, then move `b` across the loop.
 
+A row is also a pair of sides, `l ≤ a·x ≤ u`, and backends satisfying `has_modifiable_constraint_bounds` set each side directly, on any row, [ranged](../modeling/special-constraints.md#ranged-constraints) ones included:
+
+```cpp
+model.set_constraint_lower_bound(row, l);   // has_modifiable_constraint_bounds
+model.set_constraint_upper_bound(row, u);
+model.set_constraint_upper_bound(row, model.infinity());   // drop a side
+
+double l0 = model.get_constraint_lower_bound(row);   // has_readable_constraint_bounds
+```
+
+Either side can be dropped to infinity and restored later, even on a ranged row, where sense and right-hand side cannot name one side. A row left with two distinct finite sides, such as a `<=` row given a finite lower side or an `==` row with one side moved, is ranged: `get_constraint_sense` and `get_constraint_rhs` are then undefined until one side is infinite again or both are equal, so read such a row back through the bounds. Backend: Clp.
+
 ## Adding and removing entities
 
 New variables and constraints can be added to a solved model at any time; that is what makes cutting-plane and column-generation loops possible.
