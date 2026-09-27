@@ -263,6 +263,21 @@ public:
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
+    // rows keep the IEEE infinity they were created with, beyond infinity()
+    double get_constraint_lower_bound(constraint constr) {
+        if(!SoPlex->getRowBoundsReal)
+            throw solver_error("SoPlex_getRowBoundsReal not available.");
+        double lb, ub;
+        SoPlex->getRowBoundsReal(model, constr.id(), &lb, &ub);
+        return std::max(lb, -_infinity);
+    }
+    double get_constraint_upper_bound(constraint constr) {
+        if(!SoPlex->getRowBoundsReal)
+            throw solver_error("SoPlex_getRowBoundsReal not available.");
+        double lb, ub;
+        SoPlex->getRowBoundsReal(model, constr.id(), &lb, &ub);
+        return std::min(ub, _infinity);
+    }
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

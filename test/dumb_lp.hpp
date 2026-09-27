@@ -386,6 +386,16 @@ public:
         return _rows[c.uid()].sense;
     }
     scalar get_constraint_rhs(constraint c) { return _rows[c.uid()].rhs; }
+    scalar get_constraint_lower_bound(constraint c) {
+        const row_data & row = _rows[c.uid()];
+        if(row.sense == constraint_sense::less_equal) return -_infinity;
+        return row.rhs;
+    }
+    scalar get_constraint_upper_bound(constraint c) {
+        const row_data & row = _rows[c.uid()];
+        if(row.sense == constraint_sense::greater_equal) return _infinity;
+        return row.rhs;
+    }
     auto get_constraint(constraint c) {
         return linear_constraint_view(
             linear_expression_view(get_constraint_lhs(c),
@@ -543,6 +553,7 @@ static_assert(has_modifiable_objective<dumb_lp>);
 static_assert(has_readable_variable_bounds<dumb_lp>);
 static_assert(has_modifiable_variable_bounds<dumb_lp>);
 static_assert(has_readable_constraints<dumb_lp>);
+static_assert(has_readable_constraint_bounds<dumb_lp>);
 static_assert(has_modifiable_constraint_lhs<dumb_lp>);
 static_assert(has_modifiable_constraint_sense<dumb_lp>);
 static_assert(has_modifiable_constraint_rhs<dumb_lp>);

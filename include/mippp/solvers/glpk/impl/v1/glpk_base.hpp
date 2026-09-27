@@ -402,6 +402,14 @@ public:
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
+    // glp_get_row_lb/ub switch on the row type themselves: the side that
+    // glp_set_row_bnds ignored reads -/+DBL_MAX, not the value it was given
+    double get_constraint_lower_bound(constraint constr) {
+        return glp->get_row_lb(model, constr.id() + 1);
+    }
+    double get_constraint_upper_bound(constraint constr) {
+        return glp->get_row_ub(model, constr.id() + 1);
+    }
 };
 
 }  // namespace glpk::impl::v1

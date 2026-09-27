@@ -614,6 +614,12 @@ public:
         auto [lower, upper] = _row_bounds(constr);
         return _bounds_to_constraint_sense(lower, upper);
     }
+    double get_constraint_lower_bound(constraint constr) {
+        return _row_bounds(constr).first;
+    }
+    double get_constraint_upper_bound(constraint constr) {
+        return _row_bounds(constr).second;
+    }
     auto get_constraint(constraint constr) {
         auto [lhs, lower, upper] = _row_lhs_bounds(constr);
         return linear_constraint_view(

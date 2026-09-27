@@ -152,6 +152,8 @@ SCIP_RETCODE SCIPchgVarName(SCIP * scip, SCIP_VAR * var, const char * name);
 
 SCIP_RETCODE SCIPaddCoefLinear(SCIP * scip, SCIP_CONS * cons, SCIP_VAR * var,
                                SCIP_Real val);
+SCIP_Real SCIPgetLhsLinear(SCIP * scip, SCIP_CONS * cons);
+SCIP_Real SCIPgetRhsLinear(SCIP * scip, SCIP_CONS * cons);
 
 int SCIPgetNVars(SCIP * scip);
 int SCIPgetNContVars(SCIP * scip);
@@ -331,6 +333,8 @@ namespace scip::impl::v1 {
     F(SCIPcreateConsBasicLinear, createConsBasicLinear) \
     F(SCIPaddCons, addCons)                             \
     F(SCIPaddCoefLinear, addCoefLinear)                 \
+    F(SCIPgetLhsLinear, getLhsLinear)                   \
+    F(SCIPgetRhsLinear, getRhsLinear)                   \
     F(SCIPgetNVars, getNVars)                           \
     F(SCIPgetNContVars, getNContVars)                   \
     F(SCIPgetNIntVars, getNIntVars)                     \

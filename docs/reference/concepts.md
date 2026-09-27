@@ -135,7 +135,7 @@ set is a limit you can detect.
 | `has_readable_variable_bounds` | `get_variable_lower_bound(v)`, `get_variable_upper_bound(v)`. |
 | `has_modifiable_variable_bounds` | `set_variable_lower_bound(v, s)`, `set_variable_upper_bound(v, s)`. |
 | `has_readable_constraints` | `get_constraint(c)` plus the three finer-grained concepts `has_readable_constraint_lhs` / `_sense` / `_rhs`. |
-| `has_readable_constraint_bounds` | `get_constraint_lower_bound(c)`, `get_constraint_upper_bound(c)` — defined on every row, including [ranged](../modeling/special-constraints.md#ranged-constraints) ones, where `get_constraint_sense` / `_rhs` are not. Satisfied by `clp_lp` and `cbc_milp`. |
+| `has_readable_constraint_bounds` | `get_constraint_lower_bound(c)`, `get_constraint_upper_bound(c)` — defined on every row, including [ranged](../modeling/special-constraints.md#ranged-constraints) ones, where `get_constraint_sense` / `_rhs` are not. A missing side reads as the backend's `infinity()` with its sign, so a `<=` row reads (`-infinity()`, rhs), a `>=` row (rhs, `infinity()`) and an `==` row (rhs, rhs). Satisfied by every model class, but not part of `lp_model`. |
 | `has_modifiable_constraint_bounds` | `set_constraint_lower_bound(c, s)`, `set_constraint_upper_bound(c, s)` — either side of any row, ranged ones included; `infinity()` frees a side. A row left with two distinct finite sides, such as a `<=` row given a finite lower side or an `==` row with one side moved, is ranged. Satisfied by `clp_lp`. |
 | `has_modifiable_constraint_lhs` / `_sense` / `_rhs` | `set_constraint_lhs(c, entries)`, `set_constraint_sense(c, s)`, `set_constraint_rhs(c, s)`. |
 

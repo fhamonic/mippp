@@ -410,6 +410,28 @@ public:
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
+
+private:
+    char _row_type(constraint constr) {
+        char type;
+        check(XPRS->getrowtype(prob, &type, constr.id(), constr.id()));
+        return type;
+    }
+    double _row_rhs(constraint constr) {
+        double rhs;
+        check(XPRS->getrhs(prob, &rhs, constr.id(), constr.id()));
+        return rhs;
+    }
+
+public:
+    double get_constraint_lower_bound(constraint constr) {
+        if(_row_type(constr) == 'L') return -infinity();
+        return _row_rhs(constr);
+    }
+    double get_constraint_upper_bound(constraint constr) {
+        if(_row_type(constr) == 'G') return infinity();
+        return _row_rhs(constr);
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////

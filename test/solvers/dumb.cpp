@@ -15,6 +15,7 @@ INSTANTIATE_TEST(Dumb, ReadableVariablesBoundsTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, ModifiableVariablesBoundsTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, NamedVariablesTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, ReadableConstraintsTest, dumb_lp_test);
+INSTANTIATE_TEST(Dumb, ReadableConstraintBoundsTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, AddColumnTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, RemoveVariableTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, DualSolutionTest, dumb_lp_test);

@@ -411,6 +411,18 @@ public:
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
+    scalar get_constraint_lower_bound(constraint constr) {
+        scalar lb;
+        const int id = constr.id();
+        check(COPT->GetRowInfo(prob, COPT_DBLINFO_LB, 1, &id, &lb));
+        return lb;
+    }
+    scalar get_constraint_upper_bound(constraint constr) {
+        scalar ub;
+        const int id = constr.id();
+        check(COPT->GetRowInfo(prob, COPT_DBLINFO_UB, 1, &id, &ub));
+        return ub;
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////

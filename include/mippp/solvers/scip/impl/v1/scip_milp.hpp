@@ -416,6 +416,12 @@ public:
         return _add_constraints<true>(std::forward<IR>(keys),
                                       std::forward<CL>(constraint_lambdas)...);
     }
+    double get_constraint_lower_bound(constraint c) {
+        return SCIP->getLhsLinear(model, _scip_conss[c.uid()]);
+    }
+    double get_constraint_upper_bound(constraint c) {
+        return SCIP->getRhsLinear(model, _scip_conss[c.uid()]);
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////

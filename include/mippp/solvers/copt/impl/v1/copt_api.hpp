@@ -131,6 +131,8 @@ ret_code COPT_SetRowLower(copt_prob * prob, int num, const int * list,
                           const double * lower);
 ret_code COPT_SetRowUpper(copt_prob * prob, int num, const int * list,
                           const double * upper);
+ret_code COPT_GetRowInfo(copt_prob * prob, const char * infoName, int num,
+                         const int * list, double * info);
 ret_code COPT_SetRowNames(copt_prob * prob, int num, const int * list,
                           char const * const * names);
 ret_code COPT_GetRowName(copt_prob * prob, int iRow, char * buff, int buffSize,
@@ -259,6 +261,7 @@ namespace copt::impl::v1 {
     F(COPT_GetColType, GetColType)                   \
     F(COPT_SetRowLower, SetRowLower)                 \
     F(COPT_SetRowUpper, SetRowUpper)                 \
+    F(COPT_GetRowInfo, GetRowInfo)                   \
     F(COPT_SetRowNames, SetRowNames)                 \
     F(COPT_GetRowName, GetRowName)                   \
     F(COPT_AddMipStart, AddMipStart)                 \

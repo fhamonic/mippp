@@ -596,6 +596,16 @@ public:
                                       &sense));
         return gurobi_sense_to_constraint_sense(sense);
     }
+    double get_constraint_lower_bound(constraint constr) {
+        if(get_constraint_sense(constr) == constraint_sense::less_equal)
+            return -infinity();
+        return get_constraint_rhs(constr);
+    }
+    double get_constraint_upper_bound(constraint constr) {
+        if(get_constraint_sense(constr) == constraint_sense::greater_equal)
+            return infinity();
+        return get_constraint_rhs(constr);
+    }
     auto get_constraint(constraint constr) {
         return linear_constraint_view(
             linear_expression_view(get_constraint_lhs(constr),

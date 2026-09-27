@@ -119,9 +119,9 @@ auto c = model.add_ranged_constraint(xsum(I, x), 1.0, 3.0);          // 1 ≤ Σ
 model.add_ranged_constraint(distinct_variables, x[0] + x[1], 0.0, 1.0);
 ```
 
-The call returns the usual `constraint` handle, so the row can be named, removed, or read in a dual solution like any other. What it cannot do is answer `get_constraint_sense` or `get_constraint_rhs`: a ranged row has neither a single sense nor a single right-hand side, and the backends throw there. The readers that are defined on every row are `get_constraint_lower_bound(c)` and `get_constraint_upper_bound(c)`, behind `has_readable_constraint_bounds` (an infinite bound comes back as the solver's infinity). On Clp, `set_constraint_lower_bound(c, s)` and `set_constraint_upper_bound(c, s)`, behind `has_modifiable_constraint_bounds`, move either side ([Re-solving and model updates](../solving/updates.md#constraint-rows)).
+The call returns the usual `constraint` handle, so the row can be named, removed, or read in a dual solution like any other. What it cannot do is answer `get_constraint_sense` or `get_constraint_rhs`: a ranged row has neither a single sense nor a single right-hand side, and the backends throw there. The readers that are defined on every row are `get_constraint_lower_bound(c)` and `get_constraint_upper_bound(c)`, behind `has_readable_constraint_bounds`, which every backend satisfies (a missing side comes back as the solver's infinity, with its sign). On Clp, `set_constraint_lower_bound(c, s)` and `set_constraint_upper_bound(c, s)`, behind `has_modifiable_constraint_bounds`, move either side ([Re-solving and model updates](../solving/updates.md#constraint-rows)).
 
-Currently satisfied by **Clp** and **Cbc**. Gurobi implements range constraints by adding a slack column, which brings no gain over two rows, so `gurobi_lp` and `gurobi_milp` deliberately do not provide the function: write the two rows, or check the concept in generic code.
+`has_ranged_constraints` is currently satisfied by **Clp** and **Cbc**. Gurobi implements range constraints by adding a slack column, which brings no gain over two rows, so `gurobi_lp` and `gurobi_milp` deliberately do not provide the function: write the two rows, or check the concept in generic code.
 
 ## Quadratic and conic constraints
 

@@ -18,6 +18,7 @@ void SoPlex_addColReal(void * soplex, double * colentries, int colsize,
                        int nnonzeros, double objval, double lb, double ub);
 void SoPlex_addRowReal(void * soplex, double * rowentries, int rowsize,
                        int nnonzeros, double lb, double ub);
+void SoPlex_getRowBoundsReal(void * soplex, int i, double * lb, double * ub);
 
 void SoPlex_changeObjReal(void * soplex, double * obj, int dim);
 
@@ -90,7 +91,9 @@ namespace soplex::impl::v1 {
     F(SoPlex_getDualReal, getDualReal)
 
 // absent before SoPlex 7.0
-#define SOPLEX_OPTIONAL_FUNCTIONS(F) F(SoPlex_setRealParam, setRealParam)
+#define SOPLEX_OPTIONAL_FUNCTIONS(F)     \
+    F(SoPlex_setRealParam, setRealParam) \
+    F(SoPlex_getRowBoundsReal, getRowBoundsReal)
 
 #define DECLARE_SOPLEX_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);     \

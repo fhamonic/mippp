@@ -12,6 +12,7 @@ struct soplex_lp_test : public model_test<soplex_api, soplex_lp> {
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, EnumerableEntitiesTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, AddColumnTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, ReadableConstraintBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, DualSolutionTest, soplex_lp_test);
 // INSTANTIATE_TEST(SoPlex, CuttingStockTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, TimeLimitTest, soplex_lp_test);

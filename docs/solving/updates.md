@@ -51,7 +51,7 @@ double b  = model.get_constraint_rhs(row);
 
 Right-hand-side updates are the standard way to run an **ε-constraint** or **budget sweep**: build the row once, then move `b` across the loop.
 
-A row is also a pair of sides, `l ≤ a·x ≤ u`, and backends satisfying `has_modifiable_constraint_bounds` set each side directly, on any row, [ranged](../modeling/special-constraints.md#ranged-constraints) ones included:
+A row is also a pair of sides, `l ≤ a·x ≤ u`. Every backend reads both sides back (`has_readable_constraint_bounds`), a missing side as `-infinity()` or `infinity()`, and backends satisfying `has_modifiable_constraint_bounds` set each side directly, on any row, [ranged](../modeling/special-constraints.md#ranged-constraints) ones included:
 
 ```cpp
 model.set_constraint_lower_bound(row, l);   // has_modifiable_constraint_bounds

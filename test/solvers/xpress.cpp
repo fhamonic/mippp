@@ -17,6 +17,7 @@ INSTANTIATE_TEST(Xpress_lp, ReadableVariablesBoundsTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, ModifiableVariablesBoundsTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, NamedVariablesTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, AddColumnTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_lp, ReadableConstraintBoundsTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, DualSolutionTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, ReducedCostsTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, LpStatusTest, xpress_lp_test);
@@ -36,6 +37,7 @@ INSTANTIATE_TEST(Xpress_milp, ReadableVariablesBoundsTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, ModifiableVariablesBoundsTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, NamedVariablesTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, AddColumnTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, ReadableConstraintBoundsTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, CandidateSolutionCallbackTest, xpress_milp_test);
 static_assert(mippp::has_candidate_solution_callback<mippp::xpress_milp>);
 static_assert(!mippp::has_lazy_constraints<

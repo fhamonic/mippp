@@ -486,6 +486,20 @@ public:
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
+    scalar get_constraint_lower_bound(constraint constr) {
+        MSKboundkeye boundkey;
+        scalar lb, ub;
+        check(MSK->getconbound(task, constr.id(), &boundkey, &lb, &ub));
+        if(boundkey == MSK_BK_UP || boundkey == MSK_BK_FR) return -infinity();
+        return lb;
+    }
+    scalar get_constraint_upper_bound(constraint constr) {
+        MSKboundkeye boundkey;
+        scalar lb, ub;
+        check(MSK->getconbound(task, constr.id(), &boundkey, &lb, &ub));
+        if(boundkey == MSK_BK_LO || boundkey == MSK_BK_FR) return infinity();
+        return ub;
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
