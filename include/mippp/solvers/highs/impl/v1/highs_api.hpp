@@ -213,6 +213,11 @@ HighsInt Highs_setSolution(void * highs, const double * col_value,
                            const double * row_dual);
 HighsInt Highs_setSparseSolution(void * highs, const HighsInt num_nonzeros,
                                  const HighsInt * index, const double * value);
+HighsInt Highs_getIis(void * highs, HighsInt * iis_num_col,
+                      HighsInt * iis_num_row, HighsInt * col_index,
+                      HighsInt * row_index, HighsInt * col_bound,
+                      HighsInt * row_bound, HighsInt * col_status,
+                      HighsInt * row_status);
 
 struct HighsCallbackDataOut {
     int log_type;  // cast of HighsLogType
@@ -322,8 +327,9 @@ namespace highs::impl::v1 {
     F(Highs_getBasis, getBasis)                                         \
     F(Highs_setSolution, setSolution)
 
-#define HIGHS_OPTIONAL_FUNCTIONS(F) \
-    F(Highs_setSparseSolution, setSparseSolution)
+#define HIGHS_OPTIONAL_FUNCTIONS(F)               \
+    F(Highs_setSparseSolution, setSparseSolution) \
+    F(Highs_getIis, getIis)
 
 #define DECLARE_HIGHS_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);    \

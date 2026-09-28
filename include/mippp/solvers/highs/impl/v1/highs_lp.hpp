@@ -103,6 +103,12 @@ public:
         check(Highs->run(model));
         _status = _get_status();
     }
+    // The routine re-solves and overwrites the model status: the reported
+    // status is reset before the first native call, throw or return.
+    auto compute_iis() {
+        reset_status();
+        return _compute_iis();
+    }
     double get_solution_value() { return Highs->getObjectiveValue(model); }
     auto get_solution() {
         auto num_vars = num_variables();

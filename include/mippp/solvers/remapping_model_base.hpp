@@ -84,6 +84,13 @@ protected:
                               [](const variable v) { return v.id(); });
         return live;
     }
+    // Once ids are remapped, _native_ids_map has one entry per handle id ever
+    // issued, free ones included: a table sized by the native count would
+    // drop the handles above it.
+    std::size_t _handle_id_bound(
+        const std::size_t num_native_ids) const noexcept {
+        return _remap_ids ? _native_ids_map.size() : num_native_ids;
+    }
     std::size_t _new_var_handle_range(const std::size_t num_native_ids,
                                       const std::size_t count) {
         if(!_remap_ids) return num_native_ids;

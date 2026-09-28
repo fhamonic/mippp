@@ -15,11 +15,16 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/iis_outcome.hpp"
+#include "mippp/utility/iis_snapshot.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
+#include "mippp/utility/solver_version.hpp"
 
 #include "mippp/solvers/highs/impl/v1/highs_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
@@ -654,6 +659,188 @@ public:
         HighsInt verbose;
         check(Highs->getBoolOptionValue(model, "output_flag", &verbose));
         return verbose != 0;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// IIS ////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // Spelled here rather than taken from the HiGHS header: the header a
+    // user includes may be any release, and the status numbering changed at
+    // 1.13, so only the loaded library's regime counts, and the floor below
+    // leaves one.
+    static constexpr HighsInt _iis_bound_free = 1, _iis_bound_lower = 2,
+                              _iis_bound_upper = 3, _iis_bound_boxed = 4;
+    static constexpr HighsInt _iis_status_not_in_conflict = -1,
+                              _iis_status_maybe_in_conflict = 0;
+    // the default Light strategy finds trivial conflicts only
+    static constexpr HighsInt _iis_strategy_full = 6;
+    // the release from which the status numbering is stable and
+    // iis_time_limit exists
+    static constexpr solver_version _iis_native_floor{1, 14, 0};
+
+    class iis_option_guard {
+    private:
+        const highs_api & _api;
+        void * _model;
+        HighsInt _strategy;
+        double _time_limit;
+        bool _restored = false;
+
+    public:
+        iis_option_guard(const highs_api & api, void * model, HighsInt strategy,
+                         double time_limit)
+            : _api(api), _model(model) {
+            _api._check(
+                _api.getIntOptionValue(_model, "iis_strategy", &_strategy));
+            _api._check(_api.getDoubleOptionValue(_model, "iis_time_limit",
+                                                  &_time_limit));
+            _api._check(
+                _api.setIntOptionValue(_model, "iis_strategy", strategy));
+            _api._check(_api.setDoubleOptionValue(_model, "iis_time_limit",
+                                                  time_limit));
+        }
+        iis_option_guard(const iis_option_guard &) = delete;
+        iis_option_guard & operator=(const iis_option_guard &) = delete;
+
+        void restore() {
+            _restored = true;
+            _api._check(
+                _api.setIntOptionValue(_model, "iis_strategy", _strategy));
+            _api._check(_api.setDoubleOptionValue(_model, "iis_time_limit",
+                                                  _time_limit));
+        }
+        ~iis_option_guard() {
+            if(_restored) return;
+            // values read back moments ago: the writes cannot be rejected
+            (void)_api.setIntOptionValue(_model, "iis_strategy", _strategy);
+            (void)_api.setDoubleOptionValue(_model, "iis_time_limit",
+                                            _time_limit);
+        }
+    };
+
+protected:
+    using iis_snapshot_type =
+        iis_snapshot<variable, constraint, iis_sided_status, iis_sided_status>;
+
+    iis_snapshot_type _compute_iis() {
+        const auto loaded = Highs->library_version();
+        if(loaded && *loaded < _iis_native_floor)
+            throw solver_error(
+                detail::concat_str("mippp: compute_iis() needs HiGHS ",
+                                   to_string(_iis_native_floor),
+                                   " or later, the loaded library '",
+                                   Highs->library_path().string(), "' reports ",
+                                   to_string(*loaded))
+                    .c_str());
+        if(Highs->getIis == nullptr)
+            throw solver_error(
+                detail::concat_str(
+                    "mippp: compute_iis() needs Highs_getIis, which the "
+                    "loaded library '",
+                    Highs->library_path().string(), "' (reporting ",
+                    loaded ? to_string(*loaded) : std::string("no version"),
+                    ") does not export")
+                    .c_str());
+
+        const std::size_t num_col = _num_var_native_ids();
+        const std::size_t num_row = num_constraints();
+        detail::handle_status_table<iis_sided_status> variable_table(
+            _handle_id_bound(num_col));
+        detail::handle_status_table<iis_sided_status> constraint_table(num_row);
+
+        // HiGHS ignores time_limit during the search and reads iis_time_limit
+        // instead: the model's limit is copied there for this call only
+        double budget;
+        check(Highs->getDoubleOptionValue(model, "time_limit", &budget));
+        iis_option_guard guard(*Highs, model, _iis_strategy_full, budget);
+
+        // HiGHS overwrites every entry on the returns decoded below, so the
+        // fill is only a default; NotInConflict rather than zero because zero
+        // is the maybe code.
+        HighsInt iis_num_col = 0, iis_num_row = 0;
+        std::vector<HighsInt> col_index(num_col), row_index(num_row),
+            col_bound(num_col), row_bound(num_row),
+            col_status(num_col, _iis_status_not_in_conflict),
+            row_status(num_row, _iis_status_not_in_conflict);
+
+        // The C API exposes no IIS status: the time measured around the call
+        // is the only signal that tells a limit stop from a failure.
+        const auto start = std::chrono::steady_clock::now();
+        const int code =
+            Highs->getIis(model, &iis_num_col, &iis_num_row, col_index.data(),
+                          row_index.data(), col_bound.data(), row_bound.data(),
+                          col_status.data(), row_status.data());
+        const double elapsed = std::chrono::duration<double>(
+                                   std::chrono::steady_clock::now() - start)
+                                   .count();
+        // never reached under an infinite budget, always under a zero one
+        const std::optional<iis_reason> stop_reason =
+            elapsed >= budget ? std::optional(iis_reason::time_limit)
+                              : std::nullopt;
+        guard.restore();
+
+        if(code == kHighsStatusError) {
+            if(stop_reason)
+                return iis_snapshot_type(
+                    std::move(variable_table), std::move(constraint_table),
+                    iis_outcome::undetermined, stop_reason);
+            throw solver_error(
+                detail::concat_str(
+                    "mippp: Highs_getIis failed with model status ",
+                    std::to_string(Highs->getModelStatus(model)))
+                    .c_str());
+        }
+        // A warning is either a stop after the elasticity filter, whose set
+        // is the whole model flagged maybe, or a failed post-check, after
+        // which HiGHS copies its own emptied status vectors into the arrays
+        // (an out-of-bounds read on its side that no fill here can absorb):
+        // neither is an answer, and the two cannot be told apart.
+        if(code == kHighsStatusWarning)
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     iis_outcome::undetermined, stop_reason);
+
+        std::size_t num_members = 0;
+        bool maybe = false;
+        const auto decode = [&](HighsInt bound, HighsInt status, auto & table,
+                                std::size_t id) {
+            if(bound == _iis_bound_free) return;
+            table.set(id, bound == _iis_bound_lower
+                              ? iis_sided_status{iis_status::member_lower{}}
+                          : bound == _iis_bound_upper
+                              ? iis_sided_status{iis_status::member_upper{}}
+                              : iis_sided_status{iis_status::member_both{}});
+            ++num_members;
+            maybe |= (status == _iis_status_maybe_in_conflict);
+        };
+        for(std::size_t k = 0; k < static_cast<std::size_t>(iis_num_col); ++k) {
+            const HighsInt col = col_index[k];
+            decode(col_bound[k], col_status[static_cast<std::size_t>(col)],
+                   variable_table, _var_handle(col).uid());
+        }
+        for(std::size_t k = 0; k < static_cast<std::size_t>(iis_num_row); ++k) {
+            const auto row = static_cast<std::size_t>(row_index[k]);
+            decode(row_bound[k], row_status[row], constraint_table, row);
+        }
+
+        // Members, not listed entries: a listing made only of free-bound
+        // columns would otherwise claim that the background is infeasible.
+        if(num_members == 0) {
+            const int model_status = Highs->getModelStatus(model);
+            return iis_snapshot_type(
+                std::move(variable_table), std::move(constraint_table),
+                (model_status == kHighsModelStatusOptimal ||
+                 model_status == kHighsModelStatusUnbounded)
+                    ? iis_outcome::feasible
+                    : iis_outcome::undetermined);
+        }
+        if(!maybe)
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     iis_outcome::irreducible);
+        return iis_snapshot_type(std::move(variable_table),
+                                 std::move(constraint_table),
+                                 iis_outcome::not_proven_minimal, stop_reason);
     }
 };
 
