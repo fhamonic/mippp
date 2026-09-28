@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 
 #include <chrono>
+#include <string>
 
 #include "mippp/solvers/highs/all.hpp"
 
@@ -300,4 +301,36 @@ TEST_F(highs_lp_iis_test, one_row_answer_on_a_row_wise_matrix) {
     EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(c)));
     EXPECT_EQ(iis.num_constraint_members(), 1u);
     EXPECT_EQ(iis.num_variable_members(), 0u);
+}
+
+// HiGHS reports any crossed row as boxed, while 0, the activity of a row
+// without terms, violates only one of the two sides.
+TEST_F(highs_lp_iis_test, crossed_row_without_terms_keeps_one_side) {
+    using namespace operators;
+    constexpr auto & no_terms =
+        empty_linear_expression<model_variable_t<highs_lp>, double>;
+    struct crossed_row {
+        double lower;
+        double upper;
+        bool lower_side_expected;
+    };
+    for(const crossed_row & r :
+        {crossed_row{1., 0., true}, crossed_row{0., -1., false},
+         crossed_row{2., -1., true}}) {
+        SCOPED_TRACE(std::to_string(r.lower) + " > " + std::to_string(r.upper));
+        auto model = this->new_model();
+        auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+        auto c = model.add_constraint(no_terms >= r.lower);
+        model.add_constraint(x <= 3.);
+        model.native_api()._check(model.native_api().changeRowBounds(
+            model.native_model(), model.native_id(c), r.lower, r.upper));
+        const auto iis = model.compute_iis();
+        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        if(r.lower_side_expected)
+            EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(c)));
+        else
+            EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(c)));
+        EXPECT_EQ(iis.num_constraint_members(), 1u);
+        EXPECT_EQ(iis.num_variable_members(), 0u);
+    }
 }

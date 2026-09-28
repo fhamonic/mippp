@@ -730,6 +730,21 @@ private:
         }
     };
 
+    // HiGHS answers a row whose sides cross as boxed before it reads the
+    // row's terms. Without terms the activity is 0, which violates one of two
+    // crossed sides, and that side alone is the IIS.
+    HighsInt _iis_row_bound(HighsInt row, HighsInt bound) {
+        if(bound != _iis_bound_boxed) return bound;
+        const auto [lower, upper] = _row_bounds(constraint(row));
+        if(!(lower > upper)) return bound;
+        int dummy_int, num_nz;
+        check(Highs->getRowsByRange(model, row, row, &dummy_int, nullptr,
+                                    nullptr, &num_nz, nullptr, nullptr,
+                                    nullptr));
+        if(num_nz != 0) return bound;
+        return lower > 0. ? _iis_bound_lower : _iis_bound_upper;
+    }
+
 protected:
     using iis_snapshot_type =
         iis_snapshot<variable, constraint, iis_sided_status, iis_sided_status>;
@@ -842,7 +857,8 @@ protected:
         }
         for(std::size_t k = 0; k < static_cast<std::size_t>(iis_num_row); ++k) {
             const auto row = static_cast<std::size_t>(row_index[k]);
-            decode(row_bound[k], row_status[row], constraint_table, row);
+            decode(_iis_row_bound(row_index[k], row_bound[k]), row_status[row],
+                   constraint_table, row);
         }
 
         // Members, not listed entries: a listing made only of free-bound
