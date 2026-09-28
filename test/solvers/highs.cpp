@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 
 #include <chrono>
+#include <stdexcept>
 #include <string>
 
 #include "mippp/solvers/highs/all.hpp"
@@ -36,6 +37,24 @@ INSTANTIATE_TEST(HiGHS_lp, LpFuzzyTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, TimeLimitTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, IterationLimitTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, VerbosityTest, highs_lp_test);
+
+// A <= row given a finite lower side is ranged: its sides still read back,
+// its sense and rhs no longer exist.
+TEST_F(highs_lp_test, ranged_row_has_no_sense_or_rhs) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable();
+    auto c = model.add_constraint(x <= 3.);
+    model.set_constraint_lower_bound(c, 1.);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), 1.);
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 3.);
+    EXPECT_THROW((void)model.get_constraint_sense(c), std::runtime_error);
+    EXPECT_THROW((void)model.get_constraint_rhs(c), std::runtime_error);
+    EXPECT_THROW((void)model.get_constraint(c), std::runtime_error);
+    model.set_constraint_lower_bound(c, -model.infinity());
+    EXPECT_EQ(model.get_constraint_sense(c), constraint_sense::less_equal);
+    EXPECT_EQ(model.get_constraint_rhs(c), 3.);
+}
 
 struct highs_milp_test : public model_test<highs_api, highs_milp> {
     static void SetUpTestSuite() { construct_api("HIGHS"); }

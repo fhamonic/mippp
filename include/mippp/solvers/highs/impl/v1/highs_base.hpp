@@ -9,6 +9,7 @@
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -556,15 +557,21 @@ private:
                                   }),
             lower, upper);
     }
-    double _bounds_to_rhs(const double & lower, const double & upper) {
-        return (lower == -Highs->getInfinity(model)) ? upper : lower;
-    }
     constraint_sense _bounds_to_constraint_sense(const double & lower,
                                                  const double & upper) {
         if(lower == upper) return constraint_sense::equal;
         if(lower == -Highs->getInfinity(model))
             return constraint_sense::less_equal;
-        return constraint_sense::greater_equal;
+        if(upper == Highs->getInfinity(model))
+            return constraint_sense::greater_equal;
+        throw std::runtime_error(
+            "Tried to get the sense of a ranged constraint");
+    }
+    double _bounds_to_rhs(const double & lower, const double & upper) {
+        return _bounds_to_constraint_sense(lower, upper) ==
+                       constraint_sense::greater_equal
+                   ? lower
+                   : upper;
     }
 
 public:
