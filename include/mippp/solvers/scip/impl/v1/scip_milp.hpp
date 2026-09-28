@@ -429,6 +429,30 @@ public:
     double get_constraint_upper_bound(constraint c) {
         return SCIP->getRhsLinear(model, _scip_conss[c.uid()]);
     }
+    // SCIP ignores a new side within numerics/epsilon of the old one, so such
+    // a change is written through infinity to read back as set. A side within
+    // epsilon of the opposite one still moves that one onto it: SCIP keeps
+    // such sides exactly equal. SCIP 8 leaves a value beyond the opposite
+    // infinity unclamped, hence the clamp. An assert-enabled SCIP aborts on a
+    // side moved from one infinity to the other.
+    void set_constraint_lower_bound(constraint c, double lb) {
+        _free_transform();
+        SCIP_CONS * cons = _scip_conss[c.uid()];
+        lb = std::clamp(lb, -infinity(), infinity());
+        check(SCIP->chgLhsLinear(model, cons, lb));
+        if(SCIP->getLhsLinear(model, cons) == lb) return;
+        check(SCIP->chgLhsLinear(model, cons, -infinity()));
+        check(SCIP->chgLhsLinear(model, cons, lb));
+    }
+    void set_constraint_upper_bound(constraint c, double ub) {
+        _free_transform();
+        SCIP_CONS * cons = _scip_conss[c.uid()];
+        ub = std::clamp(ub, -infinity(), infinity());
+        check(SCIP->chgRhsLinear(model, cons, ub));
+        if(SCIP->getRhsLinear(model, cons) == ub) return;
+        check(SCIP->chgRhsLinear(model, cons, infinity()));
+        check(SCIP->chgRhsLinear(model, cons, ub));
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////

@@ -45,6 +45,33 @@ TEST_F(scip_milp_test, variable_bounds_read_as_scip_solves_them) {
     EXPECT_EQ(model.get_variable_upper_bound(y), model.infinity());
 }
 
+// SCIP alone would ignore both moves, being below its numerics/epsilon
+TEST_F(scip_milp_test, row_side_moved_below_epsilon_reads_back_as_set) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable();
+    auto c = model.add_constraint(x >= 2.);
+    model.set_constraint_upper_bound(c, 7.);
+    model.set_constraint_lower_bound(c, 2. + 1e-10);
+    model.set_constraint_upper_bound(c, 7. - 1e-10);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), 2. + 1e-10);
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 7. - 1e-10);
+}
+
+// the moved sides start finite: an assert-enabled SCIP aborts on a side
+// moved from one infinity to the other
+TEST_F(scip_milp_test, row_side_beyond_infinity_reads_the_infinity) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable();
+    auto c = model.add_constraint(x == 3.);
+    model.set_constraint_lower_bound(c, 1e30);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), model.infinity());
+    model.set_constraint_upper_bound(c,
+                                     -std::numeric_limits<double>::infinity());
+    EXPECT_EQ(model.get_constraint_upper_bound(c), -model.infinity());
+}
+
 INSTANTIATE_TEST(SCIP, LpModelTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, MilpModelTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, EnumerableEntitiesTest, scip_milp_test);
@@ -54,6 +81,7 @@ INSTANTIATE_TEST(SCIP, ReadableVariablesBoundsTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, ModifiableVariablesBoundsTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, NamedVariablesTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, ReadableConstraintBoundsTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, ModifiableConstraintBoundsTest, scip_milp_test);
 // INSTANTIATE_TEST(SCIP, CandidateSolutionCallbackTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, SudokuTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, TimeLimitTest, scip_milp_test);
