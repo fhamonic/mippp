@@ -502,10 +502,10 @@ releases the introduction lists.
   present from 1.8.0, so `set_time_limit` bounds each solve on HiGHS, a
   release-note item. MOSEK restores a caller's 3 s exactly, and a fresh task's
   -1 holds +inf after a budgeted call, both meaning no limit. SCIP restores a
-  caller's 30 s exactly. These MOSEK and SCIP results, and HiGHS's
-  forwarding, are one-off probes: only `cbc_time_limit_test` pins the
-  forwarding and the restore on a real solver, since the shared suite's
-  time-limit case runs the default limits, which never forward. Cbc's limit does not bound its root LP: on the devel
+  caller's 30 s exactly. The shared case
+  `IisByDeletionTest.forwarded_time_limit_is_restored` pins the same two
+  checks as `cbc_time_limit_test` on every backend with a time limit: Cbc,
+  HiGHS, MOSEK, SCIP and SoPlex. Cbc's limit does not bound its root LP: on the devel
   build a 1500-row dense relaxation ran 8.5 s under a 1e-6 s limit, so a Cbc
   trial can overrun the deadline too.
 - **Stop reasons.** After any inconclusive trial that ran, initial or

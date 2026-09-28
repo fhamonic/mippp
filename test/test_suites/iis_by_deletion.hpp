@@ -40,6 +40,8 @@ struct iis_trial_probe : M {
     bool saw_row_side_moved_to_a_finite_value = false;
     // the sides a trial may only leave in place or at infinity
     std::vector<std::pair<double, double>> original_row_sides;
+    // the time limit each trial ran under, on a model that has one
+    std::vector<double> trial_time_limits;
 
     void record_row_sides() {
         original_row_sides.clear();
@@ -51,6 +53,9 @@ struct iis_trial_probe : M {
 
     void solve() {
         ++solves;
+        if constexpr(has_time_limit<M>)
+            trial_time_limits.push_back(
+                std::chrono::duration<double>(this->get_time_limit()).count());
         for(auto v : this->variables()) {
             if(this->get_objective_coefficient(v) != 0)
                 saw_nonzero_objective = true;
@@ -523,6 +528,35 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         }
     }
 
+    // A caller's limit shorter than the budget caps every trial, a longer one
+    // gives way to the time that remains, and either reads back exactly after
+    // the call.
+    void check_forwarded_time_limit_is_restored() {
+        if constexpr(!has_time_limit<model_type>) {
+            GTEST_SKIP() << "no time limit";
+        } else {
+            const iis_limits budget{.time_limit = std::chrono::seconds(3600)};
+            for(const double caller : {7., 7200.}) {
+                SCOPED_TRACE("caller's limit " + std::to_string(caller));
+                probe model(*this->api);
+                build(model, iis_cases::bounds_against_a_row_case());
+                model.set_time_limit(std::chrono::duration<double>(caller));
+                const auto before = model.get_time_limit();
+                const auto iis = compute_iis_by_deletion(model, budget);
+                EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+                ASSERT_EQ(model.trial_time_limits.size(), model.solves);
+                ASSERT_GT(model.solves, 0u);
+                for(const double seen : model.trial_time_limits) {
+                    if(caller < 3600.)
+                        EXPECT_EQ(seen, caller);
+                    else
+                        EXPECT_TRUE(seen > 3500. && seen <= 3600.) << seen;
+                }
+                EXPECT_EQ(model.get_time_limit(), before);
+            }
+        }
+    }
+
 private:
     template <typename M>
     static auto add_integer_where_possible(
@@ -669,6 +703,10 @@ TYPED_TEST_P(IisByDeletionTest, default_limits_never_touch_the_time_limit) {
     this->SkipOnLicenseError(
         [this]() { this->check_default_limits_never_touch_the_time_limit(); });
 }
+TYPED_TEST_P(IisByDeletionTest, forwarded_time_limit_is_restored) {
+    this->SkipOnLicenseError(
+        [this]() { this->check_forwarded_time_limit_is_restored(); });
+}
 
 REGISTER_TYPED_TEST_SUITE_P(
     IisByDeletionTest, bounds_against_a_row, one_side_of_an_equality_row,
@@ -686,6 +724,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     status_survives_a_run_without_a_solve,
     column_less_precheck_ignores_the_limits,
     crossed_pair_is_the_proven_set_under_a_budget, restores_everything_it_saved,
-    default_limits_never_touch_the_time_limit);
+    default_limits_never_touch_the_time_limit,
+    forwarded_time_limit_is_restored);
 
 }  // namespace mippp
