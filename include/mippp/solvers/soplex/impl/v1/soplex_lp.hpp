@@ -150,10 +150,10 @@ private:
             tmp_scalars[constr.uid()] += static_cast<scalar>(coef);
             num_nz += (tmp_scalars[constr.uid()] != 0) ? 1 : -1;
         }
-        SoPlex->addColReal(model, tmp_scalars.data(), num_nz,
-                           static_cast<int>(num_vars), params.obj_coef,
-                           params.lower_bound.value_or(-_infinity),
-                           params.upper_bound.value_or(_infinity));
+        SoPlex->addColReal(
+            model, tmp_scalars.data(), static_cast<int>(num_constraints()),
+            num_nz, params.obj_coef, params.lower_bound.value_or(-_infinity),
+            params.upper_bound.value_or(_infinity));
         return variable(static_cast<int>(num_vars));
     }
 
