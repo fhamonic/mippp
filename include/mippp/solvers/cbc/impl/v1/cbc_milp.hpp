@@ -12,6 +12,7 @@
 #include <type_traits>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
@@ -31,6 +32,16 @@ private:
     Cbc_Model * model;
     double objective_offset;
     double feasibility_tol;
+    double objective_sense;
+    // Cbc before 3.0 runs branch and bound on the model it is given: that
+    // fixes the integer columns of this model at the incumbent and carries
+    // the incumbent, unchecked, into the next solve, so each MIP solve runs
+    // on a fresh copy, kept until the next solve for its answer.
+    bool copy_mip_solves;
+    Cbc_Model * mip_copy;
+    std::vector<int> mip_start_indices;
+    std::vector<double> mip_start_values;
+    std::vector<std::pair<std::string, std::string>> parameters;
 
     static constexpr char constraint_sense_to_cbc_sense(constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
@@ -56,11 +67,16 @@ public:
         , model(Cbc->newModel())
         , objective_offset(0.0)
         , feasibility_tol(1e-4)
+        , objective_sense(1.0)
+        , copy_mip_solves(api.library_version() &&
+                          api.library_version()->major < 3)
+        , mip_copy(nullptr)
         , _lazy_num_variables(0)
         , _lazy_num_constraints(0) {
         Cbc->setLogLevel(model, 0);
     }
     ~cbc_milp() {
+        if(mip_copy) Cbc->deleteModel(mip_copy);
         if(model) Cbc->deleteModel(model);
     }
 
@@ -71,10 +87,17 @@ public:
         , model(other.model)
         , objective_offset(other.objective_offset)
         , feasibility_tol(other.feasibility_tol)
+        , objective_sense(other.objective_sense)
+        , copy_mip_solves(other.copy_mip_solves)
+        , mip_copy(other.mip_copy)
+        , mip_start_indices(std::move(other.mip_start_indices))
+        , mip_start_values(std::move(other.mip_start_values))
+        , parameters(std::move(other.parameters))
         , _lazy_num_variables(other._lazy_num_variables)
         , _lazy_num_constraints(other._lazy_num_constraints)
         , _status(other._status) {
         other.model = nullptr;
+        other.mip_copy = nullptr;
     }
 
     constexpr cbc_milp & operator=(const cbc_milp &) = delete;
@@ -109,8 +132,14 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_maximization() { Cbc->setObjSense(model, -1); }
-    void set_minimization() { Cbc->setObjSense(model, 1); }
+    void set_maximization() {
+        objective_sense = -1.0;
+        Cbc->setObjSense(model, objective_sense);
+    }
+    void set_minimization() {
+        objective_sense = 1.0;
+        Cbc->setObjSense(model, objective_sense);
+    }
 
     void set_objective_offset(double offset) { objective_offset = offset; }
     void set_objective(linear_expression auto && le) {
@@ -412,6 +441,8 @@ private:
         _register_variables_entries<true>(entries);
         Cbc->setMIPStartI(model, static_cast<int>(tmp_indices.size()),
                           tmp_indices.data(), tmp_scalars.data());
+        mip_start_indices.assign(tmp_indices.begin(), tmp_indices.end());
+        mip_start_values.assign(tmp_scalars.begin(), tmp_scalars.end());
     }
 
 public:
@@ -449,11 +480,24 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+private:
+    // recorded because a Cbc_Model gives no read access to its parameters
+    void _set_parameter(const std::string & name, const std::string & value) {
+        Cbc->setParameter(model, name.c_str(), value.c_str());
+        auto it = std::ranges::find(
+            parameters, name, &std::pair<std::string, std::string>::first);
+        if(it == parameters.end())
+            parameters.emplace_back(name, value);
+        else
+            it->second = value;
+    }
+
+public:
     void set_feasibility_tolerance(double tol) {
         feasibility_tol = tol;
-        auto tol_s = std::to_string(tol);
-        Cbc->setParameter(model, "primalTolerance", tol_s.c_str());
-        Cbc->setParameter(model, "dualTolerance", tol_s.c_str());
+        const auto tol_s = std::to_string(tol);
+        _set_parameter("primalTolerance", tol_s);
+        _set_parameter("dualTolerance", tol_s);
     }
     double get_feasibility_tolerance() { return feasibility_tol; }
     void set_optimality_tolerance(double tol) {
@@ -491,16 +535,18 @@ private:
     // Cbc_status then aborts the process, hence these queries first.
     // isProvenOptimal leads: on Cbc 2.10 isContinuousUnbounded reads the
     // branch and bound state, which an LP solve leaves as it was.
-    status_variant _get_status() {
-        if (Cbc->isProvenOptimal(model)) return status::optimal{};
-        if (Cbc->isProvenInfeasible(model)) return status::infeasible{};
-        if (Cbc->isContinuousUnbounded(model)) return status::unbounded{};
-        if (Cbc->isAbandoned(model)) return status::numerical_failure{};
-        if (Cbc->getNumIntegers(model) == 0) return status::unknown{};
-        switch (Cbc->status(model)) {
+    status_variant _get_status(Cbc_Model * m) {
+        if (Cbc->isProvenOptimal(m)) return status::optimal{};
+        if (Cbc->isProvenInfeasible(m)) return status::infeasible{};
+        if (Cbc->isContinuousUnbounded(m)) return status::unbounded{};
+        if (Cbc->isAbandoned(m)) return status::numerical_failure{};
+        if (Cbc->getNumIntegers(m) == 0) return status::unknown{};
+        switch (Cbc->status(m)) {
             case 1: {
-                const bool has_sol = Cbc->bestSolution(model) != nullptr;
-                switch (Cbc->secondaryStatus(model)) {
+                // unlike bestSolution(), which keeps an earlier solve's
+                // incumbent on Cbc's master branch, this counts this solve's
+                const bool has_sol = Cbc->numberSavedSolutions(m) > 0;
+                switch (Cbc->secondaryStatus(m)) {
                     case 1: return status::infeasible{};
                     case 3: return status::node_limit{has_sol};
                     case 4: return status::time_limit{has_sol};
@@ -523,22 +569,67 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Solve ///////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+private:
+    void _copy_into_mip_copy() {
+        mip_copy = Cbc->newModel();
+        Cbc->setLogLevel(mip_copy, Cbc->getLogLevel(model));
+        Cbc->setObjSense(mip_copy, objective_sense);
+        const int num_cols = static_cast<int>(_lazy_num_variables);
+        const double * col_lb = Cbc->getColLower(model);
+        const double * col_ub = Cbc->getColUpper(model);
+        const double * obj = Cbc->getObjCoefficients(model);
+        for(int j = 0; j < num_cols; ++j)
+            Cbc->addCol(mip_copy, "", col_lb[j], col_ub[j], obj[j],
+                        static_cast<char>(Cbc->isInteger(model, j)), 0, nullptr,
+                        nullptr);
+        const int num_rows = static_cast<int>(_lazy_num_constraints);
+        const double * row_lb = Cbc->getRowLower(model);
+        const double * row_ub = Cbc->getRowUpper(model);
+        for(int i = 0; i < num_rows; ++i) {
+            Cbc->addRow(mip_copy, "", Cbc->getRowNz(model, i),
+                        Cbc->getRowIndices(model, i),
+                        Cbc->getRowCoeffs(model, i), 'L', row_ub[i]);
+            Cbc->setRowLower(mip_copy, i, row_lb[i]);
+        }
+        Cbc->setMaximumSeconds(mip_copy, Cbc->getMaximumSeconds(model));
+        Cbc->setMaximumNodes(mip_copy, Cbc->getMaximumNodes(model));
+        Cbc->setMaximumSolutions(mip_copy, Cbc->getMaximumSolutions(model));
+        Cbc->setAllowableFractionGap(mip_copy,
+                                     Cbc->getAllowableFractionGap(model));
+        for(const auto & [name, value] : parameters)
+            Cbc->setParameter(mip_copy, name.c_str(), value.c_str());
+        if(!mip_start_indices.empty())
+            Cbc->setMIPStartI(
+                mip_copy, static_cast<int>(mip_start_indices.size()),
+                mip_start_indices.data(), mip_start_values.data());
+    }
+    Cbc_Model * _solved_model() const noexcept {
+        return mip_copy ? mip_copy : model;
+    }
+
+public:
     void solve() {
+        if(mip_copy) {
+            Cbc->deleteModel(mip_copy);
+            mip_copy = nullptr;
+        }
         // Cbc_solve crashes on a model without columns
         if(_lazy_num_variables == 0u) {
             _status = status::unknown{};
             return;
         }
-        Cbc->solve(model);
-        _status = _get_status();
+        if(copy_mip_solves && Cbc->getNumIntegers(model) > 0)
+            _copy_into_mip_copy();
+        Cbc->solve(_solved_model());
+        _status = _get_status(_solved_model());
     }
     double get_solution_value() {
         // computed from the solution: Cbc_getObjValue keeps the previous
         // solve's value when a re-solve of a row-less LP takes no iteration
         double value = objective_offset;
         if(_lazy_num_variables == 0u) return value;
-        const double * sol = Cbc->bestSolution(model);
-        if(sol == nullptr) sol = Cbc->getColSolution(model);
+        const double * sol = Cbc->bestSolution(_solved_model());
+        if(sol == nullptr) sol = Cbc->getColSolution(_solved_model());
         const double * obj = Cbc->getObjCoefficients(model);
         for(std::size_t i = 0; i < _lazy_num_variables; ++i)
             value += obj[i] * sol[i];
@@ -549,8 +640,8 @@ public:
             std::make_unique_for_overwrite<double[]>(_lazy_num_variables);
         if(_lazy_num_variables != 0u) {
             // bestSolution() is null when the model has no integer variable
-            const double * sol = Cbc->bestSolution(model);
-            if(sol == nullptr) sol = Cbc->getColSolution(model);
+            const double * sol = Cbc->bestSolution(_solved_model());
+            if(sol == nullptr) sol = Cbc->getColSolution(_solved_model());
             std::copy_n(sol, _lazy_num_variables, solution.get());
         }
         return variable_mapping(std::move(solution));
