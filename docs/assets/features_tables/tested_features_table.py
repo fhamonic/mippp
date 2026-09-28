@@ -48,6 +48,8 @@ formated_test_names = [
     ("ModifiableObjectiveTest", "Increment objective"),
     ("ModifiableVariablesBoundsTest", "Modify variable bounds"),
     ("ModifiableConstraintBoundsTest", "Modify constraint bounds"),
+    ("IisTest", "IIS, native"),
+    ("IisByDeletionTest", "IIS, deletion filter"),
     ("NamedVariablesTest", "Named variables"),
     ("NamedConstraintsTest", "Named constraints"),
     ("LpStatusTest", "LP status"),
