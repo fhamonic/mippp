@@ -230,7 +230,12 @@ releases the introduction lists.
   afterwards (N29 a), since `time_limit` alone had no effect on 1.14.0 and
   1.15.1 (measured). A stop returns -1 with nothing written when it comes
   early, and 1 with a partial set, all its entries "maybe", later (on 1.15.1,
-  after an elasticity-filter stop, the whole model). On 1.14.x, a stop in the
+  after an elasticity-filter stop, the whole model). On every 0 or 1 return
+  `Highs_getIis` overwrites every status entry (1.14.0 and 1.15.1 sources),
+  so the wrapper's -1 pre-fill is only a default; after a failed post-check
+  the 1 return copies from HiGHS's own status vectors, which the failure
+  left empty, an out-of-bounds read inside HiGHS worth an upstream report
+  that no pre-fill on the wrapper's side can absorb. On 1.14.x, a stop in the
   elasticity filter returns -1 with model status 8, `kInfeasible`, which
   N26's mapping alone would turn into a throw. Under N34 (a), which amends
   N26, a -1 return is `undetermined` with `time_limit` when the time measured
@@ -283,6 +288,25 @@ releases the introduction lists.
   far, on HiGHS 1.15.1, `Highs_getIis` re-solves: an unsolved feasible LP
   comes back optimal with a primal point, and an infeasible one comes back
   infeasible. On 1.14.0 and 1.15.1 it also resets the run clock (measured).
+  The N15 probe of 2026-09-28 on 1.15.1, through `compute_iis()`, found that
+  after `Highs_getIis` the model status and the held solution agree on a
+  feasible model, solved or not (optimal, `primal_solution_status` 2, with a
+  primal point that satisfies every row and bound, and on a solved model the
+  solve's own point and objective, bit-identical), and on an infeasible one
+  (infeasible, `primal_solution_status` 0 or 1, no feasible point). A zero
+  `iis_time_limit` did not stop the probe's feasible models, for two
+  different reasons: a solved one never reaches the limit, since HiGHS exits
+  early on an optimal status, while an unsolved one is re-solved under the
+  copied budget and the probe's tiny LP simply finished before the clock was
+  checked (a larger one returns -1 with status 13, `undetermined` with
+  `time_limit`); both calls returned `kOk` and `feasible`. On an infeasible
+  model a `kError` stop leaves status 8 on a solved model, with the column
+  values unchanged and the info invalidated (`primal_solution_status`
+  unreadable), and status 13 with an infeasible point on an unsolved one,
+  neither claiming a feasible solution. `highs_lp` and `highs_qp` may
+  therefore leave the status untouched, which their native-suite case then
+  asserts; as of 2026-09-28 both still reset it and the suite asserts
+  `unknown`, the switch being a follow-up.
   CPLEX's refiner replaces `CPXgetstat` with its conflict statuses. Gurobi's
   `GRBcomputeIIS` overwrites the attributes `Status` and `Runtime`: a stopped
   call turned an infeasible LP's status 3 into 9, the time limit (measured on
@@ -332,8 +356,9 @@ releases the introduction lists.
   `set_objective_offset`, so `has_modifiable_objective` is not required. It
   never retypes a column, so `milp_model` needs no branch. It adapts through
   `if constexpr` on capability concepts, never on backend types, and only
-  where behavior differs: `qp_model`, `has_time_limit`, and the capabilities
-  that can carry background constraints (Q6 a). Its first mutation of the
+  where behavior differs: `qp_model` and `has_time_limit` (Q6 a; the branch
+  on the capabilities that can carry background constraints was dropped by
+  N36 with `detail::may_carry_background`). Its first mutation of the
   model waits for its first trial. It never touches the sense, the verbosity,
   the tolerances, the other limits or the matrix. A sketch of it compiled
   against main's headers and passed its runtime checks on stub models.
