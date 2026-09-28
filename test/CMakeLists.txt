@@ -120,10 +120,11 @@ endif()
 #
 # The interruption tests time their solves against the wall clock: run next to
 # the rest by a parallel ctest, a loaded machine stretches a solve past the
-# limit plus its overshoot, or stops it before its first incumbent.
+# limit plus its overshoot, or stops it before its first incumbent. The HiGHS
+# time_limit_bounds_each_solve tests derive their limit from measured solves.
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mippp_suite_tests.cmake)
 mippp_add_suite_tests(mippp_test
-    SERIAL_TESTS "*/TimeLimitTest/*.interrupts_long_solve:*/TimeLimitIncumbentTest/*")
+    SERIAL_TESTS "*/TimeLimitTest/*.interrupts_long_solve:*/TimeLimitIncumbentTest/*:highs_*_test.time_limit_bounds_each_solve")
 
 # ########## Header self-containment check ###########
 # One translation unit per public header, generated at configure time: each
