@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -35,6 +36,13 @@ private:
         return std::clamp(value, -_infinity, _infinity);
     }
 
+    template <typename F>
+    static F & _optional(F * function, const char * name) {
+        if(function == nullptr)
+            throw solver_error((std::string(name) + " not available.").c_str());
+        return *function;
+    }
+
 protected:
     using variable_id = int;
     using constraint_id = int;
@@ -51,6 +59,11 @@ private:
     void * model;
     double objective_offset;
     std::chrono::duration<double> _time_limit;
+    // What was written, read back from here: once a solve has scaled the LP
+    // in place, SoPlex_getLowerReal and SoPlex_getUpperReal unscale the
+    // infinite sides too, and a -1e100 bound reads back as -1.2e96.
+    std::vector<double> _lower_bounds;
+    std::vector<double> _upper_bounds;
 
 public:
     [[nodiscard]] soplex_lp() : soplex_lp(soplex_api::load()) {}
@@ -72,6 +85,8 @@ public:
         , model(other.model)
         , objective_offset(other.objective_offset)
         , _time_limit(other._time_limit)
+        , _lower_bounds(std::move(other._lower_bounds))
+        , _upper_bounds(std::move(other._upper_bounds))
         , _status(other._status) {
         other.model = nullptr;
     }
@@ -129,6 +144,8 @@ private:
         const double ub = _clamp_side(params.upper_bound.value_or(_infinity));
         SoPlex->addColReal(model, entries, num_rows, num_nz, params.obj_coef,
                            lb, ub);
+        _lower_bounds.push_back(lb);
+        _upper_bounds.push_back(ub);
     }
     inline void _add_var(const variable_params & params) {
         _add_soplex_column(nullptr, 0, 0, params);
@@ -177,6 +194,29 @@ public:
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
         return _add_column(entries, params);
+    }
+
+    double get_variable_lower_bound(variable v) {
+        return _lower_bounds[static_cast<std::size_t>(v.id())];
+    }
+    double get_variable_upper_bound(variable v) {
+        return _upper_bounds[static_cast<std::size_t>(v.id())];
+    }
+    void set_variable_lower_bound(variable v, double lb) {
+        lb = _clamp_side(lb);
+        _optional(SoPlex->changeVarLowerReal, "SoPlex_changeVarLowerReal")(
+            model, v.id(), lb);
+        _lower_bounds[static_cast<std::size_t>(v.id())] = lb;
+    }
+    void set_variable_upper_bound(variable v, double ub) {
+        // SoPlex 6.0 has SoPlex_changeVarUpperReal, but there it moves the
+        // lower bound, so the setter stands or falls with its lower twin
+        if(SoPlex->changeVarLowerReal == nullptr)
+            throw solver_error("SoPlex_changeVarUpperReal not available.");
+        ub = _clamp_side(ub);
+        _optional(SoPlex->changeVarUpperReal, "SoPlex_changeVarUpperReal")(
+            model, v.id(), ub);
+        _upper_bounds[static_cast<std::size_t>(v.id())] = ub;
     }
     ///////////////////////////////////////////////////////////////////////////
     /////////////////////////////// Constraints ///////////////////////////////
@@ -294,13 +334,13 @@ public:
     // The C interface of SoPlex has no getter for real parameters, so the
     // limit is read back from the copy kept here.
     void set_time_limit(std::chrono::duration<double> t) {
-        if(!SoPlex->setRealParam)
-            throw solver_error("SoPlex_setRealParam not available.");
+        auto & set_real_param =
+            _optional(SoPlex->setRealParam, "SoPlex_setRealParam");
         // SoPlex silently keeps its previous limit when given a value outside
         // [0, 1e100], so the copy read back would disagree with the solver.
         if(t.count() < 0) throw solver_error("soplex_lp: negative time limit");
         const double seconds = std::min(t.count(), _infinity);
-        SoPlex->setRealParam(model, SOPLEX_TIMELIMIT, seconds);
+        set_real_param(model, SOPLEX_TIMELIMIT, seconds);
         _time_limit = std::chrono::duration<double>(seconds);
     }
     auto get_time_limit() { return _time_limit; }

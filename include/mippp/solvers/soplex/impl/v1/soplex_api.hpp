@@ -20,6 +20,9 @@ void SoPlex_addRowReal(void * soplex, double * rowentries, int rowsize,
                        int nnonzeros, double lb, double ub);
 void SoPlex_getRowBoundsReal(void * soplex, int i, double * lb, double * ub);
 
+void SoPlex_changeVarLowerReal(void * soplex, int colidx, double lb);
+void SoPlex_changeVarUpperReal(void * soplex, int colidx, double ub);
+
 void SoPlex_changeObjReal(void * soplex, double * obj, int dim);
 
 int SoPlex_numCols(void * soplex);
@@ -90,10 +93,13 @@ namespace soplex::impl::v1 {
     F(SoPlex_getPrimalReal, getPrimalReal) \
     F(SoPlex_getDualReal, getDualReal)
 
-// absent before SoPlex 7.0
-#define SOPLEX_OPTIONAL_FUNCTIONS(F)     \
-    F(SoPlex_setRealParam, setRealParam) \
-    F(SoPlex_getRowBoundsReal, getRowBoundsReal)
+// absent before SoPlex 7.0, except a SoPlex_changeVarUpperReal that moves
+// the lower bound, which 6.0 has
+#define SOPLEX_OPTIONAL_FUNCTIONS(F)                 \
+    F(SoPlex_setRealParam, setRealParam)             \
+    F(SoPlex_getRowBoundsReal, getRowBoundsReal)     \
+    F(SoPlex_changeVarLowerReal, changeVarLowerReal) \
+    F(SoPlex_changeVarUpperReal, changeVarUpperReal)
 
 #define DECLARE_SOPLEX_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);     \
