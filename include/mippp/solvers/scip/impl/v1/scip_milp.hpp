@@ -504,6 +504,33 @@ public:
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     // clang-format off
+protected:
+    // SCIP 10 renumbered SCIP_STATUS, and scip_api declares the numbering of
+    // SCIP 8 and 9: read raw, a SCIP 10 optimum is USERINTERRUPT there.
+    static constexpr SCIP_STATUS _status_code(int major, int code) noexcept {
+        if(major < 10) return static_cast<SCIP_STATUS>(code);
+        switch(code) {
+            case 1:  return SCIP_STATUS_OPTIMAL;
+            case 2:  return SCIP_STATUS_INFEASIBLE;
+            case 3:  return SCIP_STATUS_UNBOUNDED;
+            case 4:  return SCIP_STATUS_INFORUNBD;
+            case 10: return SCIP_STATUS_USERINTERRUPT;
+            case 11: return SCIP_STATUS_TERMINATE;
+            case 20: return SCIP_STATUS_NODELIMIT;
+            case 21: return SCIP_STATUS_TOTALNODELIMIT;
+            case 22: return SCIP_STATUS_STALLNODELIMIT;
+            case 23: return SCIP_STATUS_TIMELIMIT;
+            case 24: return SCIP_STATUS_MEMLIMIT;
+            case 25: return SCIP_STATUS_GAPLIMIT;
+            case 26: return SCIP_STATUS_PRIMALLIMIT;
+            case 27: return SCIP_STATUS_DUALLIMIT;
+            case 28: return SCIP_STATUS_SOLLIMIT;
+            case 29: return SCIP_STATUS_BESTSOLLIMIT;
+            case 30: return SCIP_STATUS_RESTARTLIMIT;
+            default: return SCIP_STATUS_UNKNOWN;
+        }
+    }
+
 private:
     using status_variant = std::variant<
             status::unknown,
@@ -525,7 +552,8 @@ private:
     status_variant _get_status() {
         using namespace status;
         const bool has_sol = SCIP->getBestSol(model) != nullptr;
-        switch(SCIP->getStatus(model)) {
+        switch(_status_code(SCIP->majorVersion(),
+                            static_cast<int>(SCIP->getStatus(model)))) {
             case SCIP_STATUS_OPTIMAL:
             // limits/gap is the optimality tolerance: stopping there is
             // optimal, as on the other backends

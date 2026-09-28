@@ -11,6 +11,36 @@ using namespace mippp;
 
 MIPPP_API_VERSION_TEST(SCIP_api, scip_api, "SCIP")
 
+namespace {
+struct scip_status_probe : scip::impl::v1::scip_milp {
+    using scip_milp::_status_code;
+};
+}  // namespace
+
+TEST(SCIP_status, codes_of_scip_10_are_renumbered) {
+    using namespace scip::impl::v1;
+    EXPECT_EQ(scip_status_probe::_status_code(10, 1), SCIP_STATUS_OPTIMAL);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 2), SCIP_STATUS_INFEASIBLE);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 3), SCIP_STATUS_UNBOUNDED);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 4), SCIP_STATUS_INFORUNBD);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 10),
+              SCIP_STATUS_USERINTERRUPT);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 11), SCIP_STATUS_TERMINATE);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 20), SCIP_STATUS_NODELIMIT);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 23), SCIP_STATUS_TIMELIMIT);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 25), SCIP_STATUS_GAPLIMIT);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 28), SCIP_STATUS_SOLLIMIT);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 30),
+              SCIP_STATUS_RESTARTLIMIT);
+    EXPECT_EQ(scip_status_probe::_status_code(10, 0), SCIP_STATUS_UNKNOWN);
+}
+TEST(SCIP_status, codes_below_scip_10_are_read_as_declared) {
+    using namespace scip::impl::v1;
+    EXPECT_EQ(scip_status_probe::_status_code(9, 11), SCIP_STATUS_OPTIMAL);
+    EXPECT_EQ(scip_status_probe::_status_code(8, 1), SCIP_STATUS_USERINTERRUPT);
+    EXPECT_EQ(scip_status_probe::_status_code(9, 16), SCIP_STATUS_PRIMALLIMIT);
+}
+
 struct scip_milp_test : public model_test<scip_api, scip_milp> {
     static void SetUpTestSuite() { construct_api("SCIP"); }
 };
