@@ -17,8 +17,9 @@ and N0 to N37 refer to the Rulings of 2026-09-27 and 2026-09-28 in iis.md, and n
 - **Critical path.** Steps 0, 2, 3 and 4, then items 5.1 to 5.3. Each fix of step 1 lands before the first
   item that needs it. Step 6 can start once step 2 merges, HiGHS first.
 - **Waves.** Wave 1, published on main on 2026-09-28 with CI green, is steps 1 and 3 on main and step 2 on
-  pull request #3. Wave 2 is 2.5, then step 4 and 6.1, which need the merge. Wave 3 is step 5, and 6.2 to 6.6
-  can run beside it. Wave 4 is step 7.
+  pull request #3. Wave 2, 2.5 then step 4 and 6.1, landed on 2026-09-28: the merge as `e322ef1`, then the five
+  commits `ad0105a` to `19803cc`, all but the both-paths case of 6.1, which waits for 5.3. Wave 3 is step 5,
+  and 6.2 to 6.6 can run beside it. Wave 4 is step 7.
 
 ## 0. Before any code
 
@@ -115,10 +116,11 @@ handling section, pushed on 2026-09-28 with CI green at `e11c0f5`. Nothing here 
   `test/test_suites/iis_oracle.hpp` and the HiGHS vectors with their attribution, shared later by both IIS
   suites. Self-tests in `test/iis_oracle.cpp` and `test/iis_snapshot.cpp` run in `mippp_test`. On the
   branch as `e11c0f5`.
-- [ ] **2.5. Squash-merge pull request #3 into main.** With a `Co-authored-by` trailer for the author (N0 a),
+- [x] **2.5. Squash-merge pull request #3 into main.** With a `Co-authored-by` trailer for the author (N0 a),
   once the amendments of 2026-09-28 to the three documents are on its branch. The squash carries `25b4530` and
   the four commits, so main gets the documents, the engine, the types and the oracle at once. Then
-  `git worktree prune` locally.
+  `git worktree prune` locally. Done on 2026-09-28 as `e322ef1`, after a local run of the merged tree with every
+  solver source; the wave-1 worktrees and branches are gone.
 
 Done when pull request #3 is green and squash-merged with the author's credit, and no model satisfies
 `has_iis` yet. Under N17 (a), no tag is cut between this merge and 4.2.
@@ -165,47 +167,49 @@ The first end-to-end slice. It needs 2.5, since step 2 sits on pull request #3's
 and 1.4, which are on main. `clp_lp` has no time limit, so budget
 forwarding is tested on stubs here, and first runs on a real solver in 5.1.
 
-- [ ] **4.1. The public free function (WP7).** `compute_iis_by_deletion(model, limits)` in
+- [x] **4.1. The public free function (WP7).** `compute_iis_by_deletion(model, limits)` in
   `utility/iis_by_deletion.hpp`, with the requirements concept `iis_by_deletion_model`. It returns the
   snapshot of 2.3 by value (Q2 a). It adapts through `if constexpr` on capability concepts only, never on
   backend types. No backend gains a member for it, and no protected hook or friend declaration is needed.
-  - [ ] **Requirements.** `lp_model`, the enumeration, readable and modifiable variable bounds and row
+  - [x] **Requirements.** `lp_model`, the enumeration, readable and modifiable variable bounds and row
     bounds, a readable objective, the status reset, and a readable quadratic objective on a `qp_model`.
-  - [ ] **Classifier.** A visitor over `model_status_t<M>`. Anything derived from `infeasible`, and exactly
+  - [x] **Classifier.** A visitor over `model_status_t<M>`. Anything derived from `infeasible`, and exactly
     `infeasible_or_unbounded`, proves infeasibility. `optimal_infeasible_unscaled`, anything derived from
     `failed`, and `unbounded` are inconclusive. Anything else proves feasibility exactly when
     `solution_available` holds.
-  - [ ] **Guard and applier.** The guard saves by value the finite candidate sides, the objective
+  - [x] **Guard and applier.** The guard saves by value the finite candidate sides, the objective
     coefficients and offset, and the Hessian triples on a `qp_model`. The first mutation waits for the
     first trial. Trials zero the objective and leave the sense, verbosity, tolerances, other limits and the
     matrix alone. `restore()` attempts every item and rethrows the first error, and the `noexcept`
     destructor restores only if `restore()` did not run. The applier sets one active set, and restoring
     applies the full set.
-  - [ ] **Forwarding.** Only with a finite deadline and `has_time_limit`, the guard reads the caller's
+  - [x] **Forwarding.** Only with a finite deadline and `has_time_limit`, the guard reads the caller's
     limit once and each trial gets `std::min(remaining, saved)`, in that argument order. `saved` is
     restored exactly on every exit. With the default limits, `get_time_limit` and `set_time_limit` are
     never called.
-  - [ ] **Precheck and crossed pairs.** A model with no live variable is decided by N6 (b), whatever the
+  - [x] **Precheck and crossed pairs.** A model with no live variable is decided by N6 (b), whatever the
     limits. The comparison with 0 is exact and documented. A crossed pair, a variable whose bounds cross or a
     row whose sides cross, is the known proof: the initial trial is skipped and the engine continues from the
     pair with two singleton trials, on every model type (N36). No type-level background check exists, and
     constraints added through `native_model()` are outside the guarantee (N23 a). Under a budget that stops
     before the two trials, the pair is reported `not_proven_minimal` with the stop's reason.
-  - [ ] **Status.** `unknown` after any run that called `solve()`, exceptions included (Q4 a).
+  - [x] **Status.** `unknown` after any run that called `solve()`, exceptions included (Q4 a).
     A run answered by the column-less precheck alone, or stopped before its first trial, a crossed pair's
     continuation included, leaves the data and the status as they were.
-  - [ ] **Stub tests.** `test/iis_by_deletion.cpp` in `mippp_test`, over a scripted stub model and a
+  - [x] **Stub tests.** `test/iis_by_deletion.cpp` in `mippp_test`, over a scripted stub model and a
     derived probe that asserts per-trial invariants. They cover every row of the classification, and a
     throw at trial k and during the restore. They also cover lazy and quadratic objectives, the column-less
     precheck and a crossed pair at zero budget, a crossed pair decided by two trials, and the forwarding cases
-    of the time-limit audit.
-- [ ] **4.2. `IisByDeletionTest` on Clp (WP8).** The suite in `test/test_suites/iis_by_deletion.hpp`, over the
+    of the time-limit audit. Done in `ad0105a`: 52 stub cases in `mippp_test`, green under gcc 15, gcc 14 and
+    clang 18.
+- [x] **4.2. `IisByDeletionTest` on Clp (WP8).** The suite in `test/test_suites/iis_by_deletion.hpp`, over the
   shared case bodies of `test/test_suites/iis_cases.hpp`, written as fixture member functions. It is
   registered in `all.hpp` and instantiated for Clp in the same pull request. `dumb_lp` is not instantiated for
   now (N24). `has_iis<clp_lp>` stays false. The column-less case asserts the N6 answer, and the crossed cases
   the two-trial answer of N36. The status case asserts `unknown` after a run that solved, and the previous
   status after a run decided by the column-less precheck. The suite obtains the IIS type through `auto` and
-  never spells the snapshot's template arguments (N37 b).
+  never spells the snapshot's template arguments (N37 b). Done in `ac8696c` (29 cases, 25 running on Clp, the
+  integer ones and the time-limit one skipping) and `19803cc` (the concept rows and the labels).
   Filter-only cases cover the budget sweep, a stop requested beforehand and a 0 s budget. Answers must not
   change after a later `remove_variable` (N8 a). The `concepts.md` row of the free function's concept says
   that zero members with `irreducible` means the background alone is infeasible.
@@ -259,7 +263,7 @@ list them per backend. It sets the status to `unknown` before its first native c
 helper. It runs no column-less precheck (N28 a), and gives a reason only on a stop attributed to the time
 limit (N27 a).
 
-- [ ] **6.1. HiGHS, first (WP15).** `Highs_getIis` in `HIGHS_OPTIONAL_FUNCTIONS`, used on `highs_lp` and
+- [x] **6.1. HiGHS, first (WP15).** `Highs_getIis` in `HIGHS_OPTIONAL_FUNCTIONS`, used on `highs_lp` and
   `highs_qp` only, with `static_assert(!has_iis<highs_milp>)`. Below 1.14.0 (N26 a3), `compute_iis()` throws
   `solver_error`, naming the loaded version, the library path and the floor, with no fallback (Q1 b). An empty
   `library_version()`, as on a devel build, requires the symbol and assumes the newest regime. The wrapper
@@ -272,10 +276,14 @@ limit (N27 a).
   amending N26). This covers the -1 with model status 8 that a stop in the elasticity filter gives on 1.14.0
   (measured). The same test attributes `time_limit` to a "maybe" answer. A probe records in iis.md whether
   `Highs_getIis` keeps the held solution and whether the status agrees with it (N15). It re-solves an unsolved
-  model and resets the run clock (measured).
-  - [ ] **`IisTest`.** The suite in `test/test_suites/iis.hpp` shares the case bodies of 4.2. The fixtures
+  model and resets the run clock (measured). Done in `70384a9`; the probe of 2026-09-28 on 1.15.1 is recorded
+  in iis.md (`2e23f9a`): status and held solution agree, so leaving the status untouched is a follow-up, and
+  `compute_iis()` still resets it.
+  - [x] **`IisTest`.** The suite in `test/test_suites/iis.hpp` shares the case bodies of 4.2. The fixtures
     `highs_lp_iis_test` and `highs_qp_iis_test` skip below 1.14.0 on `library_version()`, and
-    `TEST(HiGHS_lp, compute_iis_below_native_floor_throws)` expects the throw there.
+    `TEST(HiGHS_lp, compute_iis_below_native_floor_throws)` expects the throw there. Done in `ac8696c`, with
+    four HiGHS-only cases on the options, the zero budget, the status and the Hessian; locally 28 native cases
+    pass on 1.15.1 and 16 skip for capabilities, and the throw is exercised on 1.10.0.
   - [ ] **Both paths.** After 5.3, `both_paths_find_valid_iis` calls the free function directly on models that
     meet both concepts, and the oracle validates both answers.
 - [ ] **6.2. Confirm each routine at its range floor.** `COPT_ComputeIIS` in COPT 7.2, `XPRS_IISOPS` in Xpress
