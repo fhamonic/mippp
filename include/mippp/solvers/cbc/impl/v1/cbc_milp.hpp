@@ -459,8 +459,10 @@ private:
         _register_variables_entries<true>(entries);
         Cbc->setMIPStartI(model, static_cast<int>(tmp_indices.size()),
                           tmp_indices.data(), tmp_scalars.data());
-        mip_start_indices.assign(tmp_indices.begin(), tmp_indices.end());
-        mip_start_values.assign(tmp_scalars.begin(), tmp_scalars.end());
+        // Swapped rather than assigned: GCC 14 reports a false
+        // -Wnull-dereference inside vector::assign here.
+        mip_start_indices.swap(tmp_indices);
+        mip_start_values.swap(tmp_scalars);
     }
 
 public:
