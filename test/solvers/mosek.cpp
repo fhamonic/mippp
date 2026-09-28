@@ -140,6 +140,7 @@ TEST(MOSEK_slots, a_missing_slot_is_never_picked) {
 struct mosek_lp_test : public model_test<mosek_api, mosek_lp> {
     static void SetUpTestSuite() { construct_api("MOSEK"); }
 };
+static_assert(!has_iis<mosek_lp>);
 TEST_F(mosek_lp_test, license_codes_throw_license_error) {
     for(int code = 1000; code <= 1028; ++code)
         EXPECT_THROW(api->_check(code), license_error) << code;
@@ -198,6 +199,7 @@ INSTANTIATE_TEST(MOSEK_lp, NamedVariablesTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, AddColumnTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableConstraintBoundsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ModifiableConstraintBoundsTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, IisByDeletionTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, DualSolutionTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReducedCostsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
@@ -208,6 +210,7 @@ INSTANTIATE_TEST(MOSEK_lp, VerbosityTest, mosek_lp_test);
 struct mosek_milp_test : public model_test<mosek_api, mosek_milp> {
     static void SetUpTestSuite() { construct_api("MOSEK"); }
 };
+static_assert(!has_iis<mosek_milp>);
 TEST_F(mosek_milp_test, column_less_model_is_optimal_only_if_its_rows_hold) {
     SkipOnLicenseError([this]() {
         expect_column_less_status_follows_rows(new_model(), new_model(),
@@ -229,6 +232,7 @@ INSTANTIATE_TEST(MOSEK_milp, NamedVariablesTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, AddColumnTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ReadableConstraintBoundsTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ModifiableConstraintBoundsTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, IisByDeletionTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, SudokuTest, mosek_milp_test);
 // INSTANTIATE_TEST(MOSEK_milp, MipStartTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, TimeLimitTest, mosek_milp_test);
