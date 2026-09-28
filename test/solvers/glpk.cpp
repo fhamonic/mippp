@@ -1,4 +1,5 @@
 #include <limits>
+#include <utility>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -191,6 +192,83 @@ TEST_F(glpk_milp_test, equal_double_bounds_written_natively_fail) {
                                     GLP_DB, 1, 1);
     model.solve();
     EXPECT_TRUE(is<status::failed>(model.get_status()));
+}
+// glp_intopt refuses fractional bounds on an integer column with GLP_EBOUND
+TEST_F(glpk_milp_test, fractional_bounds_of_integer_columns_are_rounded) {
+    using namespace operators;
+    auto model = new_model();
+    auto x =
+        model.add_integer_variable({.lower_bound = 0.5, .upper_bound = 2.5});
+    auto y = model.add_integer_variable({.upper_bound = 1.5});
+    auto z = model.add_integer_variable({.lower_bound = 1.0 + 1e-9});
+    model.add_constraint(x + y + z <= 10);
+    model.set_maximization();
+    model.set_objective(x + y - z);
+    model.solve();
+    ASSERT_TRUE(is<status::optimal>(model.get_status()));
+    auto solution = model.get_solution();
+    EXPECT_NEAR(solution[x], 2.0, TEST_EPSILON);
+    EXPECT_NEAR(solution[y], 1.0, TEST_EPSILON);
+    // within the integrality tolerance, the noise does not cut off 1
+    EXPECT_NEAR(solution[z], 1.0, TEST_EPSILON);
+    EXPECT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+    model.set_minimization();
+    model.set_objective(x);
+    model.solve();
+    ASSERT_TRUE(is<status::optimal>(model.get_status()));
+    EXPECT_NEAR(model.get_solution()[x], 1.0, TEST_EPSILON);
+    EXPECT_EQ(model.get_variable_lower_bound(x), 0.5);
+    EXPECT_EQ(model.get_variable_upper_bound(x), 2.5);
+    EXPECT_TRUE(model.is_infinite(model.get_variable_lower_bound(y)));
+    EXPECT_EQ(model.get_variable_upper_bound(y), 1.5);
+    EXPECT_EQ(model.get_variable_lower_bound(z), 1.0 + 1e-9);
+}
+TEST_F(glpk_milp_test, integer_column_without_integer_in_its_bounds) {
+    using namespace operators;
+    for(auto [lb, ub] : {std::pair{0.25, 0.75}, std::pair{0.5, 0.5}}) {
+        auto model = new_model();
+        auto x =
+            model.add_integer_variable({.lower_bound = lb, .upper_bound = ub});
+        model.add_constraint(x <= 5);
+        model.set_objective(x);
+        model.solve();
+        EXPECT_TRUE(is<status::infeasible>(model.get_status())) << lb;
+        EXPECT_EQ(model.get_variable_lower_bound(x), lb);
+        EXPECT_EQ(model.get_variable_upper_bound(x), ub);
+    }
+}
+// Unrounded, x + y == 1.5 over free integers keeps glp_intopt branching
+// without end: every branch leaves the other column fractional
+TEST_F(glpk_milp_test, integral_rows_are_rounded) {
+    using namespace operators;
+    {
+        auto model = new_model();
+        auto x = model.add_integer_variable({});
+        auto y = model.add_integer_variable({});
+        auto c = model.add_constraint(x + y == 1.5);
+        model.solve();
+        EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+        EXPECT_EQ(model.get_constraint_lower_bound(c), 1.5);
+        EXPECT_EQ(model.get_constraint_upper_bound(c), 1.5);
+    }
+    {
+        auto model = new_model();
+        auto x = model.add_integer_variable();
+        auto y = model.add_integer_variable();
+        auto z = model.add_variable({.upper_bound = 0.5});
+        auto c = model.add_constraint(x + 2 * y <= 3.5);
+        model.add_constraint(x + y + z <= 3.5);
+        model.add_constraint(0.5 * x <= 1.75);
+        model.set_maximization();
+        model.set_objective(x + y + z);
+        model.solve();
+        ASSERT_TRUE(is<status::optimal>(model.get_status()));
+        // a continuous column or a fractional coefficient leaves a row alone
+        EXPECT_NEAR(model.get_solution_value(), 3.5, TEST_EPSILON);
+        EXPECT_NEAR(model.get_solution()[x], 3.0, TEST_EPSILON);
+        EXPECT_EQ(model.get_constraint_upper_bound(c), 3.5);
+        EXPECT_TRUE(model.is_infinite(model.get_constraint_lower_bound(c)));
+    }
 }
 TEST_F(glpk_milp_test,
        unbounded_relaxation_without_integer_point_is_not_unbounded) {

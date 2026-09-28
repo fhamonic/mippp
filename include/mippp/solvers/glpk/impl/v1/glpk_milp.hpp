@@ -1,11 +1,14 @@
 #pragma once
 
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
@@ -137,7 +140,104 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+private:
+    struct saved_sides {
+        bool row;
+        int index;
+        int type;
+        double lb;
+        double ub;
+    };
+    // Within the integrality tolerance a side rounds to the nearest integer,
+    // as GLPK's presolver rounds implied bounds, so that float noise on an
+    // integral side does not cut its integer off: a side just past an integer
+    // moves out to it. Empty when both sides already are integers.
+    std::optional<std::pair<double, double>> _integral_sides(double lb,
+                                                             double ub) const {
+        const double tol = model_params.tol_int;
+        const bool has_lb = lb > std::numeric_limits<double>::lowest();
+        const bool has_ub = ub < std::numeric_limits<double>::max();
+        const double rounded_lb = has_lb ? std::ceil(lb - tol) : lb;
+        const double rounded_ub = has_ub ? std::floor(ub + tol) : ub;
+        if((!has_lb || rounded_lb == lb) && (!has_ub || rounded_ub == ub))
+            return std::nullopt;
+        return std::pair{rounded_lb, rounded_ub};
+    }
+    // glp_intopt refuses a fractional bound on an integer column with
+    // GLP_EBOUND, and its branch-and-bound can run without end on a row whose
+    // sides hold no integer between them over unbounded integer columns,
+    // x + y == 1.5 for one. An integer column, and a row whose columns are all
+    // integer with integral coefficients, only take integer values, so
+    // rounding their sides to integers loses no solution up to the
+    // integrality tolerance, the slack glp_intopt already gives an integer
+    // column. glp_intopt sees the rounded sides, and the caller's are put back
+    // after the solve, which keeps the solution. No integer between two sides
+    // leaves them crossed, which the solve then reports as infeasible.
+    // Rounding does not reach a row with integral sides but no integer point,
+    // 2x + 2y == 1, nor a row with a fractional coefficient: with tm_lim at
+    // INT_MAX, glp_intopt can still branch without end on those.
+    //
+    // Everything is allocated before the first side changes, so that a
+    // bad_alloc cannot leave the caller's sides rounded.
+    std::vector<saved_sides> _round_integral_sides() {
+        std::vector<saved_sides> saved;
+        const int num_cols = glp->get_num_cols(model);
+        const auto num_slots = static_cast<std::size_t>(num_cols) + 1u;
+        std::vector<char> is_integer(num_slots, char{0});
+        bool any_integer = false;
+        for(int j = 1; j <= num_cols; ++j) {
+            if(glp->get_col_kind(model, j) == GLP_CV) continue;
+            is_integer[static_cast<std::size_t>(j)] = 1;
+            any_integer = true;
+        }
+        if(!any_integer) return saved;
+        const int num_rows = glp->get_num_rows(model);
+        std::vector<int> ind(num_slots);
+        std::vector<double> val(num_slots);
+        saved.reserve(static_cast<std::size_t>(num_cols) +
+                      static_cast<std::size_t>(num_rows));
+        for(int j = 1; j <= num_cols; ++j) {
+            if(!is_integer[static_cast<std::size_t>(j)]) continue;
+            const double lb = glp->get_col_lb(model, j);
+            const double ub = glp->get_col_ub(model, j);
+            const auto rounded = _integral_sides(lb, ub);
+            if(!rounded) continue;
+            saved.push_back({false, j, glp->get_col_type(model, j), lb, ub});
+            _set_col_bnds(j, rounded->first, rounded->second);
+        }
+        for(int i = 1; i <= num_rows; ++i) {
+            const int len = glp->get_mat_row(model, i, ind.data(), val.data());
+            bool integral = true;
+            for(std::size_t k = 1; k <= static_cast<std::size_t>(len); ++k) {
+                if(!is_integer[static_cast<std::size_t>(ind[k])] ||
+                   val[k] != std::floor(val[k])) {
+                    integral = false;
+                    break;
+                }
+            }
+            if(!integral) continue;
+            const double lb = glp->get_row_lb(model, i);
+            const double ub = glp->get_row_ub(model, i);
+            const auto rounded = _integral_sides(lb, ub);
+            if(!rounded) continue;
+            saved.push_back({true, i, glp->get_row_type(model, i), lb, ub});
+            _set_row_bnds(i, rounded->first, rounded->second);
+        }
+        return saved;
+    }
+    void _restore_sides(const std::vector<saved_sides> & saved) {
+        for(const saved_sides & s : saved) {
+            if(s.row)
+                glp->set_row_bnds(model, s.index, s.type, s.lb, s.ub);
+            else
+                glp->set_col_bnds(model, s.index, s.type, s.lb, s.ub);
+        }
+    }
+
+public:
     void solve() {
+        // Rounding may throw, so it goes before the switch it would leave off.
+        const std::vector<saved_sides> saved = _round_integral_sides();
         // GLPK prints its cover and clique cut setup whatever msg_lev says.
         // glp_term_out switches the calling thread's GLPK environment (the
         // whole process's, on a GLPK built without thread-local storage).
@@ -145,6 +245,7 @@ public:
         const int term_out = quiet ? glp->term_out(GLP_OFF) : GLP_ON;
         const int ret = glp->intopt(model, &model_params);
         const bool crossed = (ret == GLP_EBOUND) && _has_crossed_bounds();
+        _restore_sides(saved);
         if(quiet) glp->term_out(term_out);
         if(crossed) {
             _status = status::infeasible{};

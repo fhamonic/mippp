@@ -60,6 +60,7 @@ constexpr int GLP_FX = 5;  // fixed variable
 void glp_set_col_bnds(glp_prob * P, int j, int type, double lb, double ub);
 double glp_get_col_lb(glp_prob * P, int j);
 double glp_get_col_ub(glp_prob * P, int j);
+int glp_get_col_type(glp_prob * P, int j);
 void glp_set_col_name(glp_prob * P, int j, const char * name);
 const char * glp_get_col_name(glp_prob * P, int j);
 constexpr int GLP_CV = 1;  // continuous variable
@@ -222,6 +223,7 @@ namespace glpk::impl::v1 {
     F(glp_set_col_bnds, set_col_bnds)   \
     F(glp_get_col_lb, get_col_lb)       \
     F(glp_get_col_ub, get_col_ub)       \
+    F(glp_get_col_type, get_col_type)   \
     F(glp_set_col_kind, set_col_kind)   \
     F(glp_get_col_kind, get_col_kind)   \
     F(glp_set_col_name, set_col_name)   \
@@ -229,6 +231,7 @@ namespace glpk::impl::v1 {
     F(glp_add_rows, add_rows)           \
     F(glp_set_mat_row, set_mat_row)     \
     F(glp_set_mat_col, set_mat_col)     \
+    F(glp_get_mat_row, get_mat_row)     \
     F(glp_set_row_bnds, set_row_bnds)   \
     F(glp_get_row_lb, get_row_lb)       \
     F(glp_get_row_ub, get_row_ub)       \
