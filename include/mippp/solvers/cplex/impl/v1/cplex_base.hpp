@@ -552,7 +552,9 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        check(CPX->setdblparam(env, CPXPARAM_TimeLimit, t.count()));
+        // The ceiling is 1e75, the fresh value, not infinity() (CPX_INFBOUND).
+        check(CPX->setdblparam(env, CPXPARAM_TimeLimit,
+                               std::min(t.count(), 1e75)));
     }
     auto get_time_limit() {
         double t;

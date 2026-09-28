@@ -100,7 +100,7 @@ hierarchy and how to branch on it.
 
 | Concept | Provides |
 | :--- | :--- |
-| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()`. |
+| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()`, which never returns a negative duration. |
 | `has_iteration_limit` | `set_iteration_limit(n)`, `get_iteration_limit()`. |
 | `has_node_limit` | `set_node_limit(n)`, `get_node_limit()`. |
 | `has_solution_limit` | `set_solution_limit(n)`, `get_solution_limit()`. |

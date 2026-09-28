@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 #include <cstddef>
 #include <functional>
@@ -418,7 +419,10 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
-        check(SCIP->setRealParam(model, "limits/time", t.count()));
+        // limits/time rejects values above 1e20, whatever numerics/infinity
+        // is set to.
+        check(SCIP->setRealParam(model, "limits/time",
+                                 std::min(t.count(), 1e20)));
     }
     auto get_time_limit() {
         double t;

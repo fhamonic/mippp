@@ -17,6 +17,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 #include "mippp/solvers/cbc/impl/v1/cbc_api.hpp"
 #include "mippp/solvers/model_base.hpp"
@@ -424,6 +425,8 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_time_limit(std::chrono::duration<double> t) {
+        // Cbc stores a negative limit and stops at once, as under 0.
+        if(t.count() < 0) throw solver_error("cbc_milp: negative time limit");
         Cbc->setMaximumSeconds(model, t.count());
     }
     auto get_time_limit() {

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdio>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -483,7 +484,10 @@ public:
     auto get_time_limit() {
         double t;
         check(MSK->getdouparam(task, MSK_DPAR_OPTIMIZER_MAX_TIME, &t));
-        return std::chrono::duration<double>(t);
+        // MOSEK's default, -1, means no limit: forwarded as is, it would
+        // make min(remaining, get_time_limit()) negative.
+        return std::chrono::duration<double>(
+            t < 0 ? std::numeric_limits<double>::infinity() : t);
     }
 
     ///////////////////////////////////////////////////////////////////////////

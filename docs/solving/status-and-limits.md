@@ -111,6 +111,8 @@ model.set_time_limit(10min);
 model.set_time_limit(std::chrono::duration<double>(0.5));  // sub-second is fine
 ```
 
+`get_time_limit()` never returns a negative duration, so `std::min(remaining, model.get_time_limit())` is a valid limit to forward on every backend. A fresh model reports the solver's own "no limit", which differs by backend: +inf, `DBL_MAX`, 1e100, 1e75 or 1e20. Writing that value back lifts a limit, and so do an infinite duration and `std::chrono::duration<double>::max()` on every backend: where a solver caps the limit, a larger value is stored as the cap. A negative limit throws, except on MOSEK, where it means no limit, and on COPT, which stores 0.
+
 Memory limits use the `memory_size` units of [`utility/memory_size.hpp`](https://github.com/fhamonic/mippp/blob/main/include/mippp/utility/memory_size.hpp) — `bytes`, `kilobytes`/`megabytes`/`gigabytes` (SI) and `kibibytes`/`mebibytes`/`gibibytes` (binary):
 
 ```cpp

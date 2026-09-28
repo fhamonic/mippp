@@ -269,8 +269,12 @@ public:
     void set_time_limit(std::chrono::duration<double> t) {
         if(!SoPlex->setRealParam)
             throw solver_error("SoPlex_setRealParam not available.");
-        SoPlex->setRealParam(model, SOPLEX_TIMELIMIT, t.count());
-        _time_limit = t;
+        // SoPlex silently keeps its previous limit when given a value outside
+        // [0, 1e100], so the copy read back would disagree with the solver.
+        if(t.count() < 0) throw solver_error("soplex_lp: negative time limit");
+        const double seconds = std::min(t.count(), _infinity);
+        SoPlex->setRealParam(model, SOPLEX_TIMELIMIT, seconds);
+        _time_limit = std::chrono::duration<double>(seconds);
     }
     auto get_time_limit() { return _time_limit; }
     ///////////////////////////////////////////////////////////////////////////

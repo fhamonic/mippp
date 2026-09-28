@@ -5,7 +5,11 @@
 
 #include "assert_helper.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <exception>
+#include <limits>
 #include <random>
 #include <ranges>
 #include <vector>
@@ -85,6 +89,98 @@ TYPED_TEST_P(TimeLimitTest, set_get_time_limit) {
     });
 }
 
+// Each backend spells "no limit" its own way, from 1e20 to +inf, but never as
+// a negative value, which would turn min(remaining, get_time_limit()) negative.
+TYPED_TEST_P(TimeLimitTest, fresh_time_limit_is_unlimited) {
+    this->SkipOnLicenseError([this]() {
+        using seconds = std::chrono::duration<double>;
+        auto model = this->new_model();
+        const seconds fresh = model.get_time_limit();
+        ASSERT_FALSE(std::isnan(fresh.count()));
+        ASSERT_GE(fresh.count(), 1e9);
+        model.set_time_limit(fresh);
+        EXPECT_EQ(seconds(model.get_time_limit()).count(), fresh.count());
+    });
+}
+
+TYPED_TEST_P(TimeLimitTest, unlimited_time_limit_round_trips) {
+    this->SkipOnLicenseError([this]() {
+        using seconds = std::chrono::duration<double>;
+        for(const seconds unlimited :
+            {seconds(std::numeric_limits<double>::infinity()),
+             seconds::max()}) {
+            auto model = this->new_model();
+            model.set_time_limit(seconds(5.0));
+            ASSERT_NO_THROW(model.set_time_limit(unlimited))
+                << unlimited.count();
+            const seconds read = model.get_time_limit();
+            ASSERT_GE(read.count(), 1e9) << unlimited.count();
+            model.set_time_limit(read);
+            EXPECT_EQ(seconds(model.get_time_limit()).count(), read.count())
+                << unlimited.count();
+        }
+    });
+}
+
+// A wrapper that keeps its own copy of a value the solver silently refused
+// passes the round trips above: only a solve shows the solver's limit.
+TYPED_TEST_P(TimeLimitTest, lifted_time_limit_takes_effect) {
+    this->SkipOnLicenseError([this]() {
+        using seconds = std::chrono::duration<double>;
+        for(const seconds unlimited :
+            {seconds(std::numeric_limits<double>::infinity()),
+             seconds::max()}) {
+            auto model = this->new_model();
+            TestFixture::build_dense_lp(model, 3);
+            model.set_time_limit(seconds(0.0));
+            model.set_time_limit(unlimited);
+            model.solve();
+            EXPECT_TRUE(is_a<status::completed>(model.get_status()))
+                << unlimited.count();
+        }
+    });
+}
+
+TYPED_TEST_P(TimeLimitTest, negative_time_limit_is_never_read_back) {
+    this->SkipOnLicenseError([this]() {
+        using seconds = std::chrono::duration<double>;
+        auto model = this->new_model();
+        try {
+            model.set_time_limit(seconds(-1.0));
+        } catch(const license_error &) {
+            throw;
+        } catch(const std::exception &) {
+            // a setter may refuse a negative limit
+        }
+        const double read = seconds(model.get_time_limit()).count();
+        EXPECT_FALSE(std::isnan(read));
+        EXPECT_GE(read, 0.0);
+    });
+}
+
+TYPED_TEST_P(TimeLimitTest, forwarded_time_limit_restores_exactly) {
+    this->SkipOnLicenseError([this]() {
+        using seconds = std::chrono::duration<double>;
+        for(const bool caller_limit : {false, true}) {
+            auto model = this->new_model();
+            if(caller_limit) model.set_time_limit(seconds(2.0));
+            const seconds saved = model.get_time_limit();
+            for(const seconds remaining :
+                {seconds(1e-3), seconds(0.25), seconds(3.0)}) {
+                const seconds forwarded = std::min(remaining, saved);
+                ASSERT_GT(forwarded.count(), 0.0);
+                ASSERT_LE(forwarded.count(), remaining.count());
+                model.set_time_limit(forwarded);
+                EXPECT_NEAR(seconds(model.get_time_limit()).count(),
+                            forwarded.count(), 1e-9);
+                model.set_time_limit(saved);
+                EXPECT_EQ(seconds(model.get_time_limit()).count(),
+                          saved.count());
+            }
+        }
+    });
+}
+
 // Behavioural test: the time limit must stop a solve that would otherwise run
 // well past it, at the right time and with the right status.
 //
@@ -155,6 +251,11 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
 }
 
 REGISTER_TYPED_TEST_SUITE_P(TimeLimitTest, set_get_time_limit,
+                            fresh_time_limit_is_unlimited,
+                            unlimited_time_limit_round_trips,
+                            lifted_time_limit_takes_effect,
+                            negative_time_limit_is_never_read_back,
+                            forwarded_time_limit_restores_exactly,
                             interrupts_long_solve);
 
 }  // namespace mippp
