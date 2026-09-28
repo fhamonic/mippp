@@ -107,6 +107,7 @@ TEST(GLPK_intopt_status, completed_search_reads_the_mip_status) {
 struct glpk_lp_test : public model_test<glpk_api, glpk_lp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
 };
+static_assert(!has_iis<glpk_lp>);
 // GLPK refuses to start on crossed bounds with GLP_EBOUND, and the crossing
 // alone proves infeasibility
 TEST_F(glpk_lp_test, crossing_variable_bounds_are_infeasible) {
@@ -152,6 +153,7 @@ INSTANTIATE_TEST(GLPK_lp, NamedVariablesTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, AddColumnTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ReadableConstraintBoundsTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ModifiableConstraintBoundsTest, glpk_lp_test);
+INSTANTIATE_TEST(GLPK_lp, IisByDeletionTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, DualSolutionTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ReducedCostsTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, LpStatusTest, glpk_lp_test);
@@ -161,6 +163,7 @@ INSTANTIATE_TEST(GLPK_lp, VerbosityTest, glpk_lp_test);
 struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
 };
+static_assert(!has_iis<glpk_milp>);
 TEST_F(glpk_milp_test, crossing_variable_bounds_are_infeasible) {
     using namespace operators;
     auto model = new_model();
@@ -295,6 +298,7 @@ INSTANTIATE_TEST(GLPK_milp, NamedVariablesTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, AddColumnTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, ReadableConstraintBoundsTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, ModifiableConstraintBoundsTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, IisByDeletionTest, glpk_milp_test);
 // INSTANTIATE_TEST(GLPK_milp, OptimalityToleranceTest, glpk_milp_test);
 // INSTANTIATE_TEST(GLPK_milp, MipGapTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, IntegralityToleranceTest, glpk_milp_test);
