@@ -63,21 +63,31 @@ public:
         : remapping_model_base<int, double>()
         , GRB(&api)
         , env(GRB->_empty_env())
+        , model(nullptr)
         , _num_var_native_ids(0)
         , _lazy_num_constraints(0) {
-        // before GRBstartenv, which otherwise prints the licence banner
-        check(GRB->setintparam(env, GRB_INT_PAR_OUTPUTFLAG, 0));
-        check(GRB->startenv(env));
-        check(GRB->newmodel(env, &model, "GUROBI", 0, nullptr, nullptr, nullptr,
-                            nullptr, nullptr));
+        // a constructor that throws runs no destructor
+        try {
+            // before GRBstartenv, which otherwise prints the licence banner
+            check(GRB->setintparam(env, GRB_INT_PAR_OUTPUTFLAG, 0));
+            check(GRB->startenv(env));
+            check(GRB->newmodel(env, &model, "GUROBI", 0, nullptr, nullptr,
+                                nullptr, nullptr, nullptr));
+        } catch(...) {
+            GRB->freeenv(env);
+            throw;
+        }
         GRB->freeenv(env);
         env = GRB->getenv(model);
-        if(env == nullptr)
+        if(env == nullptr) {
+            static_cast<void>(GRB->freemodel(model));
             throw std::runtime_error(
                 "gurobi_base: Could not retrieve model environment.");
+        }
     }
+    // check() would throw out of the destructor and terminate the program
     ~gurobi_base() {
-        if(model) check(GRB->freemodel(model));
+        if(model) static_cast<void>(GRB->freemodel(model));
     }
 
     constexpr gurobi_base(const gurobi_base &) = delete;

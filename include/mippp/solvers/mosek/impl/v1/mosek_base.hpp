@@ -14,8 +14,8 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/detail/handle_guard.hpp"
 #include "mippp/detail/invoke_key.hpp"
-#include "mippp/detail/mosek_handle_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -27,13 +27,23 @@
 namespace mippp {
 namespace mosek::impl::v1 {
 
+struct mosek_handle_release {
+    static auto free_problem(const auto & api, MSKenv_t, MSKtask_t & task) {
+        return api.deletetask(&task);
+    }
+    static auto free_env(const auto & api, MSKenv_t & env) {
+        return api.deleteenv(&env);
+    }
+};
+
 class mosek_base : protected model_base<int, double> {
 protected:
     const mosek_api * MSK;
     MSKenv_t env;
     MSKtask_t task;
     // declared after env and task, which it releases
-    detail::mosek_handle_guard<mosek_api, MSKenv_t, MSKtask_t> handle_guard;
+    detail::handle_guard<mosek_api, MSKenv_t, MSKtask_t, mosek_handle_release>
+        handle_guard;
 
     std::vector<index> tmp_begins;
     std::vector<MSKboundkeye> tmp_boundkeye;

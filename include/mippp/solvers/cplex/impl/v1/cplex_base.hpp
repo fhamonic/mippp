@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/detail/handle_guard.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -25,11 +26,23 @@
 namespace mippp {
 namespace cplex::impl::v1 {
 
+struct cplex_handle_release {
+    static auto free_problem(const auto & api, CPXENVptr env, CPXLPptr & lp) {
+        return api.freeprob(env, &lp);
+    }
+    static auto free_env(const auto & api, CPXENVptr & env) {
+        return api.closeCPLEX(&env);
+    }
+};
+
 class cplex_base : protected remapping_model_base<int, double> {
 protected:
     const cplex_api * CPX;
     CPXENVptr env;
     CPXLPptr lp;
+    // declared after env and lp, which it releases
+    detail::handle_guard<cplex_api, CPXENVptr, CPXLPptr, cplex_handle_release>
+        handle_guard;
 
     std::vector<int> tmp_begins;
     std::vector<char> tmp_types;
@@ -58,19 +71,20 @@ public:
     [[nodiscard]] explicit cplex_base(const cplex_api & api)
         : remapping_model_base<int, double>()
         , CPX(&api)
-        , env(CPX->_create_env())
-        , lp(CPX->_create_prob(env)) {}
-    ~cplex_base() {
-        if(lp) check(CPX->freeprob(env, &lp));
-        if(env) CPX->_close_env(env);
+        , env(nullptr)
+        , lp(nullptr)
+        , handle_guard(api, env, lp) {
+        env = CPX->_create_env();
+        lp = CPX->_create_prob(env);
     }
 
     constexpr cplex_base(const cplex_base &) = delete;
-    constexpr cplex_base(cplex_base && other) noexcept
+    cplex_base(cplex_base && other) noexcept
         : remapping_model_base<int, double>(std::move(other))
         , CPX(other.CPX)
         , env(other.env)
         , lp(other.lp)
+        , handle_guard(*CPX, env, lp)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_types(std::move(other.tmp_types))
         , tmp_rhs(std::move(other.tmp_rhs)) {

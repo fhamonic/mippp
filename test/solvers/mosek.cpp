@@ -56,7 +56,9 @@ TEST(MOSEK_handle_guard, releases_partial_allocations_without_throwing) {
         MSKenv_t env = nullptr;
         MSKtask_t task = nullptr;
         try {
-            mippp::detail::mosek_handle_guard guard(api, env, task);
+            mippp::detail::handle_guard<fake_mosek_release_api, MSKenv_t,
+                                        MSKtask_t, mosek_handle_release>
+                guard(api, env, task);
             if(allocated >= 1) env = reinterpret_cast<MSKenv_t>(&storage);
             if(allocated >= 2) task = reinterpret_cast<MSKtask_t>(&storage);
             throw std::runtime_error("construction failure");

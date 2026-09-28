@@ -66,9 +66,9 @@ public:
         check(XPRS->setintcontrol(prob, XPRS_OUTPUTLOG, 0));
         check(XPRS->addcbmessage(prob, print_message, nullptr, 0));
     }
+    // check() would throw out of the destructor and terminate the program
     ~xpress_base() {
-        if(!prob) return;
-        check(XPRS->destroyprob(prob));
+        if(prob) static_cast<void>(XPRS->destroyprob(prob));
     }
 
     constexpr xpress_base(const xpress_base &) = delete;

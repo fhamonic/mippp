@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/detail/handle_guard.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -24,11 +25,23 @@
 namespace mippp {
 namespace copt::impl::v1 {
 
+struct copt_handle_release {
+    static auto free_problem(const auto & api, copt_env *, copt_prob *& prob) {
+        return api.DeleteProb(&prob);
+    }
+    static auto free_env(const auto & api, copt_env *& env) {
+        return api.DeleteEnv(&env);
+    }
+};
+
 class copt_base : protected model_base<int, double> {
 protected:
     const copt_api * COPT;
     copt_env * env;
     copt_prob * prob;
+    // declared after env and prob, which it releases
+    detail::handle_guard<copt_api, copt_env *, copt_prob *, copt_handle_release>
+        handle_guard;
 
     std::vector<index> tmp_begins;
     std::vector<char> tmp_types;
@@ -54,22 +67,23 @@ public:
     using model_base<int, double>::is_infinite;
 
     [[nodiscard]] explicit copt_base(const copt_api & api)
-        : model_base<int, double>(), COPT(&api), env(nullptr), prob(nullptr) {
+        : model_base<int, double>()
+        , COPT(&api)
+        , env(nullptr)
+        , prob(nullptr)
+        , handle_guard(api, env, prob) {
         check(COPT->CreateEnv(&env));
         check(COPT->CreateProb(env, &prob));
         check(COPT->SetIntParam(prob, COPT_INTPARAM_LOGGING, 0));
     }
-    ~copt_base() {
-        if(prob) check(COPT->DeleteProb(&prob));
-        if(env) check(COPT->DeleteEnv(&env));
-    }
 
     constexpr copt_base(const copt_base &) = delete;
-    constexpr copt_base(copt_base && other) noexcept
+    copt_base(copt_base && other) noexcept
         : model_base<int, double>(std::move(other))
         , COPT(other.COPT)
         , env(other.env)
         , prob(other.prob)
+        , handle_guard(*COPT, env, prob)
         , tmp_begins(std::move(other.tmp_begins))
         , tmp_types(std::move(other.tmp_types))
         , tmp_rhs(std::move(other.tmp_rhs)) {
