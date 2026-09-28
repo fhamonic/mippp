@@ -166,7 +166,10 @@ private:
     // clang-format on
 public:
     const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _solution.reset();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

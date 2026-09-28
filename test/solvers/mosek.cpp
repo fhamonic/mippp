@@ -45,6 +45,26 @@ void expect_column_less_status_follows_rows(Model empty, Model satisfied,
     EXPECT_TRUE(is_a<status::optimal>(satisfied.get_status()));
     EXPECT_FALSE(is_a<status::optimal>(violated.get_status()));
 }
+
+template <typename Model>
+void expect_reset_status_drops_the_solution(Model model) {
+    using namespace operators;
+    auto x = model.add_variable({.upper_bound = 3});
+    auto y = model.add_variable();
+    model.set_maximization();
+    model.set_objective(x + y);
+    model.add_constraint(x + 2 * y <= 4);
+    model.solve();
+    ASSERT_NEAR(model.get_solution_value(), 3.5, TEST_EPSILON);
+    model.reset_status();
+    EXPECT_THROW(model.get_solution_value(), solver_error);
+    EXPECT_THROW(model.get_solution(), solver_error);
+    model.solve();
+    ASSERT_NEAR(model.get_solution_value(), 3.5, TEST_EPSILON);
+    auto solution = model.get_solution();
+    EXPECT_NEAR(solution[x], 3.0, TEST_EPSILON);
+    EXPECT_NEAR(solution[y], 0.5, TEST_EPSILON);
+}
 }  // namespace
 
 TEST(MOSEK_handle_guard, releases_partial_allocations_without_throwing) {
@@ -139,6 +159,10 @@ TEST_F(mosek_lp_test, column_less_model_is_optimal_only_if_its_rows_hold) {
                                                new_model());
     });
 }
+TEST_F(mosek_lp_test, reset_status_drops_the_solution) {
+    SkipOnLicenseError(
+        [this]() { expect_reset_status_drops_the_solution(new_model()); });
+}
 INSTANTIATE_TEST(MOSEK_lp, LpModelTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, EnumerableEntitiesTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableObjectiveTest, mosek_lp_test);
@@ -163,6 +187,10 @@ TEST_F(mosek_milp_test, column_less_model_is_optimal_only_if_its_rows_hold) {
         expect_column_less_status_follows_rows(new_model(), new_model(),
                                                new_model());
     });
+}
+TEST_F(mosek_milp_test, reset_status_drops_the_solution) {
+    SkipOnLicenseError(
+        [this]() { expect_reset_status_drops_the_solution(new_model()); });
 }
 INSTANTIATE_TEST(MOSEK_milp, LpModelTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, MilpModelTest, mosek_milp_test);
