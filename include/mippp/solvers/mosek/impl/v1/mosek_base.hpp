@@ -500,6 +500,16 @@ public:
         if(boundkey == MSK_BK_LO || boundkey == MSK_BK_FR) return infinity();
         return ub;
     }
+    // finite = 0 frees the side whatever MSK_DPAR_DATA_TOL_BOUND_INF says:
+    // infinity() passed as a value is freed only while it lies past that
+    // tolerance, as it does by default. infinity() on the opposite side stays a
+    // real, if unsatisfiable, bound; MOSEK rejects an IEEE infinity there.
+    void set_constraint_lower_bound(constraint constr, scalar lb) {
+        check(MSK->chgconbound(task, constr.id(), 1, lb > -infinity(), lb));
+    }
+    void set_constraint_upper_bound(constraint constr, scalar ub) {
+        check(MSK->chgconbound(task, constr.id(), 0, ub < infinity(), ub));
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////

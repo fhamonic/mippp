@@ -163,6 +163,31 @@ TEST_F(mosek_lp_test, reset_status_drops_the_solution) {
     SkipOnLicenseError(
         [this]() { expect_reset_status_drops_the_solution(new_model()); });
 }
+// Under a raised MSK_DPAR_DATA_TOL_BOUND_INF, infinity() passed as a value
+// would stay a finite bound that the getters still read as infinite: only the
+// bound key tells the side was freed.
+TEST_F(mosek_lp_test,
+       infinity_frees_a_row_side_under_a_raised_bound_tolerance) {
+    using namespace operators;
+    using namespace mosek::impl::v1;
+    auto model = new_model();
+    const MSKtask_t task = model.native_model().second;
+    api->_check(api->putdouparam(task, MSK_DPAR_DATA_TOL_BOUND_INF, 1e40));
+    auto x = model.add_variable({.lower_bound = -7.0, .upper_bound = 7.0});
+    auto c1 = model.add_constraint(x == 0.0);
+    auto c2 = model.add_constraint(x == 0.0);
+    model.set_constraint_lower_bound(c1, -model.infinity());
+    model.set_constraint_upper_bound(c2, model.infinity());
+    MSKboundkeye key;
+    double lb, ub;
+    api->_check(api->getconbound(task, c1.id(), &key, &lb, &ub));
+    EXPECT_EQ(key, MSK_BK_UP);
+    api->_check(api->getconbound(task, c2.id(), &key, &lb, &ub));
+    EXPECT_EQ(key, MSK_BK_LO);
+    model.set_constraint_upper_bound(c1, model.infinity());
+    api->_check(api->getconbound(task, c1.id(), &key, &lb, &ub));
+    EXPECT_EQ(key, MSK_BK_FR);
+}
 INSTANTIATE_TEST(MOSEK_lp, LpModelTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, EnumerableEntitiesTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableObjectiveTest, mosek_lp_test);
@@ -172,6 +197,7 @@ INSTANTIATE_TEST(MOSEK_lp, ModifiableVariablesBoundsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, NamedVariablesTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, AddColumnTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableConstraintBoundsTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, ModifiableConstraintBoundsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, DualSolutionTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReducedCostsTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
@@ -202,6 +228,7 @@ INSTANTIATE_TEST(MOSEK_milp, ModifiableVariablesBoundsTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, NamedVariablesTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, AddColumnTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ReadableConstraintBoundsTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, ModifiableConstraintBoundsTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, SudokuTest, mosek_milp_test);
 // INSTANTIATE_TEST(MOSEK_milp, MipStartTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, TimeLimitTest, mosek_milp_test);
