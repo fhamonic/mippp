@@ -64,30 +64,52 @@ struct model_test : public ::testing::Test {
     // Why a *required* api is missing: the suite must then not be skipped, so
     // the failure is reported by SetUp(), see below.
     inline static std::string missing_required_api;
+    // Why the backend cannot run in this process: its library could not be
+    // loaded, or the solver refused its license, which most solvers only
+    // check when a model is created.
+    inline static std::string unavailable_reason;
 
+    // Decided once per process, from SetUpTestSuite(): a backend that cannot
+    // run then costs one library search and one model, not one per test.
     template <typename... Args>
     static void construct_api(const char * solver_key, Args... args) {
-        if(api != nullptr) return;
+        if(api != nullptr || !missing_required_api.empty() ||
+           !unavailable_reason.empty())
+            return;
         try {
             api = &Api::load(args...);
+        } catch(const mippp::license_error & e) {
+            // only the loading of a required solver is asserted, not its
+            // license
+            unavailable_reason = e.what();
+            return;
         } catch(const std::exception & e) {
-            if(is_required_solver(solver_key)) {
+            if(is_required_solver(solver_key))
                 missing_required_api =
                     std::string(solver_key) +
                     " is listed in MIPPP_REQUIRED_SOLVERS but its api could "
                     "not be constructed: " +
                     e.what();
-                return;
-            }
-            GTEST_SKIP() << e.what();
+            else
+                unavailable_reason = e.what();
+            return;
+        }
+        try {
+            [[maybe_unused]] const Model probe(*api);
+        } catch(const mippp::license_error & e) {
+            unavailable_reason = e.what();
+        } catch(...) {
+            // any other error is reported by each test that creates a model
         }
     }
-    // A required solver must fail per test rather than from construct_api():
-    // GoogleTest skips a whole suite whose SetUpTestSuite() failed, and ctest
-    // turns any "[  SKIPPED ]" back into a pass (gtest_discover_tests sets
-    // SKIP_REGULAR_EXPRESSION), which would swallow the failure.
+    // Every test of a backend that cannot run stops here, before touching the
+    // solver. Skipping in SetUp() rather than in SetUpTestSuite() keeps the
+    // reason in each test's result, which a suite-level skip leaves empty,
+    // and a required solver fails here because GoogleTest reports every test
+    // of a suite whose SetUpTestSuite() failed as skipped.
     void SetUp() override {
         if(!missing_required_api.empty()) FAIL() << missing_required_api;
+        if(!unavailable_reason.empty()) GTEST_SKIP() << unavailable_reason;
     }
 
     auto new_model() const { return Model(*api); }

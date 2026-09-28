@@ -1,6 +1,5 @@
 # ################### Packages ###################
 find_package(GTest REQUIRED)
-include(GoogleTest)
 
 find_package(melon REQUIRED)
 
@@ -115,14 +114,16 @@ if(MIPPP_SANITIZE)
     # a failure.
 endif()
 
+# One ctest test per test suite, each a process of its own (see
+# cmake/mippp_suite_tests.cmake): a single test runs as
+# `mippp_test --gtest_filter=<suite>.<test>`.
+#
 # The interruption tests time their solves against the wall clock: run next to
 # the rest by a parallel ctest, a loaded machine stretches a solve past the
 # limit plus its overshoot, or stops it before its first incumbent.
-gtest_discover_tests(mippp_test TEST_LIST MIPPP_TESTS
-    TEST_FILTER "-*/TimeLimitTest/*.interrupts_long_solve:*/TimeLimitIncumbentTest/*")
-gtest_discover_tests(mippp_test TEST_LIST MIPPP_TIMED_TESTS
-    TEST_FILTER "*/TimeLimitTest/*.interrupts_long_solve:*/TimeLimitIncumbentTest/*"
-    PROPERTIES RUN_SERIAL TRUE)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mippp_suite_tests.cmake)
+mippp_add_suite_tests(mippp_test
+    SERIAL_TESTS "*/TimeLimitTest/*.interrupts_long_solve:*/TimeLimitIncumbentTest/*")
 
 # ########## Header self-containment check ###########
 # One translation unit per public header, generated at configure time: each

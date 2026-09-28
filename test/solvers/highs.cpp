@@ -104,7 +104,9 @@ struct highs_iis_test : public model_test<highs_api, Model> {
     }
     void SetUp() override {
         model_test<highs_api, Model>::SetUp();
-        if(::testing::Test::HasFatalFailure() || this->api == nullptr) return;
+        if(::testing::Test::HasFatalFailure() || ::testing::Test::IsSkipped() ||
+           this->api == nullptr)
+            return;
         const auto loaded = this->api->library_version();
         if(loaded && *loaded < highs_native_iis_floor)
             GTEST_SKIP() << "Highs_getIis needs HiGHS "

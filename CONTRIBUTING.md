@@ -210,7 +210,7 @@ make
 # Run the tests for a single solver backend (case-insensitive)
 make test highs
 
-# Narrow further to the tests whose name matches a regex (ctest -R)
+# Narrow further to the test suites whose name matches a regex (ctest -R)
 make test highs LpModelTest
 
 # Same, with another profile
@@ -227,9 +227,14 @@ make clean
 compilation and execution to `test/solvers/<solver>.cpp` — handy when you only
 have one solver installed locally. A `;`-separated list selects several
 (`make test "clp;cbc"`). An optional third word sets `TEST_FILTER`, passed to
-`ctest -R`. Without a source, every backend in
-[test/CMakeLists.txt](test/CMakeLists.txt) is built; backends whose runtime
-library is missing are skipped automatically. Each solver file instantiates
+`ctest -R`. Each ctest test is a GoogleTest test suite run in a process of its
+own, `HiGHS_lp/LpModelTest/0` say, so the filter matches suite names; a single
+test runs directly, as in
+`build/test/mippp_test --gtest_filter='HiGHS_lp/LpModelTest/0.*status*'`.
+Without a source, every backend in [test/CMakeLists.txt](test/CMakeLists.txt)
+is built; a backend whose runtime library is missing, or whose solver refuses
+its license when the first model is created, is skipped automatically, one
+whole suite at a time. Each solver file instantiates
 every shared suite for every model type of its backend and takes about as long
 to compile as all the core tests together, so a targeted build is several
 times faster than a full one. Whatever the selection, every public header is
@@ -383,11 +388,11 @@ When you add a capability, add its test to the shared suite so that **every**
 backend supporting it gets coverage, rather than duplicating logic per solver.
 
 Tests that time solves against the wall clock, `TimeLimitTest.interrupts_long_solve`
-and `TimeLimitIncumbentTest.keeps_the_incumbent` for now, are registered with ctest's
-`RUN_SERIAL`: a parallel `ctest` runs them one at a time, since a loaded machine
-stretches a solve past any fixed tolerance, or stops it before its first incumbent.
-A new timing-dependent test belongs in the same `TEST_FILTER` of
-[test/CMakeLists.txt](test/CMakeLists.txt).
+and `TimeLimitIncumbentTest.keeps_the_incumbent` for now, are registered apart from
+their suites with ctest's `RUN_SERIAL`: a parallel `ctest` runs them one at a time,
+since a loaded machine stretches a solve past any fixed tolerance, or stops it before
+its first incumbent. A new timing-dependent test belongs in the same `SERIAL_TESTS`
+filter of [test/CMakeLists.txt](test/CMakeLists.txt).
 
 ## Coding style
 
