@@ -52,6 +52,8 @@ HighsInt Highs_addCols(void * highs, const HighsInt num_new_col,
 HighsInt Highs_deleteColsBySet(void * highs, const HighsInt num_set_entries,
                                const HighsInt * set);
 HighsInt Highs_deleteColsByMask(void * highs, HighsInt * mask);
+HighsInt Highs_deleteColsByRange(void * highs, const HighsInt from_col,
+                                 const HighsInt to_col);
 
 HighsInt Highs_changeColCost(void * highs, const HighsInt col,
                              const double cost);
@@ -284,6 +286,7 @@ namespace highs::impl::v1 {
     F(Highs_addCols, addCols)                                           \
     F(Highs_deleteColsBySet, deleteColsBySet)                           \
     F(Highs_deleteColsByMask, deleteColsByMask)                         \
+    F(Highs_deleteColsByRange, deleteColsByRange)                       \
     F(Highs_changeColCost, changeColCost)                               \
     F(Highs_changeColsCostByRange, changeColsCostByRange)               \
     F(Highs_changeColsCostBySet, changeColsCostBySet)                   \

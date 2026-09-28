@@ -766,6 +766,16 @@ protected:
         check(Highs->getDoubleOptionValue(model, "time_limit", &budget));
         iis_option_guard guard(*Highs, model, _iis_strategy_full, budget);
 
+        // HiGHS stores the matrix row-wise once added rows bring more
+        // nonzeros than it holds, and its check of an answer made of one row
+        // and no column then reads past the end of an array it built for a
+        // column-wise matrix. Deleting the empty column range turns the
+        // matrix column-wise and drops the presolve and ray records, which
+        // the search does not read, but leaves the data, the Hessian, the
+        // basis and the model status alone. An all-zero mask would rewrite
+        // them in place and fail an assertion of HiGHS on a QP's Hessian.
+        check(Highs->deleteColsByRange(model, 0, -1));
+
         // HiGHS overwrites every entry on the returns decoded below, so the
         // fill is only a default; NotInConflict rather than zero because zero
         // is the maybe code.

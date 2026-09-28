@@ -279,3 +279,25 @@ TEST_F(highs_qp_iis_test, compute_iis_keeps_the_quadratic_objective) {
     ASSERT_QUAD_EXPR(model.get_quadratic_objective(), {{v, v, 1.}},
                      {{x, 1.}, {v, 0.}}, 0.);
 }
+
+// The row brings the first nonzero, so HiGHS holds the matrix row-wise, and
+// its answer is that row alone. The sides are written through the native
+// call, so that the case does not depend on the row-bound setters. Without
+// the column-wise switch, a gcc build usually still passes: the read past the
+// array shows only under valgrind, in a clang build (segfault) or on a HiGHS
+// built with assertions.
+TEST_F(highs_lp_iis_test, one_row_answer_on_a_row_wise_matrix) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto x = model.add_variable();
+    auto y = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+    auto c = model.add_constraint(x >= 1.);
+    model.add_constraint(y <= 3.);
+    model.native_api()._check(model.native_api().changeRowBounds(
+        model.native_model(), model.native_id(c), 1., 0.));
+    const auto iis = model.compute_iis();
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(c)));
+    EXPECT_EQ(iis.num_constraint_members(), 1u);
+    EXPECT_EQ(iis.num_variable_members(), 0u);
+}
