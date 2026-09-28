@@ -169,6 +169,7 @@ TEST_F(soplex_lp_test, freeing_an_active_row_keeps_the_resolve_right) {
     }
 }
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, LpStatusTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, EnumerableEntitiesTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ReadableObjectiveTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ReadableVariablesBoundsTest, soplex_lp_test);
@@ -181,3 +182,4 @@ INSTANTIATE_TEST(SoPlex, DualSolutionTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, CuttingStockTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, TimeLimitTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, VerbosityTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, LpFuzzyTest, soplex_lp_test);
