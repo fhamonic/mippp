@@ -348,11 +348,12 @@ public:
     void set_objective_coefficient(variable v, scalar c) {
         check(MSK->putcj(task, v.id(), c));
     }
+    // finite = 0 for the same reason as in the row setters.
     void set_variable_lower_bound(variable v, scalar lb) {
-        check(MSK->chgvarbound(task, v.id(), 1, 1, lb));
+        check(MSK->chgvarbound(task, v.id(), 1, lb > -infinity(), lb));
     }
     void set_variable_upper_bound(variable v, scalar ub) {
-        check(MSK->chgvarbound(task, v.id(), 0, 1, ub));
+        check(MSK->chgvarbound(task, v.id(), 0, ub < infinity(), ub));
     }
     void set_variable_name(variable v, const std::string & name) {
         check(MSK->putvarname(task, v.id(), name.c_str()));

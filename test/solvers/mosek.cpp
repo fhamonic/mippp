@@ -189,6 +189,28 @@ TEST_F(mosek_lp_test,
     api->_check(api->getconbound(task, c1.id(), &key, &lb, &ub));
     EXPECT_EQ(key, MSK_BK_FR);
 }
+TEST_F(mosek_lp_test,
+       infinity_frees_a_column_side_under_a_raised_bound_tolerance) {
+    using namespace mosek::impl::v1;
+    auto model = new_model();
+    const MSKtask_t task = model.native_model().second;
+    api->_check(api->putdouparam(task, MSK_DPAR_DATA_TOL_BOUND_INF, 1e40));
+    auto x = model.add_variable({.lower_bound = -7.0, .upper_bound = 7.0});
+    auto y = model.add_variable({.lower_bound = -7.0, .upper_bound = 7.0});
+    model.set_variable_lower_bound(x, -model.infinity());
+    model.set_variable_upper_bound(y, model.infinity());
+    MSKboundkeye key;
+    double lb, ub;
+    api->_check(api->getvarbound(task, x.id(), &key, &lb, &ub));
+    EXPECT_EQ(key, MSK_BK_UP);
+    api->_check(api->getvarbound(task, y.id(), &key, &lb, &ub));
+    EXPECT_EQ(key, MSK_BK_LO);
+    model.set_variable_upper_bound(x, model.infinity());
+    api->_check(api->getvarbound(task, x.id(), &key, &lb, &ub));
+    EXPECT_EQ(key, MSK_BK_FR);
+    EXPECT_EQ(model.get_variable_lower_bound(x), -model.infinity());
+    EXPECT_EQ(model.get_variable_upper_bound(x), model.infinity());
+}
 INSTANTIATE_TEST(MOSEK_lp, LpModelTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, EnumerableEntitiesTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableObjectiveTest, mosek_lp_test);
