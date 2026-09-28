@@ -77,7 +77,7 @@ export XPAUTH_PATH="$XPRESS_HOME/bin"
 
 (The same pattern applies to COPT, MOSEK, and COIN-OR builds — see [CONTRIBUTING.md](https://github.com/fhamonic/mippp/blob/main/CONTRIBUTING.md) for the full list.)
 
-Only export the solvers you actually have. If a library cannot be located, the model constructor throws a `std::runtime_error` naming the files it tried and the environment variable to set.
+Only export the solvers you actually have. If a library cannot be located, the model constructor throws a `std::runtime_error` naming the files it tried, the platform's search variable, and `MIPPP_<SOLVER>_LIBRARY` with its current value, quoted.
 
 ## Checking that everything works
 

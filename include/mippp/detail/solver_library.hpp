@@ -33,8 +33,13 @@ namespace mippp::detail {
 
 #if defined(_WIN32)
 inline constexpr char path_list_separator = ';';
+inline constexpr const char * library_search_variable = "PATH";
+#elif defined(__APPLE__)
+inline constexpr char path_list_separator = ':';
+inline constexpr const char * library_search_variable = "DYLD_LIBRARY_PATH";
 #else
 inline constexpr char path_list_separator = ':';
+inline constexpr const char * library_search_variable = "LD_LIBRARY_PATH";
 #endif
 
 // Appends to `dirs` the entries of the path-list env var `env_name`.
@@ -76,14 +81,14 @@ inline void append_conf_dirs(std::vector<std::filesystem::path> & dirs,
 inline std::vector<std::filesystem::path> system_library_dirs() {
     std::vector<std::filesystem::path> dirs;
 #if defined(_WIN32)
-    append_env_dirs(dirs, "PATH");
+    append_env_dirs(dirs, library_search_variable);
     if(const char * system_root = std::getenv("SystemRoot");
        system_root != nullptr) {
         dirs.emplace_back(std::filesystem::path(system_root) / "System32");
         dirs.emplace_back(system_root);
     }
 #elif defined(__APPLE__)
-    append_env_dirs(dirs, "DYLD_LIBRARY_PATH");
+    append_env_dirs(dirs, library_search_variable);
     append_env_dirs(dirs, "DYLD_FALLBACK_LIBRARY_PATH");
     if(const char * home = std::getenv("HOME"); home != nullptr)
         dirs.emplace_back(std::filesystem::path(home) / "lib");
@@ -92,7 +97,7 @@ inline std::vector<std::filesystem::path> system_library_dirs() {
     dirs.emplace_back("/opt/local/lib");     // MacPorts
     dirs.emplace_back("/usr/lib");
 #else  // Linux and other glibc/ELF systems
-    append_env_dirs(dirs, "LD_LIBRARY_PATH");
+    append_env_dirs(dirs, library_search_variable);
     std::error_code ec;
     append_conf_dirs(dirs, "/etc/ld.so.conf");
     // scan /etc/ld.so.conf.d, ld.so.conf's standard include target, directly
@@ -123,6 +128,41 @@ std::string concat_str(Ts &&... strs) {
     result.reserve((std::string_view(strs).size() + ... + 0));
     (result.append(std::string_view(strs)), ...);
     return result;
+}
+
+inline std::string diagnostic_value(const char * value) {
+    if(value == nullptr) return "<not set>";
+    std::string out = "\"";
+    for(const char ch : std::string_view(value)) {
+        const auto c = static_cast<unsigned char>(ch);
+        if(c == '\\' || c == '"') {
+            out += '\\';
+            out += ch;
+        } else if(c == '\n')
+            out += "\\n";
+        else if(c == '\r')
+            out += "\\r";
+        else if(c == '\t')
+            out += "\\t";
+        else if(c < 32 || c == 127) {
+            constexpr char hex[] = "0123456789abcdef";
+            out += "\\x";
+            out += hex[c / 16];
+            out += hex[c % 16];
+        } else
+            out += ch;
+    }
+    return out + '"';
+}
+
+// Never print the search variable's value: PATH runs to kilobytes and
+// exposes the user's directory layout.
+inline std::string solver_library_help(const std::string & env_var) {
+    return concat_str(
+        "\nAn explicit path passed to load() takes precedence over a nonempty ",
+        env_var, ", which takes precedence over the directory search. ",
+        env_var, " is currently ",
+        diagnostic_value(std::getenv(env_var.c_str())), ".");
 }
 
 // entry.path().filename() without materializing the intermediate path.
@@ -197,8 +237,10 @@ inline dynamic_library load_solver_library(
     std::string errors;
     if(auto lib = try_load_solver_library(file, probe_symbols, errors))
         return std::move(*lib);
-    throw std::runtime_error("mippp: failed to load the " + std::string(key) +
-                             " solver library:\n  " + errors);
+    throw std::runtime_error(
+        "mippp: failed to load the " + std::string(key) +
+        " solver library:\n  " + errors +
+        solver_library_help(concat_str("MIPPP_", key, "_LIBRARY")));
 }
 
 // Steps 2 and 3 of the precedence (first match wins):
@@ -231,7 +273,8 @@ inline dynamic_library find_solver_library(
             return std::move(*lib);
         throw std::runtime_error("mippp: failed to load the " +
                                  std::string(key) + " solver library from " +
-                                 env_var + ":\n  " + errors);
+                                 env_var + ":\n  " + errors +
+                                 solver_library_help(env_var));
     }
 
     // a handful of entries at most, one per backend actually constructed
@@ -298,7 +341,8 @@ inline dynamic_library find_solver_library(
         (errors.empty() ? std::string{}
                         : "\nCandidates rejected:\n  " + errors) +
         "\nSet the environment variable " + env_var +
-        " to its full path, or add its directory to LD_LIBRARY_PATH.");
+        " to its full path, or add its directory to " +
+        library_search_variable + "." + solver_library_help(env_var));
 }
 
 // "2.10.12" -> {2,10,12}, "5.0" -> {5}, "45.01.02" -> {45,1,2}; text after

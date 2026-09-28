@@ -6,6 +6,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "mippp/detail/dynamic_library.hpp"
@@ -197,6 +198,81 @@ TEST(load_solver_library, environment_variable_failure_names_it) {
     } catch(const std::runtime_error & e) {
         EXPECT_NE(std::string(e.what()).find("MIPPP_TESTLIB_LIBRARY"),
                   std::string::npos);
+    }
+}
+
+TEST(load_solver_library, diagnostic_values_are_quoted_and_escaped) {
+    EXPECT_EQ(diagnostic_value(nullptr), "<not set>");
+    EXPECT_EQ(diagnostic_value(""), "\"\"");
+    EXPECT_EQ(diagnostic_value("a\n\"b"), "\"a\\n\\\"b\"");
+    EXPECT_EQ(diagnostic_value("C:\\lib \x01"), "\"C:\\\\lib \\x01\"");
+    EXPECT_EQ(diagnostic_value("caf\xc3\xa9"), "\"caf\xc3\xa9\"");
+}
+
+static std::string precedence_sentence(const std::string & env_var) {
+    return "An explicit path passed to load() takes precedence over a "
+           "nonempty " +
+           env_var + ", which takes precedence over the directory search.";
+}
+
+TEST(load_solver_library, explicit_path_failure_states_the_precedence) {
+    scoped_env env("MIPPP_TESTDIAGNOSTIC_LIBRARY");
+    try {
+        load_solver_library(
+            fixture_path.parent_path() / "missing explicit library.so",
+            "TESTDIAGNOSTIC");
+        FAIL();
+    } catch(const std::runtime_error & e) {
+        const std::string what = e.what();
+        EXPECT_NE(
+            what.find(precedence_sentence("MIPPP_TESTDIAGNOSTIC_LIBRARY")),
+            std::string::npos);
+        EXPECT_NE(
+            what.find("MIPPP_TESTDIAGNOSTIC_LIBRARY is currently <not set>."),
+            std::string::npos);
+    }
+}
+
+TEST(load_solver_library, environment_variable_failure_quotes_its_value) {
+    const std::string missing =
+        (fixture_path.parent_path() / "missing diagnostic library.so").string();
+    scoped_env env("MIPPP_TESTDIAGNOSTIC_LIBRARY", missing);
+    try {
+        find_solver_library("TESTDIAGNOSTIC", std::array{"mippp_no_such_name"});
+        FAIL();
+    } catch(const std::runtime_error & e) {
+        const std::string what = e.what();
+        EXPECT_NE(
+            what.find(precedence_sentence("MIPPP_TESTDIAGNOSTIC_LIBRARY")),
+            std::string::npos);
+        EXPECT_NE(what.find("MIPPP_TESTDIAGNOSTIC_LIBRARY is currently " +
+                            diagnostic_value(missing.c_str()) + "."),
+                  std::string::npos);
+    }
+}
+
+TEST(load_solver_library, search_failure_names_the_platform_variable) {
+    scoped_env env("MIPPP_TESTDIAGNOSTIC_LIBRARY");
+    scoped_env search(loader_path_var, "first diagnostic directory");
+    try {
+        find_solver_library("TESTDIAGNOSTIC", std::array{"mippp_no_such_name"});
+        FAIL();
+    } catch(const std::runtime_error & e) {
+        const std::string what = e.what();
+        EXPECT_NE(what.find("add its directory to " +
+                            std::string(loader_path_var) + "."),
+                  std::string::npos);
+        if(std::string_view(loader_path_var) != "LD_LIBRARY_PATH") {
+            // the leading space keeps DYLD_LIBRARY_PATH from matching
+            EXPECT_EQ(what.find(" LD_LIBRARY_PATH"), std::string::npos);
+        }
+        EXPECT_EQ(what.find("first diagnostic directory"), std::string::npos);
+        EXPECT_NE(
+            what.find(precedence_sentence("MIPPP_TESTDIAGNOSTIC_LIBRARY")),
+            std::string::npos);
+        EXPECT_NE(
+            what.find("MIPPP_TESTDIAGNOSTIC_LIBRARY is currently <not set>."),
+            std::string::npos);
     }
 }
 
