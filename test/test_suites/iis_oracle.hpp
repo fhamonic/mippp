@@ -167,6 +167,7 @@ membership membership_of(const Status & status) {
 struct case_answer {
     std::vector<membership> variables;
     std::vector<membership> rows;
+    friend bool operator==(const case_answer &, const case_answer &) = default;
 };
 
 // The i-th handle must be the case's i-th variable or row, whatever order the

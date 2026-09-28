@@ -1,3 +1,7 @@
+#include <gmock/gmock.h>
+
+#include <chrono>
+
 #include "mippp/solvers/highs/all.hpp"
 
 using namespace mippp;
@@ -80,3 +84,156 @@ INSTANTIATE_TEST(HiGHS_qp, ColumnManagerTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, TimeLimitTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, IterationLimitTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, VerbosityTest, highs_qp_test);
+
+static_assert(has_iis<highs_lp>);
+static_assert(has_iis<highs_qp>);
+// the routine explains the relaxation only
+static_assert(!has_iis<highs_milp>);
+
+namespace {
+// Highs_getIis is decodable from this release on; older libraries throw
+constexpr solver_version highs_native_iis_floor{1, 14, 0};
+}  // namespace
+
+// A library reporting no version is taken to be a development build, newer
+// than any release, so it runs the suite.
+template <typename Model>
+struct highs_iis_test : public model_test<highs_api, Model> {
+    static void SetUpTestSuite() {
+        model_test<highs_api, Model>::construct_api("HIGHS");
+    }
+    void SetUp() override {
+        model_test<highs_api, Model>::SetUp();
+        if(::testing::Test::HasFatalFailure() || this->api == nullptr) return;
+        const auto loaded = this->api->library_version();
+        if(loaded && *loaded < highs_native_iis_floor)
+            GTEST_SKIP() << "Highs_getIis needs HiGHS "
+                         << to_string(highs_native_iis_floor) << ", "
+                         << this->api->library_path() << " is "
+                         << to_string(*loaded);
+    }
+
+    // x in [0, 1] against x >= 2: the row's lower side and the upper bound
+    static auto add_bound_row_conflict(Model & model) {
+        using namespace operators;
+        auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+        model.add_constraint(x >= 2.);
+        return x;
+    }
+    // A conflict that needs a solve to be found: the cheap checks that run
+    // before the time budget applies answer a singleton-row conflict at once
+    static void add_row_conflict(Model & model) {
+        using namespace operators;
+        auto x = model.add_variable();
+        auto y = model.add_variable();
+        model.add_constraint(x + y >= 3.);
+        model.add_constraint(x <= 1.);
+        model.add_constraint(y <= 1.);
+        model.add_constraint(x - y <= 10.);
+    }
+    static int read_iis_strategy(const Model & model) {
+        int value = 0;
+        model.native_api()._check(model.native_api().getIntOptionValue(
+            model.native_model(), "iis_strategy", &value));
+        return value;
+    }
+    static double read_iis_time_limit(const Model & model) {
+        double value = 0.;
+        model.native_api()._check(model.native_api().getDoubleOptionValue(
+            model.native_model(), "iis_time_limit", &value));
+        return value;
+    }
+};
+using highs_lp_iis_test = highs_iis_test<highs_lp>;
+using highs_qp_iis_test = highs_iis_test<highs_qp>;
+INSTANTIATE_TEST(HiGHS_lp, IisTest, highs_lp_iis_test);
+INSTANTIATE_TEST(HiGHS_qp, IisTest, highs_qp_iis_test);
+
+TEST(HiGHS_lp, compute_iis_below_native_floor_throws) {
+    // inline, as MIPPP_API_VERSION_TEST does: GTEST_SKIP returns void, so no
+    // helper returning the api can skip
+    const highs_api * api = nullptr;
+    try {
+        api = &highs_api::load();
+    } catch(const std::exception & e) {
+        if(is_required_solver("HIGHS")) FAIL() << e.what();
+        GTEST_SKIP() << e.what();
+    }
+    const auto loaded = api->library_version();
+    if(!loaded || *loaded >= highs_native_iis_floor)
+        GTEST_SKIP() << "the loaded HiGHS has the native routine";
+    using namespace operators;
+    highs_lp model(*api);
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+    model.add_constraint(x >= 2.);
+    model.solve();
+    // the message names the floor and the library, so a generic failure of
+    // the same exception type is told apart
+    try {
+        [[maybe_unused]] const auto iis = model.compute_iis();
+        ADD_FAILURE() << "compute_iis() returned below the native floor";
+    } catch(const solver_error & e) {
+        EXPECT_THAT(e.what(), ::testing::HasSubstr("1.14"));
+        EXPECT_THAT(e.what(),
+                    ::testing::HasSubstr(api->library_path().string()));
+    }
+    // the status is reset before the version check, so a throw leaves it too
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+}
+
+// The routine reads its own options, filled from the model's limit for the
+// call only: nothing the wrapper set for the call may outlive it.
+TEST_F(highs_lp_iis_test, compute_iis_restores_its_options) {
+    auto model = this->new_model();
+    const int strategy_before = read_iis_strategy(model);
+    const double iis_time_limit_before = read_iis_time_limit(model);
+    model.set_time_limit(std::chrono::seconds(3));
+    add_bound_row_conflict(model);
+    const auto iis = model.compute_iis();
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_EQ(read_iis_strategy(model), strategy_before);
+    EXPECT_EQ(read_iis_time_limit(model), iis_time_limit_before);
+    EXPECT_EQ(model.get_time_limit().count(), 3.);
+}
+
+TEST_F(highs_lp_iis_test, compute_iis_zero_budget_is_a_time_limit_stop) {
+    auto model = this->new_model();
+    add_row_conflict(model);
+    model.set_time_limit(std::chrono::seconds(0));
+    const auto iis = model.compute_iis();
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
+    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
+    EXPECT_EQ(iis.num_variable_members(), 0u);
+    EXPECT_EQ(iis.num_constraint_members(), 0u);
+    EXPECT_EQ(model.get_time_limit().count(), 0.);
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+}
+
+TEST_F(highs_lp_iis_test, compute_iis_status_is_unknown_after_the_call) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto x = model.add_variable();
+    model.add_constraint(x <= 1.);
+    model.set_maximization();
+    model.set_objective(x);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    const auto iis = model.compute_iis();
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    EXPECT_NEAR(model.get_solution()[x], 1., TEST_EPSILON);
+}
+
+TEST_F(highs_qp_iis_test, compute_iis_keeps_the_quadratic_objective) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto x = add_bound_row_conflict(model);
+    auto v = model.add_variable();
+    model.set_quadratic_objective(v * v + x);
+    const auto iis = model.compute_iis();
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    ASSERT_QUAD_EXPR(model.get_quadratic_objective(), {{v, v, 1.}},
+                     {{x, 1.}, {v, 0.}}, 0.);
+}

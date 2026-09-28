@@ -45,6 +45,7 @@ TEST(Clp_simplex_status, other_problem_statuses_ignore_the_secondary) {
 struct clp_lp_test : public model_test<clp_api, clp_lp> {
     static void SetUpTestSuite() { construct_api("CLP"); }
 };
+static_assert(!has_iis<clp_lp>);
 // infeasible, but scaling shrinks the violation at x = 0 below Clp's
 // tolerance, and its primary status says optimal
 TEST_F(clp_lp_test, infeasible_once_unscaled_is_not_plain_optimal) {
@@ -67,6 +68,7 @@ INSTANTIATE_TEST(Clp, AddColumnTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, RangedConstraintsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReadableConstraintBoundsTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ModifiableConstraintBoundsTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, IisByDeletionTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, RemoveVariableTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, DualSolutionTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ReducedCostsTest, clp_lp_test);

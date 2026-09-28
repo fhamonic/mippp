@@ -108,6 +108,8 @@ struct model_test : public ::testing::Test {
 #include "cutting_stock.hpp"
 #include "dual_solution.hpp"
 #include "enumerable_entities.hpp"
+#include "iis.hpp"
+#include "iis_by_deletion.hpp"
 #include "integrality_tolerance.hpp"
 #include "iteration_limit.hpp"
 #include "lazy_constraints.hpp"
