@@ -70,6 +70,7 @@ INSTANTIATE_TEST(Cbc, NamedConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, AddColumnTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableConstraintBoundsTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, ModifiableConstraintBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, RangedConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, SudokuTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, TimeLimitTest, cbc_milp_test);

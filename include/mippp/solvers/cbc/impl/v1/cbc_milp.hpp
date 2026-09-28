@@ -410,8 +410,16 @@ public:
     double get_constraint_upper_bound(constraint constr) {
         return Cbc->getRowUpper(model)[constr.id()];
     }
+    void set_constraint_lower_bound(constraint constr, double lb) {
+        Cbc->setRowLower(model, constr.id(), lb);
+    }
+    void set_constraint_upper_bound(constraint constr, double ub) {
+        Cbc->setRowUpper(model, constr.id(), ub);
+    }
     double get_constraint_rhs(constraint constr) {
-        return Cbc->getRowRHS(model, constr.id());
+        if(get_constraint_sense(constr) == constraint_sense::greater_equal)
+            return Cbc->getRowLower(model)[constr.id()];
+        return Cbc->getRowUpper(model)[constr.id()];
     }
     auto get_constraint(constraint constr) {
         return linear_constraint_view(
