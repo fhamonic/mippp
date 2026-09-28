@@ -11,6 +11,17 @@ MIPPP_API_VERSION_TEST(Cbc_api, cbc_api, "CBC")
 struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
     static void SetUpTestSuite() { construct_api("CBC"); }
 };
+
+// Cbc_solve stops before branch and bound, as for an LP
+TEST_F(cbc_milp_test, mip_with_an_infeasible_relaxation_is_infeasible) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_integer_variable({.lower_bound = 0., .upper_bound = 1.});
+    model.add_constraint(x >= 2.);
+    model.solve();
+    EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+}
+
 INSTANTIATE_TEST(Cbc, LpModelTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, MilpModelTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, EnumerableEntitiesTest, cbc_milp_test);

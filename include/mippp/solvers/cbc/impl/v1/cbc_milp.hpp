@@ -486,47 +486,35 @@ private:
 
     status_variant _status = status::unknown{};
 
+    // On Cbc's master branch, Cbc_solve returns as for an LP when the
+    // relaxation of a MIP is infeasible, unbounded or abandoned, and
+    // Cbc_status then aborts the process, hence these queries first.
+    // isProvenOptimal leads: on Cbc 2.10 isContinuousUnbounded reads the
+    // branch and bound state, which an LP solve leaves as it was.
     status_variant _get_status() {
-        if (Cbc->getNumIntegers(model) == 0) {
-            if (Cbc->isProvenOptimal(model)) {
-                return status::optimal{};
-            } else if (Cbc->isProvenInfeasible(model)) {
-                return status::infeasible{};
-            } else if (Cbc->isContinuousUnbounded(model)) {
-                return status::unbounded{};
-            } else if (Cbc->isAbandoned(model)) {
-                return status::numerical_failure{};
-            }
-            return status::unknown{};
-        } else {
-            switch (Cbc->status(model)) {
-                case -1: return status::unknown{};
-                case 0: {
-                    if(Cbc->isProvenOptimal(model)) return status::optimal{};
-                    if(Cbc->isProvenInfeasible(model)) return status::infeasible{};
-                    return status::unbounded{};
+        if (Cbc->isProvenOptimal(model)) return status::optimal{};
+        if (Cbc->isProvenInfeasible(model)) return status::infeasible{};
+        if (Cbc->isContinuousUnbounded(model)) return status::unbounded{};
+        if (Cbc->isAbandoned(model)) return status::numerical_failure{};
+        if (Cbc->getNumIntegers(model) == 0) return status::unknown{};
+        switch (Cbc->status(model)) {
+            case 1: {
+                const bool has_sol = Cbc->bestSolution(model) != nullptr;
+                switch (Cbc->secondaryStatus(model)) {
+                    case 1: return status::infeasible{};
+                    case 3: return status::node_limit{has_sol};
+                    case 4: return status::time_limit{has_sol};
+                    case 5: return status::interrupted{has_sol};
+                    case 6: return status::solution_limit{has_sol};
+                    case 7: return status::unbounded{};
+                    case 8: return status::limit_reached{has_sol};
+                    default: return status::unknown{has_sol};
                 }
-                case 1: {
-                    const bool has_sol = Cbc->bestSolution(model) != nullptr;
-                    switch (Cbc->secondaryStatus(model)) {
-                        case 1: return status::infeasible{};
-                        case 2: return status::unknown{has_sol};
-                        case 3: return status::node_limit{has_sol};
-                        case 4: return status::time_limit{has_sol};
-                        case 5: return status::interrupted{has_sol};
-                        case 6: return status::solution_limit{has_sol};
-                        case 7: return status::unbounded{};
-                        case 8: return status::limit_reached{has_sol};                    
-                        default:
-                            return status::unknown{has_sol};
-                    }
-                }
-                case 2: return status::numerical_failure{};
-                case 5: return status::interrupted{};
-                default:
-                    return status::unknown{};
             }
-        }    
+            case 2: return status::numerical_failure{};
+            case 5: return status::interrupted{};
+            default: return status::unknown{};
+        }
     }
     // clang-format on
 public:
