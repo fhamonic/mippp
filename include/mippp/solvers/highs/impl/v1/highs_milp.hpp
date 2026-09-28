@@ -151,7 +151,7 @@ public:
             _status = status::unknown{};
             return;
         }
-        check(Highs->run(model));
+        _run();
         _status = _get_status();
     }
     double get_solution_value() { return Highs->getObjectiveValue(model); }

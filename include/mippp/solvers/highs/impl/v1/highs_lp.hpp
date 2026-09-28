@@ -100,7 +100,7 @@ public:
             _status = status::unknown{};
             return;
         }
-        check(Highs->run(model));
+        _run();
         _status = _get_status();
     }
     // The routine re-solves and overwrites the model status: the reported

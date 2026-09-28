@@ -649,6 +649,18 @@ public:
         check(Highs->getDoubleOptionValue(model, "time_limit", &t));
         return std::chrono::duration<double>(t);
     }
+
+protected:
+    // Highs_run does not reset the clock its time limit is read on, so the
+    // limit would otherwise bound the model's cumulative solve time: a
+    // modified model that already spent longer than the limit in HiGHS
+    // stops before its first iteration.
+    void _run() {
+        check(Highs->zeroAllClocks(model));
+        check(Highs->run(model));
+    }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

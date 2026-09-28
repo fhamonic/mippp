@@ -85,6 +85,46 @@ INSTANTIATE_TEST(HiGHS_qp, TimeLimitTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, IterationLimitTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, VerbosityTest, highs_qp_test);
 
+namespace {
+// Cost swings of many pivots each make the time spent in HiGHS dwarf the
+// final re-solve, which the halved value turns into a few dual simplex
+// pivots: where the limit bounds the model's cumulative solve time, that
+// re-solve stops before its first pivot.
+template <typename Fixture>
+void check_time_limit_bounds_each_solve(typename Fixture::model_type model) {
+    using seconds = std::chrono::duration<double>;
+    TimeLimitTest<Fixture>::build_dense_lp(model, 300);
+    const auto x0 = model.variables().front();
+    const double cost = model.get_objective_coefficient(x0);
+    seconds spent{0};
+    for(const double c : {cost, 1e4, cost, 1e4, cost}) {
+        model.set_objective_coefficient(x0, c);
+        const auto start = std::chrono::steady_clock::now();
+        model.solve();
+        spent += std::chrono::steady_clock::now() - start;
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    }
+    model.set_time_limit(spent / 2);
+    const auto solution = model.get_solution();
+    auto largest = x0;
+    for(auto v : model.variables())
+        if(solution[v] > solution[largest]) largest = v;
+    model.set_variable_upper_bound(largest, solution[largest] / 2);
+    model.solve();
+    EXPECT_TRUE(is_a<status::optimal>(model.get_status()))
+        << "under a limit of " << (spent / 2).count() << " s";
+}
+}  // namespace
+TEST_F(highs_lp_test, time_limit_bounds_each_solve) {
+    check_time_limit_bounds_each_solve<highs_lp_test>(new_model());
+}
+TEST_F(highs_milp_test, time_limit_bounds_each_solve) {
+    check_time_limit_bounds_each_solve<highs_milp_test>(new_model());
+}
+TEST_F(highs_qp_test, time_limit_bounds_each_solve) {
+    check_time_limit_bounds_each_solve<highs_qp_test>(new_model());
+}
+
 static_assert(has_iis<highs_lp>);
 static_assert(has_iis<highs_qp>);
 // the routine explains the relaxation only

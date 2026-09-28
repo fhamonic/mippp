@@ -170,6 +170,7 @@ HighsInt Highs_getInt64InfoValue(const void * highs, const char * info,
 HighsInt Highs_getDoubleInfoValue(const void * highs, const char * info,
                                   double * value);
 
+HighsInt Highs_zeroAllClocks(const void * highs);
 HighsInt Highs_run(void * highs);
 enum ModelStatus : HighsInt {
     kHighsModelStatusNotset = 0,
@@ -319,6 +320,7 @@ namespace highs::impl::v1 {
     F(Highs_getIntInfoValue, getIntInfoValue)                           \
     F(Highs_getInt64InfoValue, getInt64InfoValue)                       \
     F(Highs_getDoubleInfoValue, getDoubleInfoValue)                     \
+    F(Highs_zeroAllClocks, zeroAllClocks)                               \
     F(Highs_run, run)                                                   \
     F(Highs_getModelStatus, getModelStatus)                             \
     F(Highs_getObjectiveValue, getObjectiveValue)                       \
