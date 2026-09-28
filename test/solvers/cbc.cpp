@@ -1,5 +1,6 @@
 #include "mippp/solvers/cbc/all.hpp"
 
+#include <chrono>
 #include <optional>
 #include <random>
 #include <ranges>
@@ -14,9 +15,37 @@ MIPPP_API_VERSION_TEST(Cbc_api, cbc_api, "CBC")
 
 struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
     static void SetUpTestSuite() { construct_api("CBC"); }
+    // Measured on x0 + x1 = 1.5 over unbounded integers: branch and bound of
+    // Cbc's master branch never ends, and the presolve of Cbc 2.10 answers
+    // optimal with x0 = 1.5, which the deletion filter reads as feasible.
+    void SetUp() override {
+        model_test::SetUp();
+        if(IsSkipped()) return;
+        const std::string_view test_name =
+            ::testing::UnitTest::GetInstance()->current_test_info()->name();
+        if(test_name != "integers_summing_to_one_half") return;
+        if(api->library_version() && api->library_version()->major < 3)
+            GTEST_SKIP() << "wrong answer: Cbc 2.10 reports x0 + x1 = 1.5 "
+                            "over integers optimal with x0 = 1.5";
+        GTEST_SKIP() << "Cbc proves no integer infeasibility of "
+                        "x0 + x1 = 1.5 over unbounded integers";
+    }
 
     static constexpr std::string_view rows_without_terms_refused =
         "cbc_milp: this Cbc drops rows without terms";
+    // The shared tests that build a row without terms skip where cbc_milp
+    // refuses it, and only there.
+    template <typename F>
+    void SkipOnLicenseError(F && f) {
+        model_test::SkipOnLicenseError([&f]() {
+            try {
+                f();
+            } catch(const solver_error & e) {
+                if(e.what() != rows_without_terms_refused) throw;
+                GTEST_SKIP() << e.what();
+            }
+        });
+    }
 
     // Cornuejols-Dawande market split rows without slacks: the relaxation is
     // feasible and branch and bound finds no integer point in a few nodes.
@@ -36,6 +65,7 @@ struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
         }
     }
 };
+static_assert(!has_iis<cbc_milp>);
 
 // Cbc_solve stops before branch and bound, as for an LP
 TEST_F(cbc_milp_test, mip_with_an_infeasible_relaxation_is_infeasible) {
@@ -91,6 +121,47 @@ TEST_F(cbc_milp_test, row_without_terms_is_kept_or_refused) {
     }
 }
 
+struct cbc_time_limit_probe : cbc_milp {
+    using cbc_milp::cbc_milp;
+    std::vector<std::chrono::duration<double>> trial_limits;
+    void solve() {
+        trial_limits.push_back(get_time_limit());
+        cbc_milp::solve();
+    }
+};
+struct cbc_time_limit_test : cbc_milp_test {
+    // the IIS of x + y >= 3 over [0, 1]^2 under a caller's limit and a budget
+    cbc_time_limit_probe run_deletion_filter(std::chrono::seconds caller_limit,
+                                             std::chrono::seconds budget) {
+        using namespace operators;
+        cbc_time_limit_probe model(*api);
+        auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+        auto y = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+        model.add_constraint(x + y >= 3.);
+        model.set_time_limit(caller_limit);
+        const auto iis =
+            compute_iis_by_deletion(model, iis_limits{.time_limit = budget});
+        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_EQ(model.get_time_limit(), caller_limit);
+        EXPECT_FALSE(model.trial_limits.empty());
+        return model;
+    }
+};
+TEST_F(cbc_time_limit_test, deletion_filter_keeps_a_shorter_caller_limit) {
+    const auto model = run_deletion_filter(std::chrono::seconds(7),
+                                           std::chrono::seconds(3600));
+    for(const auto limit : model.trial_limits)
+        EXPECT_EQ(limit, std::chrono::seconds(7));
+}
+TEST_F(cbc_time_limit_test, deletion_filter_forwards_a_shorter_budget) {
+    const auto model = run_deletion_filter(std::chrono::seconds(7200),
+                                           std::chrono::seconds(3600));
+    for(const auto limit : model.trial_limits) {
+        EXPECT_LE(limit, std::chrono::seconds(3600));
+        EXPECT_GT(limit, std::chrono::seconds(3500));
+    }
+}
+
 INSTANTIATE_TEST(Cbc, LpModelTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, MilpModelTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, EnumerableEntitiesTest, cbc_milp_test);
@@ -105,6 +176,7 @@ INSTANTIATE_TEST(Cbc, AddColumnTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ReadableConstraintBoundsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, ModifiableConstraintBoundsTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, IisByDeletionTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, RangedConstraintsTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, SudokuTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, TimeLimitTest, cbc_milp_test);
