@@ -76,6 +76,8 @@ public:
         , objective_offset(0.0)
         , _time_limit(_infinity) {
         SoPlex->setIntParam(model, SOPLEX_VERBOSITY, SOPLEX_VERBOSITY_ERROR);
+        // SoPlex maximizes by default, every other backend minimizes
+        set_minimization();
     }
     ~soplex_lp() {
         if(model) SoPlex->free(model);

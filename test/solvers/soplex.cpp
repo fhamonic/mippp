@@ -15,6 +15,15 @@ struct soplex_lp_test : public model_test<soplex_api, soplex_lp> {
     static void SetUpTestSuite() { construct_api("SOPLEX"); }
 };
 static_assert(!has_iis<soplex_lp>);
+TEST_F(soplex_lp_test, a_new_model_minimizes) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable({.lower_bound = 1.0, .upper_bound = 3.0});
+    model.set_objective(x);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    EXPECT_NEAR(model.get_solution_value(), 1.0, TEST_EPSILON);
+}
 // The column's single entry sits on row 1, at its nonzero count: a length
 // taken from that count would drop it.
 TEST_F(soplex_lp_test, column_entry_past_its_nonzero_count_is_kept) {
