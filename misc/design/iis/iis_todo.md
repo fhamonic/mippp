@@ -4,22 +4,26 @@ Companion to [iis.md](iis.md), which holds the design, its rulings and the evide
 [iis_pr_plan.md](iis_pr_plan.md), whose work packages carry the details. The steps follow the revised package
 order of 2026-09-27. Items 0.1 and 1.6 and those of steps 2 to 6 name their package, except 6.2. Items 1.1 to
 1.5 are the plan's standalone fixes, and step 7 is WP17. Each step lands and is tested on its own. Q1 to Q6
-and N0 to N37 refer to the Rulings of 2026-09-27 and 2026-09-28 in iis.md, and no question is open.
+and N0 to N37 refer to the Rulings of 2026-09-27 and 2026-09-28 in iis.md; N38 and N39, raised by wave 3,
+are its open questions.
 
 - **Two paths.** Under Q1 (b), `has_iis<T>` means that the model has a native IIS routine, reached through a
   `compute_iis()` member. The deletion filter is a separate public algorithm: an engine over a user oracle,
   and a free function over any model that meets its concept.
 - **Names.** The names below are those the maintainer accepted under N19 to N22 on 2026-09-27, with the IIS
   vocabulary of Q2.
-- **Marks.** A ticked item is done on main, or on pull request #3's branch where the item says so. A struck
-  item is closed by a ruling. The maintainer confirmed the readings of the short rulings on 2026-09-27, and
-  N4's was dropped as moot, so no item marks a reading.
+- **Marks.** A ticked item is done on main, or on the branch the item names: pull request #3's, or
+  `feat/iis-wave3` for step 5. A struck item is closed by a ruling. The maintainer confirmed the readings of
+  the short rulings on 2026-09-27, and N4's was dropped as moot, so no item marks a reading.
 - **Critical path.** Steps 0, 2, 3 and 4, then items 5.1 to 5.3. Each fix of step 1 lands before the first
   item that needs it. Step 6 can start once step 2 merges, HiGHS first.
 - **Waves.** Wave 1, published on main on 2026-09-28 with CI green, is steps 1 and 3 on main and step 2 on
-  pull request #3. Wave 2, 2.5 then step 4 and 6.1, landed on 2026-09-28: the merge as `e322ef1`, then the five
-  commits `ad0105a` to `19803cc`, all but the both-paths case of 6.1, which waits for 5.3. Wave 3 is step 5,
-  and 6.2 to 6.6 can run beside it. Wave 4 is step 7.
+  pull request #3. Wave 2, 2.5 then step 4 and 6.1, landed on 2026-09-28: the merge as `e322ef1`, then the
+  five commits `ad0105a` to `19803cc`, all but the both-paths case of 6.1, which waited for 5.3. Wave 3, step
+  5 and with it that case, landed on 2026-09-28 on `feat/iis-wave3`, locally, awaiting the push: the 33
+  commits `5c4399c` to `9aac8a1`, three commits of the final review (GLPK's infinite sides, SCIP 10's status
+  codes, the serial HiGHS timing tests), then the record of iis.md and this file. It left the two questions N38 and
+  N39 of iis.md open. 6.2 to 6.6 remain, and wave 4 is step 7.
 
 ## 0. Before any code
 
@@ -30,8 +34,9 @@ Q1 to Q6 and N0 to N35 were ruled on 2026-09-27, and N36 and N37 on 2026-09-28. 
   confirmed, and lists no open question; iis_pr_plan_pre_rulings.md is the plan the maintainer ruled on, which
   keeps the options behind each letter readable. The amendments of 2026-09-28 (N36 and N37) follow the same
   route.
-- **0.2. No open question.** N35, the last question, was ruled (a) on 2026-09-27, and the same message
-  confirmed the readings of the short rulings and left the choice on N4 to the assistant.
+- **0.2. Open questions.** N35, the last question before any code, was ruled (a) on 2026-09-27, and the same
+  message confirmed the readings of the short rulings and left the choice on N4 to the assistant. Wave 3
+  raised N38 and N39, open under [Open questions](iis.md#open-questions) in iis.md.
 - [x] **0.3. Answer the pull request and act on N0 (a).** Done on 2026-09-28: `a1a9f11` is tagged
   `archive/pr3-a1a9f11` on origin, the reply is posted, and pull request #3 is a draft. The maintainer does
   the rework, so the reply offered the author no work.
@@ -223,33 +228,78 @@ CI-tested backends come first. Each item adds modifiable row bounds and any othe
 instantiates the capability suites it newly satisfies, then `IisByDeletionTest`. No item adds `compute_iis()`,
 an enumeration, a status reset or readable row bounds, which 3.2 to 3.4 already provide.
 
-- [ ] **5.1. `cbc_milp` (WP9).** Row bounds through `Cbc_setRowLower` and `Cbc_setRowUpper`, which `cbc_api`
+- [x] **5.1. `cbc_milp` (WP9).** Row bounds through `Cbc_setRowLower` and `Cbc_setRowUpper`, which `cbc_api`
   already binds. It is the first MIP under the free function, so it runs the integer-only cases. It also runs
-  the first real time-limit forwarding, so it needs 1.5.
-- [ ] **5.2. `glpk_lp` and `glpk_milp` (WP11).** Modifiable row bounds through `glp_set_row_bnds`, which
+  the first real time-limit forwarding, so it needs 1.5. Done in `5c4399c` to `851b6e9`, and `9aac8a1`.
+  `IisByDeletionTest` runs 26 of its 29 cases on Cbc 2.10.11, as in CI, and 20 on the local devel build, which
+  drops rows without terms. On both, `integers_summing_to_one_half` skips by name, pending N38. That skip is not a
+  capability gap: on 2.10 it hides a known wrong answer, `optimal` with x0 = 1.5 over integers, and on the
+  devel build a search without end, so neither a fix nor a regression of Cbc shows until N38 turns it into a
+  pin. Two fixes came
+  first: the devel build aborted in `Cbc_status` after an infeasible relaxation, and below 3.0 a re-solved MIP
+  kept the previous incumbent, so each MIP solve there runs on a copy.
+- [x] **5.2. `glpk_lp` and `glpk_milp` (WP11).** Modifiable row bounds through `glp_set_row_bnds`, which
   switches the bound type rather than storing an infinite value, over the readable ones of 3.4. GLPK has no
-  time limit, so limits act between trials only. `glpk_milp` trials are cold solves. Needs 1.2 and 3.4.
-- [ ] **5.3. `highs_lp`, `highs_milp` and `highs_qp` (WP10).** Modifiable row bounds in `highs_base` through
+  time limit, so limits act between trials only. `glpk_milp` trials are cold solves. Needs 1.2 and 3.4. Done
+  in `f766e9c` to `5d1db49`. Crossed bounds or sides, which GLPK refuses with `GLP_EBOUND`, now solve
+  `infeasible` rather than `failed`, and `glpk_milp` rounds the sides of integer columns and integral rows,
+  which `glp_intopt` also refuses when fractional. 23 cases run on `glpk_lp` and 26 on `glpk_milp`. The final
+  review found that an IEEE infinity on the side it cannot free, as -inf for an upper side, was written as a
+  real side, so `glpk_lp` answered `optimal` and `glpk_milp` aborted in GLPK's presolver; every side written
+  is now clamped to ±`DBL_MAX` first. A column added with bounds at `infinity()` is now typed by finiteness
+  too, as the setters type it: typed double-bounded before, it solved to ±1.8e308 (4 of 1500 fuzzed LPs).
+- [x] **5.3. `highs_lp`, `highs_milp` and `highs_qp` (WP10).** Modifiable row bounds in `highs_base` through
   `Highs_changeRowBounds`, over the readable ones of 3.4. N12 (b) is its own commit: on a ranged row,
   `get_constraint_sense` throws like Clp and Cbc, and `get_constraint_rhs` throws like Clp. The free function
   saves the Hessian of `highs_qp` through `qp_model`, not through backend code. It carries the
-  removed-variable case on a remapping backend. Needs 1.1 and 3.4.
-- [ ] **5.4. `mosek_lp` and `mosek_milp` (WP12).** Modifiable row bounds through `MSK_chgconbound`, over the
+  removed-variable case on a remapping backend. Needs 1.1 and 3.4. Done in `35e6d20` to `e1b6124`, N12 (b) as
+  `b05a026`. HiGHS's clock had counted every solve of a model, so each solve now zeroes it (`35e6d20`), and
+  two native answers were fixed on the way (`5d05cb0`, `496f19e`). 26, 29 and 26 cases run on the three
+  classes, on 1.10.0 and 1.15.1.
+- [x] **5.4. `mosek_lp` and `mosek_milp` (WP12).** Modifiable row bounds through `MSK_chgconbound`, over the
   readable ones of 3.4, which read `MSK_getconbound`. The time limit needs no special case, since 1.5 makes
-  the getter non-negative. Needs 1.5, 1.6 and 3.4.
-- [ ] **5.5. `scip_milp` (WP13).** Bind `SCIPchgLhsLinear` and `SCIPchgRhsLinear`, checked across the
+  the getter non-negative. Needs 1.5, 1.6 and 3.4. Done in `35b2a55` to `5e70f3d`; the last frees a column
+  side set to `infinity()` under a raised `MSK_DPAR_DATA_TOL_BOUND_INF`. 24 cases run on `mosek_lp` and 27 on
+  `mosek_milp`, on 11.0.14.
+- [x] **5.5. `scip_milp` (WP13).** Bind `SCIPchgLhsLinear` and `SCIPchgRhsLinear`, checked across the
   validated range from 8.0.4, since 3.4 binds `SCIPgetLhsLinear` and `SCIPgetRhsLinear`. It rebases onto the
   SCIP rename of 3.2 and onto 3.4. Every trial is a cold solve, so its cases stay small. `scip_milp` keeps its
   `BINARY` columns, and nothing changes to conform to SCIP (N25). The N14 probe, relaxing a bound of a
   `BINARY` column, only characterizes the gap, which this item documents under "Notable current limitations"
-  in `docs/solvers/index.md`.
-- [ ] **5.6. `soplex_lp` last (WP14).** Under N11 (a), check the seven symbols of 7.1.3 and 8.0.2 that 3.4
+  in `docs/solvers/index.md`. Done in `88f7d3b` to `146173a`: the variable-bound getters read the model's
+  bounds, no longer the presolved ones, and a failed solve frees the transform. The N14 probe found that SCIP
+  accepts the relaxed bound and fails the next solve, so the free function throws after restoring the model,
+  which iis.md and index.md record. 26 cases run on 8.0.4, 9.2.1 and 10.0.2; `integer_in_a_fractional_interval`
+  skips by name, pending N39. SCIP 10 was first checked from its sources only; the run on 10.0.2, the
+  library of the PySCIPOpt 6.2.1 wheel, found that SCIP 10 renumbered `SCIP_STATUS`, which every SCIP 10
+  solve misread since 1.0, and the final review fixed it, so the suites pass there too. The monthly
+  compatibility matrix covers the other 10.0 releases.
+- [x] **5.6. `soplex_lp` last (WP14).** Under N11 (a), check the seven symbols of 7.1.3 and 8.0.2 that 3.4
   leaves in 7.1.1 and 7.1.2, or raise the floor. Then bind them, and add variable bounds, a readable objective
   and modifiable row bounds. `SoPlex_getRowBoundsReal`, bound by 3.4, reads row sides back, so the wrapper
-  keeps no state. Needs 3.4, 5.5 and the SoPlex setter of 1.5.
+  keeps no state. Needs 3.4, 5.5 and the SoPlex setter of 1.5. Done in `2bb9321` to `ab846b7`. The check found
+  every symbol in 7.0.0 to 8.0.3, so the floor stays at 7.1.1. Contrary to this item, the wrapper keeps the
+  column bounds, which SoPlex misreads after a scaled solve (iis.md, SoPlex). A fresh `soplex_lp` now
+  minimizes, and `LpStatusTest` and `LpFuzzyTest` run on it. 24 cases run on 7.1.1, 7.1.3 and 8.0.3.
 
 Done when `IisByDeletionTest` passes on each backend, in CI for Cbc, GLPK and HiGHS and locally for the
-rest.
+rest. Locally done on 2026-09-28, with the sanitized build on Cbc 2.10.11; CI awaits the push.
+
+The release notes of v1.1.0 get the behaviour changes of this step: HiGHS's `set_time_limit` bounds each
+solve; a fresh `soplex_lp` minimizes; GLPK solves crossed bounds and sides to `infeasible`; `glpk_milp` rounds
+the sides of integer columns and integral rows; `cbc_milp` runs each MIP solve below Cbc 3.0 on a copy, so a
+parameter set through `native_api()` on `native_model()` no longer reaches MIP solves and a native read of
+their solution sees the unsolved model, and it refuses rows without terms on a devel build; the `scip_milp`
+variable-bound getters read the model's bounds after a solve; and a MOSEK column side set to `infinity()` is
+freed. Existing getters and setters change too: `cbc_milp::get_constraint_rhs` throws on a ranged row, rows
+of `add_ranged_constraint` included, as `clp_lp`'s does, where it returned the upper side; on HiGHS,
+`get_constraint_sense`, `get_constraint_rhs`, `get_constraint`, `set_constraint_rhs` and
+`set_constraint_sense` throw on a ranged row (N12 b); and a Cbc MIP stopped by a limit no longer reports an
+earlier solve's incumbent as available. Fixes worth a line: `soplex_lp::add_column` passed the nonzero count
+as the column length, an IEEE infinite column side made a bounded SoPlex LP read unbounded, and GLPK typed a
+column added with bounds at `infinity()` as double-bounded and an IEEE infinity on the wrong side of a row or
+column as a real side, which answered `optimal`. Above all, `scip_milp` misread every status of SCIP 10, which
+renumbered `SCIP_STATUS`, since 1.0: an optimum read `interrupted`.
 
 ## 6. Native routines
 
@@ -283,9 +333,12 @@ limit (N27 a).
     `highs_lp_iis_test` and `highs_qp_iis_test` skip below 1.14.0 on `library_version()`, and
     `TEST(HiGHS_lp, compute_iis_below_native_floor_throws)` expects the throw there. Done in `ac8696c`, with
     four HiGHS-only cases on the options, the zero budget, the status and the Hessian; locally 28 native cases
-    pass on 1.15.1 and 16 skip for capabilities, and the throw is exercised on 1.10.0.
-  - [ ] **Both paths.** After 5.3, `both_paths_find_valid_iis` calls the free function directly on models that
-    meet both concepts, and the oracle validates both answers.
+    pass on 1.15.1 and 16 skip for capabilities, and the throw is exercised on 1.10.0. Since wave 3, 38 run
+    and 6 skip, 19 and 3 on each of `highs_lp` and `highs_qp`, since the ranged cases build through modifiable
+    row bounds.
+  - [x] **Both paths.** After 5.3, `both_paths_find_valid_iis` calls the free function directly on models that
+    meet both concepts, and the oracle validates both answers. Done with 5.3 in wave 3: it runs on `highs_lp`
+    and `highs_qp` and passes on 1.15.1.
 - [ ] **6.2. Confirm each routine at its range floor.** `COPT_ComputeIIS` in COPT 7.2, `XPRS_IISOPS` in Xpress
   45.1, and the `IIS*Force` attributes in Gurobi 10. Probe each routine on a feasible model, where Gurobi
   gives error 10015, CPLEX conflict status 30 and COPT code 3. The time limit was probed on 2026-09-27 on

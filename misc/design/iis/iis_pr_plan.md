@@ -12,7 +12,8 @@ iis.md under [Rulings of 2026-09-27](iis.md#rulings-of-2026-09-27). Of the quest
 onward, the maintainer accepted the recommendations of N19 to N22 and N26 later the same day, then ruled on
 N23 to N25, N27, N28 and N30 to N33, then on N29, N34 and the wording of N9, and last on N35, a time limit on
 `copt_lp` split from N29. That last message also confirmed the readings of the short rulings, leaving the
-choice on N4 to the assistant, and no question is pending. Line numbers in **Port** and **Drop** bullets are
+choice on N4 to the assistant, and no question of the plan is pending. Wave 3 raised N38 and N39, open in
+iis.md. Line numbers in **Port** and **Drop** bullets are
 at `a1a9f11`. Elsewhere they are on main at `f5e833f` unless marked "at `a1a9f11`".
 
 ## Decisions
@@ -421,7 +422,8 @@ and the ideas table are amended below; the rest of the plan stands.
 
 ### Pending
 
-None. Every question is ruled as of 2026-09-27, N35 last.
+Every question of this plan is ruled as of 2026-09-27, N35 last. Wave 3 raised two on 2026-09-28, N38 and
+N39, stated under [Open questions](iis.md#open-questions) in iis.md.
 
 ## Corrections to iis.md and iis_todo.md
 
@@ -447,7 +449,8 @@ those of iis_todo.md on main.
 - [x] **Lazy objectives** (iis.md:121-124). Cbc (`cbc_milp.hpp:139-148`) and SCIP (`scip_milp.hpp:219-231`)
   are lazy too.
 - [x] **SoPlex** (iis.md:202-205, step 5). 6.0.4 has `SoPlex_changeVarBoundsReal` and sits below the 7.1.1
-  floor. 7.1.3 declares every N11 symbol, so the wrapper keeps no state.
+  floor. 7.1.3 declares every N11 symbol; wave 3 found that the wrapper must still keep the column bounds
+  (iis.md, SoPlex).
 - [x] **Row side symbols** (iis.md:198, step 5). SCIP also needs `SCIPgetLhsLinear` and `SCIPgetRhsLinear`,
   unbound like its setters. MOSEK's per-side setter is `MSK_chgconbound`, not `MSK_putconbound`.
 - [x] **Limits** (iis.md:126-127, 166-168, 286-288, step 4). Replace with the Q5 (c) contract and its

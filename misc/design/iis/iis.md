@@ -8,7 +8,7 @@ review held before wave 2, so that the feature is coded once, in the
 library's own shape. A *Confirmed reading* spells out a short ruling, as the
 maintainer confirmed it on 2026-09-27. It is not user documentation. The
 implementation order is in [iis_todo.md](iis_todo.md), and
-[Open questions](#open-questions) records that none remains.
+[Open questions](#open-questions) records the two that wave 3 raised.
 
 Statements about solvers were checked on 2026-09-22 against the C headers and
 runtime probes of Gurobi 12.0.1, CPLEX 22.1.2, COPT 8.0, Xpress 47.01, HiGHS
@@ -250,6 +250,20 @@ releases the introduction lists.
   and Q1 b). An empty `library_version()` requires the symbol and assumes the
   newest regime. The row arrays take the row counts, although the 1.12.0
   header documents column counts (`highs_c_api.h:2428-2442`).
+  Wave 3 fixed two native answers on 2026-09-28. HiGHS stores the matrix
+  row-wise when a row brings more nonzeros than it holds, and the post-check
+  of `Highs_getIis` then reads past an array on an answer of one row and no
+  column, since `HighsIis::setLp` writes starts per column only (read,
+  identical in 1.14.0 and 1.15.1; valgrind showed the reads, and a clang build
+  crashed). The wrapper first calls `Highs_deleteColsByRange(model, 0, -1)`,
+  an empty range that makes the matrix column-wise, deletes nothing and
+  returns before the model status and basis (`5d05cb0`); an all-zero mask
+  would reach an assertion in `HighsHessian::deleteCols` on an assert-enabled
+  build. And for a crossed row without terms, `Highs_getIis` reports both
+  sides before its empty-row check (`HighsIis::trivial`), which is not
+  minimal, so the decoding keeps the side that 0 violates (`496f19e`). Both
+  defects, and the cumulative clock of the forwarding bullet, are worth
+  upstream reports.
 - **SCIP.** No routine up to 9.2.1. SCIP 10.0 added IIS finder plugins whose
   answer is a sub-SCIP flagged infeasible and irreducible. Mapping it back
   to handles was not examined, so `scip_milp` starts on the free function.
@@ -329,7 +343,8 @@ releases the introduction lists.
   solver stores a row's two sides natively, to be confirmed per solver
   (N30 b). `gurobi_*` does not, since its ranges add a slack column. `dumb_lp`
   joins later (N24). The work packages are those of
-  [iis_pr_plan.md](iis_pr_plan.md).
+  [iis_pr_plan.md](iis_pr_plan.md). Since wave 3, on 2026-09-28, all eleven
+  classes of the free function's list run it.
 
 ## The deletion filter, a public algorithm
 
@@ -383,10 +398,30 @@ releases the introduction lists.
   matrix never changes, so the model is re-solved in place. Row removal and
   slack columns are both rejected: the first would need a
   `has_remove_constraint` capability with row remapping in every backend,
-  the second doubles the column count. Warm starts depend on the backend:
-  simplex LP backends reuse their basis, but SCIP drops its transformed
-  problem on every modification and GLPK's MIP runs with presolve on, so
-  their trials are cold solves.
+  the second doubles the column count. Warm starts depend on the backend, as
+  wave 3 found on 2026-09-28 (measured unless marked). Warm: `glpk_lp`, whose
+  setters keep the basis (1 iteration after freeing a row, against 30 from
+  `glp_std_basis`); `highs_lp` and `highs_qp`, which start from the saved
+  basis (21 pivots after halving a bound, against 149 from scratch, and 0
+  after a relaxation), `highs_qp`'s trials being LPs since the first one
+  clears the Hessian; and `soplex_lp`, except that a trial which frees a
+  nonbasic row reloads the LP and solves cold (1 reload in 6 trials on one
+  case, 2 in 5 on the chain, none on bounds against a row, 7.1.3). Cold:
+  `glpk_milp`, whose presolve rebuilds the problem on every `glp_intopt`
+  (read); `highs_milp`, which runs the whole MIP solver each time (a median of
+  2.4 ms over 604 trials, against 0.54 ms for the same continuous model,
+  1.10.0); `mosek_lp`, whose default interior-point optimizer cannot
+  warm-start (the same iteration count on every re-solve); `mosek_milp`, whose
+  root relaxation reruns cold, although MOSEK checks the previous integer
+  solution as a starting incumbent (`MSK_IINF_MIO_INITIAL_FEASIBLE_SOLUTION` 0
+  on the first solve and 1 after bound changes), which only seeds the
+  incumbent; `scip_milp`, whose setters free the transformed problem, so each
+  trial presolves again (1 to 24 ms per case on 8.0.4); and `cbc_milp`'s MIP
+  trials, which the devel build copies into a fresh `CbcModel` seeded with the
+  previous best solution as a checked MIP start, and which run on a fresh
+  `Cbc_Model` copy below 3.0. Cbc's LP path through OsiClp forces
+  `initialSolve()` after any row-side change, and after a column-bound change
+  that touches the basis (read).
 - **One side at a time.** Each finite variable bound and each finite row
   side is a candidate, ranged rows included (Q6 a). Row sides are read
   through `has_readable_constraint_bounds` and relaxed through its twin
@@ -456,7 +491,23 @@ releases the introduction lists.
   [time-limit contract](#library-additions-the-free-function-needs) of
   N4 (A): `get_time_limit()` is never negative. `clp_lp` and `glpk_*` lack
   `has_time_limit`, and so does `copt_lp` until fix 10 lands (N35 a), so one
-  trial can overrun the deadline there. The first real forwarding runs on Cbc.
+  trial can overrun the deadline there. Forwarding first ran on real solvers
+  in wave 3 (2026-09-28, measured): on `cbc_milp`, every trial saw exactly a
+  caller's 7 s limit under a 3600 s budget, and more than 3500 s and at most
+  3600 s under a caller's 7200 s, both limits restored exactly
+  (`cbc_time_limit_test`). HiGHS needed a fix first (`35e6d20`): its time
+  limit counted all the time a model had spent in HiGHS, since `Highs_run`
+  does not reset the clocks, so a re-solve under a limit below that total
+  stopped at once with 0 pivots. Each solve now calls `Highs_zeroAllClocks`,
+  present from 1.8.0, so `set_time_limit` bounds each solve on HiGHS, a
+  release-note item. MOSEK restores a caller's 3 s exactly, and a fresh task's
+  -1 holds +inf after a budgeted call, both meaning no limit. SCIP restores a
+  caller's 30 s exactly. These MOSEK and SCIP results, and HiGHS's
+  forwarding, are one-off probes: only `cbc_time_limit_test` pins the
+  forwarding and the restore on a real solver, since the shared suite's
+  time-limit case runs the default limits, which never forward. Cbc's limit does not bound its root LP: on the devel
+  build a 1500-row dense relaxation ran 8.5 s under a 1e-6 s limit, so a Cbc
+  trial can overrun the deadline too.
 - **Stop reasons.** After any inconclusive trial that ran, initial or
   singleton, the reason is `inconclusive_trial` (N2 b), or `time_limit` when
   the deadline has passed as the trial returns. `solve_limit` and
@@ -488,15 +539,31 @@ releases the introduction lists.
   capability added later could not silently make it unsound. On `scip_milp`
   the trials meet the gap of the next bullet.
 - **A documented gap on SCIP.** SCIP creates [0, 1] integer columns as
-  `BINARY`, and `scip_milp` keeps them so (N25). Whether SCIP rejects or
-  clamps a relaxed bound on such a column is unprobed. If it clamps, the
-  relaxed bound stays in force, so the filter may drop a bound the conflict
-  needs, and the answer holds only with the column's [0, 1] domain as
-  background. The crossed-pair trials of N36 meet the same gap there. If it
-  rejects, the trial throws (inferred). The design is centred on linear
-  programs, so the gap is documented, not worked around: neither the algorithm
-  nor `scip_milp` changes to conform to SCIP. The N14 probe of WP13
-  characterizes the gap for the documentation.
+  `BINARY`, and `scip_milp` keeps them so (N25). The N14 probe of WP13 ran on
+  2026-09-28 on SCIP 8.0.4 and 9.2.1, with identical results (measured): SCIP
+  neither clamps nor rejects the relaxed bound when it is set. A bound of such
+  a column relaxed to `infinity()` is accepted and reads back as the infinity
+  written, and the next `SCIPsolve` fails, printing "invalid bounds [-1e+20,1]
+  for binary variable" (`var.c:1972`), which `scip_milp` throws as
+  `std::runtime_error("scip_milp: error in input data")`. So
+  `compute_iis_by_deletion` throws on an infeasible model as soon as a trial
+  reaches a bound of a `BINARY` column, after restoring the model: binary x in
+  [0, 1] with `x >= 2`, and binaries x and y with `x + y >= 3`, come back with
+  their data and still solve infeasible. A feasible model with binaries
+  returns `feasible`, and `max_solves = 1` returns `not_proven_minimal` with
+  `solve_limit`, without a throw. SCIP rounds integer bounds too: [0.25, 2.75]
+  reads [1, 2], and [0.25, 0.75] becomes the crossed [1, 0], typed `BINARY`,
+  so `integer_in_a_fractional_interval` meets the gap and skips on SCIP, keyed
+  on its name and that message (see N39). A non-binary integer column works:
+  integer x in [0, 2] with `x >= 3` gives `irreducible`. SCIP 10.0.0's `var.c`
+  has the same check (read), and SCIP 10.0.2 behaves the same (measured,
+  after the status fix of the SCIP row-sides bullet). The crossed-pair trials of N36 meet the same gap.
+  `binary_column_with_a_relaxed_bound_fails_to_solve` and
+  `deletion_filter_throws_on_a_binary_column` pin it, and
+  `docs/solvers/index.md` documents it under "Notable current limitations"
+  (`146173a`). The design is centred on linear programs, so the gap is
+  documented, not worked around: neither the algorithm nor `scip_milp` changes
+  to conform to SCIP.
 - **Side effects.** After a run that called `solve()`, `get_status()`
   reports `status::unknown`, exceptions included (Q4 a). The model is back
   to its original data, but the solver holds a trial's solution: a complete
@@ -519,7 +586,10 @@ row-bound setters, the entity enumeration and the status reset were concepts
 that main did not have, so no model satisfied them. The table is that
 pre-wave-1 picture: on 2026-09-28 wave 1 brought the enumeration (`3c6348f`),
 the status reset (`0046153`, `ce792ec`) and readable row bounds (`9a852f9`)
-to every model, and modifiable row bounds to `clp_lp` (`93063d1`):
+to every model, and modifiable row bounds to `clp_lp` (`93063d1`). Wave 3
+(items 5.1 to 5.6 of iis_todo.md, `5c4399c` to `9aac8a1`) then brought
+modifiable row bounds to the ten other classes of the table, and variable
+bounds, read and modify, and a readable objective to `soplex_lp`:
 
 | Model | Variable bounds, read / modify | Row sense and rhs, read / modify | Row bounds, read / modify | Objective, read | Enumeration | Status reset |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -534,7 +604,8 @@ to every model, and modifiable row bounds to `clp_lp` (`93063d1`):
 
 - **Row relaxation.** A row side is relaxed through
   `has_modifiable_constraint_bounds<T, M = T>`, the twin of
-  `has_readable_constraint_bounds` (Q3 a). No backend has it yet. Every
+  `has_readable_constraint_bounds` (Q3 a). Wave 1 gave it to `clp_lp` and
+  wave 3 to the ten other classes of the free function's list. Every
   backend the free function targets stores rows natively as two-sided
   bounds, with a way to set each side: `Clp_rowLower` and `Clp_rowUpper`,
   writable arrays that `set_constraint_rhs` already writes through;
@@ -559,12 +630,107 @@ to every model, and modifiable row bounds to `clp_lp` (`93063d1`):
   row getter first, since none is bound on main. Modifiable row bounds still
   follow N30: only where the solver stores a row's two sides natively, so
   never on Gurobi.
-- **SoPlex.** It joins last (N11 a). The C API of 6.0.4 has
-  `SoPlex_changeVarBoundsReal` but sits below the 7.1.1 floor. 7.1.3
-  declares every symbol N11 needs, `SoPlex_getRowBoundsReal` included, so
-  the wrapper keeps no state. The eight symbols are bound once 7.1.1 and
-  7.1.2 are checked, or the floor is raised: `SoPlex_getRowBoundsReal` in
-  WP6c, the seven others in WP14.
+- **Row sides as wave 3 found them.** Measured on 2026-09-28 unless marked.
+  - **Cbc.** An infinity beyond ±1e27 is stored as ±`COIN_DBL_MAX`, which is
+    `infinity()`. A row the setters make ranged reads sense `R`.
+    `get_constraint_sense` already threw on a ranged row, and
+    `get_constraint_rhs`, which returned `Cbc_getRowRHS`, the upper side, now
+    throws there too, on rows added ranged included (`c492659`; devel and
+    2.10.12). The devel build's `Cbc_addRow` returns without
+    adding a row that has no terms, which shifts every later row id, so
+    `cbc_milp` throws `solver_error` there (`db9ee56`); 2.10 keeps such rows.
+    The same build aborts in `Cbc_status` after a MIP whose relaxation is
+    infeasible, unbounded or abandoned, so the outcome queries are read first
+    (`5c4399c`). Below 3.0 a MIP solve fixes the model's integer columns at
+    the incumbent and carries it unchecked into the next solve (CbcSolver.cpp
+    of 2.10.5, read, and three failures on 2.10.12), and
+    `Cbc_numberSavedSolutions` is as stale as the incumbent, so each MIP solve
+    there runs on a fresh copy of the model (`8b5fad9`).
+  - **GLPK.** `glp_set_row_bnds` frees a side at ±`infinity()`, which reads
+    back as ±`DBL_MAX`, and equal sides become `GLP_FX`. An IEEE infinity on
+    the side it cannot free, as -inf for an upper side, was typed as a real
+    side and kept as given: `glp_simplex` then answered `optimal` and
+    `glp_intopt`'s presolver failed an assertion (`npp3.c:892`), so every
+    side written is clamped to ±`DBL_MAX`, which both solve infeasible. `glp_simplex` and
+    `glp_intopt` return `GLP_EBOUND` on crossed bounds or sides, so
+    `solve()` then reports `infeasible` when a lower side exceeds its upper
+    side (`d8c37b3`), and `failed` otherwise. `glp_intopt` also returns
+    `GLP_EBOUND` on any fractional bound of an integer column, and never
+    finished `x + y = 1.5` over free integers, so `glpk_milp` rounds the sides
+    of integer columns, and of rows whose columns are all integer with
+    integral coefficients, within the integrality tolerance before each solve
+    and puts them back after (`8ee83d2`). Rows with integral sides and no
+    integer point, such as `2x + 2y = 1` over free integers, still branch
+    without end, since `glpk_milp` has no time limit.
+  - **HiGHS.** `Highs_changeRowBounds` accepts crossed sides, and a solve
+    reports them infeasible, on the three classes, 1.10.0 and 1.15.1. A side
+    of magnitude 1e20 or more reads back as ±`infinity()`, and a lower side of
+    +inf throws. `Highs_run` silently repairs, in the model itself, bounds or
+    sides crossed by less than `primal_feasibility_tolerance`: x in [1 + 1e-9,
+    1] solves optimal and reads [1, 1] afterwards, while the free function's
+    exact check reports the pair as an IIS. N12 (b) landed as `b05a026`.
+  - **MOSEK.** `MSK_chgconbound` gets `finite = 0` at ±`infinity()` and
+    beyond, and derives the bound key: equal sides become `FX`, and crossed
+    sides stay `RA` with lb > ub, which solves infeasible. A finite side
+    beyond `MSK_DPAR_DATA_TOL_BOUND_INF`, 1e16 by default, is stored free and
+    reads ±1e30. An IEEE infinity on the opposite side is rejected (error
+    1390), while `infinity()` there stays a real bound. The variable-bound
+    setters now pass the same flag (`5e70f3d`), so a side set to `infinity()`
+    is freed under a raised tolerance too.
+  - **SCIP.** `SCIPchgLhsLinear` and `SCIPchgRhsLinear` ignore a change below
+    `numerics/epsilon`, 1e-9, so such a change is written through infinity
+    first, and 8.0.4 stores a side beyond the opposite infinity as given, so
+    sides are clamped to ±`infinity()`. Sides within 1e-9 of each other cannot
+    be read back exactly. The variable-bound getters read the original bounds
+    (`88f7d3b`): the global ones follow the presolved copy after a solve, so x
+    in [0, 10] with `x <= 4` and `x + y <= 7` read [0, -0] once solved, and
+    the filter would have restored presolved bounds. A solve that fails after
+    the transformation now leaves `_solved` set, so the next setter frees the
+    transform (`9ffeff7`). Crossed bounds and sides solve infeasible; a
+    crossed row prints a warning on stderr even when the model is quiet.
+    SCIP 10 renumbered `SCIP_STATUS`, which `scip_api` declares with the
+    numbering of 8 and 9, so on SCIP 10 every status read wrong, an optimum
+    as `interrupted`; `scip_milp` now translates SCIP 10's codes. That bug
+    predates the wave, and the compatibility matrix, whose cases never
+    checked a SCIP status, missed it. With the fix, the SCIP suites pass on
+    10.0.2, the library of the PySCIPOpt 6.2.1 wheel (measured).
+- **SoPlex.** It joins last (N11 a), and did in wave 3. The N11 check of
+  2026-09-28 read the interface of every release from 6.0.4 to 8.0.3:
+  `soplex_interface.h` is byte-identical from 7.0.0 to 8.0.3, and its `.cpp`
+  is identical within 7.0.0 to 7.1.3 and within 8.0.0 to 8.0.3. Every symbol
+  bound is present from 7.0.0, so the floor stays at 7.1.1, and the suites
+  pass on 7.1.1, 7.1.3 and 8.0.3 (measured):
+
+  | Symbol | 6.0.4 | 7.0.0 to 8.0.3 | Bound |
+  | --- | --- | --- | --- |
+  | `SoPlex_getRowBoundsReal` (N11) | . | x | yes, in WP6c |
+  | `SoPlex_changeRowLhsReal`, `SoPlex_changeRowRhsReal` (N11) | . | x | yes |
+  | `SoPlex_changeVarLowerReal` (N11) | . | x | yes |
+  | `SoPlex_changeVarUpperReal` (N11) | x, moves the lower bound | x | yes, refused without its lower twin |
+  | `SoPlex_getObjReal` (N11) | . | x | yes |
+  | `SoPlex_getLowerReal` (N11) | . | x | no |
+  | `SoPlex_getUpperReal` (N11) | x | x | no |
+  | `SoPlex_getRowVectorReal`, `SoPlex_basisRowStatus` | . | x | yes |
+  | `SoPlex_clearLPReal` | x | x | yes |
+  | `SoPlex_setRealParam` | . | x | yes, for the time limit |
+
+  The wrapper keeps state after all: once a solve has scaled the LP in place,
+  `SoPlex_getLowerReal` and `SoPlex_getUpperReal` unscale infinite entries too
+  (`getLowerUnscaled` has no infinity check), so ±1e100 reads back as ±1.22e96
+  or ±2.56e102. `soplex_lp` reads column bounds from a copy it keeps, which is
+  authoritative, and rows from SoPlex, whose per-row getter is right. Wave 3
+  also fixed, measured on the three releases: an IEEE infinite column side
+  made a bounded LP read unbounded, so every written side is clamped to ±1e100
+  (`d7ae123`); `add_column` passed the nonzero count as the column length
+  (`2bb9321`); freeing the active side of a nonbasic row leaves a nonbasic
+  free row from which a warm solve stops `RUNNING` after an internal XLEAVE04
+  or returns a wrong optimum, under every setting tried, and the C API cannot
+  drop a basis, so `solve()` reloads the LP when a row reports `ZERO`
+  (`08eac9c`); a warm solve after crossing a side returned optimal outside the
+  sides, so `solve()` reports infeasible without solving when a lower side
+  exceeds its upper side (`a07ac25`); and a fresh `soplex_lp` maximized,
+  SoPlex's default, which `LpFuzzyTest` exposed once instantiated (`e963d03`,
+  a release-note item).
 - **Entity enumeration.** Until `3c6348f` main had no public enumeration of
   live entities:
   `model_base::_variables_range` is protected, and no `variables()` or
@@ -677,8 +843,9 @@ to every model, and modifiable row bounds to `clp_lp` (`93063d1`):
   shown to keep a consistent status (N15); indicator constraints kept as
   background on `gurobi_milp` and `cplex_milp`, which first needs the fix of
   native ids after a removal; the both-paths check, which calls the free
-  function directly on a model that meets both concepts; the throw below HiGHS
-  1.14.0.
+  function directly on a model that meets both concepts, and which since wave
+  3 runs on `highs_lp` and `highs_qp` and passes on 1.15.1 (2026-09-28); the
+  throw below HiGHS 1.14.0.
 - **CI.** Clp, Cbc, GLPK and HiGHS run in CI, so the free function is
   CI-tested. CI always runs at least one of them, so no user-defined model
   runs the free function for now (N24). HiGHS runs the native routine in the
@@ -1162,7 +1329,24 @@ or in pull request #3 changes.
 
 ## Open questions
 
-None, as of 2026-09-28. N37, the last, was agreed that day. The outward steps
-of WP1 are done: the documents are committed (`25b4530`, on the pull
-request's branch), the reply is posted, `a1a9f11` is tagged
+Wave 3 raised two on 2026-09-28, stated here for a ruling.
+
+- **N38. Cbc 2.10 on integer-infeasible rows.** Cbc 2.10.11 and 2.10.12 report
+  `x0 + x1 = 1.5` over free integers optimal with `x0 = 1.5` (measured), a
+  wrong answer that the filter's trials inherit, while the devel build
+  branches without a proof until a time limit. Options: (a) `cbc_milp` rejects
+  a returned point whose integer columns are fractional beyond the integrality
+  tolerance; (b) the wrong answer stays documented, as `docs/solvers/index.md`
+  now does. Until then `integers_summing_to_one_half` skips on every Cbc,
+  keyed on its name, with a reason that depends on the version.
+- **N39. A skip keyed on a solve-time error.** `scip_milp_iis_test` turns
+  "scip_milp: error in input data" into a skip in
+  `integer_in_a_fractional_interval` only, where SCIP accepts the model and
+  fails the solve; WP8's rule covers inputs rejected when the model is built.
+  Options: (a) keep the keyed skip; (b) the fixture expects the throw in that
+  case, so that a change in SCIP's behaviour fails the test.
+
+Before wave 3 none remained: N37, the last, was agreed on 2026-09-28. The
+outward steps of WP1 are done: the documents are committed (`25b4530`, on
+the pull request's branch), the reply is posted, `a1a9f11` is tagged
 `archive/pr3-a1a9f11` on origin, and pull request #3 is a draft.
