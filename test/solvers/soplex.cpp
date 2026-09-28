@@ -14,6 +14,7 @@ MIPPP_API_VERSION_TEST(SoPlex_api, soplex_api, "SOPLEX")
 struct soplex_lp_test : public model_test<soplex_api, soplex_lp> {
     static void SetUpTestSuite() { construct_api("SOPLEX"); }
 };
+static_assert(!has_iis<soplex_lp>);
 // The column's single entry sits on row 1, at its nonzero count: a length
 // taken from that count would drop it.
 TEST_F(soplex_lp_test, column_entry_past_its_nonzero_count_is_kept) {
@@ -166,6 +167,7 @@ INSTANTIATE_TEST(SoPlex, ModifiableVariablesBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, AddColumnTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ReadableConstraintBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ModifiableConstraintBoundsTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, IisByDeletionTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, DualSolutionTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, CuttingStockTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, TimeLimitTest, soplex_lp_test);
