@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <limits>
 #include <optional>
@@ -166,9 +167,9 @@ protected:
     // -/+DBL_MAX, and glp_simplex trusts the type over the values: a GLP_DB
     // column with ub = DBL_MAX is bounded there (an unbounded LP then solves
     // to 1.8e308 and reports optimal), and GLP_DB with lb == ub is refused as
-    // GLP_EBOUND. So the type is chosen from which sides are finite, as
-    // _add_variable does from the optionals. glp_set_col_bnds and
-    // glp_set_row_bnds ignore the value of a side the type lacks.
+    // GLP_EBOUND. So the type is chosen from which sides are finite.
+    // glp_set_col_bnds and glp_set_row_bnds ignore the value of a side the
+    // type lacks.
     static constexpr int _bounds_type(double lb, double ub) noexcept {
         const bool has_lb = lb > std::numeric_limits<double>::lowest();
         const bool has_ub = ub < std::numeric_limits<double>::max();
@@ -177,11 +178,29 @@ protected:
         if(has_ub) return GLP_UP;
         return GLP_FR;
     }
+    // An IEEE infinity on the side it cannot free, as -inf for an upper
+    // side, is typed as a finite side: glp_simplex then answers optimal and
+    // the presolver of glp_intopt fails an assertion, while the finite
+    // extreme is solved infeasible.
+    static constexpr double _finite_side(double side) noexcept {
+        return std::clamp(side, std::numeric_limits<double>::lowest(),
+                          std::numeric_limits<double>::max());
+    }
     void _set_col_bnds(int col, double lb, double ub) {
+        lb = _finite_side(lb);
+        ub = _finite_side(ub);
         glp->set_col_bnds(model, col, _bounds_type(lb, ub), lb, ub);
     }
     void _set_row_bnds(int row, double lb, double ub) {
+        lb = _finite_side(lb);
+        ub = _finite_side(ub);
         glp->set_row_bnds(model, row, _bounds_type(lb, ub), lb, ub);
+    }
+    void _set_col_bnds(int col, const variable_params & params) {
+        _set_col_bnds(
+            col,
+            params.lower_bound.value_or(std::numeric_limits<double>::lowest()),
+            params.upper_bound.value_or(std::numeric_limits<double>::max()));
     }
     // glp_simplex and glp_intopt refuse to start with GLP_EBOUND on a
     // GLP_DB row or column whose lb >= ub, and glp_intopt also on a
@@ -205,20 +224,7 @@ protected:
         if(params.obj_coef != 0.0) {
             glp->set_obj_coef(model, var_id + 1, params.obj_coef);
         }
-        if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
-            double lb = params.lower_bound.value();
-            double ub = params.upper_bound.value();
-            glp->set_col_bnds(model, var_id + 1, (lb == ub) ? GLP_FX : GLP_DB,
-                              lb, ub);
-        } else if(params.lower_bound.has_value()) {
-            glp->set_col_bnds(model, var_id + 1, GLP_LO,
-                              params.lower_bound.value(), 0.0);
-        } else if(params.upper_bound.has_value()) {
-            glp->set_col_bnds(model, var_id + 1, GLP_UP, 0.0,
-                              params.upper_bound.value());
-        } else {
-            glp->set_col_bnds(model, var_id + 1, GLP_FR, 0.0, 0.0);
-        }
+        _set_col_bnds(var_id + 1, params);
         if(type != GLP_CV) {
             glp->set_col_kind(model, var_id + 1, type);
         }
@@ -231,24 +237,8 @@ protected:
             for(std::size_t i = offset + 1; i <= offset + count; ++i)
                 glp->set_obj_coef(model, static_cast<int>(i), obj);
         }
-        if(params.lower_bound.has_value() && params.upper_bound.has_value()) {
-            double lb = params.lower_bound.value();
-            double ub = params.upper_bound.value();
-            for(std::size_t i = offset + 1; i <= offset + count; ++i)
-                glp->set_col_bnds(model, static_cast<int>(i),
-                                  (lb == ub) ? GLP_FX : GLP_DB, lb, ub);
-        } else if(params.lower_bound.has_value()) {
-            for(std::size_t i = offset + 1; i <= offset + count; ++i)
-                glp->set_col_bnds(model, static_cast<int>(i), GLP_LO,
-                                  params.lower_bound.value(), 0.0);
-        } else if(params.upper_bound.has_value()) {
-            for(std::size_t i = offset + 1; i <= offset + count; ++i)
-                glp->set_col_bnds(model, static_cast<int>(i), GLP_UP, 0.0,
-                                  params.upper_bound.value());
-        } else {
-            for(std::size_t i = offset + 1; i <= offset + count; ++i)
-                glp->set_col_bnds(model, static_cast<int>(i), GLP_FR, 0.0, 0.0);
-        }
+        for(std::size_t i = offset + 1; i <= offset + count; ++i)
+            _set_col_bnds(static_cast<int>(i), params);
         if(type != GLP_CV) {
             for(std::size_t i = offset + 1; i <= offset + count; ++i)
                 glp->set_col_kind(model, static_cast<int>(i), type);

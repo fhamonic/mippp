@@ -27,6 +27,62 @@ auto simplex_status(int ret, int generic_status, int primal_status,
 auto intopt_status(int ret, int mip_status) {
     return glpk_milp_status_probe::_intopt_status(ret, mip_status);
 }
+
+// An IEEE infinity on the side it cannot free is a real bound that no point
+// satisfies.
+template <typename NewModel>
+void check_sides_at_the_wrong_infinity_are_infeasible(NewModel new_model) {
+    using namespace operators;
+    constexpr double inf = std::numeric_limits<double>::infinity();
+    {
+        auto model = new_model();
+        auto x = model.add_variable({.lower_bound = 0, .upper_bound = 4});
+        auto c = model.add_constraint(x <= 3);
+        model.set_constraint_upper_bound(c, -inf);
+        model.set_objective(x);
+        model.solve();
+        EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+    }
+    for(const bool minimize : {true, false}) {
+        auto model = new_model();
+        auto x = model.add_variable({.lower_bound = 0, .upper_bound = 4});
+        auto c = model.add_constraint(x >= 1);
+        model.set_constraint_lower_bound(c, inf);
+        if(minimize)
+            model.set_minimization();
+        else
+            model.set_maximization();
+        model.set_objective(x);
+        model.solve();
+        EXPECT_TRUE(is<status::infeasible>(model.get_status())) << minimize;
+    }
+    {
+        auto model = new_model();
+        auto x = model.add_variable({.lower_bound = 0, .upper_bound = 4});
+        model.add_constraint(x <= 3);
+        model.set_variable_upper_bound(x, -inf);
+        model.set_objective(x);
+        model.solve();
+        EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+    }
+}
+// Typed double-bounded, a column added with bounds at -/+infinity() is
+// bounded at -/+DBL_MAX, where glp_simplex stops at an optimum of -1.8e308.
+template <typename NewModel>
+void check_infinite_column_bounds_are_free(NewModel new_model) {
+    using namespace operators;
+    auto model = new_model();
+    const double inf = model.infinity();
+    auto x = model.add_variable({.lower_bound = 1, .upper_bound = inf});
+    auto y = model.add_variable({.lower_bound = -5, .upper_bound = 5});
+    auto z = model.add_variable({.lower_bound = -inf, .upper_bound = inf});
+    auto c = model.add_constraint(x + 3 * y + 3 * z <= 3);
+    model.set_constraint_lower_bound(c, 2);
+    model.set_objective(3 * x + y + z);
+    model.solve();
+    ASSERT_TRUE(is<status::optimal>(model.get_status()));
+    EXPECT_NEAR(model.get_solution_value(), 10.0 / 3.0, TEST_EPSILON);
+}
 }  // namespace
 
 TEST(GLPK_simplex_status, completed_search_reads_the_basic_solution) {
@@ -142,6 +198,13 @@ TEST_F(glpk_lp_test, equal_double_bounds_written_natively_fail) {
                                     GLP_DB, 1, 1);
     model.solve();
     EXPECT_TRUE(is<status::failed>(model.get_status()));
+}
+TEST_F(glpk_lp_test, sides_at_the_wrong_infinity_are_infeasible) {
+    check_sides_at_the_wrong_infinity_are_infeasible(
+        [this] { return new_model(); });
+}
+TEST_F(glpk_lp_test, infinite_column_bounds_are_free) {
+    check_infinite_column_bounds_are_free([this] { return new_model(); });
 }
 INSTANTIATE_TEST(GLPK_lp, LpModelTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, EnumerableEntitiesTest, glpk_lp_test);
@@ -286,6 +349,13 @@ TEST_F(glpk_milp_test,
     model.solve();
     EXPECT_TRUE(is_a<status::infeasible_or_unbounded>(model.get_status()));
     EXPECT_FALSE(is_a<status::unbounded>(model.get_status()));
+}
+TEST_F(glpk_milp_test, sides_at_the_wrong_infinity_are_infeasible) {
+    check_sides_at_the_wrong_infinity_are_infeasible(
+        [this] { return new_model(); });
+}
+TEST_F(glpk_milp_test, infinite_column_bounds_are_free) {
+    check_infinite_column_bounds_are_free([this] { return new_model(); });
 }
 INSTANTIATE_TEST(GLPK_milp, LpModelTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, MilpModelTest, glpk_milp_test);
