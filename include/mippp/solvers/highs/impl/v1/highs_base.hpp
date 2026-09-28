@@ -603,6 +603,14 @@ public:
         }
         check(Highs->changeRowBounds(model, constr.id(), lower, upper));
     }
+    void set_constraint_lower_bound(constraint constr, scalar lb) {
+        check(Highs->changeRowBounds(model, constr.id(), lb,
+                                     _row_bounds(constr).second));
+    }
+    void set_constraint_upper_bound(constraint constr, scalar ub) {
+        check(Highs->changeRowBounds(model, constr.id(),
+                                     _row_bounds(constr).first, ub));
+    }
     void set_constraint_name(constraint constr, std::string name) {
         check(Highs->passRowName(model, constr.id(), name.c_str()));
     }
