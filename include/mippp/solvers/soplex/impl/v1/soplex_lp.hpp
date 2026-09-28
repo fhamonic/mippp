@@ -413,6 +413,21 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
+    // A warm start leaves a nonbasic column or row on the side it sat on, and
+    // SoPlex does not check that side against the other one: once they cross,
+    // it reports optimal at a point outside them.
+    bool _has_crossed_sides() {
+        for(std::size_t j = 0; j < _lower_bounds.size(); ++j)
+            if(_lower_bounds[j] > _upper_bounds[j]) return true;
+        if(SoPlex->getRowBoundsReal == nullptr) return false;
+        const int num_rows = SoPlex->numRows(model);
+        for(int i = 0; i < num_rows; ++i) {
+            double lb, ub;
+            SoPlex->getRowBoundsReal(model, i, &lb, &ub);
+            if(lb > ub) return true;
+        }
+        return false;
+    }
     // Freeing the active side of a row leaves it nonbasic and free, and a warm
     // start from such a basis fails: SoPlex reports running after an internal
     // XLEAVE04 exception, or a wrong optimum. The C interface cannot drop a
@@ -485,6 +500,10 @@ public:
         using namespace status;
         if(num_variables() == 0u) {
             _status = status::unknown{};
+            return;
+        }
+        if(_has_crossed_sides()) {
+            _status.emplace<infeasible>();
             return;
         }
         if(_has_nonbasic_free_row()) _reload_without_basis();

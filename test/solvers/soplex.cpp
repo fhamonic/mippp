@@ -82,6 +82,33 @@ TEST_F(soplex_lp_test, infinite_column_bounds_survive_the_scaling) {
     EXPECT_EQ(model.get_variable_upper_bound(y), model.infinity());
     EXPECT_EQ(model.get_variable_lower_bound(z), 3.0);
 }
+// SoPlex itself reports optimal once a warm start meets the crossed sides.
+TEST_F(soplex_lp_test, crossed_sides_are_infeasible_after_a_solve) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable({.lower_bound = 1.0});
+    auto y = model.add_variable({.lower_bound = -5.0, .upper_bound = 5.0});
+    auto c = model.add_constraint(y >= 1.0);
+    model.set_minimization();
+    model.set_objective(x + y);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    model.set_variable_upper_bound(x, 0.0);
+    model.solve();
+    EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
+    model.set_variable_upper_bound(x, model.infinity());
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    model.set_constraint_upper_bound(c, 0.0);
+    model.solve();
+    EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
+    model.set_constraint_upper_bound(c, model.infinity());
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    model.add_variable({.lower_bound = 1.0, .upper_bound = 0.0});
+    model.solve();
+    EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
+}
 // Each relaxation leaves the freed row nonbasic: SoPlex's own warm start then
 // stops with running after the first and reports 7 after the second. The
 // reload clears the LP, which resets the sense to maximization.
