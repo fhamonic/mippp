@@ -241,12 +241,16 @@ private:
                        const char * name = "") {
         _free_transform();
         SCIP_VAR * var = nullptr;
-        check(SCIP->createVarBasic(
-            model, &var, name,
-            params.lower_bound.value_or(-SCIP->infinity(model)),
-            params.upper_bound.value_or(SCIP->infinity(model)), params.obj_coef,
-            type));
+        const double lb = params.lower_bound.value_or(-SCIP->infinity(model));
+        const double ub = params.upper_bound.value_or(SCIP->infinity(model));
+        check(SCIP->createVarBasic(model, &var, name, lb, ub, params.obj_coef,
+                                   type));
         check(SCIP->addVar(model, var));
+        // SCIP solves the bounds clamped to infinity() and, on an integer
+        // column, rounded, but its original domain, which the getters read,
+        // keeps them as given until a bound setter stores them that way
+        check(SCIP->chgVarLb(model, var, lb));
+        check(SCIP->chgVarUb(model, var, ub));
         _scip_vars.emplace_back(var);
     }
 
@@ -315,11 +319,14 @@ public:
     double get_objective_coefficient(variable v) {
         return SCIP->varGetObj(_scip_vars[v.uid()]);
     }
+    // The global bounds of an original variable follow its transformed copy
+    // until the transform is freed: after a solve they read the presolved
+    // domain, not the model's.
     double get_variable_lower_bound(variable v) {
-        return SCIP->varGetLbGlobal(_scip_vars[v.uid()]);
+        return SCIP->varGetLbOriginal(_scip_vars[v.uid()]);
     }
     double get_variable_upper_bound(variable v) {
-        return SCIP->varGetUbGlobal(_scip_vars[v.uid()]);
+        return SCIP->varGetUbOriginal(_scip_vars[v.uid()]);
     }
     std::string get_variable_name(variable v) {
         return std::string(SCIP->varGetName(_scip_vars[v.uid()]));

@@ -145,6 +145,8 @@ SCIP_RETCODE SCIPchgVarLb(SCIP * scip, SCIP_VAR * var, SCIP_Real newbound);
 SCIP_RETCODE SCIPchgVarUb(SCIP * scip, SCIP_VAR * var, SCIP_Real newbound);
 SCIP_Real SCIPvarGetLbGlobal(SCIP_VAR * var);
 SCIP_Real SCIPvarGetUbGlobal(SCIP_VAR * var);
+SCIP_Real SCIPvarGetLbOriginal(SCIP_VAR * var);
+SCIP_Real SCIPvarGetUbOriginal(SCIP_VAR * var);
 SCIP_RETCODE SCIPchgVarType(SCIP * scip, SCIP_VAR * var, SCIP_VARTYPE vartype,
                             SCIP_Bool * become_infeasible);
 const char * SCIPvarGetName(SCIP_VAR * var);
@@ -327,6 +329,8 @@ namespace scip::impl::v1 {
     F(SCIPchgVarUb, chgVarUb)                           \
     F(SCIPvarGetLbGlobal, varGetLbGlobal)               \
     F(SCIPvarGetUbGlobal, varGetUbGlobal)               \
+    F(SCIPvarGetLbOriginal, varGetLbOriginal)           \
+    F(SCIPvarGetUbOriginal, varGetUbOriginal)           \
     F(SCIPchgVarType, chgVarType)                       \
     F(SCIPchgVarName, chgVarName)                       \
     F(SCIPvarGetName, varGetName)                       \
