@@ -162,24 +162,26 @@ public:
     //////////////////////////////// Variables ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 protected:
-    // glp_get_col_lb/ub report a missing side as -/+DBL_MAX, and glp_simplex
-    // trusts the column type over the values: a GLP_DB column with ub =
-    // DBL_MAX is bounded there (an unbounded LP then solves to 1.8e308 and
-    // reports optimal), and GLP_DB with lb == ub is refused as GLP_EBOUND.
-    // So the type is chosen from which sides are finite, as _add_variable
-    // does from the optionals.
-    void _set_col_bnds(int col, double lb, double ub) {
+    // glp_get_col_lb/ub and glp_get_row_lb/ub report a missing side as
+    // -/+DBL_MAX, and glp_simplex trusts the type over the values: a GLP_DB
+    // column with ub = DBL_MAX is bounded there (an unbounded LP then solves
+    // to 1.8e308 and reports optimal), and GLP_DB with lb == ub is refused as
+    // GLP_EBOUND. So the type is chosen from which sides are finite, as
+    // _add_variable does from the optionals. glp_set_col_bnds and
+    // glp_set_row_bnds ignore the value of a side the type lacks.
+    static constexpr int _bounds_type(double lb, double ub) noexcept {
         const bool has_lb = lb > std::numeric_limits<double>::lowest();
         const bool has_ub = ub < std::numeric_limits<double>::max();
-        if(has_lb && has_ub) {
-            glp->set_col_bnds(model, col, (lb == ub) ? GLP_FX : GLP_DB, lb, ub);
-        } else if(has_lb) {
-            glp->set_col_bnds(model, col, GLP_LO, lb, 0.0);
-        } else if(has_ub) {
-            glp->set_col_bnds(model, col, GLP_UP, 0.0, ub);
-        } else {
-            glp->set_col_bnds(model, col, GLP_FR, 0.0, 0.0);
-        }
+        if(has_lb && has_ub) return (lb == ub) ? GLP_FX : GLP_DB;
+        if(has_lb) return GLP_LO;
+        if(has_ub) return GLP_UP;
+        return GLP_FR;
+    }
+    void _set_col_bnds(int col, double lb, double ub) {
+        glp->set_col_bnds(model, col, _bounds_type(lb, ub), lb, ub);
+    }
+    void _set_row_bnds(int row, double lb, double ub) {
+        glp->set_row_bnds(model, row, _bounds_type(lb, ub), lb, ub);
     }
     inline void _add_variable(const int & var_id,
                               const variable_params & params, int type) {
@@ -409,6 +411,14 @@ public:
     }
     double get_constraint_upper_bound(constraint constr) {
         return glp->get_row_ub(model, constr.id() + 1);
+    }
+    // glp_set_row_bnds sets both sides and the type at once, so the side that
+    // stays is read back first
+    void set_constraint_lower_bound(constraint constr, double lb) {
+        _set_row_bnds(constr.id() + 1, lb, get_constraint_upper_bound(constr));
+    }
+    void set_constraint_upper_bound(constraint constr, double ub) {
+        _set_row_bnds(constr.id() + 1, get_constraint_lower_bound(constr), ub);
     }
 };
 
