@@ -28,6 +28,7 @@ INSTANTIATE_TEST(HiGHS_lp, RemoveVariableTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ReadableConstraintsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ReadableConstraintBoundsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ModifiableConstraintBoundsTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, IisByDeletionTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, DualSolutionTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, ReducedCostsTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpStatusTest, highs_lp_test);
@@ -73,6 +74,7 @@ INSTANTIATE_TEST(HiGHS_milp, RemoveVariableTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ReadableConstraintsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ReadableConstraintBoundsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ModifiableConstraintBoundsTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, IisByDeletionTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, SudokuTest, highs_milp_test);
 // INSTANTIATE_TEST(HiGHS_milp, MipStartTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, TimeLimitTest, highs_milp_test);
@@ -100,6 +102,7 @@ INSTANTIATE_TEST(HiGHS_qp, RemoveVariableTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ReadableConstraintsTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ReadableConstraintBoundsTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, ModifiableConstraintBoundsTest, highs_qp_test);
+INSTANTIATE_TEST(HiGHS_qp, IisByDeletionTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, DualSolutionTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, LpStatusTest, highs_qp_test);
 INSTANTIATE_TEST(HiGHS_qp, CuttingStockTest, highs_qp_test);
@@ -148,10 +151,35 @@ TEST_F(highs_qp_test, time_limit_bounds_each_solve) {
     check_time_limit_bounds_each_solve<highs_qp_test>(new_model());
 }
 
+// The removal shifts the native ids the Hessian is written with, and the
+// re-solve meets the quadratic optimum, which a lost Hessian would leave
+// unbounded.
+TEST_F(highs_qp_test, deletion_filter_keeps_the_quadratic_objective) {
+    using namespace operators;
+    auto model = new_model();
+    auto removed = model.add_variable();
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+    auto v = model.add_variable();
+    model.remove_variable(removed);
+    model.add_constraint(x >= 2.);
+    model.set_quadratic_objective(v * v - 2 * v + x);
+    const auto iis = compute_iis_by_deletion(model);
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    ASSERT_QUAD_EXPR(model.get_quadratic_objective(), {{v, v, 1.}},
+                     {{x, 1.}, {v, -2.}}, 0.);
+    model.set_variable_upper_bound(x, 3.);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    EXPECT_NEAR(model.get_solution_value(), 1., TEST_EPSILON);
+}
+
 static_assert(has_iis<highs_lp>);
 static_assert(has_iis<highs_qp>);
 // the routine explains the relaxation only
 static_assert(!has_iis<highs_milp>);
+static_assert(iis_by_deletion_model<highs_lp>);
+static_assert(iis_by_deletion_model<highs_milp>);
+static_assert(iis_by_deletion_model<highs_qp>);
 
 namespace {
 // Highs_getIis is decodable from this release on; older libraries throw
