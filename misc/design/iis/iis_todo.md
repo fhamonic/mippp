@@ -4,42 +4,45 @@ Companion to [iis.md](iis.md), which holds the design, its rulings and the evide
 [iis_pr_plan.md](iis_pr_plan.md), whose work packages carry the details. The steps follow the revised package
 order of 2026-09-27. Items 0.1 and 1.6 and those of steps 2 to 6 name their package, except 6.2. Items 1.1 to
 1.5 are the plan's standalone fixes, and step 7 is WP17. Each step lands and is tested on its own. Q1 to Q6
-and N0 to N35 refer to the Rulings of 2026-09-27 in iis.md, and no question is open.
+and N0 to N37 refer to the Rulings of 2026-09-27 and 2026-09-28 in iis.md, and no question is open.
 
 - **Two paths.** Under Q1 (b), `has_iis<T>` means that the model has a native IIS routine, reached through a
   `compute_iis()` member. The deletion filter is a separate public algorithm: an engine over a user oracle,
   and a free function over any model that meets its concept.
 - **Names.** The names below are those the maintainer accepted under N19 to N22 on 2026-09-27, with the IIS
   vocabulary of Q2.
-- **Marks.** A ticked item is done on main. A struck item is closed by a ruling. The maintainer confirmed the
-  readings of the short rulings on 2026-09-27, and N4's was dropped as moot, so no item marks a reading.
+- **Marks.** A ticked item is done on main, or on pull request #3's branch where the item says so. A struck
+  item is closed by a ruling. The maintainer confirmed the readings of the short rulings on 2026-09-27, and
+  N4's was dropped as moot, so no item marks a reading.
 - **Critical path.** Steps 0, 2, 3 and 4, then items 5.1 to 5.3. Each fix of step 1 lands before the first
   item that needs it. Step 6 can start once step 2 merges, HiGHS first.
+- **Waves.** Wave 1, published on main on 2026-09-28 with CI green, is steps 1 and 3 on main and step 2 on
+  pull request #3. Wave 2 is 2.5, then step 4 and 6.1, which need the merge. Wave 3 is step 5, and 6.2 to 6.6
+  can run beside it. Wave 4 is step 7.
 
 ## 0. Before any code
 
-Q1 to Q6 and N0 to N35 were ruled on 2026-09-27. What remains are the outward steps of WP1, none of them done.
+Q1 to Q6 and N0 to N35 were ruled on 2026-09-27, and N36 and N37 on 2026-09-28. The outward steps of WP1 are done.
 
-- [ ] **0.1. Commit the documents (WP1).** The three documents were revised on 2026-09-27 in the working tree
-  and are not committed. iis.md records the rulings, those of later that day included, with the readings the
-  maintainer confirmed, and lists no open question. The plan's corrections are applied, and this file is
-  rewritten. Commit iis.md, iis_todo.md, iis_pr_plan.md and iis_pr_plan_pre_rulings.md on main. The last one
-  is the plan the maintainer ruled on, which keeps the options behind each letter readable.
+- [x] **0.1. Commit the documents (WP1).** Done on 2026-09-28 as `25b4530` on pull request #3's branch, which
+  reaches main with the squash-merge of 2.5. iis.md records the rulings with the readings the maintainer
+  confirmed, and lists no open question; iis_pr_plan_pre_rulings.md is the plan the maintainer ruled on, which
+  keeps the options behind each letter readable. The amendments of 2026-09-28 (N36 and N37) follow the same
+  route.
 - **0.2. No open question.** N35, the last question, was ruled (a) on 2026-09-27, and the same message
   confirmed the readings of the short rulings and left the choice on N4 to the assistant.
-- [ ] **0.3. Answer the pull request and act on N0 (a).** Tag `a1a9f11` on origin, for example
-  `archive/pr3-a1a9f11`, before any reshaping push, and convert pull request #3 to a draft. Post the plan's
-  reply, which asks for the author's consent, asks them to stop pushing, and offers leaf work off the critical
-  path.
+- [x] **0.3. Answer the pull request and act on N0 (a).** Done on 2026-09-28: `a1a9f11` is tagged
+  `archive/pr3-a1a9f11` on origin, the reply is posted, and pull request #3 is a draft. The maintainer does
+  the rework, so the reply offered the author no work.
 
 Done when the four documents of 0.1 are on main, the reply is posted, and pull request #3 is a draft.
 
 ## 1. Fixes on main
 
-Each fix is its own pull request on main, independent of the IIS types. Two items of the former MOSEK step are
-on main, and its optimizer-count test is struck. The plan also tracks three fixes outside this order: the
-loader message (N18 a), the destructors of COPT, CPLEX, Gurobi and Xpress that can throw, and a time limit on
-`copt_lp` (N35 a).
+Each fix is its own commit on main, independent of the IIS types, all landed on 2026-09-28 in wave 1. Two items
+of the former MOSEK step were already on main, and its optimizer-count test is struck. The plan's three fixes
+outside this order landed too: the loader message (N18 a, `e81fdc5`), the destructors of COPT, CPLEX, Gurobi
+and Xpress that could throw (`e43b639`), and a time limit on `copt_lp` (N35 a, `d205cf6`).
 
 - [x] **One optimization per `solve()`.** Done in `d8bb08f`: `mosek_lp` and `mosek_milp` call
   `MSK_optimizetrm` once per solve (`mosek_lp.hpp:102-108`).
@@ -47,20 +50,22 @@ loader message (N18 a), the destructors of COPT, CPLEX, Gurobi and Xpress that c
   (`test/solvers/mosek.cpp:23, 39`).
 - [ ] ~~**A regression test counting optimizer runs per solve.**~~ Struck by N5 (b). The optimizer-count and
   interior-point tests are dropped with their binding, since no test calls a vendor API.
-- [ ] **1.1. Moves keep the status, and HiGHS initializes `psolstatus`.** The move constructors of `clp_lp`,
+- [x] **1.1. Moves keep the status, and HiGHS initializes `psolstatus`.** The move constructors of `clp_lp`,
   `cbc_milp`, `scip_milp` and `soplex_lp` copy `_status`, pinned by `LpModelTest.move_preserves_status`. The
   three HiGHS classes initialize `psolstatus`, which a load or solve error leaves unwritten.
   `LpStatusTest.constant_row_without_variables_is_not_optimal` checks a term-less row 0 >= 1. Needed by 5.3.
-- [ ] **1.2. GLPK status mapping.** `glpk_lp` maps `GLP_INFEAS` to `infeasible` and lets `glp_simplex` errors
+  Done in `1a77969`.
+- [x] **1.2. GLPK status mapping.** `glpk_lp` maps `GLP_INFEAS` to `infeasible` and lets `glp_simplex` errors
   fall through. The fix is noted as a mapping change in the release notes of v1.1.0, since main has no
-  changelog file. Needed by 5.2.
-- [ ] **1.3. Native ids after removal.** Gurobi's indicators and type setters, and CPLEX's indicators, pass
+  changelog file. Needed by 5.2. Done in `283a256`.
+- [x] **1.3. Native ids after removal.** Gurobi's indicators and type setters, and CPLEX's indicators, pass
   the handle id instead of the native id. Two `RemoveVariableTest` cases pin the fix. Needed by 6.3 and 6.4.
-- [ ] **1.4. Clp's secondary status (N13 a).** Bind `Clp_secondaryStatus`, a mandatory symbol. Status 0 with
+  Done in `23c61b2`.
+- [x] **1.4. Clp's secondary status (N13 a).** Bind `Clp_secondaryStatus`, a mandatory symbol. Status 0 with
   secondary status 2 or 4 becomes `optimal_infeasible_unscaled`, and secondary 3 stays `optimal`. The wider
   public variant of `clp_lp` gets a note in the release notes of v1.1.0. The classifier of 4.1 treats the tag
-  as inconclusive, which gives N13 (b). Needed by 4.2.
-- [ ] **1.5. The time-limit contract (N4 A, N32 a, N33 b).** `get_time_limit()` never returns a negative value
+  as inconclusive, which gives N13 (b). Needed by 4.2. Done in `daddd47`.
+- [x] **1.5. The time-limit contract (N4 A, N32 a, N33 b).** `get_time_limit()` never returns a negative value
   on a `has_time_limit` model. The MOSEK getter maps its -1 s to `std::numeric_limits<double>::infinity()`,
   porting the getter half of the pull request's change with the author's credit, and the MOSEK setter stays
   transparent. The SoPlex setter throws on a negative value and writes `std::min(t, 1e100)`, so that
@@ -69,70 +74,78 @@ loader message (N18 a), the destructors of COPT, CPLEX, Gurobi and Xpress that c
   and `duration<double>::max()` mean no limit (N32 a). Five new `TimeLimitTest` cases, from
   `fresh_time_limit_is_unlimited` to `forwarded_time_limit_restores_exactly`, run on all 15 classes.
   `docs/solving/status-and-limits.md` states the contract, and `docs/solvers/index.md` corrects its SoPlex
-  sentence. Needed by 5.1, 5.4 and 5.6.
-- [ ] **1.6. MOSEK fixes (WP2).** The pull request's handle guard, a destructor that cannot throw, and slot
+  sentence. Needed by 5.1, 5.4 and 5.6. Done in `a8ca259`.
+- [x] **1.6. MOSEK fixes (WP2).** The pull request's handle guard, a destructor that cannot throw, and slot
   selection on the LP status and every getter of both classes. The pick is cached and reset with `_status`.
   The status is reset before optimizing, and a column-less task maps MOSEK's own status. License codes map to
   `license_error` in their own commit, without hint text (N18 a). Needed by 5.4. It lands before or after 3.3,
-  and whichever of the two lands second resets the slot cache inside the MOSEK `reset_status()`.
+  and whichever of the two lands second resets the slot cache inside the MOSEK `reset_status()`. Done in
+  `d8fdbb8` and `917fbf6`; 3.3 landed second, and `ce792ec` resets the slot cache inside `reset_status()`.
 
 Done when each fix's suites pass, in CI for Clp, Cbc, GLPK and HiGHS and locally for the other backends.
 
 ## 2. Engine and IIS types, in pull request #3
 
-The maintainer reshapes pull request #3 in place under N0 (a), after 0.3, in the four commits of the plan's
-handling section. Nothing here touches a model.
+The maintainer reshaped pull request #3 in place under N0 (a), after 0.3, in the four commits of the plan's
+handling section, pushed on 2026-09-28 with CI green at `e11c0f5`. Nothing here touches a model.
 
-- [ ] **2.1. The public deletion engine (WP4).** `deletion_filter` in `utility/deletion_filter.hpp`, namespace
+- [x] **2.1. The public deletion engine (WP4).** `deletion_filter` in `utility/deletion_filter.hpp`, namespace
   `mippp`. Its oracle receives the active candidate indices and answers feasible, infeasible or inconclusive.
   The result lists the members in ascending order, with the outcome and the reason. The detail entry adds the
   continuation from a known proof, a `Clock` parameter, and a batch size that defaults to 1. Batching is
   ported dormant for the moment, with its tests (N3 b), and the free function never sets the batch size, which
   stays outside `iis_limits` and the public entry. Tests in `test/deletion_filter.cpp` run on a fake clock,
-  and `test/iis.cpp:1009-1022` at `a1a9f11` is inverted per N2 (b).
-- [ ] **2.2. Limits, outcomes and reasons (WP5).** `iis_limits {max_solves, time_limit, stop_token}`,
+  and `test/iis.cpp:1009-1022` at `a1a9f11` is inverted per N2 (b). On the branch as `f9e82ec`.
+- [x] **2.2. Limits, outcomes and reasons (WP5).** `iis_limits {max_solves, time_limit, stop_token}`,
   `iis_outcome` and `iis_reason`, including `inconclusive_trial`, in the std-only `utility/iis_outcome.hpp`
   that `model_concepts.hpp` and the engine include. Outcome and reason are `enum class` (N19 e). It lands in
   the engine's commit or before it. The duration becomes one deadline, NaN and negative durations are
   rejected, and an infinite one means no deadline. Prechecks are free (N7 a), and a proof on the last
   permitted trial is complete. A stop request beats the deadline, which beats the solve count. A native answer
-  not proven minimal while no limit stopped it has no reason (N27 a).
-- [ ] **2.3. Status tags, snapshot and concept (WP5).** The `iis_status` tags next to `basis_status`, with
+  not proven minimal while no limit stopped it has no reason (N27 a). On the branch, between `b6e2132` and
+  `e11c0f5`.
+- [x] **2.3. Status tags, snapshot and concept (WP5).** The `iis_status` tags next to `basis_status`, with
   `member_lower`, `member_upper` and `member_both` deriving from `member`. The public snapshot template
   `iis_snapshot` sits over `detail::handle_status_table<Status>`, which basis support reuses later (N16 b).
   The item also adds `lp_iis<I, T>`, `model_iis_t<T>` and a single-parameter `has_iis<T>`, documented as "the
   model has a native IIS routine" (Q1 b). No archetype (N10 a) and no possible-member tag (N1 a). A comment
   says that the snapshot describes the model as it was, so a later handle may reuse a removed id (N8 a).
-- [ ] **2.4. The exact oracle and the published vectors (WP5).** The oracle in
+  On the branch as `62adb20`.
+- [x] **2.4. The exact oracle and the published vectors (WP5).** The oracle in
   `test/test_suites/iis_oracle.hpp` and the HiGHS vectors with their attribution, shared later by both IIS
-  suites. Self-tests in `test/iis_oracle.cpp` and `test/iis_snapshot.cpp` run in `mippp_test`.
+  suites. Self-tests in `test/iis_oracle.cpp` and `test/iis_snapshot.cpp` run in `mippp_test`. On the
+  branch as `e11c0f5`.
+- [ ] **2.5. Squash-merge pull request #3 into main.** With a `Co-authored-by` trailer for the author (N0 a),
+  once the amendments of 2026-09-28 to the three documents are on its branch. The squash carries `25b4530` and
+  the four commits, so main gets the documents, the engine, the types and the oracle at once. Then
+  `git worktree prune` locally.
 
 Done when pull request #3 is green and squash-merged with the author's credit, and no model satisfies
 `has_iis` yet. Under N17 (a), no tag is cut between this merge and 4.2.
 
 ## 3. Capabilities the free function needs
 
-Each item is its own pull request on main, and all four can run beside step 2. None of them mentions IIS.
+Each item landed as its own commit on main on 2026-09-28, in wave 1. None of them mentions IIS.
 Items 3.1 to 3.3 add their `concepts.md` rows and features-table labels, and 3.4 updates the existing ones.
 
-- [ ] **3.1. Row bounds on Clp (WP6).** `has_modifiable_constraint_bounds<T, M = T>` next to its readable
+- [x] **3.1. Row bounds on Clp (WP6).** `has_modifiable_constraint_bounds<T, M = T>` next to its readable
   twin (Q3 a). `clp_lp` writes `Clp_rowLower` and `Clp_rowUpper`, as `set_constraint_rhs` already does.
   `ModifiableConstraintBoundsTest` covers each side of `<=`, `>=`, `==` and ranged rows, gating the ranged
   case on `has_ranged_constraints` (Q6 a). Its case `infinity_frees_a_row_side` mirrors
-  `infinity_removes_a_bound`.
-- [ ] **3.2. Entity enumeration on every model (WP6a).** `variables()` and `constraints()` on the 19 model
+  `infinity_removes_a_bound`. Done in `93063d1`.
+- [x] **3.2. Entity enumeration on every model (WP6a).** `variables()` and `constraints()` on the 19 model
   classes and `dumb_lp`, with the concepts `has_enumerable_variables` and `has_enumerable_constraints`, which
   take `<T, M = T>`, require `std::ranges::sized_range` and stay out of `lp_model` until 2.0. Each returns a
   sized snapshot in increasing id order that holds no reference to the model (N21 a). `model_base` gives the
   default, and the remapping bases, `clp_lp` and `dumb_lp` override it. SCIP's protected `variables` and
   `constraints` members are renamed first (N20 a). `EnumerableEntitiesTest` runs on every model fixture, and
-  `LpFuzzyTest` checks the enumeration after each operation.
-- [ ] **3.3. Status reset on every model (WP6b).** A public `reset_status() noexcept` on the 19 models and
+  `LpFuzzyTest` checks the enumeration after each operation. Done in `3c6348f`, after the SCIP rename
+  `a848855`.
+- [x] **3.3. Status reset on every model (WP6b).** A public `reset_status() noexcept` on the 19 models and
   `dumb_lp`, with the concept `has_status_reset<T>` (N22 B1). The case
   `LpModelTest.reset_status_reports_unknown` solves, resets, reads `unknown`, then re-solves to the same
-  status. It lands before or after 1.6, and whichever of the two lands second resets MOSEK's slot cache inside
-  it.
-- [ ] **3.4. Readable row bounds on every model (WP6c).** `has_readable_constraint_bounds`, that is
+  status. Done in `0046153`, after 1.6, and `ce792ec` resets MOSEK's slot cache inside it.
+- [x] **3.4. Readable row bounds on every model (WP6c).** `has_readable_constraint_bounds`, that is
   `get_constraint_lower_bound` and `get_constraint_upper_bound`, on the 19 model classes and `dumb_lp` (Q6 a).
   Main has it on `clp_lp` and `cbc_milp` only. Where the solver has no native ranged rows, as on Gurobi, the
   model's getters derive the bounds from the sense and the rhs: a `<=` row reads (`-infinity()`, rhs), a `>=`
@@ -141,14 +154,15 @@ Items 3.1 to 3.3 add their `concepts.md` rows and features-table labels, and 3.4
   `soplex_lp` binds `SoPlex_getRowBoundsReal` after checking it in 7.1.1 and 7.1.2, or raising the floor
   (N11 a). COPT and Xpress bind a row getter too, since none is bound on main. `ReadableConstraintBoundsTest`
   runs on every model fixture, and the `concepts.md` row and the feature tables follow. Modifiable row bounds
-  still follow N30. Needed by 5.2 to 5.6 and by the row-bound commits of 6.4 to 6.6.
+  still follow N30. Needed by 5.2 to 5.6 and by the row-bound commits of 6.4 to 6.6. Done in `9a852f9`.
 
 Done when the four suites pass on Clp in CI. The enumeration, reset and readable-bounds suites also pass on
 every other model, in CI on Cbc, GLPK, HiGHS and `dumb_lp` and locally on the rest.
 
 ## 4. The free function and its Clp slice
 
-The first end-to-end slice. It needs step 2, items 3.1 to 3.3, and 1.4. `clp_lp` has no time limit, so budget
+The first end-to-end slice. It needs 2.5, since step 2 sits on pull request #3's branch, and items 3.1 to 3.3
+and 1.4, which are on main. `clp_lp` has no time limit, so budget
 forwarding is tested on stubs here, and first runs on a real solver in 5.1.
 
 - [ ] **4.1. The public free function (WP7).** `compute_iis_by_deletion(model, limits)` in
@@ -171,24 +185,27 @@ forwarding is tested on stubs here, and first runs on a real solver in 5.1.
     limit once and each trial gets `std::min(remaining, saved)`, in that argument order. `saved` is
     restored exactly on every exit. With the default limits, `get_time_limit` and `set_time_limit` are
     never called.
-  - [ ] **Prechecks.** A model with no live variable is decided by N6 (b). The comparison with 0 is exact and
-    documented. A variable whose bounds cross is irreducible at zero solves, unless
-    `detail::may_carry_background<M>` holds over the special-constraint and callback capabilities (N7 a2).
-    `has_native_handles` is not background, so constraints added through `native_model()` are outside the
-    guarantee (N23 a). Crossed rows get two singleton trials through the engine's continuation. Prechecks run
-    whatever the limits.
+  - [ ] **Precheck and crossed pairs.** A model with no live variable is decided by N6 (b), whatever the
+    limits. The comparison with 0 is exact and documented. A crossed pair, a variable whose bounds cross or a
+    row whose sides cross, is the known proof: the initial trial is skipped and the engine continues from the
+    pair with two singleton trials, on every model type (N36). No type-level background check exists, and
+    constraints added through `native_model()` are outside the guarantee (N23 a). Under a budget that stops
+    before the two trials, the pair is reported `not_proven_minimal` with the stop's reason.
   - [ ] **Status.** `unknown` after any run that called `solve()`, exceptions included (Q4 a).
-    A run answered by prechecks alone, or stopped before its first trial, leaves the data and the status as
-    they were.
+    A run answered by the column-less precheck alone, or stopped before its first trial, a crossed pair's
+    continuation included, leaves the data and the status as they were.
   - [ ] **Stub tests.** `test/iis_by_deletion.cpp` in `mippp_test`, over a scripted stub model and a
     derived probe that asserts per-trial invariants. They cover every row of the classification, and a
-    throw at trial k and during the restore. They also cover lazy and quadratic objectives, prechecks at
-    zero budget, and the forwarding cases of the time-limit audit.
+    throw at trial k and during the restore. They also cover lazy and quadratic objectives, the column-less
+    precheck and a crossed pair at zero budget, a crossed pair decided by two trials, and the forwarding cases
+    of the time-limit audit.
 - [ ] **4.2. `IisByDeletionTest` on Clp (WP8).** The suite in `test/test_suites/iis_by_deletion.hpp`, over the
   shared case bodies of `test/test_suites/iis_cases.hpp`, written as fixture member functions. It is
   registered in `all.hpp` and instantiated for Clp in the same pull request. `dumb_lp` is not instantiated for
-  now (N24). `has_iis<clp_lp>` stays false. The column-less case asserts the N6 answer. The status case
-  asserts `unknown` after a run that solved, and the previous status after a run decided by prechecks.
+  now (N24). `has_iis<clp_lp>` stays false. The column-less case asserts the N6 answer, and the crossed cases
+  the two-trial answer of N36. The status case asserts `unknown` after a run that solved, and the previous
+  status after a run decided by the column-less precheck. The suite obtains the IIS type through `auto` and
+  never spells the snapshot's template arguments (N37 b).
   Filter-only cases cover the budget sweep, a stop requested beforehand and a 0 s budget. Answers must not
   change after a later `remove_variable` (N8 a). The `concepts.md` row of the free function's concept says
   that zero members with `irreducible` means the background alone is infeasible.
@@ -233,12 +250,12 @@ rest.
 ## 6. Native routines
 
 Under Q1 (b), these items add `compute_iis()` members, which never run the deletion filter. The step needs
-step 2 only, so it can run beside steps 3 to 5. HiGHS (6.1) goes first and creates the native suite `IisTest`,
+2.5 only, so it can run beside steps 4 and 5. HiGHS (6.1) goes first and creates the native suite `IisTest`,
 so that it runs in CI before any backend tested only locally. Each `compute_iis()` takes no argument (N9). The
 model's time limit bounds each call as a fresh budget (N29 a): four routines already stop under it, and HiGHS
 through a per-call copy into `iis_time_limit`. Other model limits may also stop some routines, and the docs
-list them per backend. It sets the status to `unknown` before its first native call (N15). Once 3.3 has
-landed, it may do so through `reset_status()`. It restores every parameter it sets through its own small RAII
+list them per backend. It sets the status to `unknown` before its first native call (N15), through
+`reset_status()` now that 3.3 has landed. It restores every parameter it sets through its own small RAII
 helper. It runs no column-less precheck (N28 a), and gives a reason only on a stop attributed to the time
 limit (N27 a).
 
@@ -312,7 +329,8 @@ package adds come with that package.
   of native calls states per backend that the budget is per call, which other model limits also stop the
   routine, and that a stop may return late or with no answer (N29 a). It states that the model's time limit
   bounds a native `copt_lp` call as on `copt_milp`, through fix 10 (N35 a). It replaces the pull request's
-  `docs/iis.md`.
+  `docs/iis.md`. It obtains the IIS type through `model_iis_t<T>` or `auto` and never spells the snapshot's
+  template arguments, and it tests membership with `is_a<iis_status::member>` (N37 b, d).
 - [ ] **7.2. The deletion filter as an algorithm.** A page under Algorithms in `zensical.toml`, next to column
   generation. It covers the engine's oracle contract, monotonicity, limits and reasons. It then covers the
   free function's requirements, what it saves and never touches, and the native-handle warning. It warns that
@@ -335,8 +353,14 @@ ideas, pointing into the archive tag of `a1a9f11`.
 - **Native extras.** Elastic relaxation, forcing and preferences, several IISs per model on Xpress, SCIP 10's
   IIS finder, and cancelling a native call through `compute_iis(std::stop_token)` (N31 b). An explicit
   duration for a native call, if users ask, is a possibility that is not ruled (N29 b).
-- **Filter refinements.** Candidate ordering, and a caller for the dormant batching.
+- **Protected sides and candidate order.** The first extension after the first version (N37 f): native on
+  Gurobi and CPLEX, and on the deletion path a filter over the enumerated sides behind an additive overload of
+  `compute_iis_by_deletion`. A caller for the dormant batching stays a filter refinement.
 - **Integrality as a candidate.** Relaxing an integer or binary variable to continuous rather than its bounds,
-  the maintainer's intuition given with N25. It is outside the LP-centred first version.
+  the maintainer's intuition given with N25. It is outside the LP-centred first version. It comes as a
+  per-variable table of its own in the snapshot, never as new tags, needs a variable-type getter and setter on
+  `milp_model`, and leaves the engine untouched (N37 a, c).
+- **Special constraints as members.** SOS and indicator constraints once they have handles, as further per-kind
+  tables in the snapshot, on the native path first (N37 a).
 - **A user model in CI.** `dumb_lp` with two-sided rows and modifiable row bounds under `IisByDeletionTest`
   (N24).

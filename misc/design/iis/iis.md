@@ -2,8 +2,9 @@
 
 Design note for the infeasibility-diagnosis feature (roadmap item "IIS").
 It records the rulings taken on 2026-09-22 while reviewing the external IIS
-pull request, and those of 2026-09-27 on [iis_pr_plan.md](iis_pr_plan.md),
-the plan for adapting it, so that the feature is coded once, in the
+pull request, those of 2026-09-27 on [iis_pr_plan.md](iis_pr_plan.md), the
+plan for adapting it, and the amendments of 2026-09-28 from a simplification
+review held before wave 2, so that the feature is coded once, in the
 library's own shape. A *Confirmed reading* spells out a short ruling, as the
 maintainer confirmed it on 2026-09-27. It is not user documentation. The
 implementation order is in [iis_todo.md](iis_todo.md), and
@@ -74,6 +75,11 @@ unless marked otherwise.
   tags that derive from the unified ones, listed only in that backend's status
   variant, so that `is_a` on a unified tag still gives the generalization.
   This is a guideline for when it is needed, and no work is planned for it.
+  The template's arguments are not a commitment: docs and tests obtain the
+  type through `model_iis_t<T>` or `auto` and never spell `iis_snapshot<...>`,
+  and `lp_iis<I, T>` checks members, not the shape, so that later candidate
+  kinds, integrality first, can come as further per-kind tables with their own
+  accessors, never as new tags (N37 a, b).
 - **Interpretation through the caller's own ranges.** Handles carry no
   reverse index to the caller's keys, so the consumer iterates its own
   variable and constraint families and queries each entity, as for a basis.
@@ -121,13 +127,14 @@ unless marked otherwise.
   fixed background. No backend implements `add_sos1_constraint` or
   `add_sos2_constraint`, so `has_sos1_constraints` holds nowhere and SOS exist
   only through `native_model()`. Indicators exist only on `gurobi_milp` and
-  `cplex_milp`. The free function leaves the background active. Its zero-solve
-  claim on crossed variable bounds is disabled by type, on any model type with
-  a special-constraint or callback capability (N7 a2). The check ignores
-  `has_native_handles`, which every backend has, so background added through
-  `native_model()` is outside the guarantee (N23 a). The free function's guard
-  and the entity enumeration do not see native changes either.
-  `docs/solvers/index.md` now warns, uncommitted, that modifying the model
+  `cplex_milp`. The free function leaves the background active and claims
+  nothing without a solve, except on a column-less model (N6 b): a crossed
+  pair is decided by two trials that run with the background in place (N36,
+  amending N7 a2), so no type-level list of background capabilities exists.
+  Background added through `native_model()` is outside the guarantee (N23 a),
+  and the free function's guard and the entity enumeration do not see native
+  changes either.
+  `docs/solvers/index.md` warns that modifying the model
   through the native handles invalidates MIP++ features, and the IIS page
   restates it for IIS (WP17). Native wrappers keep the background out of the
   candidates: Gurobi's `IISSOSForce`, `IISQConstrForce` and
@@ -387,7 +394,8 @@ releases the introduction lists.
   inconclusive trial never drops a member, and an inconclusive singleton
   test prevents the irreducible claim.
 - **Sound status mappings first.** The proofs are only as sound as each
-  backend's status mapping, and three fixes on main come first. GLPK maps
+  backend's status mapping, and three fixes on main came first, landed on
+  2026-09-28 as `283a256`, `1a77969` and `daddd47`. GLPK maps
   `GLP_INFEAS` to infeasible. HiGHS reads `psolstatus` uninitialized after a
   load or solve error. Clp reports `optimal` whatever its secondary status
   (`clp_lp.hpp:535-544`). Secondary statuses 2 and 4 leave unscaled primal
@@ -430,29 +438,36 @@ releases the introduction lists.
   `cancelled` apply only when the engine stops before a trial. With
   `max_solves = 1`, an inconclusive initial trial therefore ends
   `undetermined` with `inconclusive_trial`, never `solve_limit`.
-- **Prechecks.** Two cases are decided by arithmetic, without a solve. They
-  are free: they run and answer whatever the limits (N7, where (a2) refines
-  (a)). On a model with no live variable, the first finite row side with
-  lower > 0 or upper < 0 is the sole member, irreducible, and none means
-  feasible (N6 b). No solve could answer there: Clp, Cbc, HiGHS and SoPlex
-  return `unknown` on a model without columns, and MOSEK returns `optimal`.
-  The comparison with 0 is exact and documented, and "first" means first in
-  enumeration order. A variable whose bounds cross is `member_both` and
-  irreducible at zero solves when the model type has none of
-  `has_sos1_constraints`, `has_sos2_constraints`, `has_indicator_constraints`,
-  `has_candidate_solution_callback` and `has_node_relaxation_callback`
-  (N7 a2). Each bound alone is then satisfiable, integrality included. The
-  check is on the type, not on what the model holds. Otherwise, and for every
-  crossed row, the crossed pair is the known proof, and two singleton trials
-  decide through the engine's continuation from that proof. A crossed row
-  needs them because one of its sides can be infeasible alone, as on a row
-  without terms. On `scip_milp` the claim meets the gap of the next bullet.
+- **Prechecks.** One case is decided by arithmetic, without a solve, and it
+  is free: it runs and answers whatever the limits (N7 a). On a model with no
+  live variable, the first finite row side with lower > 0 or upper < 0 is the
+  sole member, irreducible, and none means feasible (N6 b). No solve could
+  answer there: Clp, Cbc, HiGHS and SoPlex return `unknown` on a model
+  without columns, and MOSEK reported `optimal` until the fix of 1.6. The
+  comparison with 0 is exact and documented, and "first" means first in
+  enumeration order.
+- **Crossed pairs.** A variable whose bounds cross, or a row whose sides
+  cross, is a known proof of infeasibility: the free function skips the
+  initial trial and the engine continues from that pair, so two singleton
+  trials decide it, on every model type and with the background in place
+  (N36, amending N7 a2). The solver never receives the crossed pair in a
+  trial, since each singleton trial relaxes the other side, and the two trials
+  run on an otherwise fully relaxed model. The pair alone is the proof, so the
+  answer is a subset of it whatever the rest of the model holds. A crossed row
+  needs both trials because one of its sides can be infeasible alone, as on a
+  row without terms, and a crossed variable because the background may make
+  one side infeasible alone. Under a budget that stops before the trials, the
+  pair is reported `not_proven_minimal` with the stop's reason, and the model
+  is left as it was. The former zero-solve claim on crossed variables, and the
+  type-level list of background capabilities it needed, are dropped: a
+  capability added later could not silently make it unsound. On `scip_milp`
+  the trials meet the gap of the next bullet.
 - **A documented gap on SCIP.** SCIP creates [0, 1] integer columns as
   `BINARY`, and `scip_milp` keeps them so (N25). Whether SCIP rejects or
   clamps a relaxed bound on such a column is unprobed. If it clamps, the
   relaxed bound stays in force, so the filter may drop a bound the conflict
   needs, and the answer holds only with the column's [0, 1] domain as
-  background. The N7 (a2) claim may then fail on such a column too. If it
+  background. The crossed-pair trials of N36 meet the same gap there. If it
   rejects, the trial throws (inferred). The design is centred on linear
   programs, so the gap is documented, not worked around: neither the algorithm
   nor `scip_milp` changes to conform to SCIP. The N14 probe of WP13
@@ -463,9 +478,10 @@ releases the introduction lists.
   pass ends on a feasible trial whenever the last candidate is necessary
   (`deletion_filter.hpp:206-235` at `a1a9f11`). Restoring an earlier
   `optimal` would pair it with the wrong solution. A run that solved nothing
-  leaves the data and the status as they were: one answered by prechecks
-  alone, or stopped before any trial by `max_solves = 0`, a 0 s budget or a
-  stop already requested. The free function makes the status `unknown` through
+  leaves the data and the status as they were: one answered by the column-less
+  precheck alone, or stopped before any trial, a crossed pair's continuation
+  included, by `max_solves = 0`, a 0 s budget or a stop already requested. The
+  free function makes the status `unknown` through
   the model's `reset_status()` (N22). None of the open-source backends has a
   candidate-solution callback today. On a model that has one, the trials run
   it.
@@ -474,8 +490,11 @@ releases the introduction lists.
 
 Compile-checked on 2026-09-22 against the model classes that the free
 function targets first, and on 2026-09-27 for `dumb_lp` (x: satisfied). The
-row-bound setters, the entity enumeration and the status reset are concepts
-that main does not have yet, so no model satisfies them:
+row-bound setters, the entity enumeration and the status reset were concepts
+that main did not have, so no model satisfied them. The table is that
+pre-wave-1 picture: on 2026-09-28 wave 1 brought the enumeration (`3c6348f`),
+the status reset (`0046153`, `ce792ec`) and readable row bounds (`9a852f9`)
+to every model, and modifiable row bounds to `clp_lp` (`93063d1`):
 
 | Model | Variable bounds, read / modify | Row sense and rhs, read / modify | Row bounds, read / modify | Objective, read | Enumeration | Status reset |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -521,7 +540,8 @@ that main does not have yet, so no model satisfies them:
   the wrapper keeps no state. The eight symbols are bound once 7.1.1 and
   7.1.2 are checked, or the floor is raised: `SoPlex_getRowBoundsReal` in
   WP6c, the seven others in WP14.
-- **Entity enumeration.** Main has no public enumeration of live entities:
+- **Entity enumeration.** Until `3c6348f` main had no public enumeration of
+  live entities:
   `model_base::_variables_range` is protected, and no `variables()` or
   `constraints()` member exists. It comes to every model at once, behind
   `has_enumerable_variables` and `has_enumerable_constraints` (N20). Each call
@@ -621,8 +641,10 @@ that main does not have yet, so no model satisfies them:
   `max_solves` from 0 up makes at most that many solves and keeps a valid
   answer; a stop requested beforehand; a 0 s budget; the Q4 status rule,
   `unknown` after a run that solved and the pre-call status after a
-  precheck-only run; the zero-solve prechecks; the restoration of everything
-  saved; per-trial invariants through a derived probe. Time budgets are 0 s
+  precheck-only run; the column-less precheck at zero budget; a crossed pair
+  under a zero budget, reported as the proven pair, and under two trials; the
+  restoration of everything saved; per-trial invariants through a derived
+  probe. Time budgets are 0 s
   only, since the pull request's one wall-clock test needed two timing
   fixes.
 - **Native-only cases.** In `IisTest`: the status `unknown` after
@@ -658,7 +680,10 @@ that main does not have yet, so no model satisfies them:
   calls states per backend that the budget is per call, which other model
   limits also stop the routine, and that a stop may return late or with no
   answer (N29 a). It states that the model's time limit bounds a native
-  `copt_lp` call as it does on `copt_milp`, through fix 10 (N35 a).
+  `copt_lp` call as it does on `copt_milp`, through fix 10 (N35 a). The pages
+  obtain the IIS type through `model_iis_t<T>` or `auto`, never spell the
+  snapshot's template arguments, and test membership with
+  `is_a<iis_status::member>` (N37 b, d).
 
 ## Deferred, and how they would come back
 
@@ -679,7 +704,10 @@ that main does not have yet, so no model satisfies them:
   (`IISConstrForce`, `IISLBForce`, `IISUBForce`) and CPLEX takes group
   preferences in `CPXrefineconflictext`; Xpress fixes whole classes only
   (`IISOPS`) and COPT 8.0 has neither. Setters on the IIS object, shaped
-  like the basis setters, are the natural home.
+  like the basis setters, are the natural home. On the deletion path,
+  protected sides are a filter over the enumerated sides, behind an additive
+  overload of `compute_iis_by_deletion`. Protected sides and candidate order
+  are the first extension after the first version (N37 f).
 - **Several IISs per model.** Xpress's `XPRSiisnext` and `XPRSiisall`, a
   backend-specific extra, not part of the capability.
 - **SCIP 10.** Its IIS finder, once the sub-SCIP answer can be mapped back
@@ -690,7 +718,19 @@ that main does not have yet, so no model satisfies them:
   is that relaxing an integer or binary variable to continuous may explain a
   MIP better than relaxing its bounds. Xpress's default already lists
   integrality restrictions as removable `I` members. It is outside the first
-  version, whose design is centred on linear programs.
+  version, whose design is centred on linear programs. It comes as a
+  per-variable table of its own in the snapshot, read through its own
+  accessor, never as new tags: a variable can need both sides and its
+  integrality at once, which one tag cannot say (N37 a). It needs a
+  variable-type getter and setter, which `milp_model` lacks, and leaves the
+  engine untouched, which sees indices only (N37 c).
+- **Special constraints as members.** SOS and indicator constraints first need
+  handles: no backend implements SOS, and `add_indicator_constraint` returns
+  none. They then come as further per-kind tables in the snapshot (N37 a), on
+  the native path first, where Gurobi (`IISSOS`, `IISGenConstr`), CPLEX
+  (conflict groups) and Xpress (`IISOPS` classes) already report them. The
+  deletion path cannot relax an SOS linearly and never removes a row, so it
+  keeps them as background.
 - **Cancelling a native call.** An additive overload
   `compute_iis(std::stop_token)`, wired to `GRBterminate`, `CPXsetterminate`,
   `XPRSinterrupt`, `COPT_Interrupt` and the HiGHS interrupt callback (N31 b).
@@ -837,7 +877,11 @@ bullet records the decision.
 - **N7. Prechecks and the budget.** (a2) A crossed variable is irreducible at
   zero solves on a model type with no special-constraint or callback
   capability. *Confirmed reading.* (a2) refines (a), so `max_solves` counts
-  `solve()` calls only and prechecks are free.
+  `solve()` calls only and prechecks are free. *Amended by N36 on
+  2026-09-28.* The zero-solve claim and its type-level capability list are
+  dropped: a crossed pair, variable or row, is the known proof and two
+  singleton trials decide it on every model type. (a) stands: `max_solves`
+  counts `solve()` calls only, and the column-less precheck is free.
 - **N8. Snapshots and recycled ids.** (a) The snapshot describes the model as
   it was, so a later handle may reuse a removed id.
 - **N9. Native routines and `iis_limits`.** Ruling: "Reffers to Q1." Asked
@@ -938,11 +982,12 @@ keep the options and evidence of each.
 - **[N23](iis_pr_plan.md#ruled-later-on-2026-09-27). Background added through
   `native_model()`.** Ruling: "Add to the documentation, if not already
   present, a warning that states that some features are invalidated if user
-  modifies the model through the native handle." Recorded as (a): the
-  background check ignores `has_native_handles`, and constraints added through
-  `native_model()` are outside the guarantee. The general warning is written
-  in `docs/solvers/index.md`, uncommitted, and the IIS page of WP17 restates
-  it for IIS.
+  modifies the model through the native handle." Recorded as (a): constraints
+  added through `native_model()` are outside the guarantee. The background
+  check that (a) shaped, which ignored `has_native_handles`, went away with
+  N36 on 2026-09-28, and the warning stands. The general warning is written in
+  `docs/solvers/index.md`, committed with `25b4530`, and the IIS page of WP17
+  restates it for IIS.
 - **[N24](iis_pr_plan.md#ruled-later-on-2026-09-27). A user-defined model in
   CI.** Ruling: "Not a priority, CI always have at least one open source
   solver (Clp, CBC or HiGHS)." No `dumb_lp` instantiation of
@@ -1042,10 +1087,57 @@ What the rulings overturn:
 - **HiGHS stop mapping.** N34 (a) amends N26: a -1 return is judged by the
   time measured around the call, not by the model status `kTimeLimit`.
 
+## Rulings of 2026-09-28
+
+A simplification review before wave 2, asked by the maintainer once wave 1
+was on main and green, weighed what is done and the target design against the
+basic needs of operations-research users and the later extension to special
+MILP variables and constraints. The maintainer agreed with every point. One
+planned piece is dropped, and the rest is confirmed with two rules for how
+extensions attach.
+
+- **N36. Crossed variable bounds.** Amends N7 (a2). No zero-solve claim: a
+  crossed pair, of a variable or of a row, is the known proof, the free
+  function skips the initial trial, and the engine continues from the pair
+  with two singleton trials, on every model type. The type-level list of
+  background capabilities, `detail::may_carry_background<M>` in the plan, is
+  dropped with the claim: a special-constraint capability added later would
+  have had to be added to that list by hand, and a missed entry would have
+  made an `irreducible` claim silently unsound. The cost is two solves of a
+  fully relaxed model, and no backend receives crossed bounds in a trial,
+  which no shared test exercises today. The column-less arithmetic of N6 (b)
+  stays the only precheck that answers without a solve. Under a budget that
+  stops before the two trials, the proven pair is reported
+  `not_proven_minimal` with the stop's reason, never `irreducible` at zero
+  solves.
+- **N37. Extension rules.** (a) New candidate kinds, integrality first, then
+  SOS and indicator constraints once they have handles, come as new per-kind
+  tables in the snapshot with their own accessor, never as new tags: the five
+  tags stay, since a variable can need both sides and its integrality at once.
+  (b) The snapshot's template arguments are not a commitment: docs and tests
+  obtain the type through `model_iis_t<T>` or `auto` and never spell
+  `iis_snapshot<...>`, and `lp_iis<I, T>` checks members, not the shape, so the
+  shape can move to one entry per kind without a break. (c) The engine stays
+  kind-agnostic, indices and an oracle: a new kind is a new item kind in the
+  free function. (d) The tag hierarchy stays over an enum, for consistency
+  with `status` and `basis_status` and for the refinement door of N1; the docs
+  always test membership with `is_a<iis_status::member>`. (e) Batching stays
+  dormant (N3 b). (f) Protected sides and candidate order are the first
+  extension after the first version: native on Gurobi and CPLEX, a filter over
+  the enumerated sides behind an additive overload on the deletion path; not
+  in the first version. (g) The rest of the plan stands: the guard and the
+  saved objective, which make MIP trials stop at their first incumbent; the
+  time forwarding, which makes a time limit hard when one trial is a MIP; the
+  outcome and reason split; the status reset; the member counts.
+
+What these rulings change: N36 replaces N7 (a2)'s zero-solve claim by the
+crossed-pair continuation, which was already the rule for crossed rows, and
+retires the background check that N23 (a) shaped. Nothing published on main
+or in pull request #3 changes.
+
 ## Open questions
 
-None, as of 2026-09-27. N35, the last, was ruled (a) that day, and the
-maintainer confirmed the readings of the short rulings, leaving the choice on
-N4 to the assistant. What remains open are the outward steps of WP1:
-committing the documents, posting the reply to the author, tagging `a1a9f11`
-and converting pull request #3 to a draft. None of them is done.
+None, as of 2026-09-28. N37, the last, was agreed that day. The outward steps
+of WP1 are done: the documents are committed (`25b4530`, on the pull
+request's branch), the reply is posted, `a1a9f11` is tagged
+`archive/pr3-a1a9f11` on origin, and pull request #3 is a draft.

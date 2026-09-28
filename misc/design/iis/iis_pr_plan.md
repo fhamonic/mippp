@@ -167,11 +167,12 @@ forwards `std::min(remaining, saved)` from one deadline.
   and a derived probe. Blocked WP6b, WP7 and the Q4 wording of WP17. Native members write their own `_status`
   (N15), so WP15 and WP16 never depended on it.
 - **N23. Background added through `native_model()`, and the zero-solve claim of N7 (a2).** Ruled: (a),
-  ignoring `has_native_handles`, plus a documentation warning. The maintainer wrote "Add to the documentation,
+  ignoring `has_native_handles`, plus a documentation warning. On 2026-09-28, N36 dropped the zero-solve claim
+  and its background check; the warning stands. The maintainer wrote "Add to the documentation,
   if not already present, a warning that states that some features are invalidated if user modifies the model
   through the native handle." The background check ignores `has_native_handles`, and constraints added through
   `native_model()` are outside the guarantee. The general warning is written in `docs/solvers/index.md`,
-  uncommitted, at the end of the "Solver-specific parameters" bullet: handles and `native_id()` may designate
+  committed with `25b4530`, at the end of the "Solver-specific parameters" bullet: handles and `native_id()` may designate
   the wrong entity, counts can disagree on SCIP and Cbc, `get_status()` keeps reporting the last `solve()`
   made through MIP++, and features built on this bookkeeping lose their guarantees. WP17's IIS page restates
   it for IIS: background added natively is outside the guarantee, and the free function's guard and the entity
@@ -408,6 +409,15 @@ forwards `std::min(remaining, saved)` from one deadline.
   (`copt_milp.hpp:164-170`), and `f48c68f` and `d8bb08f` instantiated `TimeLimitTest` for the other LP models
   only, with no recorded reason. *Not covered:* COPT 7.2.5 was not probed, since the local license refuses it.
   Blocked fix 10 of the order table, and the COPT part of WP16 softly.
+
+### Amended on 2026-09-28
+
+A simplification review before wave 2, recorded in iis.md as N36 and N37. N36 drops the zero-solve claim on
+crossed variables and `detail::may_carry_background<M>`: every crossed pair seeds the engine's continuation and
+two singleton trials decide it. N37 fixes how extensions attach: new candidate kinds as new per-kind tables, the
+snapshot's template arguments never spelled in docs or tests, the engine kind-agnostic, the tag hierarchy kept,
+batching dormant, and protected sides with candidate order as the first extension after the first version. WP7
+and the ideas table are amended below; the rest of the plan stands.
 
 ### Pending
 
@@ -830,8 +840,9 @@ It needs pull request #3, WP6, WP6a and WP6b.
 - [ ] The requirements concept: `lp_model`, the entity enumeration, readable and modifiable variable bounds,
   readable and modifiable row bounds (Q3 a), a readable objective, the status reset (N22), and a readable
   quadratic objective on a `qp_model`. The function never retypes a column, so `milp_model` needs no branch.
-  It branches only through `if constexpr` on `qp_model`, `has_time_limit` and
-  `detail::may_carry_background<M>`, which tests the special-constraint and callback capabilities.
+  It branches only through `if constexpr` on `qp_model` and `has_time_limit`. The third branch of the
+  2026-09-27 plan, `detail::may_carry_background<M>` over the special-constraint and callback capabilities,
+  was dropped on 2026-09-28 with the zero-solve claim it served (N36).
 - [ ] The classifier, a visitor over `model_status_t<M>`, since `is_a<status::failed>` does not compile on
   `clp_lp`'s variant. Anything derived from `infeasible`, and exactly `infeasible_or_unbounded`, proves
   infeasibility. `optimal_infeasible_unscaled`, anything derived from `failed` whatever its flag, and
@@ -849,19 +860,19 @@ It needs pull request #3, WP6, WP6a and WP6b.
   once. With the default limits, `get_time_limit` and `set_time_limit` are never called. The oracle returns
   inconclusive past the deadline. The builder keys the answer by the enumerated handles and folds sides into
   `member_lower`, `member_upper` or `member_both` (N1 a). Handles the enumeration skips read `absent`.
-- [ ] Prechecks, free under N7 (a) and run whatever the limits. On a model with no live variable, the N6
-  arithmetic, with an exact comparison with 0 and the first side in enumeration order. A crossed variable is
-  `member_both` and irreducible at zero solves unless `detail::may_carry_background<M>` holds (N7 a2).
-  Otherwise, and for every crossed row, the crossed pair seeds the engine's continuation and two singleton
-  trials decide. `has_native_handles` does not count as background (N23 a), so constraints added through
-  `native_model()` are outside the guarantee.
+- [ ] The column-less precheck, free under N7 (a) and run whatever the limits: on a model with no live
+  variable, the N6 arithmetic, with an exact comparison with 0 and the first side in enumeration order. Every
+  crossed pair, of a variable or of a row, seeds the engine's continuation and two singleton trials decide, on
+  every model type (N36 of 2026-09-28, amending N7 a2: the zero-solve claim on crossed variables and the
+  background check are dropped). Constraints added through `native_model()` are outside the guarantee (N23 a).
 - **Tests.** `test/iis_by_deletion.cpp` in `mippp_test`, replacing `test/iis_fallback.cpp`, since nothing is a
-  fallback under Q1 (b). A scripted stub model with a lazy objective, optional `has_time_limit`, a QP
-  objective, and an indicator member to trigger the background check. A derived probe hides `solve()` and the
-  setters and asserts per-trial invariants. Cases: every row of the classification (`failed{true}`
-  inconclusive, `time_limit{true}` feasible, `infeasible_or_unbounded` a proof), a throw at trial k and during
-  the restore, lazy and QP objectives restored, prechecks at zero budget with the status untouched, and
-  handles skipped by the enumeration reading `absent`.
+  fallback under Q1 (b). A scripted stub model with a lazy objective, optional `has_time_limit` and a QP
+  objective; the indicator member that triggered the background check went with N36. A derived probe hides
+  `solve()` and the setters and asserts per-trial invariants. Cases: every row of the classification
+  (`failed{true}` inconclusive, `time_limit{true}` feasible, `infeasible_or_unbounded` a proof), a throw at
+  trial k and during the restore, lazy and QP objectives restored, the column-less precheck and a crossed pair
+  at zero budget with the status untouched, a crossed pair decided by two trials, and handles skipped by the
+  enumeration reading `absent`.
 - **Forwarding tests,** from the time-limit audit. Stub getters return +inf, `DBL_MAX`, 1e100, 1e75, 1e20,
   2 s, 0 s and NaN. Default limits make no `set_time_limit` call. Every write is `std::min(remaining, saved)`
   in that order and never above `saved`, and the last write equals `saved` after a throw. +inf and
@@ -1130,8 +1141,8 @@ Every idea is placed.
 | `public-deletion-filter` | now | Q1 (b): WP4 publishes the engine over a user oracle in `utility/deletion_filter.hpp`, in pull request #3, and WP7 adds the free function over models, named per N19 (a). Credited to the author in the reply. |
 | `possible-member-tag` | rejected | N1 (a): retained, untested and native "possible" members get `member_*` under `not_proven_minimal`. |
 | `inconclusive-trial-reason` | now | N2 (b): `iis_reason::inconclusive_trial` in WP5, attribution rules in WP4, `test/iis.cpp:1009-1022` inverted. |
-| `continuation-from-known-proof` | now | WP4, as the detail entry that starts from a proven set, first used by the WP7 prechecks on crossed sides. |
-| `crossing-sides-shortcut` | now | WP7 precheck. A crossed variable is irreducible at zero solves when the model type has no special-constraint or callback capability (N7 a2), and crossed rows get two singleton trials through the continuation. |
+| `continuation-from-known-proof` | now | WP4, as the detail entry that starts from a proven set, first used by WP7 on every crossed pair (N36). |
+| `crossing-sides-shortcut` | now, as two trials | WP7. Every crossed pair, variable or row, is the known proof and two singleton trials decide it through the continuation (N36 of 2026-09-28, amending N7 a2); the zero-solve claim on crossed variables is dropped. |
 | `column-less-model-arithmetic` | now | WP7 precheck under N6 (b), with an exact comparison with 0. Native wrappers do not run it by default (N28 a), and one that fails the shared case may call it. |
 | `mosek-empty-model-status` | now | WP2, with the shared `LpStatusTest` case in the move-fix pull request. |
 | `diff-based-trial-application` | now | WP7 applier over the active set, where the restore applies the full set. |
