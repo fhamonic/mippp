@@ -68,4 +68,11 @@ public:
     }
 };
 
+// The answer of a routine that names the side of every member, variables and
+// rows alike: the deletion filter always knows which side it relaxed, and the
+// native routines that report one flag per bound decode to the same four tags.
+using iis_sided_status =
+    std::variant<iis_status::absent, iis_status::member_lower,
+                 iis_status::member_upper, iis_status::member_both>;
+
 }  // namespace mippp
