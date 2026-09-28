@@ -3,6 +3,7 @@
 #include <optional>
 #include <random>
 #include <ranges>
+#include <string_view>
 #include <vector>
 
 using namespace mippp;
@@ -13,6 +14,9 @@ MIPPP_API_VERSION_TEST(Cbc_api, cbc_api, "CBC")
 
 struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
     static void SetUpTestSuite() { construct_api("CBC"); }
+
+    static constexpr std::string_view rows_without_terms_refused =
+        "cbc_milp: this Cbc drops rows without terms";
 
     // Cornuejols-Dawande market split rows without slacks: the relaxation is
     // feasible and branch and bound finds no integer point in a few nodes.
@@ -55,6 +59,36 @@ TEST_F(cbc_milp_test, limit_stop_does_not_claim_an_earlier_solution) {
     ASSERT_TRUE(is<status::node_limit>(model.get_status()));
     EXPECT_FALSE(std::visit([](auto s) { return s.solution_available; },
                             model.get_status()));
+}
+
+TEST_F(cbc_milp_test, row_without_terms_is_kept_or_refused) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+    constexpr auto & no_terms =
+        empty_linear_expression<model_variable_t<cbc_milp>, double>;
+    try {
+        auto r0 = model.add_constraint(no_terms >= 1.);
+        EXPECT_EQ(model.num_constraints(), 1u);
+        EXPECT_EQ(model.get_constraint_lower_bound(r0), 1.);
+        model.set_constraint_upper_bound(r0, 3.);
+        EXPECT_EQ(model.get_constraint_upper_bound(r0), 3.);
+    } catch(const solver_error & e) {
+        EXPECT_EQ(e.what(), rows_without_terms_refused);
+        EXPECT_EQ(model.num_constraints(), 0u);
+    }
+    auto r1 = model.add_constraint(x <= 0.5);
+    EXPECT_EQ(model.get_constraint_upper_bound(r1), 0.5);
+    model.set_objective(x);
+    model.set_maximization();
+    model.set_constraint_upper_bound(r1, 0.25);
+    model.solve();
+    if(model.num_constraints() == 1u) {
+        ASSERT_TRUE(is<status::optimal>(model.get_status()));
+        EXPECT_NEAR(model.get_solution_value(), 0.25, TEST_EPSILON);
+    } else {
+        EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+    }
 }
 
 INSTANTIATE_TEST(Cbc, LpModelTest, cbc_milp_test);

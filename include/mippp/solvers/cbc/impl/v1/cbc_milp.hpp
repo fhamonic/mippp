@@ -281,6 +281,14 @@ public:
     /////////////////////////////// Constraints ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
+    // Cbc_addRow of Cbc's master branch returns without adding a row that has
+    // no terms, which would shift the id of every later row
+    void _check_row_added() const {
+        if(!tmp_indices.empty()) return;
+        const auto num_rows = static_cast<std::size_t>(Cbc->getNumRows(model));
+        if(num_rows == _lazy_num_constraints)
+            throw solver_error("cbc_milp: this Cbc drops rows without terms");
+    }
     template <bool distinct, linear_constraint LC>
     void _add_constraint(LC && lc) {
         _reset_cache();
@@ -288,6 +296,7 @@ private:
         Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
                     tmp_indices.data(), tmp_scalars.data(),
                     constraint_sense_to_cbc_sense(lc.sense()), lc.rhs());
+        _check_row_added();
         ++_lazy_num_constraints;
     }
 
@@ -370,6 +379,7 @@ private:
         const double c = le.constant();
         Cbc->addRow(model, "", static_cast<int>(tmp_indices.size()),
                     tmp_indices.data(), tmp_scalars.data(), 'L', ub - c);
+        _check_row_added();
         Cbc->setRowLower(model, constr_id, lb - c);
         ++_lazy_num_constraints;
         return constraint(constr_id);
