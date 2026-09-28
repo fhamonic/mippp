@@ -558,8 +558,10 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        check(SCIP->solve(model));
+        // a solve failing past the transformation leaves it alive, and the
+        // mutators must still free it
         _solved = true;
+        check(SCIP->solve(model));
         _status = _get_status();
     }
     double get_solution_value() { return SCIP->getPrimalbound(model); }
