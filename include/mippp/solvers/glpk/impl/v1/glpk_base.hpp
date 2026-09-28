@@ -183,6 +183,22 @@ protected:
     void _set_row_bnds(int row, double lb, double ub) {
         glp->set_row_bnds(model, row, _bounds_type(lb, ub), lb, ub);
     }
+    // glp_simplex and glp_intopt refuse to start with GLP_EBOUND on a
+    // GLP_DB row or column whose lb >= ub, and glp_intopt also on a
+    // fractional bound of an integer column. Only a strict crossing proves
+    // the model infeasible: lb == ub can only come from the native handle,
+    // since _bounds_type writes it as GLP_FX.
+    bool _has_crossed_bounds() {
+        const int num_rows = glp->get_num_rows(model);
+        for(int i = 1; i <= num_rows; ++i)
+            if(glp->get_row_lb(model, i) > glp->get_row_ub(model, i))
+                return true;
+        const int num_cols = glp->get_num_cols(model);
+        for(int j = 1; j <= num_cols; ++j)
+            if(glp->get_col_lb(model, j) > glp->get_col_ub(model, j))
+                return true;
+        return false;
+    }
     inline void _add_variable(const int & var_id,
                               const variable_params & params, int type) {
         glp->add_cols(model, 1);

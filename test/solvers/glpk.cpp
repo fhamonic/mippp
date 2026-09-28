@@ -106,13 +106,38 @@ TEST(GLPK_intopt_status, completed_search_reads_the_mip_status) {
 struct glpk_lp_test : public model_test<glpk_api, glpk_lp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
 };
-// GLPK refuses to start rather than report the model infeasible
-TEST_F(glpk_lp_test, crossing_variable_bounds_fail) {
+// GLPK refuses to start on crossed bounds with GLP_EBOUND, and the crossing
+// alone proves infeasibility
+TEST_F(glpk_lp_test, crossing_variable_bounds_are_infeasible) {
     using namespace operators;
     auto model = new_model();
     auto x = model.add_variable({.lower_bound = 2, .upper_bound = 1});
     model.add_constraint(x <= 5);
     model.set_objective(x);
+    model.solve();
+    EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+}
+TEST_F(glpk_lp_test, crossing_row_sides_are_infeasible) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable({.lower_bound = 0, .upper_bound = 4});
+    auto c = model.add_constraint(x >= 2);
+    model.set_constraint_upper_bound(c, 1);
+    model.set_objective(x);
+    model.solve();
+    EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+}
+// GLP_EBOUND also refuses a double-bounded column with lb == ub, a fixed
+// column that proves nothing; only the native handle can write one
+TEST_F(glpk_lp_test, equal_double_bounds_written_natively_fail) {
+    using namespace operators;
+    using namespace glpk::impl::v1;
+    auto model = new_model();
+    auto x = model.add_variable({.lower_bound = 0, .upper_bound = 4});
+    model.add_constraint(x <= 5);
+    model.set_objective(x);
+    model.native_api().set_col_bnds(model.native_model(), model.native_id(x),
+                                    GLP_DB, 1, 1);
     model.solve();
     EXPECT_TRUE(is<status::failed>(model.get_status()));
 }
@@ -135,6 +160,38 @@ INSTANTIATE_TEST(GLPK_lp, VerbosityTest, glpk_lp_test);
 struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
 };
+TEST_F(glpk_milp_test, crossing_variable_bounds_are_infeasible) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable({.lower_bound = 2, .upper_bound = 1});
+    auto y = model.add_integer_variable({.lower_bound = 0, .upper_bound = 3});
+    model.add_constraint(x + y <= 5);
+    model.set_objective(x + y);
+    model.solve();
+    EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+}
+TEST_F(glpk_milp_test, crossing_row_sides_are_infeasible) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_integer_variable({.lower_bound = 0, .upper_bound = 4});
+    auto c = model.add_constraint(x >= 2);
+    model.set_constraint_upper_bound(c, 1);
+    model.set_objective(x);
+    model.solve();
+    EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+}
+TEST_F(glpk_milp_test, equal_double_bounds_written_natively_fail) {
+    using namespace operators;
+    using namespace glpk::impl::v1;
+    auto model = new_model();
+    auto x = model.add_integer_variable({.lower_bound = 0, .upper_bound = 4});
+    model.add_constraint(x <= 5);
+    model.set_objective(x);
+    model.native_api().set_col_bnds(model.native_model(), model.native_id(x),
+                                    GLP_DB, 1, 1);
+    model.solve();
+    EXPECT_TRUE(is<status::failed>(model.get_status()));
+}
 TEST_F(glpk_milp_test,
        unbounded_relaxation_without_integer_point_is_not_unbounded) {
     using namespace operators;

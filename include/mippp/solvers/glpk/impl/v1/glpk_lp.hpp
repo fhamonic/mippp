@@ -118,6 +118,10 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         const int ret = glp->simplex(model, &model_params);
+        if(ret == GLP_EBOUND && _has_crossed_bounds()) {
+            _status = status::infeasible{};
+            return;
+        }
         _status =
             _simplex_status(ret, glp->get_status(model),
                             glp->get_prim_stat(model), get_solution_value());

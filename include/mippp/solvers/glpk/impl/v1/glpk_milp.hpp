@@ -144,7 +144,12 @@ public:
         const bool quiet = !is_verbose();
         const int term_out = quiet ? glp->term_out(GLP_OFF) : GLP_ON;
         const int ret = glp->intopt(model, &model_params);
+        const bool crossed = (ret == GLP_EBOUND) && _has_crossed_bounds();
         if(quiet) glp->term_out(term_out);
+        if(crossed) {
+            _status = status::infeasible{};
+            return;
+        }
         _status = _intopt_status(ret, glp->mip_status(model));
     }
     double get_solution_value() {
