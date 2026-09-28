@@ -45,6 +45,7 @@ add_executable(
     deletion_filter.cpp
     iis_snapshot.cpp
     iis_oracle.cpp
+    iis_by_deletion.cpp
     mapping.cpp
     concat_view.cpp
     cartesian_product_view.cpp
