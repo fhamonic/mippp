@@ -30,8 +30,9 @@ private:
     // soplex::infinity, which the C interface does not export
     static constexpr double _infinity = 1e100;
 
-    // SoPlex reports a bounded LP unbounded when a column side is IEEE
-    // infinity, so column sides are written within [-infinity(), infinity()].
+    // Sides are written and read within [-infinity(), infinity()]: SoPlex
+    // reports a bounded LP unbounded when a column side is IEEE infinity, and
+    // add_constraint writes the absent side of a row as IEEE infinity.
     static double _clamp_side(double value) noexcept {
         return std::clamp(value, -_infinity, _infinity);
     }
@@ -61,7 +62,9 @@ private:
     std::chrono::duration<double> _time_limit;
     // What was written, read back from here: once a solve has scaled the LP
     // in place, SoPlex_getLowerReal and SoPlex_getUpperReal unscale the
-    // infinite sides too, and a -1e100 bound reads back as -1.2e96.
+    // infinite sides too, and a -1e100 bound reads back as -1.2e96. The copy
+    // is authoritative: a solve that reloads the LP writes it back into
+    // SoPlex, so a column bound changed through native_model() is reverted.
     std::vector<double> _lower_bounds;
     std::vector<double> _upper_bounds;
 
@@ -113,8 +116,12 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_maximization() { SoPlex->setIntParam(model, 0, 1); }
-    void set_minimization() { SoPlex->setIntParam(model, 0, -1); }
+    void set_maximization() {
+        SoPlex->setIntParam(model, SOPLEX_OBJSENSE, SOPLEX_OBJSENSE_MAXIMIZE);
+    }
+    void set_minimization() {
+        SoPlex->setIntParam(model, SOPLEX_OBJSENSE, SOPLEX_OBJSENSE_MINIMIZE);
+    }
 
     void set_objective_offset(double constant) { objective_offset = constant; }
     void set_objective(linear_expression auto && le) {
@@ -334,20 +341,25 @@ public:
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
-    // rows keep the IEEE infinity they were created with, beyond infinity()
     double get_constraint_lower_bound(constraint constr) {
-        if(!SoPlex->getRowBoundsReal)
-            throw solver_error("SoPlex_getRowBoundsReal not available.");
         double lb, ub;
-        SoPlex->getRowBoundsReal(model, constr.id(), &lb, &ub);
-        return std::max(lb, -_infinity);
+        _optional(SoPlex->getRowBoundsReal, "SoPlex_getRowBoundsReal")(
+            model, constr.id(), &lb, &ub);
+        return _clamp_side(lb);
     }
     double get_constraint_upper_bound(constraint constr) {
-        if(!SoPlex->getRowBoundsReal)
-            throw solver_error("SoPlex_getRowBoundsReal not available.");
         double lb, ub;
-        SoPlex->getRowBoundsReal(model, constr.id(), &lb, &ub);
-        return std::min(ub, _infinity);
+        _optional(SoPlex->getRowBoundsReal, "SoPlex_getRowBoundsReal")(
+            model, constr.id(), &lb, &ub);
+        return _clamp_side(ub);
+    }
+    void set_constraint_lower_bound(constraint constr, double lb) {
+        _optional(SoPlex->changeRowLhsReal, "SoPlex_changeRowLhsReal")(
+            model, constr.id(), _clamp_side(lb));
+    }
+    void set_constraint_upper_bound(constraint constr, double ub) {
+        _optional(SoPlex->changeRowRhsReal, "SoPlex_changeRowRhsReal")(
+            model, constr.id(), _clamp_side(ub));
     }
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
@@ -400,12 +412,82 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+private:
+    // Freeing the active side of a row leaves it nonbasic and free, and a warm
+    // start from such a basis fails: SoPlex reports running after an internal
+    // XLEAVE04 exception, or a wrong optimum. The C interface cannot drop a
+    // basis, so the LP is loaded again, without one.
+    bool _has_nonbasic_free_row() {
+        if(SoPlex->basisRowStatus == nullptr) return false;
+        const int num_rows = SoPlex->numRows(model);
+        for(int i = 0; i < num_rows; ++i)
+            if(SoPlex->basisRowStatus(model, i) == SOPLEX_BASIS_ZERO)
+                return true;
+        return false;
+    }
+    void _reload_without_basis() {
+        auto & get_obj = _optional(SoPlex->getObjReal, "SoPlex_getObjReal");
+        auto & get_row =
+            _optional(SoPlex->getRowVectorReal, "SoPlex_getRowVectorReal");
+        auto & get_row_bounds =
+            _optional(SoPlex->getRowBoundsReal, "SoPlex_getRowBoundsReal");
+        auto & clear_lp = _optional(SoPlex->clearLPReal, "SoPlex_clearLPReal");
+        const int num_cols = SoPlex->numCols(model);
+        const int num_rows = SoPlex->numRows(model);
+        const auto num_cols_size = static_cast<std::size_t>(num_cols);
+        const auto num_rows_size = static_cast<std::size_t>(num_rows);
+        std::vector<double> objective(num_cols_size);
+        if(num_cols > 0) get_obj(model, objective.data(), num_cols);
+        std::vector<double> lhs(num_rows_size), rhs(num_rows_size);
+        std::vector<std::size_t> row_begins(num_rows_size + 1u, 0u);
+        std::vector<long> indices;
+        std::vector<double> coefs;
+        std::vector<long> row_indices(num_cols_size);
+        std::vector<double> row_coefs(num_cols_size);
+        for(int i = 0; i < num_rows; ++i) {
+            const auto row = static_cast<std::size_t>(i);
+            get_row_bounds(model, i, &lhs[row], &rhs[row]);
+            int num_nz = 0;
+            get_row(model, i, &num_nz, row_indices.data(), row_coefs.data());
+            indices.insert(indices.end(), row_indices.begin(),
+                           row_indices.begin() + num_nz);
+            coefs.insert(coefs.end(), row_coefs.begin(),
+                         row_coefs.begin() + num_nz);
+            row_begins[row + 1u] = indices.size();
+        }
+        const int sense = SoPlex->getIntParam(model, SOPLEX_OBJSENSE);
+        clear_lp(model);
+        // the cleared LP maximizes, and setting a parameter to the value it
+        // holds is ignored
+        if(sense != SOPLEX_OBJSENSE_MAXIMIZE) {
+            SoPlex->setIntParam(model, SOPLEX_OBJSENSE,
+                                SOPLEX_OBJSENSE_MAXIMIZE);
+            SoPlex->setIntParam(model, SOPLEX_OBJSENSE, sense);
+        }
+        for(std::size_t j = 0; j < num_cols_size; ++j)
+            SoPlex->addColReal(model, nullptr, 0, 0, objective[j],
+                               _lower_bounds[j], _upper_bounds[j]);
+        std::vector<double> dense_row(num_cols_size, 0.0);
+        for(std::size_t row = 0; row < num_rows_size; ++row) {
+            for(std::size_t k = row_begins[row]; k < row_begins[row + 1u]; ++k)
+                dense_row[static_cast<std::size_t>(indices[k])] = coefs[k];
+            SoPlex->addRowReal(
+                model, dense_row.data(), num_cols,
+                static_cast<int>(row_begins[row + 1u] - row_begins[row]),
+                lhs[row], rhs[row]);
+            for(std::size_t k = row_begins[row]; k < row_begins[row + 1u]; ++k)
+                dense_row[static_cast<std::size_t>(indices[k])] = 0.0;
+        }
+    }
+
+public:
     void solve() {
         using namespace status;
         if(num_variables() == 0u) {
             _status = status::unknown{};
             return;
         }
+        if(_has_nonbasic_free_row()) _reload_without_basis();
         switch(SoPlex->optimize(model)) {
             case OPTIMAL:
                 _status.emplace<optimal>();

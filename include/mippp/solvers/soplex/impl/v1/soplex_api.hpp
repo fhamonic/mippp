@@ -19,6 +19,12 @@ void SoPlex_addColReal(void * soplex, double * colentries, int colsize,
 void SoPlex_addRowReal(void * soplex, double * rowentries, int rowsize,
                        int nnonzeros, double lb, double ub);
 void SoPlex_getRowBoundsReal(void * soplex, int i, double * lb, double * ub);
+void SoPlex_changeRowLhsReal(void * soplex, int rowidx, double lhs);
+void SoPlex_changeRowRhsReal(void * soplex, int rowidx, double rhs);
+void SoPlex_getRowVectorReal(void * soplex, int i, int * nnonzeros,
+                             long * indices, double * coefs);
+int SoPlex_basisRowStatus(void * soplex, int rowidx);
+void SoPlex_clearLPReal(void * soplex);
 
 void SoPlex_changeVarLowerReal(void * soplex, int colidx, double lb);
 void SoPlex_changeVarUpperReal(void * soplex, int colidx, double ub);
@@ -43,10 +49,16 @@ void SoPlex_getDualReal(void * soplex, double * dual, int dim);
 
 namespace mippp::soplex::impl::v1 {
 // SoPlexBase parameter codes and values, unchanged from 6.0 to 8.1
+constexpr int SOPLEX_OBJSENSE = 0;  // IntParam
+constexpr int SOPLEX_OBJSENSE_MINIMIZE = -1;
+constexpr int SOPLEX_OBJSENSE_MAXIMIZE = 1;
 constexpr int SOPLEX_VERBOSITY = 9;  // IntParam
 constexpr int SOPLEX_VERBOSITY_ERROR = 0;
 constexpr int SOPLEX_VERBOSITY_NORMAL = 3;  // the default
 constexpr int SOPLEX_TIMELIMIT = 7;         // RealParam
+
+// SPxSolverBase::VarStatus
+constexpr int SOPLEX_BASIS_ZERO = 3;  // a free variable or row, nonbasic
 
 enum Status {
     ERROR_ = -15,  // ERROR clashes with a macro imported by <windows.h>...
@@ -94,14 +106,19 @@ namespace soplex::impl::v1 {
     F(SoPlex_getPrimalReal, getPrimalReal) \
     F(SoPlex_getDualReal, getDualReal)
 
-// absent before SoPlex 7.0, except a SoPlex_changeVarUpperReal that moves
-// the lower bound, which 6.0 has
+// absent before SoPlex 7.0, except SoPlex_clearLPReal and a
+// SoPlex_changeVarUpperReal that moves the lower bound, which 6.0 has
 #define SOPLEX_OPTIONAL_FUNCTIONS(F)                 \
     F(SoPlex_setRealParam, setRealParam)             \
     F(SoPlex_getRowBoundsReal, getRowBoundsReal)     \
+    F(SoPlex_changeRowLhsReal, changeRowLhsReal)     \
+    F(SoPlex_changeRowRhsReal, changeRowRhsReal)     \
     F(SoPlex_changeVarLowerReal, changeVarLowerReal) \
     F(SoPlex_changeVarUpperReal, changeVarUpperReal) \
-    F(SoPlex_getObjReal, getObjReal)
+    F(SoPlex_getObjReal, getObjReal)                 \
+    F(SoPlex_getRowVectorReal, getRowVectorReal)     \
+    F(SoPlex_basisRowStatus, basisRowStatus)         \
+    F(SoPlex_clearLPReal, clearLPReal)
 
 #define DECLARE_SOPLEX_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);     \

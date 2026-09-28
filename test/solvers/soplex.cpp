@@ -1,3 +1,4 @@
+#include <initializer_list>
 #include <limits>
 
 #include "mippp/linear_constraint.hpp"
@@ -81,6 +82,55 @@ TEST_F(soplex_lp_test, infinite_column_bounds_survive_the_scaling) {
     EXPECT_EQ(model.get_variable_upper_bound(y), model.infinity());
     EXPECT_EQ(model.get_variable_lower_bound(z), 3.0);
 }
+// Each relaxation leaves the freed row nonbasic: SoPlex's own warm start then
+// stops with running after the first and reports 7 after the second. The
+// reload clears the LP, which resets the sense to maximization.
+TEST_F(soplex_lp_test, freeing_an_active_row_keeps_the_resolve_right) {
+    using namespace operators;
+    for(const bool maximize : {true, false}) {
+        const double sign = maximize ? 1.0 : -1.0;
+        for(const bool first_row : {true, false}) {
+            auto model = new_model();
+            auto x =
+                model.add_variable({.lower_bound = 0.0, .upper_bound = 10.0});
+            auto y =
+                model.add_variable({.lower_bound = 0.0, .upper_bound = 10.0});
+            auto z =
+                model.add_variable({.lower_bound = 0.0, .upper_bound = 10.0});
+            auto c1 = model.add_constraint(x + y <= 4.0);
+            auto c2 = model.add_constraint(x - y >= -2.0);
+            model.add_constraint(z == 1.0);
+            if(maximize) {
+                model.set_maximization();
+                model.set_objective(x + 2 * y + z);
+            } else {
+                model.set_minimization();
+                model.set_objective(-x - 2 * y - z);
+            }
+            model.solve();
+            ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+            ASSERT_NEAR(model.get_solution_value(), sign * 8.0, TEST_EPSILON);
+            if(first_row)
+                model.set_constraint_upper_bound(c1, model.infinity());
+            else
+                model.set_constraint_lower_bound(c2, -model.infinity());
+            model.solve();
+            ASSERT_TRUE(is_a<status::optimal>(model.get_status()))
+                << maximize << first_row;
+            EXPECT_NEAR(model.get_solution_value(),
+                        sign * (first_row ? 31.0 : 9.0), TEST_EPSILON)
+                << maximize << first_row;
+            EXPECT_EQ(model.get_variable_upper_bound(x), 10.0);
+            EXPECT_EQ(model.get_constraint_upper_bound(c1),
+                      first_row ? model.infinity() : 4.0);
+            model.set_constraint_upper_bound(c1, 4.0);
+            model.set_constraint_lower_bound(c2, -2.0);
+            model.solve();
+            ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+            EXPECT_NEAR(model.get_solution_value(), sign * 8.0, TEST_EPSILON);
+        }
+    }
+}
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, EnumerableEntitiesTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ReadableObjectiveTest, soplex_lp_test);
@@ -88,6 +138,7 @@ INSTANTIATE_TEST(SoPlex, ReadableVariablesBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ModifiableVariablesBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, AddColumnTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ReadableConstraintBoundsTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, ModifiableConstraintBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, DualSolutionTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, CuttingStockTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, TimeLimitTest, soplex_lp_test);
