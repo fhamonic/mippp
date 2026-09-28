@@ -29,6 +29,12 @@ private:
     // soplex::infinity, which the C interface does not export
     static constexpr double _infinity = 1e100;
 
+    // SoPlex reports a bounded LP unbounded when a column side is IEEE
+    // infinity, so column sides are written within [-infinity(), infinity()].
+    static double _clamp_side(double value) noexcept {
+        return std::clamp(value, -_infinity, _infinity);
+    }
+
 protected:
     using variable_id = int;
     using constraint_id = int;
@@ -116,10 +122,16 @@ public:
     //////////////////////////////// Variables ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
+    // entries holds one coefficient per row, num_nz of them nonzero
+    void _add_soplex_column(double * entries, int num_rows, int num_nz,
+                            const variable_params & params) {
+        const double lb = _clamp_side(params.lower_bound.value_or(-_infinity));
+        const double ub = _clamp_side(params.upper_bound.value_or(_infinity));
+        SoPlex->addColReal(model, entries, num_rows, num_nz, params.obj_coef,
+                           lb, ub);
+    }
     inline void _add_var(const variable_params & params) {
-        SoPlex->addColReal(model, nullptr, 0, 0, params.obj_coef,
-                           params.lower_bound.value_or(-_infinity),
-                           params.upper_bound.value_or(_infinity));
+        _add_soplex_column(nullptr, 0, 0, params);
     }
 
 private:
@@ -150,10 +162,8 @@ private:
             tmp_scalars[constr.uid()] += static_cast<scalar>(coef);
             num_nz += (tmp_scalars[constr.uid()] != 0) ? 1 : -1;
         }
-        SoPlex->addColReal(
-            model, tmp_scalars.data(), static_cast<int>(num_constraints()),
-            num_nz, params.obj_coef, params.lower_bound.value_or(-_infinity),
-            params.upper_bound.value_or(_infinity));
+        _add_soplex_column(tmp_scalars.data(),
+                           static_cast<int>(num_constraints()), num_nz, params);
         return variable(static_cast<int>(num_vars));
     }
 

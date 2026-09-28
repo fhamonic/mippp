@@ -1,3 +1,5 @@
+#include <limits>
+
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/solvers/soplex/all.hpp"
@@ -25,6 +27,23 @@ TEST_F(soplex_lp_test, column_entry_past_its_nonzero_count_is_kept) {
     model.solve();
     ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
     EXPECT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+}
+// SoPlex reports this LP unbounded when its absent column sides reach it as
+// IEEE infinity instead of its own 1e100.
+TEST_F(soplex_lp_test, ieee_infinity_is_an_absent_column_side) {
+    using namespace operators;
+    constexpr double inf = std::numeric_limits<double>::infinity();
+    auto model = new_model();
+    auto x = model.add_variable({.lower_bound = -inf, .upper_bound = 3.0});
+    auto y = model.add_variable({.lower_bound = 1.0, .upper_bound = inf});
+    auto z = model.add_variable({.lower_bound = -inf, .upper_bound = 1.0});
+    model.add_constraint(x >= -2.0);
+    model.add_constraint(x - y <= 5.0);
+    model.set_maximization();
+    model.set_objective(-2 * x - y + 2 * z);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    EXPECT_NEAR(model.get_solution_value(), 5.0, TEST_EPSILON);
 }
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, EnumerableEntitiesTest, soplex_lp_test);
