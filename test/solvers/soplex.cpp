@@ -83,6 +83,7 @@ TEST_F(soplex_lp_test, infinite_column_bounds_survive_the_scaling) {
 }
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, EnumerableEntitiesTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, ReadableObjectiveTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ReadableVariablesBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ModifiableVariablesBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, AddColumnTest, soplex_lp_test);

@@ -24,6 +24,7 @@ void SoPlex_changeVarLowerReal(void * soplex, int colidx, double lb);
 void SoPlex_changeVarUpperReal(void * soplex, int colidx, double ub);
 
 void SoPlex_changeObjReal(void * soplex, double * obj, int dim);
+void SoPlex_getObjReal(void * soplex, double * obj, int dim);
 
 int SoPlex_numCols(void * soplex);
 int SoPlex_numRows(void * soplex);
@@ -99,7 +100,8 @@ namespace soplex::impl::v1 {
     F(SoPlex_setRealParam, setRealParam)             \
     F(SoPlex_getRowBoundsReal, getRowBoundsReal)     \
     F(SoPlex_changeVarLowerReal, changeVarLowerReal) \
-    F(SoPlex_changeVarUpperReal, changeVarUpperReal)
+    F(SoPlex_changeVarUpperReal, changeVarUpperReal) \
+    F(SoPlex_getObjReal, getObjReal)
 
 #define DECLARE_SOPLEX_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);     \

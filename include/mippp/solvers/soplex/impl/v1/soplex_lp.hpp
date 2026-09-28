@@ -133,6 +133,27 @@ public:
         set_objective(std::forward<LE>(le));
     }
     double get_objective_offset() { return objective_offset; }
+    // the C interface reads the objective only as a whole vector
+    double get_objective_coefficient(variable v) {
+        auto & get_obj = _optional(SoPlex->getObjReal, "SoPlex_getObjReal");
+        std::vector<double> coefs(num_variables());
+        get_obj(model, coefs.data(), static_cast<int>(coefs.size()));
+        return coefs[static_cast<std::size_t>(v.id())];
+    }
+    auto get_objective() {
+        auto & get_obj = _optional(SoPlex->getObjReal, "SoPlex_getObjReal");
+        const auto num_vars = num_variables();
+        auto coefs = std::make_shared_for_overwrite<double[]>(num_vars);
+        if(num_vars > 0u)
+            get_obj(model, coefs.get(), static_cast<int>(num_vars));
+        return linear_expression_view(
+            std::views::transform(
+                std::views::iota(index{0}, static_cast<index>(num_vars)),
+                [coefs = std::move(coefs)](auto i) {
+                    return std::make_pair(variable(i), coefs[i]);
+                }),
+            get_objective_offset());
+    }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Variables ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
