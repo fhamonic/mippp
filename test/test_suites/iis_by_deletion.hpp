@@ -132,7 +132,9 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
 
     void check_budget_sweep() {
         using namespace operators;
-        using enum membership;
+        // named through its namespace: MSVC does not bring in the enumerators
+        // of the member alias inside a class template
+        using enum iis_oracle::membership;
         probe model(*this->api);
         auto x0 = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
         auto x1 = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
@@ -381,7 +383,7 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
     }
 
     void check_crossed_pair_under_a_budget() {
-        using enum membership;
+        using enum iis_oracle::membership;
         {
             probe model(*this->api);
             const built_case<probe> built =
@@ -468,7 +470,6 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
     // minimum of the same model is another value.
     void check_restores_everything_it_saved() {
         using namespace operators;
-        using enum membership;
         using M = model_type;
         auto model = this->new_model();
         auto x0 = model.add_variable({.lower_bound = 0., .upper_bound = 4.});
