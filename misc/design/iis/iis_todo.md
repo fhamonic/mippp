@@ -13,17 +13,19 @@ are its open questions.
 - **Names.** The names below are those the maintainer accepted under N19 to N22 on 2026-09-27, with the IIS
   vocabulary of Q2.
 - **Marks.** A ticked item is done on main, or on the branch the item names: pull request #3's, or
-  `feat/iis-wave3` for step 5. A struck item is closed by a ruling. The maintainer confirmed the readings of
+  `docs/iis-wave4` for step 7. A struck item is closed by a ruling. The maintainer confirmed the readings of
   the short rulings on 2026-09-27, and N4's was dropped as moot, so no item marks a reading.
 - **Critical path.** Steps 0, 2, 3 and 4, then items 5.1 to 5.3. Each fix of step 1 lands before the first
   item that needs it. Step 6 can start once step 2 merges, HiGHS first.
 - **Waves.** Wave 1, published on main on 2026-09-28 with CI green, is steps 1 and 3 on main and step 2 on
   pull request #3. Wave 2, 2.5 then step 4 and 6.1, landed on 2026-09-28: the merge as `e322ef1`, then the
   five commits `ad0105a` to `19803cc`, all but the both-paths case of 6.1, which waited for 5.3. Wave 3, step
-  5 and with it that case, landed on 2026-09-28 on `feat/iis-wave3`, locally, awaiting the push: the 33
-  commits `5c4399c` to `9aac8a1`, three commits of the final review (GLPK's infinite sides, SCIP 10's status
-  codes, the serial HiGHS timing tests), then the record of iis.md and this file. It left the two questions N38 and
-  N39 of iis.md open. 6.2 to 6.6 remain, and wave 4 is step 7.
+  5 and with it that case, landed on 2026-09-28 and is published on main with CI green (run 36472057802): the
+  33 commits `5c4399c` to `9aac8a1`, three commits of the final review (GLPK's infinite sides, SCIP 10's
+  status codes, the serial HiGHS timing tests), the record of iis.md and this file, then `d3312b8`, which
+  checks the forwarded time limit on every backend with one. It left the two questions N38 and N39 of iis.md
+  open. Wave 4, step 7, landed on 2026-09-29 on `docs/iis-wave4`, locally, awaiting the push: the 22 commits
+  `1c6256a` to `b4e90d5`, then the record of iis.md and this file. 6.2 to 6.6 remain.
 
 ## 0. Before any code
 
@@ -283,7 +285,8 @@ an enumeration, a status reset or readable row bounds, which 3.2 to 3.4 already 
   minimizes, and `LpStatusTest` and `LpFuzzyTest` run on it. 24 cases run on 7.1.1, 7.1.3 and 8.0.3.
 
 Done when `IisByDeletionTest` passes on each backend, in CI for Cbc, GLPK and HiGHS and locally for the
-rest. Locally done on 2026-09-28, with the sanitized build on Cbc 2.10.11; CI awaits the push.
+rest. Locally done on 2026-09-28, with the sanitized build on Cbc 2.10.11, and in CI on main since run
+36472057802.
 
 The release notes of v1.1.0 get the behaviour changes of this step: HiGHS's `set_time_limit` bounds each
 solve; a fresh `soplex_lp` minimizes; GLPK solves crossed bounds and sides to `infeasible`; `glpk_milp` rounds
@@ -380,7 +383,7 @@ variable on Gurobi and CPLEX.
 The user pages come once the CI backends run both paths, after 4.2, 5.1 to 5.3 and 6.1. Rows and labels that a
 package adds come with that package.
 
-- [ ] **7.1. Reading an IIS.** `docs/solving/infeasibility.md` covers the `has_iis` gate and the free
+- [x] **7.1. Reading an IIS.** `docs/solving/infeasibility.md` covers the `has_iis` gate and the free
   function, the consumer loop, the tags of each path, outcomes and reasons, and `*_lp` against `*_milp`. It
   states the status afterwards: `unknown` after a run that solved, and after every native call for now. It
   explains N8. A per-model table shows `has_iis`, the free function's concept and the HiGHS floor, and later
@@ -391,19 +394,48 @@ package adds come with that package.
   routine, and that a stop may return late or with no answer (N29 a). It states that the model's time limit
   bounds a native `copt_lp` call as on `copt_milp`, through fix 10 (N35 a). It replaces the pull request's
   `docs/iis.md`. It obtains the IIS type through `model_iis_t<T>` or `auto` and never spells the snapshot's
-  template arguments, and it tests membership with `is_a<iis_status::member>` (N37 b, d).
-- [ ] **7.2. The deletion filter as an algorithm.** A page under Algorithms in `zensical.toml`, next to column
+  template arguments, and it tests membership with `is_a<iis_status::member>` (N37 b, d). Done in `cf09c4f`,
+  with its code in `1c6256a` and its links in `4c6034c`; the review added `8a3e694` and `b893392`, with the
+  test `aeb1de7`, which pins on 1.15.1 that the iteration limit, the only other limit of `highs_lp` and
+  `highs_qp`, does not stop the routine. What names a commercial routine waits for 6.2 to 6.6, whose packages
+  each add their rows to the per-model table and their sentences to the paragraph on native time bounds: the
+  plain `member` of the equality rows of Gurobi, CPLEX and `copt_milp`, the other limits that stop a routine
+  (CPLEX's iteration, node and memory limits, Gurobi's `SoftMemLimit`), and the `copt_lp` time limit of
+  N35 (a).
+- [x] **7.2. The deletion filter as an algorithm.** A page under Algorithms in `zensical.toml`, next to column
   generation. It covers the engine's oracle contract, monotonicity, limits and reasons. It then covers the
   free function's requirements, what it saves and never touches, and the native-handle warning. It warns that
-  one trial can overrun the budget on models without `has_time_limit`.
-- [ ] **7.3. Concepts and feature tables.** `concepts.md` rows for every new concept. The labels
+  one trial can overrun the budget on models without `has_time_limit`. Done in `8013cb4`, with its code in
+  `bce799e` and its links in `0297e02`; the review corrected it in `8a3e694`, and its tests exposed a false
+  gcc 14 warning in the engine, fixed in `b4e90d5`. Its table of warm and cold trials rests on the
+  measurements of wave 3, which no test pins, and leaves out `clp_lp`, `glpk_milp` and `cbc_milp` without
+  integer columns, not measured.
+- [x] **7.3. Concepts and feature tables.** `concepts.md` rows for every new concept. The labels
   `("IisTest", "IIS, native")` and `("IisByDeletionTest", "IIS, deletion filter")`, next to those of
-  `EnumerableEntitiesTest` and `ModifiableConstraintBoundsTest`. `tested_features_table.py` gets the fix
-  that makes `highs_qp` rows appear, then the tables are regenerated.
-- [ ] **7.4. README and `coming-from.md`.** The README roadmap row, and the list of missing features in
-  `docs/getting-started/coming-from.md`.
+  `EnumerableEntitiesTest` and `ModifiableConstraintBoundsTest`. `tested_features_table.py` gets the fix that
+  makes `highs_qp` rows appear, then the tables are regenerated. The labels came in wave 2, in `19803cc`. Done
+  in `569703a`, which also measures the drawn width, since a longer label cut the last column, and in
+  `24004ff`, which shortens the IIS rows and adds `deletion_oracle`; `f5b8a9a` restores the sentence on
+  `irreducible` with zero members.
+- [x] **7.4. README and `coming-from.md`.** The README roadmap row, and the list of missing features in
+  `docs/getting-started/coming-from.md`. Done in `808e318` and `1817a90`, with the feature lists of the home
+  pages in `87e728b` and `5b23b3b`.
 
-Done when `zensical build --clean` passes and every snippet compiles.
+Two additions beyond the plan, agreed with the maintainer before the wave. The code of the pages is compiled
+and tested (`1c6256a`, `bce799e`): each page has one source in `test/doc_snippets/`, a core source of
+`mippp_test`, whose marked sections the page includes through `pymdownx.snippets`, and whose tests run them on
+HiGHS and Clp and compare the output the page shows. Since `b134b7b`, CI checks the markers and builds the
+docs on every pull request. `examples/infeasible_transportation` (`687ed3e`, `bfa4684`, `c331928`) diagnoses
+an infeasible plan through both paths, and with its alias changed runs on each of the 11 classes of the
+deletion filter.
+
+Done when `zensical build --clean` passes and every snippet compiles. Done on 2026-09-29: the build reports no
+issue, and the snippets compile and pass under gcc 15, gcc 14 and clang 18 on HiGHS 1.10.0, and under gcc 15
+on 1.15.1 too.
+
+At the version bump of v1.1.0, the example must require `mippp/1.1.0` and `find_package(mippp 1.1 ...)`, with
+the other examples: a package built from the v1.0.0 tag has no IIS header, so the example fails there on a
+missing header rather than on the version.
 
 ## Later
 

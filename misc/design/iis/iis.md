@@ -279,17 +279,19 @@ releases the introduction lists.
   node limits (measured) and its memory limit (documented), Gurobi's
   `SoftMemLimit`, which `set_memory_limit` writes (documented), and Gurobi's
   `WorkLimit`, which MIP++ does not write (documented and measured). HiGHS
-  lifts its iteration limit during the call (read in the 1.15.1 sources). A
-  stop can leave no answer at all on every backend (measured). Under N29 (a),
-  the model's time limit bounds each call as a fresh budget, and HiGHS gets it
-  through the per-call copy into `iis_time_limit`, restored afterwards. Under
-  N9, the other limits may also stop it. The docs state per backend that the
-  budget is per call, which other model limits also stop the routine, and that
-  a stop may return late or with no answer. `copt_lp` has no time limit on
-  main. Fix 10 gives it one (N35 a), which then bounds its call as on
-  `copt_milp`. An explicit duration per call is only a Deferred possibility
-  (N29 b), and leaving the call unbounded (N29 c) or to the solver's own rule
-  (N29 d) is rejected.
+  lifts its simplex iteration limit during the call (read in the 1.14.0 and
+  1.15.1 sources), and since wave 4 a test pins on 1.15.1 that a zero
+  iteration limit stops `solve()` but not `compute_iis()`, with a Hessian too
+  (measured on 2026-09-29). A stop can leave no answer at all on every backend
+  (measured). Under N29 (a), the model's time limit bounds each call as a
+  fresh budget, and HiGHS gets it through the per-call copy into
+  `iis_time_limit`, restored afterwards. Under N9, the other limits may also
+  stop it. The docs state per backend that the budget is per call, which other
+  model limits also stop the routine, and that a stop may return late or with
+  no answer. `copt_lp` has no time limit on main. Fix 10 gives it one (N35 a),
+  which then bounds its call as on `copt_milp`. An explicit duration per call
+  is only a Deferred possibility (N29 b), and leaving the call unbounded
+  (N29 c) or to the solver's own rule (N29 d) is rejected.
 - **The status after a native call.** A native `compute_iis()` sets the status
   to `unknown` before its first native call, so the status is `unknown`
   whether the call returns or throws (N15). This suspends the 2026-09-22 rule
@@ -875,7 +877,27 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   `copt_lp` call as it does on `copt_milp`, through fix 10 (N35 a). The pages
   obtain the IIS type through `model_iis_t<T>` or `auto`, never spell the
   snapshot's template arguments, and test membership with
-  `is_a<iis_status::member>` (N37 b, d).
+  `is_a<iis_status::member>` (N37 b, d). Wave 4 wrote them on 2026-09-29.
+  `docs/solving/infeasibility.md` runs both paths on one workshop LP and
+  covers the choice of path in generic code, the tags and the consumer loop
+  over the caller's families or the enumeration, outcomes and reasons,
+  `iis_limits` and the native time bound, with the iteration limit that does
+  not stop HiGHS's routine, `*_lp` against `*_milp`, the model and its status
+  afterwards, the snapshot's handle ids (N8), a per-model table that links the
+  limitation bullets, the SCIP gap (N25) among them, and the native-handle
+  warning (N23). `docs/algorithms/deletion-filter.md` covers the engine on an
+  oracle of the reader's own, monotonicity, limits and reasons, then the free
+  function's candidates and trials, what it saves, restores and never touches,
+  the trials no time limit bounds, warm and cold trials per backend, and the
+  same warning. Their code lives in `test/doc_snippets/`, compiled and tested
+  in `mippp_test`, and `examples/infeasible_transportation` runs both paths.
+  What concerns the commercial routines waits for 6.2 to 6.6: their tags, with
+  plain `member` on the equality rows of Gurobi, CPLEX and `copt_milp`, which
+  other model limits stop each routine, whether a stop returns late or with no
+  answer on each, and the `copt_lp` time limit of N35 (a). Each of those
+  packages adds its rows to the per-model table of the infeasibility page and
+  to the `has_iis` row, and its sentences to the paragraph on native time
+  bounds.
 
 ## Deferred, and how they would come back
 
