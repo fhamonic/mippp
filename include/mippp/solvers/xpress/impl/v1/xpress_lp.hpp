@@ -82,6 +82,11 @@ public:
     void solve() {
         check(XPRS->lpoptimize(prob, nullptr));
         _status = _get_status();
+        // A stopped solve can leave the problem LP-presolved (45.01 does),
+        // where XPRS_ROWS, the row getters and setters describe the presolved
+        // rows and nothing can be added. Postsolving an original problem
+        // does nothing.
+        check(XPRS->postsolve(prob));
     }
     // The routine solves on its own and overwrites the status attributes and
     // the held solution: the reported status is reset before the first native

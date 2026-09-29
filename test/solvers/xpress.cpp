@@ -65,6 +65,40 @@ INSTANTIATE_TEST(Xpress_milp, MipGapTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);
 
+// Xpress 45.01 leaves an LP stopped by its time limit presolved, with the
+// fixed columns and the redundant rows removed: the rows built must still
+// be the ones addressed afterwards. Dense rows keep the solve past the 10 ms
+// step of the solver's clock.
+TEST_F(xpress_lp_test, rows_stay_addressable_after_a_stopped_solve) {
+    using namespace operators;
+    auto model = this->new_model();
+    constexpr std::size_t n = 400;
+    std::mt19937 rng(7);
+    std::uniform_real_distribution<double> coef(0.1, 1.);
+    auto x = model.add_variables(n, {.lower_bound = 0., .upper_bound = 10.});
+    (void)model.add_variables(n / 5, {.lower_bound = 3., .upper_bound = 3.});
+    model.set_objective(xsum(std::views::iota(std::size_t{0}, n),
+                             [&](auto j) { return x(j); }));
+    model.set_minimization();
+    std::vector<double> row(n);
+    for(std::size_t i = 0; i < n; ++i) {
+        for(auto & a : row) a = coef(rng);
+        model.add_constraint(xsum(std::views::iota(std::size_t{0}, n),
+                                  [&](auto j) { return row[j] * x(j); }) >= 1.);
+    }
+    for(std::size_t i = 0; i < n / 4; ++i) model.add_constraint(x(i) <= 1e6);
+    auto last = model.add_constraint(xsum(std::views::iota(std::size_t{0}, n),
+                                          [&](auto j) { return x(j); }) <= 1e6);
+    const auto num_rows = model.num_constraints();
+    model.set_time_limit(std::chrono::milliseconds(1));
+    model.solve();
+    ASSERT_TRUE(is<status::time_limit>(model.get_status()));
+    EXPECT_EQ(model.num_constraints(), num_rows);
+    EXPECT_EQ(model.get_constraint_upper_bound(last), 1e6);
+    auto added = model.add_constraint(x(0) <= 8.);
+    EXPECT_EQ(model.get_constraint_upper_bound(added), 8.);
+}
+
 // XPRSiisfirst refuses the search on a column whose bounds hold no value,
 // crossed or an integer column with no integer between them: stated from the
 // case data, so that the suite skips the case instead of catching the throw.
