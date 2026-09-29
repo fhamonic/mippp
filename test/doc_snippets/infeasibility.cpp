@@ -78,7 +78,7 @@ struct workshop_run {
 // The page's example as one program: Analyze stands for the line of the page
 // that computes the IIS, so that each path runs on the same model.
 template <typename lp_type, typename Analyze>
-workshop_run<lp_type> workshop(std::ostream & out, Analyze && analyze) {
+workshop_run<lp_type> workshop(Analyze && analyze) {
     // --8<-- [start:workshop-model]
     const std::vector<std::string> products = {"chairs", "tables", "desks"};
     const std::map<std::string, double> boards = {
@@ -110,6 +110,7 @@ workshop_run<lp_type> workshop(std::ostream & out, Analyze && analyze) {
     workshop_run<lp_type> run{model.get_status(), {}, {}};
 
     // --8<-- [start:workshop-report]
+    std::ostream & out = std::cout;  // or any other std::ostream
     auto print_conflict = [&](const auto & iis) {
         print_member(out, "wood", iis.get_status(wood));
         print_member(out, "labour", iis.get_status(labour));
@@ -566,14 +567,14 @@ void expect_page_run(const workshop_run<Model> & run) {
 }  // namespace
 
 TEST_F(infeasibility_page_highs_lp, workshop_prints_the_page_output) {
-    std::ostringstream out;
-    expect_page_run(workshop<highs_lp>(out, run_deletion_path{}));
+    cout_capture out;
+    expect_page_run(workshop<highs_lp>(run_deletion_path{}));
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
 TEST_F(infeasibility_page_clp_lp, workshop_prints_the_page_output) {
-    std::ostringstream out;
-    expect_page_run(workshop<clp_lp>(out, run_deletion_path{}));
+    cout_capture out;
+    expect_page_run(workshop<clp_lp>(run_deletion_path{}));
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
@@ -584,8 +585,8 @@ TEST_F(infeasibility_page_highs_lp, workshop_native_answer_is_the_same) {
         GTEST_SKIP() << "Highs_getIis needs HiGHS "
                      << to_string(highs_native_iis_floor) << ", "
                      << api->library_path() << " is " << to_string(*loaded);
-    std::ostringstream out;
-    expect_page_run(workshop<highs_lp>(out, run_native_path{}));
+    cout_capture out;
+    expect_page_run(workshop<highs_lp>(run_native_path{}));
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
@@ -593,29 +594,28 @@ TEST_F(infeasibility_page_highs_lp, compute_iis_below_the_floor_throws) {
     const auto loaded = api->library_version();
     if(!loaded || *loaded >= highs_native_iis_floor)
         GTEST_SKIP() << "the loaded HiGHS has the native routine";
-    std::ostringstream out;
-    EXPECT_THROW(workshop<highs_lp>(out, run_native_path{}), solver_error);
+    cout_capture out;
+    EXPECT_THROW(workshop<highs_lp>(run_native_path{}), solver_error);
 }
 
 // Native above the floor, the deletion filter below it: the same answer.
 TEST_F(infeasibility_page_highs_lp, diagnose_prints_the_page_output) {
-    std::ostringstream out;
-    expect_page_run(workshop<highs_lp>(out, run_diagnose{}));
+    cout_capture out;
+    expect_page_run(workshop<highs_lp>(run_diagnose{}));
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
 TEST_F(infeasibility_page_clp_lp, diagnose_runs_the_deletion_filter) {
     static_assert(!has_iis<clp_lp> && iis_by_deletion_model<clp_lp>);
-    std::ostringstream out;
-    expect_page_run(workshop<clp_lp>(out, run_diagnose{}));
+    cout_capture out;
+    expect_page_run(workshop<clp_lp>(run_diagnose{}));
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
 TEST_F(infeasibility_page_highs_lp, bounded_run_completes_on_the_workshop) {
     std::stop_source stop;
-    std::ostringstream out;
-    expect_page_run(
-        workshop<highs_lp>(out, run_bounded_path{stop.get_token()}));
+    cout_capture out;
+    expect_page_run(workshop<highs_lp>(run_bounded_path{stop.get_token()}));
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
@@ -624,9 +624,8 @@ TEST_F(infeasibility_page_highs_lp, bounded_run_completes_on_the_workshop) {
 TEST_F(infeasibility_page_highs_lp, cancelled_run_prints_nothing) {
     std::stop_source stop;
     stop.request_stop();
-    std::ostringstream out;
-    const auto run =
-        workshop<highs_lp>(out, run_bounded_path{stop.get_token()});
+    cout_capture out;
+    const auto run = workshop<highs_lp>(run_bounded_path{stop.get_token()});
     EXPECT_EQ(out.str(), "");
     EXPECT_TRUE(is_a<status::infeasible>(run.after_analysis));
     EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
@@ -635,9 +634,8 @@ TEST_F(infeasibility_page_highs_lp, cancelled_run_prints_nothing) {
 TEST_F(infeasibility_page_highs_lp, solve_limit_keeps_a_conflicting_subset) {
     iis_outcome outcome = iis_outcome::irreducible;
     std::optional<iis_reason> reason;
-    std::ostringstream out;
-    expect_page_run(
-        workshop<highs_lp>(out, run_three_solves{&outcome, &reason}));
+    cout_capture out;
+    expect_page_run(workshop<highs_lp>(run_three_solves{&outcome, &reason}));
     EXPECT_EQ(outcome, iis_outcome::not_proven_minimal);
     EXPECT_EQ(reason, iis_reason::solve_limit);
     // every entity of the irreducible answer, among others
@@ -650,16 +648,16 @@ TEST_F(infeasibility_page_highs_lp, solve_limit_keeps_a_conflicting_subset) {
 }
 
 TEST_F(infeasibility_page_highs_lp, workshop_has_a_single_iis) {
-    std::ostringstream out;
-    expect_page_run(workshop<highs_lp>(out, run_single_removals{}));
+    cout_capture out;
+    expect_page_run(workshop<highs_lp>(run_single_removals{}));
 }
 
 TEST_F(infeasibility_page_highs_lp, member_rows_lists_the_conflicting_rows) {
     std::size_t num_rows = 0;
     std::size_t num_variables = 0;
-    std::ostringstream out;
+    cout_capture out;
     expect_page_run(
-        workshop<highs_lp>(out, run_member_rows{&num_rows, &num_variables}));
+        workshop<highs_lp>(run_member_rows{&num_rows, &num_variables}));
     EXPECT_EQ(num_rows, 4u);       // labour and the three orders
     EXPECT_EQ(num_variables, 1u);  // overtime
 }
@@ -671,9 +669,9 @@ TEST_F(infeasibility_page_highs_lp,
     std::size_t candidates = 0;
     std::size_t solves = 0;
     iis_outcome outcome = iis_outcome::undetermined;
-    std::ostringstream out;
+    cout_capture out;
     expect_page_run(workshop<iis_trial_probe<highs_lp>>(
-        out, run_on_the_members{&candidates, &solves, &outcome}));
+        run_on_the_members{&candidates, &solves, &outcome}));
     EXPECT_EQ(outcome, iis_outcome::irreducible);
     EXPECT_EQ(candidates, 11u);  // of the workshop's 13 finite sides
     EXPECT_EQ(solves, candidates + 1);
@@ -683,8 +681,8 @@ TEST_F(infeasibility_page_highs_lp,
 // Relaxing the whole conflict frees the orders, so the fix that follows needs
 // no overtime at all.
 TEST_F(infeasibility_page_highs_lp, relaxing_the_members_repairs_the_workshop) {
-    std::ostringstream out;
-    const auto run = workshop<highs_lp>(out, run_relax_members{});
+    cout_capture out;
+    const auto run = workshop<highs_lp>(run_relax_members{});
     EXPECT_TRUE(is<status::unknown>(run.after_analysis));
     EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
     EXPECT_NEAR(run.overtime_after_fix, 0., TEST_EPSILON);

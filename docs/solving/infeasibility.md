@@ -18,7 +18,7 @@ A workshop makes chairs, tables and desks from boards of wood and hours of labou
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-model"
 ```
 
-The orders need 10 + 18 + 4 = 32 hours of labour, one more than the 31 available, so the solve reports `infeasible`. The arithmetic is easy to spot here and much less so among thousands of rows, which is what an IIS is for. The snapshot's `get_status(v)` and `get_status(c)` tell whether a variable or a constraint takes part in the conflict, and through which side. Two helpers print the members to `out`, any `std::ostream`: one for a single entity, and one for the workshop's own variables and constraints:
+The orders need 10 + 18 + 4 = 32 hours of labour, one more than the 31 available, so the solve reports `infeasible`. The arithmetic is easy to spot here and much less so among thousands of rows, which is what an IIS is for. The snapshot's `get_status(v)` and `get_status(c)` tell whether a variable or a constraint takes part in the conflict, and through which side. Two helpers print the members: one for a single entity, to any `std::ostream`, and one for the workshop's own variables and constraints, to `std::cout` here:
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:print-member"
@@ -65,7 +65,7 @@ The native routine is the solver's own, HiGHS's `Highs_getIis`. On the workshop 
 
 A model can have several IISs, and the two paths may then return different ones, each valid. The workshop has only one.
 
-`has_iis` is a property of the model type, while the routine depends on the HiGHS library loaded at runtime. With a HiGHS older than 1.14, `compute_iis()` throws `solver_error`, whose message names the release it found, the library's path and the 1.14 floor.
+`has_iis` is a property of the model type, while the routine depends on the HiGHS library loaded at runtime. With a HiGHS older than 1.14, `compute_iis()` throws `solver_error`, whose message names the release it found, the library's path and the 1.14 floor. To load another HiGHS, set `MIPPP_HIGHS_LIBRARY` to the full path of its library file, see [How solver libraries are found](../solvers/index.md#how-solver-libraries-are-found).
 
 The deletion filter is an algorithm of the library, independent of the solver. It relaxes each finite variable bound and constraint side in turn, re-solves, and keeps a side only when the rest becomes feasible without it. It runs in place, on your model, which must let it enumerate its variables and constraints and read and change every bound and side; `iis_by_deletion_model` lists the [requirements](../reference/concepts.md#infeasibility-analysis). [The deletion filter](../algorithms/deletion-filter.md) describes the algorithm, what a run changes and costs, and how to run it on constraints of your own.
 
@@ -99,7 +99,7 @@ Iterating your own variable and constraint families, as `print_conflict` does, g
 --8<-- "test/doc_snippets/infeasibility.cpp:member-rows"
 ```
 
-On the workshop it returns the labour row and the three order rows. `num_variable_members()` and `num_constraint_members()` count the members without a loop: one variable and four rows there. A query is a lookup in the snapshot and never calls the solver.
+On the workshop it returns the labour row and the three order rows. To print such handles, name the variables and constraints as you add them: `get_variable_name(v)` and `get_constraint_name(c)` read the names back on models with `has_named_variables` and `has_named_constraints`, see [Names](../modeling/variables.md#names). `num_variable_members()` and `num_constraint_members()` count the members without a loop: one variable and four rows there. A query is a lookup in the snapshot and never calls the solver.
 
 ## Repairing the model
 
