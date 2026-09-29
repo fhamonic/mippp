@@ -172,7 +172,7 @@ Solver shared libraries are discovered at runtime; only the solvers you actually
 
 ## Roadmap
 
-The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS).
+The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS), through the solver's own routine on Gurobi, CPLEX, Xpress, COPT and HiGHS and a deletion filter on every backend but Gurobi.
 
 Planned, roughly by priority:
 
@@ -185,7 +185,6 @@ Planned, roughly by priority:
 | 🟠 | **QP objectives beyond HiGHS** | Extend Hessian support to Gurobi, CPLEX, MOSEK, etc. |
 | 🟡 | **QCP/SOCP constraints** | Quadratically constrained programs |
 | 🟡 | **Model file I/O** | Read/write LP and MPS files |
-| 🟡 | **Native IIS routines beyond HiGHS** | `compute_iis()` on Gurobi, CPLEX, Xpress and COPT, whose models have no IIS path yet; the deletion filter covers the other seven solvers |
 | 🟡 | **MILP fuzzy tests** | Differential fuzzing of the MILP interface against a reference implementation, as `lp_fuzzy_tests` does for LPs; the hand-written suites left gaps in the backends |
 | ⚪ | Solution pools, multi-objective, semi-continuous variables, progress getters | |
 

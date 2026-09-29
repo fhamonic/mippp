@@ -79,7 +79,7 @@ If you already write models in Python or Julia, almost everything transfers: MIP
 | solver log | on; `setParam("OutputFlag", 0)` | on; `set_silent(m)` | on; `PULP_CBC_CMD(msg=False)` | off; `set_verbose(true)` |
 | MIP start | `x.Start = v` | `set_start_value` | `x.setInitialValue` | `add_mip_start(entries)` |
 | lazy constraint | `model.cbLazy(...)` | `MOI.submit(..., LazyConstraint)` | — | `handle.add_lazy_constraint(...)` |
-| IIS | `computeIIS()` | `compute_conflict!(m)` | — | `compute_iis_by_deletion(model)` |
+| IIS | `computeIIS()` | `compute_conflict!(m)` | — | `model.compute_iis()`, or `compute_iis_by_deletion(model)` |
 | change solver | rewrite in another API | `set_optimizer(...)` | `prob.solve(SOLVER())` | change two type aliases, recompile |
 
 ## Six things that are genuinely different
@@ -123,7 +123,7 @@ There is no `solver=` argument at solve time. The backend appears in an include 
 
 MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, solution pools, native multi-objective, and quadratic *constraints*. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
 
-If you call `computeIIS()` in gurobipy or `compute_conflict!` in JuMP to explain an infeasible model, see [Diagnosing infeasibility](../solving/infeasibility.md). The deletion filter it describes runs on every model of Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP and SoPlex, and `highs_lp` and `highs_qp` also have HiGHS's own routine, `compute_iis()`, with HiGHS 1.14 or later at runtime, as `cplex_lp` and `cplex_milp` have CPLEX's. The Gurobi, Xpress and COPT models have neither yet.
+If you call `computeIIS()` in gurobipy or `compute_conflict!` in JuMP to explain an infeasible model, see [Diagnosing infeasibility](../solving/infeasibility.md). The models of Gurobi, CPLEX, Xpress and COPT have the solver's own routine as `compute_iis()`, and so do `highs_lp` and `highs_qp` with HiGHS 1.14 or later at runtime; the deletion filter the page describes runs on every model class but Gurobi's, whose rows have no modifiable sides.
 
 ## What you gain in exchange
 
