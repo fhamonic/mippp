@@ -495,7 +495,7 @@ concept has_readable_constraint_rhs =
     };
 
 // Defined on every row, unlike get_constraint_sense/rhs which have no
-// meaning on a ranged row (Clp, Cbc and HiGHS throw there).
+// meaning on a ranged row (Clp, Cbc, HiGHS and CPLEX throw there).
 // clang-format off
 template <typename T, typename M = T>
 concept has_readable_constraint_bounds =
