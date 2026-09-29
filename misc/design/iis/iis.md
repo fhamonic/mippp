@@ -240,13 +240,28 @@ record what they established.
   passes a per-model counter, bumped on every call, as the equal preference
   of every group, which makes each call fresh; the counter is a member of
   the model and moves with it, and the second review of 2026-09-29 pinned
-  in `3b39728` that a moved model refines afresh rather than resuming the
+  in `48a59cd` that a moved model refines afresh rather than resuming the
   aborted state. And a completed answer is
   cached by CPLEX until a data edit (`chgrhs`, `chgbds`, `chgcoef`,
   `chgsense`, `chgctype`, `newcols`, `addindconstr`, `addsos`), not by an
   objective or parameter change (p7, p13). A native simplex iteration limit on a MIP makes
   `CPXrefineconflictext` itself fail with 3019 (p9), unreachable through
-  MIP++ since `cplex_milp` has no `set_iteration_limit`. The wave 5 probes
+  MIP++ since `cplex_milp` has no `set_iteration_limit`. The final review
+  of wave 5 (2026-09-29) measured two more facts. `CPXrefineconflictext`
+  returns 1811 (`CPXERR_UNSUPPORTED_OPERATION`) while a generic callback is
+  registered, whatever the callback does, on a feasible and on an
+  infeasible MIP, and returns 0 with status 30 once
+  `CPXcallbacksetfunc(env, lp, 0, nullptr, nullptr)` detached it, so
+  `cplex_milp::compute_iis()` detaches a registered callback for the call
+  through a guard like COPT's and re-registers it on every exit, pinned by
+  a test (0 calls, `feasible`, the callback back for the next solve). And
+  a 34 stop on `cplex_lp` outlives its limit on the unchanged problem: the
+  next calls, fresh preference included, end 32 (a contradiction) with no
+  member, after an objective change too, until a bound or a side is
+  written, even to its current value, after which the call answers 31
+  (60-row chain, 22.1.1 and 22.1.2), where a 33 stop is forgotten as soon
+  as the limit is raised. The wrapper writes nothing after a 34 stop; the
+  user page names the way out and the iteration-limit test pins both. The wave 5 probes
   added: a feasible model returns 0 with status 30 and `CPXgetconflictext`
   fails with 1719, solved or not; the held solution survives the refiner
   (objective, point, primal feasibility) while `CPXgetstat` reads 30 or 31
@@ -257,7 +272,7 @@ record what they established.
   deterministic time limit 39. A column-less row is named as the violated
   member. Crossed bounds read both `MEMBER`. Indicators and SOS, left out
   of the groups, are background, and a conflict among indicators alone is
-  31 with zero members. Row bounds (`229d198`, `57395a9`): sense `R` with
+  31 with zero members. Row bounds (`9c4e9b6`, `2d3d909`): sense `R` with
   `rhs` and `rngval` is native, `rngval > 0` giving [rhs, rhs + rngval] and
   `<= 0` the reverse (documented and measured); the setters write `E`, `G`,
   `L` or `R` from the two sides and rewrite the range after every switch to
@@ -309,7 +324,7 @@ record what they established.
   the same interrupt from a `COPT_CBCONTEXT_MIPSOL` callback stops before
   the candidate is committed and leaves `HasMipSol` 0, and the interrupt
   does not outlive the call, a later solve running to optimal (measured
-  on 8.0.5; `fe2527f`, pinned in `7f219cc`). On the LP path the routine never solves, so a code 3 gets
+  on 8.0.5; `f73ac7a`, pinned in `8baba3f`). On the LP path the routine never solves, so a code 3 gets
   one confirming `COPT_SolveLp` under the remaining budget: optimal or
   unbounded is `feasible`, a timeout `undetermined` with `time_limit`, and
   infeasible throws. The routine segfaults on a row-less model without SOS
@@ -321,7 +336,14 @@ record what they established.
   binary bound beyond the domain is the member alone (`lb` 2 alone or
   `ub` -2 alone solve infeasible, `ub` 3 or `lb` -3 alone optimal,
   measured in the second review), while crossed bounds or an interval
-  without an integer need both, since freeing either readmits a value. On
+  without an integer need both, since freeing either readmits a value.
+  The routine also leaks 48 bytes in 4 allocations on a column-less model
+  (LeakSanitizer in the sanitized build on 8.0.5, the two
+  `column_less_model_names_the_violated_row` cases exiting 1), so the
+  wrapper answers a model without columns from its constant rows, the
+  first side that 0 violates, or `feasible`, without calling the routine,
+  as N28 (a) allows a wrapper that fails the shared case (final review of
+  wave 5, `f73ac7a`, pinned in `8baba3f`). On
   a MIP COPT flags one side of an equality row (206 flagged rows, none with
   both flags) and one bound of a two-bounded column where both are needed,
   continuous columns included (second review: continuous x in [0.5, 1.5],
@@ -344,7 +366,7 @@ record what they established.
   reset the wrapper needs drops them, so the status reset stays (N15).
   Indicators and SOS are listed as members natively (`IISIndicators`,
   `IISSOSs`) with the linear members relative to them; the snapshot never
-  counts them. Row bounds (`db862a2`): COPT stores two sides natively,
+  counts them. Row bounds (`c2af30c`): COPT stores two sides natively,
   `SetRowLower` on `x <= 3` gives [1, 3], a freed side reads ±1e30, and any
   side at or beyond ±1e30 reads ±1e30, so the getters of WP6c, which read
   `COPT_DBLINFO_LB` and `UB`, were already consistent.
@@ -361,7 +383,23 @@ record what they established.
   comes only where integrality needs both sides; bound types `U`, `L` and
   `F` (a fixed column in a MIP IIS: x in [1, 1], integer y, x + y = 0.5
   gives row `E`, x `F`, y `I`) map to sides, `F` to `member_both`, and `B`
-  and `I` entries are dropped. A ranged row whose two sides are both needed
+  and `I` entries are dropped. The final review of wave 5 (2026-09-29)
+  found `XPRSgetiisdata` listing one column twice, `U` then `L`, where a
+  MIP IIS needs both bounds of a continuous column (x in [0.5, 1.5],
+  integer y, x + 2y = 4, both releases), which note 8 of its manual entry
+  allows; the decoder replaced the first entry by the second and answered
+  `member_lower` alone, a subsystem that re-solves feasible, so it now
+  merges a second entry of one entity into `member_both`, rows included
+  (`cd3b3bd`, pinned in `a12f76d`). The same review measured a registered
+  preintsol callback firing inside `XPRSiisfirst`, once on a feasible
+  2-column MIP and 28 times on a feasible 3 by 30 market split, none on
+  the infeasible 4 by 26 one, a rejecting callback turning both feasible
+  models into `irreducible` answers naming the whole model, where
+  `GRBcomputeIIS` fired the callback 0 times on the same models, so
+  `xpress_milp::compute_iis()` removes the callback with
+  `XPRSremovecbpreintsol` for the call and adds it back on every exit,
+  pinned by a test (0 calls, `feasible`, the callback back for the next
+  solve). A ranged row whose two sides are both needed
   under integrality is reported `L` only (1.25 <= x <= 1.75, x integer). A
   feasible model gives `p_status` 1, `IISSOLSTATUS` 1 and `NUMIIS` 0, after
   which `LPSTATUS` and `MIPSTATUS` keep reading optimal while the objective
@@ -398,13 +436,13 @@ record what they established.
   tables, sized before the call, threw `std::out_of_range`;
   `XPRSpostsolve` restores the counts and does nothing on an original
   problem (documented). So `xpress_lp::solve()` postsolves after
-  `lpoptimize` as `xpress_milp::solve()` did (`92b4f8a`, a test pinning
+  `lpoptimize` as `xpress_milp::solve()` did (`3acad2c`, a test pinning
   the rows addressable after a stopped solve on both releases), and
   `_compute_iis()` sizes its tables after `XPRSiisfirst` returns
-  (`341519e`). 45.01
+  (`cd3b3bd`). 45.01
   solves an LP with crossed column bounds and a MIP with an integer column
   holding no integer to optimal where 47.01 says infeasible, a defect the
-  suites skip from the case data below 47.1. Row bounds (`aa2fbfc`): a
+  suites skip from the case data below 47.1. Row bounds (`35eb0af`): a
   ranged row is type `R` with `rhs` the upper side and a non-negative
   range, `XPRSchgrhsrange` normalizing a negative range by moving the rhs
   (documented and measured), so crossed sides throw
@@ -559,7 +597,9 @@ record what they established.
   `iis_time_limit` (N29 a), Xpress `IISOPS`, Gurobi's `IIS*Force` attributes
   (N15), COPT's `TimeLimit` for the second step and, on `copt_milp`, the
   detached callback, the wrapper's own incumbent callback being detached
-  again before the confirming solve's return code is checked; CPLEX sets nothing, its groups being arguments of the
+  again before the confirming solve's return code is checked, and the
+  callbacks `cplex_milp` and `xpress_milp` detach for the call, re-registered
+  on every exit; CPLEX sets nothing, its groups being arguments of the
   call, which a test pins. The free function's guard saves model data and lives in its detail
   namespace, so it is not reused, which departs from the WP7 guard of the N15
   recommendation.
@@ -1083,8 +1123,9 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   background on `gurobi_milp` and `cplex_milp`, which first needs the fix of
   native ids after a removal; the both-paths check, which calls the free
   function directly on a model that meets both concepts, and which since wave
-  3 runs on `highs_lp` and `highs_qp` and passes on 1.15.1 (2026-09-28); the
-  throw below HiGHS 1.14.0.
+  3 runs on `highs_lp` and `highs_qp`, passing on 1.15.1 (2026-09-28), and
+  since wave 5 on the six CPLEX, Xpress and COPT classes, the eight classes
+  with both concepts; the throw below HiGHS 1.14.0.
 - **CI.** Clp, Cbc, GLPK and HiGHS run in CI, so the free function is
   CI-tested. CI always runs at least one of them, so no user-defined model
   runs the free function for now (N24). HiGHS runs the native routine in the
@@ -1128,13 +1169,20 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   the trials no time limit bounds, warm and cold trials per backend, and the
   same warning. Their code lives in `test/doc_snippets/`, compiled and tested
   in `mippp_test`, and `examples/infeasible_transportation` runs both paths.
-  What concerns the commercial routines waits for 6.2 to 6.6: their tags, with
-  plain `member` on the equality rows of Gurobi, CPLEX and `copt_milp`, which
-  other model limits stop each routine, whether a stop returns late or with no
-  answer on each, and the `copt_lp` time limit of N35 (a). Each of those
-  packages adds its rows to the per-model table of the infeasibility page and
-  to the `has_iis` row, and its sentences to the paragraph on native time
-  bounds.
+  What concerns the commercial routines came with wave 5 (`b5014d1`,
+  `12bcae7`, `b20e204`, `e507a95`, `818235d`): their tags, with plain
+  `member` on the equality rows of Gurobi and CPLEX and on the two-sided
+  rows and two-bounded columns of a `copt_milp` that COPT solves as a MIP,
+  which other model limits stop each routine, whether a stop returns late or
+  with no answer on each, and the `copt_lp` time limit of N35 (a); each
+  backend got its rows in the per-model table of the infeasibility page and
+  in the `has_iis` row, its paragraph on native time bounds, and its
+  limitation bullet. The final review of that wave added the detached
+  callbacks of `cplex_milp` and `xpress_milp`, the iteration-limit stop
+  CPLEX keeps, the `IsMIP` condition on the `copt_milp` rules, the repair
+  section's requirements and Gurobi's way to relax a row, the headers of the
+  two filter concepts, and marked the memory limits of Gurobi and CPLEX as
+  documented rather than measured.
 
 ## Deferred, and how they would come back
 

@@ -31,15 +31,21 @@ questions wave 3 left.
   (`7d0fd90`). Five commits then answered a reader's review of the infeasibility page, `ccf9c94` to `b95fc8e`
   (see 7.1), and a last one closed the review of this follow-up. Wave 5, 6.2 to 6.6, landed on 2026-09-29 on
   `feat/iis-wave5`, locally, awaiting the push: the four backend branches integrated in the order Gurobi
-  (`70374bf`, `4b04d37`), CPLEX (`3e0634b` to `57395a9`), Xpress (`341519e` to `aa2fbfc`) and COPT
-  (`fe2527f` to `db862a2`), the example fixed to read a member's side through a visitor (`77937ea`), the user
-  pages and the feature tables (`6851274` to `0cd7f60`), then the record of iis.md, this file and the plan. A
+  (`70374bf`, `4b04d37`), CPLEX (`3e0634b` to `2d3d909`), Xpress (`cd3b3bd` to `35eb0af`) and COPT
+  (`f73ac7a` to `c2af30c`), the example fixed to read a member's side through a visitor (`708b645`), the user
+  pages and the feature tables (`b5014d1` to `c8e562b`), then the record of iis.md, this file and the plan. A
   second review of the backend branches, folded in the same day, pinned CPLEX's conflict-preference counter
   across a move, sized Xpress's tables after the routine and made `xpress_lp::solve()` postsolve a stopped
-  solve (`92b4f8a`), and on COPT stopped the confirming solve at its first incumbent, reported two-bounded
-  continuous columns whole and a binary column moved outside [0, 1] through its needed bound.
-  Every suite passed locally under gcc 15, gcc 14 and clang 18 and in the sanitized build, on the releases
-  step 6 names.
+  solve (`3acad2c`), and on COPT stopped the confirming solve at its first incumbent, reported two-bounded
+  continuous columns whole and a binary column moved outside [0, 1] through its needed bound. A final
+  review of the integrated branch, folded the same way, merged an Xpress column listed once per bound into
+  `member_both`, detached a registered candidate-solution callback for `compute_iis()` on `xpress_milp`, whose
+  routine ran it, and on `cplex_milp`, whose refiner refuses to run with one, answered a column-less model
+  on COPT from its rows since the routine leaks there, and pinned the iteration-limit stop CPLEX keeps.
+  Every suite passed locally under gcc 15, gcc 14 and clang 18 on the releases step 6 names. The sanitized
+  build's ctest, on the CI pins, exercises Gurobi and Xpress and skips every CPLEX and COPT suite; the
+  same sanitizer binary run directly against CPLEX 22.1.2, COPT 8.0.5 and Xpress 47.01 passed their
+  suites with no sanitizer report once the COPT leak was bypassed.
 
 ## 0. Before any code
 
@@ -330,9 +336,9 @@ classes, which then satisfy `iis_by_deletion_model`, a side that would cross the
 `std::invalid_argument` on CPLEX and Xpress; on CPLEX, `get_constraint_sense`, `get_constraint_rhs`,
 `get_constraint`, `set_constraint_rhs` and `set_constraint_sense` throw `std::runtime_error` on a ranged row,
 whose sense read `>=` before; `xpress_lp::solve()` postsolves a solve stopped by a limit, as
-`xpress_milp::solve()` did, so that the rows stay addressable on Xpress 45.01; `compute_iis()` on `copt_milp`
-detaches a registered candidate-solution callback for the call and runs the model's own solve up to an
-incumbent; and the transportation example reads a member's side through a visitor, since `is_a` of a tag a
+`xpress_milp::solve()` did, so that the rows stay addressable on Xpress 45.01; `compute_iis()` on `copt_milp`,
+`cplex_milp` and `xpress_milp` detaches a registered candidate-solution callback for the call, and on
+`copt_milp` runs the model's own solve up to an incumbent; and the transportation example reads a member's side through a visitor, since `is_a` of a tag a
 status variant does not list does not compile.
 
 ## 6. Native routines
@@ -402,7 +408,10 @@ limit (N27 a).
   but the probes p10 and p13 showed that they prove nothing (a feasible model stopped by the limit gets the
   same flags, and a node-limit stop's exclusions re-solve feasible), see "Native routines" in iis.md. Rows
   get their sides as on Gurobi. Each call passes a fresh equal preference to defeat the resume-after-abort
-  defect, from a counter that is a member of the model and moves with it (`3b39728`). Needs 1.3.
+  defect, from a counter that is a member of the model and moves with it (`48a59cd`). A registered
+  candidate-solution callback is detached for the call, since the refiner returns 1811 with one registered
+  (`f4e844e`, pinned in `48a59cd`); a 34 stop outlives its limit until a bound or a side is written, which
+  the user page states and the iteration-limit test pins. Needs 1.3.
   Modifiable row bounds, over the readable ones of 3.4, are done as native 'R' rows;
   crossed sides are unrepresentable there and throw `std::invalid_argument`.
 - [x] **6.5. Xpress (WP16).** The `IISOPS` integrality and special-constraint bits are set before
@@ -411,11 +420,13 @@ limit (N27 a).
   needs both sides, and a fixed column's `F` maps to `member_both`. `IISSOLSTATUS` gives the outcome, with
   `p_status` 3 and `NUMIIS` 0 read as a stop with no answer, `time_limit` only when the measured time plus a
   20 ms slack reached the limit, since `p_status` 3 also follows an interrupt or a native iteration limit. A
-  column whose bounds cross or hold no integer makes the routine refuse the search, `solver_error`. Done in
-  `341519e` and `8281b03`; the modifiable row bounds, once Xpress was confirmed to store a ranged row natively
-  (type `R`, rhs the upper side, a non-negative range), in `aa2fbfc`, crossed sides throwing
+  column whose bounds cross or hold no integer makes the routine refuse the search, `solver_error`. A column
+  listed once per bound, `U` then `L`, merges into `member_both`, and `xpress_milp` detaches a registered
+  candidate-solution callback for the call, which the routine's MIP solves ran. Done in
+  `cd3b3bd` and `a12f76d`; the modifiable row bounds, once Xpress was confirmed to store a ranged row natively
+  (type `R`, rhs the upper side, a non-negative range), in `35eb0af`, crossed sides throwing
   `std::invalid_argument`. The answer's tables are sized after the routine returns, and `xpress_lp::solve()`
-  postsolves after a stopped solve (`92b4f8a`), since 45.01 leaves the LP presolved, where the counts, the row
+  postsolves after a stopped solve (`3acad2c`), since 45.01 leaves the LP presolved, where the counts, the row
   accessors and the additions see the presolved rows. Validated on 45.01.01 and 47.01.01.
 - [x] **6.6. COPT (WP16).** `COPT_ComputeIIS` and the four `Get*IIS` calls. Per-side flags on `copt_lp`, and
   equality rows as `member` on `copt_milp`. `IsMinIIS` gives the outcome, and `HasIIS` 0 means no answer.
@@ -426,10 +437,11 @@ limit (N27 a).
   two-bounded columns, continuous too, as `member`. The call resets the solver first and, on `copt_milp`,
   runs the model's own callback-free solve up to an incumbent, since COPT caches its answers and flags a
   whole unsolved feasible MIP; a code 3 on `copt_lp` is confirmed by a solve under the remaining budget; a
-  registered callback is detached for the call, and a binary column moved outside [0, 1] is a member
-  through the bound beyond its domain. `copt_lp` has its time limit since wave 1 (N35 a), and both classes
-  bound the whole call with it. Done in `fe2527f` and `7f219cc`; the modifiable row bounds, COPT's rows
-  confirmed two-sided natively, in `db862a2`. Validated on 8.0.5 only, 7.2.5 refusing the local license.
+  registered callback is detached for the call, a binary column moved outside [0, 1] is a member
+  through the bound beyond its domain, and a column-less model is answered from its constant rows, since
+  the routine leaks memory there. `copt_lp` has its time limit since wave 1 (N35 a), and both classes
+  bound the whole call with it. Done in `f73ac7a` and `8baba3f`; the modifiable row bounds, COPT's rows
+  confirmed two-sided natively, in `c2af30c`. Validated on 8.0.5 only, 7.2.5 refusing the local license.
 
 Done when `IisTest` passes in CI and CI shows HiGHS below and above the native floor. Locally, the suite
 passes on each commercial backend at its range floor and latest release, with indicators and a removed
@@ -463,12 +475,14 @@ package adds come with that package.
   Xpress and COPT users can do until their native routines are bound (`f57fa63`); `rerun_on_members`, which
   narrows a partial answer's next run to its members (`31c8a1b`); and smaller answers: the HiGHS library
   override in the below-floor error, the 1.14 floor on `coming-from.md`, names for printing member handles,
-  and the report's output stream (`b95fc8e`). What names a commercial routine came with wave 5 (`6851274`,
-  `286c6fa`, `509e5bf`, `9c8d68f`): the rows of the per-model table, a paragraph per backend on native time
+  and the report's output stream (`b95fc8e`). What names a commercial routine came with wave 5 (`b5014d1`,
+  `12bcae7`, `b20e204`, `e507a95`): the rows of the per-model table, a paragraph per backend on native time
   bounds and the other limits that stop a routine, the plain `member` of the equality rows of Gurobi and
-  CPLEX and of the two-sided rows and integer columns of `copt_milp`, the visitor that reads a side on any
-  path, and COPT's confirming solve; the concepts rows, the limitation bullets and the feature tables
-  followed.
+  CPLEX and of the two-sided rows and columns with two finite bounds, continuous too, of a `copt_milp` that
+  COPT solves as a MIP, the visitor that reads a side on any path, and COPT's confirming solve; the
+  concepts rows, the limitation bullets and the feature tables followed. The final review of wave 5 added
+  the detached callbacks of `cplex_milp` and `xpress_milp`, the iteration-limit stop CPLEX keeps, the
+  repair section's requirements and Gurobi's way to relax a row, and the headers of the filter concepts.
 - [x] **7.2. The deletion filter as an algorithm.** A page under Algorithms in `zensical.toml`, next to column
   generation. It covers the engine's oracle contract, monotonicity, limits and reasons. It then covers the
   free function's requirements, what it saves and never touches, and the native-handle warning. It warns that
@@ -483,7 +497,7 @@ package adds come with that package.
   makes `highs_qp` rows appear, then the tables are regenerated. The labels came in wave 2, in `19803cc`. Done
   in `569703a`, which also measures the drawn width, since a longer label cut the last column, and in
   `24004ff`, which shortens the IIS rows and adds `deletion_oracle`; `f5b8a9a` restores the sentence on
-  `irreducible` with zero members. Regenerated again in wave 5 (`0cd7f60`), the IIS rows ticking Gurobi,
+  `irreducible` with zero members. Regenerated again in wave 5 (`c8e562b`), the IIS rows ticking Gurobi,
   Xpress and COPT.
 - [x] **7.4. README and `coming-from.md`.** The README roadmap row, and the list of missing features in
   `docs/getting-started/coming-from.md`. Done in `808e318` and `1817a90`, with the feature lists of the home
