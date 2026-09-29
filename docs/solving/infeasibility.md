@@ -131,7 +131,7 @@ The chairs need 10 hours of a team that has 8, and the desks 4 of a team that ha
 --8<-- "test/doc_snippets/infeasibility_repair.txt"
 ```
 
-The loop returns `feasible` once no conflict remains. An answer can also have no member because the run proved nothing, `undetermined`, or because integrality and special constraints conflict on their own, `irreducible`, which no relaxed side repairs: the loop then returns that outcome. It changes the model for good, so save the sides you want back before calling it.
+The loop returns `feasible` once no conflict remains. An answer can also have no member because the run proved nothing, `undetermined`, or because integrality and special constraints conflict on their own, `irreducible`, which no relaxed side repairs: the loop then returns that outcome. It changes the model for good, so save the sides you want back before calling it, as `rerun_on_members` does under [Limits](#limits).
 
 ## Outcomes and reasons
 
@@ -170,6 +170,14 @@ Here `stop` is such a token:
 ```
 
 A run stopped by a limit keeps what it proved, which is why the snippet prints a `not_proven_minimal` answer too. With a budget of three solves, the workshop's run ends `not_proven_minimal` with `solve_limit`, and its members include those of the IIS.
+
+Such an answer of the filter is a start. Run the filter again with a larger budget, or narrow the next run down to the members, which the filter proved to conflict: relax every other side, since a side at infinity is no candidate, run again, and write the relaxed sides back. That run makes at most one solve per member side plus one, and the IIS it finds among the members is an IIS of the whole model:
+
+```cpp
+--8<-- "test/doc_snippets/infeasibility.cpp:narrow-partial"
+```
+
+On the workshop, `rerun_on_members(model, partial)` after the three-solve run has 11 candidates rather than 13, makes 12 solves and prints the five lines of the complete run.
 
 Limits are checked between trials, and a trial that has started runs to its end. On a model with a time limit (`has_time_limit`) and under a finite `time_limit`, each trial gets the time that remains as its own time limit, never more than the limit you had set, which is restored afterwards. `clp_lp`, `glpk_lp` and `glpk_milp` have no time limit, so there one trial can run past the deadline, and on `cbc_milp` the time limit did not bound a trial's root LP on the Cbc build where this was measured: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations. With the default limits, the filter never reads or writes the model's time limit.
 

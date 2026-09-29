@@ -16,6 +16,7 @@
 #include <streambuf>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -247,6 +248,52 @@ iis_outcome relax_until_feasible(Model & model, Report && report) {
 }
 // --8<-- [end:repair-loop]
 
+// --8<-- [start:narrow-partial]
+template <typename Model, typename Iis>
+auto rerun_on_members(Model & model, const Iis & partial,
+                      const iis_limits & limits = {}) {
+    const auto inf = model.infinity();
+    std::vector<std::tuple<model_variable_t<Model>, double, double>> bounds;
+    std::vector<std::tuple<model_constraint_t<Model>, double, double>> sides;
+    // a side at infinity is no candidate, so relaxing every side the partial
+    // answer does not name leaves only its members to the filter
+    for(auto v : model.variables()) {
+        bounds.emplace_back(v, model.get_variable_lower_bound(v),
+                            model.get_variable_upper_bound(v));
+        const named_sides kept =
+            std::visit(sides_named{}, partial.get_status(v));
+        if(!kept.lower) model.set_variable_lower_bound(v, -inf);
+        if(!kept.upper) model.set_variable_upper_bound(v, inf);
+    }
+    for(auto c : model.constraints()) {
+        sides.emplace_back(c, model.get_constraint_lower_bound(c),
+                           model.get_constraint_upper_bound(c));
+        const named_sides kept =
+            std::visit(sides_named{}, partial.get_status(c));
+        if(!kept.lower) model.set_constraint_lower_bound(c, -inf);
+        if(!kept.upper) model.set_constraint_upper_bound(c, inf);
+    }
+    auto restore = [&] {
+        for(const auto & [v, lower, upper] : bounds) {
+            model.set_variable_lower_bound(v, lower);
+            model.set_variable_upper_bound(v, upper);
+        }
+        for(const auto & [c, lower, upper] : sides) {
+            model.set_constraint_lower_bound(c, lower);
+            model.set_constraint_upper_bound(c, upper);
+        }
+    };
+    try {
+        auto narrowed = compute_iis_by_deletion(model, limits);
+        restore();
+        return narrowed;
+    } catch(...) {
+        restore();
+        throw;
+    }
+}
+// --8<-- [end:narrow-partial]
+
 template <typename Model>
 struct repair_run {
     iis_outcome last;
@@ -403,6 +450,46 @@ struct run_relax_members {
     template <typename Model, typename Print>
     void operator()(Model & model, Print &) const {
         relax_members(model, compute_iis_by_deletion(model));
+    }
+};
+
+template <typename Model>
+std::vector<std::pair<double, double>> all_sides(Model & model) {
+    std::vector<std::pair<double, double>> sides;
+    for(auto v : model.variables())
+        sides.emplace_back(model.get_variable_lower_bound(v),
+                           model.get_variable_upper_bound(v));
+    for(auto c : model.constraints())
+        sides.emplace_back(model.get_constraint_lower_bound(c),
+                           model.get_constraint_upper_bound(c));
+    return sides;
+}
+
+// The three-solve answer, then a run whose only candidates are its members.
+struct run_on_the_members {
+    std::size_t * candidates;
+    std::size_t * solves;
+    iis_outcome * outcome;
+    template <typename Model, typename Print>
+    void operator()(Model & model, Print & print) const {
+        const auto partial = compute_iis_by_deletion(model, {.max_solves = 3});
+        ASSERT_EQ(partial.get_outcome(), iis_outcome::not_proven_minimal);
+        *candidates = 0;
+        for(auto v : model.variables()) {
+            const auto kept = std::visit(sides_named{}, partial.get_status(v));
+            *candidates += kept.lower + kept.upper;
+        }
+        for(auto c : model.constraints()) {
+            const auto kept = std::visit(sides_named{}, partial.get_status(c));
+            *candidates += kept.lower + kept.upper;
+        }
+        const auto before = all_sides(model);
+        const std::size_t solves_before = model.solves;
+        const auto iis = rerun_on_members(model, partial);
+        *solves = model.solves - solves_before;
+        *outcome = iis.get_outcome();
+        EXPECT_EQ(all_sides(model), before);
+        print(iis);
     }
 };
 
@@ -575,6 +662,22 @@ TEST_F(infeasibility_page_highs_lp, member_rows_lists_the_conflicting_rows) {
         workshop<highs_lp>(out, run_member_rows{&num_rows, &num_variables}));
     EXPECT_EQ(num_rows, 4u);       // labour and the three orders
     EXPECT_EQ(num_variables, 1u);  // overtime
+}
+
+// The members of the partial answer hold the whole IIS, found again with one
+// solve per member side plus one, and every side is written back.
+TEST_F(infeasibility_page_highs_lp,
+       rerun_on_members_completes_a_partial_answer) {
+    std::size_t candidates = 0;
+    std::size_t solves = 0;
+    iis_outcome outcome = iis_outcome::undetermined;
+    std::ostringstream out;
+    expect_page_run(workshop<iis_trial_probe<highs_lp>>(
+        out, run_on_the_members{&candidates, &solves, &outcome}));
+    EXPECT_EQ(outcome, iis_outcome::irreducible);
+    EXPECT_EQ(candidates, 11u);  // of the workshop's 13 finite sides
+    EXPECT_EQ(solves, candidates + 1);
+    EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
 // Relaxing the whole conflict frees the orders, so the fix that follows needs
