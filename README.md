@@ -129,7 +129,7 @@ Full tables (N=100–1000 in steps of 100), per-backend results for eight solver
 | Cbc, SCIP | | ✓ | |
 | Clp, SoPlex | ✓ | | |
 
-Per-feature support (duals, reduced costs, callbacks, MIP starts, indicator constraints, variable removal, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).
+Per-feature support (duals, reduced costs, callbacks, MIP starts, indicator constraints, variable removal, IIS, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).
 
 
 ## Is MIP++ for you?
@@ -171,7 +171,7 @@ Solver shared libraries are discovered at runtime; only the solvers you actually
 
 ## Roadmap
 
-The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates.
+The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS).
 
 Planned, roughly by priority:
 
@@ -184,7 +184,7 @@ Planned, roughly by priority:
 | 🟠 | **QP objectives beyond HiGHS** | Extend Hessian support to Gurobi, CPLEX, MOSEK, etc. |
 | 🟡 | **QCP/SOCP constraints** | Quadratically constrained programs |
 | 🟡 | **Model file I/O** | Read/write LP and MPS files |
-| 🟡 | **Infeasibility diagnosis (IIS)** | Irreducible infeasible subsystem extraction |
+| 🟡 | **Native IIS routines beyond HiGHS** | `compute_iis()` on Gurobi, CPLEX, Xpress and COPT, whose models have no IIS path yet; the deletion filter covers the other seven solvers |
 | 🟡 | **MILP fuzzy tests** | Differential fuzzing of the MILP interface against a reference implementation, as `lp_fuzzy_tests` does for LPs; the hand-written suites left gaps in the backends |
 | ⚪ | Solution pools, multi-objective, semi-continuous variables, progress getters | |
 
