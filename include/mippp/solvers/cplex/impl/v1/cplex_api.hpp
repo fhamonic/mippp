@@ -128,6 +128,8 @@ int CPXsetdblparam(CPXENVptr env, int whichparam, double newvalue);
 constexpr int CPXPARAM_Advance = 1001;
 constexpr int CPXPARAM_ScreenOutput = 1035;
 constexpr int CPXPARAM_Preprocessing_Reduce = 1057;
+constexpr int CPXPARAM_Conflict_Algorithm = 1073;
+constexpr int CPXPARAM_Conflict_Display = 1074;
 enum PrereduceType : int {
     CPX_PREREDUCE_NOPRIMALORDUAL = 0,
     CPX_PREREDUCE_PRIMALONLY = 1,
@@ -217,6 +219,32 @@ int CPXgetx(CPXCENVptr env, CPXCLPptr lp, double * x, int begin, int end);
 int CPXgetpi(CPXCENVptr env, CPXCLPptr lp, double * pi, int begin, int end);
 int CPXsolution(CPXCENVptr env, CPXCLPptr lp, int * lpstat_p, double * objval_p,
                 double * x, double * pi, double * slack, double * dj);
+
+constexpr int CPX_CON_LOWER_BOUND = 1;
+constexpr int CPX_CON_UPPER_BOUND = 2;
+constexpr int CPX_CON_LINEAR = 3;
+constexpr int CPX_CONFLICT_EXCLUDED = -1;
+constexpr int CPX_CONFLICT_POSSIBLE_MEMBER = 0;
+constexpr int CPX_CONFLICT_POSSIBLE_LB = 1;
+constexpr int CPX_CONFLICT_POSSIBLE_UB = 2;
+constexpr int CPX_CONFLICT_MEMBER = 3;
+constexpr int CPX_CONFLICT_LB = 4;
+constexpr int CPX_CONFLICT_UB = 5;
+constexpr int CPX_STAT_CONFLICT_FEASIBLE = 30;
+constexpr int CPX_STAT_CONFLICT_MINIMAL = 31;
+constexpr int CPX_STAT_CONFLICT_ABORT_CONTRADICTION = 32;
+constexpr int CPX_STAT_CONFLICT_ABORT_TIME_LIM = 33;
+constexpr int CPX_STAT_CONFLICT_ABORT_IT_LIM = 34;
+constexpr int CPX_STAT_CONFLICT_ABORT_NODE_LIM = 35;
+constexpr int CPX_STAT_CONFLICT_ABORT_OBJ_LIM = 36;
+constexpr int CPX_STAT_CONFLICT_ABORT_MEM_LIM = 37;
+constexpr int CPX_STAT_CONFLICT_ABORT_USER = 38;
+constexpr int CPX_STAT_CONFLICT_ABORT_DETTIME_LIM = 39;
+int CPXrefineconflictext(CPXCENVptr env, CPXLPptr lp, int grpcnt, int concnt,
+                         double const * grppref, int const * grpbeg,
+                         int const * grpind, char const * grptype);
+int CPXgetconflictext(CPXCENVptr env, CPXCLPptr lp, int * grpstat, int beg,
+                      int end);
 
 using CPXLONG = long long;
 constexpr CPXLONG CPX_CALLBACKCONTEXT_BRANCHING = 0x0080;
@@ -319,6 +347,8 @@ namespace cplex::impl::v1 {
     F(CPXgetx, getx)                                                 \
     F(CPXgetpi, getpi)                                               \
     F(CPXsolution, solution)                                         \
+    F(CPXrefineconflictext, refineconflictext)                       \
+    F(CPXgetconflictext, getconflictext)                             \
     F(CPXcallbacksetfunc, callbacksetfunc)                           \
     F(CPXcallbackgetcandidatepoint, callbackgetcandidatepoint)       \
     F(CPXcallbackrejectcandidate, callbackrejectcandidate)           \

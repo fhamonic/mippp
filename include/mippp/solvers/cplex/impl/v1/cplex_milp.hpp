@@ -391,6 +391,52 @@ public:
                                          std::to_string(probtype));
         }
     }
+
+private:
+    // The refiner refuses to run while a generic callback is registered
+    // (CPXERR_UNSUPPORTED_OPERATION, measured on 22.1.1 and 22.1.2), whatever
+    // the callback does: it is detached for the call. A rejected
+    // re-registration is retried once, unchecked, by the destructor.
+    class iis_callback_guard {
+    private:
+        cplex_milp * _model;
+
+    public:
+        explicit iis_callback_guard(cplex_milp & model)
+            : _model(model.candidate_solution_callback ? &model : nullptr) {
+            if(_model)
+                _model->check(_model->CPX->callbacksetfunc(
+                    _model->env, _model->lp, 0, nullptr, nullptr));
+        }
+        iis_callback_guard(const iis_callback_guard &) = delete;
+        iis_callback_guard & operator=(const iis_callback_guard &) = delete;
+
+        void restore() {
+            if(!_model) return;
+            _model->check(_model->CPX->callbacksetfunc(
+                _model->env, _model->lp, CPX_CALLBACKCONTEXT_CANDIDATE,
+                candidate_solution_callback_fun, _model));
+            _model = nullptr;
+        }
+        ~iis_callback_guard() {
+            if(!_model) return;
+            (void)_model->CPX->callbacksetfunc(
+                _model->env, _model->lp, CPX_CALLBACKCONTEXT_CANDIDATE,
+                candidate_solution_callback_fun, _model);
+        }
+    };
+
+public:
+    // The refiner replaces CPXgetstat with its own statuses, which do not
+    // describe the held solution: the reported status is reset before the
+    // native call, throw or return.
+    auto compute_iis() {
+        reset_status();
+        iis_callback_guard detached(*this);
+        auto iis = _compute_iis();
+        detached.restore();
+        return iis;
+    }
     double get_solution_value() {
         double val;
         check(CPX->solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,

@@ -106,9 +106,11 @@ unless marked otherwise.
   outcome (`undetermined`). `iis_reason` gives the reason when the proof
   stopped early: `solve_limit`, `time_limit`, `cancelled`, or
   `inconclusive_trial` when a trial could not decide (N2 b). Every native
-  routine can end partially: Gurobi `IISMinimal`, COPT `IsMinIIS`, CPLEX's
-  abort statuses and "possible member" flags, Xpress `IISSOLSTATUS`, HiGHS's
-  "maybe in conflict". The unified tags have no possible-member tag (N1 a).
+  routine can end partially: Gurobi `IISMinimal`, COPT `IsMinIIS`, Xpress
+  `IISSOLSTATUS`, HiGHS's "maybe in conflict". CPLEX's abort statuses come
+  with "possible member" flags, but these prove nothing (see Native
+  routines), so a CPLEX stop is `undetermined`. The unified tags have no
+  possible-member tag (N1 a).
   Retained, untested and native "possible" members get `member_*` under
   `not_proven_minimal`, plain `member` included where the routine does not
   name the side. A native answer not proven minimal while no limit stopped it
@@ -158,7 +160,7 @@ unless marked otherwise.
 | Solver, probed release | Entry point | Explains | Row sides | Bound sides | Partial answer | Stopped by `set_time_limit` |
 | --- | --- | --- | --- | --- | --- | --- |
 | Gurobi 12.0.1 | `GRBcomputeIIS` | the MIP | membership only | `IISLB`, `IISUB` | `IISMinimal` | yes, documented and measured |
-| CPLEX 22.1.2 | `CPXrefineconflictext` | the MIP | membership only | lower, upper | abort statuses, "possible" flags | yes, documented and measured |
+| CPLEX 22.1.2 | `CPXrefineconflictext` | the MIP | membership only | lower, upper | none: the "possible" flags of an abort status prove nothing (p10, p13 below) | yes, documented and measured |
 | COPT 8.0 | `COPT_ComputeIIS` | the MIP | per side, reliable on LPs only | per side | `IsMinIIS` | on `copt_milp`, measured, undocumented, and on `copt_lp` once fix 10 adds the setter (N35 a) |
 | Xpress 47.01 | `XPRSiisfirst`, `XPRSgetiisdata` | the MIP | `L`, `G`, or `E` for both | `L`, `U` | `IISSOLSTATUS` | yes, measured, implied by the manual |
 | HiGHS 1.15.1, routine from 1.12.0, floor 1.14.0 | `Highs_getIis` | the relaxation | per side | per side | "maybe in conflict" | no, `iis_time_limit` replaces it, the option documented, the replacement read in the sources and measured |
@@ -182,7 +184,27 @@ releases the introduction lists.
   excluded. Under a limit of 0 s, 22.1.1 and 22.1.2 returned status 33 with
   every group excluded, as did 0.001 s on 22.1.1, which is no answer at all,
   and a limit of 0.003 s on 22.1.1 marked every group possible, the whole
-  model (measured).
+  model (measured). The probes of 2026-09-29 (p10, p13, on 22.1.1 and
+  22.1.2) showed that no stop carries an answer, so the wrapper maps every
+  status from 32 to 39 to `undetermined` with no member, `time_limit` as the
+  reason for 33 only, and never `not_proven_minimal`: a feasible market split
+  stopped by the time limit returns 33 with every group possible, exactly as
+  the infeasible one does, and a feasible dense LP under a tiny limit all
+  excluded then all possible, so the flags of a stop prove no infeasibility
+  (p13); and a node-limit stop (35, two groups possible and 41 excluded, two
+  seeds, both releases) flagged rows that re-solve MIP optimal, because the
+  refiner excluded groups whose sub-MIP had only hit the limit (p10). No
+  mixed answer under 33 or 34 was seen in about 25 stops. Two more facts
+  shape the call. A stopped refinement resumes when the same groups are
+  passed again on an unchanged problem and then returns 30, feasible, on an
+  infeasible model, caching that answer (undocumented, p7, p11): the wrapper
+  passes a per-model counter, bumped on every call, as the equal preference
+  of every group, which makes each call fresh. And a completed answer is
+  cached by CPLEX until a data edit (`chgrhs`, `chgbds`, `chgcoef`,
+  `chgsense`, `chgctype`, `newcols`, `addindconstr`, `addsos`), not by an
+  objective or parameter change (p7, p13). A native simplex iteration limit on a MIP makes
+  `CPXrefineconflictext` itself fail with 3019 (p9), unreachable through
+  MIP++ since `cplex_milp` has no `set_iteration_limit`.
 - **COPT.** On MIPs it flags a single side of an equality row even when both
   are needed: integer x with `x = 0.5`, integer x with `2x = 1.5`, and
   integers x, y with `x + y = 1.5` each got one side only. An LP IIS never

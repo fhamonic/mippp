@@ -129,6 +129,13 @@ public:
         if(is<status::infeasible_or_unbounded>(_status))
             throw std::runtime_error("Failed to refine LP status.");
     }
+    // The refiner replaces CPXgetstat with its own statuses, which do not
+    // describe the held solution: the reported status is reset before the
+    // native call, throw or return.
+    auto compute_iis() {
+        reset_status();
+        return _compute_iis();
+    }
     double get_solution_value() {
         double val;
         check(CPX->solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,

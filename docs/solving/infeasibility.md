@@ -52,12 +52,12 @@ The model is the one you built. The filter changes bounds and sides while it wor
 
 | Path | Call | Where | Returns |
 | :--- | :--- | :--- | :--- |
-| Native routine | `model.compute_iis()` | `has_iis<M>`: `highs_lp` and `highs_qp`, with HiGHS 1.14 or later at runtime | `model_iis_t<M>` |
+| Native routine | `model.compute_iis()` | `has_iis<M>`: `highs_lp` and `highs_qp`, with HiGHS 1.14 or later at runtime; `cplex_lp` and `cplex_milp` | `model_iis_t<M>` |
 | Deletion filter | `compute_iis_by_deletion(model, limits)`, from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex | a snapshot type of its own, taken through `auto` |
 
 Both analyze the model as it currently is and never rely on an earlier solve, whose status is stale as soon as the model changes: the workshop's `solve()` only showed that there was something to explain. A feasible model is an outcome, not an error. Neither runs behind your back: each is an explicit call, and can cost many solves.
 
-The native routine is the solver's own, HiGHS's `Highs_getIis`. On the workshop it finds the same conflict and prints the same five lines:
+The native routine is the solver's own, HiGHS's `Highs_getIis` or CPLEX's `CPXrefineconflictext`. On the workshop it finds the same conflict, and on `highs_lp` prints the same five lines; on `cplex_lp` the three order rows print `side not named`, see [Reading the answer](#reading-the-answer):
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-native"
@@ -91,7 +91,7 @@ member
 
 Test membership with `is_a<iis_status::member>(s)`, which accepts every refinement. `is<iis_status::member>(s)` tests for the plain tag alone, and does not compile on a variant that does not list it.
 
-The side matters on anything with two: a variable's bounds, a ranged row, an `==` row. The workshop's orders conflict through their lower sides. `member_both` means that both sides are needed, for instance when they cross, a lower bound above the upper bound, or when integrality [needs both sides of a row](#lp-or-milp). Plain `member` is for a row whose side a routine cannot name. Neither path reports it today, since both name every side, but code meant for any IIS handles it, as `member_side` does.
+The side matters on anything with two: a variable's bounds, a ranged row, an `==` row. The workshop's orders conflict through their lower sides. `member_both` means that both sides are needed, for instance when they cross, a lower bound above the upper bound, or when integrality [needs both sides of a row](#lp-or-milp). Plain `member` is for a row whose side a routine cannot name. CPLEX's routine reports it for every `==` row and every ranged row, since it names rows whole and gives an inequality row the side of its sense; HiGHS's routine and the deletion filter name every side. Code meant for any IIS handles it, as `member_side` does.
 
 Iterating your own variable and constraint families, as `print_conflict` does, gives each member your name for it. Code that did not build the model lists the members through `model.variables()` and `model.constraints()`, which every model class provides:
 
@@ -183,6 +183,8 @@ Limits are checked between trials, and a trial that has started runs to its end.
 
 `compute_iis()` takes no argument. The model's own time limit, set by `set_time_limit`, bounds each call as a fresh budget, so `solve()` followed by `compute_iis()` may take twice the limit. HiGHS applies an IIS time limit of its own during its search, and `compute_iis()` copies the model's limit there for the call and restores it afterwards. That limit bounds the search only, not the checks HiGHS runs before and after it, so a call can return after the limit. A stop may also leave no answer: the outcome is then `undetermined`, with `time_limit` as the reason. The iteration limit set by `set_iteration_limit`, the only other limit of `highs_lp` and `highs_qp`, does not stop the routine: a call answers in full under a limit that stops `solve()`.
 
+On `cplex_lp` and `cplex_milp`, CPLEX's routine reads the model's time limit itself and stops under it, returning up to 15 ms late (measured on CPLEX 22.1.1 and 22.1.2). A stop never carries a partial answer: at a stop CPLEX flags every candidate it has not examined as a possible member, on a feasible model too, and a stop on the node limit was measured to exclude candidates that the conflict needs, so a stopped call is `undetermined` with no member, and `time_limit` as its reason when the time limit stopped it. The model's other limits stop the routine the same way, with no reason: the iteration limit of `cplex_lp`, and the node limit of `cplex_milp`, whose stop can come seconds late on a hard model. CPLEX's own memory, objective and deterministic-time limits, set through the [native handles](../solvers/index.md#limitation-native-handles), stop it too.
+
 ## LP or MILP
 
 An IIS explains the problem that the model class solves. On a `*_milp` model it explains the MIP: integrality is part of the background, never a member, so rows and bounds can conflict where the LP relaxation has a solution. On a `*_lp` model it explains the LP. Ten tonnes cannot travel in full three-tonne trucks:
@@ -193,11 +195,11 @@ An IIS explains the problem that the model class solves. On a `*_milp` model it 
 
 On `highs_milp` the answer is `irreducible`, with `load` a member through both sides, since `3 * trucks <= 10` and `3 * trucks >= 10` each have an integer solution, three trucks or four. The bounds of `trucks` are not members. The same row over a continuous variable is feasible, and the filter says so on `highs_lp`.
 
-This is why `highs_milp` has no `compute_iis()`: HiGHS's routine explains the LP relaxation of a MIP, which answers another question. `highs_milp` runs the deletion filter, whose trials are MIP solves.
+This is why `highs_milp` has no `compute_iis()`: HiGHS's routine explains the LP relaxation of a MIP, which answers another question. `highs_milp` runs the deletion filter, whose trials are MIP solves. CPLEX's routine explains the MIP, so `cplex_milp` has `compute_iis()`, and on the trucks it answers `irreducible` too, with `load` a plain `member`, and `cplex_lp` answers `feasible`.
 
 ## The model afterwards
 
-Both paths leave the model's data as they found them. The filter changes bounds and sides during its trials, and sets the objective to zero so that each trial is a feasibility problem. It saves each item first and writes it back on every exit, exceptions included: bounds, sides, the objective from a copy (the Hessian too, on `highs_qp`) and the time limit it forwarded. If writing one item back fails on a normal return, it still restores the others and then throws the first error; after an exception from a trial, it restores what it can and lets that exception through. `compute_iis()` restores the solver options it sets.
+Both paths leave the model's data as they found them. The filter changes bounds and sides during its trials, and sets the objective to zero so that each trial is a feasibility problem. It saves each item first and writes it back on every exit, exceptions included: bounds, sides, the objective from a copy (the Hessian too, on `highs_qp`) and the time limit it forwarded. If writing one item back fails on a normal return, it still restores the others and then throws the first error; after an exception from a trial, it restores what it can and lets that exception through. `compute_iis()` restores the solver options it sets; on CPLEX it sets none, the candidates being arguments of the call. CPLEX keeps a completed answer until the model's data change, so a second `compute_iis()` on an unchanged model returns at once.
 
 The status is another matter. After any run that solved, the solver holds the solution of a trial rather than of your model, so `get_status()` reports `unknown`, after an exception too. A run answered without a solve leaves the status as it was: one stopped before its first trial, or one on a model without variables, which the filter decides from the constraint sides alone. `compute_iis()` makes the status `unknown` on every call, whether it returns or throws. Call `solve()` again before reading a solution, as the workshop's remedy does.
 
@@ -216,12 +218,13 @@ A snapshot is computed once, when the call returns, and later changes to the mod
 | `cbc_milp` | no | yes | an [experimental](../solvers/index.md#the-backends) backend, with wrong answers of Cbc 2.10 on integer rows, and root LPs past the deadline (measured on a Cbc `devel` build): see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs) and [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
 | `scip_milp` | no | yes | can throw on an infeasible model with binary columns: see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries) |
 | `mosek_lp`, `mosek_milp`, `soplex_lp` | no | yes | |
-| Gurobi, CPLEX, Xpress and COPT models | no | no | neither path yet, see below |
+| `cplex_lp`, `cplex_milp` | yes | no | rows are members without a side: see [Reading the answer](#reading-the-answer); a stopped call has no answer: see [Limits](#limits); indicator constraints are background |
+| Gurobi, Xpress and COPT models | no | no | neither path yet, see below |
 
-The Gurobi, CPLEX, Xpress and COPT models meet every requirement of `iis_by_deletion_model` but one, `has_modifiable_constraint_bounds`, and MIP++ does not call their native routines yet. Native routines for them are planned. Until then, two ways remain:
+The Gurobi, CPLEX, Xpress and COPT models meet every requirement of `iis_by_deletion_model` but one, `has_modifiable_constraint_bounds`, and MIP++ does not call the native routines of Gurobi, Xpress and COPT yet. Native routines for them are planned. Until then, two ways remain:
 
 - the engine of [The deletion filter](../algorithms/deletion-filter.md#the-engine), over an oracle of your own: one that builds and solves a model of the active rows and bounds, say;
-- the solver's own routine, `GRBcomputeIIS`, `CPXrefineconflictext`, `XPRSiisfirst` or `COPT_ComputeIIS`, on the objects `native_model()` returns. The api objects bind none of them, so the call goes through the solver's C API, linked or loaded by you from the file `native_api().library_path()` names, and `native_id(v)` and `native_id(c)` give the index each of your handles has there. Such a call is outside MIP++, see [Native changes](#native-changes).
+- the solver's own routine, `GRBcomputeIIS`, `XPRSiisfirst` or `COPT_ComputeIIS`, on the objects `native_model()` returns. The api objects bind none of them, so the call goes through the solver's C API, linked or loaded by you from the file `native_api().library_path()` names, and `native_id(v)` and `native_id(c)` give the index each of your handles has there. Such a call is outside MIP++, see [Native changes](#native-changes).
 
 ## Native changes
 
