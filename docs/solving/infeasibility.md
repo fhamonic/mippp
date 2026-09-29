@@ -59,7 +59,7 @@ A model can have several IISs, and the two paths may then return different ones,
 
 `has_iis` is a property of the model type, while the routine depends on the HiGHS library loaded at runtime. With a HiGHS older than 1.14, `compute_iis()` throws `solver_error`, whose message names the release it found, the library's path and the 1.14 floor.
 
-The deletion filter is an algorithm of the library, independent of the solver. It relaxes each finite variable bound and constraint side in turn, re-solves, and keeps a side only when the rest becomes feasible without it. It runs in place, on your model, which must let it enumerate its variables and constraints and read and change every bound and side; `iis_by_deletion_model` lists the [requirements](../reference/concepts.md#infeasibility-analysis).
+The deletion filter is an algorithm of the library, independent of the solver. It relaxes each finite variable bound and constraint side in turn, re-solves, and keeps a side only when the rest becomes feasible without it. It runs in place, on your model, which must let it enumerate its variables and constraints and read and change every bound and side; `iis_by_deletion_model` lists the [requirements](../reference/concepts.md#infeasibility-analysis). [The deletion filter](../algorithms/deletion-filter.md) describes the algorithm, what a run changes and costs, and how to run it on constraints of your own.
 
 Each path has its own snapshot type, so generic code picks one at compile time and hands the answer to code written for any IIS, as `print_conflict` is:
 
