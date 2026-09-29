@@ -6,7 +6,13 @@ MIP++ computes an IIS along two paths, a solver's native routine and a deletion 
 
 ## A first IIS
 
-A workshop makes chairs, tables and desks from boards of wood and hours of labour. Its orders must be filled exactly, and it has 30 hours of labour plus at most one hour of overtime, which it minimizes. `lp_type` is the model class, `highs_lp` say, and the code assumes `using namespace mippp` and `using namespace mippp::operators`, as in [A first model](../getting-started/first-model.md):
+A workshop makes chairs, tables and desks from boards of wood and hours of labour. Its orders must be filled exactly, and it has 30 hours of labour plus at most one hour of overtime, which it minimizes. The code includes the backend's header, HiGHS's here, and `mippp/utility/iis_by_deletion.hpp`, which provides the deletion filter used below, `compute_iis_by_deletion`, with its `iis_limits`. The solver headers do not include it:
+
+```cpp
+--8<-- "test/doc_snippets/infeasibility.cpp:includes"
+```
+
+`lp_type` is the model class, `highs_lp` say, and the code assumes `using namespace mippp` and `using namespace mippp::operators`, as in [A first model](../getting-started/first-model.md):
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-model"
@@ -22,7 +28,7 @@ The orders need 10 + 18 + 4 = 32 hours of labour, one more than the 31 available
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-report"
 ```
 
-The deletion filter runs on every model class of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex:
+The deletion filter, `compute_iis_by_deletion` from the header included above, runs on every model class of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex:
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-deletion"
@@ -47,7 +53,7 @@ The model is the one you built. The filter changes bounds and sides while it wor
 | Path | Call | Where | Returns |
 | :--- | :--- | :--- | :--- |
 | Native routine | `model.compute_iis()` | `has_iis<M>`: `highs_lp` and `highs_qp`, with HiGHS 1.14 or later at runtime | `model_iis_t<M>` |
-| Deletion filter | `compute_iis_by_deletion(model, limits)` | `iis_by_deletion_model<M>`: every model class of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex | a snapshot type of its own, taken through `auto` |
+| Deletion filter | `compute_iis_by_deletion(model, limits)`, from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex | a snapshot type of its own, taken through `auto` |
 
 Both analyze the model as it currently is and never rely on an earlier solve, whose status is stale as soon as the model changes: the workshop's `solve()` only showed that there was something to explain. A feasible model is an outcome, not an error. Neither runs behind your back: each is an explicit call, and can cost many solves.
 

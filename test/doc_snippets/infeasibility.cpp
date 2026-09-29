@@ -19,8 +19,10 @@
 #include <vector>
 
 #include "mippp/solvers/clp/all.hpp"
+// --8<-- [start:includes]
 #include "mippp/solvers/highs/all.hpp"
 #include "mippp/utility/iis_by_deletion.hpp"
+// --8<-- [end:includes]
 
 using namespace mippp;
 
