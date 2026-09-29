@@ -126,8 +126,9 @@ Full tables (N=100–1000 in steps of 100), per-backend results for eight solver
 | --- | :-: | :-: | :-: |
 | HiGHS | ✓ | ✓ | ✓ |
 | Gurobi, CPLEX, Xpress, COPT, MOSEK, GLPK | ✓ | ✓ | |
-| Cbc, SCIP | | ✓ | |
+| SCIP | | ✓ | |
 | Clp, SoPlex | ✓ | | |
+| Cbc ([experimental](https://fhamonic.github.io/mippp/solvers/#the-backends)) | | ✓ | |
 
 Per-feature support (duals, reduced costs, callbacks, MIP starts, indicator constraints, variable removal, IIS, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).
 

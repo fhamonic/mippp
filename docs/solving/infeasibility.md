@@ -167,7 +167,7 @@ A snapshot is computed once, when the call returns, and later changes to the mod
 | `highs_milp` | no: the routine explains the relaxation | yes | as above |
 | `clp_lp`, `glpk_lp` | no | yes | no time limit: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
 | `glpk_milp` | no | yes | no time limit, and endless branching on some integer rows: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) and [Integrality proofs](../solvers/index.md#limitation-integrality-proofs) |
-| `cbc_milp` | no | yes | wrong answers of Cbc 2.10 on integer rows, and root LPs past the deadline (measured on a Cbc `devel` build): see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs) and [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
+| `cbc_milp` | no | yes | an [experimental](../solvers/index.md#the-backends) backend, with wrong answers of Cbc 2.10 on integer rows, and root LPs past the deadline (measured on a Cbc `devel` build): see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs) and [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
 | `scip_milp` | no | yes | can throw on an infeasible model with binary columns: see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries) |
 | `mosek_lp`, `mosek_milp`, `soplex_lp` | no | yes | |
 | Gurobi, CPLEX, Xpress and COPT models | no | no | |

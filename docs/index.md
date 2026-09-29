@@ -76,8 +76,9 @@ Complete runnable programs — N-Queens, Sudoku, TSP with lazy constraints, cutt
 | --- | :-: | :-: | :-: |
 | HiGHS | ✓ | ✓ | ✓ |
 | Gurobi, CPLEX, Xpress, COPT, MOSEK, GLPK | ✓ | ✓ | |
-| Cbc, SCIP | | ✓ | |
+| SCIP | | ✓ | |
 | Clp, SoPlex | ✓ | | |
+| Cbc ([experimental](solvers/index.md#the-backends)) | | ✓ | |
 
 <sub>Per-feature support (duals, callbacks, MIP starts, IIS, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).</sub>
 
