@@ -7,7 +7,6 @@
 #include <chrono>
 #include <cstddef>
 #include <fstream>
-#include <iterator>
 #include <map>
 #include <optional>
 #include <ostream>
@@ -212,7 +211,11 @@ using namespace infeasibility_page;
 // The page includes the same file under the example's code.
 std::string page_output(const char * name) {
     std::ifstream file(std::string(MIPPP_DOC_SNIPPETS_DIR "/") + name);
-    return std::string(std::istreambuf_iterator<char>(file), {});
+    // std::string(istreambuf_iterator...) draws a false -Wnull-dereference
+    // from gcc 15
+    std::ostringstream text;
+    text << file.rdbuf();
+    return text.str();
 }
 
 constexpr solver_version highs_native_iis_floor{1, 14, 0};
