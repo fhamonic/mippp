@@ -62,7 +62,7 @@ The documentation follows the path of a modeling study: build a model, solve it,
 
 **2. Modeling** — [variables and index sets](modeling/variables.md), [expressions and constraint families](modeling/expressions.md), [objectives](modeling/objectives.md) (including quadratic), [special constraints](modeling/special-constraints.md).
 
-**3. Solving** — [status, limits and tolerances](solving/status-and-limits.md), [solutions, duals and reduced costs](solving/solutions.md), [re-solving and model updates](solving/updates.md).
+**3. Solving** — [status, limits and tolerances](solving/status-and-limits.md), [diagnosing infeasibility](solving/infeasibility.md), [solutions, duals and reduced costs](solving/solutions.md), [re-solving and model updates](solving/updates.md).
 
 **4. Algorithms** — [branch-and-cut with lazy constraints](algorithms/branch-and-cut.md), [column generation](algorithms/column-generation.md).
 
@@ -79,7 +79,7 @@ Complete runnable programs — N-Queens, Sudoku, TSP with lazy constraints, cutt
 | Cbc, SCIP | | ✓ | |
 | Clp, SoPlex | ✓ | | |
 
-<sub>Per-feature support (duals, callbacks, MIP starts, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).</sub>
+<sub>Per-feature support (duals, callbacks, MIP starts, IIS, …) varies by backend — see the feature matrices in [Choosing a solver](https://fhamonic.github.io/mippp/solvers/).</sub>
 
 ## Performance
 
