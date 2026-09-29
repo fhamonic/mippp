@@ -5,10 +5,11 @@ It records the rulings taken on 2026-09-22 while reviewing the external IIS
 pull request, those of 2026-09-27 on [iis_pr_plan.md](iis_pr_plan.md), the
 plan for adapting it, the amendments of 2026-09-28 from a simplification
 review held before wave 2, and the rulings of 2026-09-29 on the questions
-wave 3 left, so that the feature is coded once, in the library's own shape. A *Confirmed reading* spells out a short ruling, as the
-maintainer confirmed it on 2026-09-27. It is not user documentation. The
-implementation order is in [iis_todo.md](iis_todo.md), and
-[Open questions](#open-questions) says that none remains.
+wave 3 left, so that the feature is coded once, in the library's own shape.
+A *Confirmed reading* spells out a short ruling, as the maintainer confirmed
+it on 2026-09-27. It is not user documentation. The implementation order is
+in [iis_todo.md](iis_todo.md), and [Open questions](#open-questions) says
+that none remains.
 
 Statements about solvers were checked on 2026-09-22 against the C headers and
 runtime probes of Gurobi 12.0.1, CPLEX 22.1.2, COPT 8.0, Xpress 47.01, HiGHS
@@ -559,11 +560,14 @@ releases the introduction lists.
   so `integer_in_a_fractional_interval` meets the gap and skips on SCIP.
   Since N39 the skip is keyed on the case's data: the shared cases ask the
   fixture's optional `iis_case_skip_reason`, and SCIP's answers for any
-  integer column whose domain rounds into [0, 1], before anything is built
-  (`5047a77`, cherry-picked from `1b91b7d`). A non-binary integer column works:
-  integer x in [0, 2] with `x >= 3` gives `irreducible`. SCIP 10.0.0's `var.c`
-  has the same check (read), and SCIP 10.0.2 behaves the same (measured,
-  after the status fix of the SCIP row-sides bullet). The crossed-pair trials of N36 meet the same gap.
+  integer column whose bounds each round inward to 0 or 1, crossed or not,
+  as `var.c` requires for `BINARY`, before anything is built (`5047a77`,
+  cherry-picked from `1b91b7d`, then narrowed to that rule by the review of
+  wave 4). A non-binary integer column works: integer x in [0, 2] with
+  `x >= 3` gives `irreducible`. SCIP 10.0.0's `var.c` has the same check
+  (read), and SCIP 10.0.2 behaves the same (measured, after the status fix of
+  the SCIP row-sides bullet). The crossed-pair trials of N36 meet the same
+  gap.
   `binary_column_with_a_relaxed_bound_fails_to_solve` and
   `deletion_filter_throws_on_a_binary_column` pin it, and
   `docs/solvers/index.md` documents it under "Notable current limitations"
@@ -1369,7 +1373,9 @@ The maintainer ruled on the three questions wave 3 left, N38 to N40, on
   users: the backend table of `docs/solvers/index.md`, the support tables of
   the README and the home page, and the per-model table of the infeasibility
   page. One note of `docs/solvers/index.md` says why and gathers the Cbc
-  limitations already documented: MIP solves on a private copy below 3.0, the
+  limitations already documented, and the existing workarounds stay: native
+  parameters that do not reach MIP solves, which run on a private copy below
+  3.0, the
   devel build's rows without terms or with all-zero coefficients, the
   integrality proofs over unbounded integer columns, and the time limit that
   did not bound the root LP. `integers_summing_to_one_half` keeps its skip on
@@ -1382,22 +1388,29 @@ The maintainer ruled on the three questions wave 3 left, N38 to N40, on
   it. A fixture may provide `static std::optional<std::string>
   iis_case_skip_reason(const iis_case &)`, which the shared cases call before
   building a case, and SCIP's skips any case with an integer column whose
-  domain rounds into [0, 1], which SCIP types `BINARY` and then rejects once a
-  trial relaxes a bound. A different failure carrying the same text is no
-  longer hidden, and the two SCIP tests that pin the rejection stay, so a
-  change in SCIP still fails loudly.
+  bounds each round inward to 0 or 1, which SCIP types `BINARY` and then
+  rejects once a trial relaxes a bound. A crossed domain such as [2, 0.5]
+  rounds to [2, 0], stays `INTEGER` and runs. A different failure carrying
+  the same text is no longer hidden, and the two SCIP tests that pin the
+  rejection stay, so a change in SCIP still fails loudly.
 - **N40. A side at the opposite infinity.** A lower side set to `+infinity()`,
   or an upper side set to `-infinity()`, which HiGHS and MOSEK reject in some
   forms while the other backends accept it, is "an obviously wrong use of the
   API". The maintainer's habit is "to document that such obviously wrong
   usages result in undefined behavior instead of adding guards that bloat both
-  the source code and the binary output". No guard is added.
+  the source code and the binary output", with guards left to the
+  assistant's judgment where one is important, and preferring documented
+  undefined behavior to defensive guards against misuse is the general
+  policy. No guard is added here. GLPK's clamp of infinite sides (`6774049`)
+  stays under that latitude: it writes the valid infinite sides too, and
+  without it an opposite infinity fails an assertion in the presolver of
+  `glp_intopt`, which aborts the process.
   `docs/reference/concepts.md` calls such a side undefined behavior in the
   rows of `has_modifiable_variable_bounds` and
   `has_modifiable_constraint_bounds`, and `docs/algorithms/deletion-filter.md`
   no longer presents it as a candidate. The enumeration still tests each side
-  against its own infinity only, and its comment says what it does with what a
-  backend holds, not that the input is supported.
+  against its own infinity only, and its comment names only the trap of a NaN
+  side, never a candidate, not the opposite infinity as supported input.
 
 What these rulings change: no library code, beyond the reworded comment of the
 enumeration. N38 turns the pin that iis_todo.md 5.1 awaited into a documented

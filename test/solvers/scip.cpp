@@ -6,7 +6,6 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <utility>
 
 using namespace mippp;
 
@@ -149,10 +148,10 @@ TEST_F(scip_milp_test, deletion_filter_throws_on_a_binary_column) {
     EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
 }
 
-// SCIP types an integer column BINARY when its domain, rounded to integers,
-// lies within [0, 1], and every deletion trial that relaxes a bound of such a
-// column hits the gap pinned above: a case holding one is skipped from its
-// data, before anything is built.
+// SCIP types an integer column BINARY when each of its bounds, rounded inward
+// to an integer, is 0 or 1, crossed or not, and every deletion trial that
+// relaxes a bound of such a column hits the gap pinned above: a case holding
+// one is skipped from its data, before anything is built.
 struct scip_milp_iis_test : public scip_milp_test {
     static std::optional<std::string> iis_case_skip_reason(
         const iis_cases::iis_case & c) {
@@ -162,7 +161,7 @@ struct scip_milp_iis_test : public scip_milp_test {
                 -std::numeric_limits<double>::infinity()));
             const double upper = std::floor(
                 bounds.upper.value_or(std::numeric_limits<double>::infinity()));
-            if(lower >= 0. && upper <= 1.)
+            if((lower == 0. || lower == 1.) && (upper == 0. || upper == 1.))
                 return "SCIP types integer column " + std::to_string(i) +
                        " BINARY and rejects a solve once a bound of it leaves "
                        "[0, 1]";

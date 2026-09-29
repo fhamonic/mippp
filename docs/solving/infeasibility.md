@@ -99,7 +99,7 @@ Iterating your own variable and constraint families, as `print_conflict` does, g
 --8<-- "test/doc_snippets/infeasibility.cpp:member-rows"
 ```
 
-On the workshop it returns the labour row and the three order rows. To print such handles, name the variables and constraints as you add them: `get_variable_name(v)` and `get_constraint_name(c)` read the names back on models with `has_named_variables` and `has_named_constraints`, see [Names](../modeling/variables.md#names). `num_variable_members()` and `num_constraint_members()` count the members without a loop: one variable and four rows there. A query is a lookup in the snapshot and never calls the solver.
+On the workshop it returns the labour row and the three order rows. To print such handles, name the variables and constraints as you add them: `get_variable_name(v)` and `get_constraint_name(c)` read the names back on models with `has_named_variables` and `has_named_constraints`, see [Names](../modeling/variables.md#names) for variables and [Constraint families](../modeling/expressions.md#constraint-families) for constraints. `num_variable_members()` and `num_constraint_members()` count the members without a loop: one variable and four rows there. A query is a lookup in the snapshot and never calls the solver.
 
 ## Repairing the model
 
@@ -177,7 +177,7 @@ Such an answer of the filter is a start. Run the filter again with a larger budg
 --8<-- "test/doc_snippets/infeasibility.cpp:narrow-partial"
 ```
 
-On the workshop, `rerun_on_members(model, partial)` after the three-solve run has 11 candidates rather than 13, makes 12 solves and prints the five lines of the complete run.
+On the workshop, `rerun_on_members(model, iis)`, passing the answer of the three-solve run, has 11 candidates rather than 13, makes 12 solves and prints the five lines of the complete run.
 
 Limits are checked between trials, and a trial that has started runs to its end. On a model with a time limit (`has_time_limit`) and under a finite `time_limit`, each trial gets the time that remains as its own time limit, never more than the limit you had set, which is restored afterwards. `clp_lp`, `glpk_lp` and `glpk_milp` have no time limit, so there one trial can run past the deadline, and on `cbc_milp` the time limit did not bound a trial's root LP on the Cbc build where this was measured: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations. With the default limits, the filter never reads or writes the model's time limit.
 

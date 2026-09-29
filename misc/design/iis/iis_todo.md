@@ -27,8 +27,9 @@ questions wave 3 left.
   2026-09-29. Wave 4, step 7, landed on 2026-09-29 on `docs/iis-wave4`, locally, awaiting the push: the 22
   commits `1c6256a` to `b4e90d5`, then the record of iis.md and this file. The rulings followed on the same
   branch: the SCIP skip keyed on data (`5047a77`, cherry-picked from `1b91b7d`), Cbc marked experimental
-  (`e2d443d`), the opposite infinity documented as undefined behavior (`1c0e50e`), and their record. 6.2 to
-  6.6 remain.
+  (`e2d443d`), the opposite infinity documented as undefined behavior (`1c0e50e`), and their record
+  (`7d0fd90`). Five commits then answered a reader's review of the infeasibility page, `ccf9c94` to `b95fc8e`
+  (see 7.1), and a last one closed the review of this follow-up. 6.2 to 6.6 remain.
 
 ## 0. Before any code
 
@@ -276,9 +277,11 @@ an enumeration, a status reset or readable row bounds, which 3.2 to 3.4 already 
   `docs/solvers/index.md`. Done in `88f7d3b` to `146173a`: the variable-bound getters read the model's bounds,
   no longer the presolved ones, and a failed solve frees the transform. The N14 probe found that SCIP accepts
   the relaxed bound and fails the next solve, so the free function throws after restoring the model, which
-  iis.md and index.md record. 26 cases run on 8.0.4, 9.2.1 and 10.0.2; `integer_in_a_fractional_interval` skips
-  from its data since N39: the SCIP fixture's `iis_case_skip_reason` answers for any integer column whose
-  domain rounds into [0, 1], before the case is built (`5047a77`). SCIP 10 was first checked from its sources
+  iis.md and index.md record. 26 cases ran on 8.0.4, 9.2.1 and 10.0.2 then; since `d3312b8` the suite has 30
+  tests, of which 27 run on 9.2.1 and 3 skip: the two `remove_variable` cases and
+  `integer_in_a_fractional_interval`, which skips from its data since N39. The SCIP fixture's
+  `iis_case_skip_reason` answers for any integer column whose bounds each round inward to 0 or 1, as SCIP
+  requires for `BINARY`, before the case is built (`5047a77`, narrowed to that rule by the review of wave 4). SCIP 10 was first checked from its sources
   only; the run on 10.0.2, the library of the PySCIPOpt 6.2.1 wheel, found that SCIP 10 renumbered
   `SCIP_STATUS`, which every SCIP 10 solve misread since 1.0, and the final review fixed it, so the suites pass
   there too. The monthly compatibility matrix covers the other 10.0 releases.
@@ -403,7 +406,13 @@ package adds come with that package.
   template arguments, and it tests membership with `is_a<iis_status::member>` (N37 b, d). Done in `cf09c4f`,
   with its code in `1c6256a` and its links in `4c6034c`; the review added `8a3e694` and `b893392`, with the
   test `aeb1de7`, which pins on 1.15.1 that the iteration limit, the only other limit of `highs_lp` and
-  `highs_qp`, does not stop the routine. What names a commercial routine waits for 6.2 to 6.6, whose packages
+  `highs_qp`, does not stop the routine. A reader's review then added the header's includes as a compiled
+  snippet (`ccf9c94`); a section "Repairing the model", which relaxes the members of each IIS until the model
+  is feasible, on the workshop and on a variant with two disjoint conflicts (`5862a31`); what Gurobi, CPLEX,
+  Xpress and COPT users can do until their native routines are bound (`f57fa63`); `rerun_on_members`, which
+  narrows a partial answer's next run to its members (`31c8a1b`); and smaller answers: the HiGHS library
+  override in the below-floor error, the 1.14 floor on `coming-from.md`, names for printing member handles,
+  and the report's output stream (`b95fc8e`). What names a commercial routine waits for 6.2 to 6.6, whose packages
   each add their rows to the per-model table and their sentences to the paragraph on native time bounds: the
   plain `member` of the equality rows of Gurobi, CPLEX and `copt_milp`, the other limits that stop a routine
   (CPLEX's iteration, node and memory limits, Gurobi's `SoftMemLimit`), and the `copt_lp` time limit of

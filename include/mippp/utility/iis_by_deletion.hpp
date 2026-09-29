@@ -79,9 +79,7 @@ template <iis_by_deletion_model M, std::ranges::input_range Variables>
     M & model, Variables && variables) {
     iis_deletion_candidates<M> candidates;
     const auto infinity = model.infinity();
-    // each side is tested against its own infinity only: a side a backend
-    // holds at the other one (x >= +inf) stays a candidate, and a NaN side,
-    // which satisfies neither test, is left alone
+    // a NaN side fails both tests, so it is never a candidate
     for(auto v : variables) {
         candidates.variable_id_bound =
             std::max(candidates.variable_id_bound, v.uid() + 1);
