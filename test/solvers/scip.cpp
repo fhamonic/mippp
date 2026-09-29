@@ -1,8 +1,11 @@
 #include "mippp/solvers/scip/all.hpp"
 
+#include <cmath>
+#include <cstddef>
 #include <limits>
+#include <optional>
 #include <stdexcept>
-#include <string_view>
+#include <string>
 #include <utility>
 
 using namespace mippp;
@@ -146,24 +149,25 @@ TEST_F(scip_milp_test, deletion_filter_throws_on_a_binary_column) {
     EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
 }
 
-// SCIP rounds the bounds of integer_in_a_fractional_interval into [1, 0]
-// and so types that column BINARY: its trials hit the gap pinned above. Any
-// other case failing the same way is a regression, not this gap.
+// SCIP types an integer column BINARY when its domain, rounded to integers,
+// lies within [0, 1], and every deletion trial that relaxes a bound of such a
+// column hits the gap pinned above: a case holding one is skipped from its
+// data, before anything is built.
 struct scip_milp_iis_test : public scip_milp_test {
-    template <typename F>
-    void SkipOnLicenseError(F && f) {
-        try {
-            scip_milp_test::SkipOnLicenseError(std::forward<F>(f));
-        } catch(const std::runtime_error & e) {
-            if(std::string_view(e.what()) != "scip_milp: error in input data" ||
-               std::string_view(::testing::UnitTest::GetInstance()
-                                    ->current_test_info()
-                                    ->name()) !=
-                   "integer_in_a_fractional_interval")
-                throw;
-            GTEST_SKIP() << "SCIP rejects a relaxed bound on a BINARY column: "
-                         << e.what();
+    static std::optional<std::string> iis_case_skip_reason(
+        const iis_cases::iis_case & c) {
+        for(const std::size_t i : c.integer_columns) {
+            const auto & bounds = c.system.variables[i];
+            const double lower = std::ceil(bounds.lower.value_or(
+                -std::numeric_limits<double>::infinity()));
+            const double upper = std::floor(
+                bounds.upper.value_or(std::numeric_limits<double>::infinity()));
+            if(lower >= 0. && upper <= 1.)
+                return "SCIP types integer column " + std::to_string(i) +
+                       " BINARY and rejects a solve once a bound of it leaves "
+                       "[0, 1]";
         }
+        return std::nullopt;
     }
 };
 

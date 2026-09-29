@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <optional>
 #include <ostream>
@@ -516,6 +517,16 @@ struct fixture : public T {
         if(!c.integer_columns.empty() && !milp_model<M>)
             GTEST_SKIP() << "needs milp_model";
         if(!can_build<M>(c)) GTEST_SKIP() << "needs ranged rows";
+        // a backend states, from the case's data alone, an input it documents
+        // as unsupported, rather than the error it raises on it
+        if constexpr(requires(const iis_case & x) {
+                         {
+                             T::iis_case_skip_reason(x)
+                         } -> std::same_as<std::optional<std::string>>;
+                     }) {
+            if(const auto reason = T::iis_case_skip_reason(c))
+                GTEST_SKIP() << *reason;
+        }
         auto model = this->new_model();
         const built_case<M> built = build(model, c);
         const saved_model_data before = save(model, built);
