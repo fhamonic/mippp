@@ -13,11 +13,15 @@
 #include <utility>
 #include <vector>
 
+#include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/iis_outcome.hpp"
+#include "mippp/utility/iis_snapshot.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/xpress/impl/v1/xpress_api.hpp"
@@ -464,6 +468,191 @@ public:
         int verbose;
         check(XPRS->getintcontrol(prob, XPRS_OUTPUTLOG, &verbose));
         return verbose != 0;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// IIS ////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // a small subsystem is worth more to its reader than the time the
+    // quickest one saves
+    static constexpr int _iis_mode_simplest = 1;
+    static constexpr int _iis_call_success = 0, _iis_call_feasible = 1,
+                         _iis_call_error = 2, _iis_call_stopped = 3;
+    // Xpress reads its clock in steps of about 10 ms, so a limit stop can
+    // return that much before the limit measured around the call.
+    static constexpr double _iis_stop_clock_slack = 0.02;
+    // The restriction classes the deletion filter must keep: integrality and
+    // the constraint kinds that only native_model() can add, which no MIP++
+    // handle names. Delayed rows are ordinary rows and stay candidates. Kept
+    // restrictions are still listed in the answer, so the decoder drops
+    // their entries.
+    static constexpr int _iis_background_ops =
+        XPRS_IISOPS_INTEGRALITY | XPRS_IISOPS_GENERAL | XPRS_IISOPS_PWL |
+        XPRS_IISOPS_SET | XPRS_IISOPS_INDICATOR;
+
+    class iis_option_guard {
+    private:
+        const xpress_api & _api;
+        XPRSprob _prob;
+        int _ops;
+        bool _restored = false;
+
+    public:
+        iis_option_guard(const xpress_api & api, XPRSprob prob, int ops)
+            : _api(api), _prob(prob) {
+            _api._check(_prob, _api.getintcontrol(_prob, XPRS_IISOPS, &_ops));
+            _api._check(_prob, _api.setintcontrol(_prob, XPRS_IISOPS, ops));
+        }
+        iis_option_guard(const iis_option_guard &) = delete;
+        iis_option_guard & operator=(const iis_option_guard &) = delete;
+
+        void restore() {
+            _restored = true;
+            _api._check(_prob, _api.setintcontrol(_prob, XPRS_IISOPS, _ops));
+        }
+        ~iis_option_guard() {
+            if(_restored) return;
+            // a value read back moments ago: the write cannot be rejected
+            (void)_api.setintcontrol(_prob, XPRS_IISOPS, _ops);
+        }
+    };
+
+protected:
+    using iis_snapshot_type =
+        iis_snapshot<variable, constraint, iis_sided_status, iis_sided_status>;
+
+    iis_snapshot_type _compute_iis() {
+        iis_option_guard guard(*XPRS, prob, _iis_background_ops);
+        // The routine reads the model's TIMELIMIT as a fresh budget of its
+        // own, so nothing else is set for the call. Its stop status covers a
+        // user interrupt as well and STOPSTATUS does not tell the two apart:
+        // the time measured around the call does.
+        const double budget = get_time_limit().count();
+        const auto start = std::chrono::steady_clock::now();
+        int call_status;
+        check(XPRS->iisfirst(prob, _iis_mode_simplest, &call_status));
+        const double elapsed = std::chrono::duration<double>(
+                                   std::chrono::steady_clock::now() - start)
+                                   .count();
+        // The answer indexes the original rows and columns, whose counts a
+        // problem left presolved through the native handle reads only once the
+        // routine has restored it.
+        detail::handle_status_table<iis_sided_status> variable_table(
+            num_variables());
+        detail::handle_status_table<iis_sided_status> constraint_table(
+            num_constraints());
+        // XPRSgetlasterror is empty after this failure: the message says what
+        // is known to cause it
+        if(call_status == _iis_call_error)
+            throw solver_error(
+                "mippp: XPRSiisfirst refused the search, as it does on a "
+                "column whose bounds cross or hold no integer value");
+        if(call_status == _iis_call_feasible) {
+            guard.restore();
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     iis_outcome::feasible);
+        }
+        if(call_status != _iis_call_success && call_status != _iis_call_stopped)
+            throw solver_error(
+                ("mippp: XPRSiisfirst returned the unknown status " +
+                 std::to_string(call_status))
+                    .c_str());
+        // IISSOLSTATUS alone cannot tell a stop: it reads unstarted when the
+        // limit hits the initial LP, and a stop leaves NUMIIS at 0 when it
+        // comes before any subsystem.
+        int completion, num_iis;
+        check(XPRS->getintattrib(prob, XPRS_IISSOLSTATUS, &completion));
+        check(XPRS->getintattrib(prob, XPRS_NUMIIS, &num_iis));
+        // a stop well before the limit had another origin: an interrupt or
+        // an iteration limit set through the native handle
+        const std::optional<iis_reason> stop_reason =
+            call_status == _iis_call_stopped &&
+                    elapsed + _iis_stop_clock_slack >= budget
+                ? std::optional(iis_reason::time_limit)
+                : std::nullopt;
+        if(num_iis < 1) {
+            guard.restore();
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     iis_outcome::undetermined, stop_reason);
+        }
+
+        int iis_num_row = 0, iis_num_col = 0;
+        check(XPRS->getiisdata(prob, 1, &iis_num_row, &iis_num_col, nullptr,
+                               nullptr, nullptr, nullptr, nullptr, nullptr,
+                               nullptr, nullptr));
+        std::vector<int> row_index(static_cast<std::size_t>(iis_num_row)),
+            col_index(static_cast<std::size_t>(iis_num_col));
+        std::vector<char> row_kind(static_cast<std::size_t>(iis_num_row)),
+            col_kind(static_cast<std::size_t>(iis_num_col));
+        check(XPRS->getiisdata(prob, 1, &iis_num_row, &iis_num_col,
+                               row_index.data(), col_index.data(),
+                               row_kind.data(), col_kind.data(), nullptr,
+                               nullptr, nullptr, nullptr));
+        // An entity listed twice, once per side, needs both: a second entry
+        // merges into member_both instead of replacing the first.
+        const auto flag_side = [](auto & table, std::size_t id, bool lower) {
+            const iis_sided_status current = table.get(id);
+            if(is<iis_status::member_both>(current)) return;
+            if(is<iis_status::absent>(current)) {
+                table.set(id,
+                          lower ? iis_sided_status{iis_status::member_lower{}}
+                                : iis_sided_status{iis_status::member_upper{}});
+                return;
+            }
+            if(lower != is<iis_status::member_lower>(current))
+                table.set(id, iis_sided_status{iis_status::member_both{}});
+        };
+        // A set entry ('1', '2') carries a set index, not a row index, and
+        // an indicator entry ('I') its indicator row: neither is a member,
+        // and neither may be looked up as a row.
+        for(std::size_t k = 0; k < row_index.size(); ++k) {
+            const auto row = static_cast<std::size_t>(row_index[k]);
+            switch(row_kind[k]) {
+                case 'L':
+                    flag_side(constraint_table, row, false);
+                    break;
+                case 'G':
+                    flag_side(constraint_table, row, true);
+                    break;
+                case 'E':
+                    constraint_table.set(
+                        row, iis_sided_status{iis_status::member_both{}});
+                    break;
+                default:
+                    break;
+            }
+        }
+        // 'F' is the fixing of a column, both bounds at once; 'B', 'I' and
+        // the semi-continuous kinds are the kept integrality restrictions
+        for(std::size_t k = 0; k < col_index.size(); ++k) {
+            const auto col = static_cast<std::size_t>(col_index[k]);
+            switch(col_kind[k]) {
+                case 'L':
+                    flag_side(variable_table, col, true);
+                    break;
+                case 'U':
+                    flag_side(variable_table, col, false);
+                    break;
+                case 'F':
+                    variable_table.set(
+                        col, iis_sided_status{iis_status::member_both{}});
+                    break;
+                default:
+                    break;
+            }
+        }
+        // the problem keeps the IIS data until the next search otherwise
+        check(XPRS->iisclear(prob));
+        guard.restore();
+        if(completion == XPRS_IIS_COMPLETED)
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     iis_outcome::irreducible);
+        return iis_snapshot_type(std::move(variable_table),
+                                 std::move(constraint_table),
+                                 iis_outcome::not_proven_minimal, stop_reason);
     }
 };
 

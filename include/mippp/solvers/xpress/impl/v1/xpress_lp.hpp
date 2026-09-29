@@ -83,6 +83,13 @@ public:
         check(XPRS->lpoptimize(prob, nullptr));
         _status = _get_status();
     }
+    // The routine solves on its own and overwrites the status attributes and
+    // the held solution: the reported status is reset before the first native
+    // call, throw or return.
+    auto compute_iis() {
+        reset_status();
+        return _compute_iis();
+    }
     double get_solution_value() {
         double val;
         check(XPRS->getdblattrib(prob, XPRS_LPOBJVAL, &val));

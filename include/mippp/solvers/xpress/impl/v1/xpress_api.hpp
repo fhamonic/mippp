@@ -64,7 +64,9 @@ enum IntegerAttribute : int {
     XPRS_ELEMS = 1006,
     XPRS_LPSTATUS = 1010,
     XPRS_MIPSTATUS = 1011,
-    XPRS_STOPSTATUS = 1179
+    XPRS_STOPSTATUS = 1179,
+    XPRS_NUMIIS = 1031,
+    XPRS_IISSOLSTATUS = 1406
 };
 enum LPStatus : int {
     XPRS_LP_UNSTARTED = 0,
@@ -136,9 +138,34 @@ enum DblCtrlPar : int {
 int XPRSsetdblcontrol(XPRSprob prob, int control, double value);
 int XPRSgetdblcontrol(XPRSprob prob, int control, double * p_value);
 
-enum IntCtrlPar : int { XPRS_OUTPUTLOG = 8035 };
+enum IntCtrlPar : int {
+    XPRS_LPITERLIMIT = 8007,
+    XPRS_OUTPUTLOG = 8035,
+    XPRS_IISOPS = 8472
+};
 int XPRSsetintcontrol(XPRSprob prob, int control, int value);
 int XPRSgetintcontrol(XPRSprob prob, int control, int * p_value);
+
+enum IISStatus : int {
+    XPRS_IIS_UNSTARTED = 0,
+    XPRS_IIS_FEASIBLE = 1,
+    XPRS_IIS_COMPLETED = 2,
+    XPRS_IIS_UNFINISHED = 3
+};
+enum IISOps : int {
+    XPRS_IISOPS_INTEGRALITY = 17,
+    XPRS_IISOPS_GENERAL = 64,
+    XPRS_IISOPS_PWL = 128,
+    XPRS_IISOPS_SET = 256,
+    XPRS_IISOPS_INDICATOR = 512,
+    XPRS_IISOPS_DELAYED = 1024
+};
+int XPRSiisfirst(XPRSprob prob, int mode, int * p_status);
+int XPRSgetiisdata(XPRSprob prob, int iis, int * p_nrows, int * p_ncols,
+                   int rowind[], int colind[], char contype[], char bndtype[],
+                   double duals[], double djs[], char isolationrows[],
+                   char isolationcols[]);
+int XPRSiisclear(XPRSprob prob);
 
 int XPRSaddcbmessage(XPRSprob prob,
                      void (*message)(XPRSprob cbprob, void * cbdata,
@@ -229,7 +256,10 @@ namespace xpress::impl::v1 {
     F(XPRSaddcboptnode, addcboptnode)               \
     F(XPRSremovecboptnode, removecboptnode)         \
     F(XPRSaddcuts, addcuts)                         \
-    F(XPRSloaddelayedrows, loaddelayedrows)
+    F(XPRSloaddelayedrows, loaddelayedrows)         \
+    F(XPRSiisfirst, iisfirst)                       \
+    F(XPRSgetiisdata, getiisdata)                   \
+    F(XPRSiisclear, iisclear)
 
 #define DECLARE_XPRESS_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);     \

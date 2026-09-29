@@ -254,6 +254,51 @@ public:
         check(XPRS->postsolve(prob));
     }
 
+private:
+    // The MIP solves of the routine run a registered callback on their
+    // candidates, whose rejection makes a feasible subsystem read infeasible
+    // and the answer name the whole model: the callback is detached for the
+    // call. A rejected re-registration is retried once, unchecked, by the
+    // destructor.
+    class iis_callback_guard {
+    private:
+        xpress_milp * _model;
+
+    public:
+        explicit iis_callback_guard(xpress_milp & model)
+            : _model(model.candidate_solution_callback ? &model : nullptr) {
+            if(_model)
+                _model->check(_model->XPRS->removecbpreintsol(
+                    _model->prob, candidate_solution_callback_fun, _model));
+        }
+        iis_callback_guard(const iis_callback_guard &) = delete;
+        iis_callback_guard & operator=(const iis_callback_guard &) = delete;
+
+        void restore() {
+            if(!_model) return;
+            _model->check(_model->XPRS->addcbpreintsol(
+                _model->prob, candidate_solution_callback_fun, _model, 1));
+            _model = nullptr;
+        }
+        ~iis_callback_guard() {
+            if(!_model) return;
+            (void)_model->XPRS->addcbpreintsol(
+                _model->prob, candidate_solution_callback_fun, _model, 1);
+        }
+    };
+
+public:
+    // The routine solves on its own and overwrites the status attributes and
+    // the held solution: the reported status is reset before the first native
+    // call, throw or return.
+    auto compute_iis() {
+        reset_status();
+        iis_callback_guard detached(*this);
+        auto iis = _compute_iis();
+        detached.restore();
+        return iis;
+    }
+
     double get_solution_value() {
         double val;
         check(XPRS->getdblattrib(prob, XPRS_MIPOBJVAL, &val));
