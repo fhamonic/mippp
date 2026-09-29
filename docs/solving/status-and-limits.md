@@ -199,4 +199,4 @@ The `if constexpr` guards are the general pattern for optional capabilities; [Wr
 
 ## Next
 
-[Solutions, duals and reduced costs](solutions.md) — getting the numbers back out.
+[Diagnosing infeasibility](infeasibility.md) — which bounds and constraints make a model infeasible.
