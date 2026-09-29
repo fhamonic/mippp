@@ -79,6 +79,7 @@ If you already write models in Python or Julia, almost everything transfers: MIP
 | solver log | on; `setParam("OutputFlag", 0)` | on; `set_silent(m)` | on; `PULP_CBC_CMD(msg=False)` | off; `set_verbose(true)` |
 | MIP start | `x.Start = v` | `set_start_value` | `x.setInitialValue` | `add_mip_start(entries)` |
 | lazy constraint | `model.cbLazy(...)` | `MOI.submit(..., LazyConstraint)` | — | `handle.add_lazy_constraint(...)` |
+| IIS | `computeIIS()` | `compute_conflict!(m)` | — | `compute_iis_by_deletion(model)` |
 | change solver | rewrite in another API | `set_optimizer(...)` | `prob.solve(SOLVER())` | change two type aliases, recompile |
 
 ## Six things that are genuinely different
@@ -120,7 +121,9 @@ There is no `solver=` argument at solve time. The backend appears in an include 
 
 ### 6. Not everything is there yet
 
-MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, IIS-based infeasibility diagnosis, solution pools, native multi-objective, and quadratic *constraints*. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
+MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, solution pools, native multi-objective, and quadratic *constraints*. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
+
+If you call `computeIIS()` in gurobipy or `compute_conflict!` in JuMP to explain an infeasible model, see [Diagnosing infeasibility](../solving/infeasibility.md). The deletion filter it describes runs on every model of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex, and `highs_lp` and `highs_qp` also have HiGHS's own routine, `compute_iis()`. The Gurobi, CPLEX, Xpress and COPT models have neither yet.
 
 ## What you gain in exchange
 
