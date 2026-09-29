@@ -97,7 +97,7 @@ A call that gives up drops nothing, so the answer is then `not_proven_minimal` o
 
 ## On a model
 
-`compute_iis_by_deletion(model, limits)` runs the engine on any model of the concept `iis_by_deletion_model`, which every model class of Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP and SoPlex satisfies. It works in place, on your model, without copying it; the concept lists what it reads and writes, see [Infeasibility analysis](../reference/concepts.md#infeasibility-analysis). Its answer is a snapshot keyed by your handles, whose tags name the side of each member: `member_lower`, `member_upper`, or `member_both` when both sides of one variable or row are members.
+`compute_iis_by_deletion(model, limits)` runs the engine on any model of the concept `iis_by_deletion_model`, which every model class but Gurobi's satisfies: Cbc, Clp, COPT, CPLEX, GLPK, HiGHS, MOSEK, SCIP, SoPlex and Xpress. It works in place, on your model, without copying it; the concept lists what it reads and writes, see [Infeasibility analysis](../reference/concepts.md#infeasibility-analysis). Its answer is a snapshot keyed by your handles, whose tags name the side of each member: `member_lower`, `member_upper`, or `member_both` when both sides of one variable or row are members.
 
 ### Candidates and trials
 
