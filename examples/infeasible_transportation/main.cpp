@@ -8,8 +8,9 @@
 // disagree, printed with the program's own names.
 //
 // compute_iis_by_deletion runs on every model satisfying iis_by_deletion_model
-// (Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP and SoPlex): swap the alias to use
-// another backend.
+// (Cbc, Clp, COPT, CPLEX, GLPK, HiGHS, MOSEK, SCIP, SoPlex and Xpress): swap
+// the alias to use another backend. Gurobi's models have the native routine
+// only, and none of the modifiable row bounds the repair below uses.
 
 #include <cstddef>
 #include <map>
@@ -17,6 +18,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "mippp/solvers/highs/all.hpp"
@@ -35,18 +37,30 @@ struct route {
     double cost;    // per tonne
 };
 
+// The sides a member needs, read by overload: the most derived tag wins, and a
+// routine that cannot tell which side of a row conflicts reports plain member.
+// A status variant lists only the tags its path reports, so is_a<member_both>
+// would not compile on the row status of the Gurobi and CPLEX routines.
+struct needed_sides {
+    struct sides {
+        bool lower, upper;
+    };
+    sides operator()(iis_status::absent) const { return {false, false}; }
+    sides operator()(iis_status::member) const { return {false, false}; }
+    sides operator()(iis_status::member_lower) const { return {true, false}; }
+    sides operator()(iis_status::member_upper) const { return {false, true}; }
+    sides operator()(iis_status::member_both) const { return {true, true}; }
+};
+
 // The IIS names the sides in conflict, and the model still holds their values:
 // the deletion filter writes back every bound and side it relaxed.
 template <typename Status>
 void print_sides(std::string_view name, const Status & status, double lower,
                  double upper) {
     if(!is_a<iis_status::member>(status)) return;
-    const bool both = is_a<iis_status::member_both>(status);
-    const bool lower_side = both || is_a<iis_status::member_lower>(status);
-    const bool upper_side = both || is_a<iis_status::member_upper>(status);
+    const auto [lower_side, upper_side] = std::visit(needed_sides{}, status);
     if(lower_side) std::println("  {:<26} >= {}", name, lower);
     if(upper_side) std::println("  {:<26} <= {}", name, upper);
-    // plain member: a routine that cannot tell which side of a row conflicts
     if(!lower_side && !upper_side)
         std::println("  {:<26} (side not named)", name);
 }
