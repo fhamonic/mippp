@@ -1,6 +1,6 @@
 # The deletion filter
 
-An infeasible set of constraints usually owes its infeasibility to a few of them. An irreducible infeasible subset (IIS) is a subset that is infeasible on its own and becomes feasible as soon as any one of its members is dropped. The deletion filter computes one from nothing more than a feasibility test on subsets, so it works where no dedicated routine exists: on a solver without one, or on constraints that no solver sees.
+An infeasible set of constraints usually owes its infeasibility to a few of them. An irreducible infeasible subsystem (IIS) is a subset of them that is infeasible on its own and becomes feasible as soon as any one of its members is dropped. The deletion filter computes one from nothing more than a feasibility test on subsets, so it works where no dedicated routine exists: on a solver without one, or on constraints that no solver sees.
 
 MIP++ provides it in two layers:
 
@@ -136,9 +136,9 @@ What stays unchanged still applies to every trial. A verbose model prints the lo
 
 ### Two cases decided early
 
-A model without variables needs no solve, and gets none. Every row's activity is then 0, so the first row side that 0 violates, a lower side above 0 or an upper side below 0, in the order of `constraints()`, is the IIS, and without one the model is feasible. The comparison with 0 is exact. The limits play no part, and the model and its status stay as they were.
+A model without variables needs no solve, and gets none. Every row's activity is then 0, so the first row side that 0 violates, a lower side above 0 or an upper side below 0, in the order of `constraints()`, is the IIS, and without one the model is feasible. The comparison with 0 is exact. No limit stops this case, as `max_solves`, the deadline and `stop_token` are never checked, but a NaN or negative `time_limit` still throws `std::invalid_argument`. The model and its status stay as they were.
 
-A variable whose bounds cross, lower above upper, or a row whose sides cross, is infeasible on its own. The first such pair, variables before rows, stands for the proof of the whole model, and the engine continues from it: two trials, each with one side of the pair and every other candidate relaxed, decide whether both sides are needed or one suffices, as the lower side of a row without terms suffices when it is above 0. The solver never receives the crossed pair. Limits that stop the run before the two trials leave the pair as the answer, `not_proven_minimal`, with the stop's reason. HiGHS repairs sides that cross by less than its primal feasibility tolerance, while this test is exact: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations.
+A variable whose bounds cross, lower above upper, or a row whose sides cross, is infeasible on its own. The first such pair, variables before rows, stands for the proof of the whole model, and the engine continues from it with every other candidate relaxed: a first trial keeps only the upper side of the pair, and a second only the lower side, or neither side if the upper side sufficed. They decide whether both sides are needed or one suffices, as the lower side of a row without terms suffices when it is above 0. The solver never receives the crossed pair. Limits that stop the run before the two trials leave the pair as the answer, `not_proven_minimal`, with the stop's reason. HiGHS repairs sides that cross by less than its primal feasibility tolerance, while this test is exact: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations.
 
 ### Time limits
 
@@ -153,7 +153,7 @@ Each trial runs under 5 s at most, and under less once less than 5 s remain of t
 A trial that has started runs to its end, so the deadline can be overrun where the forwarded limit does not bound a trial:
 
 - `clp_lp`, `glpk_lp` and `glpk_milp` have no time limit, so their trials run without one;
-- on `cbc_milp`, the forwarded limit does not bound the root LP of a trial.
+- on `cbc_milp`, the forwarded limit did not bound the root LP of a trial on the Cbc build where this was measured, a `devel` build; Cbc 2.10 was not measured.
 
 See [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations. A stop requested through `stop_token` also waits for the running trial to end.
 

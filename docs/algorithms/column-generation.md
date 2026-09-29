@@ -94,4 +94,4 @@ LP-basis warm starts (`has_lp_basis_warm_start`) — so each master re-solve sta
 
 ## Next
 
-[The deletion filter](deletion-filter.md) — an irreducible infeasible subset of a model, or of constraints of your own.
+[The deletion filter](deletion-filter.md) — an irreducible infeasible subsystem of a model, or of constraints of your own.
