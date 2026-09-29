@@ -7,7 +7,8 @@
 # Every example loads its solver's shared library at runtime (see the README for
 # how to make solver libraries discoverable).
 
-foreach(_example simple_lp nqueens sudoku cutting_stock)
+foreach(_example simple_lp nqueens sudoku cutting_stock
+                 infeasible_transportation)
   add_subdirectory(${_example})
 endforeach()
 
