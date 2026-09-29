@@ -1026,17 +1026,19 @@ longer WP8. Nothing is ported.
   early (documented), and 33, 34 and 39 were measured on 22.1.1, and 33 and 35 on 22.1.2. Status 33 names a
   time-limit stop. An abort with no member and no possible member, measured as status 33 under a limit of 0 s
   on both releases and of 0.001 s on 22.1.1, is no answer, never an empty IIS. Done in `3e0634b` to
-  `5c63df7`: the "possible" flags of a stop proved nothing (p10, p13), so every abort status is
-  `undetermined` with no member, and each call passes a fresh group preference against the resume defect.
+  `57395a9`: the "possible" flags of a stop proved nothing (p10, p13), so every abort status is
+  `undetermined` with no member, and each call passes a fresh group preference against the resume defect,
+  from a counter that moves with the model.
 - [x] **Xpress.** `IISOPS` integrality and special bits, `XPRSiisfirst`, `XPRSgetiisdata`, `I` entries
   dropped. Row `L` is a `<=` side (`member_upper`), `G` is `member_lower`, `E` is `member_both`, to confirm in
   45.1. `IISSOLSTATUS` gives the completion status, but not alone, since it reads 0 when a stop hits the
   initial LP. `p_status` 3 is a stop by a limit or an interrupt, and `NUMIIS` 0 after it means no answer
   (measured on 45.01 and 47.01). On 45.01 the default-`IISOPS` MIP IIS of a 4-row, 26-column market split
   aborted with SIGABRT, and `IISOPS` = 17 did not (measured), so the floor check of todo 6.2 runs that case
-  with the wrapper's bits. Done in `6c3192f` to `0525785`: `E` confirmed where integrality needs both sides,
+  with the wrapper's bits. Done in `341519e` to `aa2fbfc`: `E` confirmed where integrality needs both sides,
   `p_status` 3 attributed to the time limit by the measured time with a 20 ms slack, and a column whose
-  bounds cross or hold no integer refused as `solver_error`.
+  bounds cross or hold no integer refused as `solver_error`; the tables are sized after the routine returns
+  and `xpress_lp::solve()` postsolves a stopped solve (`92b4f8a`), since 45.01 leaves the LP presolved.
 - [x] **COPT.** `COPT_ComputeIIS` and the four `Get*IIS` calls, per side on `copt_lp`, equality rows `member`
   on `copt_milp`, `IsMinIIS`. `HasIIS` is checked before any getter, and 0 means no answer. A feasible model
   returns the generic code 3, so the wrapper confirms feasibility rather than mapping the code blindly. The
@@ -1044,15 +1046,16 @@ longer WP8. Nothing is ported.
   model, 101 rows and 200 columns, the getters flagged two rows and one column (measured on 8.0.5). On a
   mismatch the wrapper reports `undetermined`, never the getters' output (inferred). One `IsMinIIS` = 1 answer
   on a 20-column, 10-row binary model was feasible when re-solved (measured, unexplained), which needs its own
-  probe before `copt_milp` claims `irreducible`. Done in `4707ee1` to `a3fc0c1`: the probe ran (6 of 176
-  answers unsound with the flagged sides, none with whole columns, so `copt_milp` reports rows and integer
-  columns whole), the wrapper resets the solver and solves before (`copt_milp`) or after (`copt_lp`, on a
-  code 3) the routine, and detaches a registered callback for the call.
+  probe before `copt_milp` claims `irreducible`. Done in `fe2527f` to `db862a2`: the probe ran (6 of 176
+  answers unsound with the flagged sides, none with whole columns, and 8.0.5 flags one bound of a continuous
+  column too, so `copt_milp` reports rows and two-bounded columns whole), the wrapper resets the solver and
+  solves before (`copt_milp`, up to the first incumbent through its own interrupt callback) or after
+  (`copt_lp`, on a code 3) the routine, and detaches a registered callback for the call.
 - [x] **Modifiable row bounds, optional (N30 b).** Per solver, first confirm that rows are two-sided natively:
   COPT per its documentation, CPLEX and Xpress ranged rows, all unprobed. Then add modifiable row bounds over
   the readable ones of WP6c, switching those getters to the native sides where WP6c derives them from the
   sense and the rhs, instantiate `ModifiableConstraintBoundsTest` and `IisByDeletionTest`, and run the
-  both-paths check. Never on Gurobi. Done for the three (`3b8afc1`, `0525785`, `a3fc0c1`): COPT holds two
+  both-paths check. Never on Gurobi. Done for the three (`229d198`, `aa2fbfc`, `db862a2`): COPT holds two
   bounds, CPLEX an `R` row with a range, Xpress a type `R` row with a range; crossed sides throw on CPLEX and
   Xpress; both suites and the both-paths check pass on the six classes.
 - **Done when** `IisTest` passes locally at the floor and the latest release, with indicators and a removed
