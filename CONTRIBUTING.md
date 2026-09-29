@@ -394,6 +394,27 @@ since a loaded machine stretches a solve past any fixed tolerance, or stops it b
 its first incumbent. A new timing-dependent test belongs in the same `SERIAL_TESTS`
 filter of [test/CMakeLists.txt](test/CMakeLists.txt).
 
+### Code in the documentation
+
+C++ on a new documentation page is not written inline, where it could fall
+behind the API, but compiled and tested like the rest. Each such page has one
+source file under [test/doc_snippets/](test/doc_snippets/), named after it, and
+each block the page shows is a section of that file, between the
+comments `// --8<-- [start:<name>]` and `// --8<-- [end:<name>]`. The page
+includes the section with the line
+`--8<-- "test/doc_snippets/<page>.cpp:<name>"` inside a code fence, through the
+`pymdownx.snippets` extension configured in [zensical.toml](zensical.toml).
+Paths are relative to the repository root, where `zensical build --clean` and
+`make doc` run, and the build fails on a missing file or section.
+
+A section is plain user code, without GoogleTest. Test cases below it in the
+same file call that code on a real backend, through a `model_test` fixture that
+skips where the solver is missing, and check what the page says of it; output
+the page shows lives in a text file next to the source, which the page includes
+and the test compares against. The files are core sources of `mippp_test`, so
+every CI job compiles them whatever `TEST_SOURCE` says, and `make check-format`
+covers them. A section must compile, and its tests must pass.
+
 ## Coding style
 
 - Format all C++ with **clang-format** using the repository's

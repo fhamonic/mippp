@@ -54,9 +54,16 @@ add_executable(
     status.cpp
     variant.cpp
     dynamic_library.cpp
+    doc_snippets/infeasibility.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
+# The documentation's code lives in doc_snippets/, one file per page, among
+# the core sources so that every job compiles it; the page and its test read
+# the same expected output file from there.
+target_compile_definitions(
+    mippp_test
+    PRIVATE MIPPP_DOC_SNIPPETS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/doc_snippets")
 # the suites and the library assert(); keep them live in every configuration
 if(MSVC)
     target_compile_options(mippp_test PRIVATE /UNDEBUG)
