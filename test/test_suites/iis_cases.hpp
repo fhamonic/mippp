@@ -330,12 +330,13 @@ inline iis_case integer_in_a_fractional_interval_case() {
             {{{both}, {absent}}},
             iis_outcome::irreducible};
 }
+// a routine that cannot side a ranged row reports it whole, like an equality
 inline iis_case ranged_row_lower_side_case() {
     using enum membership;
     return {"ranged_row_lower_side",
             {{{0., 1.}, {0., 1.}}, {{{{0, 1.}, {1, 1.}}, 3., 4.}}},
             {},
-            {{{upper, upper}, {lower}}},
+            {{{upper, upper}, {lower}}, {{upper, upper}, {whole}}},
             iis_outcome::irreducible};
 }
 inline iis_case ranged_row_upper_side_case() {
@@ -343,7 +344,7 @@ inline iis_case ranged_row_upper_side_case() {
     return {"ranged_row_upper_side",
             {{{2., none}}, {{{{0, 1.}}, -1., 1.}}},
             {},
-            {{{lower}, {upper}}},
+            {{{lower}, {upper}}, {{lower}, {whole}}},
             iis_outcome::irreducible};
 }
 // two IISs, {x0 lower, r0 upper} and {x0 lower, r1 upper}: the oracle decides
@@ -512,21 +513,27 @@ struct fixture : public T {
         return ::testing::PrintToString(answer);
     }
 
-    void check_case(const iis_case & c) {
-        using M = model_type;
-        if(!c.integer_columns.empty() && !milp_model<M>)
-            GTEST_SKIP() << "needs milp_model";
-        if(!can_build<M>(c)) GTEST_SKIP() << "needs ranged rows";
-        // a backend states, from the case's data alone, an input it documents
-        // as unsupported, rather than the error it raises on it
+    // A backend states, from the case's data alone, an input it documents as
+    // unsupported, rather than the error it raises on it. Every builder of a
+    // case asks, since the rejection comes from the setters build() calls.
+    static std::optional<std::string> skip_reason(const iis_case & c) {
         if constexpr(requires(const iis_case & x) {
                          {
                              T::iis_case_skip_reason(x)
                          } -> std::same_as<std::optional<std::string>>;
                      }) {
-            if(const auto reason = T::iis_case_skip_reason(c))
-                GTEST_SKIP() << *reason;
+            return T::iis_case_skip_reason(c);
+        } else {
+            return std::nullopt;
         }
+    }
+
+    void check_case(const iis_case & c) {
+        using M = model_type;
+        if(!c.integer_columns.empty() && !milp_model<M>)
+            GTEST_SKIP() << "needs milp_model";
+        if(!can_build<M>(c)) GTEST_SKIP() << "needs ranged rows";
+        if(const auto reason = skip_reason(c)) GTEST_SKIP() << *reason;
         auto model = this->new_model();
         const built_case<M> built = build(model, c);
         const saved_model_data before = save(model, built);
@@ -554,7 +561,7 @@ struct fixture : public T {
                                  {},
                                  {},
                                  iis_outcome::irreducible};
-                if(!can_build<M>(c)) continue;
+                if(!can_build<M>(c) || skip_reason(c)) continue;
                 ++runs;
                 auto model = this->new_model();
                 const built_case<M> built = build(model, c);

@@ -444,6 +444,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             iis_cases::crossed_term_less_row_case();
         if(!iis_cases::can_build<probe>(crossed_row))
             GTEST_SKIP() << "the crossed term-less row needs ranged rows";
+        if(const auto reason = this->skip_reason(crossed_row))
+            GTEST_SKIP() << *reason;
         probe model(*this->api);
         const built_case<probe> built = build(model, crossed_row);
         model.record_row_sides();
