@@ -159,18 +159,57 @@ unless marked otherwise.
 
 | Solver, probed release | Entry point | Explains | Row sides | Bound sides | Partial answer | Stopped by `set_time_limit` |
 | --- | --- | --- | --- | --- | --- | --- |
-| Gurobi 12.0.1 | `GRBcomputeIIS` | the MIP | membership only | `IISLB`, `IISUB` | `IISMinimal` | yes, documented and measured |
-| CPLEX 22.1.2 | `CPXrefineconflictext` | the MIP | membership only | lower, upper | none: the "possible" flags of an abort status prove nothing (p10, p13 below) | yes, documented and measured |
-| COPT 8.0 | `COPT_ComputeIIS` | the MIP | per side, reliable on LPs only | per side | `IsMinIIS` | on `copt_milp`, measured, undocumented, and on `copt_lp` once fix 10 adds the setter (N35 a) |
-| Xpress 47.01 | `XPRSiisfirst`, `XPRSgetiisdata` | the MIP | `L`, `G`, or `E` for both | `L`, `U` | `IISSOLSTATUS` | yes, measured, implied by the manual |
+| Gurobi 11.0.3, 12.0.1, 13.0.2 | `GRBcomputeIIS` | the MIP | membership only | `IISLB`, `IISUB`, never a binary's | `IISMinimal`, 10005 after a stop with no subsystem | yes, documented and measured |
+| CPLEX 22.1.1, 22.1.2 | `CPXrefineconflictext` | the MIP | membership only | lower, upper | none: the "possible" flags of an abort status prove nothing (p10, p13 below) | yes, documented and measured |
+| COPT 8.0.5 | `COPT_ComputeIIS`, after `COPT_Reset` and a solve | the MIP | per side, reliable on LPs only | per side, one bound of an integer column on MIPs | `IsMinIIS`, `HasIIS` 0 after a stop | yes, on both classes, measured, undocumented; the confirming solve shares the budget |
+| Xpress 45.01, 47.01 | `XPRSiisfirst`, `XPRSgetiisdata` | the MIP | `L`, `G`, or `E` where integrality needs both sides | `L`, `U`, `F` | `IISSOLSTATUS`, `p_status` 3 with `NUMIIS` 1 | yes, measured, implied by the manual |
 | HiGHS 1.15.1, routine from 1.12.0, floor 1.14.0 | `Highs_getIis` | the relaxation | per side | per side | "maybe in conflict" | no, `iis_time_limit` replaces it, the option documented, the replacement read in the sources and measured |
 | SCIP 10.0 sources | `SCIPgenerateIIS`, `SCIPgetIIS` | not examined | a sub-SCIP | a sub-SCIP | irreducible flag | not examined |
 
-The last column comes from the time-limit probes of 2026-09-27, on the
-releases the introduction lists.
+The last column comes from the time-limit probes of 2026-09-27 and the
+wave 5 probes of 2026-09-29, on the releases the rows name. The wave 5
+probe programs and outputs stayed outside the repository; the bullets below
+record what they established.
 
 - **Gurobi and CPLEX.** Neither names the side of a row. An inequality row
   gets its side from its sense; an equality row is reported as `member`.
+- **Gurobi.** Probed on 11.0.3, 12.0.1 and 13.0.2 on 2026-09-29, with
+  identical results unless said otherwise. A feasible model returns 10015,
+  solved or not, the empty model included; the call solves an unsolved
+  feasible LP (`Status` 2, optimum held) and keeps the solution of a solved
+  one. A solved infeasible LP keeps `Status` 3 with `SolCount` 0. A stop
+  overwrites `Status` with the limit code on an LP (9 time, 7 iteration,
+  16 work) and leaves 1 on a stopped MIP, and overwrites `Runtime`. On a
+  model with SOS, quadratic or general constraints, writing a force
+  attribute and updating discards the held solution before the call
+  (`Status` 1) and the IIS attributes after the restore. Time limit: a
+  3000 by 6001 LP under 2 s returns 0 at 2.000 to 2.001 s with `IISMinimal`
+  10005 and no subsystem; a market split MIP under 1 s returns a 4-row
+  subsystem, verified infeasible, with `IISMinimal` 1 at 0.95 to 0.97 s on
+  11.0.3 and 13.0.2 and `IISMinimal` 0 at 1.012 s on 12.0.1, which the
+  elapsed-time rule sorts out. A limit of 0 leaves a row conflict
+  unanswered, but a singleton bound-row conflict and a model an earlier
+  solve proved infeasible answer in full, since the cheap checks run before
+  the clock. The force attributes, measured at 1: a needed indicator gives
+  linear members irreducible relative to it, with `IISGenConstr` 1; an
+  unneeded one is forced in and the answer unchanged; a conflict among
+  indicators alone gives `IISMinimal` 1 with zero linear members; SOS and
+  quadratic rows behave alike, and a column deleted between two calls is
+  handled. A binary z under `z >= 2` names the row alone, the [0, 1] bounds
+  being implicit in the type (documented in 10.0 and 13.0); an integer z in
+  [0, 1] names the row and its upper bound. A column-less `0 >= 1` names
+  the row. `IterationLimit` 0 returns 0 with 10005 and `Status` 7, solved
+  or not. Zero-length attribute reads return 0. The 10.0 documentation
+  lists `GRBcomputeIIS` and the six `IIS*Force` attributes, and the three
+  local headers declare them, so every symbol is bound mandatory. The
+  wrapper (`70374bf`) forces `IISSOSForce`, `IISQConstrForce` and
+  `IISGenConstrForce` to 1 for the call and restores them through a guard
+  whose restore runs every write-back before checking the first error;
+  `IISMinimal` 0 gives `not_proven_minimal`, 10005 after return code 0
+  `undetermined`, 10015 `feasible`, and `time_limit` is attributed when the
+  measured time reached the limit. Numerical trouble with no limit can
+  also give `IISMinimal` 0, seen on 13.0.2 under `IISMethod` 1 only, which
+  the wrapper never sets. Gurobi 10, the range floor, is not installed.
 - **CPLEX.** `CPXrefineconflict` is deprecated since 20.1, so the wrapper
   calls `CPXrefineconflictext` with one group per row and per bound; its group
   preferences are also the hook for forcing later. The refiner replaces
@@ -204,22 +243,91 @@ releases the introduction lists.
   `chgsense`, `chgctype`, `newcols`, `addindconstr`, `addsos`), not by an
   objective or parameter change (p7, p13). A native simplex iteration limit on a MIP makes
   `CPXrefineconflictext` itself fail with 3019 (p9), unreachable through
-  MIP++ since `cplex_milp` has no `set_iteration_limit`.
+  MIP++ since `cplex_milp` has no `set_iteration_limit`. The wave 5 probes
+  added: a feasible model returns 0 with status 30 and `CPXgetconflictext`
+  fails with 1719, solved or not; the held solution survives the refiner
+  (objective, point, primal feasibility) while `CPXgetstat` reads 30 or 31
+  and `dfeasind` flips from 1 to 0 on a MIP, so the status and the solution
+  disagree and the reset stays (N15). Every time-limit stop is 33, 0.7 to
+  15 ms late, deterministic over 30 runs under 0 s; a node limit of 0 gives
+  35, an iteration limit of 0 gives 34 on an LP and 3019 on a MIP, and a
+  deterministic time limit 39. A column-less row is named as the violated
+  member. Crossed bounds read both `MEMBER`. Indicators and SOS, left out
+  of the groups, are background, and a conflict among indicators alone is
+  31 with zero members. Row bounds (`3b8afc1`, `5c63df7`): sense `R` with
+  `rhs` and `rngval` is native, `rngval > 0` giving [rhs, rhs + rngval] and
+  `<= 0` the reverse (documented and measured); the setters write `E`, `G`,
+  `L` or `R` from the two sides and rewrite the range after every switch to
+  `R`, since `chgsense` did not zero it although the manual says it does;
+  crossed sides have no encoding and throw `std::invalid_argument`; the
+  sense and rhs getters, `get_constraint`, `set_constraint_rhs` and
+  `set_constraint_sense` throw `std::runtime_error` on an `R` row, whose
+  sense the mapping read as `>=` before. Community Edition 22.1.2 refines
+  the m = 3 market split in 5 to 16 s against 0.1 to 1.9 s on 22.1.1.
+  Measured on 22.1.1 and 22.1.2; 22.1.0, the range floor, is not installed.
 - **COPT.** On MIPs it flags a single side of an equality row even when both
   are needed: integer x with `x = 0.5`, integer x with `2x = 1.5`, and
   integers x, y with `x + y = 1.5` each got one side only. An LP IIS never
   needs both sides of one row, so the flags are consistent on LPs. `copt_milp`
-  therefore reports equality rows as `member`. `copt_lp` lacks
-  `has_time_limit` on main, although `COPT_SolveLp` honors `TimeLimit`
-  (measured on 8.0.5). Under N35 (a), the plan's fix 10 moves the setter into
-  `copt_base`, and under N29 (a) the model's time limit then bounds a native
-  `copt_lp` call as it does on `copt_milp`. On 8.0.5, a stop before any
-  subsystem leaves `HasIIS` at 0, and a feasible model returns the generic
-  code 3 (measured). Two measured findings need care in WP16. On a
-  time-limited MIP IIS equal to the whole model, 101 rows and 200 columns, the
-  per-entity getters flagged two rows and one column, against `IISRows` and
-  `IISCols`. Separately, one `IsMinIIS` = 1 answer on a 20-column, 10-row
-  binary model was feasible when re-solved, which is unexplained.
+  therefore reports equality rows as `member`. `copt_lp` got its time limit
+  in wave 1 (`d205cf6`, N35 a), and under N29 (a) the model's limit bounds a
+  native call on both classes. On 8.0.5, a stop before any subsystem
+  leaves `HasIIS` at 0, and a feasible model returns the generic code 3
+  (measured). Two findings of 2026-09-27 needed care: on a time-limited MIP
+  IIS equal to the whole model, 101 rows and 200 columns, the per-entity
+  getters flagged two rows and one column, against `IISRows` and `IISCols`,
+  and one `IsMinIIS` = 1 answer on a 20-column, 10-row binary model was
+  feasible when re-solved. Wave 5 (2026-09-29, on 8.0.5 only: 7.2.5 loads
+  and binds every IIS symbol, but the local license refuses
+  `COPT_CreateEnv` there) settled the rest. `COPT_ComputeIIS` returns its
+  previous answer after bound, row or objective changes and after a solve,
+  only `AddCol` and `AddRow` invalidating it, and returns code 3 without
+  looking at a model whose `LpStatus` is optimal, so the wrapper calls
+  `COPT_Reset(prob, 0)` first, which clears the cache, the statuses and the
+  held solution and keeps the parameters (measured). With `IsMIP` 1 the
+  routine flags the whole model with `HasIIS` 1 and `IsMinIIS` 1 on an
+  unsolved feasible MIP, on a stale infeasible status and on `INF_OR_UNB`,
+  and after a solve to optimal returns 3 like an LP (24 of 24 and 29 of 29
+  random models), so `copt_milp` always solves first: optimal or unbounded
+  gives `feasible`, infeasible runs the routine under the remaining budget,
+  a timeout is `undetermined` with `time_limit`, a stop with an incumbent
+  `feasible`, and `INF_OR_UNB` or a node-limit stop `undetermined` with no
+  reason. That solve fires a registered candidate-solution callback, whose
+  lazy rows could make a feasible model solve infeasible and the routine
+  then flag the whole model as irreducible, so the callback is detached
+  for the call and re-registered afterwards (measured: 0 calls,
+  `feasible`). On the LP path the routine never solves, so a code 3 gets
+  one confirming `COPT_SolveLp` under the remaining budget: optimal or
+  unbounded is `feasible`, a timeout `undetermined` with `time_limit`, and
+  infeasible throws. The routine segfaults on a row-less model without SOS
+  or indicator whose bounds are LP-feasible, the empty model included, and
+  reports an integer column whose interval holds no integer as an empty
+  `HasIIS` 1 answer or as code 3 after an infeasible solve, so the wrapper
+  decides such a column from its bounds, clamping a `COPT_BINARY` column
+  to [0, 1] first since COPT rejects one whose bounds exclude 0 and 1. On
+  a MIP COPT flags one side of an equality row (206 flagged rows, none with
+  both flags) and one bound of a two-bounded integer column where both are
+  needed, and of 176 random binary answers with `IsMinIIS` 1, 6 re-solved
+  feasible with only the flagged sides and none with the flagged columns
+  kept whole, so `copt_milp` reports rows and integer columns whole;
+  `copt_lp` and `IsMIP` 0 models decode per side, whose flags are complete.
+  A stop whose `IISRows` and `IISCols` disagree with the flags (5 and 40
+  against 1 and 1 on a time-limited market split) is `undetermined`;
+  `IISCols` is documented as a count of bounds but 8.0.5 counts columns,
+  and the wrapper accepts either. `TimeLimit` bounds the routine,
+  undocumented: an 18040-row LP under 0.01 s returns `HasIIS` 0 after
+  18.5 ms, a market split under 1 s at 1.0025 s with a non-minimal answer,
+  0 s in 0.2 ms, and a 60000 by 20000 LP under 0.02 s 44 ms late, inside
+  the routine itself. `NodeLimit` does not stop the routine, which it slows
+  from 1.9 to 5.8 s, but stops the confirming solve. Held solution and
+  statuses survive the routine itself (`LpObjval`, the point), but the
+  reset the wrapper needs drops them, so the status reset stays (N15).
+  Indicators and SOS are listed as members natively (`IISIndicators`,
+  `IISSOSs`) with the linear members relative to them; the snapshot never
+  counts them. Row bounds (`a3fc0c1`): COPT stores two sides natively,
+  `SetRowLower` on `x <= 3` gives [1, 3], a freed side reads ±1e30, and any
+  side at or beyond ±1e30 reads ±1e30, so the getters of WP6c, which read
+  `COPT_DBLINFO_LB` and `UB`, were already consistent.
 - **Xpress.** By default integrality restrictions are removable candidates,
   listed as `I` members. With integers x, y and rows `y = 0` and
   `x + y = 1.5`, the default returned both rows, which is not irreducible once
@@ -227,11 +335,49 @@ releases the introduction lists.
   returned `x + y = 1.5` alone. `IISOPS` bits mark element classes as fixed,
   and fixed elements are still listed, so the wrapper sets the bits and drops
   the `I` entries. Rows map `L` to `member_upper`, `G` to `member_lower` and
-  `E` to `member_both`, to confirm at 45.1, the range floor. On 45.01, the MIP
-  IIS of a 4-row, 26-column market split aborted twice with SIGABRT under the
-  default `IISOPS`, and completed with `IISOPS` = 17, which keeps integrality
-  fixed (measured). A stop returns `p_status` 3, and `NUMIIS` 0 then means no
-  answer (measured on 45.01 and 47.01).
+  `E` to `member_both`, confirmed at 45.01, the range floor, and on 47.01
+  in wave 5 (2026-09-29): `E` never appears on an LP,
+  `one_side_of_an_equality_row` gives `L` or `G` on LP and MIP, and `E`
+  comes only where integrality needs both sides; bound types `U`, `L` and
+  `F` (a fixed column in a MIP IIS: x in [1, 1], integer y, x + y = 0.5
+  gives row `E`, x `F`, y `I`) map to sides, `F` to `member_both`, and `B`
+  and `I` entries are dropped. A ranged row whose two sides are both needed
+  under integrality is reported `L` only (1.25 <= x <= 1.75, x integer). A
+  feasible model gives `p_status` 1, `IISSOLSTATUS` 1 and `NUMIIS` 0, after
+  which `LPSTATUS` and `MIPSTATUS` keep reading optimal while the objective
+  attributes read 0 and `XPRSgetsolution` fails with 422, so status and
+  solution disagree and the reset stays (N15). The routine reads
+  `TIMELIMIT`: the market split under 1 s returns `p_status` 3,
+  `IISSOLSTATUS` 3 and `NUMIIS` 0, under 3 s `NUMIIS` 1 with four `E` rows
+  not proven minimal, and `TIMELIMIT` 0 stops every model, trivial and
+  feasible ones included, before any answer (`IISSOLSTATUS` 0);
+  `STOPSTATUS` is unreliable. `p_status` 3 is any stop: `XPRSinterrupt`, a
+  checktime interrupt and `LPITERLIMIT` 1 all give it under `TIMELIMIT`
+  1e20, and 42 limit stops on both releases returned from 9.2 ms early to
+  10 ms late, Xpress reading its clock in 10 ms steps, so the wrapper
+  attributes `time_limit` when the measured time plus a 20 ms slack reached
+  the limit, and no reason otherwise. `p_status` 2 ("?727 Warning: Bound
+  conflict on column; IIS will not continue") comes on crossed or
+  integer-empty column bounds even when the conflict is elsewhere, with
+  `XPRSgetlasterror` empty, and the wrapper throws `solver_error`. Under
+  the default `IISOPS` both releases abort the process on the 4-row,
+  26-binary market split ("Error in calculation of row activities"); the
+  wrapper's bits (integrality, general, PWL, SOS and indicator constraints
+  fixed, delayed rows left as candidates) complete it in 5.6 s on 47.01
+  and 3.8 to 15.1 s on 45.01. Indicator rows list with contype `I` and
+  sets with a set index under either `IISOPS`, and are dropped. A
+  column-less `0 >= 1` names the row `G`. The routine restores a
+  MIP-presolved problem itself, and a time-limited `lpoptimize` leaves the
+  LP original on 47.01 and LP-presolved on 45.01, answered on both. 45.01
+  solves an LP with crossed column bounds and a MIP with an integer column
+  holding no integer to optimal where 47.01 says infeasible, a defect the
+  suites skip from the case data below 47.1. Row bounds (`0525785`): a
+  ranged row is type `R` with `rhs` the upper side and a non-negative
+  range, `XPRSchgrhsrange` normalizing a negative range by moving the rhs
+  (documented and measured), so crossed sides throw
+  `std::invalid_argument`; Xpress has no sense or rhs getter. The
+  community license caps a problem at 5000 rows plus columns (error 120).
+  Measured on 45.01.01 and 47.01.01; 46 was not probed.
 - **HiGHS.** The routine analyzes "an LP, QP, or the relaxation of a MIP"
   (1.15.1 header). `Highs_getIis` is absent from the 1.8.1, 1.9.0, 1.10.0 and
   1.11.0 headers and entered the C API in 1.12.0, while the validated range
@@ -292,16 +438,22 @@ releases the introduction lists.
   to handles was not examined, so `scip_milp` starts on the free function.
 - **The others.** MOSEK, Clp, Cbc, GLPK and SoPlex have no IIS routine;
   MOSEK's infeasibility report and `MSK_primalrepair` are not one.
-- **Time limits.** The routines of Gurobi, CPLEX, Xpress and `copt_milp` stop
-  under the parameter that `set_time_limit` writes, within 0.05 s, 0.43 s,
-  0.25 s and 25 ms of the limit (measured). Gurobi and CPLEX document it, the
-  Xpress manual implies it, and COPT does not mention it. HiGHS documents and
-  applies its own `iis_time_limit` instead. Each call gets a fresh budget
-  (measured on all five), so `solve()` followed by `compute_iis()` may take
-  twice the limit. Other limits stop some routines too: CPLEX's iteration and
-  node limits (measured) and its memory limit (documented), Gurobi's
-  `SoftMemLimit`, which `set_memory_limit` writes (documented), and Gurobi's
-  `WorkLimit`, which MIP++ does not write (documented and measured). HiGHS
+- **Time limits.** The routines of Gurobi, CPLEX, Xpress and COPT stop
+  under the parameter that `set_time_limit` writes: on the wave 5 probes
+  within about 1 ms (12 ms once), 0.7 to 15 ms, 10 ms before or after, and
+  2.5 to 44 ms of the limit (measured on 2026-09-29; the probes of
+  2026-09-27 had seen 0.05 s, 0.43 s, 0.25 s and 25 ms). Gurobi and CPLEX
+  document it, the Xpress manual implies it, and COPT does not mention it.
+  HiGHS documents and applies its own `iis_time_limit` instead. Each call
+  gets a fresh budget (measured on all five), so `solve()` followed by
+  `compute_iis()` may take twice the limit. Other limits stop some routines
+  too: CPLEX's iteration and node limits (measured) and its memory limit
+  (documented), Gurobi's `SoftMemLimit`, which `set_memory_limit` writes
+  (documented), Gurobi's `WorkLimit`, which MIP++ does not write (documented
+  and measured), Gurobi's `IterationLimit` on `gurobi_lp`, with no answer
+  (measured), COPT's `NodeLimit`, which stops the confirming solve but not
+  the routine (measured), and on Xpress an interrupt or a native
+  `LPITERLIMIT`, without a reason (measured). HiGHS
   lifts its simplex iteration limit during the call (read in the 1.14.0 and
   1.15.1 sources), and since wave 4 a test pins on 1.15.1 that a zero
   iteration limit stops `solve()` but not `compute_iis()`, with a Hessian too
@@ -311,8 +463,10 @@ releases the introduction lists.
   `iis_time_limit`, restored afterwards. Under N9, the other limits may also
   stop it. The docs state per backend that the budget is per call, which other
   model limits also stop the routine, and that a stop may return late or with
-  no answer. `copt_lp` has no time limit on main. Fix 10 gives it one (N35 a),
-  which then bounds its call as on `copt_milp`. An explicit duration per call
+  no answer. `copt_lp` got its time limit in wave 1 (`d205cf6`, N35 a), and
+  since wave 5 the model's limit bounds the whole call on both COPT
+  classes, the confirming solve and the routine sharing it, the remainder
+  written for the second step and restored. An explicit duration per call
   is only a Deferred possibility (N29 b), and leaving the call unbounded
   (N29 c) or to the solver's own rule (N29 d) is rejected.
 - **The status after a native call.** A native `compute_iis()` sets the status
@@ -351,12 +505,28 @@ releases the introduction lists.
   call turned an infeasible LP's status 3 into 9, the time limit (measured on
   13.0.2). COPT's `COPT_ComputeIIS` leaves `Status`, `LpStatus`, `MipStatus`
   and `HasLpSol` as the solve set them, stopped or not (measured on 8.0.5).
-  That is half of the probe, since whether the held solution survives was not
-  checked. Xpress is unprobed.
+  The wave 5 probes of 2026-09-29 completed the four. CPLEX: the held
+  solution survives, but `CPXgetstat` reads the conflict status and
+  `dfeasind` flips on a MIP, so status and solution disagree and the reset
+  stays. Xpress: after a feasible answer the status attributes still read
+  optimal while the objective reads 0 and the solution is gone (422); the
+  reset stays. COPT: the routine itself leaves the held solution and every
+  status untouched, but the `COPT_Reset` the wrapper needs against the
+  answer cache drops them; the reset stays. Gurobi: status and solution
+  agree on a model without special constraints, an unsolved feasible one
+  solved to its optimum, a solved one keeping its point, an infeasible one
+  keeping 3 with `SolCount` 0, and a stop writing the limit code while
+  claiming no solution; but on a model with SOS, quadratic or general
+  constraints the forcing writes discard the held solution while a cached
+  `optimal` would stand, so the reset stays on both classes, and leaving
+  the status untouched on a model without such constraints is a follow-up
+  like HiGHS's.
 - **Wrappers restore what they set.** Each native wrapper restores its own
   parameters through a small RAII helper: HiGHS `iis_strategy` and
   `iis_time_limit` (N29 a), Xpress `IISOPS`, Gurobi's `IIS*Force` attributes
-  (N15). The free function's guard saves model data and lives in its detail
+  (N15), COPT's `TimeLimit` for the second step and, on `copt_milp`, the
+  detached callback; CPLEX sets nothing, its groups being arguments of the
+  call, which a test pins. The free function's guard saves model data and lives in its detail
   namespace, so it is not reused, which departs from the WP7 guard of the N15
   recommendation.
 - **Split.** Native, where `has_iis` holds: `gurobi_*`, `cplex_*`, `copt_*`,
@@ -364,12 +534,15 @@ releases the introduction lists.
   has the capabilities it requires: `clp_lp` (WP8), `cbc_milp` (WP9),
   `highs_lp`, `highs_milp` and `highs_qp` (WP10), `glpk_*` (WP11), `mosek_*`
   (WP12), `scip_milp` (WP13) and `soplex_lp` (WP14). `copt_*`, `cplex_*` and
-  `xpress_*` join it once they get modifiable row bounds, only where the
-  solver stores a row's two sides natively, to be confirmed per solver
-  (N30 b). `gurobi_*` does not, since its ranges add a slack column. `dumb_lp`
-  joins later (N24). The work packages are those of
+  `xpress_*` joined it in wave 5, on 2026-09-29, with modifiable row
+  bounds, each solver confirmed to store a row's two sides natively
+  (N30 b): COPT as two bounds, CPLEX as an `R` row with a range, Xpress as
+  type `R` with a range. `gurobi_*` does not, since its ranges add a slack
+  column. `dumb_lp` joins later (N24). The work packages are those of
   [iis_pr_plan.md](iis_pr_plan.md). Since wave 3, on 2026-09-28, all eleven
-  classes of the free function's list run it.
+  classes of the free function's list run it, and since wave 5 the six
+  COPT, CPLEX and Xpress classes too, seventeen in all; `has_iis` holds on
+  the ten classes of the native list.
 
 ## The deletion filter, a public algorithm
 
@@ -1162,7 +1335,11 @@ bullet records the decision.
   untouched" until the routine's probe passes. No new ruling is needed per
   routine. Under Q1 (b) the free function's guard saves model data and lives
   in its detail namespace, so each wrapper uses its own RAII helper instead,
-  which departs from the recommendation.
+  which departs from the recommendation. The wave 5 probes of 2026-09-29
+  (see Native routines): CPLEX's, Xpress's and COPT's wrapped calls fail the
+  probe, and Gurobi's passes on models without special constraints only, so
+  every `compute_iis()` keeps the reset; leaving Gurobi's status untouched
+  on such models is a follow-up like HiGHS's.
 - **N16. IIS and LP basis support.** (b) Ruling: "Basis implementation will
   handle the factorization burden if needed." IIS comes first, its storage a
   `detail` template that basis support reuses.
