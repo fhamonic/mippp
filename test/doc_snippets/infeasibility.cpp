@@ -218,6 +218,7 @@ struct sides_named {
 };
 
 template <typename Model, typename Iis>
+    requires has_modifiable_constraint_bounds<Model>
 void relax_members(Model & model, const Iis & iis) {
     const auto inf = model.infinity();
     for(auto v : model.variables()) {

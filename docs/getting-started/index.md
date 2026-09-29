@@ -67,8 +67,9 @@ Most research codes are not "build model, call solve": they are branch-and-cut, 
 - time, node, iteration, solution and memory limits, plus tolerance
   parameters, for [reproducible experiments](../solving/status-and-limits.md),
 - an **irreducible infeasible subsystem** (IIS) when a model comes back
-  infeasible, from HiGHS's own routine or from a deletion filter that runs on
-  the models of seven solvers ([guide](../solving/infeasibility.md)).
+  infeasible, from the solver's own routine on Gurobi, CPLEX, Xpress, COPT and
+  HiGHS, or from a deletion filter that runs on every backend but Gurobi
+  ([guide](../solving/infeasibility.md)).
 
 Each of these is itself a concept (`has_candidate_solution_callback`, `has_column_generation`, …), so a generic algorithm can state its requirements in its template signature and fail at *compile time* — with a clear diagnostic — if you instantiate it with a backend that lacks a capability, rather than at hour three of a run.
 
