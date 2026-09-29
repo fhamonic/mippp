@@ -12,13 +12,17 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
+#include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/iis_outcome.hpp"
+#include "mippp/utility/iis_snapshot.hpp"
 
 #include "mippp/solvers/gurobi/impl/v1/gurobi_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
@@ -664,6 +668,215 @@ public:
         int verbose;
         check(GRB->getintparam(env, GRB_INT_PAR_OUTPUTFLAG, &verbose));
         return verbose != 0;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// IIS ////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // Gurobi flags a row's membership only: an inequality row has one side
+    // to name, an equality row is reported whole rather than with a side the
+    // routine never named.
+    using iis_row_status =
+        std::variant<iis_status::absent, iis_status::member,
+                     iis_status::member_lower, iis_status::member_upper>;
+
+    // SOS, quadratic and general constraints have no handle to report, so
+    // they are forced into the IIS for the call: the routine then never tries
+    // to remove one, and the rows and bounds it reports conflict against them
+    // as fixed background. The forcing attributes are the user's, and a
+    // value they set must survive the call. Every write here is a model
+    // modification, which Gurobi answers by discarding the held solution and
+    // the IIS attributes at the next update: the routine reads its answer
+    // before the restore, and a model without special constraints is left
+    // untouched.
+    class iis_force_guard {
+    private:
+        const gurobi_api & _api;
+        GRBenv * _env;
+        GRBmodel * _model;
+        std::vector<int> _sos_force, _qconstr_force, _genconstr_force;
+        bool _restored = false;
+
+        void _check(const int error) const { _api._check(_env, error); }
+        bool _forced() const noexcept {
+            return !_sos_force.empty() || !_qconstr_force.empty() ||
+                   !_genconstr_force.empty();
+        }
+
+        std::vector<int> _save_and_force(const char * count_attr,
+                                         const char * force_attr) {
+            int count;
+            _check(_api.getintattr(_model, count_attr, &count));
+            std::vector<int> saved(static_cast<std::size_t>(count));
+            if(count == 0) return saved;
+            _check(_api.getintattrarray(_model, force_attr, 0, count,
+                                        saved.data()));
+            std::vector<int> forced(static_cast<std::size_t>(count), 1);
+            _check(_api.setintattrarray(_model, force_attr, 0, count,
+                                        forced.data()));
+            return saved;
+        }
+        int _write_back(const char * force_attr,
+                        std::vector<int> & saved) noexcept {
+            if(saved.empty()) return 0;
+            return _api.setintattrarray(_model, force_attr, 0,
+                                        static_cast<int>(saved.size()),
+                                        saved.data());
+        }
+        // values read back moments ago: the writes cannot be rejected
+        void _write_back_all() noexcept {
+            (void)_write_back(GRB_INT_ATTR_IIS_SOSFORCE, _sos_force);
+            (void)_write_back(GRB_INT_ATTR_IIS_QCONSTRFORCE, _qconstr_force);
+            (void)_write_back(GRB_INT_ATTR_IIS_GENCONSTRFORCE,
+                              _genconstr_force);
+            (void)_api.updatemodel(_model);
+        }
+
+    public:
+        iis_force_guard(const gurobi_api & api, GRBenv * env, GRBmodel * model)
+            : _api(api), _env(env), _model(model) {
+            // a constructor that throws runs no destructor
+            try {
+                _sos_force = _save_and_force(GRB_INT_ATTR_NUMSOS,
+                                             GRB_INT_ATTR_IIS_SOSFORCE);
+                _qconstr_force = _save_and_force(GRB_INT_ATTR_NUMQCONSTRS,
+                                                 GRB_INT_ATTR_IIS_QCONSTRFORCE);
+                _genconstr_force =
+                    _save_and_force(GRB_INT_ATTR_NUMGENCONSTRS,
+                                    GRB_INT_ATTR_IIS_GENCONSTRFORCE);
+                // attribute writes are queued until an update
+                if(_forced()) _check(_api.updatemodel(_model));
+            } catch(...) {
+                _write_back_all();
+                throw;
+            }
+        }
+        iis_force_guard(const iis_force_guard &) = delete;
+        iis_force_guard & operator=(const iis_force_guard &) = delete;
+
+        // every attribute is written back before the first error is raised,
+        // so a rejected write cannot leave the others forced
+        void restore() {
+            _restored = true;
+            if(!_forced()) return;
+            int first_error =
+                _write_back(GRB_INT_ATTR_IIS_SOSFORCE, _sos_force);
+            for(const int error :
+                {_write_back(GRB_INT_ATTR_IIS_QCONSTRFORCE, _qconstr_force),
+                 _write_back(GRB_INT_ATTR_IIS_GENCONSTRFORCE, _genconstr_force),
+                 _api.updatemodel(_model)}) {
+                if(first_error == 0) first_error = error;
+            }
+            _check(first_error);
+        }
+        ~iis_force_guard() {
+            if(_restored || !_forced()) return;
+            _write_back_all();
+        }
+    };
+
+protected:
+    using iis_snapshot_type =
+        iis_snapshot<variable, constraint, iis_sided_status, iis_row_status>;
+
+    iis_snapshot_type _compute_iis() {
+        _lazily_remove_variables();
+        update_gurobi_model();
+        const std::size_t num_col = _num_var_native_ids;
+        const std::size_t num_row = num_constraints();
+        detail::handle_status_table<iis_sided_status> variable_table(
+            _handle_id_bound(num_col));
+        detail::handle_status_table<iis_row_status> constraint_table(num_row);
+
+        // GRBcomputeIIS reads TimeLimit itself and returns 0 on a stop, and
+        // IISMinimal is 0 after numerical trouble as well as after a stop:
+        // the time measured around the call is what tells the two apart.
+        const double budget = get_time_limit().count();
+        iis_force_guard guard(*GRB, env, model);
+        const auto start = std::chrono::steady_clock::now();
+        const int code = GRB->computeIIS(model);
+        const double elapsed = std::chrono::duration<double>(
+                                   std::chrono::steady_clock::now() - start)
+                                   .count();
+        // never reached under the default 1e100, always under a zero limit
+        const std::optional<iis_reason> stop_reason =
+            elapsed >= budget ? std::optional(iis_reason::time_limit)
+                              : std::nullopt;
+
+        // A stop before any subsystem was found, whatever the limit, leaves
+        // the IIS attributes unset and returns 0: asking for one of them is
+        // the only way to know.
+        int minimal = 0;
+        bool answered = false;
+        std::vector<int> lower_in_iis(num_col), upper_in_iis(num_col),
+            row_in_iis(num_row);
+        std::vector<char> senses(num_row);
+        if(code == 0) {
+            const int minimal_code =
+                GRB->getintattr(model, GRB_INT_ATTR_IIS_MINIMAL, &minimal);
+            if(minimal_code != GRB_ERROR_DATA_NOT_AVAILABLE) {
+                check(minimal_code);
+                answered = true;
+                // an empty vector has no buffer to hand over
+                if(num_col > 0) {
+                    check(GRB->getintattrarray(model, GRB_INT_ATTR_IIS_LB, 0,
+                                               static_cast<int>(num_col),
+                                               lower_in_iis.data()));
+                    check(GRB->getintattrarray(model, GRB_INT_ATTR_IIS_UB, 0,
+                                               static_cast<int>(num_col),
+                                               upper_in_iis.data()));
+                }
+                if(num_row > 0) {
+                    check(GRB->getintattrarray(model, GRB_INT_ATTR_IIS_CONSTR,
+                                               0, static_cast<int>(num_row),
+                                               row_in_iis.data()));
+                    check(GRB->getcharattrarray(model, GRB_CHAR_ATTR_SENSE, 0,
+                                                static_cast<int>(num_row),
+                                                senses.data()));
+                }
+            }
+        }
+        guard.restore();
+
+        if(code == GRB_ERROR_IIS_NOT_INFEASIBLE)
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     iis_outcome::feasible);
+        check(code);
+        if(!answered)
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     iis_outcome::undetermined, stop_reason);
+
+        for(std::size_t j = 0; j < num_col; ++j) {
+            const bool lower = lower_in_iis[j] != 0;
+            const bool upper = upper_in_iis[j] != 0;
+            if(!lower && !upper) continue;
+            variable_table.set(
+                _var_handle(static_cast<int>(j)).uid(),
+                lower && upper ? iis_sided_status{iis_status::member_both{}}
+                : lower        ? iis_sided_status{iis_status::member_lower{}}
+                               : iis_sided_status{iis_status::member_upper{}});
+        }
+        for(std::size_t i = 0; i < num_row; ++i) {
+            if(row_in_iis[i] == 0) continue;
+            constraint_table.set(
+                i, senses[i] == GRB_LESS_EQUAL
+                       ? iis_row_status{iis_status::member_upper{}}
+                   : senses[i] == GRB_GREATER_EQUAL
+                       ? iis_row_status{iis_status::member_lower{}}
+                       : iis_row_status{iis_status::member{}});
+        }
+
+        // An answer made of forced elements alone has no member and is
+        // still an IIS: the background alone is infeasible.
+        if(minimal != 0)
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     iis_outcome::irreducible);
+        return iis_snapshot_type(std::move(variable_table),
+                                 std::move(constraint_table),
+                                 iis_outcome::not_proven_minimal, stop_reason);
     }
 };
 

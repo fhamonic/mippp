@@ -67,6 +67,9 @@ int GRBaddqconstr(GRBmodel * model, int numlnz, int * lind, double * lval,
                   double rhs, const char * QCname);
 
 int GRBoptimize(GRBmodel * model);
+int GRBcomputeIIS(GRBmodel * model);
+constexpr int GRB_ERROR_DATA_NOT_AVAILABLE = 10005;
+constexpr int GRB_ERROR_IIS_NOT_INFEASIBLE = 10015;
 
 constexpr const char * GRB_INT_PAR_DUALREDUCTIONS = "DualReductions";
 constexpr const char * GRB_INT_PAR_LAZYCONSTRAINTS = "LazyConstraints";
@@ -88,6 +91,9 @@ enum ModelSense : int { GRB_MINIMIZE = 1, GRB_MAXIMIZE = -1 };
 constexpr const char * GRB_INT_ATTR_NUMVARS = "NumVars";
 constexpr const char * GRB_INT_ATTR_NUMCONSTRS = "NumConstrs";
 constexpr const char * GRB_INT_ATTR_NUMNZS = "NumNZs";
+constexpr const char * GRB_INT_ATTR_NUMSOS = "NumSOS";
+constexpr const char * GRB_INT_ATTR_NUMQCONSTRS = "NumQConstrs";
+constexpr const char * GRB_INT_ATTR_NUMGENCONSTRS = "NumGenConstrs";
 constexpr const char * GRB_INT_ATTR_STATUS = "Status";
 constexpr const char * GRB_INT_ATTR_SOLCOUNT = "SolCount";
 enum ModelStatus : int {
@@ -109,6 +115,16 @@ enum ModelStatus : int {
     GRB_WORK_LIMIT = 16,
     GRB_MEM_LIMIT = 17
 };
+constexpr const char * GRB_INT_ATTR_IIS_MINIMAL = "IISMinimal";
+constexpr const char * GRB_INT_ATTR_IIS_LB = "IISLB";
+constexpr const char * GRB_INT_ATTR_IIS_UB = "IISUB";
+constexpr const char * GRB_INT_ATTR_IIS_CONSTR = "IISConstr";
+constexpr const char * GRB_INT_ATTR_IIS_SOS = "IISSOS";
+constexpr const char * GRB_INT_ATTR_IIS_QCONSTR = "IISQConstr";
+constexpr const char * GRB_INT_ATTR_IIS_GENCONSTR = "IISGenConstr";
+constexpr const char * GRB_INT_ATTR_IIS_SOSFORCE = "IISSOSForce";
+constexpr const char * GRB_INT_ATTR_IIS_QCONSTRFORCE = "IISQConstrForce";
+constexpr const char * GRB_INT_ATTR_IIS_GENCONSTRFORCE = "IISGenConstrForce";
 int GRBsetintattr(GRBmodel * model, const char * attrname, int newvalue);
 int GRBgetintattr(GRBmodel * model, const char * attrname, int * valueP);
 int GRBsetintattrelement(GRBmodel * model, const char * attrname, int element,
@@ -234,6 +250,7 @@ namespace gurobi::impl::v1 {
     F(GRBgetcoeff, getcoeff)                           \
     F(GRBgetconstrs, getconstrs)                       \
     F(GRBoptimize, optimize)                           \
+    F(GRBcomputeIIS, computeIIS)                       \
     F(GRBsetintparam, setintparam)                     \
     F(GRBgetintparam, getintparam)                     \
     F(GRBsetdblparam, setdblparam)                     \

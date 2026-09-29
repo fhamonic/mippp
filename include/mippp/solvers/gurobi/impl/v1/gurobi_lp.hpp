@@ -106,6 +106,13 @@ public:
         if(is<status::infeasible_or_unbounded>(_status))
             throw std::runtime_error("Failed to refine LP status.");
     }
+    // The routine solves when it has no status to trust and overwrites the
+    // Status attribute either way, a stop leaving a limit code there: the
+    // reported status is reset before the first native call, throw or return.
+    auto compute_iis() {
+        reset_status();
+        return _compute_iis();
+    }
     double get_solution_value() {
         double value;
         check(GRB->getdblattr(model, GRB_DBL_ATTR_OBJVAL, &value));

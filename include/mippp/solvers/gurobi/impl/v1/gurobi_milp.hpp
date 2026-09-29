@@ -305,6 +305,14 @@ public:
         check(GRB->optimize(model));
         _status = _get_status();
     }
+    // The routine solves when it has no status to trust and overwrites the
+    // Status and Runtime attributes, and on a model with indicators the
+    // forcing writes discard the held solution: the reported status is reset
+    // before the first native call, throw or return.
+    auto compute_iis() {
+        reset_status();
+        return _compute_iis();
+    }
     double get_solution_value() {
         double value;
         check(GRB->getdblattr(model, GRB_DBL_ATTR_OBJVAL, &value));
