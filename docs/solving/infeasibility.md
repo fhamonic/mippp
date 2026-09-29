@@ -208,7 +208,12 @@ A snapshot is computed once, when the call returns, and later changes to the mod
 | `cbc_milp` | no | yes | an [experimental](../solvers/index.md#the-backends) backend, with wrong answers of Cbc 2.10 on integer rows, and root LPs past the deadline (measured on a Cbc `devel` build): see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs) and [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
 | `scip_milp` | no | yes | can throw on an infeasible model with binary columns: see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries) |
 | `mosek_lp`, `mosek_milp`, `soplex_lp` | no | yes | |
-| Gurobi, CPLEX, Xpress and COPT models | no | no | |
+| Gurobi, CPLEX, Xpress and COPT models | no | no | neither path yet, see below |
+
+The Gurobi, CPLEX, Xpress and COPT models meet every requirement of `iis_by_deletion_model` but one, `has_modifiable_constraint_bounds`, and MIP++ does not call their native routines yet. Native routines for them are planned. Until then, two ways remain:
+
+- the engine of [The deletion filter](../algorithms/deletion-filter.md#the-engine), over an oracle of your own: one that builds and solves a model of the active rows and bounds, say;
+- the solver's own routine, `GRBcomputeIIS`, `CPXrefineconflictext`, `XPRSiisfirst` or `COPT_ComputeIIS`, on the objects `native_model()` returns. The api objects bind none of them, so the call goes through the solver's C API, linked or loaded by you from the file `native_api().library_path()` names, and `native_id(v)` and `native_id(c)` give the index each of your handles has there. Such a call is outside MIP++, see [Native changes](#native-changes).
 
 ## Native changes
 
