@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <numeric>
@@ -10,14 +11,18 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/detail/handle_guard.hpp"
+#include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/iis_snapshot.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/copt/impl/v1/copt_api.hpp"
 #include "mippp/solvers/model_base.hpp"
@@ -423,7 +428,6 @@ public:
         check(COPT->GetRowInfo(prob, COPT_DBLINFO_UB, 1, &id, &ub));
         return ub;
     }
-
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -446,6 +450,364 @@ public:
         int verbose;
         check(COPT->GetIntParam(prob, COPT_INTPARAM_LOGGING, &verbose));
         return verbose != 0;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// IIS ////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+protected:
+    // On a MIP, COPT flags one side of an equality row and one bound of a
+    // two-bounded column, continuous or not, where both are needed: those
+    // members are reported whole.
+    using iis_whole_or_sided_status =
+        std::variant<iis_status::absent, iis_status::member,
+                     iis_status::member_lower, iis_status::member_upper,
+                     iis_status::member_both>;
+
+private:
+    // The routine reads TimeLimit, and the solve that confirms feasibility (an
+    // LP, after the routine) or infeasibility (a MIP, before it) shares that
+    // budget with it: the remainder is written for the second call only.
+    class iis_time_limit_guard {
+    private:
+        const copt_api & _api;
+        copt_env * _env;
+        copt_prob * _prob;
+        double _time_limit;
+        bool _restored = false;
+
+    public:
+        iis_time_limit_guard(const copt_api & api, copt_env * env,
+                             copt_prob * prob, double remaining)
+            : _api(api), _env(env), _prob(prob) {
+            _api._check(_env, _api.GetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT,
+                                               &_time_limit));
+            _api._check(_env, _api.SetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT,
+                                               remaining));
+        }
+        iis_time_limit_guard(const iis_time_limit_guard &) = delete;
+        iis_time_limit_guard & operator=(const iis_time_limit_guard &) = delete;
+
+        // a rejected write is retried once, unchecked, by the destructor
+        void restore() {
+            _api._check(_env, _api.SetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT,
+                                               _time_limit));
+            _restored = true;
+        }
+        ~iis_time_limit_guard() {
+            if(_restored) return;
+            (void)_api.SetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT, _time_limit);
+        }
+    };
+
+    // A column whose own bounds admit no value is an IIS by itself: crossed
+    // bounds, an integer column whose interval holds no integer, or a binary
+    // column whose interval holds neither 0 nor 1 (COPT keeps the bounds a
+    // user moves outside [0, 1] and calls the model infeasible). Freeing one
+    // bound of an integer or continuous column readmits a value, so both are
+    // members; a binary bound beyond the domain excludes it alone. The
+    // comparison is exact.
+    struct self_infeasible_column {
+        int index;
+        bool lower, upper;
+    };
+    std::optional<self_infeasible_column> _self_infeasible_column(int num_col) {
+        if(num_col == 0) return std::nullopt;
+        const auto count = static_cast<std::size_t>(num_col);
+        std::vector<double> lower(count), upper(count);
+        std::vector<char> types(count);
+        check(COPT->GetColInfo(prob, COPT_DBLINFO_LB, num_col, nullptr,
+                               lower.data()));
+        check(COPT->GetColInfo(prob, COPT_DBLINFO_UB, num_col, nullptr,
+                               upper.data()));
+        check(COPT->GetColType(prob, num_col, nullptr, types.data()));
+        for(int j = 0; j < num_col; ++j) {
+            const auto k = static_cast<std::size_t>(j);
+            double lo = lower[k], hi = upper[k];
+            if(types[k] != COPT_CONTINUOUS) {
+                lo = std::ceil(lo);
+                hi = std::floor(hi);
+            }
+            if(types[k] == COPT_BINARY) {
+                if(lo > 1.) return self_infeasible_column{j, true, false};
+                if(hi < 0.) return self_infeasible_column{j, false, true};
+                lo = std::max(lo, 0.);
+                hi = std::min(hi, 1.);
+            }
+            if(lo > hi) return self_infeasible_column{j, true, true};
+        }
+        return std::nullopt;
+    }
+
+    // The solve that tells a feasible MIP apart is stopped at its first
+    // incumbent: the answer is then known and the routine is not called. The
+    // MIPSOL context would stop before the candidate is committed, leaving
+    // HasMipSol at 0.
+    static int _iis_interrupt_callback(copt_prob * prob, void *, int,
+                                       void * model) {
+        (void)static_cast<copt_base *>(model)->COPT->Interrupt(prob);
+        return 0;
+    }
+
+    template <typename Status>
+    static Status _iis_member_status(bool lower, bool upper, bool whole) {
+        if(lower && upper)
+            return Status(std::in_place_type<iis_status::member_both>);
+        if constexpr(variant_with_alternative<Status, iis_status::member>) {
+            if(whole) return Status(std::in_place_type<iis_status::member>);
+        }
+        if(lower) return Status(std::in_place_type<iis_status::member_lower>);
+        return Status(std::in_place_type<iis_status::member_upper>);
+    }
+
+protected:
+    template <typename VariableStatus, typename ConstraintStatus>
+    iis_snapshot<variable, constraint, VariableStatus, ConstraintStatus>
+    _compute_iis(const bool mip) {
+        using snapshot = iis_snapshot<variable, constraint, VariableStatus,
+                                      ConstraintStatus>;
+        const int num_col = static_cast<int>(num_variables());
+        const int num_row = static_cast<int>(num_constraints());
+        detail::handle_status_table<VariableStatus> variable_table(
+            static_cast<std::size_t>(num_col));
+        detail::handle_status_table<ConstraintStatus> constraint_table(
+            static_cast<std::size_t>(num_row));
+        const auto answer = [&](iis_outcome outcome,
+                                std::optional<iis_reason> reason =
+                                    std::nullopt) {
+            return snapshot(std::move(variable_table),
+                            std::move(constraint_table), outcome, reason);
+        };
+        const auto single_column = [&](const self_infeasible_column & col) {
+            variable_table.set(static_cast<std::size_t>(col.index),
+                               _iis_member_status<VariableStatus>(
+                                   col.lower, col.upper, false));
+            return answer(iis_outcome::irreducible);
+        };
+
+        // The routine hands back its previous answer, and calls a model whose
+        // LP status is optimal feasible, until a row or column is added or
+        // the solution is reset: the reset drops the held solution too.
+        check(COPT->Reset(prob, 0));
+
+        // The routine leaks memory on a model without columns (measured on
+        // 8.0.5), whose rows are constants: the first side that 0 violates
+        // is the whole explanation, and none violated means feasible.
+        if(num_col == 0) {
+            const auto row_count = static_cast<std::size_t>(num_row);
+            std::vector<double> row_lower(row_count), row_upper(row_count);
+            if(num_row > 0) {
+                check(COPT->GetRowInfo(prob, COPT_DBLINFO_LB, num_row, nullptr,
+                                       row_lower.data()));
+                check(COPT->GetRowInfo(prob, COPT_DBLINFO_UB, num_row, nullptr,
+                                       row_upper.data()));
+            }
+            for(std::size_t i = 0; i < row_count; ++i) {
+                const bool lower = row_lower[i] > 0.;
+                const bool upper = row_upper[i] < 0.;
+                if(!lower && !upper) continue;
+                constraint_table.set(i, _iis_member_status<ConstraintStatus>(
+                                            lower, !lower, false));
+                return answer(iis_outcome::irreducible);
+            }
+            return answer(iis_outcome::feasible);
+        }
+
+        const double budget = get_time_limit().count();
+        const auto start = std::chrono::steady_clock::now();
+        const auto elapsed = [&] {
+            return std::chrono::duration<double>(
+                       std::chrono::steady_clock::now() - start)
+                .count();
+        };
+
+        // COPT's MIP path takes the model it is given for infeasible and
+        // flags the whole model as its answer: only a solve tells a feasible
+        // MIP apart. The user's callback is detached by the caller, so the
+        // slot is free for the interrupt.
+        if(mip) {
+            check(COPT->SetCallback(prob, _iis_interrupt_callback,
+                                    COPT_CBCONTEXT_INCUMBENT, this));
+            const ret_code solve_code = COPT->Solve(prob);
+            const ret_code detach_code =
+                COPT->SetCallback(prob, nullptr, 0, nullptr);
+            check(solve_code);
+            check(detach_code);
+            int mip_status, has_sol;
+            check(COPT->GetIntAttr(prob, COPT_INTATTR_MIPSTATUS, &mip_status));
+            check(COPT->GetIntAttr(prob, COPT_INTATTR_HASMIPSOL, &has_sol));
+            switch(mip_status) {
+                case COPT_MIPSTATUS_INFEASIBLE:
+                    break;
+                case COPT_MIPSTATUS_OPTIMAL:
+                case COPT_MIPSTATUS_UNBOUNDED:
+                    return answer(iis_outcome::feasible);
+                case COPT_MIPSTATUS_TIMEOUT:
+                    // an incumbent found before the stop settles the question
+                    if(has_sol) return answer(iis_outcome::feasible);
+                    return answer(iis_outcome::undetermined,
+                                  iis_reason::time_limit);
+                default:
+                    // the interrupt above always leaves an incumbent
+                    if(has_sol) return answer(iis_outcome::feasible);
+                    return answer(iis_outcome::undetermined);
+            }
+        }
+
+        // The routine reads past its arrays on a model without rows, SOS or
+        // indicators whose bounds are feasible as an LP, so such a model is
+        // answered from its columns, the only place a conflict can be.
+        int num_sos, num_indicators;
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_SOSS, &num_sos));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_INDICATORS, &num_indicators));
+        if(num_row == 0 && num_sos == 0 && num_indicators == 0) {
+            if(const auto col = _self_infeasible_column(num_col))
+                return single_column(*col);
+            if(mip)
+                throw solver_error(
+                    "mippp: COPT_Solve found a model without rows infeasible, "
+                    "but every column's bounds admit a value");
+            return answer(iis_outcome::feasible);
+        }
+
+        std::optional<iis_time_limit_guard> guard;
+        if(mip)
+            guard.emplace(*COPT, env, prob, std::max(0., budget - elapsed()));
+        const ret_code code = COPT->ComputeIIS(prob);
+        if(guard) guard->restore();
+        // never reached under an infinite budget, always under a zero one
+        const bool out_of_time = elapsed() >= budget;
+        const std::optional<iis_reason> stop_reason =
+            out_of_time ? std::optional(iis_reason::time_limit) : std::nullopt;
+
+        // the generic code is the routine's word for a feasible model
+        if(code == COPT_RETCODE_INVALID) {
+            if(mip) {
+                // the routine takes an integer column whose interval holds
+                // no integer for feasible
+                if(const auto col = _self_infeasible_column(num_col))
+                    return single_column(*col);
+                throw solver_error(
+                    "mippp: COPT_ComputeIIS reports as feasible a model "
+                    "COPT_Solve found infeasible");
+            }
+            // the routine leaves the model unstarted, so a solve confirms
+            int lp_status;
+            iis_time_limit_guard solve_guard(*COPT, env, prob,
+                                             std::max(0., budget - elapsed()));
+            check(COPT->SolveLp(prob));
+            solve_guard.restore();
+            check(COPT->GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &lp_status));
+            switch(lp_status) {
+                case COPT_LPSTATUS_OPTIMAL:
+                case COPT_LPSTATUS_UNBOUNDED:
+                    return answer(iis_outcome::feasible);
+                case COPT_LPSTATUS_INFEASIBLE:
+                    throw solver_error(
+                        "mippp: COPT_ComputeIIS reports as feasible a model "
+                        "COPT_SolveLp found infeasible");
+                case COPT_LPSTATUS_TIMEOUT:
+                    return answer(iis_outcome::undetermined,
+                                  iis_reason::time_limit);
+                default:
+                    return answer(iis_outcome::undetermined);
+            }
+        }
+        check(code);
+
+        int has_iis;
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_HASIIS, &has_iis));
+        if(!has_iis) {
+            if(out_of_time)
+                return answer(iis_outcome::undetermined,
+                              iis_reason::time_limit);
+            throw solver_error(
+                "mippp: COPT_ComputeIIS returned without an IIS");
+        }
+        int iis_rows, iis_cols, iis_sos, iis_indicators, is_minimal;
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_IISROWS, &iis_rows));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_IISCOLS, &iis_cols));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_IISSOSS, &iis_sos));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_IISINDICATORS,
+                               &iis_indicators));
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_ISMINIIS, &is_minimal));
+
+        const auto row_count = static_cast<std::size_t>(num_row);
+        const auto col_count = static_cast<std::size_t>(num_col);
+        std::vector<int> row_lower_flag(row_count), row_upper_flag(row_count),
+            col_lower_flag(col_count), col_upper_flag(col_count);
+        if(num_row > 0) {
+            check(COPT->GetRowLowerIIS(prob, num_row, nullptr,
+                                       row_lower_flag.data()));
+            check(COPT->GetRowUpperIIS(prob, num_row, nullptr,
+                                       row_upper_flag.data()));
+        }
+        if(num_col > 0) {
+            check(COPT->GetColLowerIIS(prob, num_col, nullptr,
+                                       col_lower_flag.data()));
+            check(COPT->GetColUpperIIS(prob, num_col, nullptr,
+                                       col_upper_flag.data()));
+        }
+        int flagged_rows = 0, flagged_cols = 0, flagged_bounds = 0;
+        for(std::size_t i = 0; i < row_count; ++i)
+            flagged_rows += (row_lower_flag[i] != 0 || row_upper_flag[i] != 0);
+        for(std::size_t j = 0; j < col_count; ++j) {
+            flagged_cols += (col_lower_flag[j] != 0 || col_upper_flag[j] != 0);
+            flagged_bounds +=
+                (col_lower_flag[j] != 0) + (col_upper_flag[j] != 0);
+        }
+        // A stop can leave the counts at the whole model while the flags
+        // name a few entities: neither is then an answer. IISCols is
+        // documented as a number of bounds but 8.0.5 counts columns: either
+        // agreement is accepted.
+        if(flagged_rows != iis_rows ||
+           (flagged_cols != iis_cols && flagged_bounds != iis_cols))
+            return answer(iis_outcome::undetermined, stop_reason);
+        // Without a special constraint as sole member, an empty answer is
+        // the routine's word for an integer column whose interval holds no
+        // integer, which it never names.
+        if(flagged_rows + flagged_cols == 0 && iis_sos + iis_indicators == 0) {
+            if(const auto col = _self_infeasible_column(num_col))
+                return single_column(*col);
+            return answer(iis_outcome::undetermined, stop_reason);
+        }
+
+        std::vector<double> row_lower(row_count), row_upper(row_count),
+            col_lower(col_count), col_upper(col_count);
+        if(mip) {
+            if(num_row > 0) {
+                check(COPT->GetRowInfo(prob, COPT_DBLINFO_LB, num_row, nullptr,
+                                       row_lower.data()));
+                check(COPT->GetRowInfo(prob, COPT_DBLINFO_UB, num_row, nullptr,
+                                       row_upper.data()));
+            }
+            if(num_col > 0) {
+                check(COPT->GetColInfo(prob, COPT_DBLINFO_LB, num_col, nullptr,
+                                       col_lower.data()));
+                check(COPT->GetColInfo(prob, COPT_DBLINFO_UB, num_col, nullptr,
+                                       col_upper.data()));
+            }
+        }
+        for(std::size_t i = 0; i < row_count; ++i) {
+            const bool lower = row_lower_flag[i] != 0;
+            const bool upper = row_upper_flag[i] != 0;
+            if(!lower && !upper) continue;
+            const bool whole =
+                mip && !is_infinite(row_lower[i]) && !is_infinite(row_upper[i]);
+            constraint_table.set(
+                i, _iis_member_status<ConstraintStatus>(lower, upper, whole));
+        }
+        for(std::size_t j = 0; j < col_count; ++j) {
+            const bool lower = col_lower_flag[j] != 0;
+            const bool upper = col_upper_flag[j] != 0;
+            if(!lower && !upper) continue;
+            const bool whole =
+                mip && !is_infinite(col_lower[j]) && !is_infinite(col_upper[j]);
+            variable_table.set(
+                j, _iis_member_status<VariableStatus>(lower, upper, whole));
+        }
+        if(is_minimal) return answer(iis_outcome::irreducible);
+        return answer(iis_outcome::not_proven_minimal, stop_reason);
     }
 };
 

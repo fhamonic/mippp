@@ -149,6 +149,7 @@ ret_code COPT_AddMipStart(copt_prob * prob, int num, const int * list,
 constexpr const char * COPT_INTATTR_ISMIP = "IsMIP";
 ret_code COPT_SolveLp(copt_prob * prob);
 ret_code COPT_Solve(copt_prob * prob);
+ret_code COPT_Interrupt(copt_prob * prob);
 enum LpStatus : int {
     COPT_LPSTATUS_UNSTARTED = 0,
     COPT_LPSTATUS_OPTIMAL = 1,
@@ -186,6 +187,31 @@ ret_code COPT_SetLpSolution(copt_prob * prob, const double * value,
 ret_code COPT_GetBasis(copt_prob * prob, int * colBasis, int * rowBasis);
 ret_code COPT_SetBasis(copt_prob * prob, const int * colBasis,
                        const int * rowBasis);
+ret_code COPT_Reset(copt_prob * prob, int iClearAll);
+
+///////////////////////////////////// IIS /////////////////////////////////////
+constexpr const char * COPT_INTPARAM_IISMETHOD = "IISMethod";
+constexpr const char * COPT_INTATTR_HASIIS = "HasIIS";
+constexpr const char * COPT_INTATTR_ISMINIIS = "IsMinIIS";
+constexpr const char * COPT_INTATTR_IISCOLS = "IISCols";
+constexpr const char * COPT_INTATTR_IISROWS = "IISRows";
+constexpr const char * COPT_INTATTR_IISSOSS = "IISSOSs";
+constexpr const char * COPT_INTATTR_IISINDICATORS = "IISIndicators";
+constexpr const char * COPT_INTATTR_SOSS = "Soss";
+constexpr const char * COPT_INTATTR_INDICATORS = "Indicators";
+ret_code COPT_ComputeIIS(copt_prob * prob);
+ret_code COPT_GetColLowerIIS(copt_prob * prob, int num, const int * list,
+                             int * colLowerIIS);
+ret_code COPT_GetColUpperIIS(copt_prob * prob, int num, const int * list,
+                             int * colUpperIIS);
+ret_code COPT_GetRowLowerIIS(copt_prob * prob, int num, const int * list,
+                             int * rowLowerIIS);
+ret_code COPT_GetRowUpperIIS(copt_prob * prob, int num, const int * list,
+                             int * rowUpperIIS);
+ret_code COPT_GetSOSIIS(copt_prob * prob, int num, const int * list,
+                        int * sosIIS);
+ret_code COPT_GetIndicatorIIS(copt_prob * prob, int num, const int * list,
+                              int * indicatorIIS);
 
 constexpr int COPT_CBCONTEXT_MIPRELAX = 0x1;
 constexpr int COPT_CBCONTEXT_MIPSOL = 0x2;
@@ -267,11 +293,20 @@ namespace copt::impl::v1 {
     F(COPT_AddMipStart, AddMipStart)                 \
     F(COPT_SolveLp, SolveLp)                         \
     F(COPT_Solve, Solve)                             \
+    F(COPT_Interrupt, Interrupt)                     \
     F(COPT_GetSolution, GetSolution)                 \
     F(COPT_GetLpSolution, GetLpSolution)             \
     F(COPT_SetLpSolution, SetLpSolution)             \
     F(COPT_GetBasis, GetBasis)                       \
     F(COPT_SetBasis, SetBasis)                       \
+    F(COPT_Reset, Reset)                             \
+    F(COPT_ComputeIIS, ComputeIIS)                   \
+    F(COPT_GetColLowerIIS, GetColLowerIIS)           \
+    F(COPT_GetColUpperIIS, GetColUpperIIS)           \
+    F(COPT_GetRowLowerIIS, GetRowLowerIIS)           \
+    F(COPT_GetRowUpperIIS, GetRowUpperIIS)           \
+    F(COPT_GetSOSIIS, GetSOSIIS)                     \
+    F(COPT_GetIndicatorIIS, GetIndicatorIIS)         \
     F(COPT_SetCallback, SetCallback)                 \
     F(COPT_GetCallbackInfo, GetCallbackInfo)         \
     F(COPT_AddCallbackSolution, AddCallbackSolution) \

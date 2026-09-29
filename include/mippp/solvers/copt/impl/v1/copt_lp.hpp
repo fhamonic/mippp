@@ -63,6 +63,13 @@ public:
         check(COPT->SolveLp(prob));
         _status = _get_status();
     }
+    // A generic code from the routine is confirmed by one LP solve of the
+    // wrapper: the reported status is reset before the first native call,
+    // throw or return.
+    auto compute_iis() {
+        reset_status();
+        return _compute_iis<iis_sided_status, iis_sided_status>(false);
+    }
     double get_solution_value() {
         double val;
         check(COPT->GetDblAttr(prob, COPT_DBLATTR_LPOBJVAL, &val));

@@ -251,6 +251,57 @@ public:
         }
     }
 
+private:
+    // The solve that confirms infeasibility would run a registered callback,
+    // whose lazy constraints can make a feasible model infeasible and the
+    // routine then flags the whole model: the callback is detached for the
+    // call. A rejected re-registration is retried once, unchecked, by the
+    // destructor.
+    class iis_callback_guard {
+    private:
+        copt_milp * _model;
+
+    public:
+        explicit iis_callback_guard(copt_milp & model)
+            : _model(model.solution_callback ? &model : nullptr) {
+            if(_model)
+                _model->check(_model->COPT->SetCallback(_model->prob, nullptr,
+                                                        0, nullptr));
+        }
+        iis_callback_guard(const iis_callback_guard &) = delete;
+        iis_callback_guard & operator=(const iis_callback_guard &) = delete;
+
+        void restore() {
+            if(!_model) return;
+            _model->check(_model->COPT->SetCallback(
+                _model->prob, candidate_solution_callback_func,
+                COPT_CBCONTEXT_MIPSOL, _model));
+            _model = nullptr;
+        }
+        ~iis_callback_guard() {
+            if(!_model) return;
+            (void)_model->COPT->SetCallback(_model->prob,
+                                            candidate_solution_callback_func,
+                                            COPT_CBCONTEXT_MIPSOL, _model);
+        }
+    };
+
+public:
+    // On a MIP the wrapper solves the model first, up to its first incumbent
+    // (see copt_base): the reported status is reset before the first native
+    // call, throw or return, and the solution readable afterwards is that
+    // solve's.
+    auto compute_iis() {
+        reset_status();
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
+        iis_callback_guard detached(*this);
+        auto iis =
+            _compute_iis<iis_whole_or_sided_status, iis_whole_or_sided_status>(
+                _is_mip != 0);
+        detached.restore();
+        return iis;
+    }
+
     double get_solution_value() {
         double val;
         if(_is_mip)
