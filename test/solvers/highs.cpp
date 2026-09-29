@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 
 #include <chrono>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 
@@ -224,6 +225,33 @@ struct highs_iis_test : public model_test<highs_api, Model> {
         model.add_constraint(y <= 1.);
         model.add_constraint(x - y <= 10.);
     }
+    // Three depots of 8 t for three stores ordering 9 t each, the six rows
+    // being the only IIS. The route capacities keep presolve from finding
+    // the conflict, so a solve needs simplex iterations to prove it.
+    static void add_depot_store_conflict(Model & model) {
+        using namespace operators;
+        const auto sites = std::views::iota(0, 3);
+        auto ship =
+            model.add_variables(9, [](int i, int j) { return 3 * i + j; });
+        for(int i : sites)
+            for(int j : sites)
+                model.set_variable_upper_bound(ship(i, j), 3 + (i + 2 * j) % 4);
+        for(int i : sites)
+            model.add_constraint(
+                xsum(sites, [&, i](int j) { return ship(i, j); }) <= 8.);
+        for(int j : sites)
+            model.add_constraint(
+                xsum(sites, [&, j](int i) { return ship(i, j); }) >= 9.);
+    }
+    // HiGHS lifts its simplex iteration limit for the routine and restores
+    // it, so a limit that stops a solve leaves the answer whole.
+    static void expect_answer_under_zero_iteration_limit(Model & model) {
+        const auto iis = model.compute_iis();
+        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_EQ(iis.num_constraint_members(), 6u);
+        EXPECT_EQ(iis.num_variable_members(), 0u);
+        EXPECT_EQ(model.get_iteration_limit(), 0u);
+    }
     static int read_iis_strategy(const Model & model) {
         int value = 0;
         model.native_api()._check(model.native_api().getIntOptionValue(
@@ -300,6 +328,27 @@ TEST_F(highs_lp_iis_test, compute_iis_zero_budget_is_a_time_limit_stop) {
     EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_EQ(model.get_time_limit().count(), 0.);
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
+}
+
+TEST_F(highs_lp_iis_test, iteration_limit_does_not_stop_compute_iis) {
+    auto model = this->new_model();
+    add_depot_store_conflict(model);
+    model.set_iteration_limit(0);
+    model.solve();
+    EXPECT_TRUE(is_a<status::iteration_limit>(model.get_status()));
+    expect_answer_under_zero_iteration_limit(model);
+}
+
+// With a Hessian, the QP solver's iteration limit, which set_iteration_limit
+// also writes, must not stop the routine either.
+TEST_F(highs_qp_iis_test, iteration_limit_does_not_stop_compute_iis) {
+    using namespace operators;
+    auto model = this->new_model();
+    add_depot_store_conflict(model);
+    auto v = model.add_variable();
+    model.set_quadratic_objective(v * v);
+    model.set_iteration_limit(0);
+    expect_answer_under_zero_iteration_limit(model);
 }
 
 TEST_F(highs_lp_iis_test, compute_iis_status_is_unknown_after_the_call) {
