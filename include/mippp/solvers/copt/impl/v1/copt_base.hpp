@@ -428,6 +428,18 @@ public:
         check(COPT->GetRowInfo(prob, COPT_DBLINFO_UB, 1, &id, &ub));
         return ub;
     }
+    // COPT stores a row's two sides: a side moved to a finite value turns a
+    // one-sided or equality row into a ranged one in place, and a side set to
+    // infinity() frees it.
+    void set_constraint_lower_bound(constraint constr, scalar lb) {
+        const int id = constr.id();
+        check(COPT->SetRowLower(prob, 1, &id, &lb));
+    }
+    void set_constraint_upper_bound(constraint constr, scalar ub) {
+        const int id = constr.id();
+        check(COPT->SetRowUpper(prob, 1, &id, &ub));
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

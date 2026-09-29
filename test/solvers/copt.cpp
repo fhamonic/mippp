@@ -102,8 +102,14 @@ INSTANTIATE_TEST(COPT_milp, VerbosityTest, copt_milp_test);
 
 static_assert(has_iis<copt_lp>);
 static_assert(has_iis<copt_milp>);
+static_assert(iis_by_deletion_model<copt_lp>);
+static_assert(iis_by_deletion_model<copt_milp>);
 INSTANTIATE_TEST(COPT_lp, IisTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_milp, IisTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_lp, ModifiableConstraintBoundsTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_milp, ModifiableConstraintBoundsTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_lp, IisByDeletionTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_milp, IisByDeletionTest, copt_milp_test);
 
 template <typename Model>
 struct copt_iis_test : public model_test<copt_api, Model> {
