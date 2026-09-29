@@ -64,11 +64,11 @@ The documentation follows the path of a modeling study: build a model, solve it,
 
 **3. Solving** — [status, limits and tolerances](solving/status-and-limits.md), [diagnosing infeasibility](solving/infeasibility.md), [solutions, duals and reduced costs](solving/solutions.md), [re-solving and model updates](solving/updates.md).
 
-**4. Algorithms** — [branch-and-cut with lazy constraints](algorithms/branch-and-cut.md), [column generation](algorithms/column-generation.md).
+**4. Algorithms** — [branch-and-cut with lazy constraints](algorithms/branch-and-cut.md), [column generation](algorithms/column-generation.md), [the deletion filter](algorithms/deletion-filter.md).
 
 **5. Solvers** — [choosing a solver](solvers/index.md) among the 11 backends, and [writing solver-generic code](solvers/generic-code.md) for cross-solver experiments.
 
-Complete runnable programs — N-Queens, Sudoku, TSP with lazy constraints, cutting stock by column generation — are indexed in [Worked examples](examples.md).
+Complete runnable programs — N-Queens, Sudoku, TSP with lazy constraints, cutting stock by column generation, an infeasible transportation plan diagnosed through its IIS — are indexed in [Worked examples](examples.md).
 
 ## Supported solvers
 

@@ -44,7 +44,7 @@ int main() {
 }
 ```
 
-The [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/) walks through this model, the expression system, and solver selection. Runnable examples — N-Queens, sudoku, TSP with lazy subtour elimination, cutting stock via column generation — live in [`examples/`](examples/).
+The [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/) walks through this model, the expression system, and solver selection. Runnable examples — N-Queens, sudoku, TSP with lazy subtour elimination, cutting stock via column generation, an infeasible transportation plan diagnosed through its IIS — live in [`examples/`](examples/).
 
 
 ## Why MIP++
