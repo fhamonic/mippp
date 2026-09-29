@@ -8,6 +8,7 @@
 #include <numeric>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -426,15 +427,64 @@ private:
         check(XPRS->getrhs(prob, &rhs, constr.id(), constr.id()));
         return rhs;
     }
+    // the width of a ranged row, whose rhs is its upper side
+    double _row_range(constraint constr) {
+        double range;
+        check(XPRS->getrhsrange(prob, &range, constr.id(), constr.id()));
+        return range;
+    }
+    // Xpress holds a row as a type, a rhs and, on a ranged row, a
+    // non-negative width below the rhs: sides that cross have no encoding,
+    // and the type goes first because changing it reinterprets the rhs.
+    void _set_row_sides(constraint constr, double lower, double upper) {
+        if(lower > upper)
+            throw std::invalid_argument(
+                "mippp: Xpress cannot hold a row whose lower side exceeds "
+                "its upper side");
+        const int row = constr.id();
+        const bool has_lower = lower > -infinity();
+        const bool has_upper = upper < infinity();
+        const bool ranged = has_lower && has_upper && lower != upper;
+        const char type = !has_lower && !has_upper ? 'N'
+                          : !has_lower             ? 'L'
+                          : !has_upper             ? 'G'
+                          : ranged                 ? 'L'
+                                                   : 'E';
+        const double rhs = has_upper ? upper : has_lower ? lower : 0.0;
+        check(XPRS->chgrowtype(prob, 1, &row, &type));
+        check(XPRS->chgrhs(prob, 1, &row, &rhs));
+        if(ranged) {
+            const double range = upper - lower;
+            check(XPRS->chgrhsrange(prob, 1, &row, &range));
+        }
+    }
 
 public:
     double get_constraint_lower_bound(constraint constr) {
-        if(_row_type(constr) == 'L') return -infinity();
-        return _row_rhs(constr);
+        switch(_row_type(constr)) {
+            case 'L':
+            case 'N':
+                return -infinity();
+            case 'R':
+                return _row_rhs(constr) - _row_range(constr);
+            default:
+                return _row_rhs(constr);
+        }
     }
     double get_constraint_upper_bound(constraint constr) {
-        if(_row_type(constr) == 'G') return infinity();
-        return _row_rhs(constr);
+        switch(_row_type(constr)) {
+            case 'G':
+            case 'N':
+                return infinity();
+            default:
+                return _row_rhs(constr);
+        }
+    }
+    void set_constraint_lower_bound(constraint constr, double lower) {
+        _set_row_sides(constr, lower, get_constraint_upper_bound(constr));
+    }
+    void set_constraint_upper_bound(constraint constr, double upper) {
+        _set_row_sides(constr, get_constraint_lower_bound(constr), upper);
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////// Tolerance parameters ///////////////////////////

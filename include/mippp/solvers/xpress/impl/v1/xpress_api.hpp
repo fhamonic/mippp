@@ -56,6 +56,9 @@ int XPRSchgrhs(XPRSprob prob, int nrows, const int rowind[],
                const double rhs[]);
 int XPRSgetrowtype(XPRSprob prob, char rowtype[], int first, int last);
 int XPRSgetrhs(XPRSprob prob, double rhs[], int first, int last);
+int XPRSgetrhsrange(XPRSprob prob, double rng[], int first, int last);
+int XPRSchgrhsrange(XPRSprob prob, int nrows, const int rowind[],
+                    const double rng[]);
 
 enum IntegerAttribute : int {
     XPRS_COLS = 1018,
@@ -233,6 +236,8 @@ namespace xpress::impl::v1 {
     F(XPRSchgrhs, chgrhs)                           \
     F(XPRSgetrowtype, getrowtype)                   \
     F(XPRSgetrhs, getrhs)                           \
+    F(XPRSgetrhsrange, getrhsrange)                 \
+    F(XPRSchgrhsrange, chgrhsrange)                 \
     F(XPRSgetintattrib, getintattrib)               \
     F(XPRSgetstrattrib, getstrattrib)               \
     F(XPRSgetdblattrib, getdblattrib)               \

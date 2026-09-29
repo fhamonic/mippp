@@ -6,6 +6,7 @@
 #include <optional>
 #include <random>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -65,6 +66,118 @@ INSTANTIATE_TEST(Xpress_milp, MipGapTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);
 
+// Xpress stores a ranged row as its upper side and a non-negative width, so
+// a row whose sides cross has no encoding and the setters refuse it: a case
+// holding one is skipped from its data. 45.01 also solves a model with a
+// column whose bounds hold no value (crossed, or an integer column with no
+// integer between them) beside a row to optimal, where 47.01 reports it
+// infeasible, so the closing solve check of such a case skips below 47.1; no
+// 46 was measured.
+template <typename Model>
+struct xpress_deletion_test : public model_test<xpress_api, Model> {
+    static void SetUpTestSuite() {
+        model_test<xpress_api, Model>::construct_api("XPRESS");
+    }
+    static std::optional<std::string> crossed_row_reason(
+        const iis_cases::iis_case & c) {
+        for(std::size_t i = 0; i < c.system.rows.size(); ++i) {
+            const auto & row = c.system.rows[i];
+            if(row.lower && row.upper && *row.lower > *row.upper)
+                return "Xpress cannot hold row " + std::to_string(i) +
+                       ", whose sides cross";
+        }
+        return std::nullopt;
+    }
+    static std::optional<std::size_t> column_whose_bounds_hold_no_value(
+        const iis_cases::iis_case & c) {
+        constexpr double inf = std::numeric_limits<double>::infinity();
+        for(std::size_t i = 0; i < c.system.variables.size(); ++i) {
+            const auto & bounds = c.system.variables[i];
+            double lower = bounds.lower.value_or(-inf);
+            double upper = bounds.upper.value_or(inf);
+            if(std::ranges::find(c.integer_columns, i) !=
+               c.integer_columns.end()) {
+                lower = std::ceil(lower);
+                upper = std::floor(upper);
+            }
+            if(lower > upper) return i;
+        }
+        return std::nullopt;
+    }
+    static std::optional<std::string> iis_case_skip_reason(
+        const iis_cases::iis_case & c) {
+        if(const auto reason = crossed_row_reason(c)) return reason;
+        const auto * api = model_test<xpress_api, Model>::api;
+        const auto loaded = api ? api->library_version() : std::nullopt;
+        if(!loaded || *loaded >= solver_version{47, 1}) return std::nullopt;
+        if(const auto i = column_whose_bounds_hold_no_value(c))
+            return "Xpress " + to_string(*loaded) +
+                   " solves a model whose column " + std::to_string(*i) +
+                   " has bounds holding no value to optimal (measured on "
+                   "45.01; 47.1 reports infeasible), so the closing solve "
+                   "check cannot run here";
+        return std::nullopt;
+    }
+};
+using xpress_lp_deletion_test = xpress_deletion_test<xpress_lp>;
+using xpress_milp_deletion_test = xpress_deletion_test<xpress_milp>;
+static_assert(has_modifiable_constraint_bounds<xpress_lp>);
+static_assert(has_modifiable_constraint_bounds<xpress_milp>);
+static_assert(iis_by_deletion_model<xpress_lp>);
+static_assert(iis_by_deletion_model<xpress_milp>);
+INSTANTIATE_TEST(Xpress_lp, ModifiableConstraintBoundsTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_milp, ModifiableConstraintBoundsTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_lp, IisByDeletionTest, xpress_lp_deletion_test);
+INSTANTIATE_TEST(Xpress_milp, IisByDeletionTest, xpress_milp_deletion_test);
+
+// Both sides read back exactly as set, through every row type a row can
+// pass through: one-sided, ranged, equal and free.
+TEST_F(xpress_lp_test, row_sides_read_back_through_every_row_type) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto x = model.add_variable({.lower_bound = -10., .upper_bound = 10.});
+    auto c = model.add_constraint(x >= 1.);
+    model.set_constraint_upper_bound(c, 4.);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), 1.);
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 4.);
+    model.set_constraint_lower_bound(c, -2.);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), -2.);
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 4.);
+    model.set_objective(x);
+    model.set_maximization();
+    model.solve();
+    EXPECT_NEAR(model.get_solution_value(), 4., TEST_EPSILON);
+    model.set_minimization();
+    model.solve();
+    EXPECT_NEAR(model.get_solution_value(), -2., TEST_EPSILON);
+    model.set_constraint_upper_bound(c, model.infinity());
+    model.set_constraint_lower_bound(c, -model.infinity());
+    EXPECT_TRUE(model.is_infinite(model.get_constraint_lower_bound(c)));
+    EXPECT_TRUE(model.is_infinite(model.get_constraint_upper_bound(c)));
+    model.set_constraint_lower_bound(c, 3.);
+    model.set_constraint_upper_bound(c, 3.);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), 3.);
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 3.);
+    model.solve();
+    EXPECT_NEAR(model.get_solution_value(), 3., TEST_EPSILON);
+}
+
+TEST_F(xpress_lp_test, crossed_row_sides_are_refused) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto x = model.add_variable({.lower_bound = -10., .upper_bound = 10.});
+    auto c = model.add_constraint(x >= 1.);
+    EXPECT_THROW(model.set_constraint_upper_bound(c, 0.),
+                 std::invalid_argument);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), 1.);
+    EXPECT_TRUE(model.is_infinite(model.get_constraint_upper_bound(c)));
+    model.set_constraint_upper_bound(c, 5.);
+    EXPECT_THROW(model.set_constraint_lower_bound(c, 6.),
+                 std::invalid_argument);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), 1.);
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 5.);
+}
+
 // Xpress 45.01 leaves an LP stopped by its time limit presolved, with the
 // fixed columns and the redundant rows removed: the rows built must still
 // be the ones addressed afterwards. Dense rows keep the solve past the 10 ms
@@ -95,6 +208,8 @@ TEST_F(xpress_lp_test, rows_stay_addressable_after_a_stopped_solve) {
     ASSERT_TRUE(is<status::time_limit>(model.get_status()));
     EXPECT_EQ(model.num_constraints(), num_rows);
     EXPECT_EQ(model.get_constraint_upper_bound(last), 1e6);
+    model.set_constraint_upper_bound(last, 5.);
+    EXPECT_EQ(model.get_constraint_upper_bound(last), 5.);
     auto added = model.add_constraint(x(0) <= 8.);
     EXPECT_EQ(model.get_constraint_upper_bound(added), 8.);
 }
@@ -103,26 +218,14 @@ TEST_F(xpress_lp_test, rows_stay_addressable_after_a_stopped_solve) {
 // crossed or an integer column with no integer between them: stated from the
 // case data, so that the suite skips the case instead of catching the throw.
 template <typename Model>
-struct xpress_iis_test : public model_test<xpress_api, Model> {
-    static void SetUpTestSuite() {
-        model_test<xpress_api, Model>::construct_api("XPRESS");
-    }
+struct xpress_iis_test : public xpress_deletion_test<Model> {
+    using base = xpress_deletion_test<Model>;
     static std::optional<std::string> iis_case_skip_reason(
         const iis_cases::iis_case & c) {
-        constexpr double inf = std::numeric_limits<double>::infinity();
-        for(std::size_t i = 0; i < c.system.variables.size(); ++i) {
-            const auto & bounds = c.system.variables[i];
-            double lower = bounds.lower.value_or(-inf);
-            double upper = bounds.upper.value_or(inf);
-            if(std::ranges::find(c.integer_columns, i) !=
-               c.integer_columns.end()) {
-                lower = std::ceil(lower);
-                upper = std::floor(upper);
-            }
-            if(lower > upper)
-                return "Xpress refuses the IIS search on column " +
-                       std::to_string(i) + ", whose bounds hold no value";
-        }
+        if(const auto reason = base::crossed_row_reason(c)) return reason;
+        if(const auto i = base::column_whose_bounds_hold_no_value(c))
+            return "Xpress refuses the IIS search on column " +
+                   std::to_string(*i) + ", whose bounds hold no value";
         return std::nullopt;
     }
 
