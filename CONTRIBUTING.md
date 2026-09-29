@@ -280,7 +280,8 @@ open-source backend. The rest is covered by
 [.github/workflows/c-cpp.yml](.github/workflows/c-cpp.yml), which runs on every
 push and pull request to `main` and on every `v*` tag:
 
-- `source-hygiene`: the two checks above.
+- `source-hygiene`: the two checks above, and the checks of the
+  [code in the documentation](#code-in-the-documentation).
 - `linux-gcc15-sanitize` and `macos-appleclang21-build` build and run the whole
   suite, every backend compiled, with all four open-source solvers installed and
   required — the first one under ASan and UBSan in Debug, the second one under
@@ -405,7 +406,13 @@ includes the section with the line
 `--8<-- "test/doc_snippets/<page>.cpp:<name>"` inside a code fence, through the
 `pymdownx.snippets` extension configured in [zensical.toml](zensical.toml).
 Paths are relative to the repository root, where `zensical build --clean` and
-`make doc` run, and the build fails on a missing file or section.
+`make doc` run, and the build fails on a missing file or section. A start
+marker without its end does not fail it, since the page then shows the rest
+of the file, so `make check-snippets` runs
+[misc/tools/check_doc_snippets.py](misc/tools/check_doc_snippets.py), which
+requires one start and one end per section. CI runs that check and the
+documentation build on every pull request, and fails on any issue the build
+reports, broken links and anchors included.
 
 A section is plain user code, without GoogleTest. Test cases below it in the
 same file call that code on a real backend, through a `model_test` fixture that

@@ -39,6 +39,24 @@ jobs:
         run: |
           find include test -name "*.hpp" -o -name "*.cpp" \
             | xargs clang-format --dry-run -Werror
+      # A start marker without its end still builds: the page then shows the
+      # rest of the source, test code included.
+      - name: "Every documentation snippet section has one start and one end"
+        if: ${{ !cancelled() }}
+        run: python3 misc/tools/check_doc_snippets.py test/doc_snippets
+      # The Pages deploy runs only after a merge, so a page including a
+      # renamed section would otherwise break main. Broken links and anchors
+      # are reported without failing the build, hence the check of its last
+      # words. Same version as docs.yml.
+      - name: Install Zensical
+        if: ${{ !cancelled() }}
+        run: pipx install zensical==0.0.50
+      - name: Build the documentation
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          zensical build --clean 2>&1 | tee zensical.log
+          grep -q "No issues found" zensical.log
 
   linux-gcc15-build:
     runs-on: ubuntu-latest

@@ -8,7 +8,7 @@ CONAN_PROFILE = gcc14_c++23
 
 CONAN_CXXFLAGS = -c 'tools.build:cxxflags=["-fconcepts-diagnostics-depth=30"]'
 
-.PHONY: all test examples package check-format check-includes check features_tables compat_table doc paper clean
+.PHONY: all test examples package check-format check-includes check-snippets check features_tables compat_table doc paper clean
 
 all: test
 
@@ -36,7 +36,10 @@ check-format:
 check-includes:
 	python3 misc/tools/check_std_includes.py include
 
-check: check-format check-includes
+check-snippets:
+	python3 misc/tools/check_doc_snippets.py test/doc_snippets
+
+check: check-format check-includes check-snippets
 
 features_tables:
 	python docs/assets/features_tables/tested_features_table.py
