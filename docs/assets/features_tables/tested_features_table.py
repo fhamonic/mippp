@@ -3,7 +3,7 @@ import sys
 import re
 import subprocess
 from collections import defaultdict
-from PIL import ImageFont
+from PIL import Image
 
 
 def find_cpp_files(root_folder):
@@ -17,6 +17,12 @@ def find_cpp_files(root_folder):
     return cpp_files
 
 
+# A QP model is continuous, so its column joins the LP table, labelled apart
+# from the same solver's LP class.
+def column_label(solver):
+    return re.sub(r"_qp$", " QP", re.sub(r"_(lp|milp)$", "", solver))
+
+
 def parse_instantiate_lines(cpp_files):
     pattern = re.compile(r"^INSTANTIATE_TEST\(\s*(\w+)\s*,\s*(\w+)\s*,\s*(\w+)\s*\);")
     lp_table = defaultdict(set)
@@ -28,10 +34,10 @@ def parse_instantiate_lines(cpp_files):
                 match = pattern.search(line)
                 if match:
                     solver, test, model = match.groups()
-                    if "_lp_" in model:
-                        lp_table[test].add(solver.replace("_lp", ""))
+                    if "_lp_" in model or "_qp_" in model:
+                        lp_table[test].add(column_label(solver))
                     elif "_milp_" in model:
-                        milp_table[test].add(solver.replace("_milp", ""))
+                        milp_table[test].add(column_label(solver))
 
     return lp_table, milp_table
 
@@ -39,8 +45,10 @@ def parse_instantiate_lines(cpp_files):
 formated_test_names = [
     ("LpModelTest", "LP Model"),
     ("MilpModelTest", "MILP Model"),
+    ("QpModelTest", "QP Model"),
     ("EnumerableEntitiesTest", "Enumerate variables and constraints"),
     ("ReadableObjectiveTest", "Read objective"),
+    ("ReadableQuadraticObjectiveTest", "Read quadratic objective"),
     ("ReadableVariablesBoundsTest", "Read variables bounds"),
     ("ReadableConstraintsTest", "Read constraints"),
     ("ReadableConstraintBoundsTest", "Read constraint bounds"),
@@ -124,7 +132,7 @@ def generate_latex_table(table):
     return "\n".join(latex)
 
 
-def write_and_compile_latex(table, output_path, output_filename, res, width):
+def write_and_compile_latex(table, output_path, output_filename, res):
     latex_doc = ["""\\documentclass[border=5pt]{standalone}
 \\usepackage{booktabs}
 \\usepackage{amssymb}
@@ -194,23 +202,9 @@ def write_and_compile_latex(table, output_path, output_filename, res, width):
                 "-transp",
                 "-r",
                 str(res),
-                "-W",
-                str(width),
                 "-singlefile",
                 f"{output_path}/{output_filename}.pdf",
                 f"{output_path}/{output_filename}_light",
-            ],
-            check=True,
-        )
-        subprocess.run(
-            [
-                "convert",
-                f"{output_path}/{output_filename}_light.png",
-                "-channel",
-                "RGB",
-                "-negate",
-                "+channel",
-                f"{output_path}/{output_filename}_dark.png",
             ],
             check=True,
         )
@@ -218,27 +212,30 @@ def write_and_compile_latex(table, output_path, output_filename, res, width):
         print(f"\n✅ PDF generated: {output_path}/{output_filename}.pdf")
     except subprocess.CalledProcessError:
         print(
-            "❌ Error compiling LaTeX. Make sure `pdflatex` is installed and available in PATH."
+            "❌ Error generating the table. Make sure `xelatex` and `pdftocairo` are installed and available in PATH."
         )
+        sys.exit(1)
 
 
-def compute_names_max_width(names, font_size=10, res=600):
-    font = ImageFont.truetype("DejaVuSans", int(res / 78 * font_size))
-    return max([font.getlength(name) for name in names])
+# The standalone page is wider than what is drawn on it, by an amount that
+# varies with the table, so the drawn area is measured on the image. Both
+# tables get one width, the right margin mirroring the left, so that the pages
+# show them at the same scale.
+def crop_to_common_width(png_paths):
+    images = [Image.open(path) for path in png_paths]
+    boxes = [image.getchannel("A").getbbox() for image in images]
+    for path, image, (_, _, right, _) in zip(png_paths, images, boxes):
+        if right == image.width:
+            sys.exit(f"❌ {path}: the table reaches the edge of the page")
+    width = max(left + right for left, _, right, _ in boxes)
+    for path, image in zip(png_paths, images):
+        image.crop((0, 0, width, image.height)).save(path)
 
 
-def compute_width(table, res):
-    return int(
-        (
-            94
-            + compute_names_max_width(format_test_names(table)[1])
-            + 110
-            + max([len(v) for v in table.values()]) * 183
-            + 183
-            + 94
-        )
-        * 600
-        / res
+def write_dark_variant(light_path, dark_path):
+    subprocess.run(
+        ["convert", light_path, "-channel", "RGB", "-negate", "+channel", dark_path],
+        check=True,
     )
 
 
@@ -249,10 +246,15 @@ def main():
     lp_table, milp_table = parse_instantiate_lines(cpp_files)
 
     res = 600
-    width = max(compute_width(lp_table, res), compute_width(milp_table, res))
+    names = ["lp_table", "milp_table"]
+    for name, table in zip(names, [lp_table, milp_table]):
+        write_and_compile_latex(table, root_path, name, res)
 
-    write_and_compile_latex(lp_table, root_path, "lp_table", res, width)
-    write_and_compile_latex(milp_table, root_path, "milp_table", res, width)
+    crop_to_common_width([f"{root_path}/{name}_light.png" for name in names])
+    for name in names:
+        write_dark_variant(
+            f"{root_path}/{name}_light.png", f"{root_path}/{name}_dark.png"
+        )
 
 
 if __name__ == "__main__":

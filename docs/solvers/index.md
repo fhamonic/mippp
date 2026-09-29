@@ -73,17 +73,17 @@ A library that exists but lacks the expected entry points (a same-named build wi
 
 Core LP/MILP modeling works on every backend. Optional capabilities — dual solutions, callbacks, MIP starts, SOS and indicator constraints, parameter control — vary; each is a [concept](../reference/concepts.md), so code that needs one states it and the compiler enforces it.
 
-The matrices below record which features are implemented **and tested** per backend (generated from the test suites).
+The matrices below record which features are implemented **and tested** per backend (generated from the test suites). Each column is one model class: the solver's `*_milp` class in the first matrix, its `*_lp` class in the second, and `highs_qp` in the HiGHS QP column.
 
 ### MILP models
 
 ![MILP feature support matrix](../assets/features_tables/milp_table_light.png#only-light)
 ![MILP feature support matrix](../assets/features_tables/milp_table_dark.png#only-dark)
 
-### LP models
+### LP and QP models
 
-![LP feature support matrix](../assets/features_tables/lp_table_light.png#only-light)
-![LP feature support matrix](../assets/features_tables/lp_table_dark.png#only-dark)
+![LP and QP feature support matrix](../assets/features_tables/lp_table_light.png#only-light)
+![LP and QP feature support matrix](../assets/features_tables/lp_table_dark.png#only-dark)
 
 Notable current limitations (see the
 [roadmap](https://github.com/fhamonic/mippp#roadmap) for what's planned):
