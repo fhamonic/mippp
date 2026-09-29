@@ -180,7 +180,9 @@ template <deletion_oracle O>
     std::size_t candidate_count, O && oracle, const iis_limits & limits = {}) {
     const auto budget = detail::make_deletion_budget(limits);
     detail::deletion_state state;
-    state.members.resize(candidate_count);
+    // not resize(): on a fresh vector, gcc 14 reports a false
+    // -Wnull-dereference in the caller's translation unit
+    state.members.assign(candidate_count, std::size_t{0});
     std::iota(state.members.begin(), state.members.end(), std::size_t{0});
     return detail::run_deletion_filter(std::move(state), oracle, budget);
 }
