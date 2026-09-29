@@ -42,10 +42,13 @@ void print_sides(std::string_view name, const Status & status, double lower,
                  double upper) {
     if(!is_a<iis_status::member>(status)) return;
     const bool both = is_a<iis_status::member_both>(status);
-    if(both || is_a<iis_status::member_lower>(status))
-        std::println("  {:<26} >= {}", name, lower);
-    if(both || is_a<iis_status::member_upper>(status))
-        std::println("  {:<26} <= {}", name, upper);
+    const bool lower_side = both || is_a<iis_status::member_lower>(status);
+    const bool upper_side = both || is_a<iis_status::member_upper>(status);
+    if(lower_side) std::println("  {:<26} >= {}", name, lower);
+    if(upper_side) std::println("  {:<26} <= {}", name, upper);
+    // plain member: a routine that cannot tell which side of a row conflicts
+    if(!lower_side && !upper_side)
+        std::println("  {:<26} (side not named)", name);
 }
 
 // A template, so that the branch is discarded on a model class without a
