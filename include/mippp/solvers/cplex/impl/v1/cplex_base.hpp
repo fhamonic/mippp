@@ -61,11 +61,14 @@ protected:
         if(rel == constraint_sense::equal) return 'E';
         return 'G';
     }
+    // an 'R' row has two finite sides and no sense, as on Clp and HiGHS
     static constexpr constraint_sense cplex_sense_to_constraint_sense(
         char sense) {
         if(sense == 'L') return constraint_sense::less_equal;
         if(sense == 'E') return constraint_sense::equal;
-        return constraint_sense::greater_equal;
+        if(sense == 'G') return constraint_sense::greater_equal;
+        throw std::runtime_error(
+            "Tried to get the sense of a ranged constraint");
     }
 
 public:
@@ -578,12 +581,16 @@ private:
     }
 
 public:
+    // the rhs and the sense of a ranged row do not exist: the sense getter
+    // throws for them, and the row reads back through its two sides
     void set_constraint_rhs(constraint constr, double rhs) {
         int constr_id = constr.id();
+        (void)get_constraint_sense(constr);
         check(CPX->chgrhs(env, lp, 1, &constr_id, &rhs));
     }
     void set_constraint_sense(constraint constr, constraint_sense r) {
         int constr_id = constr.id();
+        (void)get_constraint_sense(constr);
         char sense = constraint_sense_to_cplex_sense(r);
         check(CPX->chgsense(env, lp, 1, &constr_id, &sense));
     }
@@ -618,6 +625,7 @@ public:
             });
     }
     double get_constraint_rhs(constraint constr) {
+        (void)get_constraint_sense(constr);
         double rhs;
         check(CPX->getrhs(env, lp, &rhs, constr.id(), constr.id()));
         return rhs;

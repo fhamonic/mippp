@@ -159,6 +159,39 @@ static_assert(iis_by_deletion_model<cplex_milp>);
 ////////////////////////////////// Row bounds /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// A <= row given a finite lower side becomes a native 'R' row, whose width is
+// the range value: its sides still read back, its sense and rhs no longer
+// exist.
+TEST_F(cplex_lp_test, ranged_row_has_no_sense_or_rhs) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable();
+    auto c = model.add_constraint(x <= 3.);
+    model.set_constraint_lower_bound(c, 1.);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), 1.);
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 3.);
+    EXPECT_THROW((void)model.get_constraint_sense(c), std::runtime_error);
+    EXPECT_THROW((void)model.get_constraint_rhs(c), std::runtime_error);
+    EXPECT_THROW((void)model.get_constraint(c), std::runtime_error);
+    EXPECT_THROW(model.set_constraint_rhs(c, 2.), std::runtime_error);
+    EXPECT_THROW(model.set_constraint_sense(c, constraint_sense::less_equal),
+                 std::runtime_error);
+    const auto [env, lp] = model.native_model();
+    char sense = '?';
+    double range = 0.;
+    model.native_api()._check(
+        env, model.native_api().getsense(env, lp, &sense, model.native_id(c),
+                                         model.native_id(c)));
+    model.native_api()._check(
+        env, model.native_api().getrngval(env, lp, &range, model.native_id(c),
+                                          model.native_id(c)));
+    EXPECT_EQ(sense, 'R');
+    EXPECT_EQ(range, 2.);
+    model.set_constraint_lower_bound(c, -model.infinity());
+    EXPECT_EQ(model.get_constraint_sense(c), constraint_sense::less_equal);
+    EXPECT_EQ(model.get_constraint_rhs(c), 3.);
+}
+
 // The width of an 'R' row is |rngval| and its sign only picks the side of the
 // rhs, so sides that cross cannot be stored; written as they are, CPLEX would
 // solve the swapped range.
