@@ -101,6 +101,38 @@ Iterating your own variable and constraint families, as `print_conflict` does, g
 
 On the workshop it returns the labour row and the three order rows. `num_variable_members()` and `num_constraint_members()` count the members without a loop: one variable and four rows there. A query is a lookup in the snapshot and never calls the solver.
 
+## Repairing the model
+
+An IIS says where the data disagree, not how to settle it. One repair always removes the conflict: relax every side the answer names, the lower side of a `member_lower` row or bound to `-infinity()`, the upper side of a `member_upper` one to `infinity()`, and both sides of a `member_both` or a plain `member`:
+
+```cpp
+--8<-- "test/doc_snippets/infeasibility.cpp:relax-members"
+```
+
+It is one repair among others, and seldom the one you want. On the workshop it frees the labour row, the overtime and the lower sides of the three orders, and the model then solves with no overtime at all, since no order binds any more. Dropping any single member already removes a conflict, and which one to change, and by how much, is a decision on the data that the IIS leaves to you: the remedy above moved one member by one hour.
+
+A model can hold several conflicts, and an IIS explains one of them. Suppose that the workshop's labour comes from one team per product, whose hours cannot be shared:
+
+```cpp
+--8<-- "test/doc_snippets/infeasibility.cpp:teams-model"
+```
+
+The chairs need 10 hours of a team that has 8, and the desks 4 of a team that has 3: two conflicts, with no member in common. A loop that relaxes the members of each answer and runs the filter again explains one conflict per round, until an answer has no member left:
+
+```cpp
+--8<-- "test/doc_snippets/infeasibility.cpp:repair-loop"
+```
+
+```cpp
+--8<-- "test/doc_snippets/infeasibility.cpp:teams-repair"
+```
+
+```text
+--8<-- "test/doc_snippets/infeasibility_repair.txt"
+```
+
+The loop returns `feasible` once no conflict remains. An answer can also have no member because the run proved nothing, `undetermined`, or because integrality and special constraints conflict on their own, `irreducible`, which no relaxed side repairs: the loop then returns that outcome. It changes the model for good, so save the sides you want back before calling it.
+
 ## Outcomes and reasons
 
 `get_outcome()` says how far the answer goes, and `get_reason()`, a `std::optional<iis_reason>`, why it stopped short:

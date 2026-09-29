@@ -1,0 +1,6 @@
+conflict 1
+team chairs: upper side
+order chairs: lower side
+conflict 2
+team desks: upper side
+order desks: lower side

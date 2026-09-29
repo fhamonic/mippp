@@ -7,11 +7,13 @@
 #include <chrono>
 #include <cstddef>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <optional>
 #include <ostream>
 #include <sstream>
 #include <stop_token>
+#include <streambuf>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -191,6 +193,104 @@ std::vector<model_constraint_t<Model>> member_rows(Model & model,
 }
 // --8<-- [end:member-rows]
 
+// --8<-- [start:relax-members]
+struct named_sides {
+    bool lower = false;
+    bool upper = false;
+};
+
+// plain member cannot say which side conflicts, so both are relaxed, as for
+// member_both
+struct sides_named {
+    named_sides operator()(iis_status::absent) const { return {}; }
+    named_sides operator()(iis_status::member) const { return {true, true}; }
+    named_sides operator()(iis_status::member_lower) const {
+        return {.lower = true};
+    }
+    named_sides operator()(iis_status::member_upper) const {
+        return {.upper = true};
+    }
+    named_sides operator()(iis_status::member_both) const {
+        return {true, true};
+    }
+};
+
+template <typename Model, typename Iis>
+void relax_members(Model & model, const Iis & iis) {
+    const auto inf = model.infinity();
+    for(auto v : model.variables()) {
+        const named_sides s = std::visit(sides_named{}, iis.get_status(v));
+        if(s.lower) model.set_variable_lower_bound(v, -inf);
+        if(s.upper) model.set_variable_upper_bound(v, inf);
+    }
+    for(auto c : model.constraints()) {
+        const named_sides s = std::visit(sides_named{}, iis.get_status(c));
+        if(s.lower) model.set_constraint_lower_bound(c, -inf);
+        if(s.upper) model.set_constraint_upper_bound(c, inf);
+    }
+}
+// --8<-- [end:relax-members]
+
+// --8<-- [start:repair-loop]
+template <typename Model, typename Report>
+iis_outcome relax_until_feasible(Model & model, Report && report) {
+    while(true) {
+        const auto iis = compute_iis_by_deletion(model);
+        // an answer without members leaves nothing to relax: the model is
+        // feasible, the run proved nothing, or the background conflicts on
+        // its own
+        if(iis.num_variable_members() + iis.num_constraint_members() == 0)
+            return iis.get_outcome();
+        report(iis);
+        relax_members(model, iis);
+    }
+}
+// --8<-- [end:repair-loop]
+
+template <typename Model>
+struct repair_run {
+    iis_outcome last;
+    int rounds;
+    model_status_t<Model> after_repair;
+};
+
+// The workshop again, with one team per product instead of shared labour:
+// the chairs and the desks each hold a conflict of their own.
+template <typename lp_type>
+repair_run<lp_type> teams_workshop() {
+    // --8<-- [start:teams-model]
+    const std::vector<std::string> products = {"chairs", "tables", "desks"};
+    const std::map<std::string, double> hours = {
+        {"chairs", 1}, {"tables", 3}, {"desks", 2}};
+    const std::map<std::string, double> ordered = {
+        {"chairs", 10}, {"tables", 6}, {"desks", 2}};
+    const std::map<std::string, double> team_hours = {
+        {"chairs", 8}, {"tables", 20}, {"desks", 3}};
+
+    lp_type model;
+    auto make = model.add_variables(products);  // make(p) >= 0
+    auto teams = model.add_constraints(products, [&](const std::string & p) {
+        return hours.at(p) * make(p) <= team_hours.at(p);
+    });
+    auto orders = model.add_constraints(products, [&](const std::string & p) {
+        return make(p) == ordered.at(p);
+    });
+    // --8<-- [end:teams-model]
+
+    // --8<-- [start:teams-repair]
+    int round = 0;
+    const iis_outcome last = relax_until_feasible(model, [&](const auto & iis) {
+        std::cout << "conflict " << ++round << '\n';
+        for(const std::string & p : products) {
+            print_member(std::cout, "team " + p, iis.get_status(teams(p)));
+            print_member(std::cout, "order " + p, iis.get_status(orders(p)));
+        }
+    });
+    model.solve();  // optimal
+    // --8<-- [end:teams-repair]
+    return {last, round, model.get_status()};
+}
+
 template <typename milp_type>
 auto truck_loading() {
     // --8<-- [start:trucks]
@@ -219,6 +319,20 @@ std::string page_output(const char * name) {
     text << file.rdbuf();
     return text.str();
 }
+
+// The page's code prints to std::cout, which a test reads back through this.
+class cout_capture {
+public:
+    cout_capture() : previous(std::cout.rdbuf(text.rdbuf())) {}
+    ~cout_capture() { std::cout.rdbuf(previous); }
+    cout_capture(const cout_capture &) = delete;
+    cout_capture & operator=(const cout_capture &) = delete;
+    std::string str() const { return text.str(); }
+
+private:
+    std::ostringstream text;
+    std::streambuf * previous;
+};
 
 constexpr solver_version highs_native_iis_floor{1, 14, 0};
 
@@ -282,6 +396,13 @@ struct run_member_rows {
         EXPECT_EQ(rows.size(), iis.num_constraint_members());
         for(auto c : rows)
             EXPECT_TRUE(is_a<iis_status::member>(iis.get_status(c)));
+    }
+};
+
+struct run_relax_members {
+    template <typename Model, typename Print>
+    void operator()(Model & model, Print &) const {
+        relax_members(model, compute_iis_by_deletion(model));
     }
 };
 
@@ -454,6 +575,34 @@ TEST_F(infeasibility_page_highs_lp, member_rows_lists_the_conflicting_rows) {
         workshop<highs_lp>(out, run_member_rows{&num_rows, &num_variables}));
     EXPECT_EQ(num_rows, 4u);       // labour and the three orders
     EXPECT_EQ(num_variables, 1u);  // overtime
+}
+
+// Relaxing the whole conflict frees the orders, so the fix that follows needs
+// no overtime at all.
+TEST_F(infeasibility_page_highs_lp, relaxing_the_members_repairs_the_workshop) {
+    std::ostringstream out;
+    const auto run = workshop<highs_lp>(out, run_relax_members{});
+    EXPECT_TRUE(is<status::unknown>(run.after_analysis));
+    EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
+    EXPECT_NEAR(run.overtime_after_fix, 0., TEST_EPSILON);
+}
+
+TEST_F(infeasibility_page_highs_lp, repair_loop_explains_one_conflict_a_round) {
+    cout_capture out;
+    const auto run = teams_workshop<highs_lp>();
+    EXPECT_EQ(run.last, iis_outcome::feasible);
+    EXPECT_EQ(run.rounds, 2);
+    EXPECT_TRUE(is_a<status::optimal>(run.after_repair));
+    EXPECT_EQ(out.str(), page_output("infeasibility_repair.txt"));
+}
+
+TEST_F(infeasibility_page_clp_lp, repair_loop_explains_one_conflict_a_round) {
+    cout_capture out;
+    const auto run = teams_workshop<clp_lp>();
+    EXPECT_EQ(run.last, iis_outcome::feasible);
+    EXPECT_EQ(run.rounds, 2);
+    EXPECT_TRUE(is_a<status::optimal>(run.after_repair));
+    EXPECT_EQ(out.str(), page_output("infeasibility_repair.txt"));
 }
 
 // Integrality is background: only the row's two sides are members, and the
