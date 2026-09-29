@@ -101,7 +101,7 @@ A call that gives up drops nothing, so the answer is then `not_proven_minimal` o
 
 ### Candidates and trials
 
-Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`, so a side at the opposite infinity, as in `x >= infinity()`, is a real bound and a candidate. Integrality, special constraints and anything added through the native handles are not candidates: they stay in every trial, as background.
+Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. Integrality, special constraints and anything added through the native handles are not candidates: they stay in every trial, as background.
 
 A trial deactivates the candidates the engine left out by relaxing them to `-infinity()` or `infinity()`. It never removes a row and never changes the matrix, so each trial is a re-solve of the same model, and writes only the sides whose state differs from the previous trial's.
 

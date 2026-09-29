@@ -1182,7 +1182,8 @@ TEST_F(iis_by_deletion, column_less_precheck_compares_exactly_with_zero) {
         EXPECT_EQ(status_of(iis, r), membership::lower);
     }
     {
-        // a lower side at the wrong infinity is a real, violated bound
+        // a lower side the backend holds at the wrong infinity stays a
+        // candidate, which 0 violates
         stub model;
         const auto r = add_row(model, inf, inf);
         const auto iis = compute_iis_by_deletion(model);
