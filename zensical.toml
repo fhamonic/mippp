@@ -27,6 +27,7 @@ nav = [
   ] },
   { "Solving" = [
     { "Status, limits and tolerances" = "solving/status-and-limits.md" },
+    { "Diagnosing infeasibility" = "solving/infeasibility.md" },
     { "Solutions, duals and reduced costs" = "solving/solutions.md" },
     { "Re-solving and model updates" = "solving/updates.md" },
   ] },
