@@ -30,7 +30,7 @@
     "clp": {
       "key": "CLP",
       "wrapper": "impl/v1",
-      "gtest_filter": "Clp*",
+      "gtest_filter": "Clp*:clp*",
       "tier": "open-source",
       "source": {
         "kind": "conda",
@@ -43,7 +43,7 @@
     "cbc": {
       "key": "CBC",
       "wrapper": "impl/v1",
-      "gtest_filter": "Cbc*",
+      "gtest_filter": "Cbc*:cbc*",
       "tier": "open-source",
       "source": {
         "kind": "conda",
@@ -60,7 +60,7 @@
     "glpk": {
       "key": "GLPK",
       "wrapper": "impl/v1",
-      "gtest_filter": "GLPK*",
+      "gtest_filter": "GLPK*:glpk*",
       "tier": "open-source",
       "source": {
         "kind": "conda",
@@ -73,7 +73,7 @@
     "highs": {
       "key": "HIGHS",
       "wrapper": "impl/v1",
-      "gtest_filter": "HiGHS*",
+      "gtest_filter": "HiGHS*:highs*",
       "tier": "open-source",
       "source": {
         "kind": "conda",
@@ -86,7 +86,7 @@
     "scip": {
       "key": "SCIP",
       "wrapper": "impl/v1",
-      "gtest_filter": "SCIP*",
+      "gtest_filter": "SCIP*:scip*",
       "tier": "open-source",
       "source": {
         "kind": "conda",
@@ -106,7 +106,7 @@
     "soplex": {
       "key": "SOPLEX",
       "wrapper": "impl/v1",
-      "gtest_filter": "SoPlex*",
+      "gtest_filter": "SoPlex*:soplex*",
       "tier": "open-source",
       "source": {
         "kind": "conda",
@@ -119,7 +119,7 @@
     "gurobi": {
       "key": "GUROBI",
       "wrapper": "impl/v1",
-      "gtest_filter": "Gurobi*",
+      "gtest_filter": "Gurobi*:gurobi*",
       "tier": "commercial",
       "note": "the wheel bundles a size-limited licence, so results only cover small models",
       "source": {
@@ -135,7 +135,7 @@
     "mosek": {
       "key": "MOSEK",
       "wrapper": "impl/v1",
-      "gtest_filter": "MOSEK*",
+      "gtest_filter": "MOSEK*:mosek*",
       "tier": "commercial",
       "note": "needs a licence file; without one every test skips on license_error. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of MOSEK 11.0.14 (2026-09-19)",
       "source": {
@@ -150,7 +150,7 @@
     "xpress": {
       "key": "XPRESS",
       "wrapper": "impl/v1",
-      "gtest_filter": "Xpress*",
+      "gtest_filter": "Xpress*:xpress*",
       "tier": "commercial",
       "note": "community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of Xpress 47.1.1 (2026-09-19)",
       "source": {
@@ -165,7 +165,7 @@
     "copt": {
       "key": "COPT",
       "wrapper": "impl/v1",
-      "gtest_filter": "COPT*",
+      "gtest_filter": "COPT*:copt*",
       "tier": "commercial",
       "note": "community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of COPT 8.0.5 (2026-09-19)",
       "source": {
@@ -180,7 +180,7 @@
     "cplex": {
       "key": "CPLEX",
       "wrapper": "impl/v1",
-      "gtest_filter": "CPLEX*",
+      "gtest_filter": "CPLEX*:cplex*",
       "tier": "commercial",
       "note": "community edition caps model size",
       "source": {
