@@ -524,6 +524,60 @@ public:
                                       constraint_lambdas...);
     }
 
+private:
+    char _row_sense(int row) {
+        char sense;
+        check(CPX->getsense(env, lp, &sense, row, row));
+        return sense;
+    }
+    // 'R' spans rhs to rhs + rngval, the range value being of either sign
+    std::pair<double, double> _row_sides(int row) {
+        const char sense = _row_sense(row);
+        double rhs;
+        check(CPX->getrhs(env, lp, &rhs, row, row));
+        if(sense == 'L') return {-CPX_INFBOUND, rhs};
+        if(sense == 'G') return {rhs, CPX_INFBOUND};
+        if(sense == 'E') return {rhs, rhs};
+        double range;
+        check(CPX->getrngval(env, lp, &range, row, row));
+        if(range >= 0.) return {rhs, rhs + range};
+        return {rhs + range, rhs};
+    }
+    // An 'R' row is a right-hand side and a width, so crossed sides have no
+    // representation: written as they are, they would read back swapped and
+    // the solver would see a satisfiable range. An infinite side cannot live
+    // on an 'R' row either (CPLEX clamps the range and the row turns
+    // infeasible), so one infinite side gives an inequality and two a <= row
+    // with an infinite right-hand side, which CPLEX ignores.
+    void _set_row_sides(int row, double lower, double upper) {
+        if(lower > upper)
+            throw std::invalid_argument(
+                "cplex: a row's sides cannot cross, CPLEX stores a ranged row "
+                "as a right-hand side and a range width");
+        const bool lower_finite = lower > -CPX_INFBOUND;
+        const bool upper_finite = upper < CPX_INFBOUND;
+        char sense;
+        double rhs = lower;
+        if(lower_finite && upper_finite) {
+            sense = lower == upper ? 'E' : 'R';
+        } else if(lower_finite) {
+            sense = 'G';
+        } else {
+            sense = 'L';
+            rhs = upper;
+        }
+        check(CPX->chgsense(env, lp, 1, &row, &sense));
+        check(CPX->chgrhs(env, lp, 1, &row, &rhs));
+        // the switch to 'R' does not always zero the range value left by an
+        // earlier switch away from it (measured), so the width is written
+        // every time
+        if(sense == 'R') {
+            const double range = upper - lower;
+            check(CPX->chgrngval(env, lp, 1, &row, &range));
+        }
+    }
+
+public:
     void set_constraint_rhs(constraint constr, double rhs) {
         int constr_id = constr.id();
         check(CPX->chgrhs(env, lp, 1, &constr_id, &rhs));
@@ -532,6 +586,12 @@ public:
         int constr_id = constr.id();
         char sense = constraint_sense_to_cplex_sense(r);
         check(CPX->chgsense(env, lp, 1, &constr_id, &sense));
+    }
+    void set_constraint_lower_bound(constraint constr, double lb) {
+        _set_row_sides(constr.id(), lb, _row_sides(constr.id()).second);
+    }
+    void set_constraint_upper_bound(constraint constr, double ub) {
+        _set_row_sides(constr.id(), _row_sides(constr.id()).first, ub);
     }
 
     auto get_constraint_lhs(constraint constr) {
@@ -563,19 +623,13 @@ public:
         return rhs;
     }
     constraint_sense get_constraint_sense(constraint constr) {
-        char sense;
-        check(CPX->getsense(env, lp, &sense, constr.id(), constr.id()));
-        return cplex_sense_to_constraint_sense(sense);
+        return cplex_sense_to_constraint_sense(_row_sense(constr.id()));
     }
     double get_constraint_lower_bound(constraint constr) {
-        if(get_constraint_sense(constr) == constraint_sense::less_equal)
-            return -infinity();
-        return get_constraint_rhs(constr);
+        return _row_sides(constr.id()).first;
     }
     double get_constraint_upper_bound(constraint constr) {
-        if(get_constraint_sense(constr) == constraint_sense::greater_equal)
-            return infinity();
-        return get_constraint_rhs(constr);
+        return _row_sides(constr.id()).second;
     }
     auto get_constraint(constraint constr) {
         return linear_constraint_view(

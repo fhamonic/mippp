@@ -67,8 +67,29 @@ TEST(CPLEX_handle_guard, releases_partial_allocations_without_throwing) {
     }
 }
 
+namespace {
+// CPLEX stores a ranged row as a right-hand side and a range width, so a row
+// whose sides cross has no representation and the setters reject it: a case
+// holding one is skipped from its data, before anything is built.
+std::optional<std::string> cplex_iis_case_skip_reason(
+    const iis_cases::iis_case & c) {
+    for(std::size_t i = 0; i < c.system.rows.size(); ++i) {
+        const auto & row = c.system.rows[i];
+        if(row.lower && row.upper && *row.lower > *row.upper)
+            return "CPLEX cannot store row " + std::to_string(i) +
+                   ", whose sides cross: a ranged row is a right-hand side "
+                   "and a range width";
+    }
+    return std::nullopt;
+}
+}  // namespace
+
 struct cplex_lp_test : public model_test<cplex_api, cplex_lp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
+    static std::optional<std::string> iis_case_skip_reason(
+        const iis_cases::iis_case & c) {
+        return cplex_iis_case_skip_reason(c);
+    }
 };
 INSTANTIATE_TEST(CPLEX_lp, LpModelTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, EnumerableEntitiesTest, cplex_lp_test);
@@ -81,7 +102,9 @@ INSTANTIATE_TEST(CPLEX_lp, AddColumnTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, RemoveVariableTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ReadableConstraintsTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ReadableConstraintBoundsTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, ModifiableConstraintBoundsTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, IisTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, IisByDeletionTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, DualSolutionTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ReducedCostsTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, LpStatusTest, cplex_lp_test);
@@ -95,6 +118,10 @@ INSTANTIATE_TEST(CPLEX_lp, VerbosityTest, cplex_lp_test);
 
 struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
+    static std::optional<std::string> iis_case_skip_reason(
+        const iis_cases::iis_case & c) {
+        return cplex_iis_case_skip_reason(c);
+    }
 };
 INSTANTIATE_TEST(CPLEX_milp, LpModelTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, MilpModelTest, cplex_milp_test);
@@ -108,7 +135,9 @@ INSTANTIATE_TEST(CPLEX_milp, AddColumnTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, RemoveVariableTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, ReadableConstraintsTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, ReadableConstraintBoundsTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, ModifiableConstraintBoundsTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, IisTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, IisByDeletionTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, SudokuTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, CandidateSolutionCallbackTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, LazyConstraintsTest, cplex_milp_test);
@@ -123,6 +152,36 @@ INSTANTIATE_TEST(CPLEX_milp, VerbosityTest, cplex_milp_test);
 
 static_assert(has_iis<cplex_lp>);
 static_assert(has_iis<cplex_milp>);
+static_assert(iis_by_deletion_model<cplex_lp>);
+static_assert(iis_by_deletion_model<cplex_milp>);
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// Row bounds /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// The width of an 'R' row is |rngval| and its sign only picks the side of the
+// rhs, so sides that cross cannot be stored; written as they are, CPLEX would
+// solve the swapped range.
+TEST_F(cplex_lp_test, crossed_row_sides_are_rejected) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 5.});
+    auto c = model.add_constraint(x <= 0.);
+    EXPECT_THROW(model.set_constraint_lower_bound(c, 1.),
+                 std::invalid_argument);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), -model.infinity());
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 0.);
+    model.set_constraint_lower_bound(c, -1.);
+    EXPECT_THROW(model.set_constraint_upper_bound(c, -2.),
+                 std::invalid_argument);
+    EXPECT_EQ(model.get_constraint_lower_bound(c), -1.);
+    EXPECT_EQ(model.get_constraint_upper_bound(c), 0.);
+    model.set_objective(x);
+    model.set_maximization();
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    EXPECT_NEAR(model.get_solution_value(), 0., TEST_EPSILON);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////// IIS /////////////////////////////////////

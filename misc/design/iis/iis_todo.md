@@ -364,12 +364,15 @@ limit (N27 a).
   `IISMinimal` = 0 gives `not_proven_minimal` (N1 a). A forced-only answer is irreducible with zero members.
   Error 10005 on `IISMinimal` after a stop means no answer, never an empty IIS. Needs 1.3. Gurobi gets no
   modifiable row bounds, since its ranges add a slack column (N30), and reads its row bounds through 3.4.
-- [ ] **6.4. CPLEX (WP16).** `CPXrefineconflictext` and `CPXgetconflictext`, with one group per row and per
+- [x] **6.4. CPLEX (WP16).** `CPXrefineconflictext` and `CPXgetconflictext`, with one group per row and per
   bound side, never the deprecated `CPXrefineconflict`. Indicators stay outside the groups. Status 31 is
-  `irreducible` and 30 `feasible`. Abort statuses 32 to 39 and "possible" flags give `member_*` under
-  `not_proven_minimal`, and status 33 is a time-limit stop. Status 33 with every group excluded is no answer.
-  Rows get their sides as on Gurobi. Needs 1.3. Modifiable row bounds, over the readable ones of 3.4, are an
-  optional commit under N30 (b), once CPLEX is confirmed to store ranged rows natively.
+  `irreducible` and 30 `feasible`. Abort statuses 32 to 39 are `undetermined` with no member, and status 33 a
+  time-limit stop: the "possible" flags of a stop were meant to give `member_*` under `not_proven_minimal`,
+  but the probes p10 and p13 showed that they prove nothing (a feasible model stopped by the limit gets the
+  same flags, and a node-limit stop's exclusions re-solve feasible), see "Native routines" in iis.md. Rows
+  get their sides as on Gurobi. Each call passes a fresh equal preference to defeat the resume-after-abort
+  defect. Needs 1.3. Modifiable row bounds, over the readable ones of 3.4, are done as native 'R' rows;
+  crossed sides are unrepresentable there and throw `std::invalid_argument`.
 - [ ] **6.5. Xpress (WP16).** The `IISOPS` integrality and special-constraint bits are set before
   `XPRSiisfirst` and restored after. `I` entries are dropped. Rows map `L` to `member_upper`, `G` to
   `member_lower` and `E` to `member_both`, to confirm at 45.1. `IISSOLSTATUS` gives the outcome, with

@@ -28,7 +28,7 @@ The orders need 10 + 18 + 4 = 32 hours of labour, one more than the 31 available
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-report"
 ```
 
-The deletion filter, `compute_iis_by_deletion` from the header included above, runs on every model class of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex:
+The deletion filter, `compute_iis_by_deletion` from the header included above, runs on every model class of Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP and SoPlex:
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-deletion"
@@ -53,7 +53,7 @@ The model is the one you built. The filter changes bounds and sides while it wor
 | Path | Call | Where | Returns |
 | :--- | :--- | :--- | :--- |
 | Native routine | `model.compute_iis()` | `has_iis<M>`: `highs_lp` and `highs_qp`, with HiGHS 1.14 or later at runtime; `cplex_lp` and `cplex_milp` | `model_iis_t<M>` |
-| Deletion filter | `compute_iis_by_deletion(model, limits)`, from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex | a snapshot type of its own, taken through `auto` |
+| Deletion filter | `compute_iis_by_deletion(model, limits)`, from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class of Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP and SoPlex | a snapshot type of its own, taken through `auto` |
 
 Both analyze the model as it currently is and never rely on an earlier solve, whose status is stale as soon as the model changes: the workshop's `solve()` only showed that there was something to explain. A feasible model is an outcome, not an error. Neither runs behind your back: each is an explicit call, and can cost many solves.
 
@@ -218,10 +218,10 @@ A snapshot is computed once, when the call returns, and later changes to the mod
 | `cbc_milp` | no | yes | an [experimental](../solvers/index.md#the-backends) backend, with wrong answers of Cbc 2.10 on integer rows, and root LPs past the deadline (measured on a Cbc `devel` build): see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs) and [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
 | `scip_milp` | no | yes | can throw on an infeasible model with binary columns: see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries) |
 | `mosek_lp`, `mosek_milp`, `soplex_lp` | no | yes | |
-| `cplex_lp`, `cplex_milp` | yes | no | rows are members without a side: see [Reading the answer](#reading-the-answer); a stopped call has no answer: see [Limits](#limits); indicator constraints are background |
+| `cplex_lp`, `cplex_milp` | yes | yes | native: rows are members without a side, see [Reading the answer](#reading-the-answer), a stopped call has no answer, see [Limits](#limits), and indicator constraints are background; both: a row whose sides cross cannot be built, the setter throws, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints) |
 | Gurobi, Xpress and COPT models | no | no | neither path yet, see below |
 
-The Gurobi, CPLEX, Xpress and COPT models meet every requirement of `iis_by_deletion_model` but one, `has_modifiable_constraint_bounds`, and MIP++ does not call the native routines of Gurobi, Xpress and COPT yet. Native routines for them are planned. Until then, two ways remain:
+The Gurobi, Xpress and COPT models meet every requirement of `iis_by_deletion_model` but one, `has_modifiable_constraint_bounds`, and MIP++ does not call their native routines yet. Native routines for them are planned. Until then, two ways remain:
 
 - the engine of [The deletion filter](../algorithms/deletion-filter.md#the-engine), over an oracle of your own: one that builds and solves a model of the active rows and bounds, say;
 - the solver's own routine, `GRBcomputeIIS`, `XPRSiisfirst` or `COPT_ComputeIIS`, on the objects `native_model()` returns. The api objects bind none of them, so the call goes through the solver's C API, linked or loaded by you from the file `native_api().library_path()` names, and `native_id(v)` and `native_id(c)` give the index each of your handles has there. Such a call is outside MIP++, see [Native changes](#native-changes).

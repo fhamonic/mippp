@@ -36,8 +36,8 @@ Change it to target another solver (`gurobi_milp`, `scip_milp`, `cplex_lp`,
 ...). Note that
 `travelling_salesman_dfj` needs the candidate-solution callback, which is currently
 validated on **Gurobi, CPLEX and COPT** only, and that `infeasible_transportation`
-needs the deletion filter, which runs on **Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and
-SoPlex**.
+needs the deletion filter, which runs on **Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP
+and SoPlex**.
 
 ## Using an example as a template
 

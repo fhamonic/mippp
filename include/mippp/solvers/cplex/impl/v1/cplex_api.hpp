@@ -90,6 +90,10 @@ int CPXgetsense(CPXCENVptr env, CPXCLPptr lp, char * sense, int begin, int end);
 int CPXchgrhs(CPXCENVptr env, CPXLPptr lp, int cnt, int const * indices,
               double const * values);
 int CPXgetrhs(CPXCENVptr env, CPXCLPptr lp, double * rhs, int begin, int end);
+int CPXchgrngval(CPXCENVptr env, CPXLPptr lp, int cnt, int const * indices,
+                 double const * values);
+int CPXgetrngval(CPXCENVptr env, CPXCLPptr lp, double * rngval, int begin,
+                 int end);
 int CPXchgrowname(CPXCENVptr env, CPXLPptr lp, int cnt, int const * indices,
                   char ** newname);
 int CPXgetrowname(CPXCENVptr env, CPXCLPptr lp, char ** name, char * namestore,
@@ -324,6 +328,8 @@ namespace cplex::impl::v1 {
     F(CPXgetsense, getsense)                                         \
     F(CPXchgrhs, chgrhs)                                             \
     F(CPXgetrhs, getrhs)                                             \
+    F(CPXchgrngval, chgrngval)                                       \
+    F(CPXgetrngval, getrngval)                                       \
     F(CPXchgrowname, chgrowname)                                     \
     F(CPXgetrowname, getrowname)                                     \
     F(CPXgetnumcols, getnumcols)                                     \

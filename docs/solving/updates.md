@@ -61,7 +61,7 @@ model.set_constraint_upper_bound(row, model.infinity());   // drop a side
 double l0 = model.get_constraint_lower_bound(row);   // has_readable_constraint_bounds
 ```
 
-Either side can be dropped to infinity and restored later, even on a ranged row, where sense and right-hand side cannot name one side. A row left with two distinct finite sides, such as a `<=` row given a finite lower side or an `==` row with one side moved, is ranged: `get_constraint_sense` and `get_constraint_rhs` are then undefined until one side is infinite again or both are equal, so read such a row back through the bounds. Backends: Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex.
+Either side can be dropped to infinity and restored later, even on a ranged row, where sense and right-hand side cannot name one side. A row left with two distinct finite sides, such as a `<=` row given a finite lower side or an `==` row with one side moved, is ranged: `get_constraint_sense` and `get_constraint_rhs` are then undefined until one side is infinite again or both are equal, so read such a row back through the bounds. Backends: Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP and SoPlex.
 
 ## Adding and removing entities
 

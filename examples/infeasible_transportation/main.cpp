@@ -8,7 +8,7 @@
 // disagree, printed with the program's own names.
 //
 // compute_iis_by_deletion runs on every model satisfying iis_by_deletion_model
-// (Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex): swap the alias to use
+// (Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP and SoPlex): swap the alias to use
 // another backend.
 
 #include <cstddef>

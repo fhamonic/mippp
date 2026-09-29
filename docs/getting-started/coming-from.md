@@ -123,7 +123,7 @@ There is no `solver=` argument at solve time. The backend appears in an include 
 
 MIP++ deliberately covers the modeling and algorithmic core. Currently missing, and on the [roadmap](https://github.com/fhamonic/mippp#roadmap): LP/MPS file I/O, solution pools, native multi-objective, and quadratic *constraints*. If your workflow leans on `model.write("m.lp")` for debugging, use [named variables](../modeling/variables.md#names) and the [readable-model accessors](../solving/updates.md#constraint-rows) instead.
 
-If you call `computeIIS()` in gurobipy or `compute_conflict!` in JuMP to explain an infeasible model, see [Diagnosing infeasibility](../solving/infeasibility.md). The deletion filter it describes runs on every model of Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and SoPlex, and `highs_lp` and `highs_qp` also have HiGHS's own routine, `compute_iis()`, with HiGHS 1.14 or later at runtime, as `cplex_lp` and `cplex_milp` have CPLEX's. The Gurobi, Xpress and COPT models have neither yet.
+If you call `computeIIS()` in gurobipy or `compute_conflict!` in JuMP to explain an infeasible model, see [Diagnosing infeasibility](../solving/infeasibility.md). The deletion filter it describes runs on every model of Cbc, Clp, CPLEX, GLPK, HiGHS, MOSEK, SCIP and SoPlex, and `highs_lp` and `highs_qp` also have HiGHS's own routine, `compute_iis()`, with HiGHS 1.14 or later at runtime, as `cplex_lp` and `cplex_milp` have CPLEX's. The Gurobi, Xpress and COPT models have neither yet.
 
 ## What you gain in exchange
 
