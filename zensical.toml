@@ -34,6 +34,7 @@ nav = [
   { "Algorithms" = [
     { "Branch-and-cut with lazy constraints" = "algorithms/branch-and-cut.md" },
     { "Column generation" = "algorithms/column-generation.md" },
+    { "Deletion filter" = "algorithms/deletion-filter.md" },
   ] },
   { "Solvers" = [
     { "Choosing a solver" = "solvers/index.md" },

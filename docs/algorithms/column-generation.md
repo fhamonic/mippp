@@ -94,4 +94,4 @@ LP-basis warm starts (`has_lp_basis_warm_start`) — so each master re-solve sta
 
 ## Next
 
-[Choosing a solver](../solvers/index.md) — which backends provide duals, `add_column`, and the rest.
+[The deletion filter](deletion-filter.md) — an irreducible infeasible subset of a model, or of constraints of your own.
