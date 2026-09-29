@@ -3,12 +3,12 @@
 Design note for the infeasibility-diagnosis feature (roadmap item "IIS").
 It records the rulings taken on 2026-09-22 while reviewing the external IIS
 pull request, those of 2026-09-27 on [iis_pr_plan.md](iis_pr_plan.md), the
-plan for adapting it, and the amendments of 2026-09-28 from a simplification
-review held before wave 2, so that the feature is coded once, in the
-library's own shape. A *Confirmed reading* spells out a short ruling, as the
+plan for adapting it, the amendments of 2026-09-28 from a simplification
+review held before wave 2, and the rulings of 2026-09-29 on the questions
+wave 3 left, so that the feature is coded once, in the library's own shape. A *Confirmed reading* spells out a short ruling, as the
 maintainer confirmed it on 2026-09-27. It is not user documentation. The
 implementation order is in [iis_todo.md](iis_todo.md), and
-[Open questions](#open-questions) records the two that wave 3 raised.
+[Open questions](#open-questions) says that none remains.
 
 Statements about solvers were checked on 2026-09-22 against the C headers and
 runtime probes of Gurobi 12.0.1, CPLEX 22.1.2, COPT 8.0, Xpress 47.01, HiGHS
@@ -430,8 +430,9 @@ releases the introduction lists.
   `has_modifiable_constraint_bounds<T, M = T>` (Q3 a), so equality and
   ranged rows need no branch. A lower side is a candidate when it is above
   `-infinity()`, and an upper side when it is below `infinity()`. A side at
-  the wrong infinity is therefore a candidate, not ignored. Crossed bounds
-  are decided by the prechecks below.
+  the wrong infinity is therefore a candidate, not ignored, although N40
+  makes setting one undefined behavior, so the docs no longer present it as
+  an input. Crossed bounds are decided by the prechecks below.
 - **Trials are feasibility problems.** The objective is set to zero for the
   duration of the loop, so no trial can be unbounded and branch-and-bound
   stops at its first incumbent. The sense is left as the caller set it:
@@ -555,8 +556,11 @@ releases the introduction lists.
   returns `feasible`, and `max_solves = 1` returns `not_proven_minimal` with
   `solve_limit`, without a throw. SCIP rounds integer bounds too: [0.25, 2.75]
   reads [1, 2], and [0.25, 0.75] becomes the crossed [1, 0], typed `BINARY`,
-  so `integer_in_a_fractional_interval` meets the gap and skips on SCIP, keyed
-  on its name and that message (see N39). A non-binary integer column works:
+  so `integer_in_a_fractional_interval` meets the gap and skips on SCIP.
+  Since N39 the skip is keyed on the case's data: the shared cases ask the
+  fixture's optional `iis_case_skip_reason`, and SCIP's answers for any
+  integer column whose domain rounds into [0, 1], before anything is built
+  (`5047a77`, cherry-picked from `1b91b7d`). A non-binary integer column works:
   integer x in [0, 2] with `x >= 3` gives `irreducible`. SCIP 10.0.0's `var.c`
   has the same check (read), and SCIP 10.0.2 behaves the same (measured,
   after the status fix of the SCIP row-sides bullet). The crossed-pair trials of N36 meet the same gap.
@@ -1349,26 +1353,63 @@ crossed-pair continuation, which was already the rule for crossed rows, and
 retires the background check that N23 (a) shaped. Nothing published on main
 or in pull request #3 changes.
 
+## Rulings of 2026-09-29
+
+The maintainer ruled on the three questions wave 3 left, N38 to N40, on
+2026-09-29.
+
+- **N38. Cbc 2.10 on integer-infeasible rows.** (b), the wrong answer stays
+  documented, within a wider ruling on Cbc. Cbc "is in a weird spot overall":
+  its released C API flushes the matrix "on every row entry", which makes
+  model creation particularly slow "with no possible workaround". Its support
+  in MIP++ "should be considered as experimental only", and its limitations
+  and bugs "should be documented but not addressed". So (a), an integrality
+  check on the points `cbc_milp` returns, is rejected, and no other workaround
+  is added. The docs mark Cbc experimental wherever they list the backends to
+  users: the backend table of `docs/solvers/index.md`, the support tables of
+  the README and the home page, and the per-model table of the infeasibility
+  page. One note of `docs/solvers/index.md` says why and gathers the Cbc
+  limitations already documented: MIP solves on a private copy below 3.0, the
+  devel build's rows without terms or with all-zero coefficients, the
+  integrality proofs over unbounded integer columns, and the time limit that
+  did not bound the root LP. `integers_summing_to_one_half` keeps its skip on
+  every Cbc, a documented wrong answer on 2.10 and a search without end on the
+  devel build.
+- **N39. A skip keyed on a solve-time error.** Neither (a), keeping the skip
+  keyed on the test name and the error, nor (b), expecting the throw in that
+  case: the maintainer agreed with keying the SCIP skip on the case's data
+  rather than on the error text. `1b91b7d`, cherry-picked as `5047a77`, does
+  it. A fixture may provide `static std::optional<std::string>
+  iis_case_skip_reason(const iis_case &)`, which the shared cases call before
+  building a case, and SCIP's skips any case with an integer column whose
+  domain rounds into [0, 1], which SCIP types `BINARY` and then rejects once a
+  trial relaxes a bound. A different failure carrying the same text is no
+  longer hidden, and the two SCIP tests that pin the rejection stay, so a
+  change in SCIP still fails loudly.
+- **N40. A side at the opposite infinity.** A lower side set to `+infinity()`,
+  or an upper side set to `-infinity()`, which HiGHS and MOSEK reject in some
+  forms while the other backends accept it, is "an obviously wrong use of the
+  API". The maintainer's habit is "to document that such obviously wrong
+  usages result in undefined behavior instead of adding guards that bloat both
+  the source code and the binary output". No guard is added.
+  `docs/reference/concepts.md` calls such a side undefined behavior in the
+  rows of `has_modifiable_variable_bounds` and
+  `has_modifiable_constraint_bounds`, and `docs/algorithms/deletion-filter.md`
+  no longer presents it as a candidate. The enumeration still tests each side
+  against its own infinity only, and its comment says what it does with what a
+  backend holds, not that the input is supported.
+
+What these rulings change: no library code, beyond the reworded comment of the
+enumeration. N38 turns the pin that iis_todo.md 5.1 awaited into a documented
+wrong answer on an experimental backend (`e2d443d`). N39 replaces the skip
+keyed on a test name and an error message described under "A documented gap on
+SCIP" (`5047a77`). N40 amends "One side at a time": a side at the wrong
+infinity is still a candidate in the code, but no longer an input the docs
+present (`1c0e50e`).
+
 ## Open questions
 
-Wave 3 raised two on 2026-09-28, stated here for a ruling.
-
-- **N38. Cbc 2.10 on integer-infeasible rows.** Cbc 2.10.11 and 2.10.12 report
-  `x0 + x1 = 1.5` over free integers optimal with `x0 = 1.5` (measured), a
-  wrong answer that the filter's trials inherit, while the devel build
-  branches without a proof until a time limit. Options: (a) `cbc_milp` rejects
-  a returned point whose integer columns are fractional beyond the integrality
-  tolerance; (b) the wrong answer stays documented, as `docs/solvers/index.md`
-  now does. Until then `integers_summing_to_one_half` skips on every Cbc,
-  keyed on its name, with a reason that depends on the version.
-- **N39. A skip keyed on a solve-time error.** `scip_milp_iis_test` turns
-  "scip_milp: error in input data" into a skip in
-  `integer_in_a_fractional_interval` only, where SCIP accepts the model and
-  fails the solve; WP8's rule covers inputs rejected when the model is built.
-  Options: (a) keep the keyed skip; (b) the fixture expects the throw in that
-  case, so that a change in SCIP's behaviour fails the test.
-
-Before wave 3 none remained: N37, the last, was agreed on 2026-09-28. The
+None remains as of 2026-09-29: N38 to N40, the last, were ruled that day. The
 outward steps of WP1 are done: the documents are committed (`25b4530`, on
 the pull request's branch), the reply is posted, `a1a9f11` is tagged
 `archive/pr3-a1a9f11` on origin, and pull request #3 is a draft.

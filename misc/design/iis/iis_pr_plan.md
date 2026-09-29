@@ -12,8 +12,8 @@ iis.md under [Rulings of 2026-09-27](iis.md#rulings-of-2026-09-27). Of the quest
 onward, the maintainer accepted the recommendations of N19 to N22 and N26 later the same day, then ruled on
 N23 to N25, N27, N28 and N30 to N33, then on N29, N34 and the wording of N9, and last on N35, a time limit on
 `copt_lp` split from N29. That last message also confirmed the readings of the short rulings, leaving the
-choice on N4 to the assistant, and no question of the plan is pending. Wave 3 raised N38 and N39, open in
-iis.md. Line numbers in **Port** and **Drop** bullets are
+choice on N4 to the assistant, and no question of the plan is pending. The three questions wave 3 left, N38
+to N40, were ruled on 2026-09-29 in iis.md. Line numbers in **Port** and **Drop** bullets are
 at `a1a9f11`. Elsewhere they are on main at `f5e833f` unless marked "at `a1a9f11`".
 
 ## Decisions
@@ -422,8 +422,9 @@ and the ideas table are amended below; the rest of the plan stands.
 
 ### Pending
 
-Every question of this plan is ruled as of 2026-09-27, N35 last. Wave 3 raised two on 2026-09-28, N38 and
-N39, stated under [Open questions](iis.md#open-questions) in iis.md.
+Every question of this plan is ruled as of 2026-09-27, N35 last. The three questions wave 3 left, N38 to N40,
+were ruled on 2026-09-29, under [Rulings of 2026-09-29](iis.md#rulings-of-2026-09-29) in iis.md. None is
+pending.
 
 ## Corrections to iis.md and iis_todo.md
 

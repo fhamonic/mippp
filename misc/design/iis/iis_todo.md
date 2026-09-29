@@ -4,8 +4,8 @@ Companion to [iis.md](iis.md), which holds the design, its rulings and the evide
 [iis_pr_plan.md](iis_pr_plan.md), whose work packages carry the details. The steps follow the revised package
 order of 2026-09-27. Items 0.1 and 1.6 and those of steps 2 to 6 name their package, except 6.2. Items 1.1 to
 1.5 are the plan's standalone fixes, and step 7 is WP17. Each step lands and is tested on its own. Q1 to Q6
-and N0 to N37 refer to the Rulings of 2026-09-27 and 2026-09-28 in iis.md; N38 and N39, raised by wave 3,
-are its open questions.
+and N0 to N40 refer to the Rulings of 2026-09-27, 2026-09-28 and 2026-09-29 in iis.md, the last on the three
+questions wave 3 left.
 
 - **Two paths.** Under Q1 (b), `has_iis<T>` means that the model has a native IIS routine, reached through a
   `compute_iis()` member. The deletion filter is a separate public algorithm: an engine over a user oracle,
@@ -23,22 +23,27 @@ are its open questions.
   5 and with it that case, landed on 2026-09-28 and is published on main with CI green (run 36472057802): the
   33 commits `5c4399c` to `9aac8a1`, three commits of the final review (GLPK's infinite sides, SCIP 10's
   status codes, the serial HiGHS timing tests), the record of iis.md and this file, then `d3312b8`, which
-  checks the forwarded time limit on every backend with one. It left the two questions N38 and N39 of iis.md
-  open. Wave 4, step 7, landed on 2026-09-29 on `docs/iis-wave4`, locally, awaiting the push: the 22 commits
-  `1c6256a` to `b4e90d5`, then the record of iis.md and this file. 6.2 to 6.6 remain.
+  checks the forwarded time limit on every backend with one. It left three questions, N38 to N40, ruled on
+  2026-09-29. Wave 4, step 7, landed on 2026-09-29 on `docs/iis-wave4`, locally, awaiting the push: the 22
+  commits `1c6256a` to `b4e90d5`, then the record of iis.md and this file. The rulings followed on the same
+  branch: the SCIP skip keyed on data (`5047a77`, cherry-picked from `1b91b7d`), Cbc marked experimental
+  (`e2d443d`), the opposite infinity documented as undefined behavior (`1c0e50e`), and their record. 6.2 to
+  6.6 remain.
 
 ## 0. Before any code
 
-Q1 to Q6 and N0 to N35 were ruled on 2026-09-27, and N36 and N37 on 2026-09-28. The outward steps of WP1 are done.
+Q1 to Q6 and N0 to N35 were ruled on 2026-09-27, N36 and N37 on 2026-09-28, and N38 to N40 on 2026-09-29. The
+outward steps of WP1 are done.
 
 - [x] **0.1. Commit the documents (WP1).** Done on 2026-09-28 as `25b4530` on pull request #3's branch, which
   reaches main with the squash-merge of 2.5. iis.md records the rulings with the readings the maintainer
   confirmed, and lists no open question; iis_pr_plan_pre_rulings.md is the plan the maintainer ruled on, which
   keeps the options behind each letter readable. The amendments of 2026-09-28 (N36 and N37) follow the same
   route.
-- **0.2. Open questions.** N35, the last question before any code, was ruled (a) on 2026-09-27, and the same
-  message confirmed the readings of the short rulings and left the choice on N4 to the assistant. Wave 3
-  raised N38 and N39, open under [Open questions](iis.md#open-questions) in iis.md.
+- [x] **0.2. Open questions.** N35, the last question before any code, was ruled (a) on 2026-09-27, and the
+  same message confirmed the readings of the short rulings and left the choice on N4 to the assistant. The
+  three questions wave 3 left, N38 to N40, were ruled on 2026-09-29, recorded under
+  [Rulings of 2026-09-29](iis.md#rulings-of-2026-09-29) in iis.md, and none remains open.
 - [x] **0.3. Answer the pull request and act on N0 (a).** Done on 2026-09-28: `a1a9f11` is tagged
   `archive/pr3-a1a9f11` on origin, the reply is posted, and pull request #3 is a draft. The maintainer does
   the rework, so the reply offered the author no work.
@@ -234,12 +239,12 @@ an enumeration, a status reset or readable row bounds, which 3.2 to 3.4 already 
   already binds. It is the first MIP under the free function, so it runs the integer-only cases. It also runs
   the first real time-limit forwarding, so it needs 1.5. Done in `5c4399c` to `851b6e9`, and `9aac8a1`.
   `IisByDeletionTest` runs 26 of its 29 cases on Cbc 2.10.11, as in CI, and 20 on the local devel build, which
-  drops rows without terms. On both, `integers_summing_to_one_half` skips by name, pending N38. That skip is not a
+  drops rows without terms. On both, `integers_summing_to_one_half` skips by name. That skip is not a
   capability gap: on 2.10 it hides a known wrong answer, `optimal` with x0 = 1.5 over integers, and on the
-  devel build a search without end, so neither a fix nor a regression of Cbc shows until N38 turns it into a
-  pin. Two fixes came
-  first: the devel build aborted in `Cbc_status` after an infeasible relaxation, and below 3.0 a re-solved MIP
-  kept the previous incumbent, so each MIP solve there runs on a copy.
+  devel build a search without end. N38 keeps it so: Cbc is experimental, and its limitations and bugs are
+  documented, not addressed, so `cbc_milp` gets no integrality check (`e2d443d`). Two fixes came first: the
+  devel build aborted in `Cbc_status` after an infeasible relaxation, and below 3.0 a re-solved MIP kept the
+  previous incumbent, so each MIP solve there runs on a copy.
 - [x] **5.2. `glpk_lp` and `glpk_milp` (WP11).** Modifiable row bounds through `glp_set_row_bnds`, which
   switches the bound type rather than storing an infinite value, over the readable ones of 3.4. GLPK has no
   time limit, so limits act between trials only. `glpk_milp` trials are cold solves. Needs 1.2 and 3.4. Done
@@ -263,19 +268,20 @@ an enumeration, a status reset or readable row bounds, which 3.2 to 3.4 already 
   the getter non-negative. Needs 1.5, 1.6 and 3.4. Done in `35b2a55` to `5e70f3d`; the last frees a column
   side set to `infinity()` under a raised `MSK_DPAR_DATA_TOL_BOUND_INF`. 24 cases run on `mosek_lp` and 27 on
   `mosek_milp`, on 11.0.14.
-- [x] **5.5. `scip_milp` (WP13).** Bind `SCIPchgLhsLinear` and `SCIPchgRhsLinear`, checked across the
-  validated range from 8.0.4, since 3.4 binds `SCIPgetLhsLinear` and `SCIPgetRhsLinear`. It rebases onto the
-  SCIP rename of 3.2 and onto 3.4. Every trial is a cold solve, so its cases stay small. `scip_milp` keeps its
-  `BINARY` columns, and nothing changes to conform to SCIP (N25). The N14 probe, relaxing a bound of a
-  `BINARY` column, only characterizes the gap, which this item documents under "Notable current limitations"
-  in `docs/solvers/index.md`. Done in `88f7d3b` to `146173a`: the variable-bound getters read the model's
-  bounds, no longer the presolved ones, and a failed solve frees the transform. The N14 probe found that SCIP
-  accepts the relaxed bound and fails the next solve, so the free function throws after restoring the model,
-  which iis.md and index.md record. 26 cases run on 8.0.4, 9.2.1 and 10.0.2; `integer_in_a_fractional_interval`
-  skips by name, pending N39. SCIP 10 was first checked from its sources only; the run on 10.0.2, the
-  library of the PySCIPOpt 6.2.1 wheel, found that SCIP 10 renumbered `SCIP_STATUS`, which every SCIP 10
-  solve misread since 1.0, and the final review fixed it, so the suites pass there too. The monthly
-  compatibility matrix covers the other 10.0 releases.
+- [x] **5.5. `scip_milp` (WP13).** Bind `SCIPchgLhsLinear` and `SCIPchgRhsLinear`, checked across the validated
+  range from 8.0.4, since 3.4 binds `SCIPgetLhsLinear` and `SCIPgetRhsLinear`. It rebases onto the SCIP rename
+  of 3.2 and onto 3.4. Every trial is a cold solve, so its cases stay small. `scip_milp` keeps its `BINARY`
+  columns, and nothing changes to conform to SCIP (N25). The N14 probe, relaxing a bound of a `BINARY` column,
+  only characterizes the gap, which this item documents under "Notable current limitations" in
+  `docs/solvers/index.md`. Done in `88f7d3b` to `146173a`: the variable-bound getters read the model's bounds,
+  no longer the presolved ones, and a failed solve frees the transform. The N14 probe found that SCIP accepts
+  the relaxed bound and fails the next solve, so the free function throws after restoring the model, which
+  iis.md and index.md record. 26 cases run on 8.0.4, 9.2.1 and 10.0.2; `integer_in_a_fractional_interval` skips
+  from its data since N39: the SCIP fixture's `iis_case_skip_reason` answers for any integer column whose
+  domain rounds into [0, 1], before the case is built (`5047a77`). SCIP 10 was first checked from its sources
+  only; the run on 10.0.2, the library of the PySCIPOpt 6.2.1 wheel, found that SCIP 10 renumbered
+  `SCIP_STATUS`, which every SCIP 10 solve misread since 1.0, and the final review fixed it, so the suites pass
+  there too. The monthly compatibility matrix covers the other 10.0 releases.
 - [x] **5.6. `soplex_lp` last (WP14).** Under N11 (a), check the seven symbols of 7.1.3 and 8.0.2 that 3.4
   leaves in 7.1.1 and 7.1.2, or raise the floor. Then bind them, and add variable bounds, a readable objective
   and modifiable row bounds. `SoPlex_getRowBoundsReal`, bound by 3.4, reads row sides back, so the wrapper
