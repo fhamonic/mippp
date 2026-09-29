@@ -40,6 +40,8 @@ The labour row cannot hold the three orders with one hour of overtime. The wood 
 
 The model is the one you built. The filter changes bounds and sides while it works and writes every one of them back before it returns, see [The model afterwards](#the-model-afterwards).
 
+[`examples/infeasible_transportation/`](https://github.com/fhamonic/mippp/blob/main/examples/infeasible_transportation/main.cpp) is a complete, runnable program along these lines: a transportation plan whose conflict the deletion filter finds on any of its backends, and the native routine too where the model class has one.
+
 ## Two paths
 
 | Path | Call | Where | Returns |

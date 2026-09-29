@@ -13,6 +13,7 @@ library's test suites and the
 | [`sudoku/`](sudoku) | Multi-dimensional lambda indexing, cartesian-product constraints | HiGHS |
 | [`travelling_salesman_dfj/`](travelling_salesman_dfj) | Branch-and-cut via the candidate-solution callback (lazy DFJ subtour elimination) | Gurobi |
 | [`cutting_stock/`](cutting_stock) | Column generation with dual values and `add_column` | HiGHS |
+| [`infeasible_transportation/`](infeasible_transportation) | Diagnosing an infeasible model: an IIS from the deletion filter, printed by name | HiGHS |
 
 Each example is an independent project folder:
 
@@ -34,7 +35,9 @@ using milp_type = highs_milp;
 Change it to target another solver (`gurobi_milp`, `scip_milp`, `cplex_lp`,
 ...). Note that
 `travelling_salesman_dfj` needs the candidate-solution callback, which is currently
-validated on **Gurobi, CPLEX and COPT** only.
+validated on **Gurobi, CPLEX and COPT** only, and that `infeasible_transportation`
+needs the deletion filter, which runs on **Cbc, Clp, GLPK, HiGHS, MOSEK, SCIP and
+SoPlex**.
 
 ## Using an example as a template
 

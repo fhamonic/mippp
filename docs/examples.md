@@ -9,6 +9,7 @@ The [`examples/`](https://github.com/fhamonic/mippp/tree/main/examples) director
 | [`sudoku/`](https://github.com/fhamonic/mippp/tree/main/examples/sudoku) | Sudoku | 3-dimensional indexing, families over `cartesian_product` | [Expressions](modeling/expressions.md) |
 | [`travelling_salesman_dfj/`](https://github.com/fhamonic/mippp/tree/main/examples/travelling_salesman_dfj) | TSP | branch-and-cut, candidate-solution callback, lazy subtour elimination | [Branch-and-cut](algorithms/branch-and-cut.md) |
 | [`cutting_stock/`](https://github.com/fhamonic/mippp/tree/main/examples/cutting_stock) | Cutting stock | column generation: duals by key, `add_column`, a knapsack pricer | [Column generation](algorithms/column-generation.md) |
+| [`infeasible_transportation/`](https://github.com/fhamonic/mippp/tree/main/examples/infeasible_transportation) | Transportation | an IIS from the deletion filter, the native routine behind `has_iis`, members printed by name with their sides | [Diagnosing infeasibility](solving/infeasibility.md) |
 
 ## Reading them in order
 
@@ -17,6 +18,7 @@ The [`examples/`](https://github.com/fhamonic/mippp/tree/main/examples) director
 3. **`sudoku`** — the same ideas one dimension up, and a good template for assignment-style models: `X(i, j, v)`, families over cartesian products, hints fixed with single constraints.
 4. **`travelling_salesman_dfj`** — an algorithm, not just a model: the callback receives a candidate, the code searches it for subtours, and injects the violated constraints. Needs a backend with callback support (Gurobi, CPLEX or COPT).
 5. **`cutting_stock`** — the other classic: a restricted master, dual prices read back *by order id*, a dynamic-programming pricer, and columns streamed in as lazy ranges.
+6. **`infeasible_transportation`** — a model with no solution, although its depots hold more than the stores order. The deletion filter narrows it down to four figures, printed through the program's own names with the side of each; the native routine runs where the model class has one, and a HiGHS too old for it only skips that step. With its alias changed, the same program runs on every backend of the deletion filter.
 
 Every example selects its backend through the alias at the top of its `main.cpp`:
 
