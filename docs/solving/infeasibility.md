@@ -6,45 +6,47 @@ MIP++ computes an IIS along two paths, a solver's native routine and a deletion 
 
 ## A first IIS
 
-A workshop makes chairs, tables and desks from boards of wood and hours of labour. Its orders must be filled exactly, and it has 30 hours of labour plus at most one hour of overtime, which it minimizes. The code includes the backend's header, HiGHS's here, and `mippp/utility/iis_by_deletion.hpp`, which provides the deletion filter used below, `compute_iis_by_deletion`, with its `iis_limits`. The solver headers do not include it:
+A workshop makes chairs, tables and desks. A chair takes 2 boards and 1 hour of labour, a table 5 boards and 3 hours, a desk 4 boards and 2 hours. It has 60 boards and 30 hours, plus at most one hour of overtime, which it minimizes, and orders for 10 chairs, 6 tables and 2 desks to fill exactly. This program builds the model, finds it infeasible, asks the deletion filter for an IIS, prints its members and repairs the model:
 
 ```cpp
+#include <iostream>
+#include <string_view>
+
 --8<-- "test/doc_snippets/infeasibility.cpp:includes"
-```
 
-`lp_type` is the model class, `highs_lp` say, and the code assumes `using namespace mippp` and `using namespace mippp::operators`, as in [A first model](../getting-started/first-model.md):
+using namespace mippp;
+using namespace mippp::operators;
 
-```cpp
---8<-- "test/doc_snippets/infeasibility.cpp:workshop-model"
-```
+using lp_type = highs_lp;
 
-The orders need 10 + 18 + 4 = 32 hours of labour, one more than the 31 available, so the solve reports `infeasible`. The arithmetic is easy to spot here and much less so among thousands of rows, which is what an IIS is for. The snapshot's `get_status(v)` and `get_status(c)` tell whether a variable or a constraint takes part in the conflict, and through which side. Two helpers print the members: one for a single entity, to any `std::ostream`, and one for the workshop's own variables and constraints, to `std::cout` here:
-
-```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:print-member"
+
+int main() {
+    --8<-- "test/doc_snippets/infeasibility.cpp:workshop-model"
+
+    --8<-- "test/doc_snippets/infeasibility.cpp:workshop-report"
+    --8<-- "test/doc_snippets/infeasibility.cpp:workshop-deletion"
+
+    --8<-- "test/doc_snippets/infeasibility.cpp:workshop-fix"
+    return 0;
+}
 ```
 
-```cpp
---8<-- "test/doc_snippets/infeasibility.cpp:workshop-report"
-```
-
-The deletion filter, `compute_iis_by_deletion` from the header included above, runs on every model class of Cbc, Clp, COPT, CPLEX, GLPK, HiGHS, MOSEK, SCIP, SoPlex and Xpress:
-
-```cpp
---8<-- "test/doc_snippets/infeasibility.cpp:workshop-deletion"
-```
+It prints:
 
 ```text
 --8<-- "test/doc_snippets/infeasibility_workshop.txt"
 ```
 
-The labour row cannot hold the three orders with one hour of overtime. The wood row takes no part, nor do the bounds `make(p) >= 0`, which the orders make redundant: an IIS names only what the conflict needs. Each order is an `==` row, and its lower side is the one in conflict: the trouble is making that much, not making no more. Without any one of the five members the other four have a solution, and as this model has no other conflict, removing any one of them repairs it. Here the remedy is two hours of overtime:
+The orders need 10 + 18 + 4 = 32 hours of labour and the workshop has 31, so the first `solve()` reports `infeasible`. That is easy to see here and hard among thousands of rows, which is what an IIS is for. The first five lines are the conflict and nothing else: the upper side of the labour row, the upper bound of `overtime` and the lower side of each order, since the trouble with an `==` row is making that much, not making no more. Without any one of the five the other four have a solution: that is what irreducible means. The wood row is absent, since the orders use 58 of the 60 boards, and so are the bounds `>= 0` of `chairs`, `tables` and `desks`, which the orders make redundant.
 
-```cpp
---8<-- "test/doc_snippets/infeasibility.cpp:workshop-fix"
-```
+`compute_iis_by_deletion`, from `mippp/utility/iis_by_deletion.hpp`, which the solver headers do not include, is the deletion filter. A program usually gets there after `is_a<status::infeasible>(model.get_status())`, but the filter does not need that solve: it analyzes the model as it is. It returns a snapshot, whose `get_outcome()` says how far the answer goes: `irreducible` is an IIS, `not_proven_minimal` a conflict the run could not reduce, whose members are still worth printing, and a feasible model is an outcome, not an error, see [Outcomes and reasons](#outcomes-and-reasons).
 
-The model is the one you built. The filter changes bounds and sides while it works and writes every one of them back before it returns, see [The model afterwards](#the-model-afterwards).
+`get_status(v)` and `get_status(c)` say whether a variable or a constraint takes part, and through which side, as a `std::variant` over the tags of namespace `iis_status`. `is_a<iis_status::member>(s)` holds for every member, whichever side, and `is_a<iis_status::member_lower>(s)` or `is_a<iis_status::member_upper>(s)` for a member through that one side. A member through both sides, or one whose side a solver's routine did not name, prints `member` here, see [Reading the answer](#reading-the-answer). `print_conflict` queries the snapshot with the handles of the model, and so gives each member your name for it.
+
+An IIS says where the data disagree, not how to settle it. Relaxing any single member removes this conflict, and as the workshop has no other, repairs the model: here, two hours of overtime, which the last line reports. The model is the one you built: the filter changes bounds and sides while it works and writes every one of them back before it returns, see [The model afterwards](#the-model-afterwards), and leaves the status `unknown`, so the program solves again before reading the solution.
+
+The filter runs on every model class but Gurobi's, so `clp_lp` with Clp's header runs the same program. Several solvers also have a routine of their own, `model.compute_iis()`, see [Two paths](#two-paths). Each path returns a snapshot of a type of its own, which is why `print_member` is a template and `print_conflict` a generic lambda: the later sections hand `print_conflict` the answers of other calls.
 
 [`examples/infeasible_transportation/`](https://github.com/fhamonic/mippp/blob/main/examples/infeasible_transportation/main.cpp) is a complete, runnable program along these lines: a transportation plan whose conflict the deletion filter finds on any of its backends, and the native routine too where the model class has one.
 
@@ -53,11 +55,11 @@ The model is the one you built. The filter changes bounds and sides while it wor
 | Path | Call | Where | Returns |
 | :--- | :--- | :--- | :--- |
 | Native routine | `model.compute_iis()` | `has_iis<M>`: `gurobi_lp`, `gurobi_milp`, `cplex_lp`, `cplex_milp`, `xpress_lp`, `xpress_milp`, `copt_lp` and `copt_milp`, and `highs_lp` and `highs_qp` with HiGHS 1.14 or later at runtime | `model_iis_t<M>` |
-| Deletion filter | `compute_iis_by_deletion(model, limits)`, from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class of Cbc, Clp, COPT, CPLEX, GLPK, HiGHS, MOSEK, SCIP, SoPlex and Xpress | a snapshot type of its own, taken through `auto` |
+| Deletion filter | `compute_iis_by_deletion(model)`, or `(model, limits)` with an `iis_limits`, see [Limits](#limits), from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class of Cbc, Clp, COPT, CPLEX, GLPK, HiGHS, MOSEK, SCIP, SoPlex and Xpress | a snapshot type of its own, taken through `auto` |
 
 Both analyze the model as it currently is and never rely on an earlier solve, whose status is stale as soon as the model changes: the workshop's `solve()` only showed that there was something to explain. A feasible model is an outcome, not an error. Neither runs behind your back: each is an explicit call, and can cost many solves.
 
-The native routine is the solver's own: HiGHS's `Highs_getIis`, Gurobi's `GRBcomputeIIS`, CPLEX's `CPXrefineconflictext`, Xpress's `XPRSiisfirst` or COPT's `COPT_ComputeIIS`. On the workshop each finds the same conflict. `highs_lp`, `xpress_lp` and `copt_lp` print the same five lines, while on `gurobi_lp` and `cplex_lp` the three order rows print `side not named`, see [Reading the answer](#reading-the-answer):
+The native routine is the solver's own: HiGHS's `Highs_getIis`, Gurobi's `GRBcomputeIIS`, CPLEX's `CPXrefineconflictext`, Xpress's `XPRSiisfirst` or COPT's `COPT_ComputeIIS`. On the workshop each finds the same conflict. `highs_lp`, `xpress_lp` and `copt_lp` print the same five lines, while on `gurobi_lp` and `cplex_lp` the three order rows print `member`, see [Reading the answer](#reading-the-answer):
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-native"
@@ -89,11 +91,15 @@ member
 └── member_both     both of them
 ```
 
-Test membership with `is_a<iis_status::member>(s)`, which accepts every refinement. `is<iis_status::member>(s)` tests for the plain tag alone, and does not compile on a variant that does not list it. `is_a<iis_status::member_both>(s)` likewise needs a variant with a tag derived from `member_both`, which the row status of the Gurobi and CPLEX routines lacks, so code meant for any IIS reads the side through a visitor, as `member_side` above does.
+Test membership with `is_a<iis_status::member>(s)`, which accepts every refinement. `is<iis_status::member>(s)` tests for the plain tag alone, and does not compile on a variant that does not list it. `is_a<iis_status::member_both>(s)` likewise needs a variant that lists `member_both`, which the row status of the Gurobi and CPLEX routines does not: `print_member` above tests `member_lower` and `member_upper`, which every answer lists, and prints `member` for the two other cases. Code that must tell them apart reads the side through a visitor over the tags, which compiles on any answer, since `std::visit` instantiates only the tags a variant lists:
 
-The side matters on anything with two: a variable's bounds, a ranged row, an `==` row. The workshop's orders conflict through their lower sides. `member_both` means that both sides are needed, for instance when they cross, a lower bound above the upper bound, or when integrality [needs both sides of a row](#lp-or-milp). Plain `member` is for a row whose side a routine cannot name. The routines of Gurobi and CPLEX report it for every `==` row, and CPLEX's for every ranged row too, since they flag a row's membership only and an inequality row takes the side of its sense. COPT's routine flags one side of a two-sided row, or one bound of a column with two finite bounds, integer or continuous, on a MIP where both may be needed, so `copt_milp` reports such a row or column as a plain `member`, while on `copt_lp` every member has its side; a binary column whose bounds were moved outside [0, 1] is a member through the bound that lies beyond its domain, or through both when no integer lies between them. Xpress's routine names the side it kept of an `==` row, and both sides where integrality needs them. HiGHS's routine and the deletion filter name every side. Code meant for any IIS handles the plain tag, as `member_side` does.
+```cpp
+--8<-- "test/doc_snippets/infeasibility.cpp:side-name"
+```
 
-Iterating your own variable and constraint families, as `print_conflict` does, gives each member your name for it. Code that did not build the model lists the members through `model.variables()` and `model.constraints()`, which every model class provides:
+The side matters on anything with two: a variable's bounds, a ranged row, an `==` row. The workshop's orders conflict through their lower sides. `member_both` means that each side is needed on its own, and relaxing either one alone removes the conflict: the sides cross, a lower bound above the upper bound, or integrality [needs both sides of a row](#lp-or-milp). Plain `member` is for a row whose side a routine cannot name. The routines of Gurobi and CPLEX report it for every `==` row, and CPLEX's for every ranged row too, since they flag a row's membership only and an inequality row takes the side of its sense. COPT's routine flags one side of a two-sided row, or one bound of a column with two finite bounds, integer or continuous, on a MIP where both may be needed, so `copt_milp` reports such a row or column as a plain `member`, while on `copt_lp` every member has its side; a binary column whose bounds were moved outside [0, 1] is a member through the bound that lies beyond its domain, or through both when no integer lies between them. Xpress's routine names the side it kept of an `==` row, and both sides where integrality needs them. HiGHS's routine and the deletion filter name every side. Code meant for any IIS handles the plain tag, as `side_of` does.
+
+Querying your own handles, as `print_conflict` does, gives each member your name for it. Code that did not build the model lists the members through `model.variables()` and `model.constraints()`, which every model class provides:
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:member-rows"
@@ -103,15 +109,15 @@ On the workshop it returns the labour row and the three order rows. To print suc
 
 ## Repairing the model
 
-The snippets of this section relax sides through `set_constraint_lower_bound` and `set_constraint_upper_bound`, and the loop reruns the deletion filter, so they need `has_modifiable_constraint_bounds` and `iis_by_deletion_model`: every model class but Gurobi's has both, see [Support by model](#support-by-model), and `relax_members` states the first as a constraint, so that a Gurobi model fails to compile on the concept's name. On `gurobi_lp` and `gurobi_milp`, which range a row through a slack column, a member row is relaxed through `set_constraint_rhs`, with `set_constraint_sense` when the other side is the one to free, or rebuilt, and the next `compute_iis()` explains what remains.
-
-An IIS says where the data disagree, not how to settle it. One repair always removes the conflict: relax every side the answer names, the lower side of a `member_lower` row or bound to `-infinity()`, the upper side of a `member_upper` one to `infinity()`, and both sides of a `member_both` or a plain `member`:
+One repair always removes the conflict: relax every side the answer names, the lower side of a `member_lower` row or bound to `-infinity()`, the upper side of a `member_upper` one to `infinity()`, and both sides of a `member_both` or a plain `member`:
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:relax-members"
 ```
 
 It is one repair among others, and seldom the one you want. On the workshop it frees the labour row, the overtime and the lower sides of the three orders, and the model then solves with no overtime at all, since no order binds any more. Dropping any single member already removes a conflict, and which one to change, and by how much, is a decision on the data that the IIS leaves to you: the remedy above moved one member by one hour.
+
+`relax_members` relaxes sides through `set_constraint_lower_bound` and `set_constraint_upper_bound`, and the loop below reruns the deletion filter, so the snippets of this section need `has_modifiable_constraint_bounds` and `iis_by_deletion_model`: every model class but Gurobi's has both, see [Support by model](#support-by-model), and `relax_members` states the first as a constraint, so that a Gurobi model fails to compile on the concept's name. On `gurobi_lp` and `gurobi_milp`, which range a row through a slack column, a member row is relaxed through `set_constraint_rhs`, with `set_constraint_sense` when the other side is the one to free, or rebuilt, and the next `compute_iis()` explains what remains.
 
 A model can hold several conflicts, and an IIS explains one of them. Suppose that the workshop's labour comes from one team per product, whose hours cannot be shared:
 
