@@ -8,9 +8,7 @@
 #include <cstddef>
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <optional>
-#include <ostream>
 #include <sstream>
 #include <stop_token>
 #include <streambuf>
@@ -38,30 +36,16 @@ namespace infeasibility_page {
 using namespace mippp::operators;
 
 // --8<-- [start:print-member]
-// The status variant of a path lists only the tags it reports, so the side is
-// read by overload: the most derived tag wins, and a routine that cannot name
-// the side of a row reports plain member.
-struct member_side {
-    std::string_view operator()(iis_status::absent) const { return "absent"; }
-    std::string_view operator()(iis_status::member) const {
-        return "side not named";
-    }
-    std::string_view operator()(iis_status::member_lower) const {
-        return "lower side";
-    }
-    std::string_view operator()(iis_status::member_upper) const {
-        return "upper side";
-    }
-    std::string_view operator()(iis_status::member_both) const {
-        return "both sides";
-    }
-};
-
+// Prints a member with the side it conflicts through.
 template <typename Status>
-void print_member(std::ostream & out, std::string_view name,
-                  const Status & status) {
-    if(is_a<iis_status::member>(status))
-        out << name << ": " << std::visit(member_side{}, status) << '\n';
+void print_member(std::string_view name, const Status & status) {
+    if(!is_a<iis_status::member>(status)) return;
+    if(is_a<iis_status::member_lower>(status))
+        std::cout << name << ": lower side\n";
+    else if(is_a<iis_status::member_upper>(status))
+        std::cout << name << ": upper side\n";
+    else
+        std::cout << name << ": member\n";  // both sides, or a side not named
 }
 // --8<-- [end:print-member]
 
@@ -75,50 +59,40 @@ struct workshop_run {
     double overtime_after_fix = 0.;
 };
 
-// The page's example as one program: Analyze stands for the line of the page
-// that computes the IIS, so that each path runs on the same model.
+// The page's example as one program: Analyze stands for the lines of the page
+// that compute the IIS, so that each path runs on the same model.
 template <typename lp_type, typename Analyze>
 workshop_run<lp_type> workshop(Analyze && analyze) {
     // --8<-- [start:workshop-model]
-    const std::vector<std::string> products = {"chairs", "tables", "desks"};
-    const std::map<std::string, double> boards = {
-        {"chairs", 2}, {"tables", 5}, {"desks", 4}};
-    const std::map<std::string, double> hours = {
-        {"chairs", 1}, {"tables", 3}, {"desks", 2}};
-    const std::map<std::string, double> ordered = {
-        {"chairs", 10}, {"tables", 6}, {"desks", 2}};
-
     lp_type model;
-    auto make = model.add_variables(products);  // make(p) >= 0
+    auto chairs = model.add_variable();  // >= 0, as are tables and desks
+    auto tables = model.add_variable();
+    auto desks = model.add_variable();
+    // in a params list, an omitted bound is unbounded
     auto overtime =
         model.add_variable({.obj_coef = 1, .lower_bound = 0, .upper_bound = 1});
-    auto boards_used = [&](const std::string & p) {
-        return boards.at(p) * make(p);
-    };
-    auto hours_used = [&](const std::string & p) {
-        return hours.at(p) * make(p);
-    };
-    auto wood = model.add_constraint(xsum(products, boards_used) <= 60);
+    auto wood = model.add_constraint(2 * chairs + 5 * tables + 4 * desks <= 60);
     auto labour =
-        model.add_constraint(xsum(products, hours_used) - overtime <= 30);
-    auto orders = model.add_constraints(products, [&](const std::string & p) {
-        return make(p) == ordered.at(p);
-    });
+        model.add_constraint(chairs + 3 * tables + 2 * desks - overtime <= 30);
+    auto order_chairs = model.add_constraint(chairs == 10);
+    auto order_tables = model.add_constraint(tables == 6);
+    auto order_desks = model.add_constraint(desks == 2);
 
     model.solve();  // infeasible
     // --8<-- [end:workshop-model]
     workshop_run<lp_type> run{model.get_status(), {}, {}};
 
     // --8<-- [start:workshop-report]
-    std::ostream & out = std::cout;  // or any other std::ostream
     auto print_conflict = [&](const auto & iis) {
-        print_member(out, "wood", iis.get_status(wood));
-        print_member(out, "labour", iis.get_status(labour));
-        for(const std::string & p : products) {
-            print_member(out, "order " + p, iis.get_status(orders(p)));
-            print_member(out, "make " + p, iis.get_status(make(p)));
-        }
-        print_member(out, "overtime", iis.get_status(overtime));
+        print_member("wood", iis.get_status(wood));
+        print_member("labour", iis.get_status(labour));
+        print_member("order chairs", iis.get_status(order_chairs));
+        print_member("order tables", iis.get_status(order_tables));
+        print_member("order desks", iis.get_status(order_desks));
+        print_member("chairs", iis.get_status(chairs));
+        print_member("tables", iis.get_status(tables));
+        print_member("desks", iis.get_status(desks));
+        print_member("overtime", iis.get_status(overtime));
     };
     // --8<-- [end:workshop-report]
     analyze(model, print_conflict);
@@ -126,7 +100,8 @@ workshop_run<lp_type> workshop(Analyze && analyze) {
 
     // --8<-- [start:workshop-fix]
     model.set_variable_upper_bound(overtime, 2);
-    model.solve();  // optimal, with 2 hours of overtime
+    model.solve();  // optimal
+    std::cout << "overtime: " << model.get_solution()[overtime] << " hours\n";
     // --8<-- [end:workshop-fix]
     run.after_fix = model.get_status();
     if(status::solution_available(run.after_fix))
@@ -137,7 +112,8 @@ workshop_run<lp_type> workshop(Analyze && analyze) {
 template <typename Model, typename Print>
 void deletion_path(Model & model, Print & print_conflict) {
     // --8<-- [start:workshop-deletion]
-    print_conflict(compute_iis_by_deletion(model));
+    const auto iis = compute_iis_by_deletion(model);
+    if(iis.get_outcome() == iis_outcome::irreducible) print_conflict(iis);
     // --8<-- [end:workshop-deletion]
 }
 
@@ -183,6 +159,21 @@ void bounded_path(Model & model, Print & print_conflict, std::stop_token stop) {
         print_conflict(iis);
     // --8<-- [end:limits]
 }
+
+// --8<-- [start:side-name]
+// Every tag has an overload, so the visit compiles on the variant of any path,
+// and the most derived one wins: plain member is told from member_both.
+std::string_view side_of(iis_status::absent) { return "absent"; }
+std::string_view side_of(iis_status::member) { return "side not named"; }
+std::string_view side_of(iis_status::member_lower) { return "lower side"; }
+std::string_view side_of(iis_status::member_upper) { return "upper side"; }
+std::string_view side_of(iis_status::member_both) { return "both sides"; }
+
+template <typename Status>
+std::string_view side_name(const Status & status) {
+    return std::visit([](auto tag) { return side_of(tag); }, status);
+}
+// --8<-- [end:side-name]
 
 // --8<-- [start:member-rows]
 template <typename Model, typename Iis>
@@ -308,32 +299,28 @@ struct repair_run {
 template <typename lp_type>
 repair_run<lp_type> teams_workshop() {
     // --8<-- [start:teams-model]
-    const std::vector<std::string> products = {"chairs", "tables", "desks"};
-    const std::map<std::string, double> hours = {
-        {"chairs", 1}, {"tables", 3}, {"desks", 2}};
-    const std::map<std::string, double> ordered = {
-        {"chairs", 10}, {"tables", 6}, {"desks", 2}};
-    const std::map<std::string, double> team_hours = {
-        {"chairs", 8}, {"tables", 20}, {"desks", 3}};
-
     lp_type model;
-    auto make = model.add_variables(products);  // make(p) >= 0
-    auto teams = model.add_constraints(products, [&](const std::string & p) {
-        return hours.at(p) * make(p) <= team_hours.at(p);
-    });
-    auto orders = model.add_constraints(products, [&](const std::string & p) {
-        return make(p) == ordered.at(p);
-    });
+    auto chairs = model.add_variable();
+    auto tables = model.add_variable();
+    auto desks = model.add_variable();
+    auto team_chairs = model.add_constraint(chairs <= 8);  // 1 hour a chair
+    auto team_tables = model.add_constraint(3 * tables <= 20);
+    auto team_desks = model.add_constraint(2 * desks <= 3);
+    auto order_chairs = model.add_constraint(chairs == 10);
+    auto order_tables = model.add_constraint(tables == 6);
+    auto order_desks = model.add_constraint(desks == 2);
     // --8<-- [end:teams-model]
 
     // --8<-- [start:teams-repair]
     int round = 0;
     const iis_outcome last = relax_until_feasible(model, [&](const auto & iis) {
         std::cout << "conflict " << ++round << '\n';
-        for(const std::string & p : products) {
-            print_member(std::cout, "team " + p, iis.get_status(teams(p)));
-            print_member(std::cout, "order " + p, iis.get_status(orders(p)));
-        }
+        print_member("team chairs", iis.get_status(team_chairs));
+        print_member("order chairs", iis.get_status(order_chairs));
+        print_member("team tables", iis.get_status(team_tables));
+        print_member("order tables", iis.get_status(order_tables));
+        print_member("team desks", iis.get_status(team_desks));
+        print_member("order desks", iis.get_status(order_desks));
     });
     model.solve();  // optimal
     // --8<-- [end:teams-repair]
@@ -445,6 +432,20 @@ struct run_member_rows {
         EXPECT_EQ(rows.size(), iis.num_constraint_members());
         for(auto c : rows)
             EXPECT_TRUE(is_a<iis_status::member>(iis.get_status(c)));
+    }
+};
+
+// The side of every entity, through the visitor of Reading the answer.
+struct run_side_names {
+    std::vector<std::string_view> * variables;
+    std::vector<std::string_view> * rows;
+    template <typename Model, typename Print>
+    void operator()(Model & model, Print &) const {
+        const auto iis = compute_iis_by_deletion(model);
+        for(auto v : model.variables())
+            variables->push_back(side_name(iis.get_status(v)));
+        for(auto c : model.constraints())
+            rows->push_back(side_name(iis.get_status(c)));
     }
 };
 
@@ -621,13 +622,13 @@ TEST_F(infeasibility_page_highs_lp, bounded_run_completes_on_the_workshop) {
 }
 
 // A run stopped before its first solve leaves the status of the solve that
-// found the model infeasible.
-TEST_F(infeasibility_page_highs_lp, cancelled_run_prints_nothing) {
+// found the model infeasible, and prints no member.
+TEST_F(infeasibility_page_highs_lp, cancelled_run_prints_no_member) {
     std::stop_source stop;
     stop.request_stop();
     cout_capture out;
     const auto run = workshop<highs_lp>(run_bounded_path{stop.get_token()});
-    EXPECT_EQ(out.str(), "");
+    EXPECT_EQ(out.str(), "overtime: 2 hours\n");  // the remedy's line only
     EXPECT_TRUE(is_a<status::infeasible>(run.after_analysis));
     EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
 }
@@ -661,6 +662,19 @@ TEST_F(infeasibility_page_highs_lp, member_rows_lists_the_conflicting_rows) {
         workshop<highs_lp>(run_member_rows{&num_rows, &num_variables}));
     EXPECT_EQ(num_rows, 4u);       // labour and the three orders
     EXPECT_EQ(num_variables, 1u);  // overtime
+}
+
+TEST_F(infeasibility_page_highs_lp, side_name_reads_the_side_of_each_member) {
+    std::vector<std::string_view> variables;
+    std::vector<std::string_view> rows;
+    cout_capture out;
+    expect_page_run(workshop<highs_lp>(run_side_names{&variables, &rows}));
+    using names = std::vector<std::string_view>;
+    // chairs, tables, desks and overtime
+    EXPECT_EQ(variables, (names{"absent", "absent", "absent", "upper side"}));
+    // wood, labour and the three orders
+    EXPECT_EQ(rows, (names{"absent", "upper side", "lower side", "lower side",
+                           "lower side"}));
 }
 
 // The members of the partial answer hold the whole IIS, found again with one
@@ -714,6 +728,7 @@ TEST_F(infeasibility_page_highs_milp, trucks_row_needs_both_sides) {
     EXPECT_EQ(outcome, iis_outcome::irreducible);
     EXPECT_TRUE(is<iis_status::absent>(statuses.first));
     EXPECT_TRUE(is<iis_status::member_both>(statuses.second));
+    EXPECT_EQ(side_name(statuses.second), "both sides");
 }
 
 TEST_F(infeasibility_page_highs_lp, trucks_row_is_feasible_on_an_lp) {
