@@ -188,9 +188,12 @@ record what they established.
   subsystem, verified infeasible, with `IISMinimal` 1 at 0.95 to 0.97 s on
   11.0.3 and 13.0.2 and `IISMinimal` 0 at 1.012 s on 12.0.1, which the
   elapsed-time rule sorts out. A limit of 0 leaves a row conflict
-  unanswered, but a singleton bound-row conflict and a model an earlier
-  solve proved infeasible answer in full, since the cheap checks run before
-  the clock. The force attributes, measured at 1: a needed indicator gives
+  unanswered, but a singleton bound-row conflict answers in full, since the
+  cheap checks run before the clock, and a small model an earlier solve
+  proved infeasible may: on 12.0.1 a six-row conflict answered in full under
+  a zero limit and a 200-row chain did not (a measurement the user page
+  recorded before wave 5, not one of the wave 5 probes). The force
+  attributes, measured at 1: a needed indicator gives
   linear members irreducible relative to it, with `IISGenConstr` 1; an
   unneeded one is forced in and the answer unchanged; a conflict among
   indicators alone gives `IISMinimal` 1 with zero linear members; SOS and
@@ -268,7 +271,8 @@ record what they established.
   and `dfeasind` flips from 1 to 0 on a MIP, so the status and the solution
   disagree and the reset stays (N15). Every time-limit stop is 33, 0.7 to
   15 ms late, deterministic over 30 runs under 0 s; a node limit of 0 gives
-  35, an iteration limit of 0 gives 34 on an LP and 3019 on a MIP, and a
+  35, whose stop can come seconds late on a hard model, an iteration limit
+  of 0 gives 34 on an LP and 3019 on a MIP, and a
   deterministic time limit 39. A column-less row is named as the violated
   member. Crossed bounds read both `MEMBER`. Indicators and SOS, left out
   of the groups, are background, and a conflict among indicators alone is
