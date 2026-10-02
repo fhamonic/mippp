@@ -33,10 +33,10 @@ using milp_type = highs_milp;
 ```
 
 Change it to target another solver (`gurobi_milp`, `scip_milp`, `cplex_lp`,
-...). Note that
-`travelling_salesman_dfj` needs the candidate-solution callback, which is currently
-validated on **Gurobi, CPLEX and COPT** only; `infeasible_transportation` runs on
-every backend.
+...). Note that `travelling_salesman_dfj` needs lazy constraints in the
+candidate-solution callback, which **Gurobi, CPLEX and COPT** provide: Xpress
+runs the callback but has no lazy constraints. `infeasible_transportation` runs
+on every backend.
 
 ## Using an example as a template
 

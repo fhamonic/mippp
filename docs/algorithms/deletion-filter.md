@@ -103,7 +103,7 @@ A call that gives up drops nothing, so the answer is then `not_proven_minimal` o
 
 Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. Integrality and indicator constraints are not candidates: they stay in every trial, as background, as they do in the native routines. A trial is a `solve()`, so a registered candidate-solution callback runs in every trial, and its lazy constraints and rejections are background too, see [Callbacks](#callbacks). Anything added through the native handles, SOS constraints included, since MIP++ adds none, also stays in every trial, but is outside the guarantee, see [Native changes](#native-changes). Whether relaxing a bound of a binary variable widens its domain depends on the solver, see [LP or MILP](../solving/infeasibility.md#lp-or-milp).
 
-A trial deactivates the candidates the engine left out by relaxing them to `-infinity()` or `infinity()`. It never removes a row and never changes the matrix, so each trial is a re-solve of the same model, and writes only the sides whose state differs from the previous trial's. On `gurobi_lp` and `gurobi_milp`, which range a row through a slack column and so have no row-bound setters, a row is written through its right-hand side, and through its sense only when it changes side: a `<=` or `>=` row is relaxed and restored through its right-hand side alone, an `==` row with one side relaxed becomes a `<=` or `>=` row, and a row with no side left keeps its sense, `<=` for an `==` row, under an infinite right-hand side.
+A trial deactivates the candidates the engine left out by relaxing them to `-infinity()` or `infinity()`. It never removes a row and never changes the matrix, so each trial is a re-solve of the same model, and writes only the sides whose state differs from the previous trial's. `gurobi_lp` and `gurobi_milp` have no row-bound setters, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints). There a row is written whole, from the wanted state of both its sides: through its right-hand side, and through its sense only when that state needs another sense. A `<=` or `>=` row is relaxed and restored through its right-hand side alone. An `==` row with one side relaxed becomes a `<=` or `>=` row. A row with no side left gets an infinite right-hand side: a `<=` or `>=` row keeps its sense, and an `==` row becomes a `<=` row.
 
 The objective is zero during the trials. No trial can then be unbounded, and every feasible point is optimal, so a MIP trial can stop at its first integer point. The sense stays as you set it: minimizing or maximizing zero is the same problem. On `highs_qp` the zero objective clears the Hessian too, so its trials are LPs.
 
@@ -127,7 +127,7 @@ A run makes at most one solve per candidate plus one, only two when a crossed pa
 | Time limit | forwarded, see [Time limits](#time-limits) | the value read when the run started |
 | Status | that of each trial | `unknown` after a run that solved, unchanged otherwise |
 | Candidate-solution callback | registered, and run by every trial, see [Callbacks](#callbacks) | registered |
-| MIP starts, basis and incumbent | used and replaced by each trial, as by any `solve()` | what the last trial left: on `cplex_milp`, measured with one [MIP start](../solving/updates.md#giving-the-solver-a-starting-point) of yours, a feasible model's run keeps it beside a trial's incumbent, and an infeasible model's run leaves a trial point in its place; Gurobi's `Start` attribute survives the run |
+| MIP starts, basis and incumbent | used by each trial, as by any `solve()`, which can add a MIP start or replace yours | what the trials left. On `cplex_milp`, measured with one [MIP start](../solving/updates.md#giving-the-solver-a-starting-point) of yours, a feasible model's run keeps it beside a trial's incumbent. An infeasible model's run leaves a trial point in its place. Gurobi's `Start` attribute survives the run |
 | Row senses and right-hand sides, on `gurobi_lp` and `gurobi_milp` | as each trial needs | those read when the run started |
 | Objective sense, matrix, variable types, indicator constraints, verbosity, tolerances, other limits | unchanged | unchanged |
 
@@ -155,10 +155,10 @@ Each trial runs under 5 s at most, and under less once less than 5 s remain of t
 
 A trial that has started runs to its end, so the deadline can be overrun where the forwarded limit does not bound a trial:
 
-- on `glpk_milp`, GLPK's presolver runs without a limit, then the LP relaxation and the branch-and-bound each get the full limit, so a trial can overrun the deadline by the time of its presolve and LP relaxation;
+- on `glpk_milp`, whose time limit does not bound the whole solve, see [Limits](../solving/status-and-limits.md#limits);
 - on `cbc_milp`, the forwarded limit did not bound the root LP of a trial on the Cbc build where this was measured, a `devel` build; Cbc 2.10 was not measured.
 
-See [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations. On `clp_lp` the forwarded limit counts the CPU time of the whole process, see [Limits](../solving/status-and-limits.md#limits). Where other threads run, that clock runs ahead of the wall clock, so a trial can stop before the deadline, and a trial stopped without a point is inconclusive. A stop requested through `stop_token` also waits for the running trial to end.
+On `clp_lp` and `soplex_lp` the forwarded limit counts the CPU time of the whole process, see [Limits](../solving/status-and-limits.md#limits). Where other threads run, that clock runs ahead of the wall clock, so a trial can stop before the deadline, and a trial stopped without a point is inconclusive. A stop requested through `stop_token` also waits for the running trial to end.
 
 ### The status afterwards
 
@@ -196,7 +196,7 @@ Whether a trial starts from the work of the previous one depends on the backend.
 | `scip_milp` | cold | Any change returns SCIP to its original problem, so each trial presolves again. |
 | `cbc_milp` | cold on a MIP | Each MIP solve runs on a private copy of the model, see [The backends](../solvers/index.md#the-backends). |
 
-`clp_lp`, `glpk_milp`, and `cbc_milp` on a model without integer variables, were not measured.
+The table leaves out what was not measured: `clp_lp`, `glpk_milp`, `cbc_milp` on a model without integer variables, and the model classes of Gurobi, CPLEX, Xpress and COPT.
 
 ### Solver gaps
 

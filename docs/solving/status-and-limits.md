@@ -140,7 +140,7 @@ Clp also counts the CPU time of the whole process: its user time, from the start
 
 `clp_lp` reports a stop by its time limit as `time_limit`, and any other stop of Clp's, such as one on an iteration limit set through the native handles, as `limit_reached`. Both carry a solution when Clp's last point is primal feasible.
 
-GLPK uses the wall clock, in whole milliseconds. MIP++ rounds a limit up to the next millisecond, and `get_time_limit()` reads back the duration you set. GLPK's branch-and-bound stops once the limit less one millisecond has passed, so `glpk_milp` gives GLPK one millisecond more than you set. `glpk_lp` reports a stop by the limit as `time_limit`, as `glpk_milp` does.
+GLPK uses the wall clock, in whole milliseconds. MIP++ rounds a limit up to the next millisecond, and `get_time_limit()` reads back the duration you set. GLPK's branch-and-bound stops once the limit less one millisecond has passed. Before GLPK 4.63, its clock also truncates to the millisecond, which can take off almost one more. `glpk_milp` therefore gives GLPK two milliseconds more than you set, so that a stop by the limit never comes before it. `glpk_lp` reports a stop by the limit as `time_limit`, as `glpk_milp` does.
 
 On `glpk_milp` the limit does not bound the whole solve. GLPK's MIP presolver runs without a limit, then the LP relaxation and the branch-and-bound each get the full limit. In our measurements on GLPK 5.0, a dense integer model of 500 rows and 500 columns took about 2 s in all under a 0.2 s limit, about 1.7 s of it in the presolver.
 
