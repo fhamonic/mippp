@@ -92,15 +92,16 @@ public:
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     // tm_lim is rounded, so the limit read back is the copy kept here. The
-    // search stops once tm_lim - 1 ms have passed, a millisecond early, so
-    // one is added: a deadline forwarded as a limit then ends the solve at
-    // or after the deadline, never just before it.
+    // search stops once tm_lim - 1 ms have passed, and before GLPK 4.63 its
+    // clock truncates to the millisecond, which can take off almost one
+    // more: two are added, so that a deadline forwarded as a limit ends the
+    // solve at or after the deadline, never just before it.
     void set_time_limit(std::chrono::duration<double> t) {
+        constexpr int unlimited = std::numeric_limits<int>::max();
         const int milliseconds =
             _tm_lim(t, "glpk_milp: negative or NaN time limit");
-        model_params.tm_lim = milliseconds < std::numeric_limits<int>::max()
-                                  ? milliseconds + 1
-                                  : milliseconds;
+        model_params.tm_lim =
+            milliseconds < unlimited - 2 ? milliseconds + 2 : unlimited;
         _time_limit = t;
     }
     auto get_time_limit() { return _time_limit; }
