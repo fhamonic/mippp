@@ -127,7 +127,7 @@ One repair always removes the conflict: relax every side the answer names, the l
 
 It is one repair among others, and seldom the one you want. On the workshop it frees the labour row, the overtime and the lower sides of the three orders, and the model then solves with no overtime at all, since no order binds any more. Dropping any single member already removes a conflict, and which one to change, and by how much, is a decision on the data that the IIS leaves to you: the remedy above moved one member by one hour.
 
-`relax_members` relaxes sides through `set_constraint_lower_bound` and `set_constraint_upper_bound`, so the snippets of this section need `has_modifiable_constraint_bounds`, which every model class but Gurobi's has, see [Support by model](#support-by-model). `relax_members` states it as a constraint, so a Gurobi model fails to compile on the concept's name. On `gurobi_lp` and `gurobi_milp`, which range a row through a slack column, a member row is relaxed through `set_constraint_rhs`, with `set_constraint_sense` when the other side is the one to free, as the deletion filter does on them, and the next run explains what remains.
+`relax_row` relaxes a side through `set_constraint_lower_bound` or `set_constraint_upper_bound`. `gurobi_lp` and `gurobi_milp` have no such setters, since Gurobi ranges a row through a slack column, so there it reads the row's sense and writes its rhs, and writes the sense only when an `==` row loses one side: the deletion filter writes their rows the same way, and `rerun_on_members` below saves and restores their rows as a sense and an rhs.
 
 A model can hold several conflicts, and an IIS explains one of them. Suppose that the workshop's labour comes from one team per product, whose hours cannot be shared:
 

@@ -18,7 +18,7 @@ The [`examples/`](https://github.com/fhamonic/mippp/tree/main/examples) director
 3. **`sudoku`** — the same ideas one dimension up, and a good template for assignment-style models: `X(i, j, v)`, families over cartesian products, hints fixed with single constraints.
 4. **`travelling_salesman_dfj`** — an algorithm, not just a model: the callback receives a candidate, the code searches it for subtours, and injects the violated constraints. Needs a backend with callback support (Gurobi, CPLEX or COPT).
 5. **`cutting_stock`** — the other classic: a restricted master, dual prices read back *by order id*, a dynamic-programming pricer, and columns streamed in as lazy ranges.
-6. **`infeasible_transportation`** — a model with no solution, although its depots hold more than the stores order. The deletion filter narrows it down to four figures, printed through the program's own names with the side of each; the native routine runs where the model class has one, and a HiGHS too old for it only skips that step. With its alias changed, the same program runs on every backend of the deletion filter.
+6. **`infeasible_transportation`** — a model with no solution, although its depots hold more than the stores order. The deletion filter narrows it down to four figures, printed through the program's own names with the side of each; the native routine runs where the model class has one, and a HiGHS too old for it only skips that step. With its alias changed, the same program runs on every model class: on Gurobi's, which have no row-bound setters, its repair writes the row's right-hand side.
 
 Every example selects its backend through the alias at the top of its `main.cpp`:
 

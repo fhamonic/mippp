@@ -8,8 +8,7 @@
 // disagree, printed with the program's own names.
 //
 // compute_iis_by_deletion runs on every model class: swap the alias to use
-// another backend. Gurobi's models have none of the modifiable row bounds the
-// repair below uses, so the program does not compile on them.
+// another backend.
 
 #include <cstddef>
 #include <map>
@@ -81,6 +80,18 @@ void print_native_conflict(Model & model, Print & print_conflict) {
             std::println("No native answer: {}", e.what());
         }
     }
+}
+
+// Moves the upper side of a <= row. Gurobi ranges a row through a slack
+// column, so its models have no row-bound setters and hold the row as a sense
+// and an rhs: the upper side of a <= row is its rhs. A template, so that the
+// branch a model class lacks is discarded.
+template <typename Model>
+void set_upper_side(Model & model, model_constraint_t<Model> c, double value) {
+    if constexpr(has_modifiable_constraint_bounds<Model>)
+        model.set_constraint_upper_bound(c, value);
+    else
+        model.set_constraint_rhs(c, value);
 }
 
 int main() {
@@ -169,7 +180,7 @@ int main() {
     // With a single IIS, relaxing any one member far enough repairs the plan:
     // here, 10 more tonnes at Marseille. The analyses restore the model's data
     // but not its solution, so the plan is solved again.
-    model.set_constraint_upper_bound(shipped_from("Marseille"), 150);
+    set_upper_side(model, shipped_from("Marseille"), 150);
     model.solve();
     if(is_a<status::optimal>(model.get_status()))
         std::println("With 150 tonnes at Marseille, the plan costs {:g}.",

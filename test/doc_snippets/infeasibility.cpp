@@ -15,10 +15,12 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
 
+#include "dumb_lp.hpp"
 #include "mippp/solvers/clp/all.hpp"
 // --8<-- [start:includes]
 #include "mippp/solvers/highs/all.hpp"
@@ -208,8 +210,36 @@ struct sides_named {
     }
 };
 
+// Relaxes the sides s names of row c. A model without row-bound setters, such
+// as Gurobi's, holds a row as a sense and an rhs and has no ranged row: an ==
+// row losing one side keeps the other through its sense, and any other
+// relaxation frees the row through an infinite rhs.
+template <typename Model>
+void relax_row(Model & model, model_constraint_t<Model> c, named_sides s) {
+    const auto inf = model.infinity();
+    if constexpr(has_modifiable_constraint_bounds<Model>) {
+        if(s.lower) model.set_constraint_lower_bound(c, -inf);
+        if(s.upper) model.set_constraint_upper_bound(c, inf);
+    } else {
+        const constraint_sense sense = model.get_constraint_sense(c);
+        if(sense == constraint_sense::equal) {
+            if(s.lower && s.upper) {
+                model.set_constraint_sense(c, constraint_sense::less_equal);
+                model.set_constraint_rhs(c, inf);
+            } else if(s.lower) {
+                model.set_constraint_sense(c, constraint_sense::less_equal);
+            } else if(s.upper) {
+                model.set_constraint_sense(c, constraint_sense::greater_equal);
+            }
+        } else if(sense == constraint_sense::greater_equal ? s.lower
+                                                           : s.upper) {
+            model.set_constraint_rhs(
+                c, sense == constraint_sense::greater_equal ? -inf : inf);
+        }
+    }
+}
+
 template <typename Model, typename Iis>
-    requires has_modifiable_constraint_bounds<Model>
 void relax_members(Model & model, const Iis & iis) {
     const auto inf = model.infinity();
     for(auto v : model.variables()) {
@@ -217,11 +247,8 @@ void relax_members(Model & model, const Iis & iis) {
         if(s.lower) model.set_variable_lower_bound(v, -inf);
         if(s.upper) model.set_variable_upper_bound(v, inf);
     }
-    for(auto c : model.constraints()) {
-        const named_sides s = std::visit(sides_named{}, iis.get_status(c));
-        if(s.lower) model.set_constraint_lower_bound(c, -inf);
-        if(s.upper) model.set_constraint_upper_bound(c, inf);
-    }
+    for(auto c : model.constraints())
+        relax_row(model, c, std::visit(sides_named{}, iis.get_status(c)));
 }
 // --8<-- [end:relax-members]
 
@@ -247,7 +274,11 @@ auto rerun_on_members(Model & model, const Iis & partial,
                       const iis_limits & limits = {}) {
     const auto inf = model.infinity();
     std::vector<std::tuple<model_variable_t<Model>, double, double>> bounds;
-    std::vector<std::tuple<model_constraint_t<Model>, double, double>> sides;
+    // a row as the model holds it: its two sides, or its sense and rhs
+    using row_data = std::conditional_t<has_modifiable_constraint_bounds<Model>,
+                                        std::pair<double, double>,
+                                        std::pair<constraint_sense, double>>;
+    std::vector<std::pair<model_constraint_t<Model>, row_data>> rows;
     // a side at infinity is no candidate, so relaxing every side the partial
     // answer does not name leaves only its members to the filter
     for(auto v : model.variables()) {
@@ -259,21 +290,29 @@ auto rerun_on_members(Model & model, const Iis & partial,
         if(!kept.upper) model.set_variable_upper_bound(v, inf);
     }
     for(auto c : model.constraints()) {
-        sides.emplace_back(c, model.get_constraint_lower_bound(c),
-                           model.get_constraint_upper_bound(c));
+        if constexpr(has_modifiable_constraint_bounds<Model>)
+            rows.emplace_back(c, row_data{model.get_constraint_lower_bound(c),
+                                          model.get_constraint_upper_bound(c)});
+        else
+            rows.emplace_back(c, row_data{model.get_constraint_sense(c),
+                                          model.get_constraint_rhs(c)});
         const named_sides kept =
             std::visit(sides_named{}, partial.get_status(c));
-        if(!kept.lower) model.set_constraint_lower_bound(c, -inf);
-        if(!kept.upper) model.set_constraint_upper_bound(c, inf);
+        relax_row(model, c, {.lower = !kept.lower, .upper = !kept.upper});
     }
     auto restore = [&] {
         for(const auto & [v, lower, upper] : bounds) {
             model.set_variable_lower_bound(v, lower);
             model.set_variable_upper_bound(v, upper);
         }
-        for(const auto & [c, lower, upper] : sides) {
-            model.set_constraint_lower_bound(c, lower);
-            model.set_constraint_upper_bound(c, upper);
+        for(const auto & [c, data] : rows) {
+            if constexpr(has_modifiable_constraint_bounds<Model>) {
+                model.set_constraint_lower_bound(c, data.first);
+                model.set_constraint_upper_bound(c, data.second);
+            } else {
+                model.set_constraint_sense(c, data.first);
+                model.set_constraint_rhs(c, data.second);
+            }
         }
     };
     try {
@@ -381,6 +420,13 @@ struct infeasibility_page_highs_milp : model_test<highs_api, highs_milp> {
 struct infeasibility_page_clp_lp : model_test<clp_api, clp_lp> {
     static void SetUpTestSuite() { construct_api("CLP"); }
 };
+// A model without row-bound setters, as Gurobi's, which CI runs on Clp: the
+// repair code takes its sense-and-rhs branch there.
+struct infeasibility_page_dumb_lp : model_test<clp_api, dumb_lp> {
+    static void SetUpTestSuite() { construct_api("CLP"); }
+};
+static_assert(!has_modifiable_constraint_bounds<dumb_lp> &&
+              iis_by_deletion_model<dumb_lp>);
 
 struct run_deletion_path {
     template <typename Model, typename Print>
@@ -580,6 +626,12 @@ TEST_F(infeasibility_page_clp_lp, workshop_prints_the_page_output) {
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
+TEST_F(infeasibility_page_dumb_lp, workshop_prints_the_page_output) {
+    cout_capture out;
+    expect_page_run(workshop<dumb_lp>(run_deletion_path{}));
+    EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
+}
+
 // The workshop has a single IIS, so the native routine finds the same one.
 TEST_F(infeasibility_page_highs_lp, workshop_native_answer_is_the_same) {
     const auto loaded = api->library_version();
@@ -693,11 +745,33 @@ TEST_F(infeasibility_page_highs_lp,
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
+TEST_F(infeasibility_page_dumb_lp,
+       rerun_on_members_completes_a_partial_answer) {
+    std::size_t candidates = 0;
+    std::size_t solves = 0;
+    iis_outcome outcome = iis_outcome::undetermined;
+    cout_capture out;
+    expect_page_run(workshop<iis_trial_probe<dumb_lp>>(
+        run_on_the_members{&candidates, &solves, &outcome}));
+    EXPECT_EQ(outcome, iis_outcome::irreducible);
+    EXPECT_EQ(candidates, 11u);
+    EXPECT_EQ(solves, candidates + 1);
+    EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
+}
+
 // Relaxing the whole conflict frees the orders, so the fix that follows needs
 // no overtime at all.
 TEST_F(infeasibility_page_highs_lp, relaxing_the_members_repairs_the_workshop) {
     cout_capture out;
     const auto run = workshop<highs_lp>(run_relax_members{});
+    EXPECT_TRUE(is<status::unknown>(run.after_analysis));
+    EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
+    EXPECT_NEAR(run.overtime_after_fix, 0., TEST_EPSILON);
+}
+
+TEST_F(infeasibility_page_dumb_lp, relaxing_the_members_repairs_the_workshop) {
+    cout_capture out;
+    const auto run = workshop<dumb_lp>(run_relax_members{});
     EXPECT_TRUE(is<status::unknown>(run.after_analysis));
     EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
     EXPECT_NEAR(run.overtime_after_fix, 0., TEST_EPSILON);
@@ -715,6 +789,15 @@ TEST_F(infeasibility_page_highs_lp, repair_loop_explains_one_conflict_a_round) {
 TEST_F(infeasibility_page_clp_lp, repair_loop_explains_one_conflict_a_round) {
     cout_capture out;
     const auto run = teams_workshop<clp_lp>();
+    EXPECT_EQ(run.last, iis_outcome::feasible);
+    EXPECT_EQ(run.rounds, 2);
+    EXPECT_TRUE(is_a<status::optimal>(run.after_repair));
+    EXPECT_EQ(out.str(), page_output("infeasibility_repair.txt"));
+}
+
+TEST_F(infeasibility_page_dumb_lp, repair_loop_explains_one_conflict_a_round) {
+    cout_capture out;
+    const auto run = teams_workshop<dumb_lp>();
     EXPECT_EQ(run.last, iis_outcome::feasible);
     EXPECT_EQ(run.rounds, 2);
     EXPECT_TRUE(is_a<status::optimal>(run.after_repair));
