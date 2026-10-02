@@ -1,3 +1,5 @@
+#include <chrono>
+#include <cmath>
 #include <limits>
 #include <utility>
 
@@ -353,6 +355,27 @@ TEST_F(glpk_milp_test,
     model.solve();
     EXPECT_TRUE(is_a<status::infeasible_or_unbounded>(model.get_status()));
     EXPECT_FALSE(is_a<status::unbounded>(model.get_status()));
+}
+// 2 x0 + 2 x1 == 1 has integral sides, so no rounding proves it infeasible,
+// and glp_intopt branches on it until its time limit stops it. The limit
+// forwarded to the trial ends it at the deadline, so the run reports the
+// time limit.
+TEST_F(glpk_milp_test, deletion_filter_returns_on_an_endless_integer_row) {
+    using namespace operators;
+    using seconds = std::chrono::duration<double>;
+    auto model = new_model();
+    auto x0 = model.add_integer_variable({});
+    auto x1 = model.add_integer_variable({});
+    model.add_constraint(2 * x0 + 2 * x1 == 1);
+    constexpr seconds budget{0.5};
+    const auto start = std::chrono::steady_clock::now();
+    const auto iis =
+        compute_iis_by_deletion(model, iis_limits{.time_limit = budget});
+    const seconds elapsed = std::chrono::steady_clock::now() - start;
+    EXPECT_LT(elapsed.count(), budget.count() + 1.0);
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
+    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
+    EXPECT_TRUE(std::isinf(model.get_time_limit().count()));
 }
 TEST_F(glpk_milp_test, sides_at_the_wrong_infinity_are_infeasible) {
     check_sides_at_the_wrong_infinity_are_infeasible(
