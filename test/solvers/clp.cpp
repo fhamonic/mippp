@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/solvers/clp/all.hpp"
@@ -13,9 +15,10 @@ struct clp_lp_status_probe : clp::impl::v1::clp_lp {
     using clp_lp::_simplex_status;
 };
 
-auto simplex_status(int problem_status, int secondary_status) {
-    return clp_lp_status_probe::_simplex_status(problem_status,
-                                                secondary_status);
+auto simplex_status(int problem_status, int secondary_status,
+                    bool primal_feasible = false) {
+    return clp_lp_status_probe::_simplex_status(
+        problem_status, secondary_status, primal_feasible);
 }
 }  // namespace
 
@@ -35,10 +38,24 @@ TEST(Clp_simplex_status, other_problem_statuses_ignore_the_secondary) {
             << secondary_status;
         EXPECT_TRUE(is<status::unbounded>(simplex_status(2, secondary_status)))
             << secondary_status;
-        for(int problem_status : {-1, 3, 4, 5})
+        for(int problem_status : {-1, 4, 5})
             EXPECT_TRUE(is<status::unknown>(
                 simplex_status(problem_status, secondary_status)))
                 << problem_status << ' ' << secondary_status;
+    }
+}
+TEST(Clp_simplex_status, only_the_time_stop_is_a_time_limit) {
+    for(const bool primal_feasible : {false, true}) {
+        const auto timed_out = simplex_status(3, 9, primal_feasible);
+        EXPECT_TRUE(is<status::time_limit>(timed_out));
+        EXPECT_EQ(status::solution_available(timed_out), primal_feasible);
+        for(int secondary_status : {0, 10}) {
+            const auto stopped =
+                simplex_status(3, secondary_status, primal_feasible);
+            EXPECT_TRUE(is<status::limit_reached>(stopped)) << secondary_status;
+            EXPECT_EQ(status::solution_available(stopped), primal_feasible)
+                << secondary_status;
+        }
     }
 }
 
@@ -55,6 +72,20 @@ TEST_F(clp_lp_test, infeasible_once_unscaled_is_not_plain_optimal) {
     model.add_constraint(1e8 * x <= -1e-3);
     model.solve();
     EXPECT_TRUE(is<status::optimal_infeasible_unscaled>(model.get_status()));
+}
+// Clp_setMaximumSeconds sets a deadline on the CPU clock, counted from the
+// call: a limit armed by set_time_limit would have run out before this solve.
+TEST_F(clp_lp_test, time_limit_counts_from_the_solve) {
+    using seconds = std::chrono::duration<double>;
+    auto model = new_model();
+    TimeLimitTest<clp_lp_test>::build_dense_lp(model, 30);
+    model.set_time_limit(seconds(0.05));
+    const auto start = std::chrono::steady_clock::now();
+    volatile double spin = 0.0;
+    while(std::chrono::steady_clock::now() - start < seconds(0.2))
+        spin = spin + 1.0;
+    model.solve();
+    EXPECT_TRUE(is<status::optimal>(model.get_status()));
 }
 INSTANTIATE_TEST(Clp, LpModelTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, EnumerableEntitiesTest, clp_lp_test);
@@ -77,3 +108,4 @@ INSTANTIATE_TEST(Clp, CuttingStockTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, ColumnManagerTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, LpFuzzyTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, VerbosityTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, TimeLimitTest, clp_lp_test);

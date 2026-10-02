@@ -1,7 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <ranges>
 #include <stdexcept>
@@ -19,6 +21,7 @@
 
 #include "mippp/solvers/clp/impl/v1/clp_api.hpp"
 #include "mippp/solvers/model_base.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace clp::impl::v1 {
@@ -33,6 +36,8 @@ private:
     std::vector<scalar> tmp_upper_bounds;
 
     std::vector<int> _free_variable_ids;
+
+    double _time_limit = std::numeric_limits<double>::infinity();
 
 public:
     // the anchor model_variable_params_t deduces from
@@ -58,6 +63,7 @@ public:
         , tmp_lower_bounds(std::move(other.tmp_lower_bounds))
         , tmp_upper_bounds(std::move(other.tmp_upper_bounds))
         , _free_variable_ids(std::move(other._free_variable_ids))
+        , _time_limit(other._time_limit)
         , _status(other._status) {
         other.model = nullptr;
     }
@@ -535,6 +541,18 @@ public:
     }
     scalar get_feasibility_tolerance() { return Clp->primalTolerance(model); }
     ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // Clp_setMaximumSeconds turns the limit into a deadline on the CPU clock,
+    // counted from the call, and Clp_maximumSeconds reads that deadline back:
+    // the limit is kept here and armed by each solve().
+    void set_time_limit(std::chrono::duration<double> t) {
+        if(!(t.count() >= 0))
+            throw solver_error("clp_lp: negative or NaN time limit");
+        _time_limit = t.count();
+    }
+    auto get_time_limit() { return std::chrono::duration<double>(_time_limit); }
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_verbose(bool verbose) { Clp->setLogLevel(model, verbose ? 1 : 0); }
@@ -549,13 +567,16 @@ private:
             status::optimal,
             status::optimal_infeasible_unscaled,
             status::infeasible,
-            status::unbounded>;
+            status::unbounded,
+            status::limit_reached,
+            status::time_limit>;
 
     status_variant _status = status::unknown{};
 
 protected:
     static status_variant _simplex_status(int problem_status,
-                                          int secondary_status) noexcept {
+                                          int secondary_status,
+                                          bool primal_feasible) noexcept {
         using namespace status;
         switch(problem_status) {
             // ClpModel::secondaryStatus(): 2 and 4 leave primal
@@ -566,6 +587,11 @@ protected:
                             : status_variant(optimal{});
             case 1:  return infeasible{};
             case 2:  return unbounded{};
+            // "stopped on iterations or time": the secondary status 9 alone
+            // names the time limit
+            case 3:  return secondary_status == 9
+                            ? status_variant(time_limit{primal_feasible})
+                            : status_variant(limit_reached{primal_feasible});
             default: return unknown{};
         }
     }
@@ -589,9 +615,12 @@ public:
         const int scaling_mode = Clp->scalingFlag(model);
         Clp->scaling(model, 0);
         Clp->scaling(model, scaling_mode);
+        Clp->setMaximumSeconds(model,
+                               _time_limit < COIN_DBL_MAX ? _time_limit : -1.0);
         Clp->primal(model, 0);
         _status =
-            _simplex_status(Clp->status(model), Clp->secondaryStatus(model));
+            _simplex_status(Clp->status(model), Clp->secondaryStatus(model),
+                            Clp->primalFeasible(model) != 0);
     }
     scalar get_solution_value() { return Clp->getObjValue(model); }
 

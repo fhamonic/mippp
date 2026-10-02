@@ -74,6 +74,8 @@ int Clp_initialSolve(Clp_Simplex * model);
 int Clp_primal(Clp_Simplex * model, int ifValuesPass);
 int Clp_status(Clp_Simplex * model);
 int Clp_secondaryStatus(Clp_Simplex * model);
+void Clp_setMaximumSeconds(Clp_Simplex * model, double value);
+int Clp_primalFeasible(Clp_Simplex * model);
 int Clp_isProvenPrimalInfeasible(Clp_Simplex * model);
 int Clp_isProvenDualInfeasible(Clp_Simplex * model);
 double Clp_getObjValue(Clp_Simplex * model);
@@ -137,6 +139,8 @@ namespace clp::impl::v1 {
     F(Clp_primal, primal)                                     \
     F(Clp_status, status)                                     \
     F(Clp_secondaryStatus, secondaryStatus)                   \
+    F(Clp_setMaximumSeconds, setMaximumSeconds)               \
+    F(Clp_primalFeasible, primalFeasible)                     \
     F(Clp_isProvenPrimalInfeasible, isProvenPrimalInfeasible) \
     F(Clp_isProvenDualInfeasible, isProvenDualInfeasible)     \
     F(Clp_getObjValue, getObjValue)                           \
