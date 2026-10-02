@@ -23,6 +23,7 @@ INSTANTIATE_TEST(Dumb, LpStatusTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, CuttingStockTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, LpFuzzyTest, dumb_lp_test);
 INSTANTIATE_TEST(Dumb, VerbosityTest, dumb_lp_test);
+INSTANTIATE_TEST(Dumb, IisByDeletionTest, dumb_lp_test);
 
 // no row-bound setters: the filter writes a row through its sense and rhs
 static_assert(detail::iis_rows_as_sense_and_rhs<dumb_lp>);
