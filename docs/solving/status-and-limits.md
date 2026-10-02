@@ -108,7 +108,7 @@ It changes nothing else: the model's data stay, and so does what the solver keep
 
 | Concept | Setter / getter | Backends |
 | :--- | :--- | :--- |
-| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | Cbc, COPT, CPLEX, Gurobi, HiGHS, MOSEK, SCIP, SoPlex, Xpress |
+| `has_time_limit` | `set_time_limit(std::chrono duration)`, `get_time_limit()` | all |
 | `has_iteration_limit` | `set_iteration_limit(n)`, `get_iteration_limit()` | CPLEX, Gurobi, HiGHS *(LP and QP models)* |
 | `has_node_limit` | `set_node_limit(n)`, `get_node_limit()` | CPLEX, Gurobi |
 | `has_solution_limit` | `set_solution_limit(n)`, `get_solution_limit()` | CPLEX, Gurobi |
@@ -122,7 +122,7 @@ model.set_time_limit(10min);
 model.set_time_limit(std::chrono::duration<double>(0.5));  // sub-second is fine
 ```
 
-`get_time_limit()` never returns a negative duration, so `std::min(remaining, model.get_time_limit())` is a valid limit to forward on every backend. A fresh model reports the solver's own "no limit", which differs by backend: +inf, `DBL_MAX`, 1e100, 1e75 or 1e20. Writing that value back lifts a limit, and so do an infinite duration and `std::chrono::duration<double>::max()` on every backend: where a solver caps the limit, a larger value is stored as the cap. A negative limit throws, except on MOSEK, where it means no limit, and on COPT, which stores 0.
+`get_time_limit()` never returns a negative duration, so `std::min(remaining, model.get_time_limit())` is a valid limit to forward on every backend. A fresh model reports the solver's own "no limit", which differs by backend: +inf, `DBL_MAX`, 1e100, 1e75 or 1e20. Writing that value back lifts a limit, and so do an infinite duration and `std::chrono::duration<double>::max()` on every backend: where a solver caps the limit, a larger value is stored as the cap. A negative limit throws, except on MOSEK, where it means no limit, and on COPT, which stores 0. On `clp_lp`, `glpk_lp` and `glpk_milp`, a NaN limit throws `solver_error` too, and a fresh model reports +inf.
 
 Memory limits use the `memory_size` units of [`utility/memory_size.hpp`](https://github.com/fhamonic/mippp/blob/main/include/mippp/utility/memory_size.hpp) — `bytes`, `kilobytes`/`megabytes`/`gigabytes` (SI) and `kibibytes`/`mebibytes`/`gibibytes` (binary):
 
@@ -135,6 +135,14 @@ A limit is a property of the model and survives across `solve()` calls, so setti
 An iteration limit counts simplex iterations; on `highs_qp` it also caps HiGHS's QP solver, which a quadratic objective runs instead. Barrier iterations are not counted: Gurobi's own `BarIterLimit`, for one, is set through `native_api()`. A limit larger than the solver can store (HiGHS and CPLEX keep an `int`) means no limit.
 
 SoPlex keeps its own default clock, the CPU time of the whole process: time spent by the program's other threads counts, so its limit can run out before the wall-clock duration. Very short limits are unreliable on SoPlex whichever clock it uses: in our measurements a 50 ms limit stopped solves after about 15 ms, while a 1 s limit stopped them at 1.07 s.
+
+Clp also counts the CPU time of the whole process: its user time, from the start of `solve()`. Clp's C API offers no wall-clock limit. Time spent by the program's other threads counts, that of a multithreaded BLAS included. In our measurements, on a Clp `devel` build linked to OpenBLAS, an 800-column dense LP under a 1 s limit stopped after 0.33 s, having used 1.2 s of user CPU time. With `OPENBLAS_NUM_THREADS=1` the two clocks agreed: a 1600-column LP stopped at 1.01 s on both. Clp checks its limit only when it refactorizes, so a stop lands near the limit rather than at it.
+
+`clp_lp` reports a stop by its time limit as `time_limit`, and any other stop of Clp's, such as one on an iteration limit set through the native handles, as `limit_reached`. Both carry a solution when Clp's last point is primal feasible.
+
+GLPK uses the wall clock, in whole milliseconds. MIP++ rounds a limit up to the next millisecond, and `get_time_limit()` reads back the duration you set. GLPK's branch-and-bound stops once the limit less one millisecond has passed, so `glpk_milp` gives GLPK one millisecond more than you set. `glpk_lp` reports a stop by the limit as `time_limit`, as `glpk_milp` does.
+
+On `glpk_milp` the limit does not bound the whole solve. GLPK's MIP presolver runs without a limit, then the LP relaxation and the branch-and-bound each get the full limit. In our measurements on GLPK 5.0, a dense integer model of 500 rows and 500 columns took about 2 s in all under a 0.2 s limit, about 1.7 s of it in the presolver.
 
 ## Tolerances
 

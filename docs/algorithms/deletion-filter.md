@@ -155,10 +155,10 @@ Each trial runs under 5 s at most, and under less once less than 5 s remain of t
 
 A trial that has started runs to its end, so the deadline can be overrun where the forwarded limit does not bound a trial:
 
-- `clp_lp`, `glpk_lp` and `glpk_milp` have no time limit, so their trials run without one;
+- on `glpk_milp`, GLPK's presolver runs without a limit, then the LP relaxation and the branch-and-bound each get the full limit, so a trial can overrun the deadline by the time of its presolve and LP relaxation;
 - on `cbc_milp`, the forwarded limit did not bound the root LP of a trial on the Cbc build where this was measured, a `devel` build; Cbc 2.10 was not measured.
 
-See [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations. A stop requested through `stop_token` also waits for the running trial to end.
+See [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations. On `clp_lp` the forwarded limit counts the CPU time of the whole process, see [Limits](../solving/status-and-limits.md#limits). Where other threads run, that clock runs ahead of the wall clock, so a trial can stop before the deadline, and a trial stopped without a point is inconclusive. A stop requested through `stop_token` also waits for the running trial to end.
 
 ### The status afterwards
 
@@ -203,7 +203,7 @@ Whether a trial starts from the work of the previous one depends on the backend.
 The trials inherit what each solver proves. Three of the notable limitations in [Choosing a solver](../solvers/index.md#feature-support) concern the filter:
 
 - [Deletion filter](../solvers/index.md#limitation-deletion-filter): the time limits above, and HiGHS's repair of nearly crossed sides;
-- [Integrality proofs](../solvers/index.md#limitation-integrality-proofs): wrong answers of Cbc 2.10, and endless branching of Cbc and `glpk_milp`, on some integer rows;
+- [Integrality proofs](../solvers/index.md#limitation-integrality-proofs): wrong answers of Cbc 2.10, and branching of Cbc and `glpk_milp` that only a time limit stops, on some integer rows;
 - [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries): `scip_milp` throws once a trial relaxes a bound of a binary column.
 
 A registered candidate-solution callback adds its own effects, see [Callbacks](#callbacks).
