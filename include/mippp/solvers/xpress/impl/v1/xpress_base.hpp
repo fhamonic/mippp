@@ -664,11 +664,14 @@ protected:
         int completion, num_iis;
         check(XPRS->getintattrib(prob, XPRS_IISSOLSTATUS, &completion));
         check(XPRS->getintattrib(prob, XPRS_NUMIIS, &num_iis));
-        // a stop well before the limit had another origin: an interrupt or
-        // an iteration limit set through the native handle
+        // A limit that strikes before the search starts can also come back
+        // as a success with the search unstarted and no subsystem, seen under
+        // load. A stop well before the limit had another origin: an
+        // interrupt or an iteration limit set through the native handle.
+        const bool stopped = call_status == _iis_call_stopped ||
+                             (completion == XPRS_IIS_UNSTARTED && num_iis < 1);
         const std::optional<iis_reason> stop_reason =
-            call_status == _iis_call_stopped &&
-                    elapsed + _iis_stop_clock_slack >= budget
+            stopped && elapsed + _iis_stop_clock_slack >= budget
                 ? std::optional(iis_reason::time_limit)
                 : std::nullopt;
         if(num_iis < 1) return answer(iis_outcome::undetermined, stop_reason);

@@ -438,7 +438,13 @@ record what they established.
   1e20, and 42 limit stops on both releases returned from 9.2 ms early to
   10 ms late, Xpress reading its clock in 10 ms steps, so the wrapper
   attributes `time_limit` when the measured time plus a 20 ms slack reached
-  the limit, and no reason otherwise. `p_status` 2 ("?727 Warning: Bound
+  the limit, and no reason otherwise. Under load the same 10 ms stop of the
+  market split also returns `p_status` 0 with `IISSOLSTATUS` 0 and `NUMIIS`
+  0 (1 of 160 calls with four processes, 9 of 18 processes with six, on
+  47.01, 2026-10-02), which the wrapper read as an answer without a reason,
+  so `xpress_milp_iis_test.market_split_stop_is_a_time_limit_stop` failed
+  once in a parallel run: such an unstarted, empty answer now counts as a
+  stop, attributed by the same rule. `p_status` 2 ("?727 Warning: Bound
   conflict on column; IIS will not continue") comes on crossed or
   integer-empty column bounds even when the conflict is elsewhere, with
   `XPRSgetlasterror` empty: a crossed continuous column beside an unrelated
