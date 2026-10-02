@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <optional>
@@ -17,6 +19,7 @@
 
 #include "mippp/solvers/glpk/impl/v1/glpk_api.hpp"
 #include "mippp/solvers/model_base.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 namespace glpk::impl::v1 {
@@ -425,6 +428,21 @@ public:
     }
     void set_constraint_upper_bound(constraint constr, double ub) {
         _set_row_bnds(constr.id() + 1, get_constraint_lower_bound(constr), ub);
+    }
+
+protected:
+    // tm_lim is whole milliseconds, and GLPK stops at its first check under
+    // 0: rounding up keeps a positive limit from becoming 0, for an overrun
+    // of under a millisecond. INT_MAX is GLPK's "no limit", and a negative
+    // tm_lim makes GLPK abort the process rather than report an error.
+    static int _tm_lim(std::chrono::duration<double> t, const char * refusal) {
+        const double seconds = t.count();
+        if(!(seconds >= 0)) throw solver_error(refusal);
+        constexpr int unlimited = std::numeric_limits<int>::max();
+        const double milliseconds = std::ceil(seconds * 1000);
+        return milliseconds < static_cast<double>(unlimited)
+                   ? static_cast<int>(milliseconds)
+                   : unlimited;
     }
 };
 

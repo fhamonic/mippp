@@ -107,11 +107,14 @@ TEST(GLPK_simplex_status, infeasible_basic_solution_proves_nothing) {
 }
 TEST(GLPK_simplex_status, limits_stop_even_on_an_optimal_basis) {
     using namespace glpk::impl::v1;
-    for(int ret : {GLP_EITLIM, GLP_ETMLIM, GLP_EOBJLL, GLP_EOBJUL}) {
+    for(int ret : {GLP_EITLIM, GLP_EOBJLL, GLP_EOBJUL}) {
         const auto r = simplex_status(ret, GLP_OPT, GLP_FEAS);
         EXPECT_TRUE(is<status::limit_reached>(r)) << ret;
         EXPECT_TRUE(status::solution_available(r)) << ret;
     }
+    const auto timed_out = simplex_status(GLP_ETMLIM, GLP_OPT, GLP_FEAS);
+    EXPECT_TRUE(is<status::time_limit>(timed_out));
+    EXPECT_TRUE(status::solution_available(timed_out));
 }
 TEST(GLPK_simplex_status, errors_are_failures) {
     using namespace glpk::impl::v1;
@@ -222,6 +225,7 @@ INSTANTIATE_TEST(GLPK_lp, ReducedCostsTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, LpStatusTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, CuttingStockTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, VerbosityTest, glpk_lp_test);
+INSTANTIATE_TEST(GLPK_lp, TimeLimitTest, glpk_lp_test);
 
 struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
@@ -373,3 +377,5 @@ INSTANTIATE_TEST(GLPK_milp, IisByDeletionTest, glpk_milp_test);
 // INSTANTIATE_TEST(GLPK_milp, MipGapTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, IntegralityToleranceTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, VerbosityTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, TimeLimitTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, TimeLimitIncumbentTest, glpk_milp_test);

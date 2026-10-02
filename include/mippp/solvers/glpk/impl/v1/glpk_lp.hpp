@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -17,6 +18,8 @@ namespace glpk::impl::v1 {
 class glpk_lp : public glpk_base {
 private:
     glp_smcp model_params;
+    std::chrono::duration<double> _time_limit{
+        std::numeric_limits<double>::infinity()};
 
 public:
     [[nodiscard]] glpk_lp() : glpk_lp(glpk_api::load()) {}
@@ -51,6 +54,15 @@ public:
     }
     double get_feasibility_tolerance() { return model_params.tol_bnd; }
     ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // tm_lim is rounded, so the limit read back is the copy kept here
+    void set_time_limit(std::chrono::duration<double> t) {
+        model_params.tm_lim = _tm_lim(t, "glpk_lp: negative or NaN time limit");
+        _time_limit = t;
+    }
+    auto get_time_limit() { return _time_limit; }
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_verbose(bool verbose) {
@@ -68,6 +80,7 @@ private:
             status::infeasible,
             status::unbounded,
             status::limit_reached,
+            status::time_limit,
             status::failed,
             status::numerical_failure>;
 
@@ -87,8 +100,8 @@ protected:
             case GLP_ENODFS: return unbounded{};
             case GLP_EOBJLL:
             case GLP_EOBJUL:
-            case GLP_EITLIM:
-            case GLP_ETMLIM: return limit_reached{has_sol};
+            case GLP_EITLIM: return limit_reached{has_sol};
+            case GLP_ETMLIM: return time_limit{has_sol};
             case GLP_ESING:
             case GLP_ECOND:  return numerical_failure{has_sol};
             case GLP_EBADB:

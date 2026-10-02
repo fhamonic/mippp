@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -22,6 +23,8 @@ namespace glpk::impl::v1 {
 class glpk_milp : public glpk_base {
 private:
     glp_iocp model_params;
+    std::chrono::duration<double> _time_limit{
+        std::numeric_limits<double>::infinity()};
 
 public:
     [[nodiscard]] glpk_milp() : glpk_milp(glpk_api::load()) {}
@@ -85,6 +88,22 @@ public:
         model_params.tol_obj = tol / 10;
     }
     double get_integrality_tolerance() { return model_params.tol_int; }
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Limits //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // tm_lim is rounded, so the limit read back is the copy kept here. The
+    // search stops once tm_lim - 1 ms have passed, a millisecond early, so
+    // one is added: a deadline forwarded as a limit then ends the solve at
+    // or after the deadline, never just before it.
+    void set_time_limit(std::chrono::duration<double> t) {
+        const int milliseconds =
+            _tm_lim(t, "glpk_milp: negative or NaN time limit");
+        model_params.tm_lim = milliseconds < std::numeric_limits<int>::max()
+                                  ? milliseconds + 1
+                                  : milliseconds;
+        _time_limit = t;
+    }
+    auto get_time_limit() { return _time_limit; }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -174,8 +193,8 @@ private:
     // after the solve, which keeps the solution. No integer between two sides
     // leaves them crossed, which the solve then reports as infeasible.
     // Rounding does not reach a row with integral sides but no integer point,
-    // 2x + 2y == 1, nor a row with a fractional coefficient: with tm_lim at
-    // INT_MAX, glp_intopt can still branch without end on those.
+    // 2x + 2y == 1, nor a row with a fractional coefficient: glp_intopt can
+    // still branch on those until a time limit stops it.
     //
     // Everything is allocated before the first side changes, so that a
     // bad_alloc cannot leave the caller's sides rounded.
