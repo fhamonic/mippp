@@ -617,7 +617,8 @@ record what they established.
   (N30 b): COPT as two bounds, CPLEX as an `R` row with a range, Xpress as
   type `R` with a range. `gurobi_*` has no modifiable row bounds, since its
   ranges add a slack column, and joined on 2026-10-02 through its rows' sense
-  and rhs (N41). `dumb_lp` joins later (N24). The work packages are those of
+  and rhs (N41). `dumb_lp` joined the same day, through the same fallback
+  (N24, N43). The work packages are those of
   [iis_pr_plan.md](iis_pr_plan.md). Since wave 3, on 2026-09-28, all eleven
   classes of the free function's list run it, since wave 5 the six COPT,
   CPLEX and Xpress classes too, and since N41 the two Gurobi classes, every
@@ -1137,8 +1138,9 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   the two Gurobi classes, the ten classes with both concepts; the throw below
   HiGHS 1.14.0.
 - **CI.** Clp, Cbc, GLPK and HiGHS run in CI, so the free function is
-  CI-tested. CI always runs at least one of them, so no user-defined model
-  runs the free function for now (N24). HiGHS runs the native routine in the
+  CI-tested. CI always runs at least one of them, and since 2026-10-02
+  `dumb_lp`, a user-defined model without row-bound setters, runs the free
+  function on Clp too (N24, N43). HiGHS runs the native routine in the
   macOS job, on brew's 1.15.1. The Linux job, on 1.9.0, and the Windows job,
   on 1.13.0, exercise the throw below the 1.14.0 floor. CI thus spans the
   missing symbol, the 1.13 regime and the 1.14+ regime without the
@@ -1250,10 +1252,10 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   routine reads, writes the argument and restores it, the call without an
   argument keeping N29 (a). It was recommended for later if users ask, like
   N31 (b), and is not ruled: it is a possibility, not a decision (N29 b).
-- **A user-defined model in CI.** `dumb_lp` with two-sided rows and modifiable
-  row bounds, its readable ones coming from WP6c, running `IisByDeletionTest`
-  (N24). CI always runs at least one open-source solver, so it is not a
-  priority.
+- **A user-defined model in CI.** Done on 2026-10-02, though not as N24
+  described it: `dumb_lp` keeps its one-sided rows and has no row-bound
+  setters, and runs `IisByDeletionTest` through the sense and the rhs of N41
+  (N43).
 
 ## What the pull request contributed
 
@@ -1504,7 +1506,11 @@ keep the options and evidence of each.
 - **[N24](iis_pr_plan.md#ruled-later-on-2026-09-27). A user-defined model in
   CI.** Ruling: "Not a priority, CI always have at least one open source
   solver (Clp, CBC or HiGHS)." No `dumb_lp` instantiation of
-  `IisByDeletionTest` for now. It moves to Later.
+  `IisByDeletionTest` for now. It moves to Later. Its premise, `dumb_lp`
+  with two-sided rows and modifiable row bounds, no longer holds: since
+  2026-10-02 `dumb_lp` keeps its one-sided rows and has no row-bound
+  setters, runs the filter through the sense and the rhs of N41, and
+  `IisByDeletionTest` is instantiated on it (N43), in CI on Clp.
 - **[N25](iis_pr_plan.md#ruled-later-on-2026-09-27). SCIP's `BINARY`
   columns.** (c) in effect. Ruling: "For binary and integer variables, my
   intuition is that relaxing them to continuous is more interesting than
@@ -1592,7 +1598,8 @@ What the rulings overturn:
 - **SCIP binaries.** N25 replaces N14's recommended fallback, retyping the
   columns inside the guard, by a documented gap.
 - **A user model in CI.** N24 defers the recommended `dumb_lp` instantiation
-  of `IisByDeletionTest` to Later.
+  of `IisByDeletionTest` to Later; it came on 2026-10-02 through N41's
+  fallback, without the two-sided rows the recommendation assumed (N43).
 - **Gurobi row bounds.** N30 (b), with its condition, turns the recommended
   "Gurobi not yet" into never, since its ranges are emulated.
 - **Native column-less answers.** N28 (a) drops the "shared by native
@@ -1743,10 +1750,74 @@ present (`1c0e50e`).
   `test/iis_by_deletion.cpp` pin the fallback on a model that holds its rows
   as a sense and an rhs. Gurobi 10 is not installed, so the floor rests on
   11.0.3.
+- **N42. Callbacks under the filter, documented.** A review of the same day
+  found that the filter's trials call `solve()` with a registered
+  candidate-solution callback attached, so its lazy constraints and
+  rejections act as background of every trial, while the native
+  `compute_iis()` of `cplex_milp`, `xpress_milp` and `copt_milp` detaches it
+  for the call and Gurobi's routine never fires it (measured on 11.0.3,
+  12.0.1 and 13.0.2). Ruling: "documentent the callback effect". The filter is
+  the path that honours lazy constraints. Measured with a callback that
+  rejects every candidate, on integers x and y in [0, 5], under a 10 s
+  `time_limit`: on the feasible x + y <= 8 every native routine answers
+  `feasible`, while the filter answers `irreducible` with the lower bounds of
+  x and y on Gurobi (36 callback calls), `irreducible` without a member on
+  Xpress, and runs to its deadline on CPLEX and COPT (293,313 and about 1.2
+  million callback calls), since a trial that relaxes an integer bound
+  searches an unbounded domain whose every point the callback rejects. On
+  the infeasible x + y >= 11 the native routines answer {x upper, y upper,
+  the row}, the filter {the row} on Gurobi and no member on Xpress. A
+  callback that only counts gives `feasible` on both paths. On a
+  `cplex_milp` whose columns are all continuous, `solve()` refuses to run
+  while a callback is registered (`cplex_milp.hpp:381-385`), so the filter
+  throws there and `compute_iis()` answers. No code changes: the algorithm
+  page has a Callbacks section, and the infeasibility page, the concepts and
+  the limitations point to it. The same pass documented, without a ruling,
+  two more facts measured on the paths. MIP starts: on `cplex_milp` a start
+  (3, 2) of the user's becomes {(3, 2), (0, 0)} after the filter on a
+  feasible model, a trial's incumbent added, {(0, 0)} after `compute_iis()`,
+  and {(0, 11)}, a trial point, after the filter on an infeasible one, while
+  Gurobi's `Start` attribute survives both paths. The bounds of a binary z
+  under the row z >= 2, on 2026-10-02: neither path names them on
+  `gurobi_milp` (11.0.3, 12.0.1, 13.0.2) or `cplex_milp` (22.1.1, 22.1.2);
+  on `copt_milp` (8.0.5) the filter does not and the routine names z as a
+  plain member; `xpress_milp` (45.01, 47.01) names the upper bound on both
+  paths, and the filter does on `highs_milp` (1.10, 1.15.1), `mosek_milp`
+  (11.0), `cbc_milp` (2.10.11 and a `devel` build) and `glpk_milp` (5.0);
+  `scip_milp` throws (N25). An integer z in [0, 1] has its upper bound named
+  everywhere but by COPT's routine, which names z plainly, and on SCIP,
+  which types it binary. The infeasibility page states it once, under LP or
+  MILP.
+- **N43. No public row writer.** The review asked whether a model without
+  row-bound setters should get `set_constraint_lower_bound` and
+  `set_constraint_upper_bound` written through its sense and rhs, so that the
+  docs' repair code compiled on Gurobi. Ruling: "set_constraint_bounds should
+  not be implemented on models that does not support it, use
+  get_cosntraint_sense and set_constraint_rhs instead." No public function
+  writes row bounds on such a model. Code that relaxes one of its rows reads
+  the sense with `get_constraint_sense` and writes `set_constraint_rhs`,
+  writing `set_constraint_sense` only when an `==` row loses one side or a row
+  changes side. The filter's writer now does so: it reads the current sense,
+  computes the wanted state, writes the sense only when it differs, then the
+  rhs, so a one-sided row is relaxed and restored through its rhs alone, and a
+  row left with no side keeps its sense under an infinite rhs, an `==` row
+  becoming (`<=`, `infinity()`), which amends the free state N41 gave.
+  `detail::iis_rows_as_sense_and_rhs` now needs a readable sense and no
+  row-bound setters, since `has_ranged_constraints` only says that a ranged
+  row can be added and the concept held on HiGHS and CPLEX, whose setters
+  range a row; static assertions over the real models pin it. The
+  infeasibility page's `relax_row`, on which its repair loop rests, its
+  `rerun_on_members`, which saves and restores such a row as a sense and an
+  rhs, and the transportation example take the same path where the setters are
+  missing, with no general writer of two sides, as N43 rules, and run on
+  `gurobi_lp`, `gurobi_milp` and `dumb_lp`. `dumb_lp` runs `IisByDeletionTest`
+  (20 passed, 10 skipped: three need a `milp_model`, five ranged rows, two a
+  time limit), and the page's snippet tests run on it, so CI exercises the
+  fallback on Clp.
 
 ## Open questions
 
-None remains as of 2026-10-02: N41, the last, was ruled that day. The
+None remains as of 2026-10-02: N43, the last, was ruled that day. The
 outward steps of WP1 are done: the documents are committed (`25b4530`, on
 the pull request's branch), the reply is posted, `a1a9f11` is tagged
 `archive/pr3-a1a9f11` on origin, and pull request #3 is a draft.

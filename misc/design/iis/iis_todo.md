@@ -4,7 +4,7 @@ Companion to [iis.md](iis.md), which holds the design, its rulings and the evide
 [iis_pr_plan.md](iis_pr_plan.md), whose work packages carry the details. The steps follow the revised package
 order of 2026-09-27. Items 0.1 and 1.6 and those of steps 2 to 6 name their package, except 6.2. Items 1.1 to
 1.5 are the plan's standalone fixes, and step 7 is WP17. Each step lands and is tested on its own. Q1 to Q6
-and N0 to N41 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29 and 2026-10-02 in iis.md, the third on the three
+and N0 to N43 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29 and 2026-10-02 in iis.md, the third on the three
 questions wave 3 left.
 
 - **Two paths.** Under Q1 (b), `has_iis<T>` means that the model has a native IIS routine, reached through a
@@ -47,7 +47,10 @@ questions wave 3 left.
   same sanitizer binary run directly against CPLEX 22.1.2, COPT 8.0.5 and Xpress 47.01 passed their
   suites with no sanitizer report once the COPT leak was bypassed. N41, on 2026-10-02, brought the
   deletion filter to `gurobi_lp` and `gurobi_milp` through their rows' sense and rhs, on
-  `feat/iis-gurobi-filter`.
+  `feat/iis-gurobi-filter`; the coherence pass of the same day (N42, N43, on `iis/coherence-filter`) kept that
+  fallback to models without row-bound setters, made it write the sense only on a change of side, brought the
+  page's repair code and the example to Gurobi, ran `IisByDeletionTest` on `dumb_lp` and documented callbacks,
+  MIP starts and the bounds of binary variables.
 
 ## 0. Before any code
 
@@ -347,6 +350,11 @@ N41 adds: `compute_iis_by_deletion` on `gurobi_lp` and `gurobi_milp`, which writ
 and rhs during the run and writes both back; `iis_by_deletion_model` accepts a modifiable sense and rhs on a
 model without ranged rows in place of modifiable row bounds.
 
+N43 adds: that fallback also needs a readable sense, and holds only on a model without row-bound setters; the
+filter reads a row's sense there and writes it only when the row changes side, so a one-sided row is relaxed
+and restored through its rhs alone; the infeasibility page's repair code and the transportation example run
+on `gurobi_lp` and `gurobi_milp`; and `dumb_lp` runs `IisByDeletionTest`, in CI on Clp.
+
 ## 6. Native routines
 
 Under Q1 (b), these items add `compute_iis()` members, which never run the deletion filter. The step needs
@@ -543,5 +551,5 @@ ideas, pointing into the archive tag of `a1a9f11`.
   `milp_model`, and leaves the engine untouched (N37 a, c).
 - **Special constraints as members.** SOS and indicator constraints once they have handles, as further per-kind
   tables in the snapshot, on the native path first (N37 a).
-- **A user model in CI.** `dumb_lp` with two-sided rows and modifiable row bounds under `IisByDeletionTest`
-  (N24).
+- **A user model in CI.** Done on 2026-10-02 (N43), though not as N24 put it: `dumb_lp` keeps one-sided rows
+  and no row-bound setters, and runs `IisByDeletionTest` through the sense-and-rhs fallback of N41.
