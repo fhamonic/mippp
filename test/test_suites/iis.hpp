@@ -57,8 +57,10 @@ struct IisTest : public iis_cases::fixture<T, iis_native_path> {
     // The two answers may differ: each one is validated on its own.
     void check_both_paths_find_valid_iis() {
         using M = model_type;
+        // every model class with a native routine runs the filter too, but
+        // a model of the user's may have the routine alone
         if constexpr(!iis_by_deletion_model<M>) {
-            GTEST_SKIP() << "the model has no modifiable row bounds yet";
+            GTEST_SKIP() << "the deletion filter does not run on this model";
         } else {
             const iis_cases::iis_case c =
                 iis_cases::bounds_against_a_row_case();

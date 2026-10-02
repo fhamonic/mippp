@@ -1129,9 +1129,10 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   background on `gurobi_milp` and `cplex_milp`, which first needs the fix of
   native ids after a removal; the both-paths check, which calls the free
   function directly on a model that meets both concepts, and which since wave
-  3 runs on `highs_lp` and `highs_qp`, passing on 1.15.1 (2026-09-28), and
-  since wave 5 on the six CPLEX, Xpress and COPT classes, the eight classes
-  with both concepts; the throw below HiGHS 1.14.0.
+  3 runs on `highs_lp` and `highs_qp`, passing on 1.15.1 (2026-09-28),
+  since wave 5 on the six CPLEX, Xpress and COPT classes, and since N41 on
+  the two Gurobi classes, the ten classes with both concepts; the throw below
+  HiGHS 1.14.0.
 - **CI.** Clp, Cbc, GLPK and HiGHS run in CI, so the free function is
   CI-tested. CI always runs at least one of them, so no user-defined model
   runs the free function for now (N24). HiGHS runs the native routine in the

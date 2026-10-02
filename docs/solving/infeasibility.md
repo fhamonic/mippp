@@ -2,7 +2,7 @@
 
 A model that should have a solution comes back `infeasible`, and the status says nothing more. An irreducible infeasible subsystem (IIS) says where to look: a set of variable bounds and constraint sides that has no solution on its own, and has one as soon as any single one of them is dropped. On a model built from data, it narrows a failed instance down to the few rows and bounds whose data disagree.
 
-MIP++ computes an IIS along two paths, a solver's native routine and a deletion filter that runs on most backends. Both return a snapshot that you query with the handles of your own variables and constraints, as you would a solution.
+MIP++ computes an IIS along two paths, a solver's native routine and a deletion filter that runs on every model class. Both return a snapshot that you query with the handles of your own variables and constraints, as you would a solution.
 
 ## A first IIS
 
@@ -259,7 +259,7 @@ A snapshot is computed once, when the call returns, and later changes to the mod
 | `scip_milp` | no | yes | can throw on an infeasible model with binary columns: see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries) |
 | `mosek_lp`, `mosek_milp`, `soplex_lp` | no | yes | |
 | `gurobi_lp`, `gurobi_milp` | yes | yes, writing each row through its sense and rhs, since Gurobi ranges a row through a slack column and its models have no modifiable row bounds | native: `==` rows are members without a side, see [Reading the answer](#reading-the-answer); the bounds of a binary variable are never members, and the iteration limit of `gurobi_lp` stops the routine with no answer, see [Native IIS on Gurobi](../solvers/index.md#limitation-gurobi-iis) |
-| `cplex_lp`, `cplex_milp` | yes | yes | rows are members without a side, see [Reading the answer](#reading-the-answer); a stopped call has no answer, see [Limits](#limits); `cplex_milp` detaches the candidate-solution callback for the call, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis); on either path, crossed sides cannot be built, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints) |
+| `cplex_lp`, `cplex_milp` | yes | yes | native: `==` and ranged rows are plain members, and an inequality row takes the side of its sense, see [Reading the answer](#reading-the-answer); a stopped call has no answer, see [Limits](#limits); `cplex_milp` detaches the candidate-solution callback for the call, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis); on either path, crossed sides cannot be built, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints) |
 | `xpress_lp`, `xpress_milp` | yes | yes | the routine refuses the search on a column whose bounds cross or hold no integer, and `xpress_milp` detaches the candidate-solution callback for the call, see [Native IIS on Xpress](../solvers/index.md#limitation-xpress-iis); on either path, crossed sides cannot be built, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints) |
 | `copt_lp`, `copt_milp` | yes | yes | `compute_iis()` also solves the model, see [Limits](#limits); on a `copt_milp` with integer columns, two-sided rows and two-bounded columns are members without a side, see [Reading the answer](#reading-the-answer); the answer may leave out a bound the conflict needs, see [Native IIS on COPT](../solvers/index.md#limitation-copt-iis) |
 
