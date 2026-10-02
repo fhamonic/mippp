@@ -162,7 +162,7 @@ unless marked otherwise.
 | Gurobi 11.0.3, 12.0.1, 13.0.2 | `GRBcomputeIIS` | the MIP | membership only | `IISLB`, `IISUB`, never a binary's | `IISMinimal`, 10005 after a stop with no subsystem | yes, documented and measured |
 | CPLEX 22.1.1, 22.1.2 | `CPXrefineconflictext` | the MIP | membership only | lower, upper | none: the "possible" flags of an abort status prove nothing (p10, p13 below) | yes, documented and measured |
 | COPT 8.0.5 | `COPT_ComputeIIS`, after `COPT_Reset` and, on a MIP, a solve stopped at its first incumbent | the MIP | per side, reliable on LPs only | per side, one bound of a two-bounded column on MIPs, continuous too | `IsMinIIS`, `HasIIS` 0 after a stop | yes, on both classes, measured, undocumented; the confirming solve shares the budget |
-| Xpress 45.01, 47.01 | `XPRSiisfirst`, `XPRSgetiisdata` | the MIP | `L`, `G`, or `E` where integrality needs both sides | `L`, `U`, `F` | `IISSOLSTATUS`, `p_status` 3 with `NUMIIS` 1 | yes, measured, implied by the manual |
+| Xpress 45.01, 47.01 | `XPRSiisfirst`, `XPRSgetiisdata` | the MIP | `L`, `G`, or `E` where integrality needs both sides; `R` rows whole on a MIP | `L`, `U`, `F` | `IISSOLSTATUS`, `p_status` 3 with `NUMIIS` 1 | yes, measured, implied by the manual |
 | HiGHS 1.15.1, routine from 1.12.0, floor 1.14.0 | `Highs_getIis` | the relaxation | per side | per side | "maybe in conflict" | no, `iis_time_limit` replaces it, the option documented, the replacement read in the sources and measured |
 | SCIP 10.0 sources | `SCIPgenerateIIS`, `SCIPgetIIS` | not examined | a sub-SCIP | a sub-SCIP | irreducible flag | not examined |
 
@@ -341,6 +341,15 @@ record what they established.
   `ub` -2 alone solve infeasible, `ub` 3 or `lb` -3 alone optimal,
   measured in the second review), while crossed bounds or an interval
   without an integer need both, since freeing either readmits a value.
+  Since `2e52aa8` that column arithmetic is
+  `detail::iis_self_infeasible_column` in
+  `include/mippp/detail/iis_arithmetic.hpp`, over (lower, upper, kind),
+  beside the column-less precheck and the side that 0 violates, which
+  HiGHS's crossed term-less row uses too: the "shared detail arithmetic" of
+  N28 (a), which does not depend on the deletion filter. Its kind `other`
+  covers column types whose admissible values it does not decide, such as
+  semi-continuous ones, and never qualifies. COPT answers exactly as
+  before, and Xpress is its second user (`5c2192f`).
   The routine also leaks 48 bytes in 4 allocations on a column-less model
   (LeakSanitizer in the sanitized build on 8.0.5, the two
   `column_less_model_names_the_violated_row` cases exiting 1), so the
@@ -403,8 +412,19 @@ record what they established.
   `xpress_milp::compute_iis()` removes the callback with
   `XPRSremovecbpreintsol` for the call and adds it back on every exit,
   pinned by a test (0 calls, `feasible`, the callback back for the next
-  solve). A ranged row whose two sides are both needed
-  under integrality is reported `L` only (1.25 <= x <= 1.75, x integer). A
+  solve). A ranged row whose two sides are both needed under integrality
+  was reported `L` only: an integer x in [-10, 10] under 1.25 <= x <= 1.75
+  came back `irreducible` with the row's upper side alone, while x <= 1.75
+  alone admits x = 1 (45.01 and 47.01), where `copt_milp` and `cplex_milp`
+  answer the row as a plain member. Since `916db02`, `xpress_milp` reads the
+  row types after the call (`XPRSgetrowtype`) and reports an `R` row
+  flagged on one side as a plain member, as COPT does on a MIP, so its row
+  status lists absent, member and the three sided tags; an `E` row keeps
+  the mapping measured for it, and `xpress_lp` stays sided. The flag cannot
+  tell a row that needs both sides from one that needs the flagged side
+  alone, so every such `R` row on a MIP is reported whole. The decoder
+  accumulates per-side flags before mapping them, which keeps merging an
+  entity listed once per side into `member_both`. A
   feasible model gives `p_status` 1, `IISSOLSTATUS` 1 and `NUMIIS` 0, after
   which `LPSTATUS` and `MIPSTATUS` keep reading optimal while the objective
   attributes read 0 and `XPRSgetsolution` fails with 422, so status and
@@ -421,7 +441,33 @@ record what they established.
   the limit, and no reason otherwise. `p_status` 2 ("?727 Warning: Bound
   conflict on column; IIS will not continue") comes on crossed or
   integer-empty column bounds even when the conflict is elsewhere, with
-  `XPRSgetlasterror` empty, and the wrapper throws `solver_error`. Under
+  `XPRSgetlasterror` empty: a crossed continuous column beside an unrelated
+  row, an integer column in [0.25, 0.75], a binary with lower bound 2 and a
+  binary with upper bound -2 all threw `solver_error` on 45.01 and 47.01.
+  Such a column is an IIS by itself, so since `5c2192f` the wrapper
+  answers that refusal by the arithmetic COPT uses,
+  `detail::iis_self_infeasible_column`, over the bounds and the types it
+  reads at the call (`XPRSgetcoltype`,
+  present in 45.01 and 47.01, mapping `C`, `I` and `B` and leaving every
+  other kind to `other`): the first column that qualifies is the answer,
+  `irreducible`, crossed bounds or an integer interval without an integer
+  giving `member_both` and a binary bound beyond the domain the bound alone.
+  The throw stays where no column qualifies, which a test pins on a
+  semi-continuous column with crossed bounds. The types are read at the
+  call because Xpress retypes a binary on a bound write, measured with
+  `XPRSgetcoltype` on 45.01 and 47.01 on 2026-10-02: a binary given the
+  bounds [2, 3], [-3, -2], [-3, 1] or [0, 3] reads type `I` and solves
+  optimal, while [2, 1] and [0, -2] keep it `B` and solve infeasible. A
+  fractional bound of a binary or integer column is rounded inward when it
+  is written, unless the rounded bound would cross the other, which then
+  keeps the value written: an integer column in [-10, 0] given the lower
+  bound 0.25 reads [0.25, 0], and a binary given 0.25 then 0.75 reads
+  [1, 0.75]. A column whose type changes to integer on [0.25, 0.75], as
+  `add_integer_variable` does, reads [1, 0]. On a feasible model with no
+  row and one integer column in [0, 1], `xpress_milp::compute_iis()`
+  answers `undetermined` on 45.01 and `feasible` on 47.01, where
+  `xpress_lp` and a continuous column answer `feasible` on both
+  (2026-10-02). Under
   the default `IISOPS` both releases abort the process on the 4-row,
   26-binary market split ("Error in calculation of row activities"); the
   wrapper's bits (integrality, general, PWL, SOS and indicator constraints
@@ -446,7 +492,9 @@ record what they established.
   (`cd3b3bd`). 45.01
   solves an LP with crossed column bounds and a MIP with an integer column
   holding no integer to optimal where 47.01 says infeasible, a defect the
-  suites skip from the case data below 47.1. Row bounds (`35eb0af`): a
+  suites skip from the case data below 47.1; since `5c2192f` the native
+  suite runs those cases on 47.01 too, where it skipped them on every
+  release while the wrapper threw. Row bounds (`35eb0af`): a
   ranged row is type `R` with `rhs` the upper side and a non-negative
   range, `XPRSchgrhsrange` normalizing a negative range by moving the rhs
   (documented and measured), so crossed sides throw
@@ -768,9 +816,43 @@ record what they established.
   exit. With the default limits it never calls `get_time_limit` or
   `set_time_limit`. Forwarding relies on the
   [time-limit contract](#library-additions-the-free-function-needs) of
-  N4 (A): `get_time_limit()` is never negative. `clp_lp` and `glpk_*` lack
-  `has_time_limit`, and so does `copt_lp` until fix 10 lands (N35 a), so one
-  trial can overrun the deadline there. Forwarding first ran on real solvers
+  N4 (A): `get_time_limit()` is never negative. `copt_lp` gained
+  `has_time_limit` in wave 1 (`d205cf6`, N35 a), and the last three classes
+  without it, `clp_lp`, `glpk_lp` and `glpk_milp`, gained it on 2026-10-02
+  (`e2d577f`, `577f90e`): every model class now has it, so the filter
+  bounds every trial, and the forwarded-limit cases of
+  `IisByDeletionTest`, gated on the concept, reach Clp and GLPK.
+  `Clp_setMaximumSeconds` turns a limit into a
+  deadline on the process's user CPU clock (`CoinCpuTime`, `getrusage`
+  `ru_utime`), counted from the call, and `Clp_maximumSeconds` returns that
+  deadline, so `clp_lp` keeps the limit and arms it in each `solve()`; the
+  C API has no wall-clock setter, `setMaximumWallSeconds` being
+  `ClpModel`'s alone. Clp checks it in the outer loop of its primal
+  simplex, at refactorizations, and other threads count: on the `devel`
+  build linked to OpenBLAS, an 800-column dense LP under 1 s stopped after
+  0.31 to 0.34 s of wall-clock time with 1.22 to 1.31 s of user time
+  (four runs), and with `OPENBLAS_NUM_THREADS=1` a 1600-column LP stopped
+  at 1.01 s on both clocks (2026-10-02). Clp status 3 is a stop on
+  iterations or time and only the secondary status 9 names the time
+  (`ClpModel::onStopped`), so `clp_lp` reports `time_limit` there and
+  `limit_reached` otherwise, each carrying `Clp_primalFeasible` as its
+  solution flag; the three symbols exist in every 1.17 release. GLPK's
+  `tm_lim` holds whole wall-clock milliseconds: a finite limit is rounded
+  up, since GLPK stops at its first check under 0, the requested duration
+  is kept for `get_time_limit()`, `INT_MAX` is no limit, and a negative or
+  NaN limit throws `solver_error`, since a negative `tm_lim` makes GLPK
+  abort the process (`xerror` in `glp_simplex` and `glp_intopt`).
+  `glpk_lp` now reports `GLP_ETMLIM` as `time_limit`. The search of
+  `glp_intopt` stops once `tm_lim - 1` ms have passed (`glpios03.c` of
+  5.0), so `glpk_milp` passes one millisecond more: without it, a trial
+  ended just before the forwarded deadline and the run reported
+  `inconclusive_trial` rather than `time_limit`. The MIP presolver checks
+  no clock, then the root LP (`smcp.tm_lim = parm->tm_lim`) and the search
+  (its clock started when the tree is created) each get the full limit:
+  a 500 by 500 dense integer model under 0.2 s took 2.0 to 2.2 s in all,
+  1.7 to 1.8 s of it in the presolver (GLPK 5.0, 2026-10-02), so a
+  `glpk_milp` trial can overrun the deadline by its presolve and root LP.
+  Forwarding first ran on real solvers
   in wave 3 (2026-09-28, measured): on `cbc_milp`, every trial saw exactly a
   caller's 7 s limit under a 3600 s budget, and more than 3500 s and at most
   3600 s under a caller's 7200 s, both limits restored exactly
@@ -950,7 +1032,9 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
     integral coefficients, within the integrality tolerance before each solve
     and puts them back after (`8ee83d2`). Rows with integral sides and no
     integer point, such as `2x + 2y = 1` over free integers, still branch
-    without end, since `glpk_milp` has no time limit.
+    until a time limit stops them, which `glpk_milp` only has since
+    `577f90e`: under a 0.5 s budget the filter now answers `undetermined`
+    with `time_limit` at 0.50 s (`6bb2208`).
   - **HiGHS.** `Highs_changeRowBounds` accepts crossed sides, and a solve
     reports them infeasible, on the three classes, 1.10.0 and 1.15.1. A side
     of magnitude 1e20 or more reads back as ±`infinity()`, and a lower side of
@@ -1116,7 +1200,11 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   run no precheck (N28 a): the case pins each routine's answer, and a wrapper
   that fails it may call the shared detail arithmetic, which is not the
   deletion filter. On HiGHS 1.15.1, with the only column removed, the row
-  0 >= 1 already came back as a lower-side member.
+  0 >= 1 already came back as a lower-side member. Since `916db02`,
+  `ranged_row_holding_no_integer`, an integer x in [-10, 10] under
+  1.25 <= x <= 1.75, pins in both suites on every MILP backend that the
+  row needs both sides, which a routine naming one side gets wrong;
+  Gurobi's models cannot build a ranged row and skip it.
 - **Filter-only cases.** In `IisByDeletionTest`: a budget sweep, where each
   `max_solves` from 0 up makes at most that many solves and keeps a valid
   answer; a stop requested beforehand; a 0 s budget; the Q4 status rule,
@@ -1136,7 +1224,12 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   3 runs on `highs_lp` and `highs_qp`, passing on 1.15.1 (2026-09-28),
   since wave 5 on the six CPLEX, Xpress and COPT classes, and since N41 on
   the two Gurobi classes, the ten classes with both concepts; the throw below
-  HiGHS 1.14.0.
+  HiGHS 1.14.0. Since `5c2192f`, `IisTest`'s `crossed_variable_bounds` and
+  `integer_in_a_fractional_interval` run natively on Xpress 47.01, below
+  47.1 keeping the data-keyed skip of the deletion fixture, and Xpress
+  tests pin a crossed column beside a row, a binary outside its domain in
+  three placements, and the refusal that still throws on a semi-continuous
+  column.
 - **CI.** Clp, Cbc, GLPK and HiGHS run in CI, so the free function is
   CI-tested. CI always runs at least one of them, and since 2026-10-02
   `dumb_lp`, a user-defined model without row-bound setters, runs the free
@@ -1178,9 +1271,10 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   warning (N23). `docs/algorithms/deletion-filter.md` covers the engine on an
   oracle of the reader's own, monotonicity, limits and reasons, then the free
   function's candidates and trials, what it saves, restores and never touches,
-  the trials no time limit bounds, warm and cold trials per backend, and the
-  same warning. Their code lives in `test/doc_snippets/`, compiled and tested
-  in `mippp_test`, and `examples/infeasible_transportation` runs both paths.
+  the trials the forwarded time limit does not bound, warm and cold trials
+  per backend, and the same warning. Their code lives in
+  `test/doc_snippets/`, compiled and tested in `mippp_test`, and
+  `examples/infeasible_transportation` runs both paths.
   What concerns the commercial routines came with wave 5 (`b5014d1`,
   `12bcae7`, `b20e204`, `e507a95`, `818235d`): their tags, with plain
   `member` on the equality rows of Gurobi and CPLEX and on the two-sided

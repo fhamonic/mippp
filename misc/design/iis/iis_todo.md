@@ -47,10 +47,17 @@ questions wave 3 left.
   same sanitizer binary run directly against CPLEX 22.1.2, COPT 8.0.5 and Xpress 47.01 passed their
   suites with no sanitizer report once the COPT leak was bypassed. N41, on 2026-10-02, brought the
   deletion filter to `gurobi_lp` and `gurobi_milp` through their rows' sense and rhs, on
-  `feat/iis-gurobi-filter`; the coherence pass of the same day (N42, N43, on `iis/coherence-filter`) kept that
-  fallback to models without row-bound setters, made it write the sense only on a change of side, brought the
-  page's repair code and the example to Gurobi, ran `IisByDeletionTest` on `dumb_lp` and documented callbacks,
-  MIP starts and the bounds of binary variables.
+  `feat/iis-gurobi-filter`. The review of 2026-10-02 followed, with N42 and N43, and the coherence pass it
+  opened landed on `iis/coherence`: the sense-and-rhs fallback narrowed to models without row-bound setters
+  (`d9225a9`), the filter's writer reading a row's sense and writing it only on a change of side (`0f2c064`),
+  the infeasibility page's repair code and the transportation example running on every model class, Gurobi's
+  included (`55160c2`), `IisByDeletionTest` on `dumb_lp` (`e9474f7`), callbacks, MIP starts and the bounds
+  of binary variables documented (`e049b88` to `bd3e0e4`), time limits on `clp_lp`, `glpk_lp` and
+  `glpk_milp` (`e2d577f` to `6bb2208`), so that every model class has one, the arithmetic of the wrappers
+  shared in `detail/iis_arithmetic.hpp` (`2e52aa8`), and on Xpress ranged rows reported whole on a MIP and
+  refused searches answered from a column's own bounds (`916db02`, `5c2192f`); the user pages, iis.md, this
+  file and the feature tables followed on `iis/coherence-docs`. The shared tests and the guard cleanup land
+  on a parallel branch, `<branch>`, as `<commits>`: `<what they change>`.
 
 ## 0. Before any code
 
@@ -198,7 +205,7 @@ every other model, in CI on Cbc, GLPK, HiGHS and `dumb_lp` and locally on the re
 ## 4. The free function and its Clp slice
 
 The first end-to-end slice. It needs 2.5, since step 2 sits on pull request #3's branch, and items 3.1 to 3.3
-and 1.4, which are on main. `clp_lp` has no time limit, so budget
+and 1.4, which are on main. `clp_lp` had no time limit until 2026-10-02, so budget
 forwarding is tested on stubs here, and first runs on a real solver in 5.1.
 
 - [x] **4.1. The public free function (WP7).** `compute_iis_by_deletion(model, limits)` in
@@ -268,9 +275,10 @@ an enumeration, a status reset or readable row bounds, which 3.2 to 3.4 already 
   devel build aborted in `Cbc_status` after an infeasible relaxation, and below 3.0 a re-solved MIP kept the
   previous incumbent, so each MIP solve there runs on a copy.
 - [x] **5.2. `glpk_lp` and `glpk_milp` (WP11).** Modifiable row bounds through `glp_set_row_bnds`, which
-  switches the bound type rather than storing an infinite value, over the readable ones of 3.4. GLPK has no
-  time limit, so limits act between trials only. `glpk_milp` trials are cold solves. Needs 1.2 and 3.4. Done
-  in `f766e9c` to `5d1db49`. Crossed bounds or sides, which GLPK refuses with `GLP_EBOUND`, now solve
+  switches the bound type rather than storing an infinite value, over the readable ones of 3.4. GLPK had no
+  time limit then, so limits acted between trials only, until both classes got one on 2026-10-02.
+  `glpk_milp` trials are cold solves. Needs 1.2 and 3.4. Done in `f766e9c` to `5d1db49`.
+  Crossed bounds or sides, which GLPK refuses with `GLP_EBOUND`, now solve
   `infeasible` rather than `failed`, and `glpk_milp` rounds the sides of integer columns and integral rows,
   which `glp_intopt` also refuses when fractional. 23 cases run on `glpk_lp` and 26 on `glpk_milp`. The final
   review found that an IEEE infinity on the side it cannot free, as -inf for an upper side, was written as a
@@ -355,6 +363,17 @@ filter reads a row's sense there and writes it only when the row changes side, s
 and restored through its rhs alone; the infeasibility page's repair code and the transportation example run
 on `gurobi_lp` and `gurobi_milp`; and `dumb_lp` runs `IisByDeletionTest`, in CI on Clp.
 
+The coherence pass adds: `clp_lp`, `glpk_lp` and `glpk_milp` gain `set_time_limit` and `get_time_limit`, so
+every model class satisfies `has_time_limit`, a negative or NaN limit throwing `solver_error` there; Clp's
+limit counts the process's user CPU time, GLPK's the wall clock; the status variant of `clp_lp` gains
+`limit_reached` and `time_limit`, each carrying Clp's primal feasibility as its solution flag, and that of
+`glpk_lp` gains `time_limit`, where a GLPK time-limit stop read `limit_reached`; `glpk_milp` gives GLPK one
+millisecond more than the limit set, since GLPK's search stops a millisecond early; `xpress_milp::compute_iis()`
+reports a ranged row its routine flags on one side as a plain `member`, its row status gaining that tag, and
+`compute_iis()` on both Xpress classes answers a column whose bounds admit no value from those bounds, where
+it threw `solver_error`, throwing still on a column of a kind MIP++ never creates; and, as N43 above says,
+the filter's writer on Gurobi reads a row's sense and writes its rhs.
+
 ## 6. Native routines
 
 Under Q1 (b), these items add `compute_iis()` members, which never run the deletion filter. The step needs
@@ -434,10 +453,12 @@ limit (N27 a).
   needs both sides, and a fixed column's `F` maps to `member_both`. `IISSOLSTATUS` gives the outcome, with
   `p_status` 3 and `NUMIIS` 0 read as a stop with no answer, `time_limit` only when the measured time plus a
   20 ms slack reached the limit, since `p_status` 3 also follows an interrupt or a native iteration limit. A
-  column whose bounds cross or hold no integer makes the routine refuse the search, `solver_error`. A column
-  listed once per bound, `U` then `L`, merges into `member_both`, and `xpress_milp` detaches a registered
-  candidate-solution callback for the call, which the routine's MIP solves ran. Done in
-  `cd3b3bd` and `a12f76d`; the modifiable row bounds, once Xpress was confirmed to store a ranged row natively
+  column whose bounds cross or hold no integer makes the routine refuse the search: the wrapper threw
+  `solver_error` there until `5c2192f`, which answers from that column's bounds, and since `916db02`
+  `xpress_milp` reports a ranged row flagged on one side as a plain `member`. A column listed once per bound,
+  `U` then `L`, merges into `member_both`, and `xpress_milp` detaches a registered candidate-solution
+  callback for the call, which the routine's MIP solves ran. Done in `cd3b3bd` and `a12f76d`; the modifiable
+  row bounds, once Xpress was confirmed to store a ranged row natively
   (type `R`, rhs the upper side, a non-negative range), in `35eb0af`, crossed sides throwing
   `std::invalid_argument`. The answer's tables are sized after the routine returns, and `xpress_lp::solve()`
   postsolves after a stopped solve (`3acad2c`), since 45.01 leaves the LP presolved, where the counts, the row
