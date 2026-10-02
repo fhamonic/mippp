@@ -101,7 +101,7 @@ A call that gives up drops nothing, so the answer is then `not_proven_minimal` o
 
 ### Candidates and trials
 
-Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. Integrality, special constraints and anything added through the native handles are not candidates: they stay in every trial, as background.
+Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. Integrality, special constraints and anything added through the native handles are not candidates: they stay in every trial, as background. A trial is a `solve()`, so a registered candidate-solution callback runs in every trial, and its lazy constraints and rejections are background too, see [Callbacks](#callbacks).
 
 A trial deactivates the candidates the engine left out by relaxing them to `-infinity()` or `infinity()`. It never removes a row and never changes the matrix, so each trial is a re-solve of the same model, and writes only the sides whose state differs from the previous trial's. On `gurobi_lp` and `gurobi_milp`, which range a row through a slack column and so have no row-bound setters, a row is written through its right-hand side, and through its sense only when it changes side: a `<=` or `>=` row is relaxed and restored through its right-hand side alone, an `==` row with one side relaxed becomes a `<=` or `>=` row, and a row with no side left keeps its sense, `<=` for an `==` row, under an infinite right-hand side.
 
@@ -126,6 +126,7 @@ A run makes at most one solve per candidate plus one, only two when a crossed pa
 | Objective | zero, offset included | the coefficients and offset copied when the run started, and the Hessian on `highs_qp` |
 | Time limit | forwarded, see [Time limits](#time-limits) | the value read when the run started |
 | Status | that of each trial | `unknown` after a run that solved, unchanged otherwise |
+| Candidate-solution callback | registered, and run by every trial, see [Callbacks](#callbacks) | registered |
 | Row senses and right-hand sides, on `gurobi_lp` and `gurobi_milp` | as each trial needs | those read when the run started |
 | Objective sense, matrix, variable types, special constraints, verbosity, tolerances, other limits | unchanged | unchanged |
 
@@ -162,6 +163,23 @@ See [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the not
 
 After any run that solved, the solver holds the solution of a trial rather than of your model, so `get_status()` reports `unknown`, after an exception too. Call `solve()` again before reading a solution. A run that solved nothing leaves the status as it was: one decided without variables, or stopped before its first trial. The reset is `reset_status()`, described in [Resetting the status](../solving/status-and-limits.md#resetting-the-status), which algorithms of your own can use the same way.
 
+### Callbacks
+
+A trial is a `solve()`, so a candidate-solution callback registered on `gurobi_milp`, `cplex_milp`, `xpress_milp` or `copt_milp` runs in every trial. Its lazy constraints and rejections are background: the filter explains the model as the callback defines it. The native routines explain the model without the callback: `cplex_milp`, `xpress_milp` and `copt_milp` detach it for `compute_iis()`, and Gurobi's routine never runs it (measured on Gurobi 11.0.3, 12.0.1 and 13.0.2). Of the two paths, only the filter honours lazy constraints.
+
+A callback that only reads its candidates changes no answer: with one that counts them, both paths answer `feasible` on a feasible model. A callback that rejects candidates changes the answers. Measured with one that rejects every candidate, on integers `x` and `y` in [0, 5], with a `time_limit` of 10 s:
+
+| Path | `x + y <= 8`, feasible | `x + y >= 11`, infeasible |
+| :--- | :--- | :--- |
+| `compute_iis()`, on each of the four | `feasible` | `irreducible`: the upper bounds of `x` and `y`, and the row |
+| Filter on `gurobi_milp` | `irreducible`: the lower bounds of `x` and `y` | `irreducible`: the row alone |
+| Filter on `xpress_milp` | `irreducible`, without a member | `irreducible`, without a member |
+| Filter on `cplex_milp` and `copt_milp` | `not_proven_minimal` at the deadline, after 293,313 and about 1.2 million callback calls | `not_proven_minimal` at the deadline |
+
+The cost on CPLEX and COPT comes from the relaxed integer bounds. A trial without a bound of `x` or `y` searches an unbounded domain, and the callback rejects every point the search finds, so the trial runs until a limit stops it. Bound the run through `iis_limits` when a registered callback can reject.
+
+`cplex_milp` refuses to solve a model whose columns are all continuous while a callback is registered, and throws `std::runtime_error`. On such a model the filter's first trial throws it, after the model is restored. `compute_iis()`, which detaches the callback, answers there.
+
 ### The cost of a trial
 
 Whether a trial starts from the work of the previous one depends on the backend. In our measurements:
@@ -186,6 +204,8 @@ The trials inherit what each solver proves. Three of the notable limitations in 
 - [Deletion filter](../solvers/index.md#limitation-deletion-filter): the time limits above, and HiGHS's repair of nearly crossed sides;
 - [Integrality proofs](../solvers/index.md#limitation-integrality-proofs): wrong answers of Cbc 2.10, and endless branching of Cbc and `glpk_milp`, on some integer rows;
 - [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries): `scip_milp` throws once a trial relaxes a bound of a binary column.
+
+A registered candidate-solution callback adds its own effects, see [Callbacks](#callbacks).
 
 ### Native changes
 

@@ -858,9 +858,12 @@ record what they established.
   precheck alone, or stopped before any trial, a crossed pair's continuation
   included, by `max_solves = 0`, a 0 s budget or a stop already requested. The
   free function makes the status `unknown` through
-  the model's `reset_status()` (N22). None of the open-source backends has a
-  candidate-solution callback today. On a model that has one, the trials run
-  it.
+  the model's `reset_status()` (N22). The trials run a registered
+  candidate-solution callback, which `gurobi_milp`, `cplex_milp`,
+  `xpress_milp` and `copt_milp` have, all four under the filter since wave 5
+  and N41: its lazy constraints and rejections are background of every
+  trial, while the native routines run without it, and N42 documents the
+  difference.
 
 ## Library additions the free function needs
 

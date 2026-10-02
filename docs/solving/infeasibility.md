@@ -162,7 +162,7 @@ The loop returns `feasible` once no conflict remains. An answer can also have no
 | `feasible` | none | The model is feasible as it is. |
 | `undetermined` | none | Nothing was proven: the run stopped before its first proof, its first solve was inconclusive, or the native routine returned no answer. |
 
-`irreducible` with no member means that the background alone is infeasible: integrality and special constraints, which neither path counts as candidates, conflict on their own, without any bound or side. Indicator and SOS constraints are background for every native routine as for the filter: never members, and the rows and bounds an answer names conflict against them.
+`irreducible` with no member means that the background alone is infeasible: integrality and special constraints, which neither path counts as candidates, conflict on their own, without any bound or side. On the filter it can also mean that a registered candidate-solution callback rejects every point, as on a feasible `xpress_milp` in [Callbacks](../algorithms/deletion-filter.md#callbacks). Indicator and SOS constraints are background for every native routine as for the filter: never members, and the rows and bounds an answer names conflict against them.
 
 | `iis_reason` | Set when |
 | :--- | :--- |
@@ -239,7 +239,7 @@ The status is another matter. After any run of the filter that solved, the solve
 - Gurobi and Xpress solve an unsolved model, or overwrite the solver's status.
 - CPLEX replaces its status with the conflict's. It keeps a completed answer until the model's data change, so a second `compute_iis()` on an unchanged model returns at once. An iteration-limit stop is kept the same way, see [Limits](#limits).
 - COPT resets the solver, dropping its held solution, then solves the model as [Limits](#limits) describes.
-- `cplex_milp`, `xpress_milp` and `copt_milp` detach a registered candidate-solution callback for the call and reattach it afterwards, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis), [on Xpress](../solvers/index.md#limitation-xpress-iis) and [on COPT](../solvers/index.md#limitation-copt-iis).
+- `cplex_milp`, `xpress_milp` and `copt_milp` detach a registered candidate-solution callback for the call and reattach it afterwards, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis), [on Xpress](../solvers/index.md#limitation-xpress-iis) and [on COPT](../solvers/index.md#limitation-copt-iis). Gurobi's routine never runs it. No native routine honours the callback's lazy constraints, while the filter's trials run it, see [Callbacks](../algorithms/deletion-filter.md#callbacks).
 
 Call `solve()` again before reading a solution, as the workshop's remedy does.
 
