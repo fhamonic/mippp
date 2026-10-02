@@ -422,7 +422,14 @@ record what they established.
   status lists absent, member and the three sided tags; an `E` row keeps
   the mapping measured for it, and `xpress_lp` stays sided. The flag cannot
   tell a row that needs both sides from one that needs the flagged side
-  alone, so every such `R` row on a MIP is reported whole. The decoder
+  alone, so every such `R` row on a MIP is reported whole. The final review
+  of 2026-10-02 found that rule applied to every `xpress_milp`, while
+  integrality is what makes the routine drop the second side: since
+  `f89be76` it applies only when the original problem has MIP entities
+  (`XPRS_ORIGINALMIPENTS` > 0), as `copt_milp` keys its rules on `IsMIP`,
+  and an `xpress_milp` whose columns are all continuous keeps the side, as
+  `xpress_lp` does, pinned by
+  `xpress_milp_iis_test.ranged_row_keeps_its_side_without_integers`. The decoder
   accumulates per-side flags before mapping them, which keeps merging an
   entity listed once per side into `member_both`. A
   feasible model gives `p_status` 1, `IISSOLSTATUS` 1 and `NUMIIS` 0, after
@@ -856,9 +863,16 @@ record what they established.
   abort the process (`xerror` in `glp_simplex` and `glp_intopt`).
   `glpk_lp` now reports `GLP_ETMLIM` as `time_limit`. The search of
   `glp_intopt` stops once `tm_lim - 1` ms have passed (`glpios03.c` of
-  5.0), so `glpk_milp` passes one millisecond more: without it, a trial
+  5.0), so `glpk_milp` passed one millisecond more: without it, a trial
   ended just before the forwarded deadline and the run reported
-  `inconclusive_trial` rather than `time_limit`. The MIP presolver checks
+  `inconclusive_trial` rather than `time_limit`. Before 4.63, `glp_time`
+  also truncates to the millisecond, so the check can fire almost one
+  millisecond before `tm_lim - 1` have passed: on GLPK 4.59, the floor of
+  the validated range, a filter trial with the one millisecond still ended
+  up to 0.86 ms before the deadline and the run reported
+  `inconclusive_trial`. `glpk_milp` now passes two milliseconds more
+  (`fa45782`), so a stop overruns the limit by three at most, and the endless-row test
+  passes 10 of 10 on 4.59 and on 5.0 (2026-10-02). The MIP presolver checks
   no clock, then the root LP (`smcp.tm_lim = parm->tm_lim`) and the search
   (its clock started when the tree is created) each get the full limit:
   a 500 by 500 dense integer model under 0.2 s took 2.0 to 2.2 s in all,
@@ -1927,7 +1941,11 @@ present (`1c0e50e`).
   `gurobi_lp`, `gurobi_milp` and `dumb_lp`. `dumb_lp` runs `IisByDeletionTest`
   (20 passed, 10 skipped: three need a `milp_model`, five ranged rows, two a
   time limit), and the page's snippet tests run on it, so CI exercises the
-  fallback on Clp.
+  fallback on Clp. The code review of 2026-10-02 found that on this path an
+  `==` row whose rhs lies at the backend's infinity, a side at the opposite
+  infinity, comes back from the run as a `>=` or `<=` row with that
+  infinite rhs, still infeasible; the finding was declined, since N40 makes
+  such a side documented undefined behavior.
 
 ## Open questions
 

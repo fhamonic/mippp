@@ -61,7 +61,10 @@ questions wave 3 left.
   limit, the time limit read back, a registered callback that does not run, indicators as background, the
   status afterwards), the `names_every_side` flag gave way to checks that can fail on every path, every
   native guard restores every option before raising, and Gurobi and CPLEX share their row status and side
-  mappings. Then the record of iis.md and this file.
+  mappings. Then the record of iis.md and this file. The final review of 2026-10-02 brought three code fixes,
+  an unstarted empty Xpress answer attributed to its stop (`133699f`), two milliseconds for `glpk_milp`
+  (`fa45782`) and a ranged row's side kept on an `xpress_milp` without integer columns (`f89be76`), then the
+  user pages that answer it (`6a3c0ed`) and the record of iis.md and this file.
 
 ## 0. Before any code
 
@@ -371,9 +374,10 @@ The coherence pass adds: `clp_lp`, `glpk_lp` and `glpk_milp` gain `set_time_limi
 every model class satisfies `has_time_limit`, a negative or NaN limit throwing `solver_error` there; Clp's
 limit counts the process's user CPU time, GLPK's the wall clock; the status variant of `clp_lp` gains
 `limit_reached` and `time_limit`, each carrying Clp's primal feasibility as its solution flag, and that of
-`glpk_lp` gains `time_limit`, where a GLPK time-limit stop read `limit_reached`; `glpk_milp` gives GLPK one
-millisecond more than the limit set, since GLPK's search stops a millisecond early; `xpress_milp::compute_iis()`
-reports a ranged row its routine flags on one side as a plain `member`, its row status gaining that tag, and
+`glpk_lp` gains `time_limit`, where a GLPK time-limit stop read `limit_reached`; `glpk_milp` gives GLPK two
+milliseconds more than the limit set, since GLPK's search stops a millisecond early and, before 4.63, its clock
+truncates to the millisecond; `xpress_milp::compute_iis()` reports a ranged row its routine flags on one side
+as a plain `member` on a model with integer columns, its row status gaining that tag, and
 `compute_iis()` on both Xpress classes answers a column whose bounds admit no value from those bounds, where
 it threw `solver_error`, throwing still on a column of a kind MIP++ never creates; and, as N43 above says,
 the filter's writer on Gurobi reads a row's sense and writes its rhs.
@@ -460,7 +464,8 @@ limit (N27 a).
   20 ms slack reached the limit, since `p_status` 3 also follows an interrupt or a native iteration limit. A
   column whose bounds cross or hold no integer makes the routine refuse the search: the wrapper threw
   `solver_error` there until `5c2192f`, which answers from that column's bounds, and since `916db02`
-  `xpress_milp` reports a ranged row flagged on one side as a plain `member`. A column listed once per bound,
+  `xpress_milp` reports a ranged row flagged on one side as a plain `member`, on a model with integer columns
+  only since `f89be76`. A column listed once per bound,
   `U` then `L`, merges into `member_both`, and `xpress_milp` detaches a registered candidate-solution
   callback for the call, which the routine's MIP solves ran. Done in `cd3b3bd` and `a12f76d`; the modifiable
   row bounds, once Xpress was confirmed to store a ranged row natively
