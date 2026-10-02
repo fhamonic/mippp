@@ -47,6 +47,7 @@ INSTANTIATE_TEST(Gurobi_lp, RemoveVariableTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableConstraintsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReadableConstraintBoundsTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, IisTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, IisByDeletionTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpStatusTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, DualSolutionTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ReducedCostsTest, gurobi_lp_test);
@@ -107,6 +108,7 @@ INSTANTIATE_TEST(Gurobi_milp, RemoveVariableTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ReadableConstraintsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, ReadableConstraintBoundsTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, IisTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, IisByDeletionTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, SudokuTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, CandidateSolutionCallbackTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, LazyConstraintsTest, gurobi_milp_test);
@@ -121,9 +123,12 @@ INSTANTIATE_TEST(Gurobi_milp, VerbosityTest, gurobi_milp_test);
 
 static_assert(has_iis<gurobi_lp>);
 static_assert(has_iis<gurobi_milp>);
-// a Gurobi range is a slack column, not a second side on the row
-static_assert(!iis_by_deletion_model<gurobi_lp>);
-static_assert(!iis_by_deletion_model<gurobi_milp>);
+// A Gurobi range is a slack column, not a second side on the row, so the
+// models have no row-bound setters and the deletion filter writes their rows
+// through the sense and the rhs.
+static_assert(!has_modifiable_constraint_bounds<gurobi_lp>);
+static_assert(iis_by_deletion_model<gurobi_lp>);
+static_assert(iis_by_deletion_model<gurobi_milp>);
 
 namespace {
 // A conflict the routine has to solve for: a singleton-row conflict is
