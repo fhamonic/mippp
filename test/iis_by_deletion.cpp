@@ -552,6 +552,75 @@ struct qp_stub_without_readable_quadratic : iis_stub_model<false, true> {
     void get_quadratic_objective() = delete;
 };
 
+// Rows held as a sense and an rhs, as Gurobi holds them: no row-bound setter
+// and no ranged row. The sides stay in the base's arrays, which the trials
+// and the default rule read, and row_writes records each (sense, rhs) pair.
+// The sense is held apart, as Gurobi holds it: read back from the sides, a
+// >= row whose rhs is still infinite between two writes would read as ==.
+struct sense_rhs_stub : iis_stub_model<false, false> {
+    using base = iis_stub_model<false, false>;
+
+    struct row_write {
+        int id;
+        constraint_sense sense;
+        double rhs;
+        friend bool operator==(const row_write &, const row_write &) = default;
+    };
+    std::vector<row_write> row_writes;
+
+    void set_constraint_lower_bound(constraint, double) = delete;
+    void set_constraint_upper_bound(constraint, double) = delete;
+    template <typename... Args>
+    constraint add_ranged_constraint(Args &&...) = delete;
+
+    // a row never written has the finite rhs it was built with
+    constraint_sense get_constraint_sense(constraint c) {
+        if(const auto it = _written.find(c.id()); it != _written.end())
+            return it->second.first;
+        const double lb = get_constraint_lower_bound(c);
+        if(lb == get_constraint_upper_bound(c)) return constraint_sense::equal;
+        return lb > -infinity() ? constraint_sense::greater_equal
+                                : constraint_sense::less_equal;
+    }
+    double get_constraint_rhs(constraint c) {
+        if(const auto it = _written.find(c.id()); it != _written.end())
+            return it->second.second;
+        return get_constraint_sense(c) == constraint_sense::greater_equal
+                   ? get_constraint_lower_bound(c)
+                   : get_constraint_upper_bound(c);
+    }
+    void set_constraint_sense(constraint c, constraint_sense sense) {
+        _write(c, sense, get_constraint_rhs(c));
+    }
+    void set_constraint_rhs(constraint c, double rhs) {
+        _write(c, get_constraint_sense(c), rhs);
+    }
+
+private:
+    std::map<int, std::pair<constraint_sense, double>> _written;
+
+    void _write(constraint c, constraint_sense sense, double rhs) {
+        row_writes.push_back({c.id(), sense, rhs});
+        base::set_constraint_lower_bound(
+            c, sense == constraint_sense::less_equal ? -infinity() : rhs);
+        base::set_constraint_upper_bound(
+            c, sense == constraint_sense::greater_equal ? infinity() : rhs);
+        _written[c.id()] = {sense, rhs};
+    }
+};
+void PrintTo(const sense_rhs_stub::row_write & w, std::ostream * os) {
+    *os << "{row " << w.id << ", sense " << static_cast<int>(w.sense) << ", "
+        << w.rhs << "}";
+}
+
+// a ranged row would need two distinct sides, which no sense and rhs express
+struct ranged_stub_with_sense_and_rhs : iis_stub_model<false, false> {
+    void set_constraint_lower_bound(constraint, double) = delete;
+    void set_constraint_upper_bound(constraint, double) = delete;
+    void set_constraint_sense(constraint, constraint_sense) {}
+    void set_constraint_rhs(constraint, double) {}
+};
+
 }  // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -567,6 +636,13 @@ static_assert(iis_by_deletion_model<iis_stub_probe<true, false>>);
 static_assert(iis_by_deletion_model<iis_stub_probe<true, true>>);
 static_assert(!iis_by_deletion_model<stub_without_reset>);
 static_assert(!iis_by_deletion_model<stub_without_row_setters>);
+static_assert(iis_by_deletion_model<sense_rhs_stub>);
+static_assert(!has_modifiable_constraint_bounds<sense_rhs_stub> &&
+              !has_ranged_constraints<sense_rhs_stub> &&
+              has_readable_constraint_bounds<sense_rhs_stub>);
+static_assert(!iis_by_deletion_model<ranged_stub_with_sense_and_rhs> &&
+              has_ranged_constraints<ranged_stub_with_sense_and_rhs> &&
+              has_modifiable_constraint_sense<ranged_stub_with_sense_and_rhs>);
 // the conditional requirement bites on a qp_model only
 static_assert(qp_model<qp_stub_without_readable_quadratic>);
 static_assert(!iis_by_deletion_model<qp_stub_without_readable_quadratic>);
@@ -1567,6 +1643,98 @@ TEST_F(iis_by_deletion, answer_is_keyed_by_id_after_a_later_removal) {
     EXPECT_EQ(status_of(iis, h.r0), membership::lower);
     EXPECT_EQ(iis.num_variable_members(), 1u);
     EXPECT_EQ(iis.num_constraint_members(), 1u);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////// Rows written as a sense and an rhs /////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// x in [0, 1], x == 5 and x <= 3: the == row conflicts through its lower
+// side, and the <= row is redundant.
+TEST_F(iis_by_deletion, rows_without_bound_setters_take_a_sense_and_an_rhs) {
+    using namespace operators;
+    sense_rhs_stub model;
+    const auto x = bounded_variable(model, 0.0, 1.0);
+    const auto equal = model.add_constraint(x == 5);
+    const auto at_most = model.add_constraint(x <= 3);
+    model.reset_recording();
+    const auto before = model.data();
+    const auto iis = compute_iis_by_deletion(model);
+    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_EQ(status_of(iis, x), membership::upper);
+    EXPECT_EQ(status_of(iis, equal), membership::lower);
+    EXPECT_EQ(status_of(iis, at_most), membership::absent);
+    EXPECT_EQ(iis.num_variable_members(), 1u);
+    EXPECT_EQ(iis.num_constraint_members(), 1u);
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+    expect_restored(model, before);
+    // every state of the == row is one of its sides, both or neither; the
+    // trials test its upper side before its lower one, so one of them sees
+    // its lower side alone
+    bool lower_side_alone = false;
+    for(const stub_data & trial : model.trials) {
+        const auto [lo, hi] = trial.row_bounds[equal.uid()];
+        EXPECT_TRUE((lo == 5.0 || lo == -inf) && (hi == 5.0 || hi == inf))
+            << lo << ", " << hi;
+        lower_side_alone |= (lo == 5.0 && hi == inf);
+    }
+    EXPECT_TRUE(lower_side_alone);
+    // the restore writes the == row back as one, not as two sides
+    auto writes_of_equal =
+        model.row_writes | std::views::reverse |
+        std::views::filter([&](const auto & w) { return w.id == equal.id(); });
+    ASSERT_FALSE(std::ranges::empty(writes_of_equal));
+    EXPECT_EQ(
+        *std::ranges::begin(writes_of_equal),
+        (sense_rhs_stub::row_write{equal.id(), constraint_sense::equal, 5.0}));
+}
+
+// x in [0, 1], x >= 2 and x == 0.5: both sides of the == row are dropped, so
+// a trial sees it free, and the restore makes it an == row again.
+TEST_F(iis_by_deletion, a_row_without_its_sides_is_free_then_restored_whole) {
+    using namespace operators;
+    sense_rhs_stub model;
+    const auto x = bounded_variable(model, 0.0, 1.0);
+    const auto at_least = model.add_constraint(x >= 2);
+    const auto equal = model.add_constraint(x == 0.5);
+    model.reset_recording();
+    const auto before = model.data();
+    const auto iis = compute_iis_by_deletion(model);
+    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_EQ(status_of(iis, x), membership::upper);
+    EXPECT_EQ(status_of(iis, at_least), membership::lower);
+    EXPECT_EQ(status_of(iis, equal), membership::absent);
+    expect_restored(model, before);
+    EXPECT_EQ(model.get_constraint_sense(equal), constraint_sense::equal);
+    EXPECT_EQ(model.get_constraint_rhs(equal), 0.5);
+    EXPECT_TRUE(std::ranges::any_of(model.trials, [&](const stub_data & t) {
+        return t.row_bounds[equal.uid()] == std::pair{-inf, inf};
+    }));
+}
+
+// The trials test candidates 0 (x lower) then 4 (the upper side of the ==
+// row): the write that relaxes it throws, and so does its restore. The
+// error propagates and the bound already relaxed is written back.
+TEST_F(iis_by_deletion, a_throwing_row_write_leaves_the_rest_restored) {
+    using namespace operators;
+    sense_rhs_stub model;
+    const auto x = bounded_variable(model, 0.0, 1.0);
+    model.add_constraint(x >= 2);
+    const auto equal = model.add_constraint(x == 0.5);
+    model.reset_recording();
+    const auto equal_id = equal.id();
+    model.on_solve = [equal_id](iis_stub_model<false, false> & m,
+                                std::size_t i) {
+        if(i == 1) m.failing_side = std::pair{stub_side::row_lower, equal_id};
+    };
+    EXPECT_THROW((void)compute_iis_by_deletion(model), iis_stub_failure);
+    EXPECT_EQ(model.solves, 2u);
+    EXPECT_EQ(model.failed_writes, 2u);
+    EXPECT_EQ(model.get_variable_lower_bound(x), 0.0);
+    EXPECT_EQ(model.get_variable_upper_bound(x), 1.0);
+    EXPECT_EQ(model.get_constraint_lower_bound(equal), 0.5);
+    EXPECT_EQ(model.get_constraint_upper_bound(equal), 0.5);
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

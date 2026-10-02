@@ -27,17 +27,33 @@
 
 namespace mippp {
 
+namespace detail {
+
+// Without ranged rows, a row has one side or the two equal sides of an ==
+// row, and so does every state it passes through while its sides are relaxed
+// and restored: one sense and one rhs express each of them. Gurobi is such a
+// model, whose ranges add a slack column rather than a second side.
+template <typename M>
+concept iis_rows_as_sense_and_rhs =
+    has_modifiable_constraint_sense<M> && has_modifiable_constraint_rhs<M> &&
+    !has_ranged_constraints<M>;
+
+}  // namespace detail
+
 // The models the deletion filter can run on in place: every finite variable
 // bound and row side is relaxed to the backend's infinity() and restored, so
 // both halves of each pair are needed, and the objective is zeroed for the
 // trials and written back from a copy, the Hessian included on a qp_model.
+// Row sides are written through the row-bound setters, or through the sense
+// and the rhs on a model without them and without ranged rows.
 template <typename M>
 concept iis_by_deletion_model =
     lp_model<M> && has_enumerable_variables<M> &&
     has_enumerable_constraints<M> && has_readable_variable_bounds<M> &&
     has_modifiable_variable_bounds<M> && has_readable_constraint_bounds<M> &&
-    has_modifiable_constraint_bounds<M> && has_readable_objective<M> &&
-    has_status_reset<M> &&
+    (has_modifiable_constraint_bounds<M> ||
+     detail::iis_rows_as_sense_and_rhs<M>) &&
+    has_readable_objective<M> && has_status_reset<M> &&
     (!qp_model<M> || has_readable_quadratic_objective<M>);
 
 template <iis_by_deletion_model M>
@@ -180,6 +196,43 @@ private:
         if(!relaxed) return s.value;
         return s.lower ? -_model.infinity() : _model.infinity();
     }
+    // A model without row-bound setters cannot write one side of a row, so
+    // the row is written whole, through its sense and rhs: side r as asked,
+    // the other as its candidate's state has it, or infinite when it is no
+    // candidate. The two sides of a row are consecutive candidates, and the
+    // flag of side r is not read, since the callers update it on either side
+    // of the write.
+    void _write_row(std::size_t r, bool relaxed)
+        requires detail::iis_rows_as_sense_and_rhs<M>
+    {
+        const auto & rows = _candidates.row_sides;
+        const std::size_t offset = _candidates.variable_sides.size();
+        const scalar infinity = _model.infinity();
+        scalar lower = -infinity, upper = infinity;
+        const auto take = [&](std::size_t i, bool is_relaxed) {
+            (rows[i].lower ? lower : upper) = _side_value(rows[i], is_relaxed);
+        };
+        take(r, relaxed);
+        if(r > 0 && rows[r - 1].handle == rows[r].handle)
+            take(r - 1, !_at_saved_value[offset + r - 1]);
+        if(r + 1 < rows.size() && rows[r + 1].handle == rows[r].handle)
+            take(r + 1, !_at_saved_value[offset + r + 1]);
+        const auto handle = rows[r].handle;
+        // two finite sides are the equal sides of an == row: without ranged
+        // rows, no other row has them
+        if(lower > -infinity && upper < infinity) {
+            _model.set_constraint_sense(handle, constraint_sense::equal);
+            _model.set_constraint_rhs(handle, lower);
+        } else if(lower > -infinity) {
+            _model.set_constraint_sense(handle,
+                                        constraint_sense::greater_equal);
+            _model.set_constraint_rhs(handle, lower);
+        } else {
+            // a free row when upper is infinite too
+            _model.set_constraint_sense(handle, constraint_sense::less_equal);
+            _model.set_constraint_rhs(handle, upper);
+        }
+    }
     void _write_side(std::size_t k, bool relaxed) {
         const std::size_t num_variable_sides =
             _candidates.variable_sides.size();
@@ -190,13 +243,15 @@ private:
                 _model.set_variable_lower_bound(s.handle, value);
             else
                 _model.set_variable_upper_bound(s.handle, value);
-        } else {
+        } else if constexpr(has_modifiable_constraint_bounds<M>) {
             const auto & s = _candidates.row_sides[k - num_variable_sides];
             const scalar value = _side_value(s, relaxed);
             if(s.lower)
                 _model.set_constraint_lower_bound(s.handle, value);
             else
                 _model.set_constraint_upper_bound(s.handle, value);
+        } else {
+            _write_row(k - num_variable_sides, relaxed);
         }
     }
     // Only the sides whose state differs from the wanted one are written: the
