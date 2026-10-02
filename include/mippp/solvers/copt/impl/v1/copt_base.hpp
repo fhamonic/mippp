@@ -479,6 +479,11 @@ private:
         double _time_limit;
         bool _restored = false;
 
+        ret_code _write_back() const noexcept {
+            return _api.SetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT,
+                                    _time_limit);
+        }
+
     public:
         iis_time_limit_guard(const copt_api & api, copt_env * env,
                              copt_prob * prob, double remaining)
@@ -491,15 +496,13 @@ private:
         iis_time_limit_guard(const iis_time_limit_guard &) = delete;
         iis_time_limit_guard & operator=(const iis_time_limit_guard &) = delete;
 
-        // a rejected write is retried once, unchecked, by the destructor
         void restore() {
-            _api._check(_env, _api.SetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT,
-                                               _time_limit));
             _restored = true;
+            _api._check(_env, _write_back());
         }
+        // a value read back moments ago: the write cannot be rejected
         ~iis_time_limit_guard() {
-            if(_restored) return;
-            (void)_api.SetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT, _time_limit);
+            if(!_restored) (void)_write_back();
         }
     };
 

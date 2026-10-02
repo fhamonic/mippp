@@ -258,8 +258,7 @@ private:
     // The MIP solves of the routine run a registered callback on their
     // candidates, whose rejection makes a feasible subsystem read infeasible
     // and the answer name the whole model: the callback is detached for the
-    // call. A rejected re-registration is retried once, unchecked, by the
-    // destructor.
+    // call.
     class iis_callback_guard {
     private:
         xpress_milp * _model;
@@ -276,10 +275,12 @@ private:
 
         void restore() {
             if(!_model) return;
-            _model->check(_model->XPRS->addcbpreintsol(
-                _model->prob, candidate_solution_callback_fun, _model, 1));
-            _model = nullptr;
+            auto * const model = std::exchange(_model, nullptr);
+            model->check(model->XPRS->addcbpreintsol(
+                model->prob, candidate_solution_callback_fun, model, 1));
         }
+        // only after an exception, where a second error could not be
+        // reported
         ~iis_callback_guard() {
             if(!_model) return;
             (void)_model->XPRS->addcbpreintsol(

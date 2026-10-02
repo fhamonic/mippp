@@ -706,6 +706,9 @@ private:
     // iis_time_limit exists
     static constexpr solver_version _iis_native_floor{1, 14, 0};
 
+    // Every option is written back before the first error is raised, so a
+    // rejected write cannot leave the other one set; a constructor that
+    // throws runs no destructor, so it writes back itself.
     class iis_option_guard {
     private:
         const highs_api & _api;
@@ -713,6 +716,15 @@ private:
         HighsInt _strategy;
         double _time_limit;
         bool _restored = false;
+
+        int _write_back() const noexcept {
+            const int strategy_status =
+                _api.setIntOptionValue(_model, "iis_strategy", _strategy);
+            const int time_limit_status = _api.setDoubleOptionValue(
+                _model, "iis_time_limit", _time_limit);
+            return strategy_status == kHighsStatusError ? strategy_status
+                                                        : time_limit_status;
+        }
 
     public:
         iis_option_guard(const highs_api & api, void * model, HighsInt strategy,
@@ -722,27 +734,26 @@ private:
                 _api.getIntOptionValue(_model, "iis_strategy", &_strategy));
             _api._check(_api.getDoubleOptionValue(_model, "iis_time_limit",
                                                   &_time_limit));
-            _api._check(
-                _api.setIntOptionValue(_model, "iis_strategy", strategy));
-            _api._check(_api.setDoubleOptionValue(_model, "iis_time_limit",
-                                                  time_limit));
+            try {
+                _api._check(
+                    _api.setIntOptionValue(_model, "iis_strategy", strategy));
+                _api._check(_api.setDoubleOptionValue(_model, "iis_time_limit",
+                                                      time_limit));
+            } catch(...) {
+                (void)_write_back();
+                throw;
+            }
         }
         iis_option_guard(const iis_option_guard &) = delete;
         iis_option_guard & operator=(const iis_option_guard &) = delete;
 
         void restore() {
             _restored = true;
-            _api._check(
-                _api.setIntOptionValue(_model, "iis_strategy", _strategy));
-            _api._check(_api.setDoubleOptionValue(_model, "iis_time_limit",
-                                                  _time_limit));
+            _api._check(_write_back());
         }
+        // values read back moments ago: the writes cannot be rejected
         ~iis_option_guard() {
-            if(_restored) return;
-            // values read back moments ago: the writes cannot be rejected
-            (void)_api.setIntOptionValue(_model, "iis_strategy", _strategy);
-            (void)_api.setDoubleOptionValue(_model, "iis_time_limit",
-                                            _time_limit);
+            if(!_restored) (void)_write_back();
         }
     };
 

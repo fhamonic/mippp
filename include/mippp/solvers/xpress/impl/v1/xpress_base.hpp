@@ -548,6 +548,10 @@ private:
         int _ops;
         bool _restored = false;
 
+        int _write_back() const noexcept {
+            return _api.setintcontrol(_prob, XPRS_IISOPS, _ops);
+        }
+
     public:
         iis_option_guard(const xpress_api & api, XPRSprob prob, int ops)
             : _api(api), _prob(prob) {
@@ -559,12 +563,11 @@ private:
 
         void restore() {
             _restored = true;
-            _api._check(_prob, _api.setintcontrol(_prob, XPRS_IISOPS, _ops));
+            _api._check(_prob, _write_back());
         }
+        // a value read back moments ago: the write cannot be rejected
         ~iis_option_guard() {
-            if(_restored) return;
-            // a value read back moments ago: the write cannot be rejected
-            (void)_api.setintcontrol(_prob, XPRS_IISOPS, _ops);
+            if(!_restored) (void)_write_back();
         }
     };
 

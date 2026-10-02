@@ -395,8 +395,7 @@ public:
 private:
     // The refiner refuses to run while a generic callback is registered
     // (CPXERR_UNSUPPORTED_OPERATION, measured on 22.1.1 and 22.1.2), whatever
-    // the callback does: it is detached for the call. A rejected
-    // re-registration is retried once, unchecked, by the destructor.
+    // the callback does: it is detached for the call.
     class iis_callback_guard {
     private:
         cplex_milp * _model;
@@ -413,11 +412,13 @@ private:
 
         void restore() {
             if(!_model) return;
-            _model->check(_model->CPX->callbacksetfunc(
-                _model->env, _model->lp, CPX_CALLBACKCONTEXT_CANDIDATE,
-                candidate_solution_callback_fun, _model));
-            _model = nullptr;
+            auto * const model = std::exchange(_model, nullptr);
+            model->check(model->CPX->callbacksetfunc(
+                model->env, model->lp, CPX_CALLBACKCONTEXT_CANDIDATE,
+                candidate_solution_callback_fun, model));
         }
+        // only after an exception, where a second error could not be
+        // reported
         ~iis_callback_guard() {
             if(!_model) return;
             (void)_model->CPX->callbacksetfunc(

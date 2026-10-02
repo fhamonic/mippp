@@ -723,13 +723,18 @@ private:
                                         static_cast<int>(saved.size()),
                                         saved.data());
         }
-        // values read back moments ago: the writes cannot be rejected
-        void _write_back_all() noexcept {
-            (void)_write_back(GRB_INT_ATTR_IIS_SOSFORCE, _sos_force);
-            (void)_write_back(GRB_INT_ATTR_IIS_QCONSTRFORCE, _qconstr_force);
-            (void)_write_back(GRB_INT_ATTR_IIS_GENCONSTRFORCE,
-                              _genconstr_force);
-            (void)_api.updatemodel(_model);
+        // every attribute is written back before the first error is
+        // returned, so a rejected write cannot leave the others forced
+        int _write_back_all() noexcept {
+            int first_error = 0;
+            for(const int error :
+                {_write_back(GRB_INT_ATTR_IIS_SOSFORCE, _sos_force),
+                 _write_back(GRB_INT_ATTR_IIS_QCONSTRFORCE, _qconstr_force),
+                 _write_back(GRB_INT_ATTR_IIS_GENCONSTRFORCE, _genconstr_force),
+                 _api.updatemodel(_model)}) {
+                if(first_error == 0) first_error = error;
+            }
+            return first_error;
         }
 
     public:
@@ -747,31 +752,20 @@ private:
                 // attribute writes are queued until an update
                 if(_forced()) _check(_api.updatemodel(_model));
             } catch(...) {
-                _write_back_all();
+                (void)_write_back_all();
                 throw;
             }
         }
         iis_force_guard(const iis_force_guard &) = delete;
         iis_force_guard & operator=(const iis_force_guard &) = delete;
 
-        // every attribute is written back before the first error is raised,
-        // so a rejected write cannot leave the others forced
         void restore() {
             _restored = true;
-            if(!_forced()) return;
-            int first_error =
-                _write_back(GRB_INT_ATTR_IIS_SOSFORCE, _sos_force);
-            for(const int error :
-                {_write_back(GRB_INT_ATTR_IIS_QCONSTRFORCE, _qconstr_force),
-                 _write_back(GRB_INT_ATTR_IIS_GENCONSTRFORCE, _genconstr_force),
-                 _api.updatemodel(_model)}) {
-                if(first_error == 0) first_error = error;
-            }
-            _check(first_error);
+            if(_forced()) _check(_write_back_all());
         }
+        // values read back moments ago: the writes cannot be rejected
         ~iis_force_guard() {
-            if(_restored || !_forced()) return;
-            _write_back_all();
+            if(!_restored && _forced()) (void)_write_back_all();
         }
     };
 

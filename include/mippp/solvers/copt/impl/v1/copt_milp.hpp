@@ -255,8 +255,7 @@ private:
     // The solve that confirms infeasibility would run a registered callback,
     // whose lazy constraints can make a feasible model infeasible and the
     // routine then flags the whole model: the callback is detached for the
-    // call. A rejected re-registration is retried once, unchecked, by the
-    // destructor.
+    // call.
     class iis_callback_guard {
     private:
         copt_milp * _model;
@@ -273,11 +272,13 @@ private:
 
         void restore() {
             if(!_model) return;
-            _model->check(_model->COPT->SetCallback(
-                _model->prob, candidate_solution_callback_func,
-                COPT_CBCONTEXT_MIPSOL, _model));
-            _model = nullptr;
+            auto * const model = std::exchange(_model, nullptr);
+            model->check(model->COPT->SetCallback(
+                model->prob, candidate_solution_callback_func,
+                COPT_CBCONTEXT_MIPSOL, model));
         }
+        // only after an exception, where a second error could not be
+        // reported
         ~iis_callback_guard() {
             if(!_model) return;
             (void)_model->COPT->SetCallback(_model->prob,
