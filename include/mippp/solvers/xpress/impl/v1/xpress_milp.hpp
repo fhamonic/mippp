@@ -292,12 +292,16 @@ public:
     // The routine solves on its own and overwrites the status attributes and
     // the held solution: the reported status is reset before the first native
     // call, throw or return.
+    // A model without integer columns is an LP, on which the routine names
+    // the side of a ranged row reliably.
     auto compute_iis() {
         reset_status();
+        int mip_entities;
+        check(XPRS->getintattrib(prob, XPRS_ORIGINALMIPENTS, &mip_entities));
         iis_callback_guard detached(*this);
         auto iis =
             _compute_iis<iis_sided_status, detail::iis_whole_or_sided_status>(
-                true);
+                mip_entities > 0);
         detached.restore();
         return iis;
     }

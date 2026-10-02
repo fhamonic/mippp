@@ -400,6 +400,23 @@ TEST_F(xpress_milp_iis_test, column_listed_with_both_bounds_merges_the_sides) {
     EXPECT_EQ(iis.num_constraint_members(), 1u);
 }
 
+// Without integer columns the routine names the side of a ranged row, and
+// xpress_milp keeps it, as xpress_lp does.
+TEST_F(xpress_milp_iis_test, ranged_row_keeps_its_side_without_integers) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 10.});
+    auto y = model.add_variable({.lower_bound = 0., .upper_bound = 10.});
+    auto ranged = model.add_constraint(x + y >= 0.);
+    model.set_constraint_upper_bound(ranged, 12.);
+    auto at_least = model.add_constraint(x + y >= 15.);
+    const auto iis = model.compute_iis();
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(ranged)));
+    EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(at_least)));
+    EXPECT_EQ(iis.num_variable_members(), 0u);
+}
+
 TEST_F(xpress_milp_iis_test, market_split_conflict_completes) {
     auto model = this->new_model();
     add_market_split_conflict(model);

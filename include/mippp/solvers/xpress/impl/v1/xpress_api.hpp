@@ -70,7 +70,8 @@ enum IntegerAttribute : int {
     XPRS_MIPSTATUS = 1011,
     XPRS_STOPSTATUS = 1179,
     XPRS_NUMIIS = 1031,
-    XPRS_IISSOLSTATUS = 1406
+    XPRS_IISSOLSTATUS = 1406,
+    XPRS_ORIGINALMIPENTS = 1191
 };
 enum LPStatus : int {
     XPRS_LP_UNSTARTED = 0,
