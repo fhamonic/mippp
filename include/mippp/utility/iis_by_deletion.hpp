@@ -50,8 +50,9 @@ concept iis_rows_as_sense_and_rhs =
 // bound and row side is relaxed to the backend's infinity() and restored, so
 // both halves of each pair are needed, and the objective is zeroed for the
 // trials and written back from a copy, the Hessian included on a qp_model.
-// Row sides are written through the row-bound setters, or through the sense
-// and the rhs on a model without them and without ranged rows.
+// Row sides are written through the row-bound setters, or, on a model without
+// them and without ranged rows, through the rhs, and through the sense when a
+// row changes it.
 template <typename M>
 concept iis_by_deletion_model =
     lp_model<M> && has_enumerable_variables<M> &&
@@ -203,11 +204,14 @@ private:
         return s.lower ? -_model.infinity() : _model.infinity();
     }
     // A model without row-bound setters cannot write one side of a row, so
-    // the row is written whole, through its sense and rhs: side r as asked,
-    // the other as its candidate's state has it, or infinite when it is no
-    // candidate. The two sides of a row are consecutive candidates, and the
-    // flag of side r is not read, since the callers update it on either side
-    // of the write.
+    // the row's whole state is computed: side r as asked, the other as its
+    // candidate's state has it, or infinite when it is no candidate. The
+    // sense is written only when that state needs another one, so a one-sided
+    // row is relaxed and restored through its rhs alone, and a row left with
+    // no side keeps its sense under an infinite rhs, an == row becoming a <=
+    // row. The two sides of a row are consecutive candidates, and the flag of
+    // side r is not read, since the callers update it on either side of the
+    // write.
     void _write_row(std::size_t r, bool relaxed)
         requires detail::iis_rows_as_sense_and_rhs<M>
     {
@@ -224,20 +228,25 @@ private:
         if(r + 1 < rows.size() && rows[r + 1].handle == rows[r].handle)
             take(r + 1, !_at_saved_value[offset + r + 1]);
         const auto handle = rows[r].handle;
+        const constraint_sense current = _model.get_constraint_sense(handle);
+        constraint_sense sense = constraint_sense::less_equal;
+        scalar rhs = infinity;
         // two finite sides are the equal sides of an == row: without ranged
         // rows, no other row has them
         if(lower > -infinity && upper < infinity) {
-            _model.set_constraint_sense(handle, constraint_sense::equal);
-            _model.set_constraint_rhs(handle, lower);
+            sense = constraint_sense::equal;
+            rhs = lower;
         } else if(lower > -infinity) {
-            _model.set_constraint_sense(handle,
-                                        constraint_sense::greater_equal);
-            _model.set_constraint_rhs(handle, lower);
-        } else {
-            // a free row when upper is infinite too
-            _model.set_constraint_sense(handle, constraint_sense::less_equal);
-            _model.set_constraint_rhs(handle, upper);
+            sense = constraint_sense::greater_equal;
+            rhs = lower;
+        } else if(upper < infinity) {
+            rhs = upper;
+        } else if(current == constraint_sense::greater_equal) {
+            sense = constraint_sense::greater_equal;
+            rhs = -infinity;
         }
+        if(sense != current) _model.set_constraint_sense(handle, sense);
+        _model.set_constraint_rhs(handle, rhs);
     }
     void _write_side(std::size_t k, bool relaxed) {
         const std::size_t num_variable_sides =
