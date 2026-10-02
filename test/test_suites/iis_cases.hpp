@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <concepts>
 #include <cstddef>
 #include <optional>
@@ -144,6 +145,22 @@ template <lp_model M>
         if(std::ranges::any_of(c.system.rows, is_ranged)) return false;
     }
     return true;
+}
+
+// For a backend that stores a ranged row as one side and a non-negative
+// width, whose setters then refuse sides that cross: a case holding such a
+// row is skipped from its data, before anything is built.
+inline std::optional<std::string> crossed_row_skip_reason(const iis_case & c,
+                                                          const char * solver) {
+    for(std::size_t i = 0; i < c.system.rows.size(); ++i) {
+        const auto & row = c.system.rows[i];
+        if(row.lower && row.upper && *row.lower > *row.upper)
+            return std::string(solver) + " cannot store row " +
+                   std::to_string(i) +
+                   ", whose sides cross: a ranged row is one side and a "
+                   "width";
+    }
+    return std::nullopt;
 }
 
 // A function object rather than a lambda: xsum stores it, and the suites are
@@ -424,6 +441,36 @@ inline iis_case feasible_model_case() {
             {},
             iis_outcome::feasible};
 }
+inline iis_case feasible_integer_model_case() {
+    using enum membership;
+    return {"feasible_integer_model",
+            {{{0., 4.}, {0., 4.}}, {{{{0, 1.}, {1, 1.}}, none, 6.5}}},
+            {0, 1},
+            {{{absent, absent}, {absent}}},
+            iis_outcome::feasible};
+}
+// x + y >= 3 against x <= 1 and y <= 1, beside a row the conflict does not
+// need: Gurobi, HiGHS and COPT answer a singleton conflict before they read
+// the clock, and this one needs a solve.
+inline iis_case four_row_conflict_case() {
+    using enum membership;
+    return {"four_row_conflict",
+            {{{none, none}, {none, none}},
+             {{{{0, 1.}, {1, 1.}}, 3., none},
+              {{{0, 1.}}, none, 1.},
+              {{{1, 1.}}, none, 1.},
+              {{{0, 1.}, {1, -1.}}, none, 10.}}},
+            {},
+            {{{absent, absent}, {lower, upper, upper, absent}}},
+            iis_outcome::irreducible};
+}
+// the same conflict on a MIP, which some routines answer on another path
+inline iis_case integer_four_row_conflict_case() {
+    iis_case c = four_row_conflict_case();
+    c.name = "integer_four_row_conflict";
+    c.integer_columns = {0};
+    return c;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// The shared fixture ////////////////////////////
@@ -444,8 +491,7 @@ inline std::size_t count_members(const std::vector<membership> & entries) {
 }
 
 // The case bodies both suites run, as members: the path (the free function or
-// the model's own routine) is a policy with a static compute(model) and a
-// names_every_side flag.
+// the model's own routine) is a policy with a static compute(model).
 template <typename T, typename Path>
 struct fixture : public T {
     using T::new_model;
@@ -493,13 +539,24 @@ struct fixture : public T {
         const case_answer answer =
             iis_oracle::read_answer(iis, built.variables, built.constraints);
         ASSERT_EQ(iis.get_outcome(), c.expected_outcome) << answer_text(answer);
-        if constexpr(Path::names_every_side) {
-            for(const membership m : answer.rows)
-                EXPECT_NE(m, membership::whole);
-            if(c.expected_outcome == iis_outcome::irreducible ||
-               c.expected_outcome == iis_outcome::feasible) {
-                EXPECT_EQ(iis.get_reason(), std::nullopt);
-            }
+        if(c.expected_outcome == iis_outcome::irreducible ||
+           c.expected_outcome == iis_outcome::feasible) {
+            EXPECT_EQ(iis.get_reason(), std::nullopt);
+        }
+        // The side of a one-sided entity is known from the model, so it is
+        // always named: whole is left to an entity whose two sides a routine
+        // does not tell apart.
+        for(std::size_t i = 0; i < answer.variables.size(); ++i) {
+            const auto & v = c.system.variables[i];
+            EXPECT_TRUE(answer.variables[i] != membership::whole ||
+                        (v.lower && v.upper))
+                << "variable " << i << " is whole with one bound";
+        }
+        for(std::size_t i = 0; i < answer.rows.size(); ++i) {
+            const auto & row = c.system.rows[i];
+            EXPECT_TRUE(answer.rows[i] != membership::whole ||
+                        (row.lower && row.upper))
+                << "row " << i << " is whole with one side";
         }
         if(c.expected_outcome == iis_outcome::feasible) {
             for(const membership m : answer.variables)
@@ -725,14 +782,149 @@ struct fixture : public T {
         auto r1 = model.add_constraint(no_terms <= 2.);
         auto iis = Path::compute(model);
         EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-        EXPECT_TRUE(is_a<iis_status::member>(iis.get_status(r0)));
-        if constexpr(Path::names_every_side) {
-            EXPECT_EQ(iis_oracle::membership_of(iis.get_status(r0)),
-                      membership::lower);
-        }
+        EXPECT_EQ(iis.get_reason(), std::nullopt);
+        EXPECT_EQ(iis_oracle::membership_of(iis.get_status(r0)),
+                  membership::lower);
         EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r1)));
         EXPECT_EQ(iis.num_constraint_members(), 1u);
         EXPECT_EQ(iis.num_variable_members(), 0u);
+    }
+
+    // The status of an earlier solve no longer describes the solver, which
+    // may now hold the routine's or a trial's own solution, while the data
+    // are those of the model: a re-solve finds the same status again.
+    void check_status_is_unknown_after_the_call() {
+        {
+            auto model = this->new_model();
+            build(model, bounds_against_a_row_case());
+            model.solve();
+            ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
+            const auto iis = Path::compute(model);
+            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+            EXPECT_TRUE(is<status::unknown>(model.get_status()));
+            model.solve();
+            EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
+        }
+        {
+            auto model = this->new_model();
+            build(model, feasible_model_case());
+            model.solve();
+            ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+            const auto iis = Path::compute(model);
+            EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+            EXPECT_TRUE(is<status::unknown>(model.get_status()));
+            model.solve();
+            EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+        }
+    }
+
+    // Some wrappers write the remaining budget into the model's limit for
+    // part of the call, such as the routine after the solve that a MIP path
+    // runs first, or the solve that confirms a feasible model: the cases
+    // reach each of those paths.
+    void check_time_limit_reads_back_unchanged() {
+        using M = model_type;
+        if constexpr(!has_time_limit<M>) {
+            GTEST_SKIP() << "no time limit";
+        } else {
+            std::vector<iis_case> cases{bounds_against_a_row_case(),
+                                        feasible_model_case()};
+            if constexpr(milp_model<M>) {
+                cases.push_back(integer_equal_to_one_half_case());
+                cases.push_back(feasible_integer_model_case());
+            }
+            for(const iis_case & c : cases) {
+                SCOPED_TRACE(c.name);
+                if(!can_build<M>(c) || skip_reason(c)) continue;
+                auto model = this->new_model();
+                build(model, c);
+                model.set_time_limit(std::chrono::seconds(3));
+                const auto before = model.get_time_limit();
+                const auto iis = Path::compute(model);
+                EXPECT_EQ(iis.get_outcome(), c.expected_outcome);
+                EXPECT_EQ(model.get_time_limit(), before);
+                EXPECT_EQ(model.get_time_limit(), std::chrono::seconds(3));
+            }
+        }
+    }
+
+    // An indicator has no handle to report, so it stays in every subsystem:
+    // the members are an IIS relative to the indicators, and a conflict among
+    // indicators alone is irreducible with no member.
+    void check_indicator_constraints_are_background() {
+        using namespace operators;
+        using M = model_type;
+        if constexpr(!has_indicator_constraints<M>) {
+            GTEST_SKIP() << "no indicator constraints";
+        } else {
+            using enum iis_oracle::membership;
+            {
+                SCOPED_TRACE("a needed indicator");
+                // z is held at 1 by a row, and the indicator then asks
+                // x >= 5 of x in [0, 1]: without it the rest is feasible
+                auto model = this->new_model();
+                auto z = model.add_binary_variable();
+                auto x =
+                    model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+                auto r0 = model.add_constraint(z >= 1.);
+                model.add_indicator_constraint(z, true, x >= 5.);
+                const auto iis = Path::compute(model);
+                expect_accepted_answer(iis, iis_outcome::irreducible,
+                                       std::vector{z, x}, std::vector{r0},
+                                       {{{absent, upper}, {lower}}});
+            }
+            {
+                SCOPED_TRACE("an indicator the conflict does not need");
+                auto model = this->new_model();
+                auto z = model.add_binary_variable();
+                auto x =
+                    model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+                auto y =
+                    model.add_variable({.lower_bound = 0., .upper_bound = 10.});
+                auto r0 = model.add_constraint(x >= 2.);
+                model.add_indicator_constraint(z, true, x + y <= 5.);
+                const auto iis = Path::compute(model);
+                expect_accepted_answer(iis, iis_outcome::irreducible,
+                                       std::vector{z, x, y}, std::vector{r0},
+                                       {{{absent, upper, absent}, {lower}}});
+            }
+            {
+                SCOPED_TRACE("indicators alone");
+                // whatever z is, one indicator asks x >= 5, another x <= 1
+                auto model = this->new_model();
+                auto z = model.add_binary_variable();
+                auto x = model.add_variable();
+                auto y =
+                    model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+                model.add_indicator_constraint(z, true, x >= 5.);
+                model.add_indicator_constraint(z, false, x >= 5.);
+                model.add_indicator_constraint(z, true, x <= 1.);
+                model.add_indicator_constraint(z, false, x <= 1.);
+                auto r0 = model.add_constraint(y <= 3.);
+                const auto iis = Path::compute(model);
+                expect_accepted_answer(iis, iis_outcome::irreducible,
+                                       std::vector{z, x, y}, std::vector{r0},
+                                       {{{absent, absent, absent}, {absent}}});
+                model.solve();
+                EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
+            }
+        }
+    }
+
+private:
+    template <typename Iis, typename Variables, typename Constraints>
+    void expect_accepted_answer(const Iis & iis, iis_outcome outcome,
+                                const Variables & variables,
+                                const Constraints & constraints,
+                                const std::vector<case_answer> & accepted) {
+        ASSERT_EQ(iis.get_outcome(), outcome);
+        EXPECT_EQ(iis.get_reason(), std::nullopt);
+        const case_answer answer =
+            iis_oracle::read_answer(iis, variables, constraints);
+        EXPECT_TRUE(std::ranges::find(accepted, answer) != accepted.end())
+            << "not an accepted answer: " << answer_text(answer);
+        EXPECT_EQ(iis.num_variable_members(), count_members(answer.variables));
+        EXPECT_EQ(iis.num_constraint_members(), count_members(answer.rows));
     }
 };
 

@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <vector>
+
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/iis_by_deletion.hpp"
 #include "mippp/utility/variant.hpp"
@@ -11,8 +14,6 @@
 namespace mippp {
 
 struct iis_native_path {
-    // a routine that cannot side an equality row may report it whole
-    static constexpr bool names_every_side = false;
     template <typename M>
     static auto compute(M & model) {
         return model.compute_iis();
@@ -27,29 +28,73 @@ struct IisTest : public iis_cases::fixture<T, iis_native_path> {
     using iis_cases::fixture<T, iis_native_path>::expect_unchanged;
     using iis_cases::fixture<T, iis_native_path>::answer_text;
 
-    // whether the routine returns or throws, the status of an earlier solve
-    // is gone: the solver may now hold the analysis' own solution
-    void check_status_is_unknown_after_compute_iis() {
-        {
+    // A zero limit stops the routine before it has an answer. On a
+    // milp_model the integer column sends the conflict down the MIP paths,
+    // such as the solve that copt_milp runs first.
+    void check_zero_time_limit_stop() {
+        using M = model_type;
+        if constexpr(!has_time_limit<M>) {
+            GTEST_SKIP() << "no time limit";
+        } else {
+            std::vector<iis_cases::iis_case> cases{
+                iis_cases::four_row_conflict_case()};
+            if constexpr(milp_model<M>)
+                cases.push_back(iis_cases::integer_four_row_conflict_case());
+            for(const iis_cases::iis_case & c : cases) {
+                SCOPED_TRACE(c.name);
+                if(this->skip_reason(c)) continue;
+                auto model = this->new_model();
+                build(model, c);
+                model.set_time_limit(std::chrono::seconds(0));
+                const auto iis = model.compute_iis();
+                EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
+                EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
+                EXPECT_EQ(iis.num_variable_members(), 0u);
+                EXPECT_EQ(iis.num_constraint_members(), 0u);
+                EXPECT_EQ(model.get_time_limit().count(), 0.);
+                EXPECT_TRUE(is<status::unknown>(model.get_status()));
+            }
+        }
+    }
+
+    // The routines that solve would run a registered callback, whose cuts or
+    // rejections make a feasible model read infeasible and the answer name
+    // the whole model: it does not run during the call and is back for the
+    // next solve, where it cuts off every candidate.
+    void check_registered_callback_does_not_run() {
+        using namespace operators;
+        using M = model_type;
+        if constexpr(!has_candidate_solution_callback<M>) {
+            GTEST_SKIP() << "no candidate-solution callback";
+        } else {
+            using handle_type = candidate_solution_callback_handle_t<M>;
+            static_assert(has_lazy_constraints<handle_type, M> ||
+                          has_candidate_solution_rejection<handle_type>);
             auto model = this->new_model();
-            build(model, iis_cases::feasible_model_case());
-            model.solve();
-            ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+            auto x = model.add_integer_variable(
+                {.lower_bound = 0., .upper_bound = 5.});
+            auto y = model.add_integer_variable(
+                {.lower_bound = 0., .upper_bound = 5.});
+            auto r0 = model.add_constraint(x + y <= 8.);
+            model.set_maximization();
+            model.set_objective(x + y);
+            int fired = 0;
+            model.set_candidate_solution_callback([&](handle_type & handle) {
+                using namespace operators;
+                ++fired;
+                if constexpr(has_lazy_constraints<handle_type, M>)
+                    handle.add_lazy_constraint(x + y <= -1.);
+                else
+                    handle.reject_solution();
+            });
             const auto iis = model.compute_iis();
             EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
-            EXPECT_TRUE(is<status::unknown>(model.get_status()));
+            EXPECT_EQ(fired, 0);
+            EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
+            EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
+            EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r0)));
             model.solve();
-            EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
-        }
-        {
-            auto model = this->new_model();
-            build(model, iis_cases::bounds_against_a_row_case());
-            model.solve();
-            ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
-            const auto iis = model.compute_iis();
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-            EXPECT_TRUE(is<status::unknown>(model.get_status()));
-            model.solve();
+            EXPECT_GE(fired, 1);
             EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
         }
     }
@@ -185,7 +230,22 @@ TYPED_TEST_P(IisTest, column_less_model_names_the_violated_row) {
 
 TYPED_TEST_P(IisTest, status_is_unknown_after_compute_iis) {
     this->SkipOnLicenseError(
-        [this]() { this->check_status_is_unknown_after_compute_iis(); });
+        [this]() { this->check_status_is_unknown_after_the_call(); });
+}
+TYPED_TEST_P(IisTest, time_limit_reads_back_unchanged) {
+    this->SkipOnLicenseError(
+        [this]() { this->check_time_limit_reads_back_unchanged(); });
+}
+TYPED_TEST_P(IisTest, zero_time_limit_is_a_time_limit_stop) {
+    this->SkipOnLicenseError([this]() { this->check_zero_time_limit_stop(); });
+}
+TYPED_TEST_P(IisTest, registered_callback_does_not_run) {
+    this->SkipOnLicenseError(
+        [this]() { this->check_registered_callback_does_not_run(); });
+}
+TYPED_TEST_P(IisTest, indicator_constraints_are_background) {
+    this->SkipOnLicenseError(
+        [this]() { this->check_indicator_constraints_are_background(); });
 }
 TYPED_TEST_P(IisTest, both_paths_find_valid_iis) {
     this->SkipOnLicenseError(
@@ -204,6 +264,8 @@ REGISTER_TYPED_TEST_SUITE_P(
     model_modified_after_an_infeasible_solve,
     model_data_and_result_survive_the_call,
     column_less_model_names_the_violated_row,
-    status_is_unknown_after_compute_iis, both_paths_find_valid_iis);
+    status_is_unknown_after_compute_iis, time_limit_reads_back_unchanged,
+    zero_time_limit_is_a_time_limit_stop, registered_callback_does_not_run,
+    indicator_constraints_are_background, both_paths_find_valid_iis);
 
 }  // namespace mippp

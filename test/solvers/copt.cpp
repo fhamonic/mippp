@@ -117,16 +117,6 @@ struct copt_iis_test : public model_test<copt_api, Model> {
         model_test<copt_api, Model>::construct_api("COPT");
     }
 
-    // A conflict that needs a solve to be found: COPT's presolve answers a
-    // singleton-row conflict before the time budget applies.
-    static void add_row_conflict(Model & model, model_variable_t<Model> x) {
-        using namespace operators;
-        auto y = model.add_variable();
-        model.add_constraint(x + y >= 3.);
-        model.add_constraint(x <= 1.);
-        model.add_constraint(y <= 1.);
-        model.add_constraint(x - y <= 10.);
-    }
     static int read_iis_method(const Model & model) {
         int value = 0;
         model.native_api()._check(
@@ -191,14 +181,12 @@ struct copt_iis_test : public model_test<copt_api, Model> {
 using copt_lp_iis_test = copt_iis_test<copt_lp>;
 using copt_milp_iis_test = copt_iis_test<copt_milp>;
 
-// The LP path never writes IISMethod and writes TimeLimit only for the
-// confirming solve, restoring it: both read back unchanged, whether it decodes
-// an answer or confirms feasibility by a solve.
-TEST_F(copt_lp_iis_test, compute_iis_sets_no_parameter) {
+// Neither path writes IISMethod, whether the LP path decodes an answer or
+// confirms feasibility by a solve, or the MIP path solves first.
+TEST_F(copt_lp_iis_test, compute_iis_leaves_iis_method_alone) {
     using namespace operators;
     auto model = this->new_model();
     const int method_before = read_iis_method(model);
-    model.set_time_limit(std::chrono::seconds(3));
     auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
     auto r = model.add_constraint(x >= 2.);
     const auto iis = model.compute_iis();
@@ -206,52 +194,21 @@ TEST_F(copt_lp_iis_test, compute_iis_sets_no_parameter) {
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(r)));
     EXPECT_EQ(read_iis_method(model), method_before);
-    EXPECT_EQ(model.get_time_limit().count(), 3.);
     model.set_variable_upper_bound(x, 3.);
     const auto iis2 = model.compute_iis();
     EXPECT_EQ(iis2.get_outcome(), iis_outcome::feasible);
     EXPECT_EQ(read_iis_method(model), method_before);
-    EXPECT_EQ(model.get_time_limit().count(), 3.);
 }
 
-// The MIP path writes the remaining budget into TimeLimit for the call.
-TEST_F(copt_milp_iis_test, compute_iis_restores_the_time_limit) {
+TEST_F(copt_milp_iis_test, compute_iis_leaves_iis_method_alone) {
     using namespace operators;
     auto model = this->new_model();
     const int method_before = read_iis_method(model);
-    model.set_time_limit(std::chrono::seconds(3));
     auto x = model.add_integer_variable({.lower_bound = 0., .upper_bound = 1.});
     model.add_constraint(x >= 2.);
     const auto iis = model.compute_iis();
     EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
     EXPECT_EQ(read_iis_method(model), method_before);
-    EXPECT_EQ(model.get_time_limit().count(), 3.);
-}
-
-TEST_F(copt_lp_iis_test, compute_iis_zero_budget_is_a_time_limit_stop) {
-    auto model = this->new_model();
-    add_row_conflict(model, model.add_variable());
-    model.set_time_limit(std::chrono::seconds(0));
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
-    EXPECT_EQ(iis.num_variable_members(), 0u);
-    EXPECT_EQ(iis.num_constraint_members(), 0u);
-    EXPECT_EQ(model.get_time_limit().count(), 0.);
-    EXPECT_TRUE(is<status::unknown>(model.get_status()));
-}
-
-TEST_F(copt_milp_iis_test, compute_iis_zero_budget_is_a_time_limit_stop) {
-    auto model = this->new_model();
-    add_row_conflict(model, model.add_integer_variable());
-    model.set_time_limit(std::chrono::seconds(0));
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
-    EXPECT_EQ(iis.num_variable_members(), 0u);
-    EXPECT_EQ(iis.num_constraint_members(), 0u);
-    EXPECT_EQ(model.get_time_limit().count(), 0.);
-    EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
 // COPT_ComputeIIS reads past its arrays on a model without rows whose
@@ -381,9 +338,6 @@ TEST_F(copt_milp_iis_test, one_sided_members_keep_their_side_on_a_mip) {
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(r)));
 }
 
-// COPT flags one bound of a two-bounded continuous column on a MIP where both
-// are needed: x = 0 lets y = 2 and x = 2 lets y = 1, so a sided x would name
-// a feasible subsystem.
 // COPT's routine leaks memory on a model without columns (measured on 8.0.5
 // under LeakSanitizer), so such a model is answered from its constant rows:
 // a side an infinite value reads as 1e30 on COPT, and 0 satisfies it.
@@ -409,6 +363,9 @@ TEST_F(copt_milp_iis_test, column_less_rows_that_admit_zero_are_feasible) {
     check_column_less_rows_that_admit_zero_are_feasible(this->new_model());
 }
 
+// COPT flags one bound of a two-bounded continuous column on a MIP where both
+// are needed: x = 0 lets y = 2 and x = 2 lets y = 1, so a sided x would name
+// a feasible subsystem.
 TEST_F(copt_milp_iis_test, two_bounded_continuous_column_is_whole_on_a_mip) {
     using namespace operators;
     auto model = this->new_model();
@@ -524,33 +481,6 @@ TEST_F(copt_milp_iis_test, feasible_mip_is_answered_at_its_first_incumbent) {
     EXPECT_EQ(read_int_attr(model, "HasMipSol"), 1);
     model.solve();
     EXPECT_TRUE(is<status::optimal>(model.get_status()));
-}
-
-// The confirming solve would run the callback, whose lazy constraints can
-// cut every candidate off a feasible model: COPT then flags the whole model.
-TEST_F(copt_milp_iis_test,
-       registered_callback_does_not_run_during_compute_iis) {
-    using namespace operators;
-    auto model = this->new_model();
-    auto x = model.add_integer_variable({.lower_bound = 0., .upper_bound = 5.});
-    auto y = model.add_integer_variable({.lower_bound = 0., .upper_bound = 5.});
-    auto r = model.add_constraint(x + y <= 8.);
-    model.set_maximization();
-    model.set_objective(x + y);
-    int fired = 0;
-    model.set_candidate_solution_callback([&](auto & handle) {
-        ++fired;
-        handle.add_lazy_constraint(x + y <= -1.);
-    });
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
-    EXPECT_EQ(fired, 0);
-    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
-    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r)));
-    // the callback is back for the next solve
-    model.solve();
-    EXPECT_GE(fired, 1);
-    EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
 }
 
 // COPT keeps the bounds of a binary column moved outside [0, 1] and calls

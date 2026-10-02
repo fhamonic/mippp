@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <optional>
 #include <ranges>
 
@@ -132,39 +131,6 @@ static_assert(iis_by_deletion_model<gurobi_milp>);
 static_assert(detail::iis_rows_as_sense_and_rhs<gurobi_lp>);
 static_assert(detail::iis_rows_as_sense_and_rhs<gurobi_milp>);
 
-namespace {
-// A conflict the routine has to solve for: a singleton-row conflict is
-// answered by its cheap checks before the time limit is ever consulted.
-template <typename Model>
-void add_row_conflict(Model & model) {
-    using namespace operators;
-    auto x = model.add_variable();
-    auto y = model.add_variable();
-    model.add_constraint(x + y >= 3.);
-    model.add_constraint(x <= 1.);
-    model.add_constraint(y <= 1.);
-    model.add_constraint(x - y <= 10.);
-}
-// A zero limit stops the routine in its status solve: it returns 0 with
-// the IIS attributes unset, which is no answer, and the Status attribute
-// then holds the time-limit code that the reset keeps out of get_status().
-template <typename Model>
-void check_zero_budget_is_a_time_limit_stop(Model model) {
-    add_row_conflict(model);
-    model.set_time_limit(std::chrono::seconds(0));
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
-    EXPECT_EQ(iis.num_variable_members(), 0u);
-    EXPECT_EQ(iis.num_constraint_members(), 0u);
-    EXPECT_EQ(model.get_time_limit().count(), 0.);
-    EXPECT_TRUE(is<status::unknown>(model.get_status()));
-}
-}  // namespace
-TEST_F(gurobi_lp_test, compute_iis_zero_budget_is_a_time_limit_stop) {
-    check_zero_budget_is_a_time_limit_stop(new_model());
-}
-
 // Gurobi's IterationLimit also stops the routine's solves, and a stop that
 // is not the time limit's carries no reason: the answer is only that there
 // is none, and the limit stays where the user set it.
@@ -187,9 +153,6 @@ TEST_F(gurobi_lp_test, iteration_limit_stops_compute_iis_without_a_reason) {
     EXPECT_EQ(answer.get_outcome(), iis_outcome::irreducible);
     EXPECT_EQ(answer.num_constraint_members(), 6u);
     EXPECT_EQ(answer.num_variable_members(), 0u);
-}
-TEST_F(gurobi_milp_test, compute_iis_zero_budget_is_a_time_limit_stop) {
-    check_zero_budget_is_a_time_limit_stop(new_model());
 }
 
 // The forcing attributes are the user's: values set to 0 beforehand, which
@@ -225,58 +188,13 @@ TEST_F(gurobi_milp_test, compute_iis_restores_the_forcing_attributes) {
     EXPECT_EQ(read_int_attribute(model, "IISGenConstrForce", 0), 0);
 }
 
-// The indicator is background: the reported members are an IIS relative to
-// it, here a row and a bound that are satisfiable on their own, and the
-// forcing attribute reads its default again afterwards.
-TEST_F(gurobi_milp_test, indicator_is_background_for_compute_iis) {
+// A forcing attribute left at its default reads it again after the call.
+TEST_F(gurobi_milp_test, compute_iis_keeps_a_default_forcing_attribute) {
     auto model = new_model();
-    const auto conflict = add_indicator_conflict(model);
+    add_indicator_conflict(model);
     const auto iis = model.compute_iis();
     EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(conflict.z)));
-    EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(conflict.x)));
-    EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(conflict.row)));
-    EXPECT_EQ(iis.num_variable_members(), 1u);
-    EXPECT_EQ(iis.num_constraint_members(), 1u);
     EXPECT_EQ(read_int_attribute(model, "IISGenConstrForce", 0), -1);
-}
-
-// An indicator the conflict does not need is forced in all the same, and
-// the linear answer is the one the model has without it.
-TEST_F(gurobi_milp_test, unneeded_indicator_leaves_the_answer_whole) {
-    using namespace operators;
-    auto model = new_model();
-    auto z = model.add_binary_variable();
-    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
-    auto row = model.add_constraint(x >= 2.);
-    model.add_indicator_constraint(z, true, x >= 5.);
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-    EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(x)));
-    EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(row)));
-    EXPECT_EQ(iis.num_variable_members(), 1u);
-    EXPECT_EQ(iis.num_constraint_members(), 1u);
-}
-
-// Whatever z is, two indicators ask x >= 1 and two ask x <= 0: the
-// background alone is infeasible, and the answer says so with no member.
-TEST_F(gurobi_milp_test, conflict_among_indicators_alone_has_no_member) {
-    using namespace operators;
-    auto model = new_model();
-    auto z = model.add_binary_variable();
-    auto x = model.add_variable();
-    auto y = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
-    model.add_indicator_constraint(z, true, x >= 1.);
-    model.add_indicator_constraint(z, false, x >= 1.);
-    model.add_indicator_constraint(z, true, x <= 0.);
-    model.add_indicator_constraint(z, false, x <= 0.);
-    auto row = model.add_constraint(y <= 3.);
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-    EXPECT_EQ(iis.num_variable_members(), 0u);
-    EXPECT_EQ(iis.num_constraint_members(), 0u);
-    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(row)));
-    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
 }
 
 // The removal shifts the native ids the indicator and the answer are

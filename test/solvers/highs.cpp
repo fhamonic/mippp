@@ -218,17 +218,6 @@ struct highs_iis_test : public model_test<highs_api, Model> {
         model.add_constraint(x >= 2.);
         return x;
     }
-    // A conflict that needs a solve to be found: the cheap checks that run
-    // before the time budget applies answer a singleton-row conflict at once
-    static void add_row_conflict(Model & model) {
-        using namespace operators;
-        auto x = model.add_variable();
-        auto y = model.add_variable();
-        model.add_constraint(x + y >= 3.);
-        model.add_constraint(x <= 1.);
-        model.add_constraint(y <= 1.);
-        model.add_constraint(x - y <= 10.);
-    }
     // Three depots of 8 t for three stores ordering 9 t each, the six rows
     // being the only IIS. The route capacities keep presolve from finding
     // the conflict, so a solve needs simplex iterations to prove it.
@@ -307,7 +296,8 @@ TEST(HiGHS_lp, compute_iis_below_native_floor_throws) {
 }
 
 // The routine reads its own options, filled from the model's limit for the
-// call only: nothing the wrapper set for the call may outlive it.
+// call only: nothing the wrapper set for the call may outlive it. The limit
+// differs from the default iis_time_limit, so a missed restore shows.
 TEST_F(highs_lp_iis_test, compute_iis_restores_its_options) {
     auto model = this->new_model();
     const int strategy_before = read_iis_strategy(model);
@@ -318,20 +308,6 @@ TEST_F(highs_lp_iis_test, compute_iis_restores_its_options) {
     EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
     EXPECT_EQ(read_iis_strategy(model), strategy_before);
     EXPECT_EQ(read_iis_time_limit(model), iis_time_limit_before);
-    EXPECT_EQ(model.get_time_limit().count(), 3.);
-}
-
-TEST_F(highs_lp_iis_test, compute_iis_zero_budget_is_a_time_limit_stop) {
-    auto model = this->new_model();
-    add_row_conflict(model);
-    model.set_time_limit(std::chrono::seconds(0));
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
-    EXPECT_EQ(iis.num_variable_members(), 0u);
-    EXPECT_EQ(iis.num_constraint_members(), 0u);
-    EXPECT_EQ(model.get_time_limit().count(), 0.);
-    EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
 TEST_F(highs_lp_iis_test, iteration_limit_does_not_stop_compute_iis) {
@@ -353,23 +329,6 @@ TEST_F(highs_qp_iis_test, iteration_limit_does_not_stop_compute_iis) {
     model.set_quadratic_objective(v * v);
     model.set_iteration_limit(0);
     expect_answer_under_zero_iteration_limit(model);
-}
-
-TEST_F(highs_lp_iis_test, compute_iis_status_is_unknown_after_the_call) {
-    using namespace operators;
-    auto model = this->new_model();
-    auto x = model.add_variable();
-    model.add_constraint(x <= 1.);
-    model.set_maximization();
-    model.set_objective(x);
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
-    EXPECT_TRUE(is<status::unknown>(model.get_status()));
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    EXPECT_NEAR(model.get_solution()[x], 1., TEST_EPSILON);
 }
 
 TEST_F(highs_qp_iis_test, compute_iis_keeps_the_quadratic_objective) {

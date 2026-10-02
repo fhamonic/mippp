@@ -67,28 +67,13 @@ TEST(CPLEX_handle_guard, releases_partial_allocations_without_throwing) {
     }
 }
 
-namespace {
 // CPLEX stores a ranged row as a right-hand side and a range width, so a row
-// whose sides cross has no representation and the setters reject it: a case
-// holding one is skipped from its data, before anything is built.
-std::optional<std::string> cplex_iis_case_skip_reason(
-    const iis_cases::iis_case & c) {
-    for(std::size_t i = 0; i < c.system.rows.size(); ++i) {
-        const auto & row = c.system.rows[i];
-        if(row.lower && row.upper && *row.lower > *row.upper)
-            return "CPLEX cannot store row " + std::to_string(i) +
-                   ", whose sides cross: a ranged row is a right-hand side "
-                   "and a range width";
-    }
-    return std::nullopt;
-}
-}  // namespace
-
+// whose sides cross has no representation and the setters reject it.
 struct cplex_lp_test : public model_test<cplex_api, cplex_lp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
     static std::optional<std::string> iis_case_skip_reason(
         const iis_cases::iis_case & c) {
-        return cplex_iis_case_skip_reason(c);
+        return iis_cases::crossed_row_skip_reason(c, "CPLEX");
     }
 };
 INSTANTIATE_TEST(CPLEX_lp, LpModelTest, cplex_lp_test);
@@ -120,7 +105,7 @@ struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
     static std::optional<std::string> iis_case_skip_reason(
         const iis_cases::iis_case & c) {
-        return cplex_iis_case_skip_reason(c);
+        return iis_cases::crossed_row_skip_reason(c, "CPLEX");
     }
 };
 INSTANTIATE_TEST(CPLEX_milp, LpModelTest, cplex_milp_test);
@@ -229,25 +214,8 @@ namespace {
 // first iteration leaves every group excluded, which is no answer.
 template <typename Model>
 auto add_row_conflict(Model & model) {
-    using namespace operators;
-    auto x = model.add_variable();
-    auto y = model.add_variable();
-    return std::array{
-        model.add_constraint(x + y >= 3.), model.add_constraint(x <= 1.),
-        model.add_constraint(y <= 1.), model.add_constraint(x - y <= 10.)};
-}
-
-template <typename Model>
-void check_compute_iis_zero_budget_is_a_time_limit_stop(Model model) {
-    add_row_conflict(model);
-    model.set_time_limit(std::chrono::seconds(0));
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
-    EXPECT_EQ(iis.num_variable_members(), 0u);
-    EXPECT_EQ(iis.num_constraint_members(), 0u);
-    EXPECT_EQ(model.get_time_limit().count(), 0.);
-    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+    return iis_cases::build(model, iis_cases::four_row_conflict_case())
+        .constraints;
 }
 
 // The refiner resumes a stopped refinement on an unchanged problem and, when
@@ -324,16 +292,9 @@ void check_compute_iis_sets_nothing(Model model) {
     const auto iis = model.compute_iis();
     EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
     EXPECT_EQ(read(), before);
-    EXPECT_EQ(model.get_time_limit().count(), 3.);
 }
 }  // namespace
 
-TEST_F(cplex_lp_test, compute_iis_zero_budget_is_a_time_limit_stop) {
-    check_compute_iis_zero_budget_is_a_time_limit_stop(new_model());
-}
-TEST_F(cplex_milp_test, compute_iis_zero_budget_is_a_time_limit_stop) {
-    check_compute_iis_zero_budget_is_a_time_limit_stop(new_model());
-}
 TEST_F(cplex_lp_test, compute_iis_after_a_stop_refines_afresh) {
     check_compute_iis_after_a_stop_refines_afresh(new_model());
 }
@@ -360,14 +321,9 @@ TEST_F(cplex_milp_test, compute_iis_sets_nothing_on_the_problem) {
 // or a side is written, even to its current value (measured on 22.1.1 and
 // 22.1.2).
 TEST_F(cplex_lp_test, iteration_limit_stops_compute_iis_without_an_answer) {
-    using namespace operators;
     auto model = new_model();
-    auto x = model.add_variable();
-    auto y = model.add_variable();
-    model.add_constraint(x + y >= 3.);
-    model.add_constraint(x <= 1.);
-    model.add_constraint(y <= 1.);
-    model.add_constraint(x - y <= 10.);
+    const auto x = iis_cases::build(model, iis_cases::four_row_conflict_case())
+                       .variables[0];
     model.set_iteration_limit(0);
     const auto iis = model.compute_iis();
     EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
@@ -380,70 +336,6 @@ TEST_F(cplex_lp_test, iteration_limit_stops_compute_iis_without_an_answer) {
     const auto afterwards = model.compute_iis();
     EXPECT_EQ(afterwards.get_outcome(), iis_outcome::irreducible);
     EXPECT_EQ(afterwards.num_constraint_members(), 3u);
-}
-
-// The refiner refuses to run while a generic callback is registered, on a
-// feasible model too: the callback is detached for the call and back for the
-// next solve.
-TEST_F(cplex_milp_test, registered_callback_does_not_run_during_compute_iis) {
-    using namespace operators;
-    auto model = new_model();
-    auto x = model.add_integer_variable({.lower_bound = 0., .upper_bound = 5.});
-    auto y = model.add_integer_variable({.lower_bound = 0., .upper_bound = 5.});
-    auto r = model.add_constraint(x + y <= 8.);
-    model.set_maximization();
-    model.set_objective(x + y);
-    int fired = 0;
-    model.set_candidate_solution_callback([&](auto & handle) {
-        ++fired;
-        handle.add_lazy_constraint(x + y <= -1.);
-    });
-    const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
-    EXPECT_EQ(fired, 0);
-    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
-    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r)));
-    model.solve();
-    EXPECT_GE(fired, 1);
-    EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
-}
-
-// The refiner is told nothing of the indicators, so they stay in every
-// subproblem: the members are an IIS relative to them, and a conflict that
-// lives in the indicators alone has no member.
-TEST_F(cplex_milp_test, indicator_constraints_are_background) {
-    using namespace operators;
-    {
-        auto model = new_model();
-        auto z = model.add_binary_variable();
-        auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
-        auto y = model.add_variable({.lower_bound = 0., .upper_bound = 10.});
-        auto r0 = model.add_constraint(x >= 2.);
-        model.add_indicator_constraint(z, true, x + y <= 5.);
-        const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-        EXPECT_TRUE(is<iis_status::absent>(iis.get_status(z)));
-        EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(x)));
-        EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
-        EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(r0)));
-        EXPECT_EQ(iis.num_variable_members(), 1u);
-        EXPECT_EQ(iis.num_constraint_members(), 1u);
-    }
-    {
-        auto model = new_model();
-        auto z = model.add_binary_variable();
-        auto x = model.add_variable();
-        model.add_indicator_constraint(z, true, x >= 5.);
-        model.add_indicator_constraint(z, false, x >= 5.);
-        model.add_indicator_constraint(z, true, x <= 1.);
-        model.add_indicator_constraint(z, false, x <= 1.);
-        const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-        EXPECT_EQ(iis.num_variable_members(), 0u);
-        EXPECT_EQ(iis.num_constraint_members(), 0u);
-        model.solve();
-        EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
-    }
 }
 
 // Cornuejols-Dawande market split without slacks, 3 dense equality rows over

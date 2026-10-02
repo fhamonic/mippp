@@ -20,8 +20,6 @@
 namespace mippp {
 
 struct iis_deletion_path {
-    // every candidate is a side, so a row is never reported whole
-    static constexpr bool names_every_side = true;
     template <typename M>
     static auto compute(M & model) {
         return compute_iis_by_deletion(model);
@@ -278,32 +276,6 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         }
     }
 
-    // the data are back, only the reported status was reset
-    void check_status_is_unknown_after_a_run_that_solved() {
-        {
-            auto model = this->new_model();
-            build(model, iis_cases::bounds_against_a_row_case());
-            model.solve();
-            ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
-            const auto iis = compute_iis_by_deletion(model);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-            EXPECT_TRUE(is<status::unknown>(model.get_status()));
-            model.solve();
-            EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
-        }
-        {
-            auto model = this->new_model();
-            build(model, iis_cases::feasible_model_case());
-            model.solve();
-            ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-            const auto iis = compute_iis_by_deletion(model);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
-            EXPECT_TRUE(is<status::unknown>(model.get_status()));
-            model.solve();
-            EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
-        }
-    }
-
     void check_status_survives_a_run_without_a_solve() {
         using namespace operators;
         using M = model_type;
@@ -514,22 +486,6 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         EXPECT_NEAR(model.get_solution_value(), 69., TEST_EPSILON);
     }
 
-    void check_default_limits_never_touch_the_time_limit() {
-        using M = model_type;
-        if constexpr(!has_time_limit<M>) {
-            GTEST_SKIP() << "no time limit";
-        } else {
-            auto model = this->new_model();
-            build(model, iis_cases::bounds_against_a_row_case());
-            model.set_time_limit(std::chrono::seconds(2));
-            const auto before = model.get_time_limit();
-            const auto iis = compute_iis_by_deletion(model);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-            EXPECT_EQ(model.get_time_limit(), before);
-            EXPECT_EQ(model.get_time_limit(), std::chrono::seconds(2));
-        }
-    }
-
     // A caller's limit shorter than the budget caps every trial, a longer one
     // gives way to the time that remains, and either reads back exactly after
     // the call.
@@ -688,7 +644,7 @@ TYPED_TEST_P(IisByDeletionTest, zero_second_budget_solves_nothing) {
 }
 TYPED_TEST_P(IisByDeletionTest, status_is_unknown_after_a_run_that_solved) {
     this->SkipOnLicenseError(
-        [this]() { this->check_status_is_unknown_after_a_run_that_solved(); });
+        [this]() { this->check_status_is_unknown_after_the_call(); });
 }
 TYPED_TEST_P(IisByDeletionTest, status_survives_a_run_without_a_solve) {
     this->SkipOnLicenseError(
@@ -706,9 +662,13 @@ TYPED_TEST_P(IisByDeletionTest, restores_everything_it_saved) {
     this->SkipOnLicenseError(
         [this]() { this->check_restores_everything_it_saved(); });
 }
-TYPED_TEST_P(IisByDeletionTest, default_limits_never_touch_the_time_limit) {
+TYPED_TEST_P(IisByDeletionTest, time_limit_reads_back_unchanged) {
     this->SkipOnLicenseError(
-        [this]() { this->check_default_limits_never_touch_the_time_limit(); });
+        [this]() { this->check_time_limit_reads_back_unchanged(); });
+}
+TYPED_TEST_P(IisByDeletionTest, indicator_constraints_are_background) {
+    this->SkipOnLicenseError(
+        [this]() { this->check_indicator_constraints_are_background(); });
 }
 TYPED_TEST_P(IisByDeletionTest, forwarded_time_limit_is_restored) {
     this->SkipOnLicenseError(
@@ -732,7 +692,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     status_survives_a_run_without_a_solve,
     column_less_precheck_ignores_the_limits,
     crossed_pair_is_the_proven_set_under_a_budget, restores_everything_it_saved,
-    default_limits_never_touch_the_time_limit,
-    forwarded_time_limit_is_restored);
+    time_limit_reads_back_unchanged, forwarded_time_limit_is_restored,
+    indicator_constraints_are_background);
 
 }  // namespace mippp
