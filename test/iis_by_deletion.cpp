@@ -617,6 +617,24 @@ void PrintTo(const sense_rhs_stub::row_write & w, std::ostream * os) {
 struct ranged_stub_with_sense_and_rhs : iis_stub_model<false, false> {
     void set_constraint_lower_bound(constraint, double) = delete;
     void set_constraint_upper_bound(constraint, double) = delete;
+    constraint_sense get_constraint_sense(constraint) {
+        return constraint_sense::equal;
+    }
+    void set_constraint_sense(constraint, constraint_sense) {}
+    void set_constraint_rhs(constraint, double) {}
+};
+// the writer reads the sense, to write it only when it changes
+struct sense_rhs_stub_without_readable_sense : sense_rhs_stub {
+    void get_constraint_sense(constraint) = delete;
+};
+// HiGHS and CPLEX: a sense and an rhs beside the row-bound setters, which
+// range a row, so the filter writes the sides
+struct bounds_stub_with_sense_and_rhs : iis_stub_model<false, false> {
+    template <typename... Args>
+    constraint add_ranged_constraint(Args &&...) = delete;
+    constraint_sense get_constraint_sense(constraint) {
+        return constraint_sense::equal;
+    }
     void set_constraint_sense(constraint, constraint_sense) {}
     void set_constraint_rhs(constraint, double) {}
 };
@@ -640,9 +658,19 @@ static_assert(iis_by_deletion_model<sense_rhs_stub>);
 static_assert(!has_modifiable_constraint_bounds<sense_rhs_stub> &&
               !has_ranged_constraints<sense_rhs_stub> &&
               has_readable_constraint_bounds<sense_rhs_stub>);
+static_assert(detail::iis_rows_as_sense_and_rhs<sense_rhs_stub>);
 static_assert(!iis_by_deletion_model<ranged_stub_with_sense_and_rhs> &&
               has_ranged_constraints<ranged_stub_with_sense_and_rhs> &&
+              has_readable_constraint_sense<ranged_stub_with_sense_and_rhs> &&
               has_modifiable_constraint_sense<ranged_stub_with_sense_and_rhs>);
+static_assert(
+    !iis_by_deletion_model<sense_rhs_stub_without_readable_sense> &&
+    has_modifiable_constraint_sense<sense_rhs_stub_without_readable_sense> &&
+    has_modifiable_constraint_rhs<sense_rhs_stub_without_readable_sense>);
+static_assert(
+    !detail::iis_rows_as_sense_and_rhs<bounds_stub_with_sense_and_rhs> &&
+    !has_ranged_constraints<bounds_stub_with_sense_and_rhs> &&
+    iis_by_deletion_model<bounds_stub_with_sense_and_rhs>);
 // the conditional requirement bites on a qp_model only
 static_assert(qp_model<qp_stub_without_readable_quadratic>);
 static_assert(!iis_by_deletion_model<qp_stub_without_readable_quadratic>);

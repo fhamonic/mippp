@@ -129,6 +129,8 @@ static_assert(has_iis<gurobi_milp>);
 static_assert(!has_modifiable_constraint_bounds<gurobi_lp>);
 static_assert(iis_by_deletion_model<gurobi_lp>);
 static_assert(iis_by_deletion_model<gurobi_milp>);
+static_assert(detail::iis_rows_as_sense_and_rhs<gurobi_lp>);
+static_assert(detail::iis_rows_as_sense_and_rhs<gurobi_milp>);
 
 namespace {
 // A conflict the routine has to solve for: a singleton-row conflict is

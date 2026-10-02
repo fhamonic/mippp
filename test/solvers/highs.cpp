@@ -181,6 +181,10 @@ static_assert(!has_iis<highs_milp>);
 static_assert(iis_by_deletion_model<highs_lp>);
 static_assert(iis_by_deletion_model<highs_milp>);
 static_assert(iis_by_deletion_model<highs_qp>);
+// HiGHS ranges a row through its row-bound setters, so the filter writes the
+// sides, not the sense and the rhs
+static_assert(!detail::iis_rows_as_sense_and_rhs<highs_lp>);
+static_assert(!detail::iis_rows_as_sense_and_rhs<highs_milp>);
 
 namespace {
 // Highs_getIis is decodable from this release on; older libraries throw

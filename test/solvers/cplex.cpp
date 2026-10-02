@@ -154,6 +154,10 @@ static_assert(has_iis<cplex_lp>);
 static_assert(has_iis<cplex_milp>);
 static_assert(iis_by_deletion_model<cplex_lp>);
 static_assert(iis_by_deletion_model<cplex_milp>);
+// CPLEX ranges a row through its row-bound setters, so the filter writes the
+// sides, not the sense and the rhs
+static_assert(!detail::iis_rows_as_sense_and_rhs<cplex_lp>);
+static_assert(!detail::iis_rows_as_sense_and_rhs<cplex_milp>);
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Row bounds /////////////////////////////////

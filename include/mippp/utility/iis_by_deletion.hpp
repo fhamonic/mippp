@@ -29,13 +29,19 @@ namespace mippp {
 
 namespace detail {
 
-// Without ranged rows, a row has one side or the two equal sides of an ==
-// row, and so does every state it passes through while its sides are relaxed
-// and restored: one sense and one rhs express each of them. Gurobi is such a
-// model, whose ranges add a slack column rather than a second side.
+// A model whose rows the filter writes through their sense and rhs: it reads
+// and writes the sense, writes the rhs, and has neither row-bound setters nor
+// ranged rows. Each of its rows has one side or the two equal sides of an ==
+// row, and so does every state a row passes through while its sides are
+// relaxed and restored, so one sense and one rhs express each of them. Gurobi
+// is such a model: its ranges add a slack column rather than a second side.
+// has_ranged_constraints alone does not exclude the others, since it means
+// that a ranged row can be added, and HiGHS and CPLEX, which add none, range
+// a row through their row-bound setters.
 template <typename M>
 concept iis_rows_as_sense_and_rhs =
-    has_modifiable_constraint_sense<M> && has_modifiable_constraint_rhs<M> &&
+    has_readable_constraint_sense<M> && has_modifiable_constraint_sense<M> &&
+    has_modifiable_constraint_rhs<M> && !has_modifiable_constraint_bounds<M> &&
     !has_ranged_constraints<M>;
 
 }  // namespace detail
