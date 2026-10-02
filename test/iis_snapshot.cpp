@@ -138,6 +138,31 @@ static_assert(!lp_iis<answer<flaw::bare_reason>, handles_only_model>);
 static_assert(!lp_iis<answer<flaw::int_variable_count>, handles_only_model>);
 static_assert(!lp_iis<answer<flaw::int_constraint_count>, handles_only_model>);
 
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////// Native decoding helpers //////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+static_assert(std::holds_alternative<iis_status::member_upper>(
+    mippp::detail::iis_row_status_by_sense<'L', 'G'>('L')));
+static_assert(std::holds_alternative<iis_status::member_lower>(
+    mippp::detail::iis_row_status_by_sense<'L', 'G'>('G')));
+static_assert(std::holds_alternative<iis_status::member>(
+    mippp::detail::iis_row_status_by_sense<'L', 'G'>('E')));
+static_assert(std::holds_alternative<iis_status::member>(
+    mippp::detail::iis_row_status_by_sense<'L', 'G'>('R')));
+
+// whole asks for a bare member, which a status without one answers by sides
+static_assert(std::holds_alternative<iis_status::member_both>(
+    mippp::detail::iis_flagged_status<sided_status>(true, true, true)));
+static_assert(std::holds_alternative<iis_status::member_lower>(
+    mippp::detail::iis_flagged_status<sided_status>(true, false, true)));
+static_assert(std::holds_alternative<iis_status::member>(
+    mippp::detail::iis_flagged_status<mippp::detail::iis_whole_or_sided_status>(
+        false, true, true)));
+static_assert(std::holds_alternative<iis_status::member_upper>(
+    mippp::detail::iis_flagged_status<mippp::detail::iis_whole_or_sided_status>(
+        false, true, false)));
+
 static_assert(std::same_as<model_iis_t<native_model>, sided_snapshot>);
 static_assert(has_iis<native_model>);
 static_assert(!has_iis<handles_only_model>);

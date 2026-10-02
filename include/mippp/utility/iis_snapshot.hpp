@@ -85,6 +85,27 @@ using iis_whole_or_sided_status =
                  iis_status::member_lower, iis_status::member_upper,
                  iis_status::member_both>;
 
+// The answer of a routine that flags a row's membership only: an inequality
+// row has one side to name, and an equality or ranged row is reported whole
+// rather than with a side the routine never named.
+using iis_whole_or_one_side_status =
+    std::variant<iis_status::absent, iis_status::member,
+                 iis_status::member_lower, iis_status::member_upper>;
+
+// The tag of a row that such a routine flags, from the native sense the
+// backend spells LessEqual and GreaterEqual.
+template <auto LessEqual, auto GreaterEqual, typename Sense>
+[[nodiscard]] constexpr iis_whole_or_one_side_status iis_row_status_by_sense(
+    Sense sense) noexcept {
+    if(sense == LessEqual)
+        return iis_whole_or_one_side_status(
+            std::in_place_type<iis_status::member_upper>);
+    if(sense == GreaterEqual)
+        return iis_whole_or_one_side_status(
+            std::in_place_type<iis_status::member_lower>);
+    return iis_whole_or_one_side_status(std::in_place_type<iis_status::member>);
+}
+
 // The tag of a member flagged on at least one side. whole asks for a bare
 // member, which a Status without that alternative answers by the sides.
 template <typename Status>

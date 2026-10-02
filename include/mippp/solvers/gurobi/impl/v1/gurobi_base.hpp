@@ -12,7 +12,6 @@
 #include <string>
 #include <type_traits>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "mippp/detail/handle_status_table.hpp"
@@ -673,13 +672,6 @@ public:
     ////////////////////////////////// IIS ////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
 private:
-    // Gurobi flags a row's membership only: an inequality row has one side
-    // to name, an equality row is reported whole rather than with a side the
-    // routine never named.
-    using iis_row_status =
-        std::variant<iis_status::absent, iis_status::member,
-                     iis_status::member_lower, iis_status::member_upper>;
-
     // SOS, quadratic and general constraints have no handle to report, so
     // they are forced into the IIS for the call: the routine then never tries
     // to remove one, and the rows and bounds it reports conflict against them
@@ -770,8 +762,10 @@ private:
     };
 
 protected:
+    // IISConstr flags a row's membership, never a side
     using iis_snapshot_type =
-        iis_snapshot<variable, constraint, iis_sided_status, iis_row_status>;
+        iis_snapshot<variable, constraint, iis_sided_status,
+                     detail::iis_whole_or_one_side_status>;
 
     iis_snapshot_type _compute_iis() {
         _lazily_remove_variables();
@@ -780,7 +774,8 @@ protected:
         const std::size_t num_row = num_constraints();
         detail::handle_status_table<iis_sided_status> variable_table(
             _handle_id_bound(num_col));
-        detail::handle_status_table<iis_row_status> constraint_table(num_row);
+        detail::handle_status_table<detail::iis_whole_or_one_side_status>
+            constraint_table(num_row);
 
         // GRBcomputeIIS reads TimeLimit itself and returns 0 on a stop, and
         // IISMinimal is 0 after numerical trouble as well as after a stop:
@@ -846,20 +841,16 @@ protected:
             const bool lower = lower_in_iis[j] != 0;
             const bool upper = upper_in_iis[j] != 0;
             if(!lower && !upper) continue;
-            variable_table.set(
-                _var_handle(static_cast<int>(j)).uid(),
-                lower && upper ? iis_sided_status{iis_status::member_both{}}
-                : lower        ? iis_sided_status{iis_status::member_lower{}}
-                               : iis_sided_status{iis_status::member_upper{}});
+            variable_table.set(_var_handle(static_cast<int>(j)).uid(),
+                               detail::iis_flagged_status<iis_sided_status>(
+                                   lower, upper, false));
         }
         for(std::size_t i = 0; i < num_row; ++i) {
             if(row_in_iis[i] == 0) continue;
             constraint_table.set(
-                i, senses[i] == GRB_LESS_EQUAL
-                       ? iis_row_status{iis_status::member_upper{}}
-                   : senses[i] == GRB_GREATER_EQUAL
-                       ? iis_row_status{iis_status::member_lower{}}
-                       : iis_row_status{iis_status::member{}});
+                i,
+                detail::iis_row_status_by_sense<GRB_LESS_EQUAL,
+                                                GRB_GREATER_EQUAL>(senses[i]));
         }
 
         // An answer made of forced elements alone has no member and is

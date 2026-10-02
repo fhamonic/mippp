@@ -807,8 +807,7 @@ protected:
 
         // HiGHS ignores time_limit during the search and reads iis_time_limit
         // instead: the model's limit is copied there for this call only
-        double budget;
-        check(Highs->getDoubleOptionValue(model, "time_limit", &budget));
+        const double budget = get_time_limit().count();
         iis_option_guard guard(*Highs, model, _iis_strategy_full, budget);
 
         // HiGHS stores the matrix row-wise once added rows bring more
@@ -872,11 +871,9 @@ protected:
         const auto decode = [&](HighsInt bound, HighsInt status, auto & table,
                                 std::size_t id) {
             if(bound == _iis_bound_free) return;
-            table.set(id, bound == _iis_bound_lower
-                              ? iis_sided_status{iis_status::member_lower{}}
-                          : bound == _iis_bound_upper
-                              ? iis_sided_status{iis_status::member_upper{}}
-                              : iis_sided_status{iis_status::member_both{}});
+            table.set(id, detail::iis_flagged_status<iis_sided_status>(
+                              bound != _iis_bound_upper,
+                              bound != _iis_bound_lower, false));
             ++num_members;
             maybe |= (status == _iis_status_maybe_in_conflict);
         };

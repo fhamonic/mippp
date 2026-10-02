@@ -11,7 +11,6 @@
 #include <string>
 #include <type_traits>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "mippp/detail/handle_guard.hpp"
@@ -686,18 +685,17 @@ protected:
     // Membership only: the refiner sides a bound by its group and names a
     // row whole, so an inequality row takes the side of its sense and an
     // equality or ranged row stays a plain member.
-    using iis_row_status =
-        std::variant<iis_status::absent, iis_status::member,
-                     iis_status::member_lower, iis_status::member_upper>;
     using iis_snapshot_type =
-        iis_snapshot<variable, constraint, iis_sided_status, iis_row_status>;
+        iis_snapshot<variable, constraint, iis_sided_status,
+                     detail::iis_whole_or_one_side_status>;
 
     iis_snapshot_type _compute_iis() {
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
         detail::handle_status_table<iis_sided_status> variable_table(
             _handle_id_bound(num_col));
-        detail::handle_status_table<iis_row_status> constraint_table(num_row);
+        detail::handle_status_table<detail::iis_whole_or_one_side_status>
+            constraint_table(num_row);
 
         std::vector<double> lower(num_col), upper(num_col);
         if(num_col > 0) {
@@ -783,11 +781,8 @@ protected:
             if(group_types[k] == CPX_CON_LINEAR) {
                 const auto row = static_cast<std::size_t>(native_index);
                 constraint_table.set(
-                    row, senses[row] == 'L'
-                             ? iis_row_status{iis_status::member_upper{}}
-                         : senses[row] == 'G'
-                             ? iis_row_status{iis_status::member_lower{}}
-                             : iis_row_status{iis_status::member{}});
+                    row,
+                    detail::iis_row_status_by_sense<'L', 'G'>(senses[row]));
                 continue;
             }
             // the lower group of a column precedes its upper group
