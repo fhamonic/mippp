@@ -9,6 +9,7 @@
 #include "mippp/detail/handle_status_table.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/iis_outcome.hpp"
+#include "mippp/utility/variant.hpp"
 
 namespace mippp {
 
@@ -74,5 +75,30 @@ public:
 using iis_sided_status =
     std::variant<iis_status::absent, iis_status::member_lower,
                  iis_status::member_upper, iis_status::member_both>;
+
+namespace detail {
+
+// The answer of a routine that flags one side where a member needs both:
+// such a member is reported whole, the others by their sides.
+using iis_whole_or_sided_status =
+    std::variant<iis_status::absent, iis_status::member,
+                 iis_status::member_lower, iis_status::member_upper,
+                 iis_status::member_both>;
+
+// The tag of a member flagged on at least one side. whole asks for a bare
+// member, which a Status without that alternative answers by the sides.
+template <typename Status>
+[[nodiscard]] constexpr Status iis_flagged_status(bool lower, bool upper,
+                                                  bool whole) noexcept {
+    if(lower && upper)
+        return Status(std::in_place_type<iis_status::member_both>);
+    if constexpr(variant_with_alternative<Status, iis_status::member>) {
+        if(whole) return Status(std::in_place_type<iis_status::member>);
+    }
+    if(lower) return Status(std::in_place_type<iis_status::member_lower>);
+    return Status(std::in_place_type<iis_status::member_upper>);
+}
+
+}  // namespace detail
 
 }  // namespace mippp

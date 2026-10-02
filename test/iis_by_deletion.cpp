@@ -1323,6 +1323,49 @@ TEST_F(iis_by_deletion, column_less_after_removing_every_variable) {
     EXPECT_EQ(model.solves, 0u);
 }
 
+// The lower side wins when 0 violates both; the comparison is exact.
+static_assert(detail::iis_side_violated_by_zero(1., 2.) == std::optional(true));
+static_assert(detail::iis_side_violated_by_zero(-2., -1.) ==
+              std::optional(false));
+static_assert(detail::iis_side_violated_by_zero(1., -1.) ==
+              std::optional(true));
+static_assert(!detail::iis_side_violated_by_zero(0., 0.));
+static_assert(!detail::iis_side_violated_by_zero(
+    -std::numeric_limits<double>::infinity(),
+    std::numeric_limits<double>::infinity()));
+
+namespace {
+std::string self_infeasible_sides(double lower, double upper,
+                                  detail::iis_column_kind kind) {
+    const auto sides = detail::iis_self_infeasible_column(lower, upper, kind);
+    if(!sides) return "none";
+    if(sides->lower && sides->upper) return "both";
+    return sides->lower ? "lower" : "upper";
+}
+}  // namespace
+
+// The native wrappers whose routines fail on such a column answer it from
+// this arithmetic, which no backend in CI reaches.
+TEST(iis_arithmetic, column_whose_bounds_admit_no_value) {
+    using kind = detail::iis_column_kind;
+    constexpr double inf = std::numeric_limits<double>::infinity();
+    EXPECT_EQ(self_infeasible_sides(1., 0., kind::continuous), "both");
+    EXPECT_EQ(self_infeasible_sides(0.25, 0.75, kind::continuous), "none");
+    EXPECT_EQ(self_infeasible_sides(-inf, inf, kind::continuous), "none");
+    EXPECT_EQ(self_infeasible_sides(0.25, 0.75, kind::integer), "both");
+    EXPECT_EQ(self_infeasible_sides(-0.5, 0.5, kind::integer), "none");
+    EXPECT_EQ(self_infeasible_sides(-inf, inf, kind::integer), "none");
+    EXPECT_EQ(self_infeasible_sides(2., 3., kind::binary), "lower");
+    EXPECT_EQ(self_infeasible_sides(2., 1., kind::binary), "lower");
+    EXPECT_EQ(self_infeasible_sides(-3., -2., kind::binary), "upper");
+    EXPECT_EQ(self_infeasible_sides(0., -2., kind::binary), "upper");
+    EXPECT_EQ(self_infeasible_sides(0.25, 0.75, kind::binary), "both");
+    EXPECT_EQ(self_infeasible_sides(-3., 3., kind::binary), "none");
+    EXPECT_EQ(self_infeasible_sides(1., 1., kind::binary), "none");
+    // never decided, crossed or not
+    EXPECT_EQ(self_infeasible_sides(2., 1., kind::other), "none");
+}
+
 TEST_F(iis_by_deletion, empty_model_is_feasible) {
     stub model;
     const auto iis = compute_iis_by_deletion(model);

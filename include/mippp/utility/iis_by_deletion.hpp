@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "mippp/detail/handle_status_table.hpp"
+#include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/quadratic_expression.hpp"
@@ -395,25 +396,6 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Prechecks //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-
-// Solvers report unknown on a model without columns, so the rows are read
-// instead: every left-hand side is 0, and the first side that 0 violates is
-// the whole explanation. The comparison is exact. The rows come from the
-// caller, which has already enumerated them: constraints() may build a
-// fresh snapshot on every call.
-template <typename M, std::ranges::forward_range R>
-    requires has_enumerable_constraints<M> && has_readable_constraint_bounds<M>
-[[nodiscard]] std::optional<std::pair<model_constraint_t<M>, bool>>
-iis_column_less_precheck(M & model, R && rows) {
-    using scalar = model_scalar_t<M>;
-    for(auto c : rows) {
-        const scalar lb = model.get_constraint_lower_bound(c);
-        if(lb > -model.infinity() && lb > scalar{0}) return std::pair{c, true};
-        const scalar ub = model.get_constraint_upper_bound(c);
-        if(ub < model.infinity() && ub < scalar{0}) return std::pair{c, false};
-    }
-    return std::nullopt;
-}
 
 // The first variable whose bounds cross, then the first row whose sides
 // cross, as the indices of its two candidate sides. Crossed sides are both

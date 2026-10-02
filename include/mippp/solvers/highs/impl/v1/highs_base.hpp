@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "mippp/detail/handle_status_table.hpp"
+#include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -757,7 +758,10 @@ private:
                                     nullptr, &num_nz, nullptr, nullptr,
                                     nullptr));
         if(num_nz != 0) return bound;
-        return lower > 0. ? _iis_bound_lower : _iis_bound_upper;
+        const auto violated_lower =
+            detail::iis_side_violated_by_zero(lower, upper);
+        if(!violated_lower) return bound;
+        return *violated_lower ? _iis_bound_lower : _iis_bound_upper;
     }
 
 protected:

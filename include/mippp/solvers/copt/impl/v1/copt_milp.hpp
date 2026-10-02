@@ -296,8 +296,8 @@ public:
         check(COPT->GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
         iis_callback_guard detached(*this);
         auto iis =
-            _compute_iis<iis_whole_or_sided_status, iis_whole_or_sided_status>(
-                _is_mip != 0);
+            _compute_iis<detail::iis_whole_or_sided_status,
+                         detail::iis_whole_or_sided_status>(_is_mip != 0);
         detached.restore();
         return iis;
     }

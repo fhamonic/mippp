@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <numeric>
@@ -16,6 +15,7 @@
 
 #include "mippp/detail/handle_guard.hpp"
 #include "mippp/detail/handle_status_table.hpp"
+#include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -467,15 +467,6 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// IIS ////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-protected:
-    // On a MIP, COPT flags one side of an equality row and one bound of a
-    // two-bounded column, continuous or not, where both are needed: those
-    // members are reported whole.
-    using iis_whole_or_sided_status =
-        std::variant<iis_status::absent, iis_status::member,
-                     iis_status::member_lower, iis_status::member_upper,
-                     iis_status::member_both>;
-
 private:
     // The routine reads TimeLimit, and the solve that confirms feasibility (an
     // LP, after the routine) or infeasibility (a MIP, before it) shares that
@@ -512,17 +503,18 @@ private:
         }
     };
 
-    // A column whose own bounds admit no value is an IIS by itself: crossed
-    // bounds, an integer column whose interval holds no integer, or a binary
-    // column whose interval holds neither 0 nor 1 (COPT keeps the bounds a
-    // user moves outside [0, 1] and calls the model infeasible). Freeing one
-    // bound of an integer or continuous column readmits a value, so both are
-    // members; a binary bound beyond the domain excludes it alone. The
-    // comparison is exact.
     struct self_infeasible_column {
         int index;
-        bool lower, upper;
+        detail::iis_column_sides sides;
     };
+    static constexpr detail::iis_column_kind _iis_column_kind(char type) {
+        if(type == COPT_CONTINUOUS) return detail::iis_column_kind::continuous;
+        if(type == COPT_INTEGER) return detail::iis_column_kind::integer;
+        if(type == COPT_BINARY) return detail::iis_column_kind::binary;
+        return detail::iis_column_kind::other;
+    }
+    // COPT keeps the bounds a user moves outside [0, 1] on a binary column
+    // and calls the model infeasible, as the arithmetic assumes.
     std::optional<self_infeasible_column> _self_infeasible_column(int num_col) {
         if(num_col == 0) return std::nullopt;
         const auto count = static_cast<std::size_t>(num_col);
@@ -535,18 +527,9 @@ private:
         check(COPT->GetColType(prob, num_col, nullptr, types.data()));
         for(int j = 0; j < num_col; ++j) {
             const auto k = static_cast<std::size_t>(j);
-            double lo = lower[k], hi = upper[k];
-            if(types[k] != COPT_CONTINUOUS) {
-                lo = std::ceil(lo);
-                hi = std::floor(hi);
-            }
-            if(types[k] == COPT_BINARY) {
-                if(lo > 1.) return self_infeasible_column{j, true, false};
-                if(hi < 0.) return self_infeasible_column{j, false, true};
-                lo = std::max(lo, 0.);
-                hi = std::min(hi, 1.);
-            }
-            if(lo > hi) return self_infeasible_column{j, true, true};
+            if(const auto sides = detail::iis_self_infeasible_column(
+                   lower[k], upper[k], _iis_column_kind(types[k])))
+                return self_infeasible_column{j, *sides};
         }
         return std::nullopt;
     }
@@ -559,17 +542,6 @@ private:
                                        void * model) {
         (void)static_cast<copt_base *>(model)->COPT->Interrupt(prob);
         return 0;
-    }
-
-    template <typename Status>
-    static Status _iis_member_status(bool lower, bool upper, bool whole) {
-        if(lower && upper)
-            return Status(std::in_place_type<iis_status::member_both>);
-        if constexpr(variant_with_alternative<Status, iis_status::member>) {
-            if(whole) return Status(std::in_place_type<iis_status::member>);
-        }
-        if(lower) return Status(std::in_place_type<iis_status::member_lower>);
-        return Status(std::in_place_type<iis_status::member_upper>);
     }
 
 protected:
@@ -592,8 +564,8 @@ protected:
         };
         const auto single_column = [&](const self_infeasible_column & col) {
             variable_table.set(static_cast<std::size_t>(col.index),
-                               _iis_member_status<VariableStatus>(
-                                   col.lower, col.upper, false));
+                               detail::iis_flagged_status<VariableStatus>(
+                                   col.sides.lower, col.sides.upper, false));
             return answer(iis_outcome::irreducible);
         };
 
@@ -606,23 +578,13 @@ protected:
         // 8.0.5), whose rows are constants: the first side that 0 violates
         // is the whole explanation, and none violated means feasible.
         if(num_col == 0) {
-            const auto row_count = static_cast<std::size_t>(num_row);
-            std::vector<double> row_lower(row_count), row_upper(row_count);
-            if(num_row > 0) {
-                check(COPT->GetRowInfo(prob, COPT_DBLINFO_LB, num_row, nullptr,
-                                       row_lower.data()));
-                check(COPT->GetRowInfo(prob, COPT_DBLINFO_UB, num_row, nullptr,
-                                       row_upper.data()));
-            }
-            for(std::size_t i = 0; i < row_count; ++i) {
-                const bool lower = row_lower[i] > 0.;
-                const bool upper = row_upper[i] < 0.;
-                if(!lower && !upper) continue;
-                constraint_table.set(i, _iis_member_status<ConstraintStatus>(
-                                            lower, !lower, false));
-                return answer(iis_outcome::irreducible);
-            }
-            return answer(iis_outcome::feasible);
+            const auto side =
+                detail::iis_column_less_precheck(*this, constraints());
+            if(!side) return answer(iis_outcome::feasible);
+            constraint_table.set(side->first.uid(),
+                                 detail::iis_flagged_status<ConstraintStatus>(
+                                     side->second, !side->second, false));
+            return answer(iis_outcome::irreducible);
         }
 
         const double budget = get_time_limit().count();
@@ -784,6 +746,9 @@ protected:
             return answer(iis_outcome::undetermined, stop_reason);
         }
 
+        // On a MIP, COPT flags one side of an equality row and one bound of a
+        // two-bounded column, continuous or not, where both are needed: those
+        // members are reported whole.
         std::vector<double> row_lower(row_count), row_upper(row_count),
             col_lower(col_count), col_upper(col_count);
         if(mip) {
@@ -807,7 +772,8 @@ protected:
             const bool whole =
                 mip && !is_infinite(row_lower[i]) && !is_infinite(row_upper[i]);
             constraint_table.set(
-                i, _iis_member_status<ConstraintStatus>(lower, upper, whole));
+                i, detail::iis_flagged_status<ConstraintStatus>(lower, upper,
+                                                                whole));
         }
         for(std::size_t j = 0; j < col_count; ++j) {
             const bool lower = col_lower_flag[j] != 0;
@@ -815,8 +781,8 @@ protected:
             if(!lower && !upper) continue;
             const bool whole =
                 mip && !is_infinite(col_lower[j]) && !is_infinite(col_upper[j]);
-            variable_table.set(
-                j, _iis_member_status<VariableStatus>(lower, upper, whole));
+            variable_table.set(j, detail::iis_flagged_status<VariableStatus>(
+                                      lower, upper, whole));
         }
         if(is_minimal) return answer(iis_outcome::irreducible);
         return answer(iis_outcome::not_proven_minimal, stop_reason);
