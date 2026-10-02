@@ -615,12 +615,13 @@ record what they established.
   `xpress_*` joined it in wave 5, on 2026-09-29, with modifiable row
   bounds, each solver confirmed to store a row's two sides natively
   (N30 b): COPT as two bounds, CPLEX as an `R` row with a range, Xpress as
-  type `R` with a range. `gurobi_*` does not, since its ranges add a slack
-  column. `dumb_lp` joins later (N24). The work packages are those of
+  type `R` with a range. `gurobi_*` has no modifiable row bounds, since its
+  ranges add a slack column, and joined on 2026-10-02 through its rows' sense
+  and rhs (N41). `dumb_lp` joins later (N24). The work packages are those of
   [iis_pr_plan.md](iis_pr_plan.md). Since wave 3, on 2026-09-28, all eleven
-  classes of the free function's list run it, and since wave 5 the six
-  COPT, CPLEX and Xpress classes too, seventeen in all; `has_iis` holds on
-  the ten classes of the native list.
+  classes of the free function's list run it, since wave 5 the six COPT,
+  CPLEX and Xpress classes too, and since N41 the two Gurobi classes, every
+  model class in all; `has_iis` holds on the ten classes of the native list.
 
 ## The deletion filter, a public algorithm
 
@@ -912,7 +913,8 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   model's method, never in the IIS code. SCIP, SoPlex, COPT and Xpress bind a
   row getter first, since none is bound on main. Modifiable row bounds still
   follow N30: only where the solver stores a row's two sides natively, so
-  never on Gurobi.
+  never on Gurobi, whose rows the free function writes through their sense
+  and rhs instead (N41).
 - **Row sides as wave 3 found them.** Measured on 2026-09-28 unless marked.
   - **Cbc.** An infinity beyond ±1e27 is stored as ±`COIN_DBL_MAX`, which is
     `infinity()`. A row the setters make ranged reads sense `R`.
@@ -1705,9 +1707,42 @@ SCIP" (`5047a77`). N40 amends "One side at a time": a side at the wrong
 infinity is still a candidate in the code, but no longer an input the docs
 present (`1c0e50e`).
 
+## Rulings of 2026-10-02
+
+- **N41. The deletion filter on Gurobi.** The maintainer proposed it on
+  2026-10-02: Gurobi "can model has_readable_constraint_bounds without lying
+  by returning a pair (-inf, rhs) or (rhs, +inf). If constexpr can then be
+  used to replace set_constraint_bounds by set_constraint_rhs", and, after the
+  assessment, "Ok, implement it." `iis_by_deletion_model` now accepts, in
+  place of `has_modifiable_constraint_bounds`, `has_modifiable_constraint_sense`
+  and `has_modifiable_constraint_rhs` on a model without ranged rows
+  (`detail::iis_rows_as_sense_and_rhs`). Each row of such a model has one side
+  or the two equal sides of an `==` row, and so does every state it passes
+  through while the filter relaxes and restores its sides, so one sense and
+  one rhs express each state: both sides of an `==` row b give (`==`, b), a
+  lower side l alone (`>=`, l), an upper side u alone (`<=`, u), and no side
+  (`<=`, `infinity()`). The guard writes such a row whole, from the wanted
+  state of both its candidates; a model with row-bound setters keeps the bound
+  path unchanged. Q3 (a) stands, row bounds being the main interface and this
+  a fallback chosen on capabilities, never on a backend type, and N30 (b)
+  stands too: Gurobi still has no modifiable row bounds. Measured on
+  2026-10-02 on Gurobi 11.0.3, 12.0.1 and 13.0.2 through the model's own
+  setters: an rhs of ±1e100, Gurobi's `infinity()`, frees a side, a sense
+  switch drops one side of an `==` row, the readable bounds follow exactly,
+  and writing the sense and the rhs back restores the model exactly. Relaxing
+  a binary variable's bound does not widen its domain, so the filter, like
+  the native routine, never names the bounds of a binary variable, and no
+  solve throws, unlike SCIP's (N25). `IisByDeletionTest` runs 22 cases on
+  `gurobi_lp` and 25 on `gurobi_milp` on the three releases, the skips being
+  the integer cases on the LP class and the cases that need ranged rows, and
+  `both_paths_find_valid_iis` now runs on Gurobi. Three stub cases in
+  `test/iis_by_deletion.cpp` pin the fallback on a model that holds its rows
+  as a sense and an rhs. Gurobi 10 is not installed, so the floor rests on
+  11.0.3.
+
 ## Open questions
 
-None remains as of 2026-09-29: N38 to N40, the last, were ruled that day. The
+None remains as of 2026-10-02: N41, the last, was ruled that day. The
 outward steps of WP1 are done: the documents are committed (`25b4530`, on
 the pull request's branch), the reply is posted, `a1a9f11` is tagged
 `archive/pr3-a1a9f11` on origin, and pull request #3 is a draft.

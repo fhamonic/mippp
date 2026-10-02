@@ -4,7 +4,7 @@ Companion to [iis.md](iis.md), which holds the design, its rulings and the evide
 [iis_pr_plan.md](iis_pr_plan.md), whose work packages carry the details. The steps follow the revised package
 order of 2026-09-27. Items 0.1 and 1.6 and those of steps 2 to 6 name their package, except 6.2. Items 1.1 to
 1.5 are the plan's standalone fixes, and step 7 is WP17. Each step lands and is tested on its own. Q1 to Q6
-and N0 to N40 refer to the Rulings of 2026-09-27, 2026-09-28 and 2026-09-29 in iis.md, the last on the three
+and N0 to N41 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29 and 2026-10-02 in iis.md, the third on the three
 questions wave 3 left.
 
 - **Two paths.** Under Q1 (b), `has_iis<T>` means that the model has a native IIS routine, reached through a
@@ -45,7 +45,9 @@ questions wave 3 left.
   Every suite passed locally under gcc 15, gcc 14 and clang 18 on the releases step 6 names. The sanitized
   build's ctest, on the CI pins, exercises Gurobi and Xpress and skips every CPLEX and COPT suite; the
   same sanitizer binary run directly against CPLEX 22.1.2, COPT 8.0.5 and Xpress 47.01 passed their
-  suites with no sanitizer report once the COPT leak was bypassed.
+  suites with no sanitizer report once the COPT leak was bypassed. N41, on 2026-10-02, brought the
+  deletion filter to `gurobi_lp` and `gurobi_milp` through their rows' sense and rhs, on
+  `feat/iis-gurobi-filter`.
 
 ## 0. Before any code
 
@@ -340,6 +342,10 @@ whose sense read `>=` before; `xpress_lp::solve()` postsolves a solve stopped by
 `cplex_milp` and `xpress_milp` detaches a registered candidate-solution callback for the call, and on
 `copt_milp` runs the model's own solve up to an incumbent; and the transportation example reads a member's side through a visitor, since `is_a` of a tag a
 status variant does not list does not compile.
+
+N41 adds: `compute_iis_by_deletion` on `gurobi_lp` and `gurobi_milp`, which writes each row through its sense
+and rhs during the run and writes both back; `iis_by_deletion_model` accepts a modifiable sense and rhs on a
+model without ranged rows in place of modifiable row bounds.
 
 ## 6. Native routines
 
