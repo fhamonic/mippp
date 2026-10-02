@@ -294,7 +294,9 @@ public:
     auto compute_iis() {
         reset_status();
         iis_callback_guard detached(*this);
-        auto iis = _compute_iis();
+        auto iis =
+            _compute_iis<iis_sided_status, detail::iis_whole_or_sided_status>(
+                true);
         detached.restore();
         return iis;
     }

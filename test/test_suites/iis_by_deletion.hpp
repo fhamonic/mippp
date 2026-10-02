@@ -616,6 +616,11 @@ TYPED_TEST_P(IisByDeletionTest, ranged_row_upper_side) {
         this->check_case(iis_cases::ranged_row_upper_side_case());
     });
 }
+TYPED_TEST_P(IisByDeletionTest, ranged_row_holding_no_integer) {
+    this->SkipOnLicenseError([this]() {
+        this->check_case(iis_cases::ranged_row_holding_no_integer_case());
+    });
+}
 TYPED_TEST_P(IisByDeletionTest, redundant_rows) {
     this->SkipOnLicenseError(
         [this]() { this->check_case(iis_cases::redundant_rows_case()); });
@@ -714,9 +719,10 @@ REGISTER_TYPED_TEST_SUITE_P(
     IisByDeletionTest, bounds_against_a_row, one_side_of_an_equality_row,
     integer_equal_to_one_half, integers_summing_to_one_half,
     integer_in_a_fractional_interval, ranged_row_lower_side,
-    ranged_row_upper_side, redundant_rows, two_disjoint_conflicts,
-    chain_where_every_row_is_needed, crossed_variable_bounds, crossed_row_sides,
-    crossed_term_less_row, feasible_model, removed_variable_is_skipped,
+    ranged_row_upper_side, ranged_row_holding_no_integer, redundant_rows,
+    two_disjoint_conflicts, chain_where_every_row_is_needed,
+    crossed_variable_bounds, crossed_row_sides, crossed_term_less_row,
+    feasible_model, removed_variable_is_skipped,
     answer_survives_a_later_removal, published_vectors_under_transforms,
     model_modified_after_an_infeasible_solve,
     model_data_and_result_survive_the_call,

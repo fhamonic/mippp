@@ -347,6 +347,16 @@ inline iis_case ranged_row_upper_side_case() {
             {{{lower}, {upper}}, {{lower}, {whole}}},
             iis_outcome::irreducible};
 }
+// integrality needs both sides: x <= 1.75 alone admits 1 and x >= 1.25 alone
+// admits 2, so a routine that names one side claims a feasible subsystem
+inline iis_case ranged_row_holding_no_integer_case() {
+    using enum membership;
+    return {"ranged_row_holding_no_integer",
+            {{{-10., 10.}}, {{{{0, 1.}}, 1.25, 1.75}}},
+            {0},
+            {{{absent}, {both}}, {{absent}, {whole}}},
+            iis_outcome::irreducible};
+}
 // two IISs, {x0 lower, r0 upper} and {x0 lower, r1 upper}: the oracle decides
 inline iis_case redundant_rows_case() {
     return {"redundant_rows",

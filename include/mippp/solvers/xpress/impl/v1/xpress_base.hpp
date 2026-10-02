@@ -568,10 +568,11 @@ private:
     };
 
 protected:
-    using iis_snapshot_type =
-        iis_snapshot<variable, constraint, iis_sided_status, iis_sided_status>;
-
-    iis_snapshot_type _compute_iis() {
+    template <typename VariableStatus, typename ConstraintStatus>
+    iis_snapshot<variable, constraint, VariableStatus, ConstraintStatus>
+    _compute_iis(const bool mip) {
+        using snapshot = iis_snapshot<variable, constraint, VariableStatus,
+                                      ConstraintStatus>;
         iis_option_guard guard(*XPRS, prob, _iis_background_ops);
         // The routine reads the model's TIMELIMIT as a fresh budget of its
         // own, so nothing else is set for the call. Its stop status covers a
@@ -587,22 +588,25 @@ protected:
         // The answer indexes the original rows and columns, whose counts a
         // problem left presolved through the native handle reads only once the
         // routine has restored it.
-        detail::handle_status_table<iis_sided_status> variable_table(
-            num_variables());
-        detail::handle_status_table<iis_sided_status> constraint_table(
-            num_constraints());
+        const std::size_t num_col = num_variables();
+        const std::size_t num_row = num_constraints();
+        detail::handle_status_table<VariableStatus> variable_table(num_col);
+        detail::handle_status_table<ConstraintStatus> constraint_table(num_row);
+        const auto answer = [&](iis_outcome outcome,
+                                std::optional<iis_reason> reason =
+                                    std::nullopt) {
+            guard.restore();
+            return snapshot(std::move(variable_table),
+                            std::move(constraint_table), outcome, reason);
+        };
         // XPRSgetlasterror is empty after this failure: the message says what
         // is known to cause it
         if(call_status == _iis_call_error)
             throw solver_error(
                 "mippp: XPRSiisfirst refused the search, as it does on a "
                 "column whose bounds cross or hold no integer value");
-        if(call_status == _iis_call_feasible) {
-            guard.restore();
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     iis_outcome::feasible);
-        }
+        if(call_status == _iis_call_feasible)
+            return answer(iis_outcome::feasible);
         if(call_status != _iis_call_success && call_status != _iis_call_stopped)
             throw solver_error(
                 ("mippp: XPRSiisfirst returned the unknown status " +
@@ -621,12 +625,7 @@ protected:
                     elapsed + _iis_stop_clock_slack >= budget
                 ? std::optional(iis_reason::time_limit)
                 : std::nullopt;
-        if(num_iis < 1) {
-            guard.restore();
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     iis_outcome::undetermined, stop_reason);
-        }
+        if(num_iis < 1) return answer(iis_outcome::undetermined, stop_reason);
 
         int iis_num_row = 0, iis_num_col = 0;
         check(XPRS->getiisdata(prob, 1, &iis_num_row, &iis_num_col, nullptr,
@@ -640,20 +639,11 @@ protected:
                                row_index.data(), col_index.data(),
                                row_kind.data(), col_kind.data(), nullptr,
                                nullptr, nullptr, nullptr));
-        // An entity listed twice, once per side, needs both: a second entry
-        // merges into member_both instead of replacing the first.
-        const auto flag_side = [](auto & table, std::size_t id, bool lower) {
-            const iis_sided_status current = table.get(id);
-            if(is<iis_status::member_both>(current)) return;
-            if(is<iis_status::absent>(current)) {
-                table.set(id,
-                          lower ? iis_sided_status{iis_status::member_lower{}}
-                                : iis_sided_status{iis_status::member_upper{}});
-                return;
-            }
-            if(lower != is<iis_status::member_lower>(current))
-                table.set(id, iis_sided_status{iis_status::member_both{}});
-        };
+        // An entity listed twice, once per side, needs both, so the sides
+        // accumulate rather than the second entry replacing the first.
+        std::vector<char> row_lower(num_row, char{0}),
+            row_upper(num_row, char{0}), col_lower(num_col, char{0}),
+            col_upper(num_col, char{0});
         // A set entry ('1', '2') carries a set index, not a row index, and
         // an indicator entry ('I') its indicator row: neither is a member,
         // and neither may be looked up as a row.
@@ -661,14 +651,13 @@ protected:
             const auto row = static_cast<std::size_t>(row_index[k]);
             switch(row_kind[k]) {
                 case 'L':
-                    flag_side(constraint_table, row, false);
+                    row_upper[row] = 1;
                     break;
                 case 'G':
-                    flag_side(constraint_table, row, true);
+                    row_lower[row] = 1;
                     break;
                 case 'E':
-                    constraint_table.set(
-                        row, iis_sided_status{iis_status::member_both{}});
+                    row_lower[row] = row_upper[row] = 1;
                     break;
                 default:
                     break;
@@ -680,14 +669,13 @@ protected:
             const auto col = static_cast<std::size_t>(col_index[k]);
             switch(col_kind[k]) {
                 case 'L':
-                    flag_side(variable_table, col, true);
+                    col_lower[col] = 1;
                     break;
                 case 'U':
-                    flag_side(variable_table, col, false);
+                    col_upper[col] = 1;
                     break;
                 case 'F':
-                    variable_table.set(
-                        col, iis_sided_status{iis_status::member_both{}});
+                    col_lower[col] = col_upper[col] = 1;
                     break;
                 default:
                     break;
@@ -695,14 +683,31 @@ protected:
         }
         // the problem keeps the IIS data until the next search otherwise
         check(XPRS->iisclear(prob));
-        guard.restore();
+        // On a MIP the routine lists a ranged row ('R') by one side where
+        // integrality needs both, so such a row is reported whole. An
+        // equality row gets 'E' there, so its listed side stands.
+        std::vector<char> row_type;
+        if(mip && num_row > 0) {
+            row_type.assign(num_row, char{0});
+            check(XPRS->getrowtype(prob, row_type.data(), 0,
+                                   static_cast<int>(num_row) - 1));
+        }
+        for(std::size_t i = 0; i < num_row; ++i) {
+            if(!row_lower[i] && !row_upper[i]) continue;
+            const bool whole = mip && row_type[i] == 'R';
+            constraint_table.set(
+                i, detail::iis_flagged_status<ConstraintStatus>(
+                       row_lower[i] != 0, row_upper[i] != 0, whole));
+        }
+        for(std::size_t j = 0; j < num_col; ++j) {
+            if(!col_lower[j] && !col_upper[j]) continue;
+            variable_table.set(
+                j, detail::iis_flagged_status<VariableStatus>(
+                       col_lower[j] != 0, col_upper[j] != 0, false));
+        }
         if(completion == XPRS_IIS_COMPLETED)
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     iis_outcome::irreducible);
-        return iis_snapshot_type(std::move(variable_table),
-                                 std::move(constraint_table),
-                                 iis_outcome::not_proven_minimal, stop_reason);
+            return answer(iis_outcome::irreducible);
+        return answer(iis_outcome::not_proven_minimal, stop_reason);
     }
 };
 
