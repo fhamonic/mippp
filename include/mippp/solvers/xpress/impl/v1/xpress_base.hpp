@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "mippp/detail/handle_status_table.hpp"
+#include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -567,6 +568,38 @@ private:
         }
     };
 
+    struct self_infeasible_column {
+        std::size_t index;
+        detail::iis_column_sides sides;
+    };
+    // The semi-continuous and partial-integer kinds fall to other, whose
+    // admissible values the arithmetic does not decide.
+    static constexpr detail::iis_column_kind _iis_column_kind(char type) {
+        if(type == 'C') return detail::iis_column_kind::continuous;
+        if(type == 'I') return detail::iis_column_kind::integer;
+        if(type == 'B') return detail::iis_column_kind::binary;
+        return detail::iis_column_kind::other;
+    }
+    // Xpress keeps a binary column's bounds that exclude [0, 1] as they are,
+    // where a bound that leaves room for a value outside it turns the column
+    // integer, so the types are read at the call.
+    std::optional<self_infeasible_column> _self_infeasible_column(
+        std::size_t num_col) {
+        if(num_col == 0) return std::nullopt;
+        const int last = static_cast<int>(num_col) - 1;
+        std::vector<double> lower(num_col), upper(num_col);
+        std::vector<char> types(num_col);
+        check(XPRS->getlb(prob, lower.data(), 0, last));
+        check(XPRS->getub(prob, upper.data(), 0, last));
+        check(XPRS->getcoltype(prob, types.data(), 0, last));
+        for(std::size_t j = 0; j < num_col; ++j) {
+            if(const auto sides = detail::iis_self_infeasible_column(
+                   lower[j], upper[j], _iis_column_kind(types[j])))
+                return self_infeasible_column{j, *sides};
+        }
+        return std::nullopt;
+    }
+
 protected:
     template <typename VariableStatus, typename ConstraintStatus>
     iis_snapshot<variable, constraint, VariableStatus, ConstraintStatus>
@@ -599,12 +632,22 @@ protected:
             return snapshot(std::move(variable_table),
                             std::move(constraint_table), outcome, reason);
         };
-        // XPRSgetlasterror is empty after this failure: the message says what
-        // is known to cause it
-        if(call_status == _iis_call_error)
+        // The routine refuses the whole search on a column whose bounds admit
+        // no value, even when the conflict is elsewhere, and
+        // XPRSgetlasterror is empty after it: such a column is an IIS by
+        // itself, the answer given here.
+        if(call_status == _iis_call_error) {
+            if(const auto col = _self_infeasible_column(num_col)) {
+                variable_table.set(
+                    col->index, detail::iis_flagged_status<VariableStatus>(
+                                    col->sides.lower, col->sides.upper, false));
+                return answer(iis_outcome::irreducible);
+            }
             throw solver_error(
                 "mippp: XPRSiisfirst refused the search, as it does on a "
-                "column whose bounds cross or hold no integer value");
+                "column whose bounds admit no value, and no continuous, "
+                "integer or binary column has such bounds");
+        }
         if(call_status == _iis_call_feasible)
             return answer(iis_outcome::feasible);
         if(call_status != _iis_call_success && call_status != _iis_call_stopped)

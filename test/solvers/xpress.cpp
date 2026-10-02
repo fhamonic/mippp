@@ -214,21 +214,8 @@ TEST_F(xpress_lp_test, rows_stay_addressable_after_a_stopped_solve) {
     EXPECT_EQ(model.get_constraint_upper_bound(added), 8.);
 }
 
-// XPRSiisfirst refuses the search on a column whose bounds hold no value,
-// crossed or an integer column with no integer between them: stated from the
-// case data, so that the suite skips the case instead of catching the throw.
 template <typename Model>
 struct xpress_iis_test : public xpress_deletion_test<Model> {
-    using base = xpress_deletion_test<Model>;
-    static std::optional<std::string> iis_case_skip_reason(
-        const iis_cases::iis_case & c) {
-        if(const auto reason = base::crossed_row_reason(c)) return reason;
-        if(const auto i = base::column_whose_bounds_hold_no_value(c))
-            return "Xpress refuses the IIS search on column " +
-                   std::to_string(*i) + ", whose bounds hold no value";
-        return std::nullopt;
-    }
-
     // x in [0, 1] against x >= 2: the row's lower side and the upper bound
     static auto add_bound_row_conflict(Model & model) {
         using namespace operators;
@@ -289,6 +276,37 @@ struct xpress_iis_test : public xpress_deletion_test<Model> {
             model.native_api().setintcontrol(model.native_model(),
                                              iisops_control, value));
     }
+    // a kind no MIP++ setter creates
+    static void make_semi_continuous(const Model & model,
+                                     model_variable_t<Model> x) {
+        const int column = model.native_id(x);
+        const char type = 'S';
+        model.native_api()._check(model.native_model(),
+                                  model.native_api().chgcoltype(
+                                      model.native_model(), 1, &column, &type));
+    }
+    // the column alone, next to a row on another column, under a row on itself
+    template <typename Side>
+    void expect_binary_column_is_the_iis(double lower, double upper) {
+        using namespace operators;
+        for(int placement = 0; placement < 3; ++placement) {
+            auto model = this->new_model();
+            auto x = model.add_binary_variable();
+            if(placement == 1) {
+                auto y =
+                    model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+                model.add_constraint(y <= 0.5);
+            }
+            if(placement == 2) model.add_constraint(x <= 4.);
+            model.set_variable_lower_bound(x, lower);
+            model.set_variable_upper_bound(x, upper);
+            const auto iis = model.compute_iis();
+            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible) << placement;
+            EXPECT_TRUE(is<Side>(iis.get_status(x))) << placement;
+            EXPECT_EQ(iis.num_variable_members(), 1u) << placement;
+            EXPECT_EQ(iis.num_constraint_members(), 0u) << placement;
+        }
+    }
 };
 using xpress_lp_iis_test = xpress_iis_test<xpress_lp>;
 using xpress_milp_iis_test = xpress_iis_test<xpress_milp>;
@@ -312,19 +330,55 @@ TEST_F(xpress_lp_iis_test, compute_iis_restores_iisops) {
     EXPECT_EQ(model.get_time_limit().count(), 3.);
 }
 
-TEST_F(xpress_lp_iis_test, bound_conflict_on_a_column_is_refused) {
+// XPRSiisfirst refuses the whole search on a column whose bounds admit no
+// value, even beside an unrelated row, so the column is answered from its
+// bounds.
+TEST_F(xpress_lp_iis_test, crossed_column_is_answered_from_its_bounds) {
     using namespace operators;
     auto model = this->new_model();
     constexpr int keep_all_variable_bounds = 8;
     write_iisops(model, keep_all_variable_bounds);
     auto x = model.add_variable({.lower_bound = 1., .upper_bound = 0.});
     auto y = model.add_variable({.lower_bound = 0., .upper_bound = 5.});
-    model.add_constraint(y <= 3.);
-    EXPECT_THROW((void)model.compute_iis(), solver_error);
+    auto r = model.add_constraint(y <= 3.);
+    const auto iis = model.compute_iis();
+    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(x)));
+    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
+    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r)));
+    EXPECT_EQ(iis.num_variable_members(), 1u);
+    EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_EQ(read_iisops(model), keep_all_variable_bounds);
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
     EXPECT_EQ(model.get_variable_lower_bound(x), 1.);
     EXPECT_EQ(model.get_variable_upper_bound(x), 0.);
+}
+
+// Xpress keeps the bounds of a binary column that exclude [0, 1] (lower bound
+// 2, upper bound -2) and its routine refuses the search on them: the column is
+// the IIS wherever the rows are, by the bound that excludes the domain alone,
+// or by both when the interval lies inside it. A bound leaving room for a
+// value outside [0, 1] turns the column integer instead.
+TEST_F(xpress_milp_iis_test, binary_column_outside_its_domain_is_the_iis) {
+    this->expect_binary_column_is_the_iis<iis_status::member_lower>(2., 1.);
+    this->expect_binary_column_is_the_iis<iis_status::member_upper>(0., -2.);
+    this->expect_binary_column_is_the_iis<iis_status::member_both>(0.25, 0.75);
+}
+
+// The refusal comes on a semi-continuous column with crossed bounds too, a
+// kind whose admissible values the wrapper does not decide: it still throws,
+// and IISOPS reads back.
+TEST_F(xpress_milp_iis_test, refusal_without_a_decidable_column_throws) {
+    auto model = this->new_model();
+    constexpr int keep_all_variable_bounds = 8;
+    write_iisops(model, keep_all_variable_bounds);
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 4.});
+    make_semi_continuous(model, x);
+    model.set_variable_lower_bound(x, 2.);
+    model.set_variable_upper_bound(x, 1.);
+    EXPECT_THROW((void)model.compute_iis(), solver_error);
+    EXPECT_EQ(read_iisops(model), keep_all_variable_bounds);
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
 TEST_F(xpress_lp_iis_test, compute_iis_zero_budget_is_a_time_limit_stop) {

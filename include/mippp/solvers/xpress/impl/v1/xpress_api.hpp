@@ -46,6 +46,7 @@ int XPRSgetlb(XPRSprob prob, double lb[], int first, int last);
 int XPRSgetub(XPRSprob prob, double ub[], int first, int last);
 int XPRSchgcoltype(XPRSprob prob, int ncols, const int colind[],
                    const char coltype[]);
+int XPRSgetcoltype(XPRSprob prob, char coltype[], int first, int last);
 
 int XPRSaddrows(XPRSprob prob, int nrows, int ncoefs, const char rowtype[],
                 const double rhs[], const double rng[], const int start[],
@@ -231,6 +232,7 @@ namespace xpress::impl::v1 {
     F(XPRSgetlb, getlb)                             \
     F(XPRSgetub, getub)                             \
     F(XPRSchgcoltype, chgcoltype)                   \
+    F(XPRSgetcoltype, getcoltype)                   \
     F(XPRSaddrows, addrows)                         \
     F(XPRSchgrowtype, chgrowtype)                   \
     F(XPRSchgrhs, chgrhs)                           \
