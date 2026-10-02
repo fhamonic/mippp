@@ -56,8 +56,12 @@ questions wave 3 left.
   `glpk_milp` (`e2d577f` to `6bb2208`), so that every model class has one, the arithmetic of the wrappers
   shared in `detail/iis_arithmetic.hpp` (`2e52aa8`), and on Xpress ranged rows reported whole on a MIP and
   refused searches answered from a column's own bounds (`916db02`, `5c2192f`); the user pages, iis.md, this
-  file and the feature tables followed on `iis/coherence-docs`. The shared tests and the guard cleanup land
-  on a parallel branch, `<branch>`, as `<commits>`: `<what they change>`.
+  file and the feature tables followed (`539e3d3` to `1dabe0e`). The shared tests and the guard cleanup came
+  last (`a6c19f3` to `08280ed`): the native cases each backend copied became shared cases (a zero time
+  limit, the time limit read back, a registered callback that does not run, indicators as background, the
+  status afterwards), the `names_every_side` flag gave way to checks that can fail on every path, every
+  native guard restores every option before raising, and Gurobi and CPLEX share their row status and side
+  mappings. Then the record of iis.md and this file.
 
 ## 0. Before any code
 
@@ -405,7 +409,8 @@ limit (N27 a).
   - [x] **`IisTest`.** The suite in `test/test_suites/iis.hpp` shares the case bodies of 4.2. The fixtures
     `highs_lp_iis_test` and `highs_qp_iis_test` skip below 1.14.0 on `library_version()`, and
     `TEST(HiGHS_lp, compute_iis_below_native_floor_throws)` expects the throw there. Done in `ac8696c`, with
-    four HiGHS-only cases on the options, the zero budget, the status and the Hessian; locally 28 native cases
+    four HiGHS-only cases on the options, the zero budget, the status and the Hessian (the zero budget and
+    the status became shared cases in `a6c19f3`); locally 28 native cases
     pass on 1.15.1 and 16 skip for capabilities, and the throw is exercised on 1.10.0. Since wave 3, 38 run
     and 6 skip, 19 and 3 on each of `highs_lp` and `highs_qp`, since the ranged cases build through modifiable
     row bounds.

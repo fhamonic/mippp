@@ -648,13 +648,19 @@ record what they established.
   parameters through a small RAII helper: HiGHS `iis_strategy` and
   `iis_time_limit` (N29 a), Xpress `IISOPS`, Gurobi's `IIS*Force` attributes
   (N15), COPT's `TimeLimit` for the second step and, on `copt_milp`, the
-  detached callback, the wrapper's own incumbent callback being detached
-  again before the confirming solve's return code is checked, and the
-  callbacks `cplex_milp` and `xpress_milp` detach for the call, re-registered
-  on every exit; CPLEX sets nothing, its groups being arguments of the
-  call, which a test pins. The free function's guard saves model data and lives in its detail
-  namespace, so it is not reused, which departs from the WP7 guard of the N15
-  recommendation.
+  detached callback, the wrapper's own incumbent callback being detached again
+  before the confirming solve's return code is checked, and the callbacks
+  `cplex_milp` and `xpress_milp` detach for the call, re-registered on every
+  exit; CPLEX sets nothing, its groups being arguments of the call, which a
+  test pins. The free function's guard saves model data and lives in its
+  detail namespace, so it is not reused, which departs from the WP7 guard of
+  the N15 recommendation. Since `228d25e` every native guard follows the rule
+  of the free function's guard: `restore()` attempts every item and raises the
+  first error once all ran, a constructor that fails writes back what it set,
+  and the `noexcept` destructor writes back only when `restore()` did not run.
+  HiGHS's `restore()` used to stop at its first rejected write, with no
+  rollback in its constructor, and COPT's time-limit guard and the three
+  callback guards used to retry once in their destructor.
 - **Split.** Native, where `has_iis` holds: `gurobi_*`, `cplex_*`, `copt_*`,
   `xpress_*`, `highs_lp` and `highs_qp`. The free function, once each model
   has the capabilities it requires: `clp_lp` (WP8), `cbc_milp` (WP9),
@@ -1229,7 +1235,15 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   47.1 keeping the data-keyed skip of the deletion fixture, and Xpress
   tests pin a crossed column beside a row, a binary outside its domain in
   three placements, and the refusal that still throws on a semi-continuous
-  column.
+  column. Since `a6c19f3` the cases each backend had copied are shared:
+  `zero_time_limit_is_a_time_limit_stop` on every native class, with an
+  integer variant on the MIP classes, `registered_callback_does_not_run`,
+  now on `gurobi_milp` too, and, in both suites, `time_limit_reads_back_unchanged`,
+  `indicator_constraints_are_background` and the status afterwards. In place
+  of the `names_every_side` flag, `validate()` checks on both paths that a
+  complete answer has no reason and that a member is whole only on an entity
+  with two finite sides; every native routine names the side of a
+  column-less row (measured).
 - **CI.** Clp, Cbc, GLPK and HiGHS run in CI, so the free function is
   CI-tested. CI always runs at least one of them, and since 2026-10-02
   `dumb_lp`, a user-defined model without row-bound setters, runs the free
