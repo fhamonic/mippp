@@ -101,7 +101,7 @@ A call that gives up drops nothing, so the answer is then `not_proven_minimal` o
 
 ### Candidates and trials
 
-Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. Integrality, special constraints and anything added through the native handles are not candidates: they stay in every trial, as background. A trial is a `solve()`, so a registered candidate-solution callback runs in every trial, and its lazy constraints and rejections are background too, see [Callbacks](#callbacks).
+Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. Integrality and indicator constraints are not candidates: they stay in every trial, as background, as they do in the native routines. A trial is a `solve()`, so a registered candidate-solution callback runs in every trial, and its lazy constraints and rejections are background too, see [Callbacks](#callbacks). Anything added through the native handles, SOS constraints included, since MIP++ adds none, also stays in every trial, but is outside the guarantee, see [Native changes](#native-changes). Whether relaxing a bound of a binary variable widens its domain depends on the solver, see [LP or MILP](../solving/infeasibility.md#lp-or-milp).
 
 A trial deactivates the candidates the engine left out by relaxing them to `-infinity()` or `infinity()`. It never removes a row and never changes the matrix, so each trial is a re-solve of the same model, and writes only the sides whose state differs from the previous trial's. On `gurobi_lp` and `gurobi_milp`, which range a row through a slack column and so have no row-bound setters, a row is written through its right-hand side, and through its sense only when it changes side: a `<=` or `>=` row is relaxed and restored through its right-hand side alone, an `==` row with one side relaxed becomes a `<=` or `>=` row, and a row with no side left keeps its sense, `<=` for an `==` row, under an infinite right-hand side.
 
@@ -129,7 +129,7 @@ A run makes at most one solve per candidate plus one, only two when a crossed pa
 | Candidate-solution callback | registered, and run by every trial, see [Callbacks](#callbacks) | registered |
 | MIP starts, basis and incumbent | used and replaced by each trial, as by any `solve()` | what the last trial left: on `cplex_milp`, measured with one [MIP start](../solving/updates.md#giving-the-solver-a-starting-point) of yours, a feasible model's run keeps it beside a trial's incumbent, and an infeasible model's run leaves a trial point in its place; Gurobi's `Start` attribute survives the run |
 | Row senses and right-hand sides, on `gurobi_lp` and `gurobi_milp` | as each trial needs | those read when the run started |
-| Objective sense, matrix, variable types, special constraints, verbosity, tolerances, other limits | unchanged | unchanged |
+| Objective sense, matrix, variable types, indicator constraints, verbosity, tolerances, other limits | unchanged | unchanged |
 
 Nothing is written before the first trial, so a run stopped before it leaves the model untouched. The model is restored on every exit. After an exception from a trial, the restore runs before the exception reaches you. On a normal exit, if writing one item back fails, the others are still restored, and the first error is thrown.
 
@@ -210,7 +210,7 @@ A registered candidate-solution callback adds its own effects, see [Callbacks](#
 
 ### Native changes
 
-The filter reads, changes and restores the model through MIP++ only, so the [warning on the native handles](../solvers/index.md#limitation-native-handles) holds. Bounds, rows or special constraints added through `native_model()` and `native_api()` are background the filter cannot name, and an IIS computed over them loses its guarantee. Its save and restore and the enumeration of `variables()` and `constraints()` do not see such changes either.
+The filter reads, changes and restores the model through MIP++ only, so the [warning on the native handles](../solvers/index.md#limitation-native-handles) holds. Bounds, rows or special constraints added through `native_model()` and `native_api()`, SOS constraints included, since MIP++ adds none, are background the filter cannot name, and an IIS computed over them loses its guarantee. Its save and restore and the enumeration of `variables()` and `constraints()` do not see such changes either.
 
 ## Next
 

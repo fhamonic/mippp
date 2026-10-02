@@ -149,7 +149,7 @@ The chairs need 10 hours of a team that has 8, and the desks 4 of a team that ha
 --8<-- "test/doc_snippets/infeasibility_repair.txt"
 ```
 
-The loop returns `feasible` once no conflict remains. An answer can also have no member because the run proved nothing, `undetermined`, or because integrality and special constraints conflict on their own, `irreducible`, which no relaxed side repairs: the loop then returns that outcome. It changes the model for good, so save the sides you want back before calling it, as `rerun_on_members` does under [Limits](#limits).
+The loop returns `feasible` once no conflict remains. An answer can also have no member because the run proved nothing, `undetermined`, or because the background conflicts on its own, `irreducible`, which no relaxed side repairs, see [Outcomes and reasons](#outcomes-and-reasons): the loop then returns that outcome. It changes the model for good, so save the sides you want back before calling it, as `rerun_on_members` does under [Limits](#limits).
 
 ## Outcomes and reasons
 
@@ -162,7 +162,7 @@ The loop returns `feasible` once no conflict remains. An answer can also have no
 | `feasible` | none | The model is feasible as it is. |
 | `undetermined` | none | Nothing was proven: the run stopped before its first proof, its first solve was inconclusive, or the native routine returned no answer. |
 
-`irreducible` with no member means that the background alone is infeasible: integrality and special constraints, which neither path counts as candidates, conflict on their own, without any bound or side. On the filter it can also mean that a registered candidate-solution callback rejects every point, as on a feasible `xpress_milp` in [Callbacks](../algorithms/deletion-filter.md#callbacks). Indicator and SOS constraints are background for every native routine as for the filter: never members, and the rows and bounds an answer names conflict against them.
+`irreducible` with no member means that the background alone is infeasible, without any bound or side. The background is what neither path counts as candidates and both keep in every check: integrality, and the indicator constraints of `gurobi_milp` and `cplex_milp`. Neither is ever a member, and the rows and bounds an answer names conflict against them. On the filter, a registered candidate-solution callback is background too, so the answer can also mean that the callback rejects every point, as on a feasible `xpress_milp` in [Callbacks](../algorithms/deletion-filter.md#callbacks). MIP++ adds no SOS constraint: one added through the native handles, like any native change, is outside the guarantee, see [Native changes](#native-changes).
 
 | `iis_reason` | Set when |
 | :--- | :--- |
@@ -223,13 +223,25 @@ On `highs_milp` the answer is `irreducible`, with `load` a member through both s
 
 This is why `highs_milp` has no `compute_iis()`: HiGHS's routine explains the LP relaxation of a MIP, which answers another question. `highs_milp` runs the deletion filter, whose trials are MIP solves. The routines of Gurobi, CPLEX, Xpress and COPT explain the MIP, so their `*_milp` classes have `compute_iis()`. On the trucks each answers `irreducible`, with `load` a plain `member` on `gurobi_milp`, `cplex_milp` and `copt_milp` and a member through both sides on `xpress_milp`, and each of their `*_lp` classes answers `feasible`. On a `copt_milp` with integer columns a column with two finite bounds is a plain `member` in the same way, see [Reading the answer](#reading-the-answer). `xpress_milp` lists such a column once per bound and the answer names both sides.
 
+Whether an IIS names the bounds of a binary variable depends on the solver. Some solvers hold its domain in the type rather than in the bounds: relaxing a bound then widens nothing, and the filter does not name it. With a binary `z` under the row `z >= 2`, measured:
+
+| Model | Deletion filter | `compute_iis()` |
+| :--- | :--- | :--- |
+| `gurobi_milp`, `cplex_milp` | the row alone | the row alone |
+| `copt_milp` | the row alone | the row, and `z` as a plain `member` |
+| `xpress_milp` | the row and the upper bound of `z` | the row and the upper bound of `z` |
+| `highs_milp`, `mosek_milp`, `cbc_milp`, `glpk_milp` | the row and the upper bound of `z` | no routine |
+| `scip_milp` | throws, see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries) | no routine |
+
+An integer `z` in [0, 1] gives the row and the upper bound of `z` everywhere, except that the routine of `copt_milp` names `z` as a plain `member` and that `scip_milp`, which types such a column binary, throws.
+
 ## The model afterwards
 
 Both paths leave the model's data as they found them. The filter changes bounds and sides during its trials and sets the objective to zero. It saves each item first and writes it back on every exit, exceptions included: bounds, sides, the objective from a copy, the Hessian on `highs_qp` and the time limit it forwarded, see [What a run changes](../algorithms/deletion-filter.md#what-a-run-changes). Its trials use and replace the solver's MIP starts, basis and incumbent as any `solve()` does. `compute_iis()` restores the solver options it sets for the call:
 
 - HiGHS: its IIS options.
-- Gurobi: the attributes that keep its special constraints in the conflict.
-- Xpress: the option that keeps integrality and special constraints in the background.
+- Gurobi: the attributes that keep indicator constraints in the background, with the SOS and quadratic constraints that MIP++ does not add.
+- Xpress: the option that keeps integrality in the background, with the general, piecewise-linear, SOS and indicator constraints that only the native handles can add on Xpress.
 - COPT: the time limit written for the solve, see [Limits](#limits).
 - CPLEX sets none: the candidates are arguments of the call.
 
@@ -259,17 +271,17 @@ A snapshot is computed once, when the call returns, and later changes to the mod
 | `cbc_milp` | no | yes | an [experimental](../solvers/index.md#the-backends) backend, with wrong answers of Cbc 2.10 on integer rows, and root LPs past the deadline (measured on a Cbc `devel` build): see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs) and [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
 | `scip_milp` | no | yes | can throw on an infeasible model with binary columns: see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries) |
 | `mosek_lp`, `mosek_milp`, `soplex_lp` | no | yes | |
-| `gurobi_lp`, `gurobi_milp` | yes | yes, writing each row through its sense and rhs, since Gurobi ranges a row through a slack column and its models have no modifiable row bounds | native: `==` rows are members without a side, see [Reading the answer](#reading-the-answer); the bounds of a binary variable are never members, and the iteration limit of `gurobi_lp` stops the routine with no answer, see [Native IIS on Gurobi](../solvers/index.md#limitation-gurobi-iis) |
+| `gurobi_lp`, `gurobi_milp` | yes | yes, writing each row through its sense and rhs, since Gurobi ranges a row through a slack column and its models have no modifiable row bounds | native: `==` rows are plain members, see [Reading the answer](#reading-the-answer); the iteration limit of `gurobi_lp` stops the routine with no answer, see [Native IIS on Gurobi](../solvers/index.md#limitation-gurobi-iis) |
 | `cplex_lp`, `cplex_milp` | yes | yes | native: `==` and ranged rows are plain members, and an inequality row takes the side of its sense, see [Reading the answer](#reading-the-answer); a stopped call has no answer, see [Limits](#limits); `cplex_milp` detaches the candidate-solution callback for the call, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis); on either path, crossed sides cannot be built, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints) |
 | `xpress_lp`, `xpress_milp` | yes | yes | the routine refuses the search on a column whose bounds cross or hold no integer, and `xpress_milp` detaches the candidate-solution callback for the call, see [Native IIS on Xpress](../solvers/index.md#limitation-xpress-iis); on either path, crossed sides cannot be built, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints) |
-| `copt_lp`, `copt_milp` | yes | yes | `compute_iis()` also solves the model, see [Limits](#limits); on a `copt_milp` with integer columns, two-sided rows and two-bounded columns are members without a side, see [Reading the answer](#reading-the-answer); the answer may leave out a bound the conflict needs, see [Native IIS on COPT](../solvers/index.md#limitation-copt-iis) |
+| `copt_lp`, `copt_milp` | yes | yes | `compute_iis()` also solves the model, see [Limits](#limits); on a `copt_milp` with integer columns, two-sided rows and two-bounded columns are plain members, see [Reading the answer](#reading-the-answer); the answer may leave out a bound the conflict needs, see [Native IIS on COPT](../solvers/index.md#limitation-copt-iis) |
 
-Every model class has the deletion filter, and those of Gurobi, CPLEX, Xpress and COPT, with `highs_lp` and `highs_qp`, have a native routine too. What a routine offers beyond an IIS, such as forcing a candidate in or out of the conflict or enumerating several IISs, stays reachable through the solver's C API, outside MIP++. `native_model()` returns the solver's objects, and `native_id(v)` and `native_id(c)` give the index each of your handles has there, see [Native changes](#native-changes). The engine of [The deletion filter](../algorithms/deletion-filter.md#the-engine) runs over an oracle of your own on any backend.
+Which paths name the bounds of a binary variable depends on the solver, see [LP or MILP](#lp-or-milp). Every model class has the deletion filter, and those of Gurobi, CPLEX, Xpress and COPT, with `highs_lp` and `highs_qp`, have a native routine too. What a routine offers beyond an IIS, such as forcing a candidate in or out of the conflict or enumerating several IISs, stays reachable through the solver's C API, outside MIP++. `native_model()` returns the solver's objects, and `native_id(v)` and `native_id(c)` give the index each of your handles has there, see [Native changes](#native-changes). The engine of [The deletion filter](../algorithms/deletion-filter.md#the-engine) runs over an oracle of your own on any backend.
 
 ## Native changes
 
 !!! warning "Changes made through the native handles are outside the guarantee"
-    The [warning on the native handles](../solvers/index.md#limitation-native-handles) holds for both paths. Bounds, rows or special constraints added through `native_model()` and `native_api()` are background that MIP++ does not know, and an IIS computed over them loses its guarantee. The filter's save and restore and the enumeration of `variables()` and `constraints()` do not see native changes either.
+    The [warning on the native handles](../solvers/index.md#limitation-native-handles) holds for both paths. Bounds, rows or special constraints added through `native_model()` and `native_api()`, SOS constraints included, since MIP++ adds none, are background that MIP++ does not know, and an IIS computed over them loses its guarantee. The filter's save and restore and the enumeration of `variables()` and `constraints()` do not see native changes either.
 
 ## Next
 
