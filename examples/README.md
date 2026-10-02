@@ -36,7 +36,7 @@ Change it to target another solver (`gurobi_milp`, `scip_milp`, `cplex_lp`,
 ...). Note that
 `travelling_salesman_dfj` needs the candidate-solution callback, which is currently
 validated on **Gurobi, CPLEX and COPT** only, and that `infeasible_transportation`
-needs the deletion filter and modifiable row bounds, which every backend but
+repairs its plan through modifiable row bounds, which every backend but
 **Gurobi** has (**Cbc, Clp, COPT, CPLEX, GLPK, HiGHS, MOSEK, SCIP, SoPlex and
 Xpress**).
 

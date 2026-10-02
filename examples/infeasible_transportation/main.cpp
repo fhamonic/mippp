@@ -7,10 +7,9 @@
 // infeasible; the IIS narrows the model down to the four figures that
 // disagree, printed with the program's own names.
 //
-// compute_iis_by_deletion runs on every model satisfying iis_by_deletion_model
-// (Cbc, Clp, COPT, CPLEX, GLPK, HiGHS, MOSEK, SCIP, SoPlex and Xpress): swap
-// the alias to use another backend. Gurobi's models have the native routine
-// only, and none of the modifiable row bounds the repair below uses.
+// compute_iis_by_deletion runs on every model class: swap the alias to use
+// another backend. Gurobi's models have none of the modifiable row bounds the
+// repair below uses, so the program does not compile on them.
 
 #include <cstddef>
 #include <map>

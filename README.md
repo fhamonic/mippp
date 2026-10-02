@@ -172,7 +172,7 @@ Solver shared libraries are discovered at runtime; only the solvers you actually
 
 ## Roadmap
 
-The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS), through the solver's own routine on Gurobi, CPLEX, Xpress, COPT and HiGHS and a deletion filter on every backend but Gurobi.
+The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS), through the solver's own routine on Gurobi, CPLEX, Xpress, COPT and HiGHS and a deletion filter on every backend.
 
 Planned, roughly by priority:
 

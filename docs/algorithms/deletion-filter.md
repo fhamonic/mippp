@@ -97,13 +97,13 @@ A call that gives up drops nothing, so the answer is then `not_proven_minimal` o
 
 ## On a model
 
-`compute_iis_by_deletion(model, limits)` runs the engine on any model of the concept `iis_by_deletion_model`, which every model class but Gurobi's satisfies: Cbc, Clp, COPT, CPLEX, GLPK, HiGHS, MOSEK, SCIP, SoPlex and Xpress. It works in place, on your model, without copying it; the concept lists what it reads and writes, see [Infeasibility analysis](../reference/concepts.md#infeasibility-analysis). Its answer is a snapshot keyed by your handles, whose tags name the side of each member: `member_lower`, `member_upper`, or `member_both` when both sides of one variable or row are members.
+`compute_iis_by_deletion(model, limits)` runs the engine on any model of the concept `iis_by_deletion_model`, which every model class satisfies. It works in place, on your model, without copying it; the concept lists what it reads and writes, see [Infeasibility analysis](../reference/concepts.md#infeasibility-analysis). Its answer is a snapshot keyed by your handles, whose tags name the side of each member: `member_lower`, `member_upper`, or `member_both` when both sides of one variable or row are members.
 
 ### Candidates and trials
 
 Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. Integrality, special constraints and anything added through the native handles are not candidates: they stay in every trial, as background.
 
-A trial deactivates the candidates the engine left out by relaxing them to `-infinity()` or `infinity()`. It never removes a row and never changes the matrix, so each trial is a re-solve of the same model, and writes only the sides whose state differs from the previous trial's.
+A trial deactivates the candidates the engine left out by relaxing them to `-infinity()` or `infinity()`. It never removes a row and never changes the matrix, so each trial is a re-solve of the same model, and writes only the sides whose state differs from the previous trial's. On `gurobi_lp` and `gurobi_milp`, which range a row through a slack column and so have no row-bound setters, a row is written whole, through its sense and its right-hand side: an `==` row with one side relaxed becomes a `<=` or `>=` row, and a row with no side left gets an infinite right-hand side.
 
 The objective is zero during the trials. No trial can then be unbounded, and every feasible point is optimal, so a MIP trial can stop at its first integer point. The sense stays as you set it: minimizing or maximizing zero is the same problem. On `highs_qp` the zero objective clears the Hessian too, so its trials are LPs.
 
@@ -126,7 +126,8 @@ A run makes at most one solve per candidate plus one, only two when a crossed pa
 | Objective | zero, offset included | the coefficients and offset copied when the run started, and the Hessian on `highs_qp` |
 | Time limit | forwarded, see [Time limits](#time-limits) | the value read when the run started |
 | Status | that of each trial | `unknown` after a run that solved, unchanged otherwise |
-| Sense, matrix, variable types, special constraints, verbosity, tolerances, other limits | unchanged | unchanged |
+| Row senses and right-hand sides, on `gurobi_lp` and `gurobi_milp` | as each trial needs | those read when the run started |
+| Objective sense, matrix, variable types, special constraints, verbosity, tolerances, other limits | unchanged | unchanged |
 
 Nothing is written before the first trial, so a run stopped before it leaves the model untouched. The model is restored on every exit. After an exception from a trial, the restore runs before the exception reaches you. On a normal exit, if writing one item back fails, the others are still restored, and the first error is thrown.
 
