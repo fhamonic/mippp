@@ -127,6 +127,7 @@ A run makes at most one solve per candidate plus one, only two when a crossed pa
 | Time limit | forwarded, see [Time limits](#time-limits) | the value read when the run started |
 | Status | that of each trial | `unknown` after a run that solved, unchanged otherwise |
 | Candidate-solution callback | registered, and run by every trial, see [Callbacks](#callbacks) | registered |
+| MIP starts, basis and incumbent | used and replaced by each trial, as by any `solve()` | what the last trial left: on `cplex_milp`, measured with one [MIP start](../solving/updates.md#giving-the-solver-a-starting-point) of yours, a feasible model's run keeps it beside a trial's incumbent, and an infeasible model's run leaves a trial point in its place; Gurobi's `Start` attribute survives the run |
 | Row senses and right-hand sides, on `gurobi_lp` and `gurobi_milp` | as each trial needs | those read when the run started |
 | Objective sense, matrix, variable types, special constraints, verbosity, tolerances, other limits | unchanged | unchanged |
 

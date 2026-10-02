@@ -225,7 +225,7 @@ This is why `highs_milp` has no `compute_iis()`: HiGHS's routine explains the LP
 
 ## The model afterwards
 
-Both paths leave the model's data as they found them. The filter changes bounds and sides during its trials and sets the objective to zero. It saves each item first and writes it back on every exit, exceptions included: bounds, sides, the objective from a copy, the Hessian on `highs_qp` and the time limit it forwarded, see [What a run changes](../algorithms/deletion-filter.md#what-a-run-changes). `compute_iis()` restores the solver options it sets for the call:
+Both paths leave the model's data as they found them. The filter changes bounds and sides during its trials and sets the objective to zero. It saves each item first and writes it back on every exit, exceptions included: bounds, sides, the objective from a copy, the Hessian on `highs_qp` and the time limit it forwarded, see [What a run changes](../algorithms/deletion-filter.md#what-a-run-changes). Its trials use and replace the solver's MIP starts, basis and incumbent as any `solve()` does. `compute_iis()` restores the solver options it sets for the call:
 
 - HiGHS: its IIS options.
 - Gurobi: the attributes that keep its special constraints in the conflict.
@@ -239,6 +239,7 @@ The status is another matter. After any run of the filter that solved, the solve
 - Gurobi and Xpress solve an unsolved model, or overwrite the solver's status.
 - CPLEX replaces its status with the conflict's. It keeps a completed answer until the model's data change, so a second `compute_iis()` on an unchanged model returns at once. An iteration-limit stop is kept the same way, see [Limits](#limits).
 - COPT resets the solver, dropping its held solution, then solves the model as [Limits](#limits) describes.
+- CPLEX replaces the [MIP starts](updates.md#giving-the-solver-a-starting-point) of `cplex_milp`: measured with one start of yours, a call on a feasible model leaves a point of the routine as the only start, and a call on an infeasible model leaves none, as `solve()` does there. Gurobi's `Start` attribute survives the call, as it survives the filter.
 - `cplex_milp`, `xpress_milp` and `copt_milp` detach a registered candidate-solution callback for the call and reattach it afterwards, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis), [on Xpress](../solvers/index.md#limitation-xpress-iis) and [on COPT](../solvers/index.md#limitation-copt-iis). Gurobi's routine never runs it. No native routine honours the callback's lazy constraints, while the filter's trials run it, see [Callbacks](../algorithms/deletion-filter.md#callbacks).
 
 Call `solve()` again before reading a solution, as the workshop's remedy does.
