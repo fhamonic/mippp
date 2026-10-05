@@ -279,6 +279,35 @@ TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back) {
     EXPECT_EQ(before[0], 2);
 }
 
+// CPXprimopt refuses a problem turned MIP through the native handle (error
+// 1017, measured on 22.1.2): both parameters are written back on that throw.
+TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back_on_a_throw) {
+    using namespace operators;
+    using namespace cplex::impl::v1;
+    auto model = new_model();
+    const auto & native = model.native_api();
+    const auto [env, lp] = model.native_model();
+    const auto read = [&native, env] {
+        std::array<int, 2> values{};
+        native._check(env,
+                      native.getintparam(env, CPXPARAM_Advance, &values[0]));
+        native._check(env, native.getintparam(
+                               env, CPXPARAM_Preprocessing_Reduce, &values[1]));
+        return values;
+    };
+    native._check(env, native.setintparam(env, CPXPARAM_Advance, 2));
+    const auto before = read();
+    auto x = model.add_variable();
+    model.set_maximization();
+    model.set_objective(x);
+    model.add_constraint(x >= 1.);
+    model.solve();
+    ASSERT_TRUE(is<status::infeasible_or_unbounded>(model.get_status()));
+    native._check(env, native.chgprobtype(env, lp, CPXPROB_MILP));
+    EXPECT_ANY_THROW(model.refine_lp_status());
+    EXPECT_EQ(read(), before);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////// IIS /////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
