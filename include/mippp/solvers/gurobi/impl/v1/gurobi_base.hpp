@@ -762,10 +762,8 @@ protected:
         update_gurobi_model();
         const std::size_t num_col = _num_var_native_ids;
         const std::size_t num_row = num_constraints();
-        detail::handle_status_table<detail::iis_sided_status> variable_table(
-            _handle_id_bound(num_col));
-        detail::handle_status_table<detail::iis_whole_or_one_side_status>
-            constraint_table(num_row);
+        detail::iis_answer<iis_snapshot_type> answer(_handle_id_bound(num_col),
+                                                     num_row);
 
         // GRBcomputeIIS reads TimeLimit itself and returns 0 on a stop, and
         // IISMinimal is 0 after numerical trouble as well as after a stop:
@@ -830,27 +828,17 @@ protected:
         forcing.restore();
 
         if(code == GRB_ERROR_IIS_NOT_INFEASIBLE)
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     iis_outcome::feasible{});
+            return answer.finish(iis_outcome::feasible{});
         check(code);
         if(!answered)
-            return iis_snapshot_type(
-                std::move(variable_table), std::move(constraint_table),
-                _iis_stop_outcome(stop_status, out_of_time));
+            return answer.finish(_iis_stop_outcome(stop_status, out_of_time));
 
-        for(std::size_t j = 0; j < num_col; ++j) {
-            const bool lower = lower_in_iis[j] != 0;
-            const bool upper = upper_in_iis[j] != 0;
-            if(!lower && !upper) continue;
-            variable_table.set(
-                _var_handle(static_cast<int>(j)).uid(),
-                detail::iis_flagged_status<detail::iis_sided_status>(
-                    lower, upper, false));
-        }
+        for(std::size_t j = 0; j < num_col; ++j)
+            answer.flag_variable(_var_handle(static_cast<int>(j)).uid(),
+                                 lower_in_iis[j] != 0, upper_in_iis[j] != 0);
         for(std::size_t i = 0; i < num_row; ++i) {
             if(row_in_iis[i] == 0) continue;
-            constraint_table.set(
+            answer.constraints.set(
                 i,
                 detail::iis_row_status_by_sense<GRB_LESS_EQUAL,
                                                 GRB_GREATER_EQUAL>(senses[i]));
@@ -858,12 +846,8 @@ protected:
 
         // An answer made of forced elements alone has no member and is
         // still an IIS: the background alone is infeasible.
-        if(minimal != 0)
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     iis_outcome::irreducible{});
-        return iis_snapshot_type(
-            std::move(variable_table), std::move(constraint_table),
+        if(minimal != 0) return answer.finish(iis_outcome::irreducible{});
+        return answer.finish(
             out_of_time ? iis_outcome_type(iis_outcome::time_limit(true))
                         : iis_outcome_type(iis_outcome::incomplete(true)));
     }
