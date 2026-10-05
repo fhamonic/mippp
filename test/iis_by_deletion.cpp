@@ -714,9 +714,10 @@ static_assert(std::same_as<decltype(std::declval<const iis_by_deletion_t<
                                         iis_stub_model<false, false>> &>()
                                         .get_outcome()),
                            deletion_filter_outcome>);
-static_assert(lp_iis_status<iis_sided_status> &&
-              std::same_as<std::variant_alternative_t<0, iis_sided_status>,
-                           iis_status::absent>);
+static_assert(
+    lp_iis_status<detail::iis_sided_status> &&
+    std::same_as<std::variant_alternative_t<0, detail::iis_sided_status>,
+                 iis_status::absent>);
 
 // the classifier table
 static_assert(detail::classify_deletion_trial(iis_stub_status(

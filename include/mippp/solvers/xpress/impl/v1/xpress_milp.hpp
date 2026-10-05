@@ -300,8 +300,8 @@ public:
         check(XPRS->getintattrib(prob, XPRS_ORIGINALMIPENTS, &mip_entities));
         iis_callback_guard detached(*this);
         auto iis =
-            _compute_iis<iis_sided_status, detail::iis_whole_or_sided_status>(
-                mip_entities > 0);
+            _compute_iis<detail::iis_sided_status,
+                         detail::iis_whole_or_sided_status>(mip_entities > 0);
         detached.restore();
         return iis;
     }

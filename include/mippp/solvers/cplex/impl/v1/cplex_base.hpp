@@ -694,7 +694,7 @@ protected:
     // row whole, so an inequality row takes the side of its sense and an
     // equality or ranged row stays a plain member.
     using iis_snapshot_type =
-        iis_snapshot<variable, constraint, iis_sided_status,
+        iis_snapshot<variable, constraint, detail::iis_sided_status,
                      detail::iis_whole_or_one_side_status, iis_outcome_type>;
 
     // 32 is CPLEX's numerical contradiction (documented), also measured on
@@ -721,7 +721,7 @@ protected:
     iis_snapshot_type _compute_iis() {
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
-        detail::handle_status_table<iis_sided_status> variable_table(
+        detail::handle_status_table<detail::iis_sided_status> variable_table(
             _handle_id_bound(num_col));
         detail::handle_status_table<detail::iis_whole_or_one_side_status>
             constraint_table(num_row);
@@ -817,10 +817,10 @@ protected:
                 !is<iis_status::absent>(variable_table.get(id));
             variable_table.set(
                 id, other_side_flagged
-                        ? iis_sided_status{iis_status::member_both{}}
+                        ? detail::iis_sided_status{iis_status::member_both{}}
                     : group_types[k] == CPX_CON_LOWER_BOUND
-                        ? iis_sided_status{iis_status::member_lower{}}
-                        : iis_sided_status{iis_status::member_upper{}});
+                        ? detail::iis_sided_status{iis_status::member_lower{}}
+                        : detail::iis_sided_status{iis_status::member_upper{}});
         }
         return iis_snapshot_type(
             std::move(variable_table), std::move(constraint_table),

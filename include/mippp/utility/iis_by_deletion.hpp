@@ -66,8 +66,9 @@ concept iis_by_deletion_model =
 
 template <iis_by_deletion_model M>
 using iis_by_deletion_t =
-    iis_snapshot<model_variable_t<M>, model_constraint_t<M>, iis_sided_status,
-                 iis_sided_status, deletion_filter_outcome>;
+    iis_snapshot<model_variable_t<M>, model_constraint_t<M>,
+                 detail::iis_sided_status, detail::iis_sided_status,
+                 deletion_filter_outcome>;
 
 namespace detail {
 
@@ -472,14 +473,16 @@ template <iis_by_deletion_model M>
         auto rows = model.constraints();
         std::size_t row_id_bound = 0;
         for(auto c : rows) row_id_bound = std::max(row_id_bound, c.uid() + 1);
-        detail::handle_status_table<iis_sided_status> variable_table(
+        detail::handle_status_table<detail::iis_sided_status> variable_table(
             std::size_t{0});
-        detail::handle_status_table<iis_sided_status> row_table(row_id_bound);
+        detail::handle_status_table<detail::iis_sided_status> row_table(
+            row_id_bound);
         if(const auto side = detail::iis_column_less_precheck(model, rows)) {
-            row_table.set(side->first.uid(),
-                          side->second
-                              ? iis_sided_status(iis_status::member_lower{})
-                              : iis_sided_status(iis_status::member_upper{}));
+            row_table.set(
+                side->first.uid(),
+                side->second
+                    ? detail::iis_sided_status(iis_status::member_lower{})
+                    : detail::iis_sided_status(iis_status::member_upper{}));
             return iis_by_deletion_t<M>(std::move(variable_table),
                                         std::move(row_table),
                                         iis_outcome::irreducible{});

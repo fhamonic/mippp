@@ -6,6 +6,7 @@
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <numeric>
 #include <optional>
 #include <span>
@@ -18,6 +19,16 @@
 #include "mippp/utility/iis_outcome.hpp"
 
 namespace mippp {
+
+struct iis_limits {
+    std::size_t max_solves = std::numeric_limits<std::size_t>::max();
+    // one budget for the whole call, not per trial: it becomes a single
+    // deadline when the call starts. NaN or negative throws
+    // std::invalid_argument, and infinity means no deadline.
+    std::chrono::duration<double> time_limit{
+        std::numeric_limits<double>::infinity()};
+    std::stop_token stop_token = {};
+};
 
 enum class deletion_verdict { feasible, infeasible, inconclusive };
 

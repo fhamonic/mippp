@@ -771,7 +771,7 @@ protected:
                      iis_outcome::memory_limit>;
     // IISConstr flags a row's membership, never a side
     using iis_snapshot_type =
-        iis_snapshot<variable, constraint, iis_sided_status,
+        iis_snapshot<variable, constraint, detail::iis_sided_status,
                      detail::iis_whole_or_one_side_status, iis_outcome_type>;
 
     // Read after a stop that left no subsystem only: a complete answer keeps
@@ -802,7 +802,7 @@ protected:
         update_gurobi_model();
         const std::size_t num_col = _num_var_native_ids;
         const std::size_t num_row = num_constraints();
-        detail::handle_status_table<iis_sided_status> variable_table(
+        detail::handle_status_table<detail::iis_sided_status> variable_table(
             _handle_id_bound(num_col));
         detail::handle_status_table<detail::iis_whole_or_one_side_status>
             constraint_table(num_row);
@@ -873,9 +873,10 @@ protected:
             const bool lower = lower_in_iis[j] != 0;
             const bool upper = upper_in_iis[j] != 0;
             if(!lower && !upper) continue;
-            variable_table.set(_var_handle(static_cast<int>(j)).uid(),
-                               detail::iis_flagged_status<iis_sided_status>(
-                                   lower, upper, false));
+            variable_table.set(
+                _var_handle(static_cast<int>(j)).uid(),
+                detail::iis_flagged_status<detail::iis_sided_status>(
+                    lower, upper, false));
         }
         for(std::size_t i = 0; i < num_row; ++i) {
             if(row_in_iis[i] == 0) continue;

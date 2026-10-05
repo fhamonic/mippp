@@ -780,8 +780,8 @@ protected:
         std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
                      iis_outcome::feasible, iis_outcome::time_limit>;
     using iis_snapshot_type =
-        iis_snapshot<variable, constraint, iis_sided_status, iis_sided_status,
-                     iis_outcome_type>;
+        iis_snapshot<variable, constraint, detail::iis_sided_status,
+                     detail::iis_sided_status, iis_outcome_type>;
 
     iis_snapshot_type _compute_iis() {
         const auto loaded = Highs->library_version();
@@ -805,9 +805,10 @@ protected:
 
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
-        detail::handle_status_table<iis_sided_status> variable_table(
+        detail::handle_status_table<detail::iis_sided_status> variable_table(
             _handle_id_bound(num_col));
-        detail::handle_status_table<iis_sided_status> constraint_table(num_row);
+        detail::handle_status_table<detail::iis_sided_status> constraint_table(
+            num_row);
 
         // HiGHS ignores time_limit during the search and reads iis_time_limit
         // instead: the model's limit is copied there for this call only
@@ -877,7 +878,7 @@ protected:
         const auto decode = [&](HighsInt bound, HighsInt status, auto & table,
                                 std::size_t id) {
             if(bound == _iis_bound_free) return;
-            table.set(id, detail::iis_flagged_status<iis_sided_status>(
+            table.set(id, detail::iis_flagged_status<detail::iis_sided_status>(
                               bound != _iis_bound_upper,
                               bound != _iis_bound_lower, false));
             ++num_members;

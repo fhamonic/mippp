@@ -93,7 +93,8 @@ public:
     // call, throw or return.
     auto compute_iis() {
         reset_status();
-        return _compute_iis<iis_sided_status, iis_sided_status>(false);
+        return _compute_iis<detail::iis_sided_status, detail::iis_sided_status>(
+            false);
     }
     double get_solution_value() {
         double val;
