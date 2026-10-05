@@ -10,13 +10,11 @@
 #include <ranges>
 #include <span>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
 
 #include "mippp/detail/handle_status_table.hpp"
-#include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/quadratic_expression.hpp"
@@ -157,16 +155,6 @@ template <variant_of<status::any> Status>
 /////////////////////////////////// Guard /////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// Empty on a model without has_time_limit: get_time_limit() is not named
-// there, so no decltype of it may be formed.
-template <typename M>
-struct iis_deletion_time_limit_slot {};
-template <has_time_limit M>
-struct iis_deletion_time_limit_slot<M> {
-    using type = std::decay_t<decltype(std::declval<M &>().get_time_limit())>;
-    std::optional<type> saved;
-};
-
 // The engine's oracle over one model: it saves what the trials change at
 // construction, writes nothing until the first trial, and restore() puts
 // everything back. Restoring applies the full candidate set, so one code path
@@ -194,7 +182,8 @@ private:
     scalar _offset;
     std::vector<std::tuple<variable, variable, scalar>> _quadratic_terms;
 
-    [[no_unique_address]] iis_deletion_time_limit_slot<M> _time_limit;
+    // engaged by the first trial when a deadline is forwarded
+    std::optional<seconds> _saved_time_limit;
 
     bool _mutated = false;
     bool _solved = false;
@@ -318,13 +307,11 @@ public:
         }
     }
 
-    [[nodiscard]] bool solved() const noexcept { return _solved; }
-
     deletion_verdict operator()(std::span<const std::size_t> active) {
         if(!_mutated) {
             if constexpr(has_time_limit<M>) {
                 if(_budget.deadline != Clock::time_point::max())
-                    _time_limit.saved = _model.get_time_limit();
+                    _saved_time_limit = seconds(_model.get_time_limit());
             }
             // set before the write, so that a throwing set_objective is
             // still followed by the restore of the objective
@@ -333,7 +320,7 @@ public:
         }
         _apply(active);
         if constexpr(has_time_limit<M>) {
-            if(_time_limit.saved) {
+            if(_saved_time_limit) {
                 const seconds remaining(_budget.deadline - Clock::now());
                 // the engine stops at the deadline between trials, so this is
                 // the window in which a non-positive limit would be written,
@@ -342,8 +329,7 @@ public:
                     return deletion_verdict::inconclusive;
                 // std::min(a, b) is b < a ? b : a, so a NaN saved limit
                 // forwards the remaining time
-                _model.set_time_limit(
-                    std::min(remaining, seconds(*_time_limit.saved)));
+                _model.set_time_limit(std::min(remaining, *_saved_time_limit));
             }
         }
         // before solve(): a throwing solve may have left a partial state
@@ -385,8 +371,8 @@ public:
             });
             attempt([&] { _model.set_objective_offset(_offset); });
             if constexpr(has_time_limit<M>) {
-                if(_time_limit.saved)
-                    attempt([&] { _model.set_time_limit(*_time_limit.saved); });
+                if(_saved_time_limit)
+                    attempt([&] { _model.set_time_limit(*_saved_time_limit); });
             }
         }
         _restored = true;
@@ -429,16 +415,14 @@ template <iis_by_deletion_model M>
     handle_status_table<iis_sided_status> variables(
         candidates.variable_id_bound);
     handle_status_table<iis_sided_status> rows(candidates.row_id_bound);
+    // a side joins the sides its entity already holds, in whatever order
+    // the members come
     const auto mark = [](auto & table, const auto & s) {
         const std::size_t id = s.handle.uid();
-        // both sides of one handle are two consecutive candidates, lower
-        // first, so a second mark on an id can only be the upper side
-        if(is<iis_status::absent>(table.get(id)))
-            table.set(id, s.lower
-                              ? iis_sided_status(iis_status::member_lower{})
-                              : iis_sided_status(iis_status::member_upper{}));
-        else
-            table.set(id, iis_status::member_both{});
+        const iis_sides held = iis_status::sides_of(table.get(id));
+        table.set(id,
+                  iis_flagged_status<iis_sided_status>(
+                      held.lower || s.lower, held.upper || !s.lower, false));
     };
     const std::size_t num_variable_sides = candidates.variable_sides.size();
     for(const std::size_t k : answer.members) {
@@ -466,33 +450,29 @@ template <iis_by_deletion_model M>
 [[nodiscard]] iis_by_deletion_t<M> compute_iis_by_deletion(
     M & model, const iis_limits & limits = {}) {
     using clock = std::chrono::steady_clock;
+    using scalar = model_scalar_t<M>;
     const detail::deletion_budget<clock> budget =
         detail::make_deletion_budget(limits);
     auto variables = model.variables();
-    if(std::ranges::empty(variables)) {
-        auto rows = model.constraints();
-        std::size_t row_id_bound = 0;
-        for(auto c : rows) row_id_bound = std::max(row_id_bound, c.uid() + 1);
-        detail::handle_status_table<detail::iis_sided_status> variable_table(
-            std::size_t{0});
-        detail::handle_status_table<detail::iis_sided_status> row_table(
-            row_id_bound);
-        if(const auto side = detail::iis_column_less_precheck(model, rows)) {
-            row_table.set(
-                side->first.uid(),
-                side->second
-                    ? detail::iis_sided_status(iis_status::member_lower{})
-                    : detail::iis_sided_status(iis_status::member_upper{}));
-            return iis_by_deletion_t<M>(std::move(variable_table),
-                                        std::move(row_table),
-                                        iis_outcome::irreducible{});
-        }
-        return iis_by_deletion_t<M>(std::move(variable_table),
-                                    std::move(row_table),
-                                    iis_outcome::feasible{});
-    }
+    // tested on the variables: a free variable has no side
+    const bool column_less = std::ranges::empty(variables);
     const auto candidates =
         detail::iis_enumerate_deletion_candidates(model, variables);
+    if(column_less) {
+        // Every activity is 0, and solvers answer unknown without columns:
+        // the first side that 0 violates is the whole explanation, a row's
+        // lower side winning when 0 violates both, since it comes first. The
+        // comparison is exact.
+        deletion_filter_result answer{{}, iis_outcome::feasible{}};
+        for(std::size_t k = 0; k < candidates.row_sides.size(); ++k) {
+            const auto & s = candidates.row_sides[k];
+            if(s.lower ? s.value > scalar{0} : s.value < scalar{0}) {
+                answer = {{k}, iis_outcome::irreducible{}};
+                break;
+            }
+        }
+        return detail::iis_fold_deletion_answer(candidates, std::move(answer));
+    }
     detail::iis_deletion_guard<M, clock> guard(model, candidates, budget);
     detail::deletion_state state;
     if(const auto pair = detail::iis_first_crossed_pair(candidates)) {

@@ -655,6 +655,17 @@ struct bounds_stub_with_sense_and_rhs : iis_stub_model<false, false> {
     void set_constraint_rhs(constraint, double) {}
 };
 
+// Moved by hand, so that a deadline passes between two calls of a test.
+struct fake_clock {
+    using duration = std::chrono::nanoseconds;
+    using rep = duration::rep;
+    using period = duration::period;
+    using time_point = std::chrono::time_point<fake_clock>;
+    static constexpr bool is_steady = true;
+    static inline time_point current{};
+    static time_point now() noexcept { return current; }
+};
+
 }  // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1293,6 +1304,16 @@ TEST_F(iis_by_deletion, column_less_first_violated_side_wins) {
     EXPECT_EQ(model.solves, 0u);
 }
 
+TEST_F(iis_by_deletion, column_less_lower_side_wins_when_zero_violates_both) {
+    stub model;
+    const auto r = add_row(model, 1.0, -1.0);
+    const auto iis = compute_iis_by_deletion(model);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_EQ(status_of(iis, r), membership::lower);
+    EXPECT_EQ(iis.num_constraint_members(), 1u);
+    EXPECT_EQ(model.solves, 0u);
+}
+
 TEST_F(iis_by_deletion, column_less_precheck_compares_exactly_with_zero) {
     {
         stub model;
@@ -1695,6 +1716,31 @@ TEST_F(iis_by_deletion, caller_limit_shorter_than_saved) {
         EXPECT_LE(writes[i], 1.0);
     }
     EXPECT_EQ(writes.back(), 2.0);
+}
+
+// The engine stops at the deadline before each trial, so a deadline reaches
+// the guard only when it passes after that check: the guard must then answer
+// without writing the non-positive limit that remains.
+TEST_F(iis_by_deletion, guard_past_its_deadline_answers_without_a_solve) {
+    timed_stub model;
+    model.time_limit_value = 2.0;
+    conflict_model(model);
+    const auto before = model.data();
+    const auto candidates =
+        detail::iis_enumerate_deletion_candidates(model, model.variables());
+    const auto budget = detail::make_deletion_budget<fake_clock>(
+        iis_limits{.time_limit = 10s}, fake_clock::now());
+    detail::iis_deletion_guard<timed_stub, fake_clock> guard(model, candidates,
+                                                             budget);
+    fake_clock::current += 11s;
+    const std::vector<std::size_t> every_side{0, 1, 2, 3, 4, 5, 6};
+    EXPECT_EQ(guard(every_side), deletion_verdict::inconclusive);
+    EXPECT_EQ(model.solves, 0u);
+    guard.restore();
+    expect_restored(model, before);
+    EXPECT_EQ(model.time_limit_reads, 1u);
+    // the restore's write alone
+    EXPECT_EQ(model.time_limit_writes, std::vector<double>{2.0});
 }
 
 TEST_F(iis_by_deletion, time_limit_is_restored_after_a_throw) {
