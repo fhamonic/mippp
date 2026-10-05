@@ -300,6 +300,10 @@ static_assert(!table_accepts<sided_status, possibly_lower>);
 // a tag no alternative derives from is a mistake, not a count of 0
 static_assert(table_counts<row_status, iis_status::member>);
 static_assert(!table_counts<row_status, iis_status::member_both>);
+// iis_snapshot::get_status, noexcept, reads through get()
+static_assert(noexcept(
+    std::declval<const mippp::detail::handle_status_table<sided_status> &>()
+        .get(0)));
 static_assert([] {
     mippp::detail::handle_status_table<row_status> table(3);
     table.set(1, iis_status::member{});
