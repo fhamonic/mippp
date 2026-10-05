@@ -16,7 +16,6 @@
 #include <variant>
 #include <vector>
 
-#include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/detail/restore_guard.hpp"
@@ -733,6 +732,13 @@ protected:
         iis_snapshot<variable, constraint, detail::iis_sided_status,
                      detail::iis_sided_status, iis_outcome_type>;
 
+    // the sides a listed entry names; a free entry names none
+    static constexpr iis_sides _iis_bound_sides(HighsInt bound) noexcept {
+        if(bound == _iis_bound_free) return {};
+        return {.lower = bound != _iis_bound_upper,
+                .upper = bound != _iis_bound_lower};
+    }
+
     iis_snapshot_type _compute_iis() {
         const auto loaded = Highs->library_version();
         if(loaded && *loaded < _iis_native_floor)
@@ -755,10 +761,8 @@ protected:
 
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
-        detail::handle_status_table<detail::iis_sided_status> variable_table(
-            _handle_id_bound(num_col));
-        detail::handle_status_table<detail::iis_sided_status> constraint_table(
-            num_row);
+        detail::iis_answer<iis_snapshot_type> answer(_handle_id_bound(num_col),
+                                                     num_row);
 
         // HiGHS ignores time_limit during the search and reads iis_time_limit
         // instead: the model's limit is copied there for this call only
@@ -819,10 +823,7 @@ protected:
         options.restore();
 
         if(code == kHighsStatusError) {
-            if(out_of_time)
-                return iis_snapshot_type(std::move(variable_table),
-                                         std::move(constraint_table),
-                                         iis_outcome::time_limit{});
+            if(out_of_time) return answer.finish(iis_outcome::time_limit{});
             throw solver_error(
                 detail::concat_str(
                     "mippp: Highs_getIis failed with model status ",
@@ -834,31 +835,28 @@ protected:
         // which HiGHS copies its own emptied status vectors into the arrays
         // (an out-of-bounds read on its side that no fill here can absorb):
         // neither is an answer, and the two cannot be told apart.
-        if(code == kHighsStatusWarning)
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     short_of(false));
+        if(code == kHighsStatusWarning) return answer.finish(short_of(false));
 
         std::size_t num_members = 0;
         bool maybe = false;
-        const auto decode = [&](HighsInt bound, HighsInt status, auto & table,
+        using answer_type = decltype(answer);
+        const auto decode = [&](HighsInt bound, HighsInt status, auto flag,
                                 std::size_t id) {
-            if(bound == _iis_bound_free) return;
-            table.set(id, detail::iis_flagged_status<detail::iis_sided_status>(
-                              bound != _iis_bound_upper,
-                              bound != _iis_bound_lower, false));
+            const iis_sides sides = _iis_bound_sides(bound);
+            if(!sides.lower && !sides.upper) return;
+            (answer.*flag)(id, sides.lower, sides.upper, false);
             ++num_members;
             maybe |= (status == _iis_status_maybe_in_conflict);
         };
         for(std::size_t k = 0; k < static_cast<std::size_t>(iis_num_col); ++k) {
             const HighsInt col = col_index[k];
             decode(col_bound[k], col_status[static_cast<std::size_t>(col)],
-                   variable_table, _var_handle(col).uid());
+                   &answer_type::flag_variable, _var_handle(col).uid());
         }
         for(std::size_t k = 0; k < static_cast<std::size_t>(iis_num_row); ++k) {
             const auto row = static_cast<std::size_t>(row_index[k]);
             decode(_iis_row_bound(row_index[k], row_bound[k]), row_status[row],
-                   constraint_table, row);
+                   &answer_type::flag_constraint, row);
         }
 
         // Members, not listed entries: a listing made only of free-bound
@@ -867,17 +865,11 @@ protected:
             const int model_status = Highs->getModelStatus(model);
             const bool solved = model_status == kHighsModelStatusOptimal ||
                                 model_status == kHighsModelStatusUnbounded;
-            return iis_snapshot_type(
-                std::move(variable_table), std::move(constraint_table),
-                solved ? iis_outcome_type(iis_outcome::feasible{})
-                       : short_of(false));
+            return answer.finish(solved ? iis_outcome::feasible{}
+                                        : short_of(false));
         }
-        if(!maybe)
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     iis_outcome::irreducible{});
-        return iis_snapshot_type(std::move(variable_table),
-                                 std::move(constraint_table), short_of(true));
+        if(!maybe) return answer.finish(iis_outcome::irreducible{});
+        return answer.finish(short_of(true));
     }
 };
 
