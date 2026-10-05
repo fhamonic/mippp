@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "mippp/detail/handle_guard.hpp"
-#include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/detail/restore_guard.hpp"
@@ -537,23 +536,16 @@ protected:
     iis_snapshot<variable, constraint, VariableStatus, ConstraintStatus,
                  iis_outcome_type>
     _compute_iis(const bool mip) {
-        using snapshot = iis_snapshot<variable, constraint, VariableStatus,
-                                      ConstraintStatus, iis_outcome_type>;
         const int num_col = static_cast<int>(num_variables());
         const int num_row = static_cast<int>(num_constraints());
-        detail::handle_status_table<VariableStatus> variable_table(
-            static_cast<std::size_t>(num_col));
-        detail::handle_status_table<ConstraintStatus> constraint_table(
-            static_cast<std::size_t>(num_row));
-        const auto answer = [&](iis_outcome_type outcome) {
-            return snapshot(std::move(variable_table),
-                            std::move(constraint_table), outcome);
-        };
+        detail::iis_answer<iis_snapshot<variable, constraint, VariableStatus,
+                                        ConstraintStatus, iis_outcome_type>>
+            answer(static_cast<std::size_t>(num_col),
+                   static_cast<std::size_t>(num_row));
         const auto single_column = [&](const self_infeasible_column & col) {
-            variable_table.set(static_cast<std::size_t>(col.index),
-                               detail::iis_flagged_status<VariableStatus>(
-                                   col.sides.lower, col.sides.upper, false));
-            return answer(iis_outcome::irreducible{});
+            answer.flag_variable(static_cast<std::size_t>(col.index),
+                                 col.sides.lower, col.sides.upper);
+            return answer.finish(iis_outcome::irreducible{});
         };
 
         // The routine hands back its previous answer, and calls a model whose
@@ -567,11 +559,10 @@ protected:
         if(num_col == 0) {
             const auto side =
                 detail::iis_column_less_precheck(*this, constraints());
-            if(!side) return answer(iis_outcome::feasible{});
-            constraint_table.set(side->first.uid(),
-                                 detail::iis_flagged_status<ConstraintStatus>(
-                                     side->second, !side->second, false));
-            return answer(iis_outcome::irreducible{});
+            if(!side) return answer.finish(iis_outcome::feasible{});
+            answer.flag_constraint(side->first.uid(), side->second,
+                                   !side->second);
+            return answer.finish(iis_outcome::irreducible{});
         }
 
         const double budget = get_time_limit().count();
@@ -602,20 +593,20 @@ protected:
                     break;
                 case COPT_MIPSTATUS_OPTIMAL:
                 case COPT_MIPSTATUS_UNBOUNDED:
-                    return answer(iis_outcome::feasible{});
+                    return answer.finish(iis_outcome::feasible{});
                 default:
                     // an incumbent found before a stop settles the question,
                     // and the interrupt above always leaves one
-                    if(has_sol) return answer(iis_outcome::feasible{});
+                    if(has_sol) return answer.finish(iis_outcome::feasible{});
                     switch(mip_status) {
                         case COPT_MIPSTATUS_TIMEOUT:
-                            return answer(iis_outcome::time_limit{});
+                            return answer.finish(iis_outcome::time_limit{});
                         case COPT_MIPSTATUS_NODELIMIT:
-                            return answer(iis_outcome::node_limit{});
+                            return answer.finish(iis_outcome::node_limit{});
                         case COPT_MIPSTATUS_INTERRUPTED:
-                            return answer(iis_outcome::interrupted{});
+                            return answer.finish(iis_outcome::interrupted{});
                         default:
-                            return answer(iis_outcome::incomplete{});
+                            return answer.finish(iis_outcome::incomplete{});
                     }
             }
         }
@@ -633,7 +624,7 @@ protected:
                 throw solver_error(
                     "mippp: COPT_Solve found a model without rows infeasible, "
                     "but every column's bounds admit a value");
-            return answer(iis_outcome::feasible{});
+            return answer.finish(iis_outcome::feasible{});
         }
 
         ret_code code = COPT_RETCODE_OK;
@@ -668,17 +659,17 @@ protected:
             switch(lp_status) {
                 case COPT_LPSTATUS_OPTIMAL:
                 case COPT_LPSTATUS_UNBOUNDED:
-                    return answer(iis_outcome::feasible{});
+                    return answer.finish(iis_outcome::feasible{});
                 case COPT_LPSTATUS_INFEASIBLE:
                     throw solver_error(
                         "mippp: COPT_ComputeIIS reports as feasible a model "
                         "COPT_SolveLp found infeasible");
                 case COPT_LPSTATUS_TIMEOUT:
-                    return answer(iis_outcome::time_limit{});
+                    return answer.finish(iis_outcome::time_limit{});
                 case COPT_LPSTATUS_INTERRUPTED:
-                    return answer(iis_outcome::interrupted{});
+                    return answer.finish(iis_outcome::interrupted{});
                 default:
-                    return answer(iis_outcome::incomplete{});
+                    return answer.finish(iis_outcome::incomplete{});
             }
         }
         check(code);
@@ -686,7 +677,7 @@ protected:
         int has_iis;
         check(COPT->GetIntAttr(prob, COPT_INTATTR_HASIIS, &has_iis));
         if(!has_iis) {
-            if(out_of_time) return answer(iis_outcome::time_limit{});
+            if(out_of_time) return answer.finish(iis_outcome::time_limit{});
             throw solver_error(
                 "mippp: COPT_ComputeIIS returned without an IIS");
         }
@@ -728,14 +719,14 @@ protected:
         // agreement is accepted.
         if(flagged_rows != iis_rows ||
            (flagged_cols != iis_cols && flagged_bounds != iis_cols))
-            return answer(short_of(false));
+            return answer.finish(short_of(false));
         // Without a special constraint as sole member, an empty answer is
         // the routine's word for an integer column whose interval holds no
         // integer, which it never names.
         if(flagged_rows + flagged_cols == 0 && iis_sos + iis_indicators == 0) {
             if(const auto col = _self_infeasible_column(num_col))
                 return single_column(*col);
-            return answer(short_of(false));
+            return answer.finish(short_of(false));
         }
 
         // On a MIP, COPT flags one side of an equality row and one bound of a
@@ -757,27 +748,18 @@ protected:
                                        col_upper.data()));
             }
         }
-        for(std::size_t i = 0; i < row_count; ++i) {
-            const bool lower = row_lower_flag[i] != 0;
-            const bool upper = row_upper_flag[i] != 0;
-            if(!lower && !upper) continue;
-            const bool whole =
-                mip && !is_infinite(row_lower[i]) && !is_infinite(row_upper[i]);
-            constraint_table.set(
-                i, detail::iis_flagged_status<ConstraintStatus>(lower, upper,
-                                                                whole));
-        }
-        for(std::size_t j = 0; j < col_count; ++j) {
-            const bool lower = col_lower_flag[j] != 0;
-            const bool upper = col_upper_flag[j] != 0;
-            if(!lower && !upper) continue;
-            const bool whole =
-                mip && !is_infinite(col_lower[j]) && !is_infinite(col_upper[j]);
-            variable_table.set(j, detail::iis_flagged_status<VariableStatus>(
-                                      lower, upper, whole));
-        }
-        if(is_minimal) return answer(iis_outcome::irreducible{});
-        return answer(short_of(true));
+        for(std::size_t i = 0; i < row_count; ++i)
+            answer.flag_constraint(i, row_lower_flag[i] != 0,
+                                   row_upper_flag[i] != 0,
+                                   mip && !is_infinite(row_lower[i]) &&
+                                       !is_infinite(row_upper[i]));
+        for(std::size_t j = 0; j < col_count; ++j)
+            answer.flag_variable(j, col_lower_flag[j] != 0,
+                                 col_upper_flag[j] != 0,
+                                 mip && !is_infinite(col_lower[j]) &&
+                                     !is_infinite(col_upper[j]));
+        if(is_minimal) return answer.finish(iis_outcome::irreducible{});
+        return answer.finish(short_of(true));
     }
 };
 
