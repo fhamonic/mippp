@@ -38,7 +38,7 @@ The engine cannot check it. Without it, the members still form a set that the or
 | Field | Holds |
 | :--- | :--- |
 | `members` | The members' indices, in ascending order. Empty unless a call proved infeasibility. |
-| `outcome` | A `deletion_filter_outcome`, the `std::variant` over the tags of namespace `iis_outcome` that `compute_iis_by_deletion` returns too: `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit` or `solve_limit`, as in [How a run ends](../solving/infeasibility.md#how-a-run-ends). It also lists `incomplete`, the value of a result no run wrote. `iis_outcome::conflict_available(outcome)` says whether `members` holds a set the oracle found infeasible. |
+| `outcome` | A `deletion_filter_outcome`, the `std::variant` over the tags of namespace `iis_outcome` that `compute_iis_by_deletion` returns too: `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit` or `solve_limit`, as in [How a run ends](../solving/infeasibility.md#how-a-run-ends). It also lists `incomplete`: `deletion_filter` never returns it, as it is the value of a result no run wrote, while `compute_iis_by_deletion` returns it when the sides of [an answer it narrows](#narrowing-an-answer) have a solution. `iis_outcome::conflict_available(outcome)` says whether `members` holds a set the oracle found infeasible. |
 
 `irreducible` with no member means that the oracle answered `infeasible` for the empty set: what no candidate covers, the background, is infeasible on its own. A `feasible` answer comes from a single call, on the whole set.
 
@@ -96,11 +96,11 @@ A call that gives up drops nothing, so the answer is then a tag of the `incomple
 
 ## On a model
 
-`compute_iis_by_deletion(model, limits)` runs the engine on any model of the concept `iis_by_deletion_model`, which every model class satisfies. It works in place, on your model, without copying it; the concept lists what it reads and writes, see [Infeasibility analysis](../reference/concepts.md#infeasibility-analysis). Its answer is a snapshot keyed by your handles, whose tags name the side of each member: `member_lower`, `member_upper`, or `member_both` when both sides of one variable or row are members.
+`compute_iis_by_deletion(model, limits)` runs the engine on any model of the concept `iis_by_deletion_model`, which every model class satisfies, and `compute_iis_by_deletion(model, within, limits)` runs it on the sides that `within`, an earlier answer, names, see [Narrowing an answer](#narrowing-an-answer). Both work in place, on your model, without copying it; the concept lists what they read and write, see [Infeasibility analysis](../reference/concepts.md#infeasibility-analysis). Their answer is an `iis_by_deletion_t<M>`, a snapshot keyed by your handles, whose tags name the side of each member: `member_lower`, `member_upper`, or `member_both` when both sides of one variable or row are members.
 
 ### Candidates and trials
 
-Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. Integrality and indicator constraints are not candidates: they stay in every trial, as background, as they do in the native routines. A trial is a `solve()`, so a registered candidate-solution callback runs in every trial, and its lazy constraints and rejections are background too, see [Callbacks](#callbacks). Anything added through the native handles, SOS constraints included, since MIP++ adds none, also stays in every trial, but is outside the guarantee, see [Native changes](#native-changes). Whether relaxing a bound of a binary variable widens its domain depends on the solver, see [LP or MILP](../solving/infeasibility.md#lp-or-milp).
+Every finite variable bound and every finite row side is a candidate, each side on its own: a variable in [0, 10] gives two candidates, an `==` row or a ranged row two, a `<=` row one. A lower side is finite when it is above `-model.infinity()`, an upper side when it is below `model.infinity()`. A narrowing run takes only those that an earlier answer names, see [Narrowing an answer](#narrowing-an-answer). Integrality and indicator constraints are not candidates: they stay in every trial, as background, as they do in the native routines. A trial is a `solve()`, so a registered candidate-solution callback runs in every trial, and its lazy constraints and rejections are background too, see [Callbacks](#callbacks). Anything added through the native handles, SOS constraints included, since MIP++ adds none, also stays in every trial, but is outside the guarantee, see [Native changes](#native-changes). Whether relaxing a bound of a binary variable widens its domain depends on the solver, see [LP or MILP](../solving/infeasibility.md#lp-or-milp).
 
 A trial deactivates the candidates the engine left out by relaxing them to `-infinity()` or `infinity()`. It never removes a row and never changes the matrix, so each trial is a re-solve of the same model, and writes only the sides whose state differs from the previous trial's. `gurobi_lp` and `gurobi_milp` have no row-bound setters, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints). There a row is written whole, from the wanted state of both its sides: through its right-hand side, and through its sense only when that state needs another sense. A `<=` or `>=` row is relaxed and restored through its right-hand side alone. An `==` row with one side relaxed becomes a `<=` or `>=` row. A row with no side left gets an infinite right-hand side: a `<=` or `>=` row keeps its sense, and an `==` row becomes a `<=` row.
 
@@ -115,13 +115,13 @@ Each trial's status becomes a verdict:
 | any other status with a solution (`status::solution_available`), such as `optimal`, or a time limit reached with an incumbent | `feasible` |
 | any other status without one, such as `unknown`, or a limit reached without an incumbent | `inconclusive` |
 
-A run makes at most one solve per candidate plus one, only two when a crossed pair decides it, and none on a model without variables, see [below](#two-cases-decided-early). `max_solves` counts these `solve()` calls, so a budget of one more than the number of finite sides never stops a run.
+A run makes at most one solve per candidate plus one, only two when a crossed pair decides it, and none on a model without variables, see [below](#two-cases-decided-early). `max_solves` counts these `solve()` calls, so a budget of one more than the number of candidates never stops a run.
 
 ### What a run changes
 
 | | During the trials | Afterwards |
 | :--- | :--- | :--- |
-| Candidate bounds and sides | at their value or relaxed, as each trial needs | the values read when the run started |
+| Finite bounds and sides | at their value or relaxed, as each trial needs | the values read when the run started |
 | Objective | zero, offset included | the coefficients and offset copied when the run started, and the Hessian on `highs_qp` |
 | Time limit | forwarded, see [Time limits](#time-limits) | the value read when the run started |
 | Status | that of each trial | `unknown` after a run that solved, unchanged otherwise |
@@ -130,9 +130,9 @@ A run makes at most one solve per candidate plus one, only two when a crossed pa
 | Row senses and right-hand sides, on `gurobi_lp` and `gurobi_milp` | as each trial needs | those read when the run started |
 | Objective sense, matrix, variable types, indicator constraints, verbosity, tolerances, other limits | unchanged | unchanged |
 
-Nothing is written before the first trial, so a run stopped before it leaves the model untouched. The model is restored on every exit. After an exception from a trial, the restore runs before the exception reaches you. On a normal exit, if writing one item back fails, the others are still restored, and the first error is thrown.
+Nothing is written before the first trial, so a run stopped before it leaves the model untouched. Every exit writes each item back, and an item whose write fails does not stop the others. On a normal exit, the first such error is then thrown. After an exception from a trial, the write-back runs before that exception reaches you, and an item whose write fails stays as the trial left it: its error is dropped, since only the trial's exception propagates.
 
-The objective is saved as a copy of its terms, with the offset read apart, since on several backends `get_objective()` is a view over the solver's live coefficients, which would read back the zeros of the trials. Code of your own that saves an objective to restore it needs the same care: `materialize(model.get_objective())` copies the terms, and `get_objective_offset()` gives the offset.
+The objective is saved as a copy of its terms, with the offset read apart, since on several backends `get_objective()` is a view over the solver's live coefficients, which would read back the zeros of the trials. Code of your own that saves an objective to restore it needs the same care: `materialize(model.get_objective())` copies the terms, and `get_objective_offset()` gives the offset. On `highs_qp`, `get_objective()` reads the linear part only and `set_objective` clears the Hessian: copy the terms of `get_quadratic_objective()` too, and restore both parts through `set_quadratic_objective`.
 
 What stays unchanged still applies to every trial. A verbose model prints the log of each trial. The model's other limits, and its time limit when the run has no deadline, bound each trial as they bound any solve: a trial they stop without a point is inconclusive.
 
@@ -141,6 +141,21 @@ What stays unchanged still applies to every trial. A verbose model prints the lo
 A model without variables needs no solve, and gets none. Every row's activity is then 0, so the first row side that 0 violates, a lower side above 0 or an upper side below 0, in the order of `constraints()`, is the IIS, and without one the model is feasible. The comparison with 0 is exact. No limit stops this case, as `max_solves`, the deadline and `stop_token` are never checked, but a NaN or negative `time_limit` still throws `std::invalid_argument`. The model and its status stay as they were.
 
 A variable whose bounds cross, lower above upper, or a row whose sides cross, is infeasible on its own. The first such pair, variables before rows, stands for the proof of the whole model, and the engine continues from it with every other candidate relaxed: a first trial keeps only the upper side of the pair, and a second only the lower side, or neither side if the upper side sufficed. They decide whether both sides are needed or one suffices, as the lower side of a row without terms suffices when it is above 0. The solver never receives the crossed pair. Limits that stop the run before the two trials leave the pair as the answer, under the stop's tag, with a conflict. HiGHS repairs sides that cross by less than its primal feasibility tolerance, while this test is exact: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations.
+
+### Narrowing an answer
+
+`compute_iis_by_deletion(model, within, limits)` takes as candidates only the finite sides that `within` names, as `iis_status::sides_of` reads them: one side of a `member_lower` or a `member_upper`, both of a `member_both`, and every finite side of a plain `member`. `within` is any answer that satisfies `lp_iis` for the model, from either path. Every other finite side stays relaxed in every trial, and is written back with the others when the run ends. The run makes at most one solve per named side plus one, and `limits` bounds it as it bounds a full run.
+
+What it finds is an IIS of the model, against the same background. A trial reads its active sides and the background alone, whatever the run started from, so the members it keeps conflict together, and without any one of them the others have a solution. `within` may thus come from a run that a limit stopped, or describe the model as it was before a change: it is read by handle id on this model, and the first trial checks the sides it names. When those sides have a solution together, the answer is `incomplete` without a conflict, never `feasible`, since that solution says nothing of the sides the run relaxed.
+
+It serves two needs:
+
+- A run stopped by a limit keeps a conflict, the last subset it proved infeasible. Narrowing it tests those sides alone, see [Limits](../solving/infeasibility.md#limits).
+- A native routine can name a row whole, as the Gurobi and CPLEX routines name an `==` row. `compute_iis_by_deletion(model, model.compute_iis())` turns each such row into the sides of it that the conflict needs.
+
+The two [cases decided early](#two-cases-decided-early) follow the named sides. The crossed pair is the first one whose two sides `within` names; a pair it names in part or not at all stays relaxed, and is never crossed in a trial. On a model without variables, the answer is the first named side that 0 violates, and `incomplete` without a conflict when 0 violates none.
+
+On a MILP, the first trial already relaxes every bound of an integer column that `within` does not name, so the [solver gaps](#solver-gaps) of relaxed integer bounds can show from that trial on: on `scip_milp`, the run throws there whenever `within` leaves out a bound of a binary column.
 
 ### Time limits
 
@@ -166,6 +181,8 @@ After any run that solved, the solver holds the solution of a trial rather than 
 ### Callbacks
 
 A trial is a `solve()`, so a candidate-solution callback registered on `gurobi_milp`, `cplex_milp`, `xpress_milp` or `copt_milp` runs in every trial. Its lazy constraints and rejections are background: the filter explains the model as the callback defines it. The native routines explain the model without the callback: `cplex_milp`, `xpress_milp` and `copt_milp` detach it for `compute_iis()`, and Gurobi's routine never runs it (measured on Gurobi 11.0.3, 12.0.1 and 13.0.2). Of the two paths, only the filter honours lazy constraints.
+
+The filter's answer is proven only when the callback's decision to accept or reject a candidate depends on that point alone, which keeps the trials [monotone](#monotonicity). A callback with memory, one that rejects a point for what it saw in earlier candidates or trials, can break monotonicity, and an `irreducible` answer is then unproven.
 
 A callback that only reads its candidates changes no answer: with one that counts them, both paths answer `feasible` on a feasible model. A callback that rejects candidates changes the answers. Measured with one that rejects every candidate, on integers `x` and `y` in [0, 5], with a `time_limit` of 10 s:
 
@@ -203,7 +220,7 @@ The trials inherit what each solver proves. Three of the notable limitations in 
 
 - [Deletion filter](../solvers/index.md#limitation-deletion-filter): the time limits above, and HiGHS's repair of nearly crossed sides;
 - [Integrality proofs](../solvers/index.md#limitation-integrality-proofs): wrong answers of Cbc 2.10, and branching of Cbc and `glpk_milp` that only a time limit stops, on some integer rows;
-- [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries): `scip_milp` throws once a trial relaxes a bound of a binary column.
+- [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries): `scip_milp` throws once a trial relaxes a bound of a binary column, from the first trial of a narrowing run whose answer leaves out such a bound.
 
 A registered candidate-solution callback adds its own effects, see [Callbacks](#callbacks).
 
