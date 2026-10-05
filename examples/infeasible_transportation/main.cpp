@@ -8,20 +8,18 @@
 // disagree, printed with the program's own names.
 //
 // compute_iis_by_deletion runs on every model class: swap the alias to use
-// another backend.
+// another backend. Several solvers also have a routine of their own,
+// model.compute_iis(); docs/solving/infeasibility.md covers both paths.
 
 #include <cstddef>
 #include <map>
 #include <print>
 #include <ranges>
 #include <string>
-#include <string_view>
-#include <variant>
 #include <vector>
 
 #include "mippp/solvers/highs/all.hpp"
 #include "mippp/utility/iis_by_deletion.hpp"
-#include "mippp/utility/solver_exceptions.hpp"
 
 using namespace mippp;
 using namespace mippp::operators;
@@ -34,65 +32,6 @@ struct route {
     double trucks;  // tonnes a week that the trucks on the route can carry
     double cost;    // per tonne
 };
-
-// The sides a member needs, read by overload: the most derived tag wins, and a
-// routine that cannot tell which side of a row conflicts reports plain member.
-// A status variant lists only the tags its path reports, so is_a<member_both>
-// would not compile on the row status of the Gurobi and CPLEX routines.
-struct needed_sides {
-    struct sides {
-        bool lower, upper;
-    };
-    sides operator()(iis_status::absent) const { return {false, false}; }
-    sides operator()(iis_status::member) const { return {false, false}; }
-    sides operator()(iis_status::member_lower) const { return {true, false}; }
-    sides operator()(iis_status::member_upper) const { return {false, true}; }
-    sides operator()(iis_status::member_both) const { return {true, true}; }
-};
-
-// The IIS names the sides in conflict, and the model still holds their values:
-// the deletion filter writes back every bound and side it relaxed.
-template <typename Status>
-void print_sides(std::string_view name, const Status & status, double lower,
-                 double upper) {
-    if(!is_a<iis_status::member>(status)) return;
-    const auto [lower_side, upper_side] = std::visit(needed_sides{}, status);
-    if(lower_side) std::println("  {:<26} >= {}", name, lower);
-    if(upper_side) std::println("  {:<26} <= {}", name, upper);
-    if(!lower_side && !upper_side)
-        std::println("  {:<26} (side not named)", name);
-}
-
-// A template, so that the branch is discarded on a model class without a
-// native routine: in main, if constexpr would still compile the call.
-template <typename Model, typename Print>
-void print_native_conflict(Model & model, Print & print_conflict) {
-    if constexpr(has_iis<Model>) {
-        // thrown when the loaded library lacks the routine, as HiGHS before
-        // 1.14 does, or when the routine fails
-        try {
-            const auto native = model.compute_iis();
-            if(is<iis_outcome::irreducible>(native.get_outcome())) {
-                std::println("Irreducible conflict, from the native routine:");
-                print_conflict(native);
-            }
-        } catch(const solver_error & e) {
-            std::println("No native answer: {}", e.what());
-        }
-    }
-}
-
-// Sets the capacity of a depot, the rhs of its <= row, and suits <= rows only:
-// Gurobi's models have no row-bound setters and hold a row as a sense and an
-// rhs, so there the rhs is written without reading the sense. A template, so
-// that the branch a model class lacks is discarded.
-template <typename Model>
-void set_capacity(Model & model, model_constraint_t<Model> c, double value) {
-    if constexpr(has_modifiable_constraint_bounds<Model>)
-        model.set_constraint_upper_bound(c, value);
-    else
-        model.set_constraint_rhs(c, value);
-}
 
 int main() {
     const std::map<std::string, double> stock = {
@@ -142,48 +81,39 @@ int main() {
     }
     std::println("No plan meets every order: the solve reports infeasible.");
 
-    // Each path returns a snapshot type of its own, hence the generic lambda.
-    auto print_conflict = [&](const auto & iis) {
-        for(const std::string & depot : std::views::keys(stock)) {
-            const auto c = shipped_from(depot);
-            print_sides("shipped from " + depot, iis.get_status(c),
-                        model.get_constraint_lower_bound(c),
-                        model.get_constraint_upper_bound(c));
-        }
-        for(const std::string & store : std::views::keys(demand)) {
-            const auto c = delivered_to(store);
-            print_sides("delivered to " + store, iis.get_status(c),
-                        model.get_constraint_lower_bound(c),
-                        model.get_constraint_upper_bound(c));
-        }
-        for(std::size_t r : route_ids) {
-            const auto v = ship(r);
-            print_sides("shipped " + routes[r].from + " -> " + routes[r].to,
-                        iis.get_status(v), model.get_variable_lower_bound(v),
-                        model.get_variable_upper_bound(v));
-        }
-    };
-
     // The filter solves the model about once per finite bound and side: on a
-    // large model, bound the run with its second argument, an iis_limits.
+    // large model, bound the run with an iis_limits, its last argument.
     const auto iis = compute_iis_by_deletion(model);
     if(!is<iis_outcome::irreducible>(iis.get_outcome())) {
         std::println("The deletion filter proves no irreducible conflict.");
         return 1;
     }
-    std::println("Irreducible conflict, from the deletion filter:");
-    print_conflict(iis);
-
-    // This model has a single IIS, so both paths find the same one.
-    print_native_conflict(model, print_conflict);
+    // Each line is a side that the IIS names, with the program's figure for
+    // it. A depot's row has an upper side only, a store's a lower side only,
+    // and a route's tonnage both bounds, 0 and its trucks.
+    std::println("Irreducible conflict:");
+    for(const auto & [depot, tonnes] : stock)
+        if(iis_status::sides_of(iis.get_status(shipped_from(depot))).upper)
+            std::println("  {:<26} <= {}", "shipped from " + depot, tonnes);
+    for(const auto & [store, tonnes] : demand)
+        if(iis_status::sides_of(iis.get_status(delivered_to(store))).lower)
+            std::println("  {:<26} >= {}", "delivered to " + store, tonnes);
+    for(std::size_t r : route_ids) {
+        const iis_sides sides = iis_status::sides_of(iis.get_status(ship(r)));
+        const std::string name =
+            "shipped " + routes[r].from + " -> " + routes[r].to;
+        if(sides.lower) std::println("  {:<26} >= 0", name);
+        if(sides.upper) std::println("  {:<26} <= {}", name, routes[r].trucks);
+    }
 
     // With a single IIS, relaxing any one member far enough repairs the plan:
-    // here, 10 more tonnes at Marseille. The analyses restore the model's data
-    // but not its solution, so the plan is solved again.
-    set_capacity(model, shipped_from("Marseille"), 150);
+    // here, 10 more tonnes of trucks from Lyon to Avignon, routes[1]. The
+    // filter writes back every bound and side it relaxed, but leaves the
+    // status unknown, so the plan is solved again.
+    model.set_variable_upper_bound(ship(1), routes[1].trucks + 10);
     model.solve();
     if(is_a<status::optimal>(model.get_status()))
-        std::println("With 150 tonnes at Marseille, the plan costs {:g}.",
+        std::println("With 50 tonnes Lyon -> Avignon, the plan costs {:g}.",
                      model.get_solution_value());
     return 0;
 }
