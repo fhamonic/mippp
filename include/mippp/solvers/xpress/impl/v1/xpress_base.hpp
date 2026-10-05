@@ -15,7 +15,6 @@
 #include <variant>
 #include <vector>
 
-#include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/detail/restore_guard.hpp"
@@ -625,18 +624,14 @@ protected:
         // routine has restored it.
         const std::size_t num_col = num_variables();
         const std::size_t num_row = num_constraints();
-        detail::handle_status_table<VariableStatus> variable_table(num_col);
-        detail::handle_status_table<ConstraintStatus> constraint_table(num_row);
-        const auto answer = [&](iis_outcome_type outcome) {
+        detail::iis_answer<snapshot> answer(num_col, num_row);
+        const auto finish = [&](iis_outcome_type outcome) {
             guard.restore();
-            return snapshot(std::move(variable_table),
-                            std::move(constraint_table), outcome);
+            return answer.finish(outcome);
         };
         const auto single_column = [&](const self_infeasible_column & col) {
-            variable_table.set(col.index,
-                               detail::iis_flagged_status<VariableStatus>(
-                                   col.sides.lower, col.sides.upper, false));
-            return answer(iis_outcome::irreducible{});
+            answer.flag_variable(col.index, col.sides.lower, col.sides.upper);
+            return finish(iis_outcome::irreducible{});
         };
         // On 45.01 the routine stops a feasible MIP without rows on the gap
         // of its internal MIP, where 47.01 answers feasible, so such a model
@@ -645,7 +640,7 @@ protected:
             check(XPRS->iisclear(prob));
             if(const auto col = _self_infeasible_column(num_col))
                 return single_column(*col);
-            return answer(iis_outcome::feasible{});
+            return finish(iis_outcome::feasible{});
         }
         // The routine refuses the whole search on a column whose bounds admit
         // no value, even when the conflict is elsewhere, and
@@ -660,7 +655,7 @@ protected:
                 "integer or binary column has such bounds");
         }
         if(call_status == _iis_call_feasible)
-            return answer(iis_outcome::feasible{});
+            return finish(iis_outcome::feasible{});
         if(call_status != _iis_call_success && call_status != _iis_call_stopped)
             throw solver_error(
                 ("mippp: XPRSiisfirst returned the unknown status " +
@@ -684,7 +679,7 @@ protected:
                 return iis_outcome::time_limit(conflict);
             return iis_outcome::stopped(conflict);
         };
-        if(num_iis < 1) return answer(short_of(false));
+        if(num_iis < 1) return finish(short_of(false));
 
         int iis_num_row = 0, iis_num_col = 0;
         check(XPRS->getiisdata(prob, 1, &iis_num_row, &iis_num_col, nullptr,
@@ -751,22 +746,14 @@ protected:
             check(XPRS->getrowtype(prob, row_type.data(), 0,
                                    static_cast<int>(num_row) - 1));
         }
-        for(std::size_t i = 0; i < num_row; ++i) {
-            if(!row_lower[i] && !row_upper[i]) continue;
-            const bool whole = mip && row_type[i] == 'R';
-            constraint_table.set(
-                i, detail::iis_flagged_status<ConstraintStatus>(
-                       row_lower[i] != 0, row_upper[i] != 0, whole));
-        }
-        for(std::size_t j = 0; j < num_col; ++j) {
-            if(!col_lower[j] && !col_upper[j]) continue;
-            variable_table.set(
-                j, detail::iis_flagged_status<VariableStatus>(
-                       col_lower[j] != 0, col_upper[j] != 0, false));
-        }
+        for(std::size_t i = 0; i < num_row; ++i)
+            answer.flag_constraint(i, row_lower[i] != 0, row_upper[i] != 0,
+                                   mip && row_type[i] == 'R');
+        for(std::size_t j = 0; j < num_col; ++j)
+            answer.flag_variable(j, col_lower[j] != 0, col_upper[j] != 0);
         if(completion == XPRS_IIS_COMPLETED)
-            return answer(iis_outcome::irreducible{});
-        return answer(short_of(true));
+            return finish(iis_outcome::irreducible{});
+        return finish(short_of(true));
     }
 };
 
