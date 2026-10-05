@@ -99,6 +99,12 @@ concept table_accepts =
         table.set(0, tag);
     };
 
+template <typename Status, typename Tag>
+concept table_counts =
+    requires(const mippp::detail::handle_status_table<Status> & table) {
+        table.template count_a<Tag>();
+    };
+
 struct possibly_lower : iis_status::member_lower {};
 
 template <typename Status>
@@ -250,6 +256,16 @@ static_assert(table_accepts<row_status, iis_status::member>);
 static_assert(table_accepts<row_status, row_status>);
 static_assert(!table_accepts<row_status, iis_status::member_both>);
 static_assert(!table_accepts<sided_status, possibly_lower>);
+// a tag no alternative derives from is a mistake, not a count of 0
+static_assert(table_counts<row_status, iis_status::member>);
+static_assert(!table_counts<row_status, iis_status::member_both>);
+static_assert([] {
+    mippp::detail::handle_status_table<row_status> table(3);
+    table.set(1, iis_status::member{});
+    return table.count_a<iis_status::member>() == 1 &&
+           is<iis_status::member>(table.get(1)) &&
+           is<iis_status::absent>(table.get(7));
+}());
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// Status table ///////////////////////////////////
