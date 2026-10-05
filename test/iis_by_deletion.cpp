@@ -1411,6 +1411,21 @@ TEST_F(iis_by_deletion, column_less_after_removing_every_variable) {
     EXPECT_EQ(model.solves, 0u);
 }
 
+TEST_F(iis_by_deletion, column_less_precheck_returns_the_first_violated_side) {
+    stub model;
+    add_row(model, -inf, 1.0);
+    const auto both = add_row(model, 1.0, -1.0);
+    add_row(model, -inf, -2.0);
+    const auto side =
+        detail::iis_column_less_precheck(model, model.constraints());
+    ASSERT_TRUE(side);
+    EXPECT_EQ(side->first.uid(), both.uid());
+    EXPECT_TRUE(side->second);
+    stub holds;
+    add_row(holds, 0.0, 0.0);
+    EXPECT_FALSE(detail::iis_column_less_precheck(holds, holds.constraints()));
+}
+
 // The lower side wins when 0 violates both; the comparison is exact.
 static_assert(detail::iis_side_violated_by_zero(1., 2.) == std::optional(true));
 static_assert(detail::iis_side_violated_by_zero(-2., -1.) ==
@@ -2081,6 +2096,30 @@ TEST_F(iis_by_deletion, a_crossed_pair_the_answer_does_not_name_stays_relaxed) {
     expect_restored(model, before);
     const auto full = compute_iis_by_deletion(model);
     EXPECT_EQ(status_of(full, x), membership::both);
+}
+
+// x's pair lies outside the answer and y's only half inside it: neither is
+// crossed in any trial, and the run starts from z's, the pair it names whole.
+TEST_F(iis_by_deletion, narrowing_starts_from_a_crossed_pair_named_whole) {
+    probe model;
+    const auto x = bounded_variable(model, 3.0, 1.0);
+    const auto y = bounded_variable(model, 4.0, 2.0);
+    const auto z = bounded_variable(model, 6.0, 5.0);
+    const auto before = model.data();
+    const scripted_answer within{
+        .variables = {{y.id(), iis_status::member_lower{}},
+                      {z.id(), iis_status::member{}}}};
+    const auto iis = compute_iis_by_deletion(model, within);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_EQ(status_of(iis, x), membership::absent);
+    EXPECT_EQ(status_of(iis, y), membership::absent);
+    EXPECT_EQ(status_of(iis, z), membership::both);
+    ASSERT_EQ(model.solves, 2u);
+    for(const stub_data & trial : model.trials) {
+        EXPECT_EQ(trial.variable_bounds[x.uid()], std::pair(-inf, inf));
+        EXPECT_EQ(trial.variable_bounds[y.uid()], std::pair(-inf, inf));
+    }
+    expect_restored(model, before);
 }
 
 // y's sides and the upper side of r1 hold together, which says nothing of the
