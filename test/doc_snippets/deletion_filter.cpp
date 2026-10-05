@@ -94,7 +94,8 @@ deletion_filter_result print_morning_conflict(std::ostream & out) {
 }
 
 // Search stands for the reader's own check: given the active candidates and
-// the time left, it answers inconclusive when that time runs out.
+// the time left, which the engine's own deadline lets reach zero or less, it
+// answers inconclusive when that time runs out.
 template <typename Search>
 deletion_filter_result filter_within_budget(std::size_t candidate_count,
                                             Search && search) {

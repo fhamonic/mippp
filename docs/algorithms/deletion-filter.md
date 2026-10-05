@@ -86,7 +86,7 @@ The engine checks them before each call, never during one: an oracle call that h
 
 After an `inconclusive` answer, a run that goes on to the end of its pass is `inconclusive_trial`, or `time_limit` when the deadline had passed by the time that call returned; the last inconclusive call decides. A later stop is reported instead. An `inconclusive` answer to the first call ends the run at once, the same way, without a conflict.
 
-Since the engine never interrupts a call, an oracle that can run long must bound itself. Here `search` stands for your own check, told how much time it has left and answering `inconclusive` when that runs out:
+Since the engine never interrupts a call, an oracle that can run long must bound itself. Here `search` stands for your own check, told how much time it has left, which can be zero or less, and answering `inconclusive` when that runs out:
 
 ```cpp
 --8<-- "test/doc_snippets/deletion_filter.cpp:own-deadline"
