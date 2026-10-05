@@ -71,7 +71,7 @@ A model can have several IISs, and the two paths may then return different ones,
 
 The deletion filter is an algorithm of the library, independent of the solver. It relaxes each finite variable bound and constraint side in turn, re-solves, and keeps a side only when the rest becomes feasible without it. It runs in place, on your model, which must let it enumerate its variables and constraints and read and change every bound and side; `iis_by_deletion_model` lists the [requirements](../reference/concepts.md#infeasibility-analysis). [The deletion filter](../algorithms/deletion-filter.md) describes the algorithm, what a run changes and costs, and how to run it on constraints of your own.
 
-The two paths may return different types, so code that chooses between them hands the answer to code written for any IIS, as `print_conflict` is. `diagnose` chooses at compile time, and at run time too when the native call throws:
+The two paths may return different types, so code that chooses between them hands the answer to code written for any IIS, as `print_conflict` is. `diagnose` chooses at compile time, and at run time too when the native call throws `solver_error`, as `compute_iis()` does on a HiGHS older than 1.14:
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:diagnose"
