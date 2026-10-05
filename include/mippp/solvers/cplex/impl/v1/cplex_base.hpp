@@ -796,15 +796,16 @@ protected:
             const int flag = group_flags[k];
             if(flag == CPX_CONFLICT_EXCLUDED) continue;
             if(flag < CPX_CONFLICT_MEMBER) proven = false;
-            const auto index = static_cast<std::size_t>(group_indices[k]);
+            const auto native_index =
+                static_cast<std::size_t>(group_indices[k]);
             if(group_types[k] == CPX_CON_LINEAR)
                 answer.constraints.set(
-                    index,
-                    detail::iis_row_status_by_sense<'L', 'G'>(senses[index]));
+                    native_index, detail::iis_row_status_by_sense<'L', 'G'>(
+                                      senses[native_index]));
             else if(group_types[k] == CPX_CON_LOWER_BOUND)
-                lower_flagged[index] = 1;
+                lower_flagged[native_index] = 1;
             else
-                upper_flagged[index] = 1;
+                upper_flagged[native_index] = 1;
         }
         for(std::size_t j = 0; j < num_col; ++j)
             answer.flag_variable(_var_handle(static_cast<int>(j)).uid(),
