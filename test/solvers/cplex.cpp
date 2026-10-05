@@ -249,8 +249,8 @@ TEST_F(cplex_lp_test, crossed_row_sides_are_rejected) {
 
 // The refinement re-solves without advanced start and presolve reductions,
 // and writes both parameters back. Under the default reductions, presolve
-// concludes only "infeasible or unbounded" (documented), which the bound
-// conflict of a singleton row gives here.
+// reports this unbounded LP as "infeasible or unbounded" (measured on 22.1.2,
+// which reports a bound conflict as plain infeasible).
 TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back) {
     using namespace operators;
     using namespace cplex::impl::v1;
@@ -266,12 +266,14 @@ TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back) {
     };
     api._check(env, api.setintparam(env, CPXPARAM_Advance, 2));
     const auto before = read();
-    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
-    model.add_constraint(x >= 2.);
+    auto x = model.add_variable();
+    model.set_maximization();
+    model.set_objective(x);
+    model.add_constraint(x >= 1.);
     model.solve();
     ASSERT_TRUE(is<status::infeasible_or_unbounded>(model.get_status()));
     model.refine_lp_status();
-    EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+    EXPECT_TRUE(is<status::unbounded>(model.get_status()));
     EXPECT_EQ(read(), before);
     EXPECT_EQ(before[0], 2);
 }
