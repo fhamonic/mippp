@@ -255,16 +255,17 @@ TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back) {
     using namespace operators;
     using namespace cplex::impl::v1;
     auto model = new_model();
-    const auto & api = model.native_api();
+    const auto & native = model.native_api();
     const auto [env, lp] = model.native_model();
-    const auto read = [&api, env] {
+    const auto read = [&native, env] {
         std::array<int, 2> values{};
-        api._check(env, api.getintparam(env, CPXPARAM_Advance, &values[0]));
-        api._check(env, api.getintparam(env, CPXPARAM_Preprocessing_Reduce,
-                                        &values[1]));
+        native._check(env,
+                      native.getintparam(env, CPXPARAM_Advance, &values[0]));
+        native._check(env, native.getintparam(
+                               env, CPXPARAM_Preprocessing_Reduce, &values[1]));
         return values;
     };
-    api._check(env, api.setintparam(env, CPXPARAM_Advance, 2));
+    native._check(env, native.setintparam(env, CPXPARAM_Advance, 2));
     const auto before = read();
     auto x = model.add_variable();
     model.set_maximization();

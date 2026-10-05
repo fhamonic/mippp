@@ -327,21 +327,22 @@ TEST_F(xpress_lp_iis_test, routine_data_stays_readable_after_the_call) {
     auto r = model.add_constraint(x >= 2.);
     const auto iis = model.compute_iis();
     ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
-    const auto & api = model.native_api();
+    const auto & native = model.native_api();
     int num_rows = 0, num_cols = 0;
-    api._check(model.native_model(),
-               api.getiisdata(model.native_model(), 1, &num_rows, &num_cols,
-                              nullptr, nullptr, nullptr, nullptr, nullptr,
-                              nullptr, nullptr, nullptr));
+    native._check(
+        model.native_model(),
+        native.getiisdata(model.native_model(), 1, &num_rows, &num_cols,
+                          nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                          nullptr, nullptr));
     ASSERT_EQ(static_cast<std::size_t>(num_rows), iis.num_constraint_members());
     ASSERT_EQ(static_cast<std::size_t>(num_cols), iis.num_variable_members());
     int row = -1, col = -1;
     char row_sense = 0, bound_side = 0;
     double dual = 0., dj = 0.;
-    api._check(model.native_model(),
-               api.getiisdata(model.native_model(), 1, &num_rows, &num_cols,
-                              &row, &col, &row_sense, &bound_side, &dual, &dj,
-                              nullptr, nullptr));
+    native._check(model.native_model(),
+                  native.getiisdata(model.native_model(), 1, &num_rows,
+                                    &num_cols, &row, &col, &row_sense,
+                                    &bound_side, &dual, &dj, nullptr, nullptr));
     EXPECT_EQ(row, model.native_id(r));
     EXPECT_EQ(col, model.native_id(x));
     EXPECT_EQ(row_sense, 'G');
