@@ -483,19 +483,10 @@ private:
         restore_time_limit.restore();
     }
 
-    struct self_infeasible_column {
-        int index;
-        detail::iis_column_sides sides;
-    };
-    static constexpr detail::iis_column_kind _iis_column_kind(char type) {
-        if(type == COPT_CONTINUOUS) return detail::iis_column_kind::continuous;
-        if(type == COPT_INTEGER) return detail::iis_column_kind::integer;
-        if(type == COPT_BINARY) return detail::iis_column_kind::binary;
-        return detail::iis_column_kind::other;
-    }
     // COPT keeps the bounds a user moves outside [0, 1] on a binary column
     // and calls the model infeasible, as the arithmetic assumes.
-    std::optional<self_infeasible_column> _self_infeasible_column(int num_col) {
+    std::optional<detail::iis_self_infeasible_column_at>
+    _self_infeasible_column(int num_col) {
         if(num_col == 0) return std::nullopt;
         const auto count = static_cast<std::size_t>(num_col);
         std::vector<double> lower(count), upper(count);
@@ -505,13 +496,8 @@ private:
         check(COPT->GetColInfo(prob, COPT_DBLINFO_UB, num_col, nullptr,
                                upper.data()));
         check(COPT->GetColType(prob, num_col, nullptr, types.data()));
-        for(int j = 0; j < num_col; ++j) {
-            const auto k = static_cast<std::size_t>(j);
-            if(const auto sides = detail::iis_self_infeasible_column(
-                   lower[k], upper[k], _iis_column_kind(types[k])))
-                return self_infeasible_column{j, *sides};
-        }
-        return std::nullopt;
+        return detail::iis_first_self_infeasible_column<
+            COPT_CONTINUOUS, COPT_INTEGER, COPT_BINARY>(lower, upper, types);
     }
 
     // The solve that tells a feasible MIP apart is stopped at its first
@@ -542,9 +528,8 @@ protected:
                                         ConstraintStatus, iis_outcome_type>>
             answer(static_cast<std::size_t>(num_col),
                    static_cast<std::size_t>(num_row));
-        const auto single_column = [&](const self_infeasible_column & col) {
-            answer.flag_variable(static_cast<std::size_t>(col.index),
-                                 col.sides.lower, col.sides.upper);
+        const auto single_column = [&](const auto & col) {
+            answer.flag_variable(col.index, col.sides.lower, col.sides.upper);
             return answer.finish(iis_outcome::irreducible{});
         };
 
