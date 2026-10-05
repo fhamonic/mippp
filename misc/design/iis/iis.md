@@ -79,9 +79,9 @@ unless marked otherwise.
   This is a guideline for when it is needed, and no work is planned for it.
   The template's arguments are not a commitment: docs and tests obtain the
   type through `model_iis_t<T>`, `iis_by_deletion_t<M>` or `auto` and never
-  spell `iis_snapshot<...>`, and `lp_iis<I, T>` checks members, not the shape, so that later candidate
-  kinds, integrality first, can come as further per-kind tables with their own
-  accessors, never as new tags (N37 a, b).
+  spell `iis_snapshot<...>`, and `lp_iis<I, T>` checks members, not the shape,
+  so that later candidate kinds, integrality first, can come as further per-kind
+  tables with their own accessors, never as new tags (N37 a, b).
 - **Interpretation through the caller's own ranges.** Handles carry no
   reverse index to the caller's keys, so the consumer iterates its own
   variable and constraint families and queries each entity, as for a basis.
@@ -263,10 +263,10 @@ record what they established.
   aborted state. And a completed answer is
   cached by CPLEX until a data edit (`chgrhs`, `chgbds`, `chgcoef`,
   `chgsense`, `chgctype`, `newcols`, `addindconstr`, `addsos`), not by an
-  objective or parameter change (p7, p13). A native simplex iteration limit on a MIP makes
-  `CPXrefineconflictext` itself fail with 3019 (p9), unreachable through
-  MIP++ since `cplex_milp` has no `set_iteration_limit`. The final review
-  of wave 5 (2026-09-29) measured two more facts. `CPXrefineconflictext`
+  objective or parameter change (p7, p13). A native simplex iteration limit on a
+  MIP makes `CPXrefineconflictext` itself fail with 3019 (p9), unreachable
+  through MIP++ since `cplex_milp` has no `set_iteration_limit`. The final
+  review of wave 5 (2026-09-29) measured two more facts. `CPXrefineconflictext`
   returns 1811 (`CPXERR_UNSUPPORTED_OPERATION`) while a generic callback is
   registered, whatever the callback does, on a feasible and on an
   infeasible MIP, and returns 0 with status 30 once
@@ -280,13 +280,13 @@ record what they established.
   written, even to its current value, after which the call answers 31
   (60-row chain, 22.1.1 and 22.1.2), where a 33 stop is forgotten as soon
   as the limit is raised. The wrapper writes nothing after a 34 stop; the
-  user page names the way out and the iteration-limit test pins both. The wave 5 probes
-  added: a feasible model returns 0 with status 30 and `CPXgetconflictext`
-  fails with 1719, solved or not; the held solution survives the refiner
-  (objective, point, primal feasibility) while `CPXgetstat` reads 30 or 31
-  and `dfeasind` flips from 1 to 0 on a MIP, so the status and the solution
-  disagree and the reset stays (N15). Every time-limit stop is 33, 0.7 to
-  15 ms late, deterministic over 30 runs under 0 s; a node limit of 0 gives
+  user page names the way out and the iteration-limit test pins both. The wave 5
+  probes added: a feasible model returns 0 with status 30 and
+  `CPXgetconflictext` fails with 1719, solved or not; the held solution survives
+  the refiner (objective, point, primal feasibility) while `CPXgetstat` reads 30
+  or 31 and `dfeasind` flips from 1 to 0 on a MIP, so the status and the
+  solution disagree and the reset stays (N15). Every time-limit stop is 33, 0.7
+  to 15 ms late, deterministic over 30 runs under 0 s; a node limit of 0 gives
   35, whose stop can come seconds late on a hard model, an iteration limit
   of 0 gives 34 on an LP and 3019 on a MIP, and a
   deterministic time limit 39. A column-less row is named as the violated
@@ -344,13 +344,13 @@ record what they established.
   the same interrupt from a `COPT_CBCONTEXT_MIPSOL` callback stops before
   the candidate is committed and leaves `HasMipSol` 0, and the interrupt
   does not outlive the call, a later solve running to optimal (measured
-  on 8.0.5; `f73ac7a`, pinned in `8baba3f`). On the LP path the routine never solves, so a code 3 gets
-  one confirming `COPT_SolveLp` under the remaining budget: optimal or
-  unbounded is `feasible`, a timeout `undetermined` with `time_limit`, and
-  infeasible throws. The routine segfaults on a row-less model without SOS
-  or indicator whose bounds are LP-feasible, the empty model included, and
-  reports an integer column whose interval holds no integer as an empty
-  `HasIIS` 1 answer or as code 3 after an infeasible solve, so the wrapper
+  on 8.0.5; `f73ac7a`, pinned in `8baba3f`). On the LP path the routine never
+  solves, so a code 3 gets one confirming `COPT_SolveLp` under the remaining
+  budget: optimal or unbounded is `feasible`, a timeout `undetermined` with
+  `time_limit`, and infeasible throws. The routine segfaults on a row-less model
+  without SOS or indicator whose bounds are LP-feasible, the empty model
+  included, and reports an integer column whose interval holds no integer as an
+  empty `HasIIS` 1 answer or as code 3 after an infeasible solve, so the wrapper
   decides such a column from its bounds, clamping a `COPT_BINARY` column
   to [0, 1] first since COPT rejects one whose bounds exclude 0 and 1; a
   binary bound beyond the domain is the member alone (`lb` 2 alone or
@@ -887,11 +887,11 @@ record what they established.
   the validated range, a filter trial with the one millisecond still ended
   up to 0.86 ms before the deadline and the run reported
   `inconclusive_trial`. `glpk_milp` now passes two milliseconds more
-  (`fa45782`), so a stop overruns the limit by three at most, and the endless-row test
-  passes 10 of 10 on 4.59 and on 5.0 (2026-10-02). The MIP presolver checks
-  no clock, then the root LP (`smcp.tm_lim = parm->tm_lim`) and the search
-  (its clock started when the tree is created) each get the full limit:
-  a 500 by 500 dense integer model under 0.2 s took 2.0 to 2.2 s in all,
+  (`fa45782`), so a stop overruns the limit by three at most, and the
+  endless-row test passes 10 of 10 on 4.59 and on 5.0 (2026-10-02). The MIP
+  presolver checks no clock, then the root LP (`smcp.tm_lim = parm->tm_lim`) and
+  the search (its clock started when the tree is created) each get the full
+  limit: a 500 by 500 dense integer model under 0.2 s took 2.0 to 2.2 s in all,
   1.7 to 1.8 s of it in the presolver (GLPK 5.0, 2026-10-02), so a
   `glpk_milp` trial can overrun the deadline by its presolve and root LP.
   Forwarding first ran on real solvers
@@ -908,9 +908,9 @@ record what they established.
   caller's 30 s exactly. The shared case
   `IisByDeletionTest.forwarded_time_limit_is_restored` pins the same two
   checks as `cbc_time_limit_test` on every backend with a time limit: Cbc,
-  HiGHS, MOSEK, SCIP and SoPlex. Cbc's limit does not bound its root LP: on the devel
-  build a 1500-row dense relaxation ran 8.5 s under a 1e-6 s limit, so a Cbc
-  trial can overrun the deadline too.
+  HiGHS, MOSEK, SCIP and SoPlex. Cbc's limit does not bound its root LP: on the
+  devel build a 1500-row dense relaxation ran 8.5 s under a 1e-6 s limit, so a
+  Cbc trial can overrun the deadline too.
 - **Stop reasons.** After any inconclusive trial that ran, initial or
   singleton, the run ends `inconclusive_trial` (N2 b), or `time_limit` when
   the deadline has passed as the trial returns. `solve_limit` and
@@ -1064,10 +1064,10 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
     the side it cannot free, as -inf for an upper side, was typed as a real
     side and kept as given: `glp_simplex` then answered `optimal` and
     `glp_intopt`'s presolver failed an assertion (`npp3.c:892`), so every
-    side written is clamped to ±`DBL_MAX`, which both solve infeasible. `glp_simplex` and
-    `glp_intopt` return `GLP_EBOUND` on crossed bounds or sides, so
-    `solve()` then reports `infeasible` when a lower side exceeds its upper
-    side (`d8c37b3`), and `failed` otherwise. `glp_intopt` also returns
+    side written is clamped to ±`DBL_MAX`, which both solve infeasible.
+    `glp_simplex` and `glp_intopt` return `GLP_EBOUND` on crossed bounds or
+    sides, so `solve()` then reports `infeasible` when a lower side exceeds its
+    upper side (`d8c37b3`), and `failed` otherwise. `glp_intopt` also returns
     `GLP_EBOUND` on any fractional bound of an integer column, and never
     finished `x + y = 1.5` over free integers, so `glpk_milp` rounds the sides
     of integer columns, and of rows whose columns are all integer with
@@ -1274,12 +1274,12 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   column. Since `a6c19f3` the cases each backend had copied are shared:
   `zero_time_limit_is_a_time_limit_stop` on every native class, with an
   integer variant on the MIP classes, `registered_callback_does_not_run`,
-  now on `gurobi_milp` too, and, in both suites, `time_limit_reads_back_unchanged`,
-  `indicator_constraints_are_background` and the status afterwards. In place
-  of the `names_every_side` flag, `validate()` checks on both paths that a
-  complete answer has no reason and that a member is whole only on an entity
-  with two finite sides; every native routine names the side of a
-  column-less row (measured).
+  now on `gurobi_milp` too, and, in both suites,
+  `time_limit_reads_back_unchanged`, `indicator_constraints_are_background` and
+  the status afterwards. In place of the `names_every_side` flag, `validate()`
+  checks on both paths that a complete answer has no reason and that a member is
+  whole only on an entity with two finite sides; every native routine names the
+  side of a column-less row (measured).
 - **CI.** Clp, Cbc, GLPK and HiGHS run in CI, so the free function is
   CI-tested. CI always runs at least one of them, and since 2026-10-02
   `dumb_lp`, a user-defined model without row-bound setters, runs the free
@@ -2102,9 +2102,9 @@ from `9dcbbd6` to `4058e69`, none pushed.
   [Backend data and correctness](iis_api_review.md#backend-data-and-correctness)
   and its [Documentation errors](iis_api_review.md#documentation-errors). The
   review's [Rejected](iis_api_review.md#rejected) list and its
-  [Rulings the review would keep](iis_api_review.md#rulings-the-review-would-keep)
-  stand as it recommended:
-  batching stays dormant (N3 b, N37 e), the guard keeps its `Clock`
+  [Rulings the review would
+  keep](iis_api_review.md#rulings-the-review-would-keep) stand as it
+  recommended: batching stays dormant (N3 b, N37 e), the guard keeps its `Clock`
   parameter, COPT keeps its `GetSOSIIS` and `GetIndicatorIIS` bindings, and
   the snapshot gets no member lists, no `possible_*` tags and no refresh of
   the status after a native call, the filter no role callback and no
