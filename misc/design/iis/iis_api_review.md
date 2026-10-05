@@ -77,7 +77,7 @@ hierarchy. Beside it, the review found:
   kind, and would touch about 130 call sites for no gain in data.
 - **Per-routine variants.** Each routine's status variant lists only the tags
   it can produce (iis_snapshot.hpp:75-93), as each backend's solve-status
-  variant does (P5 of the patterns map). That `is_a<member_both>` does not
+  variant does: a backend lists the refinements it produces and folds a cause without a tag into the nearest listed parent. That `is_a<member_both>` does not
   compile on the Gurobi and CPLEX row status is the library-wide rule of
   `is_a`, documented for statuses at status-and-limits.md:51.
 - **Snapshot by value.** The snapshot is keyed by handle id, holds no model
@@ -197,7 +197,7 @@ iis_outcome::any { bool conflict_available; }
 
 - **Lists and folding.** Each path's variant lists only the tags it can tell
   apart. A cause without a tag folds into its nearest listed ancestor,
-  explicitly at the producer, as P5 does for statuses.
+  explicitly at the producer, as the backends' solve statuses do.
 - **Reading it.** `iis_outcome::conflict_available(o)` reads the flag, as
   `status::solution_available` reads a status. It replaces the old
   `irreducible || not_proven_minimal`.

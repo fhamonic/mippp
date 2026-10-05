@@ -100,25 +100,31 @@ unless marked otherwise.
   snapshot may reuse a removed id, and would then read the entry of the
   removed variable (N8 a). The entity enumeration's snapshot follows the
   same rule.
-- **A completion status of its own.** `iis_outcome` distinguishes an
-  irreducible conflict (`irreducible`), a conflict not proven minimal
-  (`not_proven_minimal`), a feasible model (`feasible`) and an undetermined
-  outcome (`undetermined`). `iis_reason` gives the reason when the proof
-  stopped early: `solve_limit`, `time_limit`, `cancelled`, or
-  `inconclusive_trial` when a trial could not decide (N2 b). Every native
-  routine can end partially: Gurobi `IISMinimal`, COPT `IsMinIIS`, Xpress
-  `IISSOLSTATUS`, HiGHS's "maybe in conflict". CPLEX's abort statuses come
-  with "possible member" flags, but these prove nothing (see Native
-  routines), so a CPLEX stop is `undetermined`. The unified tags have no
-  possible-member tag (N1 a).
-  Retained, untested and native "possible" members get `member_*` under
-  `not_proven_minimal`, plain `member` included where the routine does not
-  name the side. A native answer not proven minimal while no limit stopped it
-  carries no reason: an empty reason means that the routine itself did not
-  prove minimality (N27 a). `time_limit` is still set on a stop attributed to
-  the time limit. Only CPLEX and Xpress name a limit stop in their answer
-  (measured). HiGHS attributes one by the time measured around the call
-  (N34 a), and Gurobi and COPT need the same test (N29 evidence).
+- **A completion status of its own.** `get_outcome()` returns a `std::variant`
+  per path over the tags of namespace `iis_outcome` (N44), as `get_status()`
+  does over the `status` tags: `irreducible` and `feasible` under
+  `completed`, and under `incomplete` the runs that decided nothing,
+  `inconclusive_trial` when a trial of the filter could not decide (N2 b) and
+  `stopped` for a run cut short from outside, refined into `interrupted` and
+  the `limit_reached` causes `time_limit`, `solve_limit`, `iteration_limit`,
+  `node_limit` and `memory_limit`. Every tag carries `conflict_available`,
+  read by `iis_outcome::conflict_available(o)`: the members form a subsystem
+  proven infeasible, minimal or not. Every native routine can end partially:
+  Gurobi `IISMinimal`, COPT `IsMinIIS`, Xpress `IISSOLSTATUS`, HiGHS's "maybe
+  in conflict". CPLEX's abort statuses come with "possible member" flags, but
+  these prove nothing (see Native routines), so a CPLEX stop holds no
+  conflict. The unified tags have no possible-member tag (N1 a).
+  Retained, untested and native "possible" members get `member_*` under a tag
+  of the `incomplete` branch with `conflict_available`, plain `member`
+  included where the routine does not name the side. A native answer not
+  proven minimal while no limit stopped it is plain `incomplete`: the routine
+  itself did not prove minimality, and there is no limit to raise (N27 a, in
+  the spelling of N44). A tag names a stop's cause where the routine reports
+  it: CPLEX's conflict status, Gurobi's `Status` on `gurobi_lp` after a stop
+  that left no subsystem, COPT's status of the solve around the search.
+  Xpress reports that a stop occurred but not its cause. Elsewhere the time
+  measured around the call attributes a stop to the time limit: on HiGHS
+  (N34 a), and on Gurobi, Xpress and COPT (N29 evidence).
 - **Each model class explains its own problem.** The IIS of a `*_milp`
   model explains the MIP and that of an `*_lp` model the LP, following the
   2026-07-22 ruling that `*_milp` models expose no LP-only feature.
@@ -149,13 +155,17 @@ unless marked otherwise.
   that the background alone is infeasible.
 - **Names.** No generic identifiers such as `result`, `options` or `member`
   in a namespace users are told to open. The tags live in `iis_status`. The
-  other types are `iis_outcome`, `iis_reason`, `iis_limits`, `lp_iis<I, T>`,
-  `model_iis_t<T>` and `has_iis<T>`, the names that came with the
-  recommendation of Q2. Under N19, the names of the engine, the free function,
-  its concept and the snapshot start with `deletion_` or `iis_`, except the
-  verb `compute_iis_by_deletion`, and outcome and reason are `enum class`.
+  other names are the namespace `iis_outcome`, `iis_limits`,
+  `lp_iis<I, T>`, `lp_iis_outcome<O>`, `model_iis_t<T>` and `has_iis<T>`,
+  from the recommendation of Q2 and from N44. Under N19, the names of the
+  engine, the free function, its concept and the snapshot start with
+  `deletion_` or `iis_`, except the verb `compute_iis_by_deletion`. The
+  outcome is a tag hierarchy (N44, which overturns N19 e).
 
 ## Native routines
+
+Outcome names in this section predate N44; the current mapping is N44 (c) to
+(e) under [Rulings of 2026-10-05](#rulings-of-2026-10-05).
 
 | Solver, probed release | Entry point | Explains | Row sides | Bound sides | Partial answer | Stopped by `set_time_limit` |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -896,11 +906,11 @@ record what they established.
   build a 1500-row dense relaxation ran 8.5 s under a 1e-6 s limit, so a Cbc
   trial can overrun the deadline too.
 - **Stop reasons.** After any inconclusive trial that ran, initial or
-  singleton, the reason is `inconclusive_trial` (N2 b), or `time_limit` when
+  singleton, the run ends `inconclusive_trial` (N2 b), or `time_limit` when
   the deadline has passed as the trial returns. `solve_limit` and
-  `cancelled` apply only when the engine stops before a trial. With
+  `interrupted` apply only when the engine stops before a trial. With
   `max_solves = 1`, an inconclusive initial trial therefore ends
-  `undetermined` with `inconclusive_trial`, never `solve_limit`.
+  `inconclusive_trial`, never `solve_limit` (outcome names as of N44).
 - **Prechecks.** One case is decided by arithmetic, without a solve, and it
   is free: it runs and answers whatever the limits (N7 a). On a model with no
   live variable, the first finite row side with lower > 0 or upper < 0 is the
@@ -920,7 +930,7 @@ record what they established.
   needs both trials because one of its sides can be infeasible alone, as on a
   row without terms, and a crossed variable because the background may make
   one side infeasible alone. Under a budget that stops before the trials, the
-  pair is reported `not_proven_minimal` with the stop's reason, and the model
+  pair is reported with the stop's tag and a conflict, and the model
   is left as it was. The former zero-solve claim on crossed variables, and the
   type-level list of background capabilities it needed, are dropped: a
   capability added later could not silently make it unsound. On `scip_milp`
@@ -1947,9 +1957,131 @@ present (`1c0e50e`).
   infinite rhs, still infeasible; the finding was declined, since N40 makes
   such a side documented undefined behavior.
 
+## Rulings of 2026-10-05
+
+The maintainer asked on 2026-10-05 whether the IIS feature follows the
+patterns of the library's other features, and whether simplifications would
+give a simpler API. The answer, with the options weighed, the probes and the
+measured prototypes, is [iis_api_review.md](iis_api_review.md). The maintainer
+ruled on its completion report the same day: "implement the iis_outcome tag
+hierarchy". Its other recommendations await rulings, listed under
+[Pending decisions](iis_api_review.md#pending-decisions).
+
+- **N44. How an IIS run ends.** The pair of `enum class iis_outcome` and
+  `std::optional<iis_reason>` gives way to one `std::variant` per path over a
+  tag hierarchy of its own, in namespace `iis_outcome`, as the solve status
+  reports how a solve ended. `any` carries `conflict_available`; `completed`
+  holds `irreducible` and `feasible`; `incomplete` holds `inconclusive_trial`
+  and `stopped`, and `stopped` holds `interrupted` and `limit_reached`, over
+  `time_limit`, `solve_limit`, `iteration_limit`, `node_limit` and
+  `memory_limit`. `iis_outcome::conflict_available(o)` reads the flag, as
+  `status::solution_available` reads a status, and replaces the test
+  `irreducible || not_proven_minimal`. `get_reason()`, `iis_reason` and
+  `deletion_filter_result::reason` are removed. The concept `lp_iis_outcome`
+  requires `incomplete`, `irreducible` and `feasible` in every list, and
+  `lp_iis` requires `get_outcome()` to satisfy it. `iis_snapshot` takes the
+  outcome type as a fifth template argument whose first alternative must be
+  `incomplete`, so that a value-initialized outcome claims nothing, as
+  `absent` does for the member statuses. The tags are types of their own
+  rather than `status::` tags: a reused tag satisfies
+  `variant_of<status::any>`, so `classify_deletion_trial` would read an
+  `irreducible` outcome as a feasible trial, and `status::solution_available`
+  a proven conflict as a primal point (measured with a probe against the real
+  headers). No release carries IIS yet, v1.0.0 predating it, so no published
+  API breaks.
+  - (a) Overturned: N19 (e), "outcome and reason are `enum class`", for both
+    enums. Its premise, closed flat sets without payload
+    (iis_pr_plan.md:105-110), failed three ways: N2 had already reopened the
+    set, the causes refine one another as `time_limit` refines
+    `limit_reached`, and the flag is a payload. The "outcome and reason
+    split" item of N37 (g) is overturned with it; the rest of N37 (g) stands.
+  - (b) Amended in spelling only: N27 (a). Its empty reason, a native answer
+    whose routine proved no minimality, is the `incomplete` tag, which is not
+    a limit, so its point that a missing proof does not imply a limit now
+    holds in the type. N2 (b) is kept as `inconclusive_trial`, under
+    `incomplete` rather than `stopped`, since the filter's pass still runs to
+    its end. `cancelled` becomes `interrupted`, after `status::interrupted`
+    and N31 (b).
+  - (c) Lists per base. Each native base declares `iis_outcome_type` beside
+    its snapshot type, `incomplete` first, shared by its `*_lp` and `*_milp`
+    classes as the member-status variants of Gurobi and CPLEX already are,
+    with one comment line where a tag is reachable on one class only. HiGHS
+    lists `incomplete`, `irreducible`, `feasible` and `time_limit`, and no
+    other stop tag, since a warning cannot be told from a failed post-check.
+    Gurobi adds `stopped`, `interrupted`, `limit_reached`,
+    `iteration_limit` and `memory_limit`; CPLEX adds `interrupted`,
+    `limit_reached`, `iteration_limit`, `node_limit` and `memory_limit`;
+    Xpress adds `stopped`; COPT adds `interrupted` and `node_limit`. The
+    filter's `deletion_filter_outcome` lists `incomplete`, only as the value
+    of a result no run wrote, `irreducible`, `feasible`,
+    `inconclusive_trial`, `interrupted`, `time_limit` and `solve_limit`. A
+    cause a routine reports without a listed tag folds into its nearest
+    listed ancestor explicitly at the producer, never through the converting
+    constructor of `std::variant`, as the backends' solve statuses fold a
+    native outcome without a tag of its own.
+  - (d) Causes the wrappers dropped now have tags. CPLEX's conflict statuses
+    33 to 38 map to `time_limit`, `iteration_limit`, `node_limit`,
+    `limit_reached` (objective), `memory_limit` and `interrupted`, 39
+    (deterministic time) to `limit_reached`, and 32, the contradiction that
+    follows an iteration-limit stop on the unchanged problem, to
+    `incomplete`, since nothing outside that call cut it short. Status 31
+    with a possible flag is `incomplete` with a conflict. Gurobi's `Status` is
+    read only after a stop that left no subsystem, where the IIS attributes
+    are unavailable: 9, 7, 17 and 11 give `time_limit`, `iteration_limit`,
+    `memory_limit` and `interrupted`, 15 and 16 `limit_reached`, and any other
+    code, as the 1 a stopped MIP reads, `time_limit` when the clock reached
+    the budget and `stopped` otherwise. It is never read on an answered path,
+    where it names no stop: a complete answer keeps the last solve's code and
+    a partial one reads 3 (measured on 12.0.1). Xpress's `stopped` bit,
+    computed and discarded before, gives `stopped` unless the clock, with its
+    20 ms slack, blames the time limit. COPT's pre-solve `NODELIMIT` and
+    `INTERRUPTED`, and the `INTERRUPTED` of the confirming `COPT_SolveLp`, get
+    their tags.
+    `set_iteration_limit` on `cplex_lp` and `gurobi_lp` and `set_node_limit`
+    on `cplex_milp` thus stop `compute_iis()` with their own tag, where the
+    tests had pinned the loss (cplex.cpp:328 and 370, gurobi.cpp:145 at
+    `b9d2834`).
+  - (e) Decided here, where the prototype differed: on HiGHS, an answer
+    without a member whose model status is neither optimal nor unbounded
+    goes through the clock too, `time_limit` or `incomplete` without a
+    conflict, since the code at `b9d2834` dropped the stop there
+    (highs_base.hpp:893-900).
+  - (f) Tests read an outcome through `test/iis_outcome_assert.hpp`:
+    `outcome_is<Tag>(o)` and `outcome_is<Tag>(o, conflict)` match the exact
+    tag, a tag the path does not list fails to compile, and the failure
+    message names the actual outcome; a `PrintTo` per tag serves GoogleTest's
+    own printing of an outcome variant. The shared fixture's
+    runtime check of invalid (outcome, reason) pairs goes, since the type
+    cannot hold them.
+  - (g) Decided in the review of the implementation: on 45.01, a feasible
+    `xpress_milp` with one integer column in [0, 1] and no row makes
+    `XPRSiisfirst` return `p_status` 3 with `STOPSTATUS` at
+    `XPRS_STOP_MIPGAP`, which the new mapping read as `stopped`, a stop that
+    nothing caused (47.01 answers `feasible`). `_compute_iis` now answers a
+    model without rows, sets, general or PWL constraints, whose columns are
+    continuous, integer or binary, from its columns, as COPT does: a column
+    whose bounds admit no value is the IIS, otherwise the model is feasible.
+    The check runs after the call, which restores a problem left presolved
+    through the native handle, so the counts and bounds it reads are the
+    original ones. Both releases now answer `feasible` there (probe,
+    2026-10-05).
+
+What this ruling changes: `utility/iis_outcome.hpp`, `model_concepts.hpp`,
+the snapshot, the engine, the free function and the five native bases; the
+shared suites, the per-backend pins and the doc snippets; the infeasibility
+page, which now shows the tree, the meaning of each tag, the lists per path
+and the tag each limit gets per model; the deletion-filter page, the concepts
+reference, the solver limitations and the transportation example. The
+per-backend pins whose meaning changed were confirmed against the real solvers
+on 2026-10-05 (HiGHS 1.15.1 for the HiGHS pins); Gurobi's 11, 15 and 17 and
+CPLEX's 36 to 38 rest on the solvers' documentation, no run reaching them,
+and the mapping functions of both are pinned by tests that need no licence.
+
 ## Open questions
 
 None remains as of 2026-10-02: N43, the last, was ruled that day. The
+review of 2026-10-05 left recommendations awaiting a ruling, listed under
+[Pending decisions](iis_api_review.md#pending-decisions) there. The
 outward steps of WP1 are done: the documents are committed (`25b4530`, on
 the pull request's branch), the reply is posted, `a1a9f11` is tagged
 `archive/pr3-a1a9f11` on origin, and pull request #3 is a draft.

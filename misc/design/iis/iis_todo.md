@@ -4,8 +4,8 @@ Companion to [iis.md](iis.md), which holds the design, its rulings and the evide
 [iis_pr_plan.md](iis_pr_plan.md), whose work packages carry the details. The steps follow the revised package
 order of 2026-09-27. Items 0.1 and 1.6 and those of steps 2 to 6 name their package, except 6.2. Items 1.1 to
 1.5 are the plan's standalone fixes, and step 7 is WP17. Each step lands and is tested on its own. Q1 to Q6
-and N0 to N43 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29 and 2026-10-02 in iis.md, the third on the three
-questions wave 3 left.
+and N0 to N44 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29, 2026-10-02 and 2026-10-05 in iis.md, the
+third on the three questions wave 3 left.
 
 - **Two paths.** Under Q1 (b), `has_iis<T>` means that the model has a native IIS routine, reached through a
   `compute_iis()` member. The deletion filter is a separate public algorithm: an engine over a user oracle,
