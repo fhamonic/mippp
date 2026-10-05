@@ -16,6 +16,7 @@
 
 #include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/invoke_key.hpp"
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -681,85 +682,44 @@ private:
     // the IIS attributes at the next update: the routine reads its answer
     // before the restore, and a model without special constraints is left
     // untouched.
-    class iis_force_guard {
-    private:
-        const gurobi_api & _api;
-        GRBenv * _env;
-        GRBmodel * _model;
-        std::vector<int> _sos_force, _qconstr_force, _genconstr_force;
-        bool _restored = false;
-
-        void _check(const int error) const { _api._check(_env, error); }
-        bool _forced() const noexcept {
-            return !_sos_force.empty() || !_qconstr_force.empty() ||
-                   !_genconstr_force.empty();
-        }
-
-        std::vector<int> _save_and_force(const char * count_attr,
-                                         const char * force_attr) {
-            int count;
-            _check(_api.getintattr(_model, count_attr, &count));
-            std::vector<int> saved(static_cast<std::size_t>(count));
-            if(count == 0) return saved;
-            _check(_api.getintattrarray(_model, force_attr, 0, count,
-                                        saved.data()));
-            std::vector<int> forced(static_cast<std::size_t>(count), 1);
-            _check(_api.setintattrarray(_model, force_attr, 0, count,
-                                        forced.data()));
-            return saved;
-        }
-        int _write_back(const char * force_attr,
-                        std::vector<int> & saved) noexcept {
-            if(saved.empty()) return 0;
-            return _api.setintattrarray(_model, force_attr, 0,
-                                        static_cast<int>(saved.size()),
-                                        saved.data());
-        }
-        // every attribute is written back before the first error is
-        // returned, so a rejected write cannot leave the others forced
-        int _write_back_all() noexcept {
-            int first_error = 0;
-            for(const int error :
-                {_write_back(GRB_INT_ATTR_IIS_SOSFORCE, _sos_force),
-                 _write_back(GRB_INT_ATTR_IIS_QCONSTRFORCE, _qconstr_force),
-                 _write_back(GRB_INT_ATTR_IIS_GENCONSTRFORCE, _genconstr_force),
-                 _api.updatemodel(_model)}) {
-                if(first_error == 0) first_error = error;
-            }
-            return first_error;
-        }
-
-    public:
-        iis_force_guard(const gurobi_api & api, GRBenv * env, GRBmodel * model)
-            : _api(api), _env(env), _model(model) {
-            // a constructor that throws runs no destructor
-            try {
-                _sos_force = _save_and_force(GRB_INT_ATTR_NUMSOS,
-                                             GRB_INT_ATTR_IIS_SOSFORCE);
-                _qconstr_force = _save_and_force(GRB_INT_ATTR_NUMQCONSTRS,
-                                                 GRB_INT_ATTR_IIS_QCONSTRFORCE);
-                _genconstr_force =
-                    _save_and_force(GRB_INT_ATTR_NUMGENCONSTRS,
-                                    GRB_INT_ATTR_IIS_GENCONSTRFORCE);
-                // attribute writes are queued until an update
-                if(_forced()) _check(_api.updatemodel(_model));
-            } catch(...) {
-                (void)_write_back_all();
-                throw;
-            }
-        }
-        iis_force_guard(const iis_force_guard &) = delete;
-        iis_force_guard & operator=(const iis_force_guard &) = delete;
-
-        void restore() {
-            _restored = true;
-            if(_forced()) _check(_write_back_all());
-        }
-        // values read back moments ago: the writes cannot be rejected
-        ~iis_force_guard() {
-            if(!_restored && _forced()) (void)_write_back_all();
+    struct iis_forced {
+        std::vector<int> sos, qconstr, genconstr;
+        bool any() const noexcept {
+            return !sos.empty() || !qconstr.empty() || !genconstr.empty();
         }
     };
+    // `saved` takes the user's values only once the forcing write succeeded:
+    // writing back an array the call did not force would still discard the
+    // held solution.
+    void _iis_force(const char * count_attr, const char * force_attr,
+                    std::vector<int> & saved) {
+        int count;
+        check(GRB->getintattr(model, count_attr, &count));
+        if(count == 0) return;
+        std::vector<int> user(static_cast<std::size_t>(count));
+        check(GRB->getintattrarray(model, force_attr, 0, count, user.data()));
+        std::vector<int> forced(static_cast<std::size_t>(count), 1);
+        check(GRB->setintattrarray(model, force_attr, 0, count, forced.data()));
+        saved = std::move(user);
+    }
+    // every array is written back before the first error is raised, so a
+    // rejected write cannot leave the others forced
+    void _iis_write_back(iis_forced & saved) {
+        if(!saved.any()) return;
+        const auto write_back = [&](const char * force_attr,
+                                    std::vector<int> & values) {
+            if(values.empty()) return 0;
+            return GRB->setintattrarray(model, force_attr, 0,
+                                        static_cast<int>(values.size()),
+                                        values.data());
+        };
+        for(const int error :
+            {write_back(GRB_INT_ATTR_IIS_SOSFORCE, saved.sos),
+             write_back(GRB_INT_ATTR_IIS_QCONSTRFORCE, saved.qconstr),
+             write_back(GRB_INT_ATTR_IIS_GENCONSTRFORCE, saved.genconstr),
+             GRB->updatemodel(model)})
+            check(error);
+    }
 
 protected:
     // Status names a cause on gurobi_lp only: a stopped MIP reads 1
@@ -811,7 +771,17 @@ protected:
         // IISMinimal is 0 after numerical trouble as well as after a stop:
         // the time measured around the call is what tells the two apart.
         const double budget = get_time_limit().count();
-        iis_force_guard guard(*GRB, env, model);
+        iis_forced saved;
+        // armed before the writes, so that a force followed by a failure is
+        // undone as well
+        detail::restore_guard forcing([&] { _iis_write_back(saved); });
+        _iis_force(GRB_INT_ATTR_NUMSOS, GRB_INT_ATTR_IIS_SOSFORCE, saved.sos);
+        _iis_force(GRB_INT_ATTR_NUMQCONSTRS, GRB_INT_ATTR_IIS_QCONSTRFORCE,
+                   saved.qconstr);
+        _iis_force(GRB_INT_ATTR_NUMGENCONSTRS, GRB_INT_ATTR_IIS_GENCONSTRFORCE,
+                   saved.genconstr);
+        // attribute writes are queued until an update
+        if(saved.any()) check(GRB->updatemodel(model));
         const auto start = std::chrono::steady_clock::now();
         const int code = GRB->computeIIS(model);
         const double elapsed = std::chrono::duration<double>(
@@ -857,7 +827,7 @@ protected:
                 }
             }
         }
-        guard.restore();
+        forcing.restore();
 
         if(code == GRB_ERROR_IIS_NOT_INFEASIBLE)
             return iis_snapshot_type(std::move(variable_table),
