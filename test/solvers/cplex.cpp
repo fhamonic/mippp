@@ -244,6 +244,39 @@ TEST_F(cplex_lp_test, crossed_row_sides_are_rejected) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// LP status //////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// The refinement re-solves without advanced start and presolve reductions,
+// and writes both parameters back. Under the default reductions, presolve
+// concludes only "infeasible or unbounded" (documented), which the bound
+// conflict of a singleton row gives here.
+TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back) {
+    using namespace operators;
+    using namespace cplex::impl::v1;
+    auto model = new_model();
+    const auto & api = model.native_api();
+    const auto [env, lp] = model.native_model();
+    const auto read = [&api, env] {
+        std::array<int, 2> values{};
+        api._check(env, api.getintparam(env, CPXPARAM_Advance, &values[0]));
+        api._check(env, api.getintparam(env, CPXPARAM_Preprocessing_Reduce,
+                                        &values[1]));
+        return values;
+    };
+    api._check(env, api.setintparam(env, CPXPARAM_Advance, 2));
+    const auto before = read();
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+    model.add_constraint(x >= 2.);
+    model.solve();
+    ASSERT_TRUE(is<status::infeasible_or_unbounded>(model.get_status()));
+    model.refine_lp_status();
+    EXPECT_TRUE(is<status::infeasible>(model.get_status()));
+    EXPECT_EQ(read(), before);
+    EXPECT_EQ(before[0], 2);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////// IIS /////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <variant>
 
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
@@ -114,18 +115,25 @@ public:
     }
     void refine_lp_status() {
         if(!is<status::infeasible_or_unbounded>(_status)) return;
-        int tmp_advance_param, tmp_reduce_param;
-        check(CPX->getintparam(env, CPXPARAM_Advance, &tmp_advance_param));
-        check(CPX->getintparam(env, CPXPARAM_Preprocessing_Reduce,
-                               &tmp_reduce_param));
+        int advance, reduce;
+        check(CPX->getintparam(env, CPXPARAM_Advance, &advance));
+        check(CPX->getintparam(env, CPXPARAM_Preprocessing_Reduce, &reduce));
+        // armed before the writes: a failed second write needs the first
+        // one written back too
+        detail::restore_guard guard([&] {
+            const int advance_status =
+                CPX->setintparam(env, CPXPARAM_Advance, advance);
+            const int reduce_status =
+                CPX->setintparam(env, CPXPARAM_Preprocessing_Reduce, reduce);
+            check(advance_status);
+            check(reduce_status);
+        });
         check(CPX->setintparam(env, CPXPARAM_Advance, 0));
         check(CPX->setintparam(env, CPXPARAM_Preprocessing_Reduce,
                                CPX_PREREDUCE_NOPRIMALORDUAL));
         check(CPX->primopt(env, lp));
         _status = _get_status();
-        check(CPX->setintparam(env, CPXPARAM_Advance, tmp_advance_param));
-        check(CPX->setintparam(env, CPXPARAM_Preprocessing_Reduce,
-                               tmp_reduce_param));
+        guard.restore();
         if(is<status::infeasible_or_unbounded>(_status))
             throw std::runtime_error("Failed to refine LP status.");
     }
