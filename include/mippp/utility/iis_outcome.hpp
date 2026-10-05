@@ -26,8 +26,9 @@ struct irreducible : completed { constexpr irreducible() : completed(true) {} };
 struct feasible : completed { constexpr feasible() : completed(false) {} };
 ///////////////////////////////// Incomplete //////////////////////////////////
 // No decision, for a cause the routine does not name: a gap in its proof,
-// numerical trouble, or a stop it cannot tell from those. It does not imply
-// that a limit stopped the run.
+// numerical trouble, or a stop it cannot tell from those; or, on a run that
+// narrows an answer, named sides that have a solution together. It does not
+// imply that a limit stopped the run.
 struct incomplete : any { using any::any; };
 // a filter trial proved neither infeasibility nor a feasible point
 struct inconclusive_trial : incomplete { using incomplete::incomplete; };
