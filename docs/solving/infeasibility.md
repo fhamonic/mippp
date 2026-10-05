@@ -42,7 +42,7 @@ The orders need 10 + 18 + 4 = 32 hours of labour and the workshop has 31, so the
 
 `compute_iis_by_deletion`, from `mippp/utility/iis_by_deletion.hpp`, which the solver headers do not include, is the deletion filter. A program usually gets there after `is_a<status::infeasible>(model.get_status())`, but the filter does not need that solve: it analyzes the model as it is. It returns a snapshot, whose `get_outcome()` says how the run ended, as a `std::variant` over the tags of namespace `iis_outcome`: `is<iis_outcome::irreducible>` holds on an IIS, a run cut short can still hold a conflict whose members are worth printing, and a feasible model is an outcome, not an error, see [How a run ends](#how-a-run-ends).
 
-`get_status(v)` and `get_status(c)` say whether a variable or a constraint takes part, and through which side, as a `std::variant` over the tags of namespace `iis_status`. `is_a<iis_status::member>(s)` holds for every member, whichever side, and `is_a<iis_status::member_lower>(s)` or `is_a<iis_status::member_upper>(s)` for a member through that one side. A member through both sides, or one whose side a solver's routine did not name, prints `member` here, see [Reading the answer](#reading-the-answer). `print_conflict` queries the snapshot with the handles of the model, and so gives each member your name for it.
+`get_status(v)` and `get_status(c)` say whether a variable or a constraint takes part, and through which side, as a `std::variant` over the tags of namespace `iis_status`. `iis_status::sides_of(s)` reads such a status as an `iis_sides`, three flags: `lower` and `upper` name the sides that take part, and `whole` marks a member that the answer names as one unit, all its finite sides together. `print_member` prints a line per side, or one line, `member`, for a member named whole, and nothing for an entity that takes no part, see [Reading the answer](#reading-the-answer). `print_conflict` queries the snapshot with the handles of the model, and so gives each member your name for it.
 
 An IIS says where the data disagree, not how to settle it. Relaxing any single member removes this conflict, and as the workshop has no other, repairs the model: here, two hours of overtime, which the last line reports. The model is the one you built: the filter changes bounds and sides while it works and writes every one of them back before it returns, see [The model afterwards](#the-model-afterwards), and leaves the status `unknown`, so the program solves again before reading the solution.
 
@@ -55,11 +55,11 @@ The filter runs on every model class, so `clp_lp` with Clp's header runs the sam
 | Path | Call | Where | Returns |
 | :--- | :--- | :--- | :--- |
 | Native routine | `model.compute_iis()` | `has_iis<M>`: `gurobi_lp`, `gurobi_milp`, `cplex_lp`, `cplex_milp`, `xpress_lp`, `xpress_milp`, `copt_lp` and `copt_milp`, and `highs_lp` and `highs_qp` with HiGHS 1.14 or later at runtime | `model_iis_t<M>` |
-| Deletion filter | `compute_iis_by_deletion(model)`, or `(model, limits)` with an `iis_limits`, see [Limits](#limits), from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class | a snapshot type of its own, taken through `auto` |
+| Deletion filter | `compute_iis_by_deletion(model)`, `(model, limits)` with an `iis_limits`, see [Limits](#limits), or `(model, within)` and `(model, within, limits)` to narrow an answer, see [Narrowing an answer](#narrowing-an-answer), from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class | a snapshot type of its own, taken through `auto` |
 
 Both analyze the model as it currently is and never rely on an earlier solve, whose status is stale as soon as the model changes: the workshop's `solve()` only showed that there was something to explain. A feasible model is an outcome, not an error. Neither runs behind your back: each is an explicit call, and can cost many solves.
 
-The native routine is the solver's own: HiGHS's `Highs_getIis`, Gurobi's `GRBcomputeIIS`, CPLEX's `CPXrefineconflictext`, Xpress's `XPRSiisfirst` or COPT's `COPT_ComputeIIS`. On the workshop each finds the same conflict. `highs_lp`, `xpress_lp` and `copt_lp` print the same five lines, while on `gurobi_lp` and `cplex_lp` the three order rows print `member`, see [Reading the answer](#reading-the-answer):
+The native routine is the solver's own: HiGHS's `Highs_getIis`, Gurobi's `GRBcomputeIIS`, CPLEX's `CPXrefineconflictext`, Xpress's `XPRSiisfirst` or COPT's `COPT_ComputeIIS`. On the workshop each finds the same conflict. `highs_lp`, `xpress_lp` and `copt_lp` print the same five lines, while on `gurobi_lp` and `cplex_lp` the three order rows print `member`, see [Reading the answer](#reading-the-answer), and the filter can name their sides, see [Narrowing an answer](#narrowing-an-answer):
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:workshop-native"
@@ -77,7 +77,7 @@ Each path has its own snapshot type, so generic code picks one at compile time a
 --8<-- "test/doc_snippets/infeasibility.cpp:diagnose"
 ```
 
-`diagnose(model, print_conflict)` prints the same five lines on `highs_lp`, whatever the HiGHS release, and on `clp_lp`, which has only the filter.
+`diagnose(model, print_conflict)` prints the same five lines on `highs_lp`, whatever the HiGHS release, and on `clp_lp`, which has only the filter. Every model class runs the filter, so `diagnose` asks for `iis_by_deletion_model` alone.
 
 ## Reading the answer
 
@@ -91,13 +91,17 @@ member
 └── member_both     both of them
 ```
 
-Test membership with `is_a<iis_status::member>(s)`, which accepts every refinement. `is<iis_status::member>(s)` tests for the plain tag alone, and does not compile on a variant that does not list it. `is_a<iis_status::member_both>(s)` likewise needs a variant that lists `member_both`, which the row status of the Gurobi and CPLEX routines does not: `print_member` above tests `member_lower` and `member_upper`, which every answer lists, and prints `member` for the two other cases. Code that must tell them apart reads the side through a visitor over the tags, which compiles on any answer, since `std::visit` instantiates only the tags a variant lists:
+Test membership with `is_a<iis_status::member>(s)`, which accepts every refinement. `is<iis_status::member>(s)` tests for the plain tag alone, and does not compile on a variant that does not list it, nor does `is_a<iis_status::member_both>(s)` on the row status of the Gurobi and CPLEX routines, which does not list `member_both`. `iis_status::sides_of(s)` compiles on any answer, and reads each tag as an `iis_sides`:
 
-```cpp
---8<-- "test/doc_snippets/infeasibility.cpp:side-name"
-```
+| Tag | `lower` | `upper` | `whole` |
+| :--- | :--- | :--- | :--- |
+| `absent` | `false` | `false` | `false` |
+| `member_lower` | `true` | `false` | `false` |
+| `member_upper` | `false` | `true` | `false` |
+| `member_both` | `true` | `true` | `false` |
+| `member` | `true` | `true` | `true` |
 
-The side matters on anything with two: a variable's bounds, a ranged row, an `==` row. The workshop's orders conflict through their lower sides. `member_both` means that each side is needed on its own, and relaxing either one alone removes the conflict: the sides cross, a lower bound above the upper bound, or integrality [needs both sides of a row](#lp-or-milp). Plain `member` is a member whose side the answer does not name: the routine did not name it, or, on a ranged row of an `xpress_milp` with integer columns, named one side where integrality may need both. Code meant for any IIS handles the plain tag, as `side_of` does.
+The side matters on anything with two: a variable's bounds, a ranged row, an `==` row. The workshop's orders conflict through their lower sides. `member_both` means that each side is needed on its own, and relaxing either one alone removes the conflict: the sides cross, a lower bound above the upper bound, or integrality [needs both sides of a row](#lp-or-milp). Plain `member` is a member whose side the answer does not name: the routine did not name it, or, on a ranged row of an `xpress_milp` with integer columns, named one side where integrality may need both. Code meant for any IIS tests `whole` before the sides, as `print_member` does.
 
 What each routine names:
 
@@ -115,11 +119,11 @@ Querying your own handles, as `print_conflict` does, gives each member your name
 --8<-- "test/doc_snippets/infeasibility.cpp:member-rows"
 ```
 
-On the workshop it returns the labour row and the three order rows. To print such handles, name the variables and constraints as you add them: `get_variable_name(v)` and `get_constraint_name(c)` read the names back on models with `has_named_variables` and `has_named_constraints`, see [Names](../modeling/variables.md#names) for variables and [Constraint families](../modeling/expressions.md#constraint-families) for constraints. `num_variable_members()` and `num_constraint_members()` count the members without a loop: one variable and four rows there. A query is a lookup in the snapshot and never calls the solver.
+On the workshop, `rows` holds the labour row and the three order rows. To print such handles, name the variables and constraints as you add them: `get_variable_name(v)` and `get_constraint_name(c)` read the names back on models with `has_named_variables` and `has_named_constraints`, see [Names](../modeling/variables.md#names) for variables and [Constraint families](../modeling/expressions.md#constraint-families) for constraints. `num_variable_members()` and `num_constraint_members()` count the members without a loop: one variable and four rows there. A query is a lookup in the snapshot and never calls the solver.
 
 ## Repairing the model
 
-One repair always removes the conflict: relax every side the answer names, the lower side of a `member_lower` row or bound to `-infinity()`, the upper side of a `member_upper` one to `infinity()`, and both sides of a `member_both` or a plain `member`:
+One repair always removes the conflict: relax every side the answer names, a lower side to `-infinity()` and an upper side to `infinity()`, which takes both sides of a `member_both` and of a plain `member`:
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:relax-members"
@@ -127,13 +131,7 @@ One repair always removes the conflict: relax every side the answer names, the l
 
 It is one repair among others, and seldom the one you want. On the workshop it frees the labour row, the overtime and the lower sides of the three orders, and the model then solves with no overtime at all, since no order binds any more. Dropping any single member already removes a conflict, and which one to change, and by how much, is a decision on the data that the IIS leaves to you: the remedy above moved one member by one hour.
 
-On a model with row-bound setters, `relax_row` relaxes each named side through `set_constraint_lower_bound` or `set_constraint_upper_bound`. `gurobi_lp` and `gurobi_milp` have no such setters, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints), so there it reads the row's sense instead:
-
-- an `==` row that loses one side keeps the other through its sense alone, written with `set_constraint_sense`, and its rhs is not written;
-- an `==` row that loses both sides becomes a `<=` row with an infinite rhs;
-- a `<=` or `>=` row whose side is named keeps its sense and is freed through an infinite rhs.
-
-The deletion filter writes the rows of these models through their sense and rhs too, by its own rule, see [Candidates and trials](../algorithms/deletion-filter.md#candidates-and-trials). `rerun_on_members` below saves and restores their rows as a sense and an rhs.
+`relax_members` writes a row through `set_constraint_lower_bound` and `set_constraint_upper_bound`, which `gurobi_lp` and `gurobi_milp` do not have, see [Ranged constraints](../modeling/special-constraints.md#ranged-constraints). There, read the row's sense with `get_constraint_sense`: a `<=` or `>=` row is freed through an infinite rhs, written with `set_constraint_rhs`, an `==` row that loses one side keeps the other through its sense alone, written with `set_constraint_sense`, and one that loses both becomes a `<=` row with an infinite rhs. The deletion filter writes the rows of these models the same way, see [Candidates and trials](../algorithms/deletion-filter.md#candidates-and-trials).
 
 A model can hold several conflicts, and an IIS explains one of them. Suppose that the workshop's labour comes from one team per product, whose hours cannot be shared:
 
@@ -144,10 +142,6 @@ A model can hold several conflicts, and an IIS explains one of them. Suppose tha
 The chairs need 10 hours of a team that has 8, and the desks 4 of a team that has 3: two conflicts, with no member in common. A loop that relaxes the members of each answer and runs the filter again explains one conflict per round, until an answer has no member left:
 
 ```cpp
---8<-- "test/doc_snippets/infeasibility.cpp:repair-loop"
-```
-
-```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:teams-repair"
 ```
 
@@ -155,7 +149,7 @@ The chairs need 10 hours of a team that has 8, and the desks 4 of a team that ha
 --8<-- "test/doc_snippets/infeasibility_repair.txt"
 ```
 
-The loop returns `feasible` once no conflict remains. An answer can also have no member because the run proved nothing, a tag of the `incomplete` branch without a conflict, or because the background conflicts on its own, `irreducible`, which no relaxed side repairs, see [How a run ends](#how-a-run-ends): the loop then returns that outcome. It changes the model for good, so save the sides you want back before calling it, as `rerun_on_members` does under [Limits](#limits).
+The last answer has no member, and its outcome says why: `feasible` here, since no conflict remains. An answer can also have no member because the run proved nothing, a tag of the `incomplete` branch without a conflict, or because the background conflicts on its own, `irreducible`, which no relaxed side repairs, see [How a run ends](#how-a-run-ends): read `iis.get_outcome()` before relying on the solve that follows. The loop changes the model for good, so save the sides you want back before running it.
 
 ## How a run ends
 
@@ -182,7 +176,7 @@ any                        carries conflict_available
 | :--- | :--- |
 | `irreducible` | The members conflict, and without any one of them the others have a solution. |
 | `feasible` | The model is feasible as it is. There is no member. |
-| `incomplete` | The run decided nothing, for a cause the routine does not name: a gap in its proof, numerical trouble, or a stop it cannot tell from those. It does not imply that a limit stopped the run: raising one may or may not help, see [Limits](#limits). |
+| `incomplete` | The run decided nothing, for a cause the routine does not name: a gap in its proof, numerical trouble, or a stop it cannot tell from those; or, on a run that narrows an answer, the named sides have a solution together, see [Narrowing an answer](#narrowing-an-answer). It does not imply that a limit stopped the run: raising one may or may not help, see [Limits](#limits). |
 | `inconclusive_trial` | A trial of the filter ended without proving either infeasibility or a feasible point, as a numerical failure does. |
 | `stopped` | Something outside the routine cut the run short, and the routine does not say what. |
 | `interrupted` | A stop was requested: through the filter's `stop_token`, or through the solver during a native call. |
@@ -201,7 +195,7 @@ Each path's variant lists only the tags its routine can tell apart, as a backend
 
 | Path | Tags its variant lists |
 | :--- | :--- |
-| Deletion filter | `incomplete`, `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit`, `solve_limit`. A run never returns plain `incomplete`: it is the value of a `deletion_filter_result` no run wrote. |
+| Deletion filter | `incomplete`, `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit`, `solve_limit`. A run returns plain `incomplete` only when it narrows an answer whose named sides have a solution together, see [Narrowing an answer](#narrowing-an-answer). |
 | HiGHS | `incomplete`, `irreducible`, `feasible`, `time_limit` |
 | Gurobi | `incomplete`, `irreducible`, `feasible`, `stopped`, `interrupted`, `limit_reached`, `time_limit`, `iteration_limit`, `memory_limit`. `interrupted`, `limit_reached`, `iteration_limit` and `memory_limit` are reachable on `gurobi_lp` only. |
 | CPLEX | `incomplete`, `irreducible`, `feasible`, `interrupted`, `limit_reached`, `time_limit`, `iteration_limit`, `node_limit`, `memory_limit`. `iteration_limit` is reachable on `cplex_lp` only, and `node_limit` on `cplex_milp` only. |
@@ -214,7 +208,7 @@ The filter checks its limits before each trial. When several are reached at once
 
 ## Limits
 
-The filter's second argument, `iis_limits`, bounds the whole run:
+`iis_limits`, the filter's last argument, bounds the whole run:
 
 - `max_solves`: the number of `solve()` calls;
 - `time_limit`: one duration for the whole call, which becomes a single deadline when the call starts. A negative or NaN duration throws `std::invalid_argument`, and an infinite one, the default, means no deadline;
@@ -228,13 +222,7 @@ Here `stop` is such a token:
 
 A run stopped by a limit keeps what it proved, which is why the snippet prints every answer that holds a conflict, not only an `irreducible` one. With a budget of three solves, the workshop's run ends `solve_limit` with a conflict, and its members include those of the IIS.
 
-Such an answer of the filter is a start. Run the filter again with a larger budget, or narrow the next run down to the members, which the filter proved to conflict: relax every other side, since a side at infinity is no candidate, run again, and write the relaxed sides back. That run makes at most one solve per member side plus one, and the IIS it finds among the members is an IIS of the whole model:
-
-```cpp
---8<-- "test/doc_snippets/infeasibility.cpp:narrow-partial"
-```
-
-On the workshop, `rerun_on_members(model, iis)`, passing the answer of the three-solve run, has 11 candidates rather than 13, makes 12 solves and prints the five lines of the complete run.
+Such an answer of the filter is a start: run the filter again with a larger budget, or narrow the answer, see [Narrowing an answer](#narrowing-an-answer).
 
 Limits are checked between trials, and a trial that has started runs to its end. Every model class has a time limit (`has_time_limit`), so under a finite `time_limit` each trial gets the time that remains as its own time limit. It never gets more than the limit you had set, which is restored afterwards. A trial can still run past the deadline on `glpk_milp` and `cbc_milp`, where the time limit does not bound every phase of a solve. On `clp_lp` and `soplex_lp`, whose time limit counts CPU time, a trial can stop before the deadline. See [Time limits](../algorithms/deletion-filter.md#time-limits). With the default limits, the filter never reads or writes the model's time limit.
 
@@ -249,6 +237,22 @@ Limits are checked between trials, and a trial that has started runs to its end.
 | `copt_lp`, `copt_milp` | `time_limit`, with or without a conflict; one budget covers the routine and the solve described below | COPT's node limit, set through the native handles, stops the solve that precedes the search on `copt_milp`, `node_limit`, or `feasible` when that solve found a point; it does not stop the search. An interrupt of the solve, through the native handles, is `interrupted` | the phases that a limit does not interrupt grow with the model, and a late return with them; see [Native IIS on COPT](../solvers/index.md#limitation-copt-iis) |
 
 On COPT, `compute_iis()` solves the model as well as running the routine, both under the call's budget. On a `copt_milp` with integer columns, which COPT solves as a MIP, the solve comes first, since COPT answers a whole-model conflict on an unsolved feasible MIP. That solve stops at the first incumbent, which settles a feasible model; an infeasible one is solved to its proof. On `copt_lp`, and on a `copt_milp` whose columns are all continuous, the search comes first, and the solve follows when the search found nothing, since COPT returns the same code on a feasible model and on a failure. The solve gets what remains of the budget.
+
+## Narrowing an answer
+
+`compute_iis_by_deletion(model, within)`, or `(model, within, limits)`, runs the filter on the sides that an earlier answer `within` names, a plain `member` naming every finite side of its entity. Every other finite side stays relaxed in every trial, and is written back with the rest when the call returns. Its first trial checks the named sides together, so `within` may come from either path, or from before a change to the model: it is read by handle id on this model. The IIS that the run finds among the named sides is an IIS of the whole model: each trial reads only the sides it keeps and the background, so the sides kept have no solution together and have one without any single one of them. When the named sides have a solution together, the run answers `incomplete` without a conflict, never `feasible`: that solution says nothing of the sides it relaxed.
+
+A run that a limit stopped is the usual start, since its members hold a conflict:
+
+```cpp
+--8<-- "test/doc_snippets/infeasibility.cpp:narrowing"
+```
+
+On the workshop, the three-solve answer names 11 of the 13 finite sides. The second run makes 12 solves, one per named side plus one, and prints the five lines of the complete run. A run never makes more solves than that.
+
+A native answer is another start: `compute_iis_by_deletion(model, model.compute_iis())` names the side of each member that the routine reports whole. On the workshop's `gurobi_lp` and `cplex_lp`, it answers the five sides of the complete run, the orders through their lower sides.
+
+On a `*_milp` model, the bounds of integer columns that the answer leaves out are relaxed in every trial, and some solvers branch without end on rows over unbounded integer columns, see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs). On `scip_milp`, a bound of a binary column that the answer leaves out makes the first trial throw, see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries).
 
 ## LP or MILP
 

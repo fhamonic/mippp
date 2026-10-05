@@ -14,10 +14,7 @@
 #include <streambuf>
 #include <string>
 #include <string_view>
-#include <tuple>
-#include <type_traits>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "dumb_lp.hpp"
@@ -39,16 +36,13 @@ namespace infeasibility_page {
 using namespace mippp::operators;
 
 // --8<-- [start:print-member]
-// Prints a member with the side it conflicts through.
+// Prints a line per side of the conflict, or one for a member named whole.
 template <typename Status>
 void print_member(std::string_view name, const Status & status) {
-    if(!is_a<iis_status::member>(status)) return;
-    if(is_a<iis_status::member_lower>(status))
-        std::cout << name << ": lower side\n";
-    else if(is_a<iis_status::member_upper>(status))
-        std::cout << name << ": upper side\n";
-    else
-        std::cout << name << ": member\n";  // both sides, or a side not named
+    const iis_sides s = iis_status::sides_of(status);
+    if(s.whole) std::cout << name << ": member\n";
+    if(s.lower && !s.whole) std::cout << name << ": lower side\n";
+    if(s.upper && !s.whole) std::cout << name << ": upper side\n";
 }
 // --8<-- [end:print-member]
 
@@ -128,28 +122,52 @@ void native_path(Model & model, Print & print_conflict) {
 }
 
 // --8<-- [start:diagnose]
-// Calls report with an IIS of the model: the native routine's where the model
-// has one, the deletion filter's otherwise, or when the native call fails, as
-// it does on HiGHS before 1.14.
-template <typename Model, typename Report>
-    requires has_iis<Model> || iis_by_deletion_model<Model>
+// Reports the native routine's IIS where it runs, the filter's otherwise.
+template <iis_by_deletion_model Model, typename Report>
 void diagnose(Model & model, Report && report) {
     if constexpr(has_iis<Model>) {
         std::optional<model_iis_t<Model>> native;
         try {
             native.emplace(model.compute_iis());
         } catch(const solver_error &) {
-            if constexpr(!iis_by_deletion_model<Model>) throw;
+            // the routine failed, as it does on HiGHS before 1.14
         }
         if(native) {
             report(*native);
             return;
         }
     }
-    if constexpr(iis_by_deletion_model<Model>)
-        report(compute_iis_by_deletion(model));
+    report(compute_iis_by_deletion(model));
 }
 // --8<-- [end:diagnose]
+
+template <typename lp_type, typename Iis>
+std::vector<model_constraint_t<lp_type>> member_rows(lp_type & model,
+                                                     const Iis & iis) {
+    // --8<-- [start:member-rows]
+    std::vector<model_constraint_t<lp_type>> rows;
+    for(auto c : model.constraints())
+        if(is_a<iis_status::member>(iis.get_status(c))) rows.push_back(c);
+    // --8<-- [end:member-rows]
+    return rows;
+}
+
+// --8<-- [start:relax-members]
+template <typename Model, typename Iis>
+void relax_members(Model & model, const Iis & iis) {
+    const auto inf = model.infinity();
+    for(auto v : model.variables()) {
+        const iis_sides s = iis_status::sides_of(iis.get_status(v));
+        if(s.lower) model.set_variable_lower_bound(v, -inf);
+        if(s.upper) model.set_variable_upper_bound(v, inf);
+    }
+    for(auto c : model.constraints()) {
+        const iis_sides s = iis_status::sides_of(iis.get_status(c));
+        if(s.lower) model.set_constraint_lower_bound(c, -inf);
+        if(s.upper) model.set_constraint_upper_bound(c, inf);
+    }
+}
+// --8<-- [end:relax-members]
 
 template <typename Model, typename Print>
 void bounded_path(Model & model, Print & print_conflict, std::stop_token stop) {
@@ -161,169 +179,14 @@ void bounded_path(Model & model, Print & print_conflict, std::stop_token stop) {
     // --8<-- [end:limits]
 }
 
-// --8<-- [start:side-name]
-// Every tag has an overload, so the visit compiles on the variant of any path,
-// and the most derived one wins: plain member is told from member_both.
-std::string_view side_of(iis_status::absent) { return "absent"; }
-std::string_view side_of(iis_status::member) { return "side not named"; }
-std::string_view side_of(iis_status::member_lower) { return "lower side"; }
-std::string_view side_of(iis_status::member_upper) { return "upper side"; }
-std::string_view side_of(iis_status::member_both) { return "both sides"; }
-
-template <typename Status>
-std::string_view side_name(const Status & status) {
-    return std::visit([](auto tag) { return side_of(tag); }, status);
+template <typename Model, typename Print>
+void narrowed_path(Model & model, Print & print_conflict) {
+    // --8<-- [start:narrowing]
+    const auto partial = compute_iis_by_deletion(model, {.max_solves = 3});
+    const auto iis = compute_iis_by_deletion(model, partial);
+    if(is<iis_outcome::irreducible>(iis.get_outcome())) print_conflict(iis);
+    // --8<-- [end:narrowing]
 }
-// --8<-- [end:side-name]
-
-// --8<-- [start:member-rows]
-template <typename Model, typename Iis>
-std::vector<model_constraint_t<Model>> member_rows(Model & model,
-                                                   const Iis & iis) {
-    std::vector<model_constraint_t<Model>> rows;
-    for(auto c : model.constraints())
-        if(is_a<iis_status::member>(iis.get_status(c))) rows.push_back(c);
-    return rows;
-}
-// --8<-- [end:member-rows]
-
-// --8<-- [start:relax-members]
-struct named_sides {
-    bool lower = false;
-    bool upper = false;
-};
-
-// plain member cannot say which side conflicts, so both are relaxed, as for
-// member_both
-struct sides_named {
-    named_sides operator()(iis_status::absent) const { return {}; }
-    named_sides operator()(iis_status::member) const { return {true, true}; }
-    named_sides operator()(iis_status::member_lower) const {
-        return {.lower = true};
-    }
-    named_sides operator()(iis_status::member_upper) const {
-        return {.upper = true};
-    }
-    named_sides operator()(iis_status::member_both) const {
-        return {true, true};
-    }
-};
-
-// Relaxes the sides s names of row c. A model without row-bound setters, such
-// as Gurobi's, holds a row as a sense and an rhs and has no ranged row: an ==
-// row losing one side keeps the other through its sense, and any other
-// relaxation frees the row through an infinite rhs.
-template <typename Model>
-void relax_row(Model & model, model_constraint_t<Model> c, named_sides s) {
-    const auto inf = model.infinity();
-    if constexpr(has_modifiable_constraint_bounds<Model>) {
-        if(s.lower) model.set_constraint_lower_bound(c, -inf);
-        if(s.upper) model.set_constraint_upper_bound(c, inf);
-    } else {
-        const constraint_sense sense = model.get_constraint_sense(c);
-        if(sense == constraint_sense::equal) {
-            if(s.lower && s.upper) {
-                model.set_constraint_sense(c, constraint_sense::less_equal);
-                model.set_constraint_rhs(c, inf);
-            } else if(s.lower) {
-                model.set_constraint_sense(c, constraint_sense::less_equal);
-            } else if(s.upper) {
-                model.set_constraint_sense(c, constraint_sense::greater_equal);
-            }
-        } else if(sense == constraint_sense::greater_equal ? s.lower
-                                                           : s.upper) {
-            model.set_constraint_rhs(
-                c, sense == constraint_sense::greater_equal ? -inf : inf);
-        }
-    }
-}
-
-template <typename Model, typename Iis>
-void relax_members(Model & model, const Iis & iis) {
-    const auto inf = model.infinity();
-    for(auto v : model.variables()) {
-        const named_sides s = std::visit(sides_named{}, iis.get_status(v));
-        if(s.lower) model.set_variable_lower_bound(v, -inf);
-        if(s.upper) model.set_variable_upper_bound(v, inf);
-    }
-    for(auto c : model.constraints())
-        relax_row(model, c, std::visit(sides_named{}, iis.get_status(c)));
-}
-// --8<-- [end:relax-members]
-
-// --8<-- [start:repair-loop]
-template <typename Model, typename Report>
-auto relax_until_feasible(Model & model, Report && report) {
-    while(true) {
-        const auto iis = compute_iis_by_deletion(model);
-        // an answer without members leaves nothing to relax: the model is
-        // feasible, the run proved nothing, or the background conflicts on
-        // its own
-        if(iis.num_variable_members() + iis.num_constraint_members() == 0)
-            return iis.get_outcome();
-        report(iis);
-        relax_members(model, iis);
-    }
-}
-// --8<-- [end:repair-loop]
-
-// --8<-- [start:narrow-partial]
-template <typename Model, typename Iis>
-auto rerun_on_members(Model & model, const Iis & partial,
-                      const iis_limits & limits = {}) {
-    const auto inf = model.infinity();
-    std::vector<std::tuple<model_variable_t<Model>, double, double>> bounds;
-    // a row as the model holds it: its two sides, or its sense and rhs
-    using row_data = std::conditional_t<has_modifiable_constraint_bounds<Model>,
-                                        std::pair<double, double>,
-                                        std::pair<constraint_sense, double>>;
-    std::vector<std::pair<model_constraint_t<Model>, row_data>> rows;
-    // a side at infinity is no candidate, so relaxing every side the partial
-    // answer does not name leaves only its members to the filter
-    for(auto v : model.variables()) {
-        bounds.emplace_back(v, model.get_variable_lower_bound(v),
-                            model.get_variable_upper_bound(v));
-        const named_sides kept =
-            std::visit(sides_named{}, partial.get_status(v));
-        if(!kept.lower) model.set_variable_lower_bound(v, -inf);
-        if(!kept.upper) model.set_variable_upper_bound(v, inf);
-    }
-    for(auto c : model.constraints()) {
-        if constexpr(has_modifiable_constraint_bounds<Model>)
-            rows.emplace_back(c, row_data{model.get_constraint_lower_bound(c),
-                                          model.get_constraint_upper_bound(c)});
-        else
-            rows.emplace_back(c, row_data{model.get_constraint_sense(c),
-                                          model.get_constraint_rhs(c)});
-        const named_sides kept =
-            std::visit(sides_named{}, partial.get_status(c));
-        relax_row(model, c, {.lower = !kept.lower, .upper = !kept.upper});
-    }
-    auto restore = [&] {
-        for(const auto & [v, lower, upper] : bounds) {
-            model.set_variable_lower_bound(v, lower);
-            model.set_variable_upper_bound(v, upper);
-        }
-        for(const auto & [c, data] : rows) {
-            if constexpr(has_modifiable_constraint_bounds<Model>) {
-                model.set_constraint_lower_bound(c, data.first);
-                model.set_constraint_upper_bound(c, data.second);
-            } else {
-                model.set_constraint_sense(c, data.first);
-                model.set_constraint_rhs(c, data.second);
-            }
-        }
-    };
-    try {
-        auto narrowed = compute_iis_by_deletion(model, limits);
-        restore();
-        return narrowed;
-    } catch(...) {
-        restore();
-        throw;
-    }
-}
-// --8<-- [end:narrow-partial]
 
 template <typename Model>
 struct repair_run {
@@ -351,7 +214,8 @@ repair_run<lp_type> teams_workshop() {
 
     // --8<-- [start:teams-repair]
     int round = 0;
-    const auto last = relax_until_feasible(model, [&](const auto & iis) {
+    auto iis = compute_iis_by_deletion(model);
+    while(iis.num_variable_members() + iis.num_constraint_members() > 0) {
         std::cout << "conflict " << ++round << '\n';
         print_member("team chairs", iis.get_status(team_chairs));
         print_member("order chairs", iis.get_status(order_chairs));
@@ -359,10 +223,12 @@ repair_run<lp_type> teams_workshop() {
         print_member("order tables", iis.get_status(order_tables));
         print_member("team desks", iis.get_status(team_desks));
         print_member("order desks", iis.get_status(order_desks));
-    });
+        relax_members(model, iis);
+        iis = compute_iis_by_deletion(model);
+    }
     model.solve();  // optimal
     // --8<-- [end:teams-repair]
-    return {last, round, model.get_status()};
+    return {iis.get_outcome(), round, model.get_status()};
 }
 
 template <typename milp_type>
@@ -412,6 +278,10 @@ constexpr solver_version highs_native_iis_floor{1, 14, 0};
 
 struct infeasibility_page_highs_lp : model_test<highs_api, highs_lp> {
     static void SetUpTestSuite() { construct_api("HIGHS"); }
+    bool has_native_routine() const {
+        const auto loaded = api->library_version();
+        return !loaded || *loaded >= highs_native_iis_floor;
+    }
 };
 struct infeasibility_page_highs_milp : model_test<highs_api, highs_milp> {
     static void SetUpTestSuite() { construct_api("HIGHS"); }
@@ -420,7 +290,7 @@ struct infeasibility_page_clp_lp : model_test<clp_api, clp_lp> {
     static void SetUpTestSuite() { construct_api("CLP"); }
 };
 // A model without row-bound setters, as Gurobi's, which CI runs on Clp: the
-// repair code takes its sense-and-rhs branch there.
+// filter writes its rows through their sense and rhs there.
 struct infeasibility_page_dumb_lp : model_test<clp_api, dumb_lp> {
     static void SetUpTestSuite() { construct_api("CLP"); }
 };
@@ -478,17 +348,17 @@ struct run_member_rows {
     }
 };
 
-// The side of every entity, through the visitor of Reading the answer.
-struct run_side_names {
-    std::vector<std::string_view> * variables;
-    std::vector<std::string_view> * rows;
+// The sides of every entity, as sides_of reads them.
+struct run_sides_of {
+    std::vector<iis_sides> * variables;
+    std::vector<iis_sides> * rows;
     template <typename Model, typename Print>
     void operator()(Model & model, Print &) const {
         const auto iis = compute_iis_by_deletion(model);
         for(auto v : model.variables())
-            variables->push_back(side_name(iis.get_status(v)));
+            variables->push_back(iis_status::sides_of(iis.get_status(v)));
         for(auto c : model.constraints())
-            rows->push_back(side_name(iis.get_status(c)));
+            rows->push_back(iis_status::sides_of(iis.get_status(c)));
     }
 };
 
@@ -511,31 +381,51 @@ std::vector<std::pair<double, double>> all_sides(Model & model) {
     return sides;
 }
 
-// The three-solve answer, then a run whose only candidates are its members.
-struct run_on_the_members {
+// The finite sides an answer names, which a narrowing run takes as its
+// candidates.
+template <typename Model, typename Iis>
+std::size_t named_sides(Model & model, const Iis & iis) {
+    const double inf = model.infinity();
+    std::size_t count = 0;
+    for(auto v : model.variables()) {
+        const iis_sides s = iis_status::sides_of(iis.get_status(v));
+        if(s.lower && model.get_variable_lower_bound(v) > -inf) ++count;
+        if(s.upper && model.get_variable_upper_bound(v) < inf) ++count;
+    }
+    for(auto c : model.constraints()) {
+        const iis_sides s = iis_status::sides_of(iis.get_status(c));
+        if(s.lower && model.get_constraint_lower_bound(c) > -inf) ++count;
+        if(s.upper && model.get_constraint_upper_bound(c) < inf) ++count;
+    }
+    return count;
+}
+
+// The three-solve answer, then the page's two calls: the same three solves
+// and a run whose only candidates are the sides that answer names.
+struct run_narrowing {
     std::size_t * candidates;
     std::size_t * solves;
-    deletion_filter_outcome * outcome;
     template <typename Model, typename Print>
     void operator()(Model & model, Print & print) const {
         const auto partial = compute_iis_by_deletion(model, {.max_solves = 3});
         ASSERT_TRUE(
             outcome_is<iis_outcome::solve_limit>(partial.get_outcome(), true));
-        *candidates = 0;
-        for(auto v : model.variables()) {
-            const auto kept = std::visit(sides_named{}, partial.get_status(v));
-            *candidates += kept.lower + kept.upper;
-        }
-        for(auto c : model.constraints()) {
-            const auto kept = std::visit(sides_named{}, partial.get_status(c));
-            *candidates += kept.lower + kept.upper;
-        }
+        *candidates = named_sides(model, partial);
         const auto before = all_sides(model);
         const std::size_t solves_before = model.solves;
-        const auto iis = rerun_on_members(model, partial);
+        narrowed_path(model, print);
         *solves = model.solves - solves_before;
-        *outcome = iis.get_outcome();
         EXPECT_EQ(all_sides(model), before);
+    }
+};
+
+// The call the page names for a native answer.
+struct run_native_narrowing {
+    deletion_filter_outcome * outcome;
+    template <typename Model, typename Print>
+    void operator()(Model & model, Print & print) const {
+        const auto iis = compute_iis_by_deletion(model, model.compute_iis());
+        *outcome = iis.get_outcome();
         print(iis);
     }
 };
@@ -632,19 +522,18 @@ TEST_F(infeasibility_page_dumb_lp, workshop_prints_the_page_output) {
 
 // The workshop has a single IIS, so the native routine finds the same one.
 TEST_F(infeasibility_page_highs_lp, workshop_native_answer_is_the_same) {
-    const auto loaded = api->library_version();
-    if(loaded && *loaded < highs_native_iis_floor)
+    if(!has_native_routine())
         GTEST_SKIP() << "Highs_getIis needs HiGHS "
                      << to_string(highs_native_iis_floor) << ", "
-                     << api->library_path() << " is " << to_string(*loaded);
+                     << api->library_path() << " is "
+                     << to_string(*api->library_version());
     cout_capture out;
     expect_page_run(workshop<highs_lp>(run_native_path{}));
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
 TEST_F(infeasibility_page_highs_lp, compute_iis_below_the_floor_throws) {
-    const auto loaded = api->library_version();
-    if(!loaded || *loaded >= highs_native_iis_floor)
+    if(has_native_routine())
         GTEST_SKIP() << "the loaded HiGHS has the native routine";
     cout_capture out;
     EXPECT_THROW(workshop<highs_lp>(run_native_path{}), solver_error);
@@ -712,46 +601,54 @@ TEST_F(infeasibility_page_highs_lp, member_rows_lists_the_conflicting_rows) {
     EXPECT_EQ(num_variables, 1u);  // overtime
 }
 
-TEST_F(infeasibility_page_highs_lp, side_name_reads_the_side_of_each_member) {
-    std::vector<std::string_view> variables;
-    std::vector<std::string_view> rows;
+TEST_F(infeasibility_page_highs_lp, sides_of_reads_the_sides_of_each_member) {
+    std::vector<iis_sides> variables;
+    std::vector<iis_sides> rows;
     cout_capture out;
-    expect_page_run(workshop<highs_lp>(run_side_names{&variables, &rows}));
-    using names = std::vector<std::string_view>;
+    expect_page_run(workshop<highs_lp>(run_sides_of{&variables, &rows}));
+    constexpr iis_sides none{};
+    constexpr iis_sides lower{.lower = true};
+    constexpr iis_sides upper{.upper = true};
+    using sides = std::vector<iis_sides>;
     // chairs, tables, desks and overtime
-    EXPECT_EQ(variables, (names{"absent", "absent", "absent", "upper side"}));
+    EXPECT_EQ(variables, (sides{none, none, none, upper}));
     // wood, labour and the three orders
-    EXPECT_EQ(rows, (names{"absent", "upper side", "lower side", "lower side",
-                           "lower side"}));
+    EXPECT_EQ(rows, (sides{none, upper, lower, lower, lower}));
 }
 
 // The members of the partial answer hold the whole IIS, found again with one
-// solve per member side plus one, and every side is written back.
-TEST_F(infeasibility_page_highs_lp,
-       rerun_on_members_completes_a_partial_answer) {
+// solve per named side plus one, and every side is written back.
+TEST_F(infeasibility_page_highs_lp, narrowing_completes_a_partial_answer) {
     std::size_t candidates = 0;
     std::size_t solves = 0;
-    deletion_filter_outcome outcome;
     cout_capture out;
     expect_page_run(workshop<iis_trial_probe<highs_lp>>(
-        run_on_the_members{&candidates, &solves, &outcome}));
-    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(outcome));
+        run_narrowing{&candidates, &solves}));
     EXPECT_EQ(candidates, 11u);  // of the workshop's 13 finite sides
-    EXPECT_EQ(solves, candidates + 1);
+    EXPECT_EQ(solves, 3 + candidates + 1);
+    // printed only on an irreducible answer
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
-TEST_F(infeasibility_page_dumb_lp,
-       rerun_on_members_completes_a_partial_answer) {
+TEST_F(infeasibility_page_dumb_lp, narrowing_completes_a_partial_answer) {
     std::size_t candidates = 0;
     std::size_t solves = 0;
-    deletion_filter_outcome outcome;
     cout_capture out;
     expect_page_run(workshop<iis_trial_probe<dumb_lp>>(
-        run_on_the_members{&candidates, &solves, &outcome}));
-    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(outcome));
+        run_narrowing{&candidates, &solves}));
     EXPECT_EQ(candidates, 11u);
-    EXPECT_EQ(solves, candidates + 1);
+    EXPECT_EQ(solves, 3 + candidates + 1);
+    EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
+}
+
+TEST_F(infeasibility_page_highs_lp, narrowing_a_native_answer_finds_the_iis) {
+    if(!has_native_routine())
+        GTEST_SKIP() << "Highs_getIis needs HiGHS "
+                     << to_string(highs_native_iis_floor);
+    deletion_filter_outcome outcome;
+    cout_capture out;
+    expect_page_run(workshop<highs_lp>(run_native_narrowing{&outcome}));
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(outcome));
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
 }
 
@@ -760,14 +657,6 @@ TEST_F(infeasibility_page_dumb_lp,
 TEST_F(infeasibility_page_highs_lp, relaxing_the_members_repairs_the_workshop) {
     cout_capture out;
     const auto run = workshop<highs_lp>(run_relax_members{});
-    EXPECT_TRUE(is<status::unknown>(run.after_analysis));
-    EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
-    EXPECT_NEAR(run.overtime_after_fix, 0., TEST_EPSILON);
-}
-
-TEST_F(infeasibility_page_dumb_lp, relaxing_the_members_repairs_the_workshop) {
-    cout_capture out;
-    const auto run = workshop<dumb_lp>(run_relax_members{});
     EXPECT_TRUE(is<status::unknown>(run.after_analysis));
     EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
     EXPECT_NEAR(run.overtime_after_fix, 0., TEST_EPSILON);
@@ -791,15 +680,6 @@ TEST_F(infeasibility_page_clp_lp, repair_loop_explains_one_conflict_a_round) {
     EXPECT_EQ(out.str(), page_output("infeasibility_repair.txt"));
 }
 
-TEST_F(infeasibility_page_dumb_lp, repair_loop_explains_one_conflict_a_round) {
-    cout_capture out;
-    const auto run = teams_workshop<dumb_lp>();
-    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(run.last));
-    EXPECT_EQ(run.rounds, 2);
-    EXPECT_TRUE(is_a<status::optimal>(run.after_repair));
-    EXPECT_EQ(out.str(), page_output("infeasibility_repair.txt"));
-}
-
 // Integrality is background: only the row's two sides are members, and the
 // same row over a continuous variable is feasible.
 TEST_F(infeasibility_page_highs_milp, trucks_row_needs_both_sides) {
@@ -807,7 +687,8 @@ TEST_F(infeasibility_page_highs_milp, trucks_row_needs_both_sides) {
     EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(outcome));
     EXPECT_TRUE(is<iis_status::absent>(statuses.first));
     EXPECT_TRUE(is<iis_status::member_both>(statuses.second));
-    EXPECT_EQ(side_name(statuses.second), "both sides");
+    EXPECT_EQ(iis_status::sides_of(statuses.second),
+              (iis_sides{.lower = true, .upper = true}));
 }
 
 TEST_F(infeasibility_page_highs_lp, trucks_row_is_feasible_on_an_lp) {
