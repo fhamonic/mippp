@@ -28,13 +28,13 @@ modeling syntax comparable in readability to JuMP [@jump2023] or Pyomo
 over index ranges, and constraint families — while compiling down to direct
 calls into each solver's native C API. The same model code can target any of
 eleven solver backends (Gurobi [@gurobi], CPLEX [@cplex], Xpress [@xpress],
-COPT [@copt], MOSEK [@mosek], HiGHS [@highs2018], SCIP [@scip8], Cbc [@cbc],
-Clp [@clp], SoPlex [@soplex], and GLPK [@glpk]); the backend is selected at
-compile time and its shared library is discovered and loaded at runtime, so no
-solver SDK needs to be present at link time and a single compiled binary runs
-on whatever solver the target machine has installed. The library is
-dependency-free, wrapping the platform loader itself; GoogleTest and MELON
-[@melon] are needed only to build the test suite.
+COPT [@copt], MOSEK [@mosek], HiGHS [@highs2018], SCIP [@scip8], Clp [@clp],
+SoPlex [@soplex], GLPK [@glpk], and, experimentally, Cbc [@cbc]); the backend
+is selected at compile time and its shared library is discovered and loaded at
+runtime, so no solver SDK needs to be present at link time and a single
+compiled binary runs on whatever solver the target machine has installed. The
+library is dependency-free, wrapping the platform loader itself; GoogleTest and
+MELON [@melon] are needed only to build the test suite.
 
 Constraint families are written over ranges, close to their mathematical
 statement. The row constraints of an N-Queens model, for instance, read:
