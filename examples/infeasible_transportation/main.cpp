@@ -107,10 +107,10 @@ int main() {
     }
 
     // With a single IIS, relaxing any one member far enough repairs the plan:
-    // here, 10 more tonnes of trucks from Lyon to Avignon, routes[1]. The
-    // filter writes back every bound and side it relaxed, but leaves the
-    // status unknown, so the plan is solved again.
-    model.set_variable_upper_bound(ship(1), routes[1].trucks + 10);
+    // here, trucks for 50 tonnes instead of 40 from Lyon to Avignon,
+    // routes[1]. The filter writes back every bound and side it relaxed, but
+    // leaves the status unknown, so the plan is solved again.
+    model.set_variable_upper_bound(ship(1), 50);
     model.solve();
     if(is_a<status::optimal>(model.get_status()))
         std::println("With 50 tonnes Lyon -> Avignon, the plan costs {:g}.",
