@@ -666,6 +666,36 @@ struct fake_clock {
     static time_point now() noexcept { return current; }
 };
 
+// An answer as any routine could give one, statuses scripted by id and
+// absent elsewhere: the narrowing overload takes any lp_iis.
+struct scripted_answer {
+    using status =
+        std::variant<iis_status::absent, iis_status::member,
+                     iis_status::member_lower, iis_status::member_upper,
+                     iis_status::member_both>;
+    // members only
+    std::map<int, status> variables = {};
+    std::map<int, status> constraints = {};
+
+    static status status_in(const std::map<int, status> & statuses, int id) {
+        const auto it = statuses.find(id);
+        return it == statuses.end() ? status{} : it->second;
+    }
+    status get_status(model_variable<int, double> v) const {
+        return status_in(variables, v.id());
+    }
+    status get_status(model_constraint<int> c) const {
+        return status_in(constraints, c.id());
+    }
+    std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                 iis_outcome::feasible>
+    get_outcome() const {
+        return iis_outcome::irreducible{};
+    }
+    std::size_t num_variable_members() const { return variables.size(); }
+    std::size_t num_constraint_members() const { return constraints.size(); }
+};
+
 }  // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -731,6 +761,31 @@ static_assert(
     lp_iis_status<detail::iis_sided_status> &&
     std::same_as<std::variant_alternative_t<0, detail::iis_sided_status>,
                  iis_status::absent>);
+
+// A braced or iis_limits argument is never read as an answer to narrow to.
+template <typename M>
+concept takes_limits_alone = requires(M & model, iis_limits limits) {
+    compute_iis_by_deletion(model, limits);
+    compute_iis_by_deletion(model, std::as_const(limits));
+    compute_iis_by_deletion(model, {});
+    compute_iis_by_deletion(model, {.max_solves = 3});
+};
+template <typename M, typename Within>
+concept narrows_to = requires(M & model, const Within & within) {
+    compute_iis_by_deletion(model, within);
+    compute_iis_by_deletion(model, within, {});
+    compute_iis_by_deletion(model, within, {.max_solves = 3});
+};
+static_assert(takes_limits_alone<iis_stub_model<false, false>> &&
+              takes_limits_alone<sense_rhs_stub>);
+static_assert(lp_iis<scripted_answer, iis_stub_model<false, false>>);
+static_assert(narrows_to<iis_stub_model<false, false>, scripted_answer> &&
+              narrows_to<iis_stub_model<false, false>,
+                         iis_by_deletion_t<iis_stub_model<false, false>>> &&
+              narrows_to<sense_rhs_stub, scripted_answer>);
+static_assert(
+    !narrows_to<iis_stub_model<false, false>, int> &&
+    !narrows_to<iis_stub_model<false, false>, iis_stub_model<false, false>>);
 
 // the classifier table
 static_assert(detail::classify_deletion_trial(iis_stub_status(
@@ -1951,6 +2006,167 @@ TEST_F(iis_by_deletion, a_throwing_row_write_leaves_the_rest_restored) {
     EXPECT_EQ(model.get_constraint_lower_bound(equal), 0.5);
     EXPECT_EQ(model.get_constraint_upper_bound(equal), 0.5);
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// Narrowing //////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// The stopped run dropped x's lower side, which no trial of the narrowing run
+// holds: one trial for the six sides it kept, then one for each.
+TEST_F(iis_by_deletion, narrowing_a_stopped_run_tests_its_sides_alone) {
+    stub model;
+    const auto h = conflict_model(model);
+    const auto before = model.data();
+    const auto stopped =
+        compute_iis_by_deletion(model, iis_limits{.max_solves = 2});
+    ASSERT_TRUE(
+        outcome_is<iis_outcome::solve_limit>(stopped.get_outcome(), true));
+    ASSERT_EQ(status_of(stopped, h.x), membership::upper);
+    model.reset_recording();
+    const auto iis = compute_iis_by_deletion(model, stopped);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_EQ(status_of(iis, h.x), membership::upper);
+    EXPECT_EQ(status_of(iis, h.y), membership::absent);
+    EXPECT_EQ(status_of(iis, h.r0), membership::lower);
+    EXPECT_EQ(status_of(iis, h.r1), membership::absent);
+    EXPECT_EQ(status_of(iis, h.r2), membership::absent);
+    EXPECT_EQ(model.solves, 7u);
+    for(const stub_data & trial : model.trials)
+        EXPECT_EQ(trial.variable_bounds[h.x.uid()].first, -inf);
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+    expect_restored(model, before);
+}
+
+// The answer names x whole, so the run starts from its crossed pair as a full
+// run does; r, named too, stays relaxed. The probe fails a crossed trial.
+TEST_F(iis_by_deletion,
+       narrowing_to_a_crossed_pair_takes_two_uncrossed_trials) {
+    probe model;
+    const auto [x, y, r] = crossed_variable_model(model);
+    const auto before = model.data();
+    const scripted_answer within{
+        .variables = {{x.id(), iis_status::member{}}},
+        .constraints = {{r.id(), iis_status::member_lower{}}}};
+    const auto iis = compute_iis_by_deletion(model, within);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_EQ(status_of(iis, x), membership::both);
+    EXPECT_EQ(status_of(iis, y), membership::absent);
+    EXPECT_EQ(status_of(iis, r), membership::absent);
+    ASSERT_EQ(model.solves, 2u);
+    for(const stub_data & trial : model.trials)
+        EXPECT_EQ(trial.row_bounds[r.uid()], std::pair(-inf, inf));
+    expect_restored(model, before);
+}
+
+// x's crossed bounds, which a full run starts from, are a conflict the answer
+// does not name: they stay relaxed in every trial.
+TEST_F(iis_by_deletion, a_crossed_pair_the_answer_does_not_name_stays_relaxed) {
+    using namespace operators;
+    probe model;
+    const auto x = bounded_variable(model, 3.0, 1.0);
+    const auto y = bounded_variable(model, 0.0, 5.0);
+    const auto r = model.add_constraint(y >= 6);
+    const auto before = model.data();
+    const scripted_answer within{
+        .variables = {{y.id(), iis_status::member_upper{}}},
+        .constraints = {{r.id(), iis_status::member{}}}};
+    const auto iis = compute_iis_by_deletion(model, within);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_EQ(status_of(iis, x), membership::absent);
+    EXPECT_EQ(status_of(iis, y), membership::upper);
+    EXPECT_EQ(status_of(iis, r), membership::lower);
+    EXPECT_EQ(model.solves, 3u);
+    for(const stub_data & trial : model.trials)
+        EXPECT_EQ(trial.variable_bounds[x.uid()], std::pair(-inf, inf));
+    expect_restored(model, before);
+    const auto full = compute_iis_by_deletion(model);
+    EXPECT_EQ(status_of(full, x), membership::both);
+}
+
+// y's sides and the upper side of r1 hold together, which says nothing of the
+// model: it is infeasible.
+TEST_F(iis_by_deletion, narrowing_to_sides_that_hold_answers_incomplete) {
+    stub model;
+    const auto h = conflict_model(model);
+    const auto before = model.data();
+    const scripted_answer within{
+        .variables = {{h.y.id(), iis_status::member_both{}}},
+        .constraints = {{h.r1.id(), iis_status::member_upper{}}}};
+    const auto iis = compute_iis_by_deletion(model, within);
+    EXPECT_TRUE(outcome_is<iis_outcome::incomplete>(iis.get_outcome(), false));
+    EXPECT_EQ(iis.num_variable_members(), 0u);
+    EXPECT_EQ(iis.num_constraint_members(), 0u);
+    EXPECT_EQ(model.solves, 1u);
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+    expect_restored(model, before);
+    // nothing named: the trial relaxes every side
+    const auto empty = compute_iis_by_deletion(model, scripted_answer{});
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::incomplete>(empty.get_outcome(), false));
+    EXPECT_EQ(model.solves, 2u);
+}
+
+// The answer names the == row whole, as Gurobi's routine does: the run keeps
+// the side the conflict needs. at_most, not named, is relaxed through its rhs
+// alone.
+TEST_F(iis_by_deletion, narrowing_refines_a_whole_row_into_its_side) {
+    using namespace operators;
+    sense_rhs_stub model;
+    const auto x = bounded_variable(model, 0.0, 1.0);
+    const auto equal = model.add_constraint(x == 5);
+    const auto at_most = model.add_constraint(x <= 3);
+    model.reset_recording();
+    const auto before = model.data();
+    const scripted_answer within{
+        .variables = {{x.id(), iis_status::member_upper{}}},
+        .constraints = {{equal.id(), iis_status::member{}}}};
+    const auto iis = compute_iis_by_deletion(model, within);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_EQ(status_of(iis, x), membership::upper);
+    EXPECT_EQ(status_of(iis, equal), membership::lower);
+    EXPECT_EQ(status_of(iis, at_most), membership::absent);
+    // one trial for the three named sides, then one for each
+    EXPECT_EQ(model.solves, 4u);
+    for(const stub_data & trial : model.trials)
+        EXPECT_EQ(trial.row_bounds[at_most.uid()], std::pair(-inf, inf));
+    EXPECT_FALSE(model.sense_written(at_most));
+    expect_restored(model, before);
+}
+
+// r0 alone explains the model too, but the answer names r1 only.
+TEST_F(iis_by_deletion, narrowing_a_column_less_model_needs_no_solve) {
+    stub model;
+    const auto r0 = add_row(model, -inf, -1.0);
+    const auto r1 = add_row(model, 2.0, inf);
+    prime_optimal(model);
+    const auto before = model.data();
+    const auto iis = compute_iis_by_deletion(
+        model,
+        scripted_answer{.constraints = {{r1.id(), iis_status::member{}}}});
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_EQ(status_of(iis, r0), membership::absent);
+    EXPECT_EQ(status_of(iis, r1), membership::lower);
+    const auto empty = compute_iis_by_deletion(model, scripted_answer{});
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::incomplete>(empty.get_outcome(), false));
+    EXPECT_EQ(model.solves, 0u);
+    expect_untouched(model, before);
+    EXPECT_TRUE(is<status::optimal>(model.get_status()));
+}
+
+TEST_F(iis_by_deletion, limits_alone_run_over_every_side) {
+    stub model;
+    conflict_model(model);
+    const iis_limits no_solve{.max_solves = 0};
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+        compute_iis_by_deletion(model, no_solve).get_outcome(), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+        compute_iis_by_deletion(model, {.max_solves = 0}).get_outcome(),
+        false));
+    const auto iis = compute_iis_by_deletion(model, {});
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_EQ(model.solves, 8u);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

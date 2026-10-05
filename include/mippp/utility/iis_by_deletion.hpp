@@ -5,7 +5,6 @@
 #include <concepts>
 #include <cstddef>
 #include <exception>
-#include <numeric>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -384,24 +383,30 @@ public:
 ////////////////////////////////// Prechecks //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// The first variable whose bounds cross, then the first row whose sides
-// cross, as the indices of its two candidate sides. Crossed sides are both
-// finite, hence both candidates, and adjacent since lower precedes upper.
+// The first crossed pair whose two sides are in start, variables first, as
+// the indices of its sides. Crossed sides are both finite, hence both
+// candidates, and adjacent since lower precedes upper, so a pair that start
+// holds whole is two consecutive entries of the ascending start. A pair it
+// holds in part is never crossed in a trial, its other side staying relaxed.
 template <typename M>
 [[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>>
-iis_first_crossed_pair(const iis_deletion_candidates<M> & candidates) {
-    const auto scan = [](const auto & sides, std::size_t offset)
-        -> std::optional<std::pair<std::size_t, std::size_t>> {
-        for(std::size_t k = 0; k + 1 < sides.size(); ++k) {
-            if(sides[k].lower && !sides[k + 1].lower &&
-               sides[k].handle == sides[k + 1].handle &&
-               sides[k].value > sides[k + 1].value)
-                return std::pair{offset + k, offset + k + 1};
-        }
-        return std::nullopt;
+iis_first_crossed_pair(const iis_deletion_candidates<M> & candidates,
+                       std::span<const std::size_t> start) {
+    const std::size_t offset = candidates.variable_sides.size();
+    const auto crossed = [](const auto & lower, const auto & upper) {
+        return lower.lower && !upper.lower && lower.handle == upper.handle &&
+               lower.value > upper.value;
     };
-    if(const auto pair = scan(candidates.variable_sides, 0)) return pair;
-    return scan(candidates.row_sides, candidates.variable_sides.size());
+    for(std::size_t i = 0; i + 1 < start.size(); ++i) {
+        const std::size_t k = start[i];
+        if(start[i + 1] != k + 1 || k + 1 == offset) continue;
+        if(k < offset ? crossed(candidates.variable_sides[k],
+                                candidates.variable_sides[k + 1])
+                      : crossed(candidates.row_sides[k - offset],
+                                candidates.row_sides[k + 1 - offset]))
+            return std::pair{k, k + 1};
+    }
+    return std::nullopt;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -435,6 +440,63 @@ template <iis_by_deletion_model M>
                                 answer.outcome);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// The run ////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// Both overloads: the run starts from the candidates select keeps, and every
+// other finite side stays relaxed in every trial.
+template <iis_by_deletion_model M, typename Select>
+[[nodiscard]] iis_by_deletion_t<M> iis_run_deletion(M & model,
+                                                    const iis_limits & limits,
+                                                    Select select,
+                                                    bool narrowing) {
+    using clock = std::chrono::steady_clock;
+    using scalar = model_scalar_t<M>;
+    const deletion_budget<clock> budget = make_deletion_budget(limits);
+    auto variables = model.variables();
+    // tested on the variables: a free variable has no side
+    const bool column_less = std::ranges::empty(variables);
+    const auto candidates = iis_enumerate_deletion_candidates(model, variables);
+    const std::size_t offset = candidates.variable_sides.size();
+    deletion_state state;
+    for(std::size_t k = 0; k < candidates.size(); ++k) {
+        if(k < offset ? select(candidates.variable_sides[k])
+                      : select(candidates.row_sides[k - offset]))
+            state.members.push_back(k);
+    }
+    deletion_filter_result answer{{}, iis_outcome::feasible{}};
+    if(column_less) {
+        // Every activity is 0, and solvers answer unknown without columns:
+        // the first side that 0 violates is the whole explanation, a row's
+        // lower side winning when 0 violates both, since it comes first. The
+        // comparison is exact.
+        for(const std::size_t k : state.members) {
+            const auto & s = candidates.row_sides[k - offset];
+            if(s.lower ? s.value > scalar{0} : s.value < scalar{0}) {
+                answer = {{k}, iis_outcome::irreducible{}};
+                break;
+            }
+        }
+    } else {
+        if(const auto pair =
+               iis_first_crossed_pair(candidates, state.members)) {
+            // the pair alone proves infeasibility, so the initial trial is
+            // skipped and each side is tested without the other
+            state.members = {pair->first, pair->second};
+            state.proven = true;
+        }
+        iis_deletion_guard<M, clock> guard(model, candidates, budget);
+        answer = run_deletion_filter(std::move(state), guard, budget);
+        guard.restore();
+    }
+    // a solution of the sides a narrowing run starts from says nothing of
+    // the sides it relaxed
+    if(narrowing && is<iis_outcome::feasible>(answer.outcome))
+        answer.outcome = iis_outcome::incomplete{};
+    return iis_fold_deletion_answer(candidates, std::move(answer));
+}
+
 }  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -449,44 +511,31 @@ template <iis_by_deletion_model M>
 template <iis_by_deletion_model M>
 [[nodiscard]] iis_by_deletion_t<M> compute_iis_by_deletion(
     M & model, const iis_limits & limits = {}) {
-    using clock = std::chrono::steady_clock;
-    using scalar = model_scalar_t<M>;
-    const detail::deletion_budget<clock> budget =
-        detail::make_deletion_budget(limits);
-    auto variables = model.variables();
-    // tested on the variables: a free variable has no side
-    const bool column_less = std::ranges::empty(variables);
-    const auto candidates =
-        detail::iis_enumerate_deletion_candidates(model, variables);
-    if(column_less) {
-        // Every activity is 0, and solvers answer unknown without columns:
-        // the first side that 0 violates is the whole explanation, a row's
-        // lower side winning when 0 violates both, since it comes first. The
-        // comparison is exact.
-        deletion_filter_result answer{{}, iis_outcome::feasible{}};
-        for(std::size_t k = 0; k < candidates.row_sides.size(); ++k) {
-            const auto & s = candidates.row_sides[k];
-            if(s.lower ? s.value > scalar{0} : s.value < scalar{0}) {
-                answer = {{k}, iis_outcome::irreducible{}};
-                break;
-            }
-        }
-        return detail::iis_fold_deletion_answer(candidates, std::move(answer));
-    }
-    detail::iis_deletion_guard<M, clock> guard(model, candidates, budget);
-    detail::deletion_state state;
-    if(const auto pair = detail::iis_first_crossed_pair(candidates)) {
-        // the pair alone proves infeasibility, so the initial trial is
-        // skipped and each side is tested without the other
-        state.members = {pair->first, pair->second};
-        state.proven = true;
-    } else {
-        state.members.assign(candidates.size(), std::size_t{0});
-        std::iota(state.members.begin(), state.members.end(), std::size_t{0});
-    }
-    auto answer = detail::run_deletion_filter(std::move(state), guard, budget);
-    guard.restore();
-    return detail::iis_fold_deletion_answer(candidates, std::move(answer));
+    return detail::iis_run_deletion(
+        model, limits, [](const auto &) { return true; }, false);
+}
+
+// The same, with the finite sides that within names as the only candidates,
+// a plain member naming every finite side of its entity, and every other side
+// relaxed in every trial. What it finds is an IIS of the model: a trial reads
+// its active sides and the background alone, whatever the run started from,
+// so the members kept are infeasible together and feasible without any one of
+// them. The first trial checks the named sides, so within may come from
+// either path or be stale; it is read by handle id on this model. When the
+// named sides have a solution together, the outcome is incomplete without a
+// conflict, never feasible.
+template <iis_by_deletion_model M, typename Iis>
+    requires lp_iis<Iis, M>
+[[nodiscard]] iis_by_deletion_t<M> compute_iis_by_deletion(
+    M & model, const Iis & within, const iis_limits & limits = {}) {
+    return detail::iis_run_deletion(
+        model, limits,
+        [&within](const auto & side) {
+            const iis_sides named =
+                iis_status::sides_of(within.get_status(side.handle));
+            return side.lower ? named.lower : named.upper;
+        },
+        true);
 }
 
 }  // namespace mippp

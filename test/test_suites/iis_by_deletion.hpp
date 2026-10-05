@@ -438,6 +438,116 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         }
     }
 
+    // x0 and x1 against r0 is the only IIS, so a run within any proven
+    // subset finds it: one trial for the sides the stopped run named, then
+    // one for each.
+    void check_narrowing_a_stopped_run() {
+        using namespace operators;
+        using enum iis_oracle::membership;
+        probe model(*this->api);
+        auto x0 = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+        auto x1 = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+        auto x2 = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+        auto r0 = model.add_constraint(x0 + x1 >= 3.);
+        auto r1 = model.add_constraint(x2 <= 5.);
+        auto r2 = model.add_constraint(x0 - x2 <= 4.);
+        model.record_row_sides();
+        const linear_system system{{{0., 1.}, {0., 1.}, {0., 1.}},
+                                   {{{{0, 1.}, {1, 1.}}, 3., none},
+                                    {{{2, 1.}}, none, 5.},
+                                    {{{0, 1.}, {2, -1.}}, none, 4.}}};
+        const built_case<probe> built{{x0, x1, x2}, {r0, r1, r2}};
+        const iis_cases::saved_model_data before = save(model, built);
+        const case_answer only_iis{{upper, upper, absent},
+                                   {lower, absent, absent}};
+        ASSERT_TRUE(iis_oracle::is_iis(system, only_iis));
+
+        const auto full = compute_iis_by_deletion(model);
+        ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(full.get_outcome()));
+        ASSERT_EQ(
+            iis_oracle::read_answer(full, built.variables, built.constraints),
+            only_iis);
+        // the initial trial and one trial per side
+        ASSERT_EQ(model.solves, 10u);
+        for(std::size_t k = 1; k < 10; ++k) {
+            SCOPED_TRACE("max_solves = " + std::to_string(k));
+            const auto stopped =
+                compute_iis_by_deletion(model, iis_limits{.max_solves = k});
+            ASSERT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                stopped.get_outcome(), true));
+            const std::size_t named =
+                reported_sides(system,
+                               iis_oracle::read_answer(stopped, built.variables,
+                                                       built.constraints))
+                    .size();
+            model.solves = 0;
+            const auto narrowed = compute_iis_by_deletion(model, stopped);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(narrowed.get_outcome()));
+            EXPECT_EQ(iis_oracle::read_answer(narrowed, built.variables,
+                                              built.constraints),
+                      only_iis);
+            EXPECT_EQ(model.solves, named + 1);
+            expect_probe_saw_nothing_wrong(model);
+            expect_unchanged(model, built, before);
+        }
+    }
+
+    // The routines that can report an entity whole: a sided native answer
+    // narrows as a stopped run's does.
+    static constexpr bool native_answer_may_name_a_whole_entity() {
+        using M = model_type;
+        if constexpr(!has_iis<M>) {
+            return false;
+        } else {
+            using native = const model_iis_t<M> &;
+            using variable_status = decltype(std::declval<native>().get_status(
+                std::declval<model_variable_t<M>>()));
+            using constraint_status =
+                decltype(std::declval<native>().get_status(
+                    std::declval<model_constraint_t<M>>()));
+            return variant_with_alternative<variable_status,
+                                            iis_status::member> ||
+                   variant_with_alternative<constraint_status,
+                                            iis_status::member>;
+        }
+    }
+
+    // x >= 0 against the upper side of x == -1. Gurobi and CPLEX report the
+    // row whole; narrowed, it is its upper side.
+    void check_narrowing_a_native_answer() {
+        if constexpr(!native_answer_may_name_a_whole_entity()) {
+            GTEST_SKIP() << "no native routine that reports an entity whole";
+        } else {
+            using enum iis_oracle::membership;
+            const iis_cases::iis_case c =
+                iis_cases::one_side_of_an_equality_row_case();
+            if(const auto reason = this->skip_reason(c))
+                GTEST_SKIP() << *reason;
+            probe model(*this->api);
+            const built_case<probe> built = build(model, c);
+            model.record_row_sides();
+            const iis_cases::saved_model_data before = save(model, built);
+            const auto native = model.compute_iis();
+            ASSERT_TRUE(
+                outcome_is<iis_outcome::irreducible>(native.get_outcome()));
+            const case_answer native_answer = iis_oracle::read_answer(
+                native, built.variables, built.constraints);
+            model.solves = 0;
+            const auto narrowed = compute_iis_by_deletion(model, native);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(narrowed.get_outcome()));
+            EXPECT_EQ(iis_oracle::read_answer(narrowed, built.variables,
+                                              built.constraints),
+                      (case_answer{{lower}, {upper}}))
+                << "narrowed from " << answer_text(native_answer);
+            EXPECT_EQ(model.solves,
+                      reported_sides(c.system, native_answer).size() + 1);
+            expect_probe_saw_nothing_wrong(model);
+            expect_unchanged(model, built, before);
+        }
+    }
+
     // The sense is not readable through a concept: the maximum of 69 after
     // the call pins it, since a zeroed objective would give 7 and the
     // minimum of the same model is another value.
@@ -653,6 +763,14 @@ TYPED_TEST_P(IisByDeletionTest, crossed_pair_is_the_proven_set_under_a_budget) {
     this->SkipOnLicenseError(
         [this]() { this->check_crossed_pair_under_a_budget(); });
 }
+TYPED_TEST_P(IisByDeletionTest, narrowing_a_stopped_run_finds_the_full_iis) {
+    this->SkipOnLicenseError(
+        [this]() { this->check_narrowing_a_stopped_run(); });
+}
+TYPED_TEST_P(IisByDeletionTest, narrowing_a_native_answer_names_its_sides) {
+    this->SkipOnLicenseError(
+        [this]() { this->check_narrowing_a_native_answer(); });
+}
 TYPED_TEST_P(IisByDeletionTest, restores_everything_it_saved) {
     this->SkipOnLicenseError(
         [this]() { this->check_restores_everything_it_saved(); });
@@ -686,7 +804,9 @@ REGISTER_TYPED_TEST_SUITE_P(
     status_is_unknown_after_a_run_that_solved,
     status_survives_a_run_without_a_solve,
     column_less_precheck_ignores_the_limits,
-    crossed_pair_is_the_proven_set_under_a_budget, restores_everything_it_saved,
+    crossed_pair_is_the_proven_set_under_a_budget,
+    narrowing_a_stopped_run_finds_the_full_iis,
+    narrowing_a_native_answer_names_its_sides, restores_everything_it_saved,
     time_limit_reads_back_unchanged, forwarded_time_limit_is_restored,
     indicator_constraints_are_background);
 

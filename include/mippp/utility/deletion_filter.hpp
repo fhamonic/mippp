@@ -41,7 +41,9 @@ concept deletion_oracle =
         { std::invoke(oracle, active) } -> std::same_as<deletion_verdict>;
     };
 
-// incomplete is never returned: it is the value of a result no run wrote
+// deletion_filter never returns incomplete, the value of a result no run
+// wrote; compute_iis_by_deletion(model, within) returns it, without a
+// conflict, when the sides within names have a solution together
 using deletion_filter_outcome =
     std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
                  iis_outcome::feasible, iis_outcome::inconclusive_trial,
