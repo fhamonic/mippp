@@ -49,7 +49,6 @@ private:
             status::limit_reached,
             status::time_limit,
             status::iteration_limit,
-            status::solution_limit,
             status::failed,
             status::interrupted>;
 
