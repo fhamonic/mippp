@@ -159,15 +159,15 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             reported_sides(system, full_answer);
 
         for(std::size_t k = 0; k <= 10; ++k) {
-            SCOPED_TRACE("max_solves = " + std::to_string(k));
+            SCOPED_TRACE("max_trials = " + std::to_string(k));
             model.solves = 0;
             const auto iis =
-                compute_iis_by_deletion(model, iis_limits{.max_solves = k});
+                compute_iis_by_deletion(model, iis_limits{.max_trials = k});
             EXPECT_LE(model.solves, k);
             const case_answer answer = iis_oracle::read_answer(
                 iis, built.variables, built.constraints);
             if(k == 0) {
-                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
                     iis.get_outcome(), false));
                 EXPECT_EQ(answer, (case_answer{{absent, absent, absent},
                                                {absent, absent}}));
@@ -176,12 +176,12 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             } else if(k == 1) {
                 // the initial trial proved infeasibility and the stop kept
                 // every candidate
-                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
                     iis.get_outcome(), true));
                 EXPECT_EQ(answer,
                           (case_answer{{both, both, both}, {lower, lower}}));
             } else if(k < 9) {
-                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
                     iis.get_outcome(), true));
                 const std::vector<iis_oracle::side> sides =
                     reported_sides(system, answer);
@@ -228,7 +228,7 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         {
             // a stop request beats the deadline, which beats the solve count
             const auto iis = compute_iis_by_deletion(
-                model, iis_limits{.max_solves = 0,
+                model, iis_limits{.max_trials = 0,
                                   .time_limit = zero_seconds,
                                   .stop_token = source.get_token()});
             EXPECT_TRUE(
@@ -260,7 +260,7 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         }
         {
             const auto iis = compute_iis_by_deletion(
-                model, iis_limits{.max_solves = 0, .time_limit = zero_seconds});
+                model, iis_limits{.max_trials = 0, .time_limit = zero_seconds});
             EXPECT_TRUE(
                 outcome_is<iis_outcome::time_limit>(iis.get_outcome(), false));
             EXPECT_EQ(model.solves, 0u);
@@ -295,9 +295,9 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
             model.solves = 0;
             const auto iis =
-                compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
+                compute_iis_by_deletion(model, iis_limits{.max_trials = 0});
             EXPECT_TRUE(
-                outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
+                outcome_is<iis_outcome::trial_limit>(iis.get_outcome(), false));
             EXPECT_EQ(model.solves, 0u);
             EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
         }
@@ -308,9 +308,9 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             build(model, iis_cases::crossed_variable_bounds_case());
             ASSERT_TRUE(is<status::unknown>(model.get_status()));
             const auto iis =
-                compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
+                compute_iis_by_deletion(model, iis_limits{.max_trials = 0});
             EXPECT_TRUE(
-                outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), true));
+                outcome_is<iis_outcome::trial_limit>(iis.get_outcome(), true));
             EXPECT_EQ(model.solves, 0u);
             EXPECT_TRUE(is<status::unknown>(model.get_status()));
         }
@@ -323,7 +323,7 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             empty_linear_expression<model_variable_t<M>, model_scalar_t<M>>;
         std::stop_source source;
         source.request_stop();
-        const iis_limits exhausted{.max_solves = 0,
+        const iis_limits exhausted{.max_trials = 0,
                                    .time_limit = zero_seconds,
                                    .stop_token = source.get_token()};
         {
@@ -366,8 +366,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             const auto r0 = built.constraints[0];
             {
                 const auto iis =
-                    compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
-                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    compute_iis_by_deletion(model, iis_limits{.max_trials = 0});
+                EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
                     iis.get_outcome(), true));
                 EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x0)), both);
                 EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x1)),
@@ -383,8 +383,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
                 // one side tested and kept, the other untested and kept
                 model.solves = 0;
                 const auto iis =
-                    compute_iis_by_deletion(model, iis_limits{.max_solves = 1});
-                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    compute_iis_by_deletion(model, iis_limits{.max_trials = 1});
+                EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
                     iis.get_outcome(), true));
                 EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x0)), both);
                 EXPECT_EQ(model.solves, 1u);
@@ -429,9 +429,9 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         {
             model.solves = 0;
             const auto iis =
-                compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
+                compute_iis_by_deletion(model, iis_limits{.max_trials = 0});
             EXPECT_TRUE(
-                outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), true));
+                outcome_is<iis_outcome::trial_limit>(iis.get_outcome(), true));
             EXPECT_EQ(iis_oracle::membership_of(iis.get_status(r0)), both);
             EXPECT_EQ(model.solves, 0u);
             expect_unchanged(model, built, before);
@@ -470,10 +470,10 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         // the initial trial and one trial per side
         ASSERT_EQ(model.solves, 10u);
         for(std::size_t k = 1; k < 10; ++k) {
-            SCOPED_TRACE("max_solves = " + std::to_string(k));
+            SCOPED_TRACE("max_trials = " + std::to_string(k));
             const auto stopped =
-                compute_iis_by_deletion(model, iis_limits{.max_solves = k});
-            ASSERT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                compute_iis_by_deletion(model, iis_limits{.max_trials = k});
+            ASSERT_TRUE(outcome_is<iis_outcome::trial_limit>(
                 stopped.get_outcome(), true));
             const std::size_t named =
                 reported_sides(system,

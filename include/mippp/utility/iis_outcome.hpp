@@ -37,7 +37,7 @@ struct stopped : incomplete { using incomplete::incomplete; };
 struct interrupted : stopped { using stopped::stopped; };
 struct limit_reached : stopped { using stopped::stopped; };
 struct time_limit : limit_reached { using limit_reached::limit_reached; };
-struct solve_limit : limit_reached { using limit_reached::limit_reached; };
+struct trial_limit : limit_reached { using limit_reached::limit_reached; };
 struct iteration_limit : limit_reached { using limit_reached::limit_reached; };
 struct node_limit : limit_reached { using limit_reached::limit_reached; };
 struct memory_limit : limit_reached { using limit_reached::limit_reached; };

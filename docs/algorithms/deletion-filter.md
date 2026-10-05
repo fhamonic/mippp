@@ -38,7 +38,7 @@ The engine cannot check it. Without it, the members still form a set that the or
 | Field | Holds |
 | :--- | :--- |
 | `members` | The members' indices, in ascending order. Empty unless a call proved infeasibility. |
-| `outcome` | A `deletion_filter_outcome`, the `std::variant` over the tags of namespace `iis_outcome` that `compute_iis_by_deletion` returns too: `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit` or `solve_limit`, as in [How a run ends](../solving/infeasibility.md#how-a-run-ends). It also lists `incomplete`: `deletion_filter` never returns it, as it is the value of a result no run wrote, while `compute_iis_by_deletion` returns it when the sides of [an answer it narrows](#narrowing-an-answer) have a solution. `iis_outcome::conflict_available(outcome)` says whether `members` holds a set the oracle found infeasible. |
+| `outcome` | A `deletion_filter_outcome`, the `std::variant` over the tags of namespace `iis_outcome` that `compute_iis_by_deletion` returns too: `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit` or `trial_limit`, as in [How a run ends](../solving/infeasibility.md#how-a-run-ends). It also lists `incomplete`: `deletion_filter` never returns it, as it is the value of a result no run wrote, while `compute_iis_by_deletion` returns it when the sides of [an answer it narrows](#narrowing-an-answer) have a solution. `iis_outcome::conflict_available(outcome)` says whether `members` holds a set the oracle found infeasible. |
 
 `irreducible` with no member means that the oracle answered `infeasible` for the empty set: what no candidate covers, the background, is infeasible on its own. A `feasible` answer comes from a single call, on the whole set.
 
@@ -78,11 +78,11 @@ The talk's duration is one rule with two sides, hence one candidate, and the ans
 
 The third argument is the `iis_limits` aggregate of [Diagnosing infeasibility](../solving/infeasibility.md#limits). For the engine:
 
-- `max_solves` counts oracle calls;
+- `max_trials` counts oracle calls;
 - `time_limit` becomes one deadline when `deletion_filter` starts. A negative or NaN duration throws `std::invalid_argument` before any call, and an infinite one, the default, means no deadline;
 - `stop_token` ends the run once a stop is requested.
 
-The engine checks them before each call, never during one: an oracle call that has started runs to its end. When several are reached at once, a stop request is reported before the deadline, and the deadline before the call count. A stop is reported as `interrupted`, `time_limit` or `solve_limit`. A stopped run keeps what it proved: the last set the oracle found infeasible, untested candidates included, which `conflict_available` then reports, or nothing if it stopped before its first proof. A limit reached after the last call is not reported: a run whose final call completes the proof is `irreducible`.
+The engine checks them before each call, never during one: an oracle call that has started runs to its end. When several are reached at once, a stop request is reported before the deadline, and the deadline before the call count. A stop is reported as `interrupted`, `time_limit` or `trial_limit`. A stopped run keeps what it proved: the last set the oracle found infeasible, untested candidates included, which `conflict_available` then reports, or nothing if it stopped before its first proof. A limit reached after the last call is not reported: a run whose final call completes the proof is `irreducible`.
 
 After an `inconclusive` answer, a run that goes on to the end of its pass is `inconclusive_trial`, or `time_limit` when the deadline had passed by the time that call returned; the last inconclusive call decides. A later stop is reported instead. An `inconclusive` answer to the first call ends the run at once, the same way, without a conflict.
 
@@ -115,7 +115,7 @@ Each trial's status becomes a verdict:
 | any other status with a solution (`status::solution_available`), such as `optimal`, or a time limit reached with an incumbent | `feasible` |
 | any other status without one, such as `unknown`, or a limit reached without an incumbent | `inconclusive` |
 
-A run makes at most one solve per candidate plus one, only two when a crossed pair decides it, and none on a model without variables, see [below](#two-cases-decided-early). `max_solves` counts these `solve()` calls, so a budget of one more than the number of candidates never stops a run.
+A run makes at most one solve per candidate plus one, only two when a crossed pair decides it, and none on a model without variables, see [below](#two-cases-decided-early). `max_trials` counts these `solve()` calls, so a budget of one more than the number of candidates never stops a run.
 
 ### What a run changes
 
@@ -138,7 +138,7 @@ What stays unchanged still applies to every trial. A verbose model prints the lo
 
 ### Two cases decided early
 
-A model without variables needs no solve, and gets none. Every row's activity is then 0, so the first row side that 0 violates, a lower side above 0 or an upper side below 0, in the order of `constraints()`, is the IIS, and without one the model is feasible. The comparison with 0 is exact. No limit stops this case, as `max_solves`, the deadline and `stop_token` are never checked, but a NaN or negative `time_limit` still throws `std::invalid_argument`. The model and its status stay as they were.
+A model without variables needs no solve, and gets none. Every row's activity is then 0, so the first row side that 0 violates, a lower side above 0 or an upper side below 0, in the order of `constraints()`, is the IIS, and without one the model is feasible. The comparison with 0 is exact. No limit stops this case, as `max_trials`, the deadline and `stop_token` are never checked, but a NaN or negative `time_limit` still throws `std::invalid_argument`. The model and its status stay as they were.
 
 A variable whose bounds cross, lower above upper, or a row whose sides cross, is infeasible on its own. The first such pair, variables before rows, stands for the proof of the whole model, and the engine continues from it with every other candidate relaxed: a first trial keeps only the upper side of the pair, and a second only the lower side, or neither side if the upper side sufficed. They decide whether both sides are needed or one suffices, as the lower side of a row without terms suffices when it is above 0. The solver never receives the crossed pair. Limits that stop the run before the two trials leave the pair as the answer, under the stop's tag, with a conflict. HiGHS repairs sides that cross by less than its primal feasibility tolerance, while this test is exact: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations.
 

@@ -156,7 +156,7 @@ static_assert(
 static_assert(
     !std::derived_from<iis_outcome::interrupted, iis_outcome::limit_reached>);
 static_assert(
-    std::derived_from<iis_outcome::solve_limit, iis_outcome::limit_reached>);
+    std::derived_from<iis_outcome::trial_limit, iis_outcome::limit_reached>);
 static_assert(
     std::derived_from<iis_outcome::limit_reached, iis_outcome::incomplete>);
 // a status tag reused here would let solve-status code read a conflict as a
@@ -524,7 +524,7 @@ TEST(iis_outcome_assert, names_every_tag) {
                      iis_outcome::feasible, iis_outcome::inconclusive_trial,
                      iis_outcome::stopped, iis_outcome::interrupted,
                      iis_outcome::limit_reached, iis_outcome::time_limit,
-                     iis_outcome::solve_limit, iis_outcome::iteration_limit,
+                     iis_outcome::trial_limit, iis_outcome::iteration_limit,
                      iis_outcome::node_limit, iis_outcome::memory_limit>;
     const auto describe = [](every_tag o) {
         return iis_outcome_assert_detail::describe(o);
@@ -541,8 +541,8 @@ TEST(iis_outcome_assert, names_every_tag) {
     EXPECT_EQ(describe(iis_outcome::limit_reached{}),
               "limit_reached (no conflict)");
     EXPECT_EQ(describe(iis_outcome::time_limit{}), "time_limit (no conflict)");
-    EXPECT_EQ(describe(iis_outcome::solve_limit{}),
-              "solve_limit (no conflict)");
+    EXPECT_EQ(describe(iis_outcome::trial_limit{}),
+              "trial_limit (no conflict)");
     EXPECT_EQ(describe(iis_outcome::iteration_limit{}),
               "iteration_limit (no conflict)");
     EXPECT_EQ(describe(iis_outcome::node_limit{}), "node_limit (no conflict)");

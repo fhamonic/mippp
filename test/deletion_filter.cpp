@@ -57,7 +57,7 @@ deletion_filter_result run_batched(std::size_t candidate_count, O & oracle,
         batch_size);
 }
 
-enum class stop_event { none, stop_request, deadline, solve_limit };
+enum class stop_event { none, stop_request, deadline, trial_limit };
 
 // Call i gets verdict i of the script, and feasible past its end. The event
 // fires during call at, or before the first call when at is 0.
@@ -67,7 +67,7 @@ deletion_filter_result run_scripted(
     fake_clock::current = {};
     std::stop_source source;
     iis_limits limits{.time_limit = 1s, .stop_token = source.get_token()};
-    if(kind == stop_event::solve_limit) limits.max_solves = at;
+    if(kind == stop_event::trial_limit) limits.max_trials = at;
     if(kind == stop_event::stop_request && at == 0) source.request_stop();
     if(kind == stop_event::deadline && at == 0)
         limits.time_limit = seconds::zero();
@@ -112,7 +112,7 @@ static_assert(!deletion_oracle<boolean_oracle>);
 
 TEST(iis_limits, default_is_unlimited) {
     const iis_limits limits;
-    EXPECT_EQ(limits.max_solves, std::numeric_limits<std::size_t>::max());
+    EXPECT_EQ(limits.max_trials, std::numeric_limits<std::size_t>::max());
     EXPECT_TRUE(std::isinf(limits.time_limit.count()));
     EXPECT_FALSE(limits.stop_token.stop_possible());
     EXPECT_EQ(mippp::detail::make_deletion_budget<fake_clock>(limits).deadline,
@@ -305,14 +305,14 @@ TEST(deletion_filter, limits_stop_between_trials) {
         ++calls;
         return deletion_verdict::infeasible;
     };
-    auto answer = deletion_filter(3, oracle, {.max_solves = 2});
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(answer.outcome, true));
+    auto answer = deletion_filter(3, oracle, {.max_trials = 2});
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{1, 2}));
     EXPECT_EQ(calls, 2u);
 
     calls = 0;
-    answer = deletion_filter(3, oracle, {.max_solves = 0});
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(answer.outcome, false));
+    answer = deletion_filter(3, oracle, {.max_trials = 0});
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(answer.outcome, false));
     EXPECT_TRUE(answer.members.empty());
     answer = deletion_filter(3, oracle, {.time_limit = seconds::zero()});
     EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(answer.outcome, false));
@@ -323,14 +323,14 @@ TEST(deletion_filter, limits_stop_between_trials) {
     EXPECT_EQ(calls, 0u);
 }
 
-TEST(deletion_filter, stop_request_beats_deadline_beats_solve_limit) {
+TEST(deletion_filter, stop_request_beats_deadline_beats_trial_limit) {
     std::size_t calls = 0;
     auto oracle = [&calls](std::span<const std::size_t>) {
         ++calls;
         return deletion_verdict::infeasible;
     };
     std::stop_source source;
-    const iis_limits limits{.max_solves = 0,
+    const iis_limits limits{.max_trials = 0,
                             .time_limit = seconds::zero(),
                             .stop_token = source.get_token()};
     EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(
@@ -348,18 +348,18 @@ TEST(deletion_filter, proof_on_the_last_permitted_trial_is_complete) {
         return active.empty() ? deletion_verdict::feasible
                               : deletion_verdict::infeasible;
     };
-    const auto answer = deletion_filter(1, oracle, {.max_solves = 2});
+    const auto answer = deletion_filter(1, oracle, {.max_trials = 2});
     EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
     EXPECT_EQ(answer.members, (ids{0}));
     EXPECT_EQ(calls, 2u);
 }
 
-TEST(deletion_filter, inconclusive_last_trial_is_not_a_solve_limit) {
+TEST(deletion_filter, inconclusive_last_trial_is_not_a_trial_limit) {
     auto singleton_inconclusive = [](std::span<const std::size_t> active) {
         return active.empty() ? deletion_verdict::inconclusive
                               : deletion_verdict::infeasible;
     };
-    auto answer = deletion_filter(1, singleton_inconclusive, {.max_solves = 2});
+    auto answer = deletion_filter(1, singleton_inconclusive, {.max_trials = 2});
     EXPECT_TRUE(
         outcome_is<iis_outcome::inconclusive_trial>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{0}));
@@ -367,7 +367,7 @@ TEST(deletion_filter, inconclusive_last_trial_is_not_a_solve_limit) {
     auto initial_inconclusive = [](std::span<const std::size_t>) {
         return deletion_verdict::inconclusive;
     };
-    answer = deletion_filter(1, initial_inconclusive, {.max_solves = 1});
+    answer = deletion_filter(1, initial_inconclusive, {.max_trials = 1});
     EXPECT_TRUE(
         outcome_is<iis_outcome::inconclusive_trial>(answer.outcome, false));
     EXPECT_TRUE(answer.members.empty());
@@ -380,8 +380,8 @@ TEST(deletion_filter, a_later_stop_replaces_an_inconclusive_trial) {
                    ? deletion_verdict::inconclusive
                    : deletion_verdict::infeasible;
     };
-    const auto answer = deletion_filter(3, oracle, {.max_solves = 2});
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(answer.outcome, true));
+    const auto answer = deletion_filter(3, oracle, {.max_trials = 2});
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{0, 1, 2}));
 }
 
@@ -457,7 +457,7 @@ TEST(deletion_filter, the_flag_is_set_exactly_when_members_are_returned) {
     std::vector<std::pair<stop_event, std::size_t>> events{
         {stop_event::none, 0}};
     for(const auto kind : {stop_event::stop_request, stop_event::deadline,
-                           stop_event::solve_limit})
+                           stop_event::trial_limit})
         for(std::size_t at = 0; at <= max_calls; ++at)
             events.emplace_back(kind, at);
     std::vector<std::vector<deletion_verdict>> scripts{{}};
@@ -497,7 +497,7 @@ TEST(deletion_filter, the_flag_is_set_exactly_when_members_are_returned) {
                   "inconclusive_trial (conflict held)",
                   "interrupted (no conflict)", "interrupted (conflict held)",
                   "time_limit (no conflict)", "time_limit (conflict held)",
-                  "solve_limit (no conflict)", "solve_limit (conflict held)"}));
+                  "trial_limit (no conflict)", "trial_limit (conflict held)"}));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -508,8 +508,8 @@ TEST(deletion_filter, continuation_skips_the_known_proof) {
     auto infeasible = [](std::span<const std::size_t>) {
         return deletion_verdict::infeasible;
     };
-    const auto known = deletion_filter(3, infeasible, {.max_solves = 1});
-    ASSERT_TRUE(outcome_is<iis_outcome::solve_limit>(known.outcome, true));
+    const auto known = deletion_filter(3, infeasible, {.max_trials = 1});
+    ASSERT_TRUE(outcome_is<iis_outcome::trial_limit>(known.outcome, true));
     ASSERT_EQ(known.members, (ids{0, 1, 2}));
 
     auto resume_stopped = [&known](const iis_limits & limits) {
@@ -525,8 +525,8 @@ TEST(deletion_filter, continuation_skips_the_known_proof) {
         EXPECT_EQ(answer.members, known.members);
         return answer.outcome;
     };
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
-        resume_stopped({.max_solves = 0}), true));
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
+        resume_stopped({.max_trials = 0}), true));
     EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(
         resume_stopped({.time_limit = seconds::zero()}), true));
     std::stop_source source;
@@ -591,7 +591,7 @@ TEST(deletion_filter, batch_budget_keeps_only_proven_deletions) {
     };
     for(std::size_t budget = 0; budget < 16; ++budget) {
         calls = 0;
-        const auto answer = run_batched(8, oracle, 4, {.max_solves = budget});
+        const auto answer = run_batched(8, oracle, 4, {.max_trials = budget});
         EXPECT_LE(calls, budget);
         if(iis_outcome::conflict_available(answer.outcome)) {
             EXPECT_TRUE(contains(answer.members, 7));
@@ -600,7 +600,7 @@ TEST(deletion_filter, batch_budget_keeps_only_proven_deletions) {
             EXPECT_EQ(answer.members, (ids{7}));
         } else {
             // only a stop before the initial trial holds no conflict
-            EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(answer.outcome,
+            EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(answer.outcome,
                                                              budget > 0));
         }
     }

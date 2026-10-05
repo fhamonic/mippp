@@ -21,7 +21,7 @@
 namespace mippp {
 
 struct iis_limits {
-    std::size_t max_solves = std::numeric_limits<std::size_t>::max();
+    std::size_t max_trials = std::numeric_limits<std::size_t>::max();
     // one budget for the whole call, not per trial: it becomes a single
     // deadline when the call starts. NaN or negative throws
     // std::invalid_argument, and infinity means no deadline.
@@ -48,7 +48,7 @@ using deletion_filter_outcome =
     std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
                  iis_outcome::feasible, iis_outcome::inconclusive_trial,
                  iis_outcome::interrupted, iis_outcome::time_limit,
-                 iis_outcome::solve_limit>;
+                 iis_outcome::trial_limit>;
 
 struct deletion_filter_result {
     // Ascending, and empty unless a trial proved infeasibility. A stop keeps
@@ -62,7 +62,7 @@ namespace detail {
 
 template <typename Clock>
 struct deletion_budget {
-    std::size_t max_solves;
+    std::size_t max_trials;
     typename Clock::time_point deadline;
     std::stop_token stop_token;
 };
@@ -86,16 +86,16 @@ template <typename Clock = std::chrono::steady_clock>
             static_cast<typename Clock::rep>(ticks));
         if(offset < room) deadline = now + offset;
     }
-    return {limits.max_solves, deadline, limits.stop_token};
+    return {limits.max_trials, deadline, limits.stop_token};
 }
 
 template <typename Clock>
 [[nodiscard]] std::optional<deletion_filter_outcome> deletion_stop(
-    const deletion_budget<Clock> & budget, std::size_t solves, bool proven) {
+    const deletion_budget<Clock> & budget, std::size_t trials, bool proven) {
     if(budget.stop_token.stop_requested())
         return iis_outcome::interrupted(proven);
     if(Clock::now() >= budget.deadline) return iis_outcome::time_limit(proven);
-    if(solves >= budget.max_solves) return iis_outcome::solve_limit(proven);
+    if(trials >= budget.max_trials) return iis_outcome::trial_limit(proven);
     return std::nullopt;
 }
 
@@ -111,12 +111,12 @@ template <typename Clock, deletion_oracle O>
 [[nodiscard]] deletion_filter_result run_deletion_filter(
     deletion_state state, O && oracle, const deletion_budget<Clock> & budget,
     std::size_t batch_size = 1) {
-    std::size_t solves = 0;
+    std::size_t trials = 0;
     auto trial = [&](std::span<const std::size_t> active) {
-        ++solves;
+        ++trials;
         return std::invoke(oracle, active);
     };
-    auto stop = [&] { return deletion_stop(budget, solves, state.proven); };
+    auto stop = [&] { return deletion_stop(budget, trials, state.proven); };
     auto inconclusive = [&]() -> deletion_filter_outcome {
         if(Clock::now() >= budget.deadline)
             return iis_outcome::time_limit(state.proven);

@@ -175,7 +175,7 @@ void bounded_path(Model & model, Print & print_conflict, std::stop_token stop) {
     // --8<-- [start:limits]
     using namespace std::chrono_literals;
     const auto iis = compute_iis_by_deletion(
-        model, {.max_solves = 20, .time_limit = 10s, .stop_token = stop});
+        model, {.max_trials = 20, .time_limit = 10s, .stop_token = stop});
     if(iis_outcome::conflict_available(iis.get_outcome())) print_conflict(iis);
     // --8<-- [end:limits]
 }
@@ -183,7 +183,7 @@ void bounded_path(Model & model, Print & print_conflict, std::stop_token stop) {
 template <typename Model, typename Print>
 void narrowed_path(Model & model, Print & print_conflict) {
     // --8<-- [start:narrowing]
-    const auto partial = compute_iis_by_deletion(model, {.max_solves = 3});
+    const auto partial = compute_iis_by_deletion(model, {.max_trials = 3});
     const auto iis = compute_iis_by_deletion(model, partial);
     if(is<iis_outcome::irreducible>(iis.get_outcome())) print_conflict(iis);
     // --8<-- [end:narrowing]
@@ -328,7 +328,7 @@ struct run_three_solves {
     deletion_filter_outcome * outcome;
     template <typename Model, typename Print>
     void operator()(Model & model, Print & print) const {
-        const auto iis = compute_iis_by_deletion(model, {.max_solves = 3});
+        const auto iis = compute_iis_by_deletion(model, {.max_trials = 3});
         *outcome = iis.get_outcome();
         print(iis);
     }
@@ -407,9 +407,9 @@ struct run_narrowing {
     std::size_t * solves;
     template <typename Model, typename Print>
     void operator()(Model & model, Print & print) const {
-        const auto partial = compute_iis_by_deletion(model, {.max_solves = 3});
+        const auto partial = compute_iis_by_deletion(model, {.max_trials = 3});
         ASSERT_TRUE(
-            outcome_is<iis_outcome::solve_limit>(partial.get_outcome(), true));
+            outcome_is<iis_outcome::trial_limit>(partial.get_outcome(), true));
         *candidates = named_sides(model, partial);
         const auto before = all_sides(model);
         const std::size_t solves_before = model.solves;
@@ -572,11 +572,11 @@ TEST_F(infeasibility_page_highs_lp, interrupted_run_prints_no_member) {
     EXPECT_TRUE(is_a<status::optimal>(run.after_fix));
 }
 
-TEST_F(infeasibility_page_highs_lp, solve_limit_keeps_a_conflicting_subset) {
+TEST_F(infeasibility_page_highs_lp, trial_limit_keeps_a_conflicting_subset) {
     deletion_filter_outcome outcome;
     cout_capture out;
     expect_page_run(workshop<highs_lp>(run_three_solves{&outcome}));
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(outcome, true));
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(outcome, true));
     // every entity of the irreducible answer, among others
     std::istringstream expected(page_output("infeasibility_workshop.txt"));
     for(std::string line; std::getline(expected, line);) {

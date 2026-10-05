@@ -166,7 +166,7 @@ any                        carries conflict_available
         ├── interrupted
         └── limit_reached
             ├── time_limit
-            ├── solve_limit
+            ├── trial_limit
             ├── iteration_limit
             ├── node_limit
             └── memory_limit
@@ -182,7 +182,7 @@ any                        carries conflict_available
 | `interrupted` | A stop was requested: through the filter's `stop_token`, or through the solver during a native call. |
 | `limit_reached` | A limit without a tag of its own stopped the run, see [Limits](#limits). |
 | `time_limit` | The filter's deadline passed, or the model's time limit stopped a native call. |
-| `solve_limit` | The filter made `max_solves` solves. |
+| `trial_limit` | The filter made `max_trials` trials, one `solve()` each. |
 | `iteration_limit` | An iteration limit stopped a native call. |
 | `node_limit` | A node limit stopped a native call, or the solve that precedes COPT's search. |
 | `memory_limit` | A memory limit stopped a native call. |
@@ -195,7 +195,7 @@ Each path's variant lists only the tags its routine can tell apart, as a backend
 
 | Path | Tags its variant lists |
 | :--- | :--- |
-| Deletion filter | `incomplete`, `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit`, `solve_limit`. A run returns plain `incomplete` only when it narrows an answer whose named sides have a solution together, see [Narrowing an answer](#narrowing-an-answer). |
+| Deletion filter | `incomplete`, `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit`, `trial_limit`. A run returns plain `incomplete` only when it narrows an answer whose named sides have a solution together, see [Narrowing an answer](#narrowing-an-answer). |
 | HiGHS | `incomplete`, `irreducible`, `feasible`, `time_limit` |
 | Gurobi | `incomplete`, `irreducible`, `feasible`, `stopped`, `interrupted`, `limit_reached`, `time_limit`, `iteration_limit`, `memory_limit`. `interrupted`, `limit_reached`, `iteration_limit` and `memory_limit` are reachable on `gurobi_lp` only. |
 | CPLEX | `incomplete`, `irreducible`, `feasible`, `interrupted`, `limit_reached`, `time_limit`, `iteration_limit`, `node_limit`, `memory_limit`. `iteration_limit` is reachable on `cplex_lp` only, and `node_limit` on `cplex_milp` only. |
@@ -210,7 +210,7 @@ The filter checks its limits before each trial. When several are reached at once
 
 `iis_limits`, the filter's last argument, bounds the whole run:
 
-- `max_solves`: the number of `solve()` calls;
+- `max_trials`: the number of trials, one `solve()` each;
 - `time_limit`: one duration for the whole call, which becomes a single deadline when the call starts. A negative or NaN duration throws `std::invalid_argument`, and an infinite one, the default, means no deadline;
 - `stop_token`: a `std::stop_token`, from a `std::stop_source` or the `std::jthread` running the analysis; a stop requested from another thread ends the run before its next trial.
 
@@ -220,7 +220,7 @@ Here `stop` is such a token:
 --8<-- "test/doc_snippets/infeasibility.cpp:limits"
 ```
 
-A run stopped by a limit keeps what it proved, which is why the snippet prints every answer that holds a conflict, not only an `irreducible` one. With a budget of three solves, the workshop's run ends `solve_limit` with a conflict, and its members include those of the IIS.
+A run stopped by a limit keeps what it proved, which is why the snippet prints every answer that holds a conflict, not only an `irreducible` one. With a budget of three trials, the workshop's run ends `trial_limit` with a conflict, and its members include those of the IIS.
 
 Such an answer of the filter is a start: run the filter again with a larger budget, or narrow the answer, see [Narrowing an answer](#narrowing-an-answer).
 

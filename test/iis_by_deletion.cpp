@@ -750,7 +750,7 @@ static_assert(
         std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
                      iis_outcome::feasible, iis_outcome::inconclusive_trial,
                      iis_outcome::interrupted, iis_outcome::time_limit,
-                     iis_outcome::solve_limit>>);
+                     iis_outcome::trial_limit>>);
 static_assert(lp_iis_outcome<deletion_filter_outcome>);
 static_assert(std::same_as<decltype(std::declval<const iis_by_deletion_t<
                                         iis_stub_model<false, false>> &>()
@@ -767,13 +767,13 @@ concept takes_limits_alone = requires(M & model, iis_limits limits) {
     compute_iis_by_deletion(model, limits);
     compute_iis_by_deletion(model, std::as_const(limits));
     compute_iis_by_deletion(model, {});
-    compute_iis_by_deletion(model, {.max_solves = 3});
+    compute_iis_by_deletion(model, {.max_trials = 3});
 };
 template <typename M, typename Within>
 concept narrows_to = requires(M & model, const Within & within) {
     compute_iis_by_deletion(model, within);
     compute_iis_by_deletion(model, within, {});
-    compute_iis_by_deletion(model, within, {.max_solves = 3});
+    compute_iis_by_deletion(model, within, {.max_trials = 3});
 };
 static_assert(takes_limits_alone<iis_stub_model<false, false>> &&
               takes_limits_alone<sense_rhs_stub>);
@@ -948,10 +948,10 @@ struct iis_by_deletion : ::testing::Test {
             const auto h = conflict_model(model);
             const auto before = model.data();
             const auto iis = compute_iis_by_deletion(
-                model, iis_limits{.max_solves = b, .time_limit = time_limit});
+                model, iis_limits{.max_trials = b, .time_limit = time_limit});
             EXPECT_LE(model.solves, b);
             if(b == 0) {
-                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
                     iis.get_outcome(), false));
                 expect_untouched(model, before);
                 continue;
@@ -959,7 +959,7 @@ struct iis_by_deletion : ::testing::Test {
             expect_restored(model, before);
             EXPECT_TRUE(is<status::unknown>(model.get_status()));
             if(b < 8) {
-                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
                     iis.get_outcome(), true));
                 // the conflict is never dropped
                 const auto x_status = status_of(iis, h.x);
@@ -1294,9 +1294,9 @@ TEST_F(iis_by_deletion, nothing_is_written_before_the_first_trial) {
         conflict_model(model);
         const auto before = model.data();
         const auto iis =
-            compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
+            compute_iis_by_deletion(model, iis_limits{.max_trials = 0});
         EXPECT_TRUE(
-            outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
+            outcome_is<iis_outcome::trial_limit>(iis.get_outcome(), false));
         EXPECT_EQ(model.solves, 0u);
         expect_untouched(model, before);
     }
@@ -1305,9 +1305,9 @@ TEST_F(iis_by_deletion, nothing_is_written_before_the_first_trial) {
         conflict_model(model);
         const auto before = model.data();
         const auto iis = compute_iis_by_deletion(
-            model, iis_limits{.max_solves = 0, .time_limit = 3600s});
+            model, iis_limits{.max_trials = 0, .time_limit = 3600s});
         EXPECT_TRUE(
-            outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
+            outcome_is<iis_outcome::trial_limit>(iis.get_outcome(), false));
         EXPECT_EQ(model.solves, 0u);
         expect_untouched(model, before);
         EXPECT_EQ(model.time_limit_reads, 0u);
@@ -1328,7 +1328,7 @@ TEST_F(iis_by_deletion, column_less_model_is_decided_without_a_solve) {
     expect_column_less_answer(model, before, r0, r1, r2, iis_limits{});
     // the precheck costs no solve, so every budget gets the same answer
     expect_column_less_answer(model, before, r0, r1, r2,
-                              iis_limits{.max_solves = 0});
+                              iis_limits{.max_trials = 0});
     expect_column_less_answer(model, before, r0, r1, r2,
                               iis_limits{.time_limit = 0s});
     std::stop_source source;
@@ -1505,8 +1505,8 @@ TEST_F(iis_by_deletion, empty_model_is_feasible) {
 }
 
 TEST_F(iis_by_deletion, crossed_pair_at_zero_budget_is_the_proven_pair) {
-    expect_crossed_pair_at_zero_budget<stub, iis_outcome::solve_limit>(
-        iis_limits{.max_solves = 0});
+    expect_crossed_pair_at_zero_budget<stub, iis_outcome::trial_limit>(
+        iis_limits{.max_trials = 0});
     expect_crossed_pair_at_zero_budget<stub, iis_outcome::time_limit>(
         iis_limits{.time_limit = 0s});
     std::stop_source source;
@@ -1593,8 +1593,8 @@ TEST_F(iis_by_deletion, crossed_pair_under_one_solve) {
     const auto [x, y, r] = crossed_variable_model(model);
     const auto before = model.data();
     const auto iis =
-        compute_iis_by_deletion(model, iis_limits{.max_solves = 1});
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), true));
+        compute_iis_by_deletion(model, iis_limits{.max_trials = 1});
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(iis.get_outcome(), true));
     EXPECT_EQ(status_of(iis, x), membership::both);
     EXPECT_EQ(model.solves, 1u);
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
@@ -1630,8 +1630,8 @@ TEST_F(iis_by_deletion, status_is_kept_when_no_solve_ran) {
     conflict_model(model);
     prime_optimal(model);
     const auto iis =
-        compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
+        compute_iis_by_deletion(model, iis_limits{.max_trials = 0});
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(iis.get_outcome(), false));
     EXPECT_TRUE(is<status::optimal>(model.get_status()));
 }
 
@@ -1843,8 +1843,8 @@ TEST_F(iis_by_deletion, no_time_limit_is_read_when_no_trial_runs) {
     timed_stub model;
     conflict_model(model);
     const auto iis = compute_iis_by_deletion(
-        model, iis_limits{.max_solves = 0, .time_limit = 3600s});
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
+        model, iis_limits{.max_trials = 0, .time_limit = 3600s});
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(iis.get_outcome(), false));
     EXPECT_EQ(model.time_limit_reads, 0u);
     EXPECT_TRUE(model.time_limit_writes.empty());
 }
@@ -2033,9 +2033,9 @@ TEST_F(iis_by_deletion, narrowing_a_stopped_run_tests_its_sides_alone) {
     const auto h = conflict_model(model);
     const auto before = model.data();
     const auto stopped =
-        compute_iis_by_deletion(model, iis_limits{.max_solves = 2});
+        compute_iis_by_deletion(model, iis_limits{.max_trials = 2});
     ASSERT_TRUE(
-        outcome_is<iis_outcome::solve_limit>(stopped.get_outcome(), true));
+        outcome_is<iis_outcome::trial_limit>(stopped.get_outcome(), true));
     ASSERT_EQ(status_of(stopped, h.x), membership::upper);
     model.reset_recording();
     const auto iis = compute_iis_by_deletion(model, stopped);
@@ -2196,11 +2196,11 @@ TEST_F(iis_by_deletion, narrowing_a_column_less_model_needs_no_solve) {
 TEST_F(iis_by_deletion, limits_alone_run_over_every_side) {
     stub model;
     conflict_model(model);
-    const iis_limits no_solve{.max_solves = 0};
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+    const iis_limits no_solve{.max_trials = 0};
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
         compute_iis_by_deletion(model, no_solve).get_outcome(), false));
-    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
-        compute_iis_by_deletion(model, {.max_solves = 0}).get_outcome(),
+    EXPECT_TRUE(outcome_is<iis_outcome::trial_limit>(
+        compute_iis_by_deletion(model, {.max_trials = 0}).get_outcome(),
         false));
     const auto iis = compute_iis_by_deletion(model, {});
     EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));

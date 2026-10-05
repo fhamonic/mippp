@@ -27,7 +27,7 @@ inline std::string_view name_of(const limit_reached &) {
     return "limit_reached";
 }
 inline std::string_view name_of(const time_limit &) { return "time_limit"; }
-inline std::string_view name_of(const solve_limit &) { return "solve_limit"; }
+inline std::string_view name_of(const trial_limit &) { return "trial_limit"; }
 inline std::string_view name_of(const iteration_limit &) {
     return "iteration_limit";
 }
@@ -73,7 +73,7 @@ inline void PrintTo(const limit_reached & t, std::ostream * os) {
 inline void PrintTo(const time_limit & t, std::ostream * os) {
     print_detail::print(t, os);
 }
-inline void PrintTo(const solve_limit & t, std::ostream * os) {
+inline void PrintTo(const trial_limit & t, std::ostream * os) {
     print_detail::print(t, os);
 }
 inline void PrintTo(const iteration_limit & t, std::ostream * os) {
