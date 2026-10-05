@@ -4,7 +4,7 @@ Companion to [iis.md](iis.md), which holds the design, its rulings and the evide
 [iis_pr_plan.md](iis_pr_plan.md), whose work packages carry the details. The steps follow the revised package
 order of 2026-09-27. Items 0.1 and 1.6 and those of steps 2 to 6 name their package, except 6.2. Items 1.1 to
 1.5 are the plan's standalone fixes, and step 7 is WP17. Each step lands and is tested on its own. Q1 to Q6
-and N0 to N45 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29, 2026-10-02 and 2026-10-05 in iis.md, the
+and N0 to N46 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29, 2026-10-02 and 2026-10-05 in iis.md, the
 third on the three questions wave 3 left.
 
 - **Two paths.** Under Q1 (b), `has_iis<T>` means that the model has a native IIS routine, reached through a
@@ -67,7 +67,7 @@ third on the three questions wave 3 left.
   user pages that answer it (`6a3c0ed`) and the record of iis.md and this file. The API review of 2026-10-05
   followed: its tag hierarchy for how a run ends landed on `feat/iis-outcome-tags` (`7fa1e7b`, N44), and its
   factorizations, backend fixes, doc corrections and shorter examples on `feat/iis-factorizations`, `9dcbbd6`
-  to `4058e69` (N45), locally, awaiting the push.
+  to `4058e69` (N45), merged into main; the last decisions of the review followed as N46.
 
 ## 0. Before any code
 

@@ -35,8 +35,11 @@ implemented on branch `feat/iis-factorizations`, `9dcbbd6` to `4058e69`, and
 recorded as N45 in [iis.md](iis.md#rulings-of-2026-10-05-continued). Two
 deviations: `detail::iis_answer` has no outcome verbs, since the tags make
 every `finish(outcome)` valid, and the feature-table item below did not hold,
-the generated tables already having IIS rows. Two decisions remain;
-[Pending decisions](#pending-decisions) marks each item.
+the generated tables already having IIS rows. The last two decisions, the
+N15 follow-up and the findings outside IIS, were ruled after the merge, and
+are recorded as N46 in
+[iis.md](iis.md#rulings-of-2026-10-05-after-the-merge);
+[Pending decisions](#pending-decisions) marks each item, and none remains.
 
 ## Verdict
 
@@ -538,23 +541,27 @@ It is a readability change only, and not a door for tags that carry data (see
   `get_status()` can report an earlier `optimal` while the solver holds a
   failed run. Only `mosek_lp` and `mosek_milp` reset first.
   `compute_iis()` and the filter's guard already follow the safer rule.
+  Ruled: every `solve()` resets first (N46 a, `322a254`).
 - **`has_time_limit` asks for too little.** It checks
   `set_time_limit(std::chrono::seconds)` (model_concepts.hpp:306-310), while the
   filter writes a `duration<double>` (iis_by_deletion.hpp:344-345). A user model
   whose setter takes only seconds satisfies the concept and then fails inside
-  the template.
+  the template. Ruled not a defect: the conversion is expected (N46 d).
 - **Gurobi error messages.** Gurobi's `_check` takes its message from the env's
   last error (gurobi_api.hpp:342-346), so an "attempt every item" write-back can
-  raise the first failure's code with a later failure's message.
+  raise the first failure's code with a later failure's message. Ruled
+  harmless and documented in one sentence (N46 d, `d02c474`).
 - **`highs_lp` lists `status::solution_limit`** but never returns it
-  (highs_lp.hpp:52, 58-89).
+  (highs_lp.hpp:52, 58-89). Removed (N46 d, `c98f381`).
 - **`candidate_solution_callback_handle_t` reads a public nested type**
   (model_concepts.hpp:729-731), contrary to concepts.md:25-26, which says
-  model classes declare no public member types.
+  model classes declare no public member types. The code follows the ruling
+  of 2026-09-15, and the docs now name the exception (N46 d, `5767626`).
 - **Cancellation is per call on the filter only** (`iis_limits::stop_token`),
   while configuration is otherwise persistent model state. When N31 is taken
   up, a model capability built like the time limit would serve `solve()`,
-  `compute_iis()` and the filter's trials alike.
+  `compute_iis()` and the filter's trials alike. Not ruled: it waits for
+  N31.
 
 ## Pending decisions
 
@@ -584,7 +591,7 @@ It is a readability change only, and not a door for tags that carry data (see
    `68f0ab8`, `421980e`, `7cb96e6` and `4058e69`. The feature-table item
    needed no change.
 10. Library-wide: reset `_status` first in every `solve()`, or document that a
-    throwing solve keeps the previous status. Still pending.
+    throwing solve keeps the previous status. Implemented: every `solve()`
+    resets first, `322a254` (N46 a).
 11. Optional, and low priority: rename `solve_limit` / `max_solves` to
-    `trial_limit` / `max_trials`, since the engine's unit is a trial and the
-    engine is solver-agnostic. Still pending.
+    `trial_limit` / `max_trials`. Implemented: `fa37f8c` (N46 b).

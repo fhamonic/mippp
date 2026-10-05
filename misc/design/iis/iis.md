@@ -651,7 +651,7 @@ record what they established.
   neither claiming a feasible solution. `highs_lp` and `highs_qp` may
   therefore leave the status untouched, which their native-suite case then
   asserts; as of 2026-09-28 both still reset it and the suite asserts
-  `unknown`, the switch being a follow-up.
+  `unknown`; N46 closed the follow-up, keeping the reset.
   CPLEX's refiner replaces `CPXgetstat` with its conflict statuses. Gurobi's
   `GRBcomputeIIS` overwrites the attributes `Status` and `Runtime`: a stopped
   call turned an infeasible LP's status 3 into 9, the time limit (measured on
@@ -671,8 +671,8 @@ record what they established.
   claiming no solution; but on a model with SOS, quadratic or general
   constraints the forcing writes discard the held solution while a cached
   `optimal` would stand, so the reset stays on both classes, and leaving
-  the status untouched on a model without such constraints is a follow-up
-  like HiGHS's.
+  the status untouched on a model without such constraints was a follow-up
+  like HiGHS's, which N46 closed.
 - **Wrappers restore what they set.** Each native wrapper restores its own
   parameters through a small RAII helper: HiGHS `iis_strategy` and
   `iis_time_limit` (N29 a), Xpress `IISOPS`, Gurobi's `IIS*Force` attributes
@@ -1580,7 +1580,7 @@ bullet records the decision.
   (see Native routines): CPLEX's, Xpress's and COPT's wrapped calls fail the
   probe, and Gurobi's passes on models without special constraints only, so
   every `compute_iis()` keeps the reset; leaving Gurobi's status untouched
-  on such models is a follow-up like HiGHS's.
+  on such models is a follow-up like HiGHS's, closed by N46.
 - **N16. IIS and LP basis support.** (b) Ruling: "Basis implementation will
   handle the factorization burden if needed." IIS comes first, its storage a
   `detail` template that basis support reuses.
@@ -2302,13 +2302,47 @@ per-backend pins; the infeasibility and deletion-filter pages, the concepts
 reference, the solver notes, the examples page and the transportation
 example. Nothing is published on main.
 
+## Rulings of 2026-10-05, after the merge
+
+The maintainer merged `feat/iis-factorizations` (CI green) and ruled the
+review's two pending decisions, the N15 follow-up and the findings outside
+IIS:
+
+- **N46. The review's last decisions.**
+  - (a) Decision 10: every `solve()` starts with `reset_status()`, so a solve
+    that throws leaves `unknown` rather than the status of the solve before
+    it, the rule `compute_iis()` already followed. Only MOSEK reset first
+    before; HiGHS, Clp, Cbc and SoPlex reset only on a model without
+    columns. Gurobi and CPLEX tests make the native solve throw after an
+    optimal one (`322a254`).
+  - (b) Decision 11: `iis_limits::max_solves` becomes `max_trials` and
+    `iis_outcome::solve_limit` becomes `trial_limit`, coherent with
+    `inconclusive_trial`: the engine counts oracle calls, one `solve()` each
+    on a model (`fa37f8c`).
+  - (c) N15's follow-up is closed, left to the assistant: every native
+    `compute_iis()` keeps resetting the status. Leaving it untouched can
+    contradict what the solver holds after a routine that re-solves, as
+    HiGHS's does; refreshing it from the solver reads a stop's limit code
+    where a solve had proven infeasibility (Gurobi, 3 turned 9), reads
+    nothing after COPT's `COPT_Reset`, and differs between HiGHS releases
+    (1.10 sets `kNotset` after a feasible elasticity filter, 1.15.1 reports
+    optimal). With (a), every call that runs the solver starts from
+    `unknown`, and only `solve()` writes a status back.
+  - (d) The other findings: `has_time_limit` checking a `seconds` setter
+    while the filter writes a `duration<double>` is not a defect, the
+    conversion is expected; Gurobi's single error message per environment is
+    documented in one sentence of its IIS note rather than guarded
+    (`d02c474`); `highs_lp` no longer lists `status::solution_limit`, which
+    no LP status maps to (`c98f381`); the callback handle stays the one
+    nested public type of a model, as the ruling of 2026-09-15 decided since
+    no call returns it, and the two pages that denied any public member type
+    say so (`5767626`).
+
 ## Open questions
 
-None remains as of 2026-10-02: N43, the last, was ruled that day. Of the
-recommendations of the review of 2026-10-05, two still await a ruling, the
-library-wide reset of the status in `solve()` and the optional rename of
-`solve_limit`, listed under
-[Pending decisions](iis_api_review.md#pending-decisions) there (N45 j). The
+None remains: N46 ruled the last recommendations of the review of
+2026-10-05 on that day, see
+[Pending decisions](iis_api_review.md#pending-decisions). The
 outward steps of WP1 are done: the documents are committed (`25b4530`, on
 the pull request's branch), the reply is posted, `a1a9f11` is tagged
 `archive/pr3-a1a9f11` on origin, and pull request #3 is a draft.
