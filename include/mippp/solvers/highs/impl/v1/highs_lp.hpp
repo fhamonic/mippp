@@ -96,10 +96,8 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        if(num_variables() == 0u) {
-            _status = status::unknown{};
-            return;
-        }
+        reset_status();  // a solve that throws reports unknown
+        if(num_variables() == 0u) return;
         _run();
         _status = _get_status();
     }

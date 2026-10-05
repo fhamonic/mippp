@@ -256,6 +256,7 @@ private:
 
 public:
     void solve() {
+        reset_status();  // a solve that throws reports unknown
         // Rounding may throw, so it goes before the switch it would leave off.
         const std::vector<saved_sides> saved = _round_integral_sides();
         // GLPK prints its cover and clique cut setup whatever msg_lev says.

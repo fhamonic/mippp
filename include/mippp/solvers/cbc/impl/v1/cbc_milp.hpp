@@ -629,15 +629,13 @@ private:
 
 public:
     void solve() {
+        reset_status();  // a solve that throws reports unknown
         if(mip_copy) {
             Cbc->deleteModel(mip_copy);
             mip_copy = nullptr;
         }
         // Cbc_solve crashes on a model without columns
-        if(_lazy_num_variables == 0u) {
-            _status = status::unknown{};
-            return;
-        }
+        if(_lazy_num_variables == 0u) return;
         if(copy_mip_solves && Cbc->getNumIntegers(model) > 0)
             _copy_into_mip_copy();
         Cbc->solve(_solved_model());

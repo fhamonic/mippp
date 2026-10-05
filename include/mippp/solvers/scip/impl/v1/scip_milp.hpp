@@ -586,6 +586,7 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        reset_status();  // a solve that throws reports unknown
         // a solve failing past the transformation leaves it alive, and the
         // mutators must still free it
         _solved = true;

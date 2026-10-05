@@ -499,11 +499,9 @@ private:
 
 public:
     void solve() {
+        reset_status();  // a solve that throws reports unknown
         using namespace status;
-        if(num_variables() == 0u) {
-            _status = status::unknown{};
-            return;
-        }
+        if(num_variables() == 0u) return;
         if(_has_crossed_sides()) {
             _status.emplace<infeasible>();
             return;

@@ -130,6 +130,7 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        reset_status();  // a solve that throws reports unknown
         const int ret = glp->simplex(model, &model_params);
         if(ret == GLP_EBOUND && _has_crossed_bounds()) {
             _status = status::infeasible{};

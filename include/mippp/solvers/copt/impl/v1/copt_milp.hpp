@@ -242,6 +242,7 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        reset_status();  // a solve that throws reports unknown
         check(COPT->GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
         if(_is_mip) {
             check(COPT->Solve(prob));

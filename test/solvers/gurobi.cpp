@@ -218,6 +218,31 @@ TEST_F(gurobi_lp_test, refine_lp_status_restores_dual_reductions_on_a_throw) {
     EXPECT_EQ(dual_reductions, 1);
 }
 
+// A solve that throws reports unknown, not the status of the solve before it:
+// a callback that returns nonzero aborts GRBoptimize with an error. A trivial
+// model is solved without a callback call, so the re-solve runs on the model
+// of the refine_lp_status test, under DualReductions 0.
+TEST_F(gurobi_lp_test, a_throwing_solve_reports_unknown) {
+    using namespace operators;
+    using gurobi::impl::v1::GRBmodel;
+    auto model = new_model();
+    auto x = model.add_variable();
+    model.add_constraint(x >= 1.);
+    model.set_maximization();
+    model.set_objective(1. * x);
+    model.solve();
+    ASSERT_TRUE(is<status::infeasible_or_unbounded>(model.get_status()));
+    const auto [env, native] = model.native_model();
+    const gurobi_api & grb = model.native_api();
+    grb._check(env, grb.setintparam(env, "DualReductions", 0));
+    grb._check(env,
+               grb.setcallbackfunc(
+                   native, +[](GRBmodel *, void *, int, void *) { return 1; },
+                   nullptr));
+    EXPECT_ANY_THROW(model.solve());
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+}
+
 // The forcing attributes are the user's: values set to 0 beforehand, which
 // the call overrides with 1, must read back as 0 afterwards, on every kind
 // of special constraint the guard covers.

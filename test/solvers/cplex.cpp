@@ -279,6 +279,24 @@ TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back) {
     EXPECT_EQ(before[0], 2);
 }
 
+// A solve that throws reports unknown, not the status of the solve before it:
+// CPXprimopt refuses a problem turned MIP through the native handle.
+TEST_F(cplex_lp_test, a_throwing_solve_reports_unknown) {
+    using namespace operators;
+    using namespace cplex::impl::v1;
+    auto model = new_model();
+    auto x = model.add_variable({.upper_bound = 1.});
+    model.set_maximization();
+    model.set_objective(x);
+    model.solve();
+    ASSERT_TRUE(is<status::optimal>(model.get_status()));
+    const auto & native = model.native_api();
+    const auto [env, lp] = model.native_model();
+    native._check(env, native.chgprobtype(env, lp, CPXPROB_MILP));
+    EXPECT_ANY_THROW(model.solve());
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+}
+
 // CPXprimopt refuses a problem turned MIP through the native handle (error
 // 1017, measured on 22.1.2): both parameters are written back on that throw.
 TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back_on_a_throw) {

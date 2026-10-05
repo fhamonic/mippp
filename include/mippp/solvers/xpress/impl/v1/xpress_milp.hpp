@@ -247,6 +247,7 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        reset_status();  // a solve that throws reports unknown
         check(XPRS->mipoptimize(prob, nullptr));
         _status = _get_status();
         // A stopped search leaves the problem presolved, where XPRS_COLS and

@@ -174,8 +174,7 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        _status = status::unknown{};
-        _solution.reset();
+        reset_status();  // a solve that throws reports unknown
         // MSK_optimize reports a limit as an error code; MSK_optimizetrm
         // returns it as the termination code, and is the solve itself
         MSKrescodee trm = MSK_RES_OK;

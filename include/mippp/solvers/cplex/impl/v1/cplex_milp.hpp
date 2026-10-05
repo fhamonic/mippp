@@ -373,6 +373,7 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
+        reset_status();  // a solve that throws reports unknown
         int probtype = CPX->getprobtype(env, lp);
         switch(probtype) {
             case CPXPROB_MILP:

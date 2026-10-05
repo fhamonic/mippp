@@ -603,10 +603,8 @@ public:
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
-        if(num_variables() == 0u) {
-            _status = status::unknown{};
-            return;
-        }
+        reset_status();  // a solve that throws reports unknown
+        if(num_variables() == 0u) return;
         // Clp keeps the scale factors of the previous solve as long as the
         // dimensions match, and an empty column with an infinite bound range
         // gets a factor around 1e22: a finite range set since then scales to
