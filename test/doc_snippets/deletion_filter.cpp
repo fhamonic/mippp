@@ -58,20 +58,19 @@ auto schedule_oracle(const std::vector<timing_rule> & rules) {
     // --8<-- [start:timing-oracle]
     auto schedulable = [&rules](std::span<const std::size_t> active) {
         std::vector<int> time(num_events, 0);
+        bool lowered = false;
+        // the arc from a to b of length d: b comes at most d after a
+        auto arc = [&](event a, event b, int d) {
+            if(time[a] + d >= time[b]) return;
+            time[b] = time[a] + d;
+            lowered = true;
+        };
         for(std::size_t round = 0; round < num_events; ++round) {
-            bool lowered = false;
+            lowered = false;
             for(const std::size_t k : active) {
                 const timing_rule & rule = rules[k];
-                if(rule.at_most &&
-                   time[rule.from] + *rule.at_most < time[rule.to]) {
-                    time[rule.to] = time[rule.from] + *rule.at_most;
-                    lowered = true;
-                }
-                if(rule.at_least &&
-                   time[rule.to] - *rule.at_least < time[rule.from]) {
-                    time[rule.from] = time[rule.to] - *rule.at_least;
-                    lowered = true;
-                }
+                if(rule.at_most) arc(rule.from, rule.to, *rule.at_most);
+                if(rule.at_least) arc(rule.to, rule.from, -*rule.at_least);
             }
             // nothing left to lower: time is a schedule of the active rules
             if(!lowered) return deletion_verdict::feasible;
@@ -104,10 +103,7 @@ deletion_filter_result filter_within_budget(std::size_t candidate_count,
     const auto budget = std::chrono::seconds(30);
     const auto deadline = steady_clock::now() + budget;
     auto bounded = [&](std::span<const std::size_t> active) {
-        const auto left = deadline - steady_clock::now();
-        if(left <= steady_clock::duration::zero())
-            return deletion_verdict::inconclusive;
-        return search(active, left);
+        return search(active, deadline - steady_clock::now());
     };
     const auto answer =
         deletion_filter(candidate_count, bounded, {.time_limit = budget});
