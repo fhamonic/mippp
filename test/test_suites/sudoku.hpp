@@ -103,7 +103,7 @@ TYPED_TEST_P(SudokuTest, test) {
         for(auto i : indices) {
             for(auto j : indices) {
                 for(auto v : values) {
-                    if(solution[X_vars(i, j, v)]) std::cout << ' ' << v;
+                    if(solution[X_vars(i, j, v)] > 0.5) std::cout << ' ' << v;
                 }
             }
             std::cout << std::endl;
@@ -114,7 +114,8 @@ TYPED_TEST_P(SudokuTest, test) {
         for(auto i : indices)
             for(auto j : indices)
                 for(auto v : values)
-                    if(solution[X_vars(i, j, v)]) grid_solution.push_back(v);
+                    if(solution[X_vars(i, j, v)] > 0.5)
+                        grid_solution.push_back(v);
 
         ASSERT_THAT(grid_solution,
                     ::testing::ElementsAreArray(expected_grid_solution));

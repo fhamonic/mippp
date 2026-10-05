@@ -4,6 +4,7 @@
 #include <array>
 #include <chrono>
 #include <concepts>
+#include <exception>
 #include <ranges>
 #include <stdexcept>
 #include <string>
