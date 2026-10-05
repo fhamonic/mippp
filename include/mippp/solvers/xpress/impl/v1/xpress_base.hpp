@@ -542,23 +542,13 @@ private:
         XPRS_IISOPS_INTEGRALITY | XPRS_IISOPS_GENERAL | XPRS_IISOPS_PWL |
         XPRS_IISOPS_SET | XPRS_IISOPS_INDICATOR;
 
-    struct self_infeasible_column {
-        std::size_t index;
-        detail::iis_column_sides sides;
-    };
-    // The semi-continuous and partial-integer kinds fall to other, whose
-    // admissible values the arithmetic does not decide.
-    static constexpr detail::iis_column_kind _iis_column_kind(char type) {
-        if(type == 'C') return detail::iis_column_kind::continuous;
-        if(type == 'I') return detail::iis_column_kind::integer;
-        if(type == 'B') return detail::iis_column_kind::binary;
-        return detail::iis_column_kind::other;
-    }
     // Xpress keeps a binary column's bounds that exclude [0, 1] as they are,
     // where a bound that leaves room for a value outside it turns the column
-    // integer, so the types are read at the call.
-    std::optional<self_infeasible_column> _self_infeasible_column(
-        std::size_t num_col) {
+    // integer, so the types are read at the call. The semi-continuous and
+    // partial-integer kinds fall to other, whose admissible values the
+    // arithmetic does not decide.
+    std::optional<detail::iis_self_infeasible_column_at>
+    _self_infeasible_column(std::size_t num_col) {
         if(num_col == 0) return std::nullopt;
         const int last = static_cast<int>(num_col) - 1;
         std::vector<double> lower(num_col), upper(num_col);
@@ -566,12 +556,8 @@ private:
         check(XPRS->getlb(prob, lower.data(), 0, last));
         check(XPRS->getub(prob, upper.data(), 0, last));
         check(XPRS->getcoltype(prob, types.data(), 0, last));
-        for(std::size_t j = 0; j < num_col; ++j) {
-            if(const auto sides = detail::iis_self_infeasible_column(
-                   lower[j], upper[j], _iis_column_kind(types[j])))
-                return self_infeasible_column{j, *sides};
-        }
-        return std::nullopt;
+        return detail::iis_first_self_infeasible_column<'C', 'I', 'B'>(
+            lower, upper, types);
     }
     // Without rows, sets, general or PWL constraints, the columns hold any
     // conflict, unless one has a kind whose admissible values the arithmetic
@@ -587,7 +573,8 @@ private:
         check(XPRS->getcoltype(prob, types.data(), 0,
                                static_cast<int>(num_col) - 1));
         return std::ranges::none_of(types, [](char type) {
-            return _iis_column_kind(type) == detail::iis_column_kind::other;
+            return detail::iis_column_kind_of<'C', 'I', 'B'>(type) ==
+                   detail::iis_column_kind::other;
         });
     }
 
@@ -629,7 +616,7 @@ protected:
             guard.restore();
             return answer.finish(outcome);
         };
-        const auto single_column = [&](const self_infeasible_column & col) {
+        const auto single_column = [&](const auto & col) {
             answer.flag_variable(col.index, col.sides.lower, col.sides.upper);
             return finish(iis_outcome::irreducible{});
         };
