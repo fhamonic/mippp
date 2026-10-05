@@ -159,7 +159,7 @@ On a MILP, the first trial already relaxes every bound of an integer column that
 
 ### Time limits
 
-On a model with a time limit (`has_time_limit`) and under a finite `time_limit`, the run reads the model's own limit once, before its first trial. Each trial then runs under the smaller of the time left before the deadline and that limit, and the model's limit is written back, exactly, on every exit:
+On a model with a time limit (`has_time_limit`) and under a finite `time_limit`, the run reads the model's own limit once, before its first trial. Each trial then runs under the smaller of the time left before the deadline and that limit, and the model's limit is written back, exactly, when the run ends, as [What a run changes](#what-a-run-changes) describes:
 
 ```cpp
 --8<-- "test/doc_snippets/deletion_filter.cpp:forwarded-limit"
