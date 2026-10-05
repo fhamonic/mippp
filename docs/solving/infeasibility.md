@@ -48,7 +48,7 @@ An IIS says where the data disagree, not how to settle it. Relaxing any single m
 
 The filter runs on every model class, so `clp_lp` with Clp's header runs the same program. Several solvers also have a routine of their own, `model.compute_iis()`, see [Two paths](#two-paths). The two paths may return different types, which is why `print_conflict` is a generic lambda: the later sections hand it the answers of other calls. `print_member` is a template because, within one answer too, a variable's status and a row's may be different variants, as on Gurobi, CPLEX and `xpress_milp`.
 
-[`examples/infeasible_transportation/`](https://github.com/fhamonic/mippp/blob/main/examples/infeasible_transportation/main.cpp) is a complete, runnable program along these lines: a transportation plan whose conflict the deletion filter finds on any of its backends, and the native routine too where the model class has one.
+[`examples/infeasible_transportation/`](https://github.com/fhamonic/mippp/blob/main/examples/infeasible_transportation/main.cpp) is a complete, runnable program along these lines: a transportation plan whose conflict the deletion filter finds on any of its backends.
 
 ## Two paths
 
