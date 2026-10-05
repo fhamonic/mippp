@@ -15,7 +15,6 @@
 #include <vector>
 
 #include "mippp/detail/handle_guard.hpp"
-#include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -24,7 +23,6 @@
 #include "mippp/utility/iis_outcome.hpp"
 #include "mippp/utility/iis_snapshot.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
-#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/cplex/impl/v1/cplex_api.hpp"
 #include "mippp/solvers/remapping_model_base.hpp"
@@ -721,10 +719,8 @@ protected:
     iis_snapshot_type _compute_iis() {
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
-        detail::handle_status_table<detail::iis_sided_status> variable_table(
-            _handle_id_bound(num_col));
-        detail::handle_status_table<detail::iis_whole_or_one_side_status>
-            constraint_table(num_row);
+        detail::iis_answer<iis_snapshot_type> answer(_handle_id_bound(num_col),
+                                                     num_row);
 
         std::vector<double> lower(num_col), upper(num_col);
         if(num_col > 0) {
@@ -775,9 +771,7 @@ protected:
             group_begins.data(), group_indices.data(), group_types.data()));
         const int conflict_status = CPX->getstat(env, lp);
         if(conflict_status == CPX_STAT_CONFLICT_FEASIBLE)
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     iis_outcome::feasible{});
+            return answer.finish(iis_outcome::feasible{});
         // A stopped refinement flags every group possible until its first
         // subproblem completes, on a feasible model too, and a node-limit
         // stop excluded groups whose subproblem had only hit the limit (both
@@ -785,9 +779,7 @@ protected:
         // reported.
         if(conflict_status >= CPX_STAT_CONFLICT_ABORT_CONTRADICTION &&
            conflict_status <= CPX_STAT_CONFLICT_ABORT_DETTIME_LIM)
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     _conflict_abort_outcome(conflict_status));
+            return answer.finish(_conflict_abort_outcome(conflict_status));
         if(conflict_status != CPX_STAT_CONFLICT_MINIMAL)
             throw solver_error(
                 ("mippp: CPXrefineconflictext left the unexpected status " +
@@ -799,31 +791,25 @@ protected:
             check(CPX->getconflictext(env, lp, group_flags.data(), 0,
                                       num_groups - 1));
         bool proven = true;
+        std::vector<char> lower_flagged(num_col), upper_flagged(num_col);
         for(std::size_t k = 0; k < group_indices.size(); ++k) {
             const int flag = group_flags[k];
             if(flag == CPX_CONFLICT_EXCLUDED) continue;
             if(flag < CPX_CONFLICT_MEMBER) proven = false;
-            const int native_index = group_indices[k];
-            if(group_types[k] == CPX_CON_LINEAR) {
-                const auto row = static_cast<std::size_t>(native_index);
-                constraint_table.set(
-                    row,
-                    detail::iis_row_status_by_sense<'L', 'G'>(senses[row]));
-                continue;
-            }
-            // the lower group of a column precedes its upper group
-            const std::size_t id = _var_handle(native_index).uid();
-            const bool other_side_flagged =
-                !is<iis_status::absent>(variable_table.get(id));
-            variable_table.set(
-                id, other_side_flagged
-                        ? detail::iis_sided_status{iis_status::member_both{}}
-                    : group_types[k] == CPX_CON_LOWER_BOUND
-                        ? detail::iis_sided_status{iis_status::member_lower{}}
-                        : detail::iis_sided_status{iis_status::member_upper{}});
+            const auto index = static_cast<std::size_t>(group_indices[k]);
+            if(group_types[k] == CPX_CON_LINEAR)
+                answer.constraints.set(
+                    index,
+                    detail::iis_row_status_by_sense<'L', 'G'>(senses[index]));
+            else if(group_types[k] == CPX_CON_LOWER_BOUND)
+                lower_flagged[index] = 1;
+            else
+                upper_flagged[index] = 1;
         }
-        return iis_snapshot_type(
-            std::move(variable_table), std::move(constraint_table),
+        for(std::size_t j = 0; j < num_col; ++j)
+            answer.flag_variable(_var_handle(static_cast<int>(j)).uid(),
+                                 lower_flagged[j] != 0, upper_flagged[j] != 0);
+        return answer.finish(
             proven ? iis_outcome_type(iis_outcome::irreducible{})
                    : iis_outcome_type(iis_outcome::incomplete(true)));
     }
