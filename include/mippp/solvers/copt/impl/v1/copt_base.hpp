@@ -17,6 +17,7 @@
 #include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -471,40 +472,17 @@ private:
     // The routine reads TimeLimit, and the solve that confirms feasibility (an
     // LP, after the routine) or infeasibility (a MIP, before it) shares that
     // budget with it: the remainder is written for the second call only.
-    class iis_time_limit_guard {
-    private:
-        const copt_api & _api;
-        copt_env * _env;
-        copt_prob * _prob;
-        double _time_limit;
-        bool _restored = false;
-
-        ret_code _write_back() const noexcept {
-            return _api.SetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT,
-                                    _time_limit);
-        }
-
-    public:
-        iis_time_limit_guard(const copt_api & api, copt_env * env,
-                             copt_prob * prob, double remaining)
-            : _api(api), _env(env), _prob(prob) {
-            _api._check(_env, _api.GetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT,
-                                               &_time_limit));
-            _api._check(_env, _api.SetDblParam(_prob, COPT_DBLPARAM_TIMELIMIT,
-                                               remaining));
-        }
-        iis_time_limit_guard(const iis_time_limit_guard &) = delete;
-        iis_time_limit_guard & operator=(const iis_time_limit_guard &) = delete;
-
-        void restore() {
-            _restored = true;
-            _api._check(_env, _write_back());
-        }
-        // a value read back moments ago: the write cannot be rejected
-        ~iis_time_limit_guard() {
-            if(!_restored) (void)_write_back();
-        }
-    };
+    template <typename Call>
+    void _iis_within_time_limit(double remaining, Call && call) {
+        double time_limit;
+        check(COPT->GetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, &time_limit));
+        check(COPT->SetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, remaining));
+        detail::restore_guard restore_time_limit([&] {
+            check(COPT->SetDblParam(prob, COPT_DBLPARAM_TIMELIMIT, time_limit));
+        });
+        std::forward<Call>(call)();
+        restore_time_limit.restore();
+    }
 
     struct self_infeasible_column {
         int index;
@@ -658,11 +636,12 @@ protected:
             return answer(iis_outcome::feasible{});
         }
 
-        std::optional<iis_time_limit_guard> guard;
+        ret_code code = COPT_RETCODE_OK;
         if(mip)
-            guard.emplace(*COPT, env, prob, std::max(0., budget - elapsed()));
-        const ret_code code = COPT->ComputeIIS(prob);
-        if(guard) guard->restore();
+            _iis_within_time_limit(std::max(0., budget - elapsed()),
+                                   [&] { code = COPT->ComputeIIS(prob); });
+        else
+            code = COPT->ComputeIIS(prob);
         // never reached under an infinite budget, always under a zero one
         const bool out_of_time = elapsed() >= budget;
         const auto short_of = [&](bool conflict) -> iis_outcome_type {
@@ -683,10 +662,8 @@ protected:
             }
             // the routine leaves the model unstarted, so a solve confirms
             int lp_status;
-            iis_time_limit_guard solve_guard(*COPT, env, prob,
-                                             std::max(0., budget - elapsed()));
-            check(COPT->SolveLp(prob));
-            solve_guard.restore();
+            _iis_within_time_limit(std::max(0., budget - elapsed()),
+                                   [&] { check(COPT->SolveLp(prob)); });
             check(COPT->GetIntAttr(prob, COPT_INTATTR_LPSTATUS, &lp_status));
             switch(lp_status) {
                 case COPT_LPSTATUS_OPTIMAL:
