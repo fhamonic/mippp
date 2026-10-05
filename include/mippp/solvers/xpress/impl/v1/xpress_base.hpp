@@ -18,6 +18,7 @@
 #include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -542,36 +543,6 @@ private:
         XPRS_IISOPS_INTEGRALITY | XPRS_IISOPS_GENERAL | XPRS_IISOPS_PWL |
         XPRS_IISOPS_SET | XPRS_IISOPS_INDICATOR;
 
-    class iis_option_guard {
-    private:
-        const xpress_api & _api;
-        XPRSprob _prob;
-        int _ops;
-        bool _restored = false;
-
-        int _write_back() const noexcept {
-            return _api.setintcontrol(_prob, XPRS_IISOPS, _ops);
-        }
-
-    public:
-        iis_option_guard(const xpress_api & api, XPRSprob prob, int ops)
-            : _api(api), _prob(prob) {
-            _api._check(_prob, _api.getintcontrol(_prob, XPRS_IISOPS, &_ops));
-            _api._check(_prob, _api.setintcontrol(_prob, XPRS_IISOPS, ops));
-        }
-        iis_option_guard(const iis_option_guard &) = delete;
-        iis_option_guard & operator=(const iis_option_guard &) = delete;
-
-        void restore() {
-            _restored = true;
-            _api._check(_prob, _write_back());
-        }
-        // a value read back moments ago: the write cannot be rejected
-        ~iis_option_guard() {
-            if(!_restored) (void)_write_back();
-        }
-    };
-
     struct self_infeasible_column {
         std::size_t index;
         detail::iis_column_sides sides;
@@ -633,7 +604,11 @@ protected:
     _compute_iis(const bool mip) {
         using snapshot = iis_snapshot<variable, constraint, VariableStatus,
                                       ConstraintStatus, iis_outcome_type>;
-        iis_option_guard guard(*XPRS, prob, _iis_background_ops);
+        int ops;
+        check(XPRS->getintcontrol(prob, XPRS_IISOPS, &ops));
+        check(XPRS->setintcontrol(prob, XPRS_IISOPS, _iis_background_ops));
+        detail::restore_guard guard(
+            [&] { check(XPRS->setintcontrol(prob, XPRS_IISOPS, ops)); });
         // The routine reads the model's TIMELIMIT as a fresh budget of its
         // own, so nothing else is set for the call. Its stop status covers a
         // user interrupt as well and STOPSTATUS does not tell the two apart:
