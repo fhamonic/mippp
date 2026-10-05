@@ -66,8 +66,9 @@ unless marked otherwise.
   sided tags, for variables and rows alike, and HiGHS decodes the same set.
   Gurobi and CPLEX rows add `member` for equality rows, and `copt_milp`
   reports its equality rows as `member`. The per-entity storage is
-  `detail::handle_status_table<Status>`, one byte per handle id, where ids
-  past the bound read as the variant's alternative 0 (N16 b). The snapshot
+  `detail::handle_status_table<Status>`, a `std::vector` of the variant
+  itself, two bytes per handle id for every IIS status variant (N45 e), where
+  ids past the bound read as the variant's alternative 0 (N16 b). The snapshot
   template requires `iis_status::absent` as that alternative, and
   `get_basis()` later instantiates the same table with `basis_status`
   variants. A backend whose routine has details that the unified tags drop,
@@ -77,8 +78,8 @@ unless marked otherwise.
   variant, so that `is_a` on a unified tag still gives the generalization.
   This is a guideline for when it is needed, and no work is planned for it.
   The template's arguments are not a commitment: docs and tests obtain the
-  type through `model_iis_t<T>` or `auto` and never spell `iis_snapshot<...>`,
-  and `lp_iis<I, T>` checks members, not the shape, so that later candidate
+  type through `model_iis_t<T>`, `iis_by_deletion_t<M>` or `auto` and never
+  spell `iis_snapshot<...>`, and `lp_iis<I, T>` checks members, not the shape, so that later candidate
   kinds, integrality first, can come as further per-kind tables with their own
   accessors, never as new tags (N37 a, b).
 - **Interpretation through the caller's own ranges.** Handles carry no
@@ -149,15 +150,20 @@ unless marked otherwise.
   candidates: Gurobi's `IISSOSForce`, `IISQConstrForce` and
   `IISGenConstrForce` set to 1, Xpress's `IISOPS` class bits, and CPLEX by
   leaving them out of the conflict groups. These mechanisms exist in the
-  headers, but their effect on special constraints was not probed. A wrapper
+  headers, but their effect on special constraints was not probed. COPT's
+  routine has no such switch and counts native SOS and indicator constraints
+  among its candidates, so `copt_milp` reports `irreducible` only when the
+  answer names every one of them or no linear member, and otherwise
+  `incomplete` with a conflict (N45 g). A wrapper
   that cannot keep them out must not claim that the reported rows and bounds
   conflict on their own. On either path, `irreducible` with zero members means
   that the background alone is infeasible.
 - **Names.** No generic identifiers such as `result`, `options` or `member`
   in a namespace users are told to open. The tags live in `iis_status`. The
   other names are the namespace `iis_outcome`, `iis_limits`,
-  `lp_iis<I, T>`, `lp_iis_outcome<O>`, `model_iis_t<T>` and `has_iis<T>`,
-  from the recommendation of Q2 and from N44. Under N19, the names of the
+  `lp_iis<I, T>`, `lp_iis_outcome<O>`, `model_iis_t<T>`, `has_iis<T>`,
+  `iis_by_deletion_t<M>`, `iis_sides` and `iis_status::sides_of`, from the
+  recommendation of Q2, N44 and N45. Under N19, the names of the
   engine, the free function, its concept and the snapshot start with
   `deletion_` or `iis_`, except the verb `compute_iis_by_deletion`. The
   outcome is a tag hierarchy (N44, which overturns N19 e).
@@ -1318,7 +1324,8 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   the trials the forwarded time limit does not bound, warm and cold trials
   per backend, and the same warning. Their code lives in
   `test/doc_snippets/`, compiled and tested in `mippp_test`, and
-  `examples/infeasible_transportation` runs both paths.
+  `examples/infeasible_transportation` runs the deletion filter, the page
+  covering both paths (N45 h).
   What concerns the commercial routines came with wave 5 (`b5014d1`,
   `12bcae7`, `b20e204`, `e507a95`, `818235d`): their tags, with plain
   `member` on the equality rows of Gurobi and CPLEX and on the two-sided
@@ -1355,8 +1362,10 @@ bounds, read and modify, and a readable objective to `soplex_lp`:
   (`IISOPS`) and COPT 8.0 has neither. Setters on the IIS object, shaped
   like the basis setters, are the natural home. On the deletion path,
   protected sides are a filter over the enumerated sides, behind an additive
-  overload of `compute_iis_by_deletion`. Protected sides and candidate order
-  are the first extension after the first version (N37 f).
+  overload of `compute_iis_by_deletion`, beside the narrowing overload of
+  N45 (c), which already selects the candidates from an earlier answer.
+  Protected sides and candidate order are the first extension after the
+  first version (N37 f).
 - **Several IISs per model.** Xpress's `XPRSiisnext` and `XPRSiisall`, a
   backend-specific extra, not part of the capability.
 - **SCIP 10.** Its IIS finder, once the sub-SCIP answer can be mapped back
@@ -1964,7 +1973,8 @@ patterns of the library's other features, and whether simplifications would
 give a simpler API. The answer, with the options weighed, the probes and the
 measured prototypes, is [iis_api_review.md](iis_api_review.md). The maintainer
 ruled on its completion report the same day: "implement the iis_outcome tag
-hierarchy". Its other recommendations await rulings, listed under
+hierarchy". Most of its other recommendations were ruled later that day, as
+N45 below; the two left are listed under
 [Pending decisions](iis_api_review.md#pending-decisions).
 
 - **N44. How an IIS run ends.** The pair of `enum class iis_outcome` and
@@ -2077,11 +2087,228 @@ on 2026-10-05 (HiGHS 1.15.1 for the HiGHS pins); Gurobi's 11, 15 and 17 and
 CPLEX's 36 to 38 rest on the solvers' documentation, no run reaching them,
 and the mapping functions of both are pinned by tests that need no licence.
 
+## Rulings of 2026-10-05, continued
+
+Once N44 was implemented, the maintainer asked, on 2026-10-05: "implement the
+factorizations you spotted then update the documentation with the fixes you
+found and update the IIS examples to make then as short and understandable as
+possible, minimizing boilerplate." The work landed on branch
+`feat/iis-factorizations`, on top of `feat/iis-outcome-tags`, as 54 commits
+from `9dcbbd6` to `4058e69`, none pushed.
+
+- **N45. The review's factorizations, fixes and doc corrections.** The
+  instruction rules the review's [Factorizations that overturn no
+  ruling](iis_api_review.md#factorizations-that-overturn-no-ruling), its
+  [Backend data and correctness](iis_api_review.md#backend-data-and-correctness)
+  and its [Documentation errors](iis_api_review.md#documentation-errors). The
+  review's [Rejected](iis_api_review.md#rejected) list and its
+  [Rulings the review would keep](iis_api_review.md#rulings-the-review-would-keep)
+  stand as it recommended:
+  batching stays dormant (N3 b, N37 e), the guard keeps its `Clock`
+  parameter, COPT keeps its `GetSOSIIS` and `GetIndicatorIIS` bindings, and
+  the snapshot gets no member lists, no `possible_*` tags and no refresh of
+  the status after a native call, the filter no role callback and no
+  order-preserving pass.
+  - (a) `detail::restore_guard` (`9dcbbd6`), in `detail/restore_guard.hpp`
+    with a solver-free test: a `[[nodiscard]]` constructor taking the
+    write-back, a `restore()` that disarms and writes back once, its error
+    propagating, and a destructor that writes back only while still armed,
+    after an exception, swallowing its error. It replaces the seven guard
+    classes: HiGHS's option guard (`1a67c2d`), Gurobi's `iis_force_guard`
+    over an `iis_forced` record that saves an array only once its force
+    succeeded, since the write-back discards the held solution (`db0ee87`),
+    the callback reattachment of `cplex_milp` (`4de6a3e`), `xpress_milp`
+    (`db3171d`) and `copt_milp` (`9ce568b`), each constructed after a
+    successful detach, Xpress's `IISOPS` guard (`1d2904c`), and COPT's
+    time-limit guard, now the helper `_iis_within_time_limit` at the MIP's
+    `ComputeIIS` and the LP's confirming `SolveLp` (`4a24571`). A guard is
+    armed before the writes when there are several and after the single
+    write otherwise, and a write-back of several items attempts each before
+    raising the first error. Two fixes outside IIS come with it:
+    `refine_lp_status` on `gurobi_lp` restores `DualReductions` when the
+    re-solve throws (`30fc38a`), and on `cplex_lp` writes both parameters
+    back on every exit, where three paths left one changed (`73bca7b`; tests
+    `032f497`, `4e5554f`, the second making `CPXprimopt` throw on a problem
+    turned MIP through the native handle, error 1017 on 22.1.2).
+  - (b) `detail::iis_answer` (`bd3b8db`), in the detail section of
+    `iis_snapshot.hpp`: the two tables, `flag_variable` and
+    `flag_constraint`, which leave an entity flagged on neither side absent,
+    and `finish(outcome)`, which hands the tables over. The review's three
+    verbs are gone, since N44's tags make every `finish(outcome)` valid. The
+    five bases build every native exit through it: HiGHS (`3170051`),
+    Gurobi (`65ac219`), CPLEX (`c17e723`, which also collects a column's two
+    sides as flags instead of reading the table back), Xpress (`7e79741`)
+    and COPT (`92d29fc`). `iis_sides` and `iis_status::sides_of`
+    (`44aae0c`), in `model_concepts.hpp`, read a status as {lower, upper,
+    whole}: `member_both` both sides, a sided tag its side, plain `member`
+    both sides with `whole`, which marks them as one unit, and `absent`
+    nothing, by derivation, so refinement tags read as the tag they refine.
+    The oracle's `membership_of` stays independent, and a test checks that
+    the two agree on the five tags. The free function's fold merges a side
+    into its entity through it, in any order (`ac5c3b4`).
+  - (c) The narrowing overload, the mechanism N37 (f) names on the deletion
+    path, shipped now under the instruction (`2b8ce68`):
+    `compute_iis_by_deletion(model, within, limits = {})`, for any `within`
+    with `lp_iis<Iis, M>`, takes as candidates the finite sides `within`
+    names, a plain member naming every finite side of its entity, and keeps
+    every other side relaxed in every trial through the existing guard. One
+    detail runner serves both overloads. The N36 crossed-pair start looks
+    only at the selected sides, so a crossed pair named in part or not at
+    all stays relaxed, and the N6 column-less answer reads only the selected
+    sides. The IIS found is an IIS of the model, since each trial reads its
+    active sides and the background alone; the first trial checks the named
+    sides, so `within` may come from either path or be stale, and is read by
+    handle id on this model. Named sides that hold together answer
+    `incomplete` without a conflict, never `feasible`, which says nothing of
+    the model, as the comments of `deletion_filter_outcome` and of the
+    `incomplete` tag say (`77beda6`). A braced or `iis_limits` argument still
+    picks the overload without an answer, pinned by static assertions. It
+    narrows a stopped run and refines the plain-member `==` rows of Gurobi
+    and CPLEX into their side, in one solve per named side plus one: on the
+    workshop the
+    native answers of `gurobi_lp` and `cplex_lp`, and of their `*_milp`
+    classes, narrow to the five sides, the orders on their lower sides
+    (probe, 2026-10-05). Stub cases pin the crossed pairs inside and outside
+    the answer (`607bb73` adds one named whole), the incomplete answer, a
+    whole row refined on the sense/rhs stub and a column-less run; the
+    shared case narrows a `max_solves` stop for 1 to 9 solves to the full
+    run's IIS on every backend. The shared native case runs only where a
+    routine can name an entity whole (Gurobi, CPLEX, `xpress_milp`,
+    `copt_milp`): on the sided routines narrowing repeats the stopped-run
+    case, and the suite's HiGHS fixture has no 1.14 floor skip, so the
+    review declined widening it. Protected sides, candidate order and
+    native forcing stay deferred under N37 (f). A narrowing run on a MILP
+    relaxes the bounds of every integer column the answer leaves out from
+    its first trial: on `scip_milp` that throws at the first trial when a
+    binary column's bound is left out, on an infeasible and on a feasible
+    model, the bounds restored (probe on the local SCIP, documented under
+    N25's limitation); on `cbc_milp` such trials over unbounded integer
+    columns may be slow (inferred, neither tested nor documented).
+  - (d) The Xpress clear goes (`89524d1`): `XPRSiisfirst` clears the
+    previous IIS itself, so `XPRSiisclear`, after a decoded subsystem and on
+    the column-answered path of N44 (g), only made `XPRSgetiisdata`,
+    `XPRSiiswrite`, `XPRSiisisolations` and a continuing `XPRSiisnext`
+    unreachable through `native_model()`. Both calls and the binding go,
+    and a test reads IIS 1 through `native_api().getiisdata` after the
+    call: its counts match the members, its entries name the row's lower
+    side and the column's upper bound, and both Farkas multipliers are
+    nonzero, on 45.01 and 47.01. `IISOPS` is restored before the call
+    returns, so a native `XPRSiisnext` searches under the caller's
+    `IISOPS`. The shared scan
+    `detail::iis_first_self_infeasible_column<C, I, B>` and
+    `iis_column_kind_of<C, I, B>` (`fc93846`) serve Xpress (`76481af`) and
+    COPT (`3036592`).
+  - (e) Smaller changes. `handle_status_table` stores a
+    `std::vector<Status>` (`57052c6`), dropping `is_tag_variant_v`,
+    `_make_status` and `_make_derived_mask` at one byte more per id;
+    `count_a` requires a tag some alternative derives from, and `get()` is
+    `noexcept` when copying is (`b513b28`). `iis_sided_status` joins its two
+    siblings in `detail`, and `iis_limits` moves unchanged to
+    `deletion_filter.hpp`, amending N19 (a)'s placement, so that
+    `model_concepts.hpp` no longer includes `<stop_token>` (`ec90b49`).
+    `iis_column_less_precheck` requires readable row bounds only, and is
+    used by COPT alone, while HiGHS keeps `iis_side_violated_by_zero`. The
+    free function loses `iis_deletion_guard::solved()` and
+    `iis_deletion_time_limit_slot`, keeps the saved limit as an optional
+    `duration<double>`, and answers a column-less model through the
+    enumeration and the fold, a NaN limit still throwing before any read
+    (`ac5c3b4`, `ccadb7e`); new tests pin the lower side winning when 0
+    violates both sides of a column-less row, and a guard on a fake clock
+    past its deadline answering `inconclusive_trial` with no solve and the
+    data restored, which is the `Clock` parameter's reason to exist. N37
+    (b)'s ways to obtain the type gain `iis_by_deletion_t<M>`.
+  - (f) HiGHS's decode names sides for Lower, Upper and Boxed only
+    (`4e0c296`): Dropped (−1), Null (0) and any later code make no member,
+    where they read as `member_both`. Static assertions pin each code, since
+    no answer a test can produce lists the others.
+  - (g) COPT minimality against special constraints (`953b821`): COPT's
+    routine counts native SOS and indicator constraints among its
+    candidates, so `IsMinIIS` proves minimality against the ones it names.
+    `copt_milp` reports `irreducible` only when the answer names every one
+    of them or no linear member, and otherwise takes the clock-attributed
+    `incomplete` with a conflict. Measured on 8.0.5 (`03d8a4a`): an
+    indicator left out of the IIS that is the only constraint on its column
+    makes the routine flag both bounds of that column without counting them
+    in `IISCols`, so the count check answers `incomplete` without a conflict
+    before the downgrade; the test's unrelated indicator acts on x instead,
+    `IISIndicators` 1, `IsMinIIS` 1, and r flagged on its upper side, and
+    the COPT note documents the quirk.
+  - (h) The pages and the example (`d588145`, `c59b6bd`, `9f435b7`,
+    `8327315`, `18c460e`, `b02269d`, `e9e3945`, `dfe5423`, then the review
+    of the round: `3167b5a`, `56c4870`, `00c01ef`, `cbc116c`, `685cd83`,
+    `5a77e00`, `68f0ab8`, `421980e`, `7cb96e6`, `4058e69`). The code reads
+    sides through `sides_of`, the side-name visitor, `named_sides` and the
+    55-line `rerun_on_members` go for a three-line narrowing section, and
+    the repair loop runs inline. N43's page code changes with it:
+    `relax_members` writes the row-bound setters, and a sentence gives the
+    sense-and-rhs recipe for `gurobi_lp` and `gurobi_milp`, freeing a `<=`
+    row with `infinity()` and a `>=` row with `-infinity()`, instead of a
+    Gurobi branch; the `dumb_lp` repair tests went with that branch. The
+    example runs only the filter, its header pointing to the page for both
+    paths, and repairs the plan through a route's variable bound, which every
+    model class can write. Corrected claims: the two paths may return
+    different types, the same on `highs_lp`, `highs_qp`, `xpress_lp` and
+    `copt_lp`, and a printer is a template because one Gurobi, CPLEX or
+    `xpress_milp` answer holds two status variants; the Two paths table
+    names `iis_by_deletion_t<M>`; `diagnose` also falls back at run time,
+    on `solver_error` only; a plain member is the entity's finite sides as
+    one unit; a write-back that fails while a trial's exception propagates
+    is dropped, the restoration claims pointing to What a run changes; the
+    filter's guarantee needs a callback whose decision depends on the
+    candidate point alone (N42); `highs_qp` restores its objective through
+    the quadratic terms and `set_quadratic_objective`; each Native IIS note
+    says which routine settings reach `compute_iis()`; the C API sentence is
+    true for Xpress now and names Gurobi's discarded attributes; "its
+    routine" replaces "its path". The review's feature-table item did not
+    hold: `tested_features_table.py` already had the rows "IIS, native" and
+    "IIS, deletion filter", and `make features_tables` changed no pixel.
+  - (i) Measured line deltas from `691f0be`: the headers +615/−721 over 21
+    files, net −106; the core +305/−159 (`restore_guard.hpp` 41 lines new,
+    `handle_status_table.hpp` 91 to 58, `iis_by_deletion.hpp` 509 to 541
+    with the overload) and the five bases +310/−562 (HiGHS −32, Gurobi −41,
+    CPLEX −30, Xpress −73, COPT −76). The non-blank lines inside the
+    infeasibility page's snippet regions go from 240 to 112, the
+    deletion-filter page's from 57 to 53, and the example from 189 lines to
+    119 (172 to 108 non-blank). The tests grow by +966/−271.
+  - (j) Verification. The integrated branch at `afc162e`: gcc15_c++26 with
+    every solver, 518 of 525 ctest entries passed and 7 skipped (the
+    `*_api` version tests and the native HiGHS entries below the 1.14
+    floor); HiGHS 1.15.1, 84 of 85, the entry skipped running only below the
+    floor; Xpress 45.01 through `xpressmp_old`, the IIS suites 6 of 6;
+    gcc14_c++23 and clang18_c++23 on Clp, Cbc, GLPK, HiGHS and dumb, 237 of
+    243 each, 6 skipped; `TEST_SANITIZE=address,undefined` on Clp, HiGHS
+    and dumb, 171 of 176 and the HiGHS suites on 1.15.1 84 of 85. After the
+    review's fixes, at `4058e69`: gcc15_c++26 525 entries with no failure
+    and HiGHS 1.15.1 85 with no failure; format, includes, doc snippets and
+    `zensical build --clean` clean. Five integration commits fixed what the
+    matrix found (`dfe5423`, `03d8a4a`, `032f497`, `8622ecd`, `afc162e`):
+    a page claim, the COPT and CPLEX test models, and three `-Wshadow`
+    warnings. Gurobi discards `IISConstr` and `IISUB` after `compute_iis()`
+    on a model with an indicator (error 10005), measured; the error paths
+    of `refine_lp_status` where `optimize` or `primopt` throws rest on
+    `restore_guard`'s unit test, except the CPLEX one `4e5554f` reaches.
+    Still pending: the library-wide reset of `_status` first in every
+    `solve()`, or a documented rule that a throwing solve keeps the previous
+    status, and the optional rename of `solve_limit` and `max_solves` to
+    `trial_limit` and `max_trials`; the review's other findings outside IIS
+    have no ruling.
+
+What this ruling changes: `detail/restore_guard.hpp`,
+`detail/handle_status_table.hpp`, `detail/iis_arithmetic.hpp`,
+`model_concepts.hpp`, the snapshot, the outcome header, the engine and the
+free function; the five native bases and `refine_lp_status` on `gurobi_lp`
+and `cplex_lp`; the unit tests, the shared deletion suite and the
+per-backend pins; the infeasibility and deletion-filter pages, the concepts
+reference, the solver notes, the examples page and the transportation
+example. Nothing is published on main.
+
 ## Open questions
 
-None remains as of 2026-10-02: N43, the last, was ruled that day. The
-review of 2026-10-05 left recommendations awaiting a ruling, listed under
-[Pending decisions](iis_api_review.md#pending-decisions) there. The
+None remains as of 2026-10-02: N43, the last, was ruled that day. Of the
+recommendations of the review of 2026-10-05, two still await a ruling, the
+library-wide reset of the status in `solve()` and the optional rename of
+`solve_limit`, listed under
+[Pending decisions](iis_api_review.md#pending-decisions) there (N45 j). The
 outward steps of WP1 are done: the documents are committed (`25b4530`, on
 the pull request's branch), the reply is posted, `a1a9f11` is tagged
 `archive/pr3-a1a9f11` on origin, and pull request #3 is a draft.

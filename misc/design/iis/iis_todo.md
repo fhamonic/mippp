@@ -4,7 +4,7 @@ Companion to [iis.md](iis.md), which holds the design, its rulings and the evide
 [iis_pr_plan.md](iis_pr_plan.md), whose work packages carry the details. The steps follow the revised package
 order of 2026-09-27. Items 0.1 and 1.6 and those of steps 2 to 6 name their package, except 6.2. Items 1.1 to
 1.5 are the plan's standalone fixes, and step 7 is WP17. Each step lands and is tested on its own. Q1 to Q6
-and N0 to N44 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29, 2026-10-02 and 2026-10-05 in iis.md, the
+and N0 to N45 refer to the Rulings of 2026-09-27, 2026-09-28, 2026-09-29, 2026-10-02 and 2026-10-05 in iis.md, the
 third on the three questions wave 3 left.
 
 - **Two paths.** Under Q1 (b), `has_iis<T>` means that the model has a native IIS routine, reached through a
@@ -64,7 +64,10 @@ third on the three questions wave 3 left.
   mappings. Then the record of iis.md and this file. The final review of 2026-10-02 brought three code fixes,
   an unstarted empty Xpress answer attributed to its stop (`133699f`), two milliseconds for `glpk_milp`
   (`fa45782`) and a ranged row's side kept on an `xpress_milp` without integer columns (`f89be76`), then the
-  user pages that answer it (`6a3c0ed`) and the record of iis.md and this file.
+  user pages that answer it (`6a3c0ed`) and the record of iis.md and this file. The API review of 2026-10-05
+  followed: its tag hierarchy for how a run ends landed on `feat/iis-outcome-tags` (`7fa1e7b`, N44), and its
+  factorizations, backend fixes, doc corrections and shorter examples on `feat/iis-factorizations`, `9dcbbd6`
+  to `4058e69` (N45), locally, awaiting the push.
 
 ## 0. Before any code
 
@@ -575,7 +578,9 @@ ideas, pointing into the archive tag of `a1a9f11`.
   duration for a native call, if users ask, is a possibility that is not ruled (N29 b).
 - **Protected sides and candidate order.** The first extension after the first version (N37 f): native on
   Gurobi and CPLEX, and on the deletion path a filter over the enumerated sides behind an additive overload of
-  `compute_iis_by_deletion`. A caller for the dormant batching stays a filter refinement.
+  `compute_iis_by_deletion`. The narrowing overload of N45 (c), which takes its candidates from an earlier
+  answer, shipped on 2026-10-05; protected sides and candidate order did not. A caller for the dormant
+  batching stays a filter refinement.
 - **Integrality as a candidate.** Relaxing an integer or binary variable to continuous rather than its bounds,
   the maintainer's intuition given with N25. It is outside the LP-centred first version. It comes as a
   per-variable table of its own in the snapshot, never as new tags, needs a variable-type getter and setter on

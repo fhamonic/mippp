@@ -28,8 +28,15 @@ the review. *Measured* below means a compiled or executed probe, and
 
 **Status.** The completion report was ruled on 2026-10-05: the maintainer
 asked for the tag hierarchy of [How a run ends](#how-a-run-ends), and it is
-implemented on branch `feat/iis-outcome-tags`. Every other recommendation
-awaits a ruling; [Pending decisions](#pending-decisions) lists them.
+implemented on branch `feat/iis-outcome-tags` (N44). Later that day the
+maintainer asked to implement the factorizations, the backend fixes and the
+documentation corrections, and to shorten the IIS examples; they are
+implemented on branch `feat/iis-factorizations`, `9dcbbd6` to `4058e69`, and
+recorded as N45 in [iis.md](iis.md#rulings-of-2026-10-05-continued). Two
+deviations: `detail::iis_answer` has no outcome verbs, since the tags make
+every `finish(outcome)` valid, and the feature-table item below did not hold,
+the generated tables already having IIS rows. Two decisions remain;
+[Pending decisions](#pending-decisions) marks each item.
 
 ## Verdict
 
@@ -552,18 +559,32 @@ It is a readability change only, and not a door for tags that carry data (see
 ## Pending decisions
 
 1. `detail::restore_guard`, with the `refine_lp_status` fix as its own commit.
-2. The `detail::iis_answer` builder.
-3. `iis_status::sides_of` and `iis_sides`.
+   Implemented: `9dcbbd6`, the backends moved onto it in `1a67c2d`,
+   `db0ee87`, `4de6a3e`, `1d2904c`, `db3171d`, `4a24571` and `9ce568b`, and
+   the fixes `30fc38a` (Gurobi) and `73bca7b` (CPLEX), tested by `032f497`
+   and `4e5554f`.
+2. The `detail::iis_answer` builder. Implemented without the verbs: `bd3b8db`,
+   then `3170051`, `65ac219`, `c17e723`, `7e79741` and `92d29fc`.
+3. `iis_status::sides_of` and `iis_sides`. Implemented: `44aae0c`.
 4. The narrowing overload `compute_iis_by_deletion(model, within, limits)`.
    It ships an N37 (f) mechanism in the first version, so it needs a ruling on
-   timing.
-5. `handle_status_table` over `std::vector<Status>`.
-6. The small cleanups and the visibility moves.
+   timing. Ruled for now and implemented: `2b8ce68`, with `607bb73` and
+   `77beda6`; protected sides and candidate order stay deferred (N45 c).
+5. `handle_status_table` over `std::vector<Status>`. Implemented: `57052c6`
+   and `b513b28`.
+6. The small cleanups and the visibility moves. Implemented: `ec90b49`,
+   `fc93846`, `ac5c3b4` and `ccadb7e`, with the shared scan in `76481af`
+   and `3036592`.
 7. The Xpress `iisclear` removal and the COPT special-constraint downgrade.
-8. The HiGHS explicit decode.
-9. The documentation corrections.
+   Implemented: `89524d1`, and `953b821` with `03d8a4a`.
+8. The HiGHS explicit decode. Implemented: `4e0c296`.
+9. The documentation corrections. Implemented: `d588145`, `c59b6bd`,
+   `9f435b7`, `8327315`, `18c460e`, `b02269d`, `e9e3945` and `dfe5423`, then
+   `3167b5a`, `56c4870`, `00c01ef`, `cbc116c`, `685cd83`, `5a77e00`,
+   `68f0ab8`, `421980e`, `7cb96e6` and `4058e69`. The feature-table item
+   needed no change.
 10. Library-wide: reset `_status` first in every `solve()`, or document that a
-    throwing solve keeps the previous status.
+    throwing solve keeps the previous status. Still pending.
 11. Optional, and low priority: rename `solve_limit` / `max_solves` to
     `trial_limit` / `max_trials`, since the engine's unit is a trial and the
-    engine is solver-agnostic.
+    engine is solver-agnostic. Still pending.
