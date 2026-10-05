@@ -416,24 +416,24 @@ TEST_F(copt_milp_iis_test, indicator_is_background) {
 // out is minimal against the ones it names only: the counts cannot tell an
 // unrelated indicator, as here, from one whose conflict would make r
 // redundant, so the answer holds a conflict without claiming minimality.
+// The unrelated indicator acts on x: on a column of its own, 8.0.5 flags both
+// bounds of that column outside IISCols, and the answer holds no conflict.
 TEST_F(copt_milp_iis_test, iis_naming_some_indicators_is_not_irreducible) {
     using namespace operators;
     auto model = this->new_model();
     auto z = model.add_binary_variable();
     auto z2 = model.add_binary_variable();
     auto x = model.add_variable({.lower_bound = 0., .upper_bound = 10.});
-    auto y = model.add_variable({.lower_bound = 0., .upper_bound = 10.});
     model.set_variable_lower_bound(z, 1.);
     auto r = model.add_constraint(x <= 3.);
     add_indicator(model, z, 1, x, 5.);
-    add_indicator(model, z2, 1, y, 0.);
+    add_indicator(model, z2, 1, x, 0.);
     ASSERT_EQ(read_int_attr(model, "Indicators"), 2);
     const auto iis = model.compute_iis();
     EXPECT_TRUE(outcome_is<iis_outcome::incomplete>(iis.get_outcome(), true));
     EXPECT_TRUE(is_a<iis_status::member>(iis.get_status(z)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(z2)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
-    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(r)));
     EXPECT_EQ(read_int_attr(model, "IISIndicators"), 1);
 }
