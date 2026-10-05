@@ -10,6 +10,7 @@
 #include <utility>
 #include <variant>
 
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/memory_size.hpp"
@@ -392,50 +393,24 @@ public:
         }
     }
 
-private:
     // The refiner refuses to run while a generic callback is registered
     // (CPXERR_UNSUPPORTED_OPERATION, measured on 22.1.1 and 22.1.2), whatever
-    // the callback does: it is detached for the call.
-    class iis_callback_guard {
-    private:
-        cplex_milp * _model;
-
-    public:
-        explicit iis_callback_guard(cplex_milp & model)
-            : _model(model.candidate_solution_callback ? &model : nullptr) {
-            if(_model)
-                _model->check(_model->CPX->callbacksetfunc(
-                    _model->env, _model->lp, 0, nullptr, nullptr));
-        }
-        iis_callback_guard(const iis_callback_guard &) = delete;
-        iis_callback_guard & operator=(const iis_callback_guard &) = delete;
-
-        void restore() {
-            if(!_model) return;
-            auto * const model = std::exchange(_model, nullptr);
-            model->check(model->CPX->callbacksetfunc(
-                model->env, model->lp, CPX_CALLBACKCONTEXT_CANDIDATE,
-                candidate_solution_callback_fun, model));
-        }
-        // only after an exception, where a second error could not be
-        // reported
-        ~iis_callback_guard() {
-            if(!_model) return;
-            (void)_model->CPX->callbacksetfunc(
-                _model->env, _model->lp, CPX_CALLBACKCONTEXT_CANDIDATE,
-                candidate_solution_callback_fun, _model);
-        }
-    };
-
-public:
-    // The refiner replaces CPXgetstat with its own statuses, which do not
-    // describe the held solution: the reported status is reset before the
-    // native call, throw or return.
+    // the callback does: it is detached for the call. The refiner also
+    // replaces CPXgetstat with its own statuses, which do not describe the
+    // held solution: the reported status is reset before the native call,
+    // throw or return.
     auto compute_iis() {
         reset_status();
-        iis_callback_guard detached(*this);
+        const bool attached = static_cast<bool>(candidate_solution_callback);
+        if(attached) check(CPX->callbacksetfunc(env, lp, 0, nullptr, nullptr));
+        detail::restore_guard reattach([&] {
+            if(attached)
+                check(CPX->callbacksetfunc(
+                    env, lp, CPX_CALLBACKCONTEXT_CANDIDATE,
+                    candidate_solution_callback_fun, this));
+        });
         auto iis = _compute_iis();
-        detached.restore();
+        reattach.restore();
         return iis;
     }
     double get_solution_value() {
