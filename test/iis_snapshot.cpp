@@ -107,6 +107,11 @@ concept table_counts =
 
 struct possibly_lower : iis_status::member_lower {};
 
+template <typename Status, typename Tag>
+constexpr iis_sides sides_of_tag() {
+    return iis_status::sides_of(Status(std::in_place_type<Tag>));
+}
+
 template <typename Status>
 mippp::detail::handle_status_table<Status> make_table(
     std::size_t id_bound,
@@ -195,6 +200,42 @@ static_assert(!lp_iis<answer<flaw::no_outcome>, handles_only_model>);
 static_assert(!lp_iis<answer<flaw::bare_outcome>, handles_only_model>);
 static_assert(!lp_iis<answer<flaw::int_variable_count>, handles_only_model>);
 static_assert(!lp_iis<answer<flaw::int_constraint_count>, handles_only_model>);
+
+// on each path's variant
+using whole_or_sided = mippp::detail::iis_whole_or_sided_status;
+using whole_or_one_side = mippp::detail::iis_whole_or_one_side_status;
+constexpr iis_sides lower_side{.lower = true};
+constexpr iis_sides upper_side{.upper = true};
+constexpr iis_sides both_sides{.lower = true, .upper = true};
+constexpr iis_sides one_unit{.lower = true, .upper = true, .whole = true};
+static_assert(sides_of_tag<sided_status, iis_status::absent>() == iis_sides{});
+static_assert(sides_of_tag<sided_status, iis_status::member_lower>() ==
+              lower_side);
+static_assert(sides_of_tag<sided_status, iis_status::member_upper>() ==
+              upper_side);
+static_assert(sides_of_tag<sided_status, iis_status::member_both>() ==
+              both_sides);
+static_assert(sides_of_tag<whole_or_sided, iis_status::absent>() ==
+              iis_sides{});
+static_assert(sides_of_tag<whole_or_sided, iis_status::member>() == one_unit);
+static_assert(sides_of_tag<whole_or_sided, iis_status::member_lower>() ==
+              lower_side);
+static_assert(sides_of_tag<whole_or_sided, iis_status::member_upper>() ==
+              upper_side);
+static_assert(sides_of_tag<whole_or_sided, iis_status::member_both>() ==
+              both_sides);
+static_assert(sides_of_tag<whole_or_one_side, iis_status::absent>() ==
+              iis_sides{});
+static_assert(sides_of_tag<whole_or_one_side, iis_status::member>() ==
+              one_unit);
+static_assert(sides_of_tag<whole_or_one_side, iis_status::member_lower>() ==
+              lower_side);
+static_assert(sides_of_tag<whole_or_one_side, iis_status::member_upper>() ==
+              upper_side);
+static_assert(sides_of_tag<std::variant<iis_status::absent, possibly_lower,
+                                        iis_status::member>,
+                           possibly_lower>() == lower_side);
+static_assert(noexcept(iis_status::sides_of(sided_status{})));
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////// Native decoding helpers //////////////////////////

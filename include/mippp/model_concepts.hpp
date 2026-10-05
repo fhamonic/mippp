@@ -689,6 +689,38 @@ template <typename S>
 concept lp_iis_status = variant_containing_a<S, iis_status::absent> &&
                         variant_containing_a<S, iis_status::member>;
 
+// The sides of an entity that an IIS holds. whole marks a plain member, whose
+// finite sides form one unit: relaxing one of them alone may leave the
+// conflict, where each side of member_both is a unit of its own.
+struct iis_sides {
+    bool lower = false;
+    bool upper = false;
+    bool whole = false;
+    friend constexpr bool operator==(const iis_sides &,
+                                     const iis_sides &) = default;
+};
+
+namespace iis_status {
+// Decided by derivation, so a refinement tag reads as the tag it refines.
+template <lp_iis_status S>
+[[nodiscard]] constexpr iis_sides sides_of(const S & s) noexcept {
+    return std::visit(
+        []<typename Tag>(const Tag &) -> iis_sides {
+            if constexpr(std::derived_from<Tag, member_both>)
+                return {.lower = true, .upper = true};
+            else if constexpr(std::derived_from<Tag, member_lower>)
+                return {.lower = true};
+            else if constexpr(std::derived_from<Tag, member_upper>)
+                return {.upper = true};
+            else if constexpr(std::derived_from<Tag, member>)
+                return {.lower = true, .upper = true, .whole = true};
+            else
+                return {};
+        },
+        s);
+}
+}  // namespace iis_status
+
 // Generic code may rely on incomplete, irreducible and feasible only: is_a<T>
 // for a stop cause T compiles only where the path lists T or a tag under it.
 template <typename O>

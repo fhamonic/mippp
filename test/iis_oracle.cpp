@@ -220,6 +220,33 @@ TEST(iis_oracle, reads_each_tag_by_its_rule) {
     EXPECT_EQ(membership_of(row_status{iis_status::member{}}), whole);
 }
 
+// membership_of decodes on its own, so that a fault in sides_of cannot pass
+// the suites unseen; the two readings must still agree.
+TEST(iis_oracle, reads_each_tag_as_sides_of_does) {
+    const auto agree = [](const auto & status) {
+        const iis_sides sides = iis_status::sides_of(status);
+        switch(membership_of(status)) {
+            case absent:
+                return sides == iis_sides{};
+            case lower:
+                return sides == iis_sides{.lower = true};
+            case upper:
+                return sides == iis_sides{.upper = true};
+            case both:
+                return sides == iis_sides{.lower = true, .upper = true};
+            case whole:
+                return sides ==
+                       iis_sides{.lower = true, .upper = true, .whole = true};
+        }
+        return false;
+    };
+    EXPECT_TRUE(agree(sided_status{iis_status::absent{}}));
+    EXPECT_TRUE(agree(sided_status{iis_status::member_lower{}}));
+    EXPECT_TRUE(agree(sided_status{iis_status::member_upper{}}));
+    EXPECT_TRUE(agree(sided_status{iis_status::member_both{}}));
+    EXPECT_TRUE(agree(row_status{iis_status::member{}}));
+}
+
 TEST(iis_oracle, reads_a_snapshot_by_case_local_position) {
     mippp::detail::handle_status_table<sided_status> variables(3);
     variables.set(0, iis_status::member_upper{});
