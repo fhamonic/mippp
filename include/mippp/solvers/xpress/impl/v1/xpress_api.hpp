@@ -173,7 +173,6 @@ int XPRSgetiisdata(XPRSprob prob, int iis, int * p_nrows, int * p_ncols,
                    int rowind[], int colind[], char contype[], char bndtype[],
                    double duals[], double djs[], char isolationrows[],
                    char isolationcols[]);
-int XPRSiisclear(XPRSprob prob);
 
 int XPRSaddcbmessage(XPRSprob prob,
                      void (*message)(XPRSprob cbprob, void * cbdata,
@@ -269,8 +268,7 @@ namespace xpress::impl::v1 {
     F(XPRSaddcuts, addcuts)                         \
     F(XPRSloaddelayedrows, loaddelayedrows)         \
     F(XPRSiisfirst, iisfirst)                       \
-    F(XPRSgetiisdata, getiisdata)                   \
-    F(XPRSiisclear, iisclear)
+    F(XPRSgetiisdata, getiisdata)
 
 #define DECLARE_XPRESS_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);     \

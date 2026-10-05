@@ -624,7 +624,6 @@ protected:
         // of its internal MIP, where 47.01 answers feasible, so such a model
         // is answered from its columns.
         if(num_row == 0 && _columns_decide_feasibility(num_col)) {
-            check(XPRS->iisclear(prob));
             if(const auto col = _self_infeasible_column(num_col))
                 return single_column(*col);
             return finish(iis_outcome::feasible{});
@@ -722,8 +721,8 @@ protected:
                     break;
             }
         }
-        // the problem keeps the IIS data until the next search otherwise
-        check(XPRS->iisclear(prob));
+        // The IIS data is left for native_model() readers, as XPRSgetiisdata
+        // with duals and djs or XPRSiisnext: the next search clears it.
         // On a MIP the routine lists a ranged row ('R') by one side where
         // integrality needs both, so such a row is reported whole. An
         // equality row gets 'E' there, so its listed side stands.

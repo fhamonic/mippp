@@ -317,6 +317,39 @@ TEST_F(xpress_lp_iis_test, compute_iis_restores_iisops) {
     EXPECT_EQ(read_iisops(model), keep_all_variable_bounds);
 }
 
+// The routine's IIS stays readable through the native handle after the call,
+// with its Farkas multipliers: the IISOPS write-back changes no problem data.
+// Each member is needed, so each multiplier is nonzero.
+TEST_F(xpress_lp_iis_test, routine_data_stays_readable_after_the_call) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
+    auto r = model.add_constraint(x >= 2.);
+    const auto iis = model.compute_iis();
+    ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    const auto & api = model.native_api();
+    int num_rows = 0, num_cols = 0;
+    api._check(model.native_model(),
+               api.getiisdata(model.native_model(), 1, &num_rows, &num_cols,
+                              nullptr, nullptr, nullptr, nullptr, nullptr,
+                              nullptr, nullptr, nullptr));
+    ASSERT_EQ(static_cast<std::size_t>(num_rows), iis.num_constraint_members());
+    ASSERT_EQ(static_cast<std::size_t>(num_cols), iis.num_variable_members());
+    int row = -1, col = -1;
+    char row_sense = 0, bound_side = 0;
+    double dual = 0., dj = 0.;
+    api._check(model.native_model(),
+               api.getiisdata(model.native_model(), 1, &num_rows, &num_cols,
+                              &row, &col, &row_sense, &bound_side, &dual, &dj,
+                              nullptr, nullptr));
+    EXPECT_EQ(row, model.native_id(r));
+    EXPECT_EQ(col, model.native_id(x));
+    EXPECT_EQ(row_sense, 'G');
+    EXPECT_EQ(bound_side, 'U');
+    EXPECT_NE(dual, 0.);
+    EXPECT_NE(dj, 0.);
+}
+
 // XPRSiisfirst refuses the whole search on a column whose bounds admit no
 // value, even beside an unrelated row, so the column is answered from its
 // bounds.
