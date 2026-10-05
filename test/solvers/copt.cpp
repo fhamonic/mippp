@@ -164,17 +164,17 @@ struct copt_iis_test : public model_test<copt_api, Model> {
             EXPECT_EQ(iis.num_constraint_members(), 0u) << placement;
         }
     }
-    // z = value -> x >= rhs
+    // z = value -> x >= rhs, or x <= rhs under COPT_LESS_EQUAL
     static void add_indicator(Model & model, model_variable_t<Model> z,
-                              int value, model_variable_t<Model> x,
-                              double rhs) {
+                              int value, model_variable_t<Model> x, double rhs,
+                              char sense = copt::impl::v1::COPT_GREATER_EQUAL) {
         const int column = model.native_id(x);
         const double one = 1.;
         model.native_api()._check(
             model.native_model().first,
-            model.native_api().AddIndicator(
-                model.native_model().second, model.native_id(z), value, 1,
-                &column, &one, copt::impl::v1::COPT_GREATER_EQUAL, rhs));
+            model.native_api().AddIndicator(model.native_model().second,
+                                            model.native_id(z), value, 1,
+                                            &column, &one, sense, rhs));
     }
     static void add_sos1(Model & model, model_variable_t<Model> x,
                          model_variable_t<Model> y) {
@@ -410,6 +410,56 @@ TEST_F(copt_milp_iis_test, indicator_is_background) {
     EXPECT_EQ(iis.num_variable_members(), 1u);
     EXPECT_EQ(iis.num_constraint_members(), 1u);
     EXPECT_EQ(read_int_attr(model, "IISIndicators"), 1);
+}
+
+// The routine takes indicators for candidates, and an IIS that leaves one
+// out is minimal against the ones it names only: the counts cannot tell an
+// unrelated indicator, as here, from one whose conflict would make r
+// redundant, so the answer holds a conflict without claiming minimality.
+TEST_F(copt_milp_iis_test, iis_naming_some_indicators_is_not_irreducible) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto z = model.add_binary_variable();
+    auto z2 = model.add_binary_variable();
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 10.});
+    auto y = model.add_variable({.lower_bound = 0., .upper_bound = 10.});
+    model.set_variable_lower_bound(z, 1.);
+    auto r = model.add_constraint(x <= 3.);
+    add_indicator(model, z, 1, x, 5.);
+    add_indicator(model, z2, 1, y, 0.);
+    ASSERT_EQ(read_int_attr(model, "Indicators"), 2);
+    const auto iis = model.compute_iis();
+    EXPECT_TRUE(outcome_is<iis_outcome::incomplete>(iis.get_outcome(), true));
+    EXPECT_TRUE(is_a<iis_status::member>(iis.get_status(z)));
+    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(z2)));
+    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
+    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
+    EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(r)));
+    EXPECT_EQ(read_int_attr(model, "IISIndicators"), 1);
+}
+
+// Two IISs: {z, r, z -> x >= 5} and {z, z -> x >= 5, z -> x <= 2}. Against
+// the indicators as background z alone is the IIS, so an answer naming r
+// must not be irreducible, whichever IIS the routine returns.
+TEST_F(copt_milp_iis_test, irreducible_answer_never_names_a_redundant_row) {
+    using namespace operators;
+    auto model = this->new_model();
+    auto z = model.add_binary_variable();
+    auto x = model.add_variable({.lower_bound = 0., .upper_bound = 10.});
+    model.set_variable_lower_bound(z, 1.);
+    auto r = model.add_constraint(x <= 3.);
+    add_indicator(model, z, 1, x, 5.);
+    add_indicator(model, z, 1, x, 2., copt::impl::v1::COPT_LESS_EQUAL);
+    const auto iis = model.compute_iis();
+    EXPECT_TRUE(is_a<iis_status::member>(iis.get_status(z)));
+    if(read_int_attr(model, "IISIndicators") == 2) {
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+        EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r)));
+    } else {
+        EXPECT_TRUE(
+            outcome_is<iis_outcome::incomplete>(iis.get_outcome(), true));
+        EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(r)));
+    }
 }
 
 TEST_F(copt_milp_iis_test, sos_is_background) {

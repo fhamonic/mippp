@@ -743,7 +743,14 @@ protected:
                                  col_upper_flag[j] != 0,
                                  mip && !is_infinite(col_lower[j]) &&
                                      !is_infinite(col_upper[j]));
-        if(is_minimal) return answer.finish(iis_outcome::irreducible{});
+        // The routine takes native SOS and indicators for candidates, so
+        // IsMinIIS is minimality against the ones it names: against the whole
+        // background only when it names all of them, or no linear member.
+        const bool every_special_named =
+            iis_sos == num_sos && iis_indicators == num_indicators;
+        if(is_minimal &&
+           (every_special_named || flagged_rows + flagged_cols == 0))
+            return answer.finish(iis_outcome::irreducible{});
         return answer.finish(short_of(true));
     }
 };
