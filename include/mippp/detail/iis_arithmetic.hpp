@@ -2,15 +2,16 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <utility>
 
 #include "mippp/model_concepts.hpp"
 
 // What an IIS answer can be decided from by arithmetic on the model's data,
-// without a solve: the deletion filter and the native wrappers whose routines
-// fail on these models share it.
+// without a solve, on the models where a solve or a native routine fails.
 namespace mippp::detail {
 
 // The side of a row without terms that its activity, 0, violates: true for
@@ -26,10 +27,10 @@ template <typename Scalar>
 
 // Solvers report unknown on a model without columns, so the rows are read
 // instead: every left-hand side is 0, and the first side that 0 violates is
-// the whole explanation. The rows come from the caller, which has already
-// enumerated them: constraints() may build a fresh snapshot on every call.
+// the whole explanation. The rows come from the caller, which may hold them
+// already: constraints() may build a fresh snapshot on every call.
 template <typename M, std::ranges::forward_range R>
-    requires has_enumerable_constraints<M> && has_readable_constraint_bounds<M>
+    requires has_readable_constraint_bounds<M>
 [[nodiscard]] std::optional<std::pair<model_constraint_t<M>, bool>>
 iis_column_less_precheck(M & model, R && rows) {
     for(auto c : rows) {
@@ -72,6 +73,37 @@ template <typename Scalar>
         upper = std::min(upper, Scalar{1});
     }
     if(lower > upper) return iis_column_sides{true, true};
+    return std::nullopt;
+}
+
+// The kind of a column from the type codes a backend spells for the three
+// kinds; any other code is other.
+template <char Continuous, char Integer, char Binary>
+[[nodiscard]] constexpr iis_column_kind iis_column_kind_of(char type) noexcept {
+    if(type == Continuous) return iis_column_kind::continuous;
+    if(type == Integer) return iis_column_kind::integer;
+    if(type == Binary) return iis_column_kind::binary;
+    return iis_column_kind::other;
+}
+
+struct iis_self_infeasible_column_at {
+    std::size_t index;
+    iis_column_sides sides;
+};
+
+// The first column whose own bounds admit no value, over the bounds and type
+// codes a backend reads in bulk: lower and upper hold an entry per type code.
+template <char Continuous, char Integer, char Binary>
+[[nodiscard]] std::optional<iis_self_infeasible_column_at>
+iis_first_self_infeasible_column(std::span<const double> lower,
+                                 std::span<const double> upper,
+                                 std::span<const char> types) noexcept {
+    for(std::size_t j = 0; j < types.size(); ++j) {
+        if(const auto sides = iis_self_infeasible_column(
+               lower[j], upper[j],
+               iis_column_kind_of<Continuous, Integer, Binary>(types[j])))
+            return iis_self_infeasible_column_at{j, *sides};
+    }
     return std::nullopt;
 }
 

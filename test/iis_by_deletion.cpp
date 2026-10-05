@@ -12,6 +12,7 @@
 #include <optional>
 #include <ostream>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <stop_token>
 #include <string>
@@ -20,6 +21,7 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -1375,6 +1377,32 @@ TEST(iis_arithmetic, column_whose_bounds_admit_no_value) {
     EXPECT_EQ(self_infeasible_sides(1., 1., kind::binary), "none");
     // never decided, crossed or not
     EXPECT_EQ(self_infeasible_sides(2., 1., kind::other), "none");
+}
+
+static_assert(detail::iis_column_kind_of<'C', 'I', 'B'>('B') ==
+              detail::iis_column_kind::binary);
+static_assert(detail::iis_column_kind_of<'C', 'I', 'B'>('S') ==
+              detail::iis_column_kind::other);
+
+// Column 0, semi-continuous, is never decided; columns 2 and 3 both admit no
+// value.
+TEST(iis_arithmetic, first_self_infeasible_column_by_type_code) {
+    const std::vector<double> lower{2., 0.25, 1., 2.};
+    const std::vector<double> upper{1., 0.75, 0., 3.};
+    const std::vector<char> types{'S', 'C', 'I', 'B'};
+    const auto first = detail::iis_first_self_infeasible_column<'C', 'I', 'B'>(
+        lower, upper, types);
+    ASSERT_TRUE(first);
+    EXPECT_EQ(first->index, 2u);
+    EXPECT_TRUE(first->sides.lower && first->sides.upper);
+    EXPECT_FALSE((detail::iis_first_self_infeasible_column<'C', 'I', 'B'>(
+        lower, upper, std::span(types).first(2))));
+    // the codes are the backend's: here 'S' spells continuous
+    const auto continuous =
+        detail::iis_first_self_infeasible_column<'S', 'I', 'B'>(lower, upper,
+                                                                types);
+    ASSERT_TRUE(continuous);
+    EXPECT_EQ(continuous->index, 0u);
 }
 
 TEST_F(iis_by_deletion, empty_model_is_feasible) {
