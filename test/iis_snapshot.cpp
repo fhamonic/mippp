@@ -433,6 +433,29 @@ TEST(iis_snapshot, copies_answer_alike) {
     ASSERT_EQ(copy.num_variable_members(), 1u);
 }
 
+TEST(iis_answer, flags_members_and_hands_the_tables_over) {
+    using whole_row_snapshot =
+        iis_snapshot<variable, constraint, sided_status,
+                     mippp::detail::iis_whole_or_sided_status, outcome>;
+    mippp::detail::iis_answer<whole_row_snapshot> answer(3, 3);
+    answer.flag_variable(0, true, false);
+    answer.flag_variable(1, false, false, true);
+    answer.flag_variable(2, true, true, true);
+    answer.flag_constraint(0, false, true, true);
+    answer.flag_constraint(1, false, true);
+    answer.constraints.set(2, iis_status::member{});
+    const whole_row_snapshot iis = answer.finish(iis_outcome::time_limit(true));
+    EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(variable(0))));
+    EXPECT_TRUE(is<iis_status::absent>(iis.get_status(variable(1))));
+    EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(variable(2))));
+    EXPECT_TRUE(is<iis_status::member>(iis.get_status(constraint(0))));
+    EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(constraint(1))));
+    EXPECT_TRUE(is<iis_status::member>(iis.get_status(constraint(2))));
+    EXPECT_EQ(iis.num_variable_members(), 2u);
+    EXPECT_EQ(iis.num_constraint_members(), 3u);
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(iis.get_outcome(), true));
+}
+
 TEST(iis_outcome_assert, matches_the_exact_tag_and_names_the_actual_one) {
     const outcome stopped = iis_outcome::time_limit(true);
     EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(stopped));

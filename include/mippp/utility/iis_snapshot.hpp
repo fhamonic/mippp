@@ -116,6 +116,48 @@ template <typename Status>
     return Status(std::in_place_type<iis_status::member_upper>);
 }
 
+// A native routine's answer as its decoder builds it: members are flagged
+// into the two tables, then finish() names how the call ended.
+template <typename Snapshot>
+class iis_answer;
+
+template <typename Variable, typename Constraint, typename VariableStatus,
+          typename ConstraintStatus, typename Outcome>
+class iis_answer<iis_snapshot<Variable, Constraint, VariableStatus,
+                              ConstraintStatus, Outcome>> {
+public:
+    using snapshot = iis_snapshot<Variable, Constraint, VariableStatus,
+                                  ConstraintStatus, Outcome>;
+
+    // written directly where a tag does not come from side flags, as for a
+    // row named by its sense
+    handle_status_table<VariableStatus> variables;
+    handle_status_table<ConstraintStatus> constraints;
+
+    iis_answer(std::size_t variable_id_bound, std::size_t constraint_id_bound)
+        : variables(variable_id_bound), constraints(constraint_id_bound) {}
+
+    // Flagged on neither side, the entity is left unwritten, absent unless
+    // written before: iis_flagged_status would make it a member.
+    void flag_variable(std::size_t id, bool lower, bool upper,
+                       bool whole = false) {
+        if(lower || upper)
+            variables.set(
+                id, iis_flagged_status<VariableStatus>(lower, upper, whole));
+    }
+    void flag_constraint(std::size_t id, bool lower, bool upper,
+                         bool whole = false) {
+        if(lower || upper)
+            constraints.set(
+                id, iis_flagged_status<ConstraintStatus>(lower, upper, whole));
+    }
+
+    // hands the tables over: one call per answer
+    [[nodiscard]] snapshot finish(Outcome outcome) {
+        return snapshot(std::move(variables), std::move(constraints), outcome);
+    }
+};
+
 }  // namespace detail
 
 }  // namespace mippp
