@@ -1,5 +1,7 @@
 #include <gmock/gmock.h>
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <concepts>
 #include <ranges>
@@ -194,6 +196,22 @@ static_assert(iis_by_deletion_model<highs_qp>);
 // sides, not the sense and the rhs
 static_assert(!detail::iis_rows_as_sense_and_rhs<highs_lp>);
 static_assert(!detail::iis_rows_as_sense_and_rhs<highs_milp>);
+
+// The sides each IisBoundStatus code names, pinned without a library: no
+// answer a test can produce lists Dropped (-1) or Null (0), and a code past
+// Boxed (4) is one a later release would add.
+struct highs_iis_decoding : highs_lp {
+    using highs_base::_iis_bound_sides;
+};
+static_assert(highs_iis_decoding::_iis_bound_sides(2) ==
+              iis_sides{.lower = true});
+static_assert(highs_iis_decoding::_iis_bound_sides(3) ==
+              iis_sides{.upper = true});
+static_assert(highs_iis_decoding::_iis_bound_sides(4) ==
+              iis_sides{.lower = true, .upper = true});
+static_assert(std::ranges::all_of(std::array{-1, 0, 1, 5}, [](int code) {
+    return highs_iis_decoding::_iis_bound_sides(code) == iis_sides{};
+}));
 
 namespace {
 // Highs_getIis is decodable from this release on; older libraries throw

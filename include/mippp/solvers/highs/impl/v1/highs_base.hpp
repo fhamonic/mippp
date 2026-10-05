@@ -696,8 +696,8 @@ private:
     // user includes may be any release, and the status numbering changed at
     // 1.13, so only the loaded library's regime counts, and the floor below
     // leaves one.
-    static constexpr HighsInt _iis_bound_free = 1, _iis_bound_lower = 2,
-                              _iis_bound_upper = 3, _iis_bound_boxed = 4;
+    static constexpr HighsInt _iis_bound_lower = 2, _iis_bound_upper = 3,
+                              _iis_bound_boxed = 4;
     static constexpr HighsInt _iis_status_not_in_conflict = -1,
                               _iis_status_maybe_in_conflict = 0;
     // the default Light strategy finds trivial conflicts only
@@ -732,11 +732,19 @@ protected:
         iis_snapshot<variable, constraint, detail::iis_sided_status,
                      detail::iis_sided_status, iis_outcome_type>;
 
-    // the sides a listed entry names; a free entry names none
+    // Free names no side, nor do Dropped and Null, which a final listing
+    // does not hold, nor a code a later release adds: none makes a member.
     static constexpr iis_sides _iis_bound_sides(HighsInt bound) noexcept {
-        if(bound == _iis_bound_free) return {};
-        return {.lower = bound != _iis_bound_upper,
-                .upper = bound != _iis_bound_lower};
+        switch(bound) {
+            case _iis_bound_lower:
+                return {.lower = true};
+            case _iis_bound_upper:
+                return {.upper = true};
+            case _iis_bound_boxed:
+                return {.lower = true, .upper = true};
+            default:
+                return {};
+        }
     }
 
     iis_snapshot_type _compute_iis() {
@@ -859,8 +867,9 @@ protected:
                    &answer_type::flag_constraint, row);
         }
 
-        // Members, not listed entries: a listing made only of free-bound
-        // columns would otherwise claim that the background is infeasible.
+        // Members, not listed entries: a listing made only of entries that
+        // name no side, as free columns, would otherwise claim that the
+        // background is infeasible.
         if(num_members == 0) {
             const int model_status = Highs->getModelStatus(model);
             const bool solved = model_status == kHighsModelStatusOptimal ||
