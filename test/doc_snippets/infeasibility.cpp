@@ -232,10 +232,9 @@ repair_run<lp_type> teams_workshop() {
     return {iis.get_outcome(), round, model.get_status()};
 }
 
-template <typename milp_type>
 auto truck_loading() {
     // --8<-- [start:trucks]
-    milp_type model;
+    highs_milp model;
     auto trucks =
         model.add_integer_variable({.lower_bound = 0, .upper_bound = 10});
     auto load = model.add_constraint(3 * trucks == 10);  // tonnes, full trucks
@@ -684,7 +683,7 @@ TEST_F(infeasibility_page_clp_lp, repair_loop_explains_one_conflict_a_round) {
 // Integrality is background: only the row's two sides are members, and the
 // same row over a continuous variable is feasible.
 TEST_F(infeasibility_page_highs_milp, trucks_row_needs_both_sides) {
-    const auto [outcome, statuses] = truck_loading<highs_milp>();
+    const auto [outcome, statuses] = truck_loading();
     EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(outcome));
     EXPECT_TRUE(is<iis_status::absent>(statuses.first));
     EXPECT_TRUE(is<iis_status::member_both>(statuses.second));
