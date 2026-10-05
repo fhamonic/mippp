@@ -117,7 +117,8 @@ void deletion_path(Model & model, Print & print_conflict) {
 template <typename Model, typename Print>
 void native_path(Model & model, Print & print_conflict) {
     // --8<-- [start:workshop-native]
-    print_conflict(model.compute_iis());
+    const auto iis = model.compute_iis();
+    if(is<iis_outcome::irreducible>(iis.get_outcome())) print_conflict(iis);
     // --8<-- [end:workshop-native]
 }
 
