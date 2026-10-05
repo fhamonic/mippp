@@ -29,7 +29,7 @@ using constraint = model_constraint_t<Model>;
 using scalar     = model_scalar_t<Model>;     // double on current backends
 ```
 
-This matters when you store handles: a `std::vector<model_variable_t<Model>>` is the portable spelling of "the columns I created". Model classes declare no public member types, so `typename Model::variable` is not an alternative.
+This matters when you store handles: a `std::vector<model_variable_t<Model>>` is the portable spelling of "the columns I created". Model classes declare no public member type for these, so `typename Model::variable` is not an alternative. The one nested public type is a backend's callback handle, which no call returns: `candidate_solution_callback_handle_t<Model>` names it, see [Concepts on callback handles](../reference/concepts.md#concepts-on-callback-handles).
 
 ## Require the capabilities you use
 

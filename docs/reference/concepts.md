@@ -23,7 +23,7 @@ static_assert(has_dual_solution<highs_lp>);
 this page is the catalogue.
 
 Four aliases name the types a model works with, and they are the only
-portable spelling — model classes declare no public member types:
+portable spelling — model classes declare no public member type for them:
 
 - `model_variable_t<M>` and `model_constraint_t<M>`, the lightweight
   strongly-typed handles, deduced from what `add_variable()` and
