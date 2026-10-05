@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <utility>
 #include <vector>
 
 #include "mippp/model_concepts.hpp"
@@ -10,8 +11,13 @@
 #include "mippp/utility/variant.hpp"
 
 #include "iis_cases.hpp"
+#include "iis_outcome_assert.hpp"
 
 namespace mippp {
+
+template <typename M>
+using native_iis_outcome_t =
+    decltype(std::declval<const model_iis_t<M> &>().get_outcome());
 
 struct iis_native_path {
     template <typename M>
@@ -47,8 +53,8 @@ struct IisTest : public iis_cases::fixture<T, iis_native_path> {
                 build(model, c);
                 model.set_time_limit(std::chrono::seconds(0));
                 const auto iis = model.compute_iis();
-                EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-                EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
+                EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(
+                    iis.get_outcome(), false));
                 EXPECT_EQ(iis.num_variable_members(), 0u);
                 EXPECT_EQ(iis.num_constraint_members(), 0u);
                 EXPECT_EQ(model.get_time_limit().count(), 0.);
@@ -88,7 +94,7 @@ struct IisTest : public iis_cases::fixture<T, iis_native_path> {
                     handle.reject_solution();
             });
             const auto iis = model.compute_iis();
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+            EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
             EXPECT_EQ(fired, 0);
             EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
             EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
@@ -113,7 +119,8 @@ struct IisTest : public iis_cases::fixture<T, iis_native_path> {
             const iis_cases::built_case<M> built = build(model, c);
             const iis_cases::saved_model_data before = save(model, built);
             const auto native = model.compute_iis();
-            ASSERT_EQ(native.get_outcome(), iis_outcome::irreducible);
+            ASSERT_TRUE(
+                outcome_is<iis_outcome::irreducible>(native.get_outcome()));
             const iis_cases::case_answer native_answer =
                 iis_oracle::read_answer(native, built.variables,
                                         built.constraints);
@@ -121,7 +128,8 @@ struct IisTest : public iis_cases::fixture<T, iis_native_path> {
                 << answer_text(native_answer);
             expect_unchanged(model, built, before);
             const auto by_deletion = compute_iis_by_deletion(model);
-            ASSERT_EQ(by_deletion.get_outcome(), iis_outcome::irreducible);
+            ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(
+                by_deletion.get_outcome()));
             const iis_cases::case_answer deletion_answer =
                 iis_oracle::read_answer(by_deletion, built.variables,
                                         built.constraints);

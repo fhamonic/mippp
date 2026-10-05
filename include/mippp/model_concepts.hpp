@@ -689,13 +689,21 @@ template <typename S>
 concept lp_iis_status = variant_containing_a<S, iis_status::absent> &&
                         variant_containing_a<S, iis_status::member>;
 
+// Generic code may rely on incomplete, irreducible and feasible only: is_a<T>
+// for a stop cause T compiles only where the path lists T or a tag under it.
+template <typename O>
+concept lp_iis_outcome =
+    variant_of<O, iis_outcome::any> &&
+    variant_with_alternative<O, iis_outcome::incomplete> &&
+    variant_with_alternative<O, iis_outcome::irreducible> &&
+    variant_with_alternative<O, iis_outcome::feasible>;
+
 template <typename I, typename T>
 concept lp_iis =
     requires(const I & iis, model_variable_t<T> v, model_constraint_t<T> c) {
         { iis.get_status(v) } -> lp_iis_status;
         { iis.get_status(c) } -> lp_iis_status;
-        { iis.get_outcome() } -> std::same_as<iis_outcome>;
-        { iis.get_reason() } -> std::same_as<std::optional<iis_reason>>;
+        { iis.get_outcome() } -> lp_iis_outcome;
         { iis.num_variable_members() } -> std::same_as<std::size_t>;
         { iis.num_constraint_members() } -> std::same_as<std::size_t>;
     };

@@ -16,6 +16,7 @@
 #include "mippp/utility/variant.hpp"
 
 #include "iis_cases.hpp"
+#include "iis_outcome_assert.hpp"
 
 namespace mippp {
 
@@ -126,13 +127,6 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         EXPECT_FALSE(model.saw_row_side_moved_to_a_finite_value);
     }
 
-    template <typename Iis>
-    static void expect_stopped(const Iis & iis, iis_outcome outcome,
-                               iis_reason reason) {
-        EXPECT_EQ(iis.get_outcome(), outcome);
-        EXPECT_EQ(iis.get_reason(), std::optional(reason));
-    }
-
     void check_budget_sweep() {
         using namespace operators;
         // named through its namespace: MSVC does not bring in the enumerators
@@ -152,8 +146,7 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         const iis_cases::saved_model_data before = save(model, built);
 
         const auto full = compute_iis_by_deletion(model);
-        ASSERT_EQ(full.get_outcome(), iis_outcome::irreducible);
-        EXPECT_EQ(full.get_reason(), std::nullopt);
+        ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(full.get_outcome()));
         // the initial trial and one trial per side
         EXPECT_EQ(model.solves, 9u);
         const case_answer full_answer =
@@ -174,8 +167,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             const case_answer answer = iis_oracle::read_answer(
                 iis, built.variables, built.constraints);
             if(k == 0) {
-                expect_stopped(iis, iis_outcome::undetermined,
-                               iis_reason::solve_limit);
+                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    iis.get_outcome(), false));
                 EXPECT_EQ(answer, (case_answer{{absent, absent, absent},
                                                {absent, absent}}));
                 EXPECT_EQ(iis.num_variable_members(), 0u);
@@ -183,13 +176,13 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             } else if(k == 1) {
                 // the initial trial proved infeasibility and the stop kept
                 // every candidate
-                expect_stopped(iis, iis_outcome::not_proven_minimal,
-                               iis_reason::solve_limit);
+                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    iis.get_outcome(), true));
                 EXPECT_EQ(answer,
                           (case_answer{{both, both, both}, {lower, lower}}));
             } else if(k < 9) {
-                expect_stopped(iis, iis_outcome::not_proven_minimal,
-                               iis_reason::solve_limit);
+                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    iis.get_outcome(), true));
                 const std::vector<iis_oracle::side> sides =
                     reported_sides(system, answer);
                 EXPECT_FALSE(iis_oracle::is_feasible(system, sides))
@@ -200,8 +193,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
                     EXPECT_TRUE(std::ranges::find(sides, s) != sides.end())
                         << answer_text(answer);
             } else {
-                EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-                EXPECT_EQ(iis.get_reason(), std::nullopt);
+                EXPECT_TRUE(
+                    outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
                 EXPECT_EQ(answer, full_answer);
                 EXPECT_EQ(model.solves, 9u);
             }
@@ -223,8 +216,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         {
             const auto iis = compute_iis_by_deletion(
                 model, iis_limits{.stop_token = source.get_token()});
-            expect_stopped(iis, iis_outcome::undetermined,
-                           iis_reason::cancelled);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::interrupted>(iis.get_outcome(), false));
             EXPECT_EQ(iis.num_variable_members(), 0u);
             EXPECT_EQ(iis.num_constraint_members(), 0u);
             EXPECT_EQ(model.solves, 0u);
@@ -238,8 +231,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
                 model, iis_limits{.max_solves = 0,
                                   .time_limit = zero_seconds,
                                   .stop_token = source.get_token()});
-            expect_stopped(iis, iis_outcome::undetermined,
-                           iis_reason::cancelled);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::interrupted>(iis.get_outcome(), false));
             EXPECT_EQ(model.solves, 0u);
             EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
             expect_unchanged(model, built, before);
@@ -257,8 +250,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         {
             const auto iis = compute_iis_by_deletion(
                 model, iis_limits{.time_limit = zero_seconds});
-            expect_stopped(iis, iis_outcome::undetermined,
-                           iis_reason::time_limit);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::time_limit>(iis.get_outcome(), false));
             EXPECT_EQ(iis.num_variable_members(), 0u);
             EXPECT_EQ(iis.num_constraint_members(), 0u);
             EXPECT_EQ(model.solves, 0u);
@@ -268,8 +261,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         {
             const auto iis = compute_iis_by_deletion(
                 model, iis_limits{.max_solves = 0, .time_limit = zero_seconds});
-            expect_stopped(iis, iis_outcome::undetermined,
-                           iis_reason::time_limit);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::time_limit>(iis.get_outcome(), false));
             EXPECT_EQ(model.solves, 0u);
             EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
             expect_unchanged(model, built, before);
@@ -289,7 +282,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             model.solve();
             const std::size_t before = model.get_status().index();
             const auto iis = compute_iis_by_deletion(model);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
             EXPECT_EQ(iis_oracle::membership_of(iis.get_status(r0)),
                       membership::lower);
             EXPECT_EQ(model.get_status().index(), before);
@@ -302,8 +296,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             model.solves = 0;
             const auto iis =
                 compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
-            expect_stopped(iis, iis_outcome::undetermined,
-                           iis_reason::solve_limit);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
             EXPECT_EQ(model.solves, 0u);
             EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
         }
@@ -315,8 +309,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             ASSERT_TRUE(is<status::unknown>(model.get_status()));
             const auto iis =
                 compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
-            expect_stopped(iis, iis_outcome::not_proven_minimal,
-                           iis_reason::solve_limit);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), true));
             EXPECT_EQ(model.solves, 0u);
             EXPECT_TRUE(is<status::unknown>(model.get_status()));
         }
@@ -337,8 +331,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             auto r0 = model.add_constraint(no_terms >= 1.);
             auto r1 = model.add_constraint(no_terms <= 2.);
             const auto iis = compute_iis_by_deletion(model, exhausted);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-            EXPECT_EQ(iis.get_reason(), std::nullopt);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
             EXPECT_EQ(iis_oracle::membership_of(iis.get_status(r0)),
                       membership::lower);
             EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r1)));
@@ -350,8 +344,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             auto r0 = model.add_constraint(no_terms <= 2.);
             for(const iis_limits & limits : {exhausted, iis_limits{}}) {
                 const auto iis = compute_iis_by_deletion(model, limits);
-                EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
-                EXPECT_EQ(iis.get_reason(), std::nullopt);
+                EXPECT_TRUE(
+                    outcome_is<iis_outcome::feasible>(iis.get_outcome()));
                 EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r0)));
                 EXPECT_EQ(iis.num_constraint_members(), 0u);
                 EXPECT_EQ(iis.num_variable_members(), 0u);
@@ -373,8 +367,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             {
                 const auto iis =
                     compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
-                expect_stopped(iis, iis_outcome::not_proven_minimal,
-                               iis_reason::solve_limit);
+                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    iis.get_outcome(), true));
                 EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x0)), both);
                 EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x1)),
                           absent);
@@ -390,8 +384,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
                 model.solves = 0;
                 const auto iis =
                     compute_iis_by_deletion(model, iis_limits{.max_solves = 1});
-                expect_stopped(iis, iis_outcome::not_proven_minimal,
-                               iis_reason::solve_limit);
+                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    iis.get_outcome(), true));
                 EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x0)), both);
                 EXPECT_EQ(model.solves, 1u);
                 expect_unchanged(model, built, before);
@@ -399,8 +393,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             {
                 model.solves = 0;
                 const auto iis = compute_iis_by_deletion(model);
-                EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-                EXPECT_EQ(iis.get_reason(), std::nullopt);
+                EXPECT_TRUE(
+                    outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
                 EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x0)), both);
                 EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x1)),
                           absent);
@@ -425,8 +419,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
         const auto r0 = built.constraints[0];
         {
             const auto iis = compute_iis_by_deletion(model);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-            EXPECT_EQ(iis.get_reason(), std::nullopt);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
             EXPECT_EQ(iis_oracle::membership_of(iis.get_status(r0)), lower);
             EXPECT_EQ(model.solves, 2u);
             expect_probe_saw_nothing_wrong(model);
@@ -436,8 +430,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
             model.solves = 0;
             const auto iis =
                 compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
-            expect_stopped(iis, iis_outcome::not_proven_minimal,
-                           iis_reason::solve_limit);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), true));
             EXPECT_EQ(iis_oracle::membership_of(iis.get_status(r0)), both);
             EXPECT_EQ(model.solves, 0u);
             expect_unchanged(model, built, before);
@@ -470,7 +464,7 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
                   (std::vector<double>{3., -1., 0.5}));
         ASSERT_EQ(before.objective_offset, 7.);
         const auto iis = compute_iis_by_deletion(model);
-        ASSERT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         const case_answer answer =
             iis_oracle::read_answer(iis, built.variables, built.constraints);
         // two IISs exist here ({x0 upper, x1 lower, r0 lower} and one through
@@ -501,7 +495,8 @@ struct IisByDeletionTest : public iis_cases::fixture<T, iis_deletion_path> {
                 model.set_time_limit(std::chrono::duration<double>(caller));
                 const auto before = model.get_time_limit();
                 const auto iis = compute_iis_by_deletion(model, budget);
-                EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+                EXPECT_TRUE(
+                    outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
                 ASSERT_EQ(model.trial_time_limits.size(), model.solves);
                 ASSERT_GT(model.solves, 0u);
                 for(const double seen : model.trial_time_limits) {

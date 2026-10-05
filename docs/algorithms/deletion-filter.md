@@ -38,8 +38,7 @@ The engine cannot check it. Without it, the members still form a set that the or
 | Field | Holds |
 | :--- | :--- |
 | `members` | The members' indices, in ascending order. Empty unless a call proved infeasibility. |
-| `outcome` | An `iis_outcome`: `irreducible`, `not_proven_minimal`, `feasible` or `undetermined`, as in [Outcomes and reasons](../solving/infeasibility.md#outcomes-and-reasons). |
-| `reason` | A `std::optional<iis_reason>`, empty on an `irreducible` or `feasible` answer, otherwise why the run fell short. |
+| `outcome` | A `deletion_filter_outcome`, the `std::variant` over the tags of namespace `iis_outcome` that `compute_iis_by_deletion` returns too: `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit` or `solve_limit`, as in [How a run ends](../solving/infeasibility.md#how-a-run-ends). It also lists `incomplete`, the value of a result no run wrote. `iis_outcome::conflict_available(outcome)` says whether `members` holds a set the oracle found infeasible. |
 
 `irreducible` with no member means that the oracle answered `infeasible` for the empty set: what no candidate covers, the background, is infeasible on its own. A `feasible` answer comes from a single call, on the whole set.
 
@@ -83,9 +82,9 @@ The third argument is the `iis_limits` aggregate of [Diagnosing infeasibility](.
 - `time_limit` becomes one deadline when `deletion_filter` starts. A negative or NaN duration throws `std::invalid_argument` before any call, and an infinite one, the default, means no deadline;
 - `stop_token` ends the run once a stop is requested.
 
-The engine checks them before each call, never during one: an oracle call that has started runs to its end. When several are reached at once, a stop request is reported before the deadline, and the deadline before the call count. A stopped run keeps what it proved: the last set the oracle found infeasible, untested candidates included, as `not_proven_minimal`, or nothing, as `undetermined`, if it stopped before its first proof. A limit reached after the last call is not reported: a run whose final call completes the proof is `irreducible`, without a reason.
+The engine checks them before each call, never during one: an oracle call that has started runs to its end. When several are reached at once, a stop request is reported before the deadline, and the deadline before the call count. A stop is reported as `interrupted`, `time_limit` or `solve_limit`. A stopped run keeps what it proved: the last set the oracle found infeasible, untested candidates included, which `conflict_available` then reports, or nothing if it stopped before its first proof. A limit reached after the last call is not reported: a run whose final call completes the proof is `irreducible`.
 
-An `inconclusive` answer sets the reason `inconclusive_trial`, or `time_limit` when the deadline has passed by the time the call returns. A later stop replaces it with its own reason.
+After an `inconclusive` answer, a run that goes on to the end of its pass is `inconclusive_trial`, or `time_limit` when the deadline had passed by the time that call returned; the last inconclusive call decides. A later stop is reported instead. An `inconclusive` answer to the first call ends the run at once, the same way, without a conflict.
 
 Since the engine never interrupts a call, an oracle that can run long must bound itself. Here `search` stands for your own check, told how much time it has left and answering `inconclusive` when that runs out:
 
@@ -93,7 +92,7 @@ Since the engine never interrupts a call, an oracle that can run long must bound
 --8<-- "test/doc_snippets/deletion_filter.cpp:own-deadline"
 ```
 
-A call that gives up drops nothing, so the answer is then `not_proven_minimal` or `undetermined`, never `irreducible`.
+A call that gives up drops nothing, so the answer is then a tag of the `incomplete` branch, never `irreducible`.
 
 ## On a model
 
@@ -141,7 +140,7 @@ What stays unchanged still applies to every trial. A verbose model prints the lo
 
 A model without variables needs no solve, and gets none. Every row's activity is then 0, so the first row side that 0 violates, a lower side above 0 or an upper side below 0, in the order of `constraints()`, is the IIS, and without one the model is feasible. The comparison with 0 is exact. No limit stops this case, as `max_solves`, the deadline and `stop_token` are never checked, but a NaN or negative `time_limit` still throws `std::invalid_argument`. The model and its status stay as they were.
 
-A variable whose bounds cross, lower above upper, or a row whose sides cross, is infeasible on its own. The first such pair, variables before rows, stands for the proof of the whole model, and the engine continues from it with every other candidate relaxed: a first trial keeps only the upper side of the pair, and a second only the lower side, or neither side if the upper side sufficed. They decide whether both sides are needed or one suffices, as the lower side of a row without terms suffices when it is above 0. The solver never receives the crossed pair. Limits that stop the run before the two trials leave the pair as the answer, `not_proven_minimal`, with the stop's reason. HiGHS repairs sides that cross by less than its primal feasibility tolerance, while this test is exact: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations.
+A variable whose bounds cross, lower above upper, or a row whose sides cross, is infeasible on its own. The first such pair, variables before rows, stands for the proof of the whole model, and the engine continues from it with every other candidate relaxed: a first trial keeps only the upper side of the pair, and a second only the lower side, or neither side if the upper side sufficed. They decide whether both sides are needed or one suffices, as the lower side of a row without terms suffices when it is above 0. The solver never receives the crossed pair. Limits that stop the run before the two trials leave the pair as the answer, under the stop's tag, with a conflict. HiGHS repairs sides that cross by less than its primal feasibility tolerance, while this test is exact: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) in the notable limitations.
 
 ### Time limits
 
@@ -175,7 +174,7 @@ A callback that only reads its candidates changes no answer: with one that count
 | `compute_iis()`, on each of the four | `feasible` | `irreducible`: the upper bounds of `x` and `y`, and the row |
 | Filter on `gurobi_milp` | `irreducible`: the lower bounds of `x` and `y` | `irreducible`: the row alone |
 | Filter on `xpress_milp` | `irreducible`, without a member | `irreducible`, without a member |
-| Filter on `cplex_milp` and `copt_milp` | `not_proven_minimal` at the deadline, after 293,313 and about 1.2 million callback calls | `not_proven_minimal` at the deadline |
+| Filter on `cplex_milp` and `copt_milp` | `time_limit` with a conflict, after 293,313 and about 1.2 million callback calls | `time_limit` with a conflict |
 
 The cost on CPLEX and COPT comes from the relaxed integer bounds. A trial without a bound of `x` or `y` searches an unbounded domain, and the callback rejects every point the search finds, so the trial runs until a limit stops it. Bound the run through `iis_limits` when a registered callback can reject.
 

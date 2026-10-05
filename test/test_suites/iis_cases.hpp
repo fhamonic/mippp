@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -21,45 +22,10 @@
 #include "mippp/utility/variant.hpp"
 
 #include "iis_oracle.hpp"
+#include "iis_outcome_assert.hpp"
 #include "iis_vectors.hpp"
 
 namespace mippp {
-
-// GoogleTest would otherwise print these scoped enums as raw bytes
-inline void PrintTo(iis_outcome outcome, std::ostream * os) {
-    switch(outcome) {
-        case iis_outcome::irreducible:
-            *os << "irreducible";
-            return;
-        case iis_outcome::not_proven_minimal:
-            *os << "not_proven_minimal";
-            return;
-        case iis_outcome::feasible:
-            *os << "feasible";
-            return;
-        case iis_outcome::undetermined:
-            *os << "undetermined";
-            return;
-    }
-    *os << "iis_outcome(" << static_cast<int>(outcome) << ')';
-}
-inline void PrintTo(iis_reason reason, std::ostream * os) {
-    switch(reason) {
-        case iis_reason::solve_limit:
-            *os << "solve_limit";
-            return;
-        case iis_reason::time_limit:
-            *os << "time_limit";
-            return;
-        case iis_reason::cancelled:
-            *os << "cancelled";
-            return;
-        case iis_reason::inconclusive_trial:
-            *os << "inconclusive_trial";
-            return;
-    }
-    *os << "iis_reason(" << static_cast<int>(reason) << ')';
-}
 
 namespace iis_oracle {
 inline void PrintTo(membership m, std::ostream * os) {
@@ -105,6 +71,18 @@ using iis_oracle::membership;
 
 inline constexpr auto none = std::nullopt;
 
+// every case decides
+using case_outcome =
+    std::variant<iis_outcome::irreducible, iis_outcome::feasible>;
+
+template <typename Outcome>
+::testing::AssertionResult outcome_is_expected(const Outcome & o,
+                                               const case_outcome & expected) {
+    return std::visit(
+        [&]<typename Tag>(const Tag &) { return outcome_is<Tag>(o); },
+        expected);
+}
+
 // A case is the oracle's linear system plus what the oracle cannot see: which
 // columns are integer, and, for those cases, the answers that are correct
 // once integrality is background.
@@ -116,7 +94,7 @@ struct iis_case {
     // exact answers, any one of which is accepted. Empty on an LP case, whose
     // answer the oracle validates instead; an integer case must list them.
     std::vector<case_answer> accepted_answers;
-    iis_outcome expected_outcome;
+    case_outcome expected_outcome;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -309,7 +287,7 @@ inline iis_case bounds_against_a_row_case() {
             {{{0., 1.}, {0., 1.}}, {{{{0, 1.}, {1, 1.}}, 3., none}}},
             {},
             {{{upper, upper}, {lower}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 inline iis_case one_side_of_an_equality_row_case() {
     using enum membership;
@@ -317,7 +295,7 @@ inline iis_case one_side_of_an_equality_row_case() {
             {{{0., none}}, {{{{0, 1.}}, -1., -1.}}},
             {},
             {{{lower}, {upper}}, {{lower}, {whole}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 inline iis_case integer_equal_to_one_half_case() {
     using enum membership;
@@ -325,7 +303,7 @@ inline iis_case integer_equal_to_one_half_case() {
             {{{none, none}}, {{{{0, 1.}}, 0.5, 0.5}}},
             {0},
             {{{absent}, {both}}, {{absent}, {whole}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 // integrality makes the first row redundant: r1 alone has no integer point
 inline iis_case integers_summing_to_one_half_case() {
@@ -336,7 +314,7 @@ inline iis_case integers_summing_to_one_half_case() {
             {0, 1},
             {{{absent, absent}, {absent, both}},
              {{absent, absent}, {absent, whole}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 // the row keeps the model from being row-less; only integrality conflicts
 inline iis_case integer_in_a_fractional_interval_case() {
@@ -345,7 +323,7 @@ inline iis_case integer_in_a_fractional_interval_case() {
             {{{0.25, 0.75}}, {{{{0, 1.}}, none, 5.}}},
             {0},
             {{{both}, {absent}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 // a routine that cannot side a ranged row reports it whole, like an equality
 inline iis_case ranged_row_lower_side_case() {
@@ -354,7 +332,7 @@ inline iis_case ranged_row_lower_side_case() {
             {{{0., 1.}, {0., 1.}}, {{{{0, 1.}, {1, 1.}}, 3., 4.}}},
             {},
             {{{upper, upper}, {lower}}, {{upper, upper}, {whole}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 inline iis_case ranged_row_upper_side_case() {
     using enum membership;
@@ -362,7 +340,7 @@ inline iis_case ranged_row_upper_side_case() {
             {{{2., none}}, {{{{0, 1.}}, -1., 1.}}},
             {},
             {{{lower}, {upper}}, {{lower}, {whole}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 // integrality needs both sides: x <= 1.75 alone admits 1 and x >= 1.25 alone
 // admits 2, so a routine that names one side claims a feasible subsystem
@@ -372,7 +350,7 @@ inline iis_case ranged_row_holding_no_integer_case() {
             {{{-10., 10.}}, {{{{0, 1.}}, 1.25, 1.75}}},
             {0},
             {{{absent}, {both}}, {{absent}, {whole}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 // two IISs, {x0 lower, r0 upper} and {x0 lower, r1 upper}: the oracle decides
 inline iis_case redundant_rows_case() {
@@ -384,7 +362,7 @@ inline iis_case redundant_rows_case() {
               {{{0, 1.}}, -5., none}}},
             {},
             {},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 inline iis_case two_disjoint_conflicts_case() {
     return {
@@ -392,7 +370,7 @@ inline iis_case two_disjoint_conflicts_case() {
         {{{0., 1.}, {0., 1.}}, {{{{0, 1.}}, 2., none}, {{{1, 1.}}, 2., none}}},
         {},
         {},
-        iis_outcome::irreducible};
+        iis_outcome::irreducible{}};
 }
 inline iis_case chain_where_every_row_is_needed_case() {
     using enum membership;
@@ -404,7 +382,7 @@ inline iis_case chain_where_every_row_is_needed_case() {
               {{{3, 1.}, {0, -1.}}, 1., none}}},
             {},
             {{{absent, absent, absent, absent}, {lower, lower, lower, lower}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 // x1 and r0 make the crossed pair a strict subset of the candidates
 inline iis_case crossed_variable_bounds_case() {
@@ -413,7 +391,7 @@ inline iis_case crossed_variable_bounds_case() {
             {{{1., 0.}, {0., 5.}}, {{{{1, 1.}}, none, 3.}}},
             {},
             {{{both, absent}, {absent}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 inline iis_case crossed_row_sides_case() {
     using enum membership;
@@ -422,7 +400,7 @@ inline iis_case crossed_row_sides_case() {
              {{{{0, 1.}}, 1., 0.}, {{{1, 1.}}, none, 3.}}},
             {},
             {{{absent, absent}, {both, absent}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 // 0 >= 1 is infeasible on its own, so the upper side of the crossed row is
 // not needed: both sides would be reducible
@@ -432,14 +410,14 @@ inline iis_case crossed_term_less_row_case() {
             {{{0., 1.}}, {{{}, 1., 0.}, {{{0, 1.}}, none, 3.}}},
             {},
             {{{absent}, {lower, absent}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 inline iis_case feasible_model_case() {
     return {"feasible_model",
             {{{0., 1.}, {0., 1.}}, {{{{0, 1.}, {1, 1.}}, none, 3.}}},
             {},
             {},
-            iis_outcome::feasible};
+            iis_outcome::feasible{}};
 }
 inline iis_case feasible_integer_model_case() {
     using enum membership;
@@ -447,7 +425,7 @@ inline iis_case feasible_integer_model_case() {
             {{{0., 4.}, {0., 4.}}, {{{{0, 1.}, {1, 1.}}, none, 6.5}}},
             {0, 1},
             {{{absent, absent}, {absent}}},
-            iis_outcome::feasible};
+            iis_outcome::feasible{}};
 }
 // x + y >= 3 against x <= 1 and y <= 1, beside a row the conflict does not
 // need: Gurobi, HiGHS and COPT answer a singleton conflict before they read
@@ -462,7 +440,7 @@ inline iis_case four_row_conflict_case() {
               {{{0, 1.}, {1, -1.}}, none, 10.}}},
             {},
             {{{absent, absent}, {lower, upper, upper, absent}}},
-            iis_outcome::irreducible};
+            iis_outcome::irreducible{}};
 }
 // the same conflict on a MIP, which some routines answer on another path
 inline iis_case integer_four_row_conflict_case() {
@@ -538,11 +516,8 @@ struct fixture : public T {
                   const built_case<M> & built) {
         const case_answer answer =
             iis_oracle::read_answer(iis, built.variables, built.constraints);
-        ASSERT_EQ(iis.get_outcome(), c.expected_outcome) << answer_text(answer);
-        if(c.expected_outcome == iis_outcome::irreducible ||
-           c.expected_outcome == iis_outcome::feasible) {
-            EXPECT_EQ(iis.get_reason(), std::nullopt);
-        }
+        ASSERT_TRUE(outcome_is_expected(iis.get_outcome(), c.expected_outcome))
+            << answer_text(answer);
         // The side of a one-sided entity is known from the model, so it is
         // always named: whole is left to an entity whose two sides a routine
         // does not tell apart.
@@ -558,7 +533,7 @@ struct fixture : public T {
                         (row.lower && row.upper))
                 << "row " << i << " is whole with one side";
         }
-        if(c.expected_outcome == iis_outcome::feasible) {
+        if(is<iis_outcome::feasible>(c.expected_outcome)) {
             for(const membership m : answer.variables)
                 EXPECT_EQ(m, membership::absent);
             for(const membership m : answer.rows)
@@ -608,9 +583,9 @@ struct fixture : public T {
         ASSERT_NO_FATAL_FAILURE(validate(c, iis, built));
         expect_unchanged(model, built, before);
         model.solve();
-        if(c.expected_outcome == iis_outcome::irreducible) {
+        if(is<iis_outcome::irreducible>(c.expected_outcome)) {
             EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
-        } else if(c.expected_outcome == iis_outcome::feasible) {
+        } else {
             EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
         }
     }
@@ -627,7 +602,7 @@ struct fixture : public T {
                                  transform(v.system),
                                  {},
                                  {},
-                                 iis_outcome::irreducible};
+                                 iis_outcome::irreducible{}};
                 if(!can_build<M>(c) || skip_reason(c)) continue;
                 ++runs;
                 auto model = this->new_model();
@@ -660,7 +635,8 @@ struct fixture : public T {
                                      {{{{0, 1.}, {1, 1.}}, 3., none}}};
             const case_answer answer = iis_oracle::read_answer(
                 iis, std::vector{x, z}, std::vector{r0});
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
             EXPECT_TRUE(iis_oracle::is_iis(live, answer));
             EXPECT_EQ(answer, (case_answer{{upper, upper}, {lower}}));
             EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
@@ -683,7 +659,8 @@ struct fixture : public T {
             auto y = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
             auto r0 = model.add_constraint(x + y >= 3.);
             auto iis = Path::compute(model);
-            ASSERT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+            ASSERT_TRUE(
+                outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
             model.remove_variable(x);
             EXPECT_EQ(iis_oracle::membership_of(iis.get_status(x)), upper);
             EXPECT_EQ(iis_oracle::membership_of(iis.get_status(y)), upper);
@@ -710,12 +687,13 @@ struct fixture : public T {
             ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
             model.set_variable_upper_bound(x, 3.);
             auto iis = Path::compute(model);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+            EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
             EXPECT_EQ(iis.num_variable_members(), 0u);
             EXPECT_EQ(iis.num_constraint_members(), 0u);
             model.set_variable_upper_bound(x, 1.);
             auto iis2 = Path::compute(model);
-            EXPECT_EQ(iis2.get_outcome(), iis_outcome::irreducible);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(iis2.get_outcome()));
             const linear_system system{{{0., 1.}}, {{{{0, 1.}}, 2., none}}};
             const case_answer answer =
                 iis_oracle::read_answer(iis2, std::vector{x}, std::vector{r0});
@@ -742,7 +720,7 @@ struct fixture : public T {
         built_case<M> built{{x, y}, {r0, r1}};
         saved_model_data before = save(model, built);
         auto iis = Path::compute(model);
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+        EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
         expect_unchanged(model, built, before);
         model.solve();
         ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
@@ -758,7 +736,7 @@ struct fixture : public T {
         ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
         before = save(model, built);
         auto iis2 = Path::compute(model);
-        EXPECT_EQ(iis2.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis2.get_outcome()));
         const linear_system system{{{0., 4.}, {0., 4.}},
                                    {{{{0, 1.}, {1, 1.}}, none, 6.},
                                     {{{0, 1.}, {1, -1.}}, -2., none},
@@ -781,8 +759,7 @@ struct fixture : public T {
         auto r0 = model.add_constraint(no_terms >= 1.);
         auto r1 = model.add_constraint(no_terms <= 2.);
         auto iis = Path::compute(model);
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-        EXPECT_EQ(iis.get_reason(), std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_EQ(iis_oracle::membership_of(iis.get_status(r0)),
                   membership::lower);
         EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r1)));
@@ -800,7 +777,8 @@ struct fixture : public T {
             model.solve();
             ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
             const auto iis = Path::compute(model);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
             EXPECT_TRUE(is<status::unknown>(model.get_status()));
             model.solve();
             EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
@@ -811,7 +789,7 @@ struct fixture : public T {
             model.solve();
             ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
             const auto iis = Path::compute(model);
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+            EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
             EXPECT_TRUE(is<status::unknown>(model.get_status()));
             model.solve();
             EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
@@ -841,7 +819,8 @@ struct fixture : public T {
                 model.set_time_limit(std::chrono::seconds(3));
                 const auto before = model.get_time_limit();
                 const auto iis = Path::compute(model);
-                EXPECT_EQ(iis.get_outcome(), c.expected_outcome);
+                EXPECT_TRUE(
+                    outcome_is_expected(iis.get_outcome(), c.expected_outcome));
                 EXPECT_EQ(model.get_time_limit(), before);
                 EXPECT_EQ(model.get_time_limit(), std::chrono::seconds(3));
             }
@@ -869,7 +848,7 @@ struct fixture : public T {
                 auto r0 = model.add_constraint(z >= 1.);
                 model.add_indicator_constraint(z, true, x >= 5.);
                 const auto iis = Path::compute(model);
-                expect_accepted_answer(iis, iis_outcome::irreducible,
+                expect_accepted_answer(iis, iis_outcome::irreducible{},
                                        std::vector{z, x}, std::vector{r0},
                                        {{{absent, upper}, {lower}}});
             }
@@ -884,7 +863,7 @@ struct fixture : public T {
                 auto r0 = model.add_constraint(x >= 2.);
                 model.add_indicator_constraint(z, true, x + y <= 5.);
                 const auto iis = Path::compute(model);
-                expect_accepted_answer(iis, iis_outcome::irreducible,
+                expect_accepted_answer(iis, iis_outcome::irreducible{},
                                        std::vector{z, x, y}, std::vector{r0},
                                        {{{absent, upper, absent}, {lower}}});
             }
@@ -902,7 +881,7 @@ struct fixture : public T {
                 model.add_indicator_constraint(z, false, x <= 1.);
                 auto r0 = model.add_constraint(y <= 3.);
                 const auto iis = Path::compute(model);
-                expect_accepted_answer(iis, iis_outcome::irreducible,
+                expect_accepted_answer(iis, iis_outcome::irreducible{},
                                        std::vector{z, x, y}, std::vector{r0},
                                        {{{absent, absent, absent}, {absent}}});
                 model.solve();
@@ -912,13 +891,13 @@ struct fixture : public T {
     }
 
 private:
-    template <typename Iis, typename Variables, typename Constraints>
-    void expect_accepted_answer(const Iis & iis, iis_outcome outcome,
+    template <typename Iis, typename Tag, typename Variables,
+              typename Constraints>
+    void expect_accepted_answer(const Iis & iis, Tag,
                                 const Variables & variables,
                                 const Constraints & constraints,
                                 const std::vector<case_answer> & accepted) {
-        ASSERT_EQ(iis.get_outcome(), outcome);
-        EXPECT_EQ(iis.get_reason(), std::nullopt);
+        ASSERT_TRUE(outcome_is<Tag>(iis.get_outcome()));
         const case_answer answer =
             iis_oracle::read_answer(iis, variables, constraints);
         EXPECT_TRUE(std::ranges::find(accepted, answer) != accepted.end())

@@ -12,6 +12,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/detail/handle_status_table.hpp"
@@ -602,13 +603,36 @@ private:
         }
         return std::nullopt;
     }
+    // Without rows, sets, general or PWL constraints, the columns hold any
+    // conflict, unless one has a kind whose admissible values the arithmetic
+    // does not decide.
+    bool _columns_decide_feasibility(std::size_t num_col) {
+        int num_sets, num_gencons, num_pwls;
+        check(XPRS->getintattrib(prob, XPRS_SETS, &num_sets));
+        check(XPRS->getintattrib(prob, XPRS_GENCONS, &num_gencons));
+        check(XPRS->getintattrib(prob, XPRS_PWLCONS, &num_pwls));
+        if(num_sets > 0 || num_gencons > 0 || num_pwls > 0) return false;
+        if(num_col == 0) return true;
+        std::vector<char> types(num_col);
+        check(XPRS->getcoltype(prob, types.data(), 0,
+                               static_cast<int>(num_col) - 1));
+        return std::ranges::none_of(types, [](char type) {
+            return _iis_column_kind(type) == detail::iis_column_kind::other;
+        });
+    }
 
 protected:
+    using iis_outcome_type =
+        std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                     iis_outcome::feasible, iis_outcome::stopped,
+                     iis_outcome::time_limit>;
+
     template <typename VariableStatus, typename ConstraintStatus>
-    iis_snapshot<variable, constraint, VariableStatus, ConstraintStatus>
+    iis_snapshot<variable, constraint, VariableStatus, ConstraintStatus,
+                 iis_outcome_type>
     _compute_iis(const bool mip) {
         using snapshot = iis_snapshot<variable, constraint, VariableStatus,
-                                      ConstraintStatus>;
+                                      ConstraintStatus, iis_outcome_type>;
         iis_option_guard guard(*XPRS, prob, _iis_background_ops);
         // The routine reads the model's TIMELIMIT as a fresh budget of its
         // own, so nothing else is set for the call. Its stop status covers a
@@ -628,31 +652,40 @@ protected:
         const std::size_t num_row = num_constraints();
         detail::handle_status_table<VariableStatus> variable_table(num_col);
         detail::handle_status_table<ConstraintStatus> constraint_table(num_row);
-        const auto answer = [&](iis_outcome outcome,
-                                std::optional<iis_reason> reason =
-                                    std::nullopt) {
+        const auto answer = [&](iis_outcome_type outcome) {
             guard.restore();
             return snapshot(std::move(variable_table),
-                            std::move(constraint_table), outcome, reason);
+                            std::move(constraint_table), outcome);
         };
+        const auto single_column = [&](const self_infeasible_column & col) {
+            variable_table.set(col.index,
+                               detail::iis_flagged_status<VariableStatus>(
+                                   col.sides.lower, col.sides.upper, false));
+            return answer(iis_outcome::irreducible{});
+        };
+        // On 45.01 the routine stops a feasible MIP without rows on the gap
+        // of its internal MIP, where 47.01 answers feasible, so such a model
+        // is answered from its columns.
+        if(num_row == 0 && _columns_decide_feasibility(num_col)) {
+            check(XPRS->iisclear(prob));
+            if(const auto col = _self_infeasible_column(num_col))
+                return single_column(*col);
+            return answer(iis_outcome::feasible{});
+        }
         // The routine refuses the whole search on a column whose bounds admit
         // no value, even when the conflict is elsewhere, and
         // XPRSgetlasterror is empty after it: such a column is an IIS by
         // itself, the answer given here.
         if(call_status == _iis_call_error) {
-            if(const auto col = _self_infeasible_column(num_col)) {
-                variable_table.set(
-                    col->index, detail::iis_flagged_status<VariableStatus>(
-                                    col->sides.lower, col->sides.upper, false));
-                return answer(iis_outcome::irreducible);
-            }
+            if(const auto col = _self_infeasible_column(num_col))
+                return single_column(*col);
             throw solver_error(
                 "mippp: XPRSiisfirst refused the search, as it does on a "
                 "column whose bounds admit no value, and no continuous, "
                 "integer or binary column has such bounds");
         }
         if(call_status == _iis_call_feasible)
-            return answer(iis_outcome::feasible);
+            return answer(iis_outcome::feasible{});
         if(call_status != _iis_call_success && call_status != _iis_call_stopped)
             throw solver_error(
                 ("mippp: XPRSiisfirst returned the unknown status " +
@@ -670,11 +703,13 @@ protected:
         // interrupt or an iteration limit set through the native handle.
         const bool stopped = call_status == _iis_call_stopped ||
                              (completion == XPRS_IIS_UNSTARTED && num_iis < 1);
-        const std::optional<iis_reason> stop_reason =
-            stopped && elapsed + _iis_stop_clock_slack >= budget
-                ? std::optional(iis_reason::time_limit)
-                : std::nullopt;
-        if(num_iis < 1) return answer(iis_outcome::undetermined, stop_reason);
+        const auto short_of = [&](bool conflict) -> iis_outcome_type {
+            if(!stopped) return iis_outcome::incomplete(conflict);
+            if(elapsed + _iis_stop_clock_slack >= budget)
+                return iis_outcome::time_limit(conflict);
+            return iis_outcome::stopped(conflict);
+        };
+        if(num_iis < 1) return answer(short_of(false));
 
         int iis_num_row = 0, iis_num_col = 0;
         check(XPRS->getiisdata(prob, 1, &iis_num_row, &iis_num_col, nullptr,
@@ -755,8 +790,8 @@ protected:
                        col_lower[j] != 0, col_upper[j] != 0, false));
         }
         if(completion == XPRS_IIS_COMPLETED)
-            return answer(iis_outcome::irreducible);
-        return answer(iis_outcome::not_proven_minimal, stop_reason);
+            return answer(iis_outcome::irreducible{});
+        return answer(short_of(true));
     }
 };
 

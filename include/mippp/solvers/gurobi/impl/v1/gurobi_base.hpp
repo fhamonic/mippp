@@ -5,13 +5,13 @@
 #include <cstddef>
 #include <memory>
 #include <numeric>
-#include <optional>
 #include <ranges>
 #include <ratio>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/detail/handle_status_table.hpp"
@@ -762,10 +762,40 @@ private:
     };
 
 protected:
+    // Status names a cause on gurobi_lp only: a stopped MIP reads 1
+    using iis_outcome_type =
+        std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                     iis_outcome::feasible, iis_outcome::stopped,
+                     iis_outcome::interrupted, iis_outcome::limit_reached,
+                     iis_outcome::time_limit, iis_outcome::iteration_limit,
+                     iis_outcome::memory_limit>;
     // IISConstr flags a row's membership, never a side
     using iis_snapshot_type =
         iis_snapshot<variable, constraint, iis_sided_status,
-                     detail::iis_whole_or_one_side_status>;
+                     detail::iis_whole_or_one_side_status, iis_outcome_type>;
+
+    // Read after a stop that left no subsystem only: a complete answer keeps
+    // the Status of the last solve and a partial one reads 3 (measured on
+    // 12.0.1), neither naming the stop. 7, 9 and 16 were measured after a
+    // stop; 11, 15 and 17 take the meaning the solve status gives them.
+    // clang-format off
+    static iis_outcome_type _iis_stop_outcome(int status,
+                                              bool out_of_time) noexcept {
+        using namespace iis_outcome;
+        switch(status) {
+            case GRB_TIME_LIMIT:      return time_limit{};
+            case GRB_ITERATION_LIMIT: return iteration_limit{};
+            case GRB_MEM_LIMIT:       return memory_limit{};
+            case GRB_INTERRUPTED:     return interrupted{};
+            // no dedicated tag: these collapse into limit_reached
+            case GRB_USER_OBJ_LIMIT:
+            case GRB_WORK_LIMIT:      return limit_reached{};
+            default:
+                if(out_of_time) return time_limit{};
+                return stopped{};
+        }
+    }
+    // clang-format on
 
     iis_snapshot_type _compute_iis() {
         _lazily_remove_variables();
@@ -788,22 +818,24 @@ protected:
                                    std::chrono::steady_clock::now() - start)
                                    .count();
         // never reached under the default 1e100, always under a zero limit
-        const std::optional<iis_reason> stop_reason =
-            elapsed >= budget ? std::optional(iis_reason::time_limit)
-                              : std::nullopt;
+        const bool out_of_time = elapsed >= budget;
 
         // A stop before any subsystem was found, whatever the limit, leaves
         // the IIS attributes unset and returns 0: asking for one of them is
         // the only way to know.
         int minimal = 0;
         bool answered = false;
+        int stop_status = 0;
         std::vector<int> lower_in_iis(num_col), upper_in_iis(num_col),
             row_in_iis(num_row);
         std::vector<char> senses(num_row);
         if(code == 0) {
             const int minimal_code =
                 GRB->getintattr(model, GRB_INT_ATTR_IIS_MINIMAL, &minimal);
-            if(minimal_code != GRB_ERROR_DATA_NOT_AVAILABLE) {
+            if(minimal_code == GRB_ERROR_DATA_NOT_AVAILABLE) {
+                check(
+                    GRB->getintattr(model, GRB_INT_ATTR_STATUS, &stop_status));
+            } else {
                 check(minimal_code);
                 answered = true;
                 // an empty vector has no buffer to hand over
@@ -830,12 +862,12 @@ protected:
         if(code == GRB_ERROR_IIS_NOT_INFEASIBLE)
             return iis_snapshot_type(std::move(variable_table),
                                      std::move(constraint_table),
-                                     iis_outcome::feasible);
+                                     iis_outcome::feasible{});
         check(code);
         if(!answered)
-            return iis_snapshot_type(std::move(variable_table),
-                                     std::move(constraint_table),
-                                     iis_outcome::undetermined, stop_reason);
+            return iis_snapshot_type(
+                std::move(variable_table), std::move(constraint_table),
+                _iis_stop_outcome(stop_status, out_of_time));
 
         for(std::size_t j = 0; j < num_col; ++j) {
             const bool lower = lower_in_iis[j] != 0;
@@ -858,10 +890,11 @@ protected:
         if(minimal != 0)
             return iis_snapshot_type(std::move(variable_table),
                                      std::move(constraint_table),
-                                     iis_outcome::irreducible);
-        return iis_snapshot_type(std::move(variable_table),
-                                 std::move(constraint_table),
-                                 iis_outcome::not_proven_minimal, stop_reason);
+                                     iis_outcome::irreducible{});
+        return iis_snapshot_type(
+            std::move(variable_table), std::move(constraint_table),
+            out_of_time ? iis_outcome_type(iis_outcome::time_limit(true))
+                        : iis_outcome_type(iis_outcome::incomplete(true)));
     }
 };
 

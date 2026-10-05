@@ -1,5 +1,6 @@
 #include <array>
 #include <chrono>
+#include <concepts>
 #include <cstddef>
 #include <limits>
 #include <numeric>
@@ -8,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/solvers/cplex/all.hpp"
@@ -137,12 +139,48 @@ INSTANTIATE_TEST(CPLEX_milp, VerbosityTest, cplex_milp_test);
 
 static_assert(has_iis<cplex_lp>);
 static_assert(has_iis<cplex_milp>);
+static_assert(
+    std::same_as<
+        native_iis_outcome_t<cplex_lp>,
+        std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                     iis_outcome::feasible, iis_outcome::interrupted,
+                     iis_outcome::limit_reached, iis_outcome::time_limit,
+                     iis_outcome::iteration_limit, iis_outcome::node_limit,
+                     iis_outcome::memory_limit>>);
+static_assert(std::same_as<native_iis_outcome_t<cplex_milp>,
+                           native_iis_outcome_t<cplex_lp>>);
 static_assert(iis_by_deletion_model<cplex_lp>);
 static_assert(iis_by_deletion_model<cplex_milp>);
 // CPLEX ranges a row through its row-bound setters, so the filter writes the
 // sides, not the sense and the rhs
 static_assert(!detail::iis_rows_as_sense_and_rhs<cplex_lp>);
 static_assert(!detail::iis_rows_as_sense_and_rhs<cplex_milp>);
+
+// The cause of each conflict-abort status, pinned without a licence since no
+// test run reaches 36 to 38.
+struct cplex_iis_mapping : cplex_lp {
+    using cplex_base::_conflict_abort_outcome;
+};
+TEST(cplex_conflict_abort_outcome, names_the_cause_of_each_abort) {
+    using namespace cplex::impl::v1;
+    const auto map = &cplex_iis_mapping::_conflict_abort_outcome;
+    EXPECT_TRUE(outcome_is<iis_outcome::incomplete>(
+        map(CPX_STAT_CONFLICT_ABORT_CONTRADICTION), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(
+        map(CPX_STAT_CONFLICT_ABORT_TIME_LIM), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::iteration_limit>(
+        map(CPX_STAT_CONFLICT_ABORT_IT_LIM), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::node_limit>(
+        map(CPX_STAT_CONFLICT_ABORT_NODE_LIM), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::limit_reached>(
+        map(CPX_STAT_CONFLICT_ABORT_OBJ_LIM), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::memory_limit>(
+        map(CPX_STAT_CONFLICT_ABORT_MEM_LIM), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(
+        map(CPX_STAT_CONFLICT_ABORT_USER), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::limit_reached>(
+        map(CPX_STAT_CONFLICT_ABORT_DETTIME_LIM), false));
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Row bounds /////////////////////////////////
@@ -226,11 +264,11 @@ template <typename Model>
 void check_compute_iis_after_a_stop_refines_afresh(Model model) {
     const auto rows = add_row_conflict(model);
     model.set_time_limit(std::chrono::seconds(0));
-    ASSERT_EQ(model.compute_iis().get_outcome(), iis_outcome::undetermined);
+    ASSERT_TRUE(outcome_is<iis_outcome::time_limit>(
+        model.compute_iis().get_outcome(), false));
     model.set_time_limit(std::chrono::hours(1));
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(rows[0])));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(rows[1])));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(rows[2])));
@@ -247,12 +285,12 @@ template <typename Model>
 void check_compute_iis_after_a_stop_refines_afresh_once_moved(Model model) {
     const auto rows = add_row_conflict(model);
     model.set_time_limit(std::chrono::seconds(0));
-    ASSERT_EQ(model.compute_iis().get_outcome(), iis_outcome::undetermined);
+    ASSERT_TRUE(outcome_is<iis_outcome::time_limit>(
+        model.compute_iis().get_outcome(), false));
     Model moved = std::move(model);
     moved.set_time_limit(std::chrono::hours(1));
     const auto iis = moved.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(rows[0])));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(rows[1])));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(rows[2])));
@@ -290,7 +328,7 @@ void check_compute_iis_sets_nothing(Model model) {
     model.set_time_limit(std::chrono::seconds(3));
     const auto before = read();
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(read(), before);
 }
 }  // namespace
@@ -315,26 +353,26 @@ TEST_F(cplex_milp_test, compute_iis_sets_nothing_on_the_problem) {
 }
 
 // The refiner runs under the simplex iteration limit too, and a stop by it
-// is no answer, with no reason since only the time limit has one. Unlike a
-// time-limit stop, CPLEX keeps this one on the unchanged problem, the next
-// calls ending on a contradiction whatever their preference, until a bound
-// or a side is written, even to its current value (measured on 22.1.1 and
-// 22.1.2).
+// is no answer. Unlike a time-limit stop, CPLEX keeps this one on the unchanged
+// problem, the next calls ending on a contradiction whatever their preference,
+// until a bound or a side is written, even to its current value (measured
+// on 22.1.1 and 22.1.2).
 TEST_F(cplex_lp_test, iteration_limit_stops_compute_iis_without_an_answer) {
     auto model = new_model();
     const auto x = iis_cases::build(model, iis_cases::four_row_conflict_case())
                        .variables[0];
     model.set_iteration_limit(0);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::iteration_limit>(iis.get_outcome(), false));
     EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_EQ(model.get_iteration_limit(), 0u);
     model.set_iteration_limit(std::numeric_limits<std::size_t>::max());
-    EXPECT_EQ(model.compute_iis().get_outcome(), iis_outcome::undetermined);
+    EXPECT_TRUE(outcome_is<iis_outcome::incomplete>(
+        model.compute_iis().get_outcome(), false));
     model.set_variable_upper_bound(x, model.get_variable_upper_bound(x));
     const auto afterwards = model.compute_iis();
-    EXPECT_EQ(afterwards.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(afterwards.get_outcome()));
     EXPECT_EQ(afterwards.num_constraint_members(), 3u);
 }
 
@@ -367,8 +405,7 @@ TEST_F(cplex_milp_test, node_limit_stops_compute_iis_without_an_answer) {
     ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
     model.set_node_limit(0);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::node_limit>(iis.get_outcome(), false));
     EXPECT_EQ(iis.num_variable_members(), 0u);
     EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_EQ(model.get_node_limit(), 0u);

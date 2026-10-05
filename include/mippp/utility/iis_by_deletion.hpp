@@ -67,7 +67,7 @@ concept iis_by_deletion_model =
 template <iis_by_deletion_model M>
 using iis_by_deletion_t =
     iis_snapshot<model_variable_t<M>, model_constraint_t<M>, iis_sided_status,
-                 iis_sided_status>;
+                 iis_sided_status, deletion_filter_outcome>;
 
 namespace detail {
 
@@ -447,7 +447,7 @@ template <iis_by_deletion_model M>
             mark(rows, candidates.row_sides[k - num_variable_sides]);
     }
     return iis_by_deletion_t<M>(std::move(variables), std::move(rows),
-                                answer.outcome, answer.reason);
+                                answer.outcome);
 }
 
 }  // namespace detail
@@ -482,11 +482,11 @@ template <iis_by_deletion_model M>
                               : iis_sided_status(iis_status::member_upper{}));
             return iis_by_deletion_t<M>(std::move(variable_table),
                                         std::move(row_table),
-                                        iis_outcome::irreducible, std::nullopt);
+                                        iis_outcome::irreducible{});
         }
         return iis_by_deletion_t<M>(std::move(variable_table),
-                                    std::move(row_table), iis_outcome::feasible,
-                                    std::nullopt);
+                                    std::move(row_table),
+                                    iis_outcome::feasible{});
     }
     const auto candidates =
         detail::iis_enumerate_deletion_candidates(model, variables);

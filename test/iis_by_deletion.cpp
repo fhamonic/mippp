@@ -34,6 +34,7 @@
 #include "mippp/utility/variant.hpp"
 
 #include "assert_helper.hpp"
+#include "iis_outcome_assert.hpp"
 #include "test_suites/iis_oracle.hpp"
 
 using namespace mippp;
@@ -701,6 +702,18 @@ static_assert(lp_iis<iis_by_deletion_t<iis_stub_model<false, false>>,
                      iis_stub_model<false, false>>);
 static_assert(lp_iis<iis_by_deletion_t<iis_stub_probe<true, true>>,
                      iis_stub_probe<true, true>>);
+static_assert(
+    std::same_as<
+        deletion_filter_outcome,
+        std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                     iis_outcome::feasible, iis_outcome::inconclusive_trial,
+                     iis_outcome::interrupted, iis_outcome::time_limit,
+                     iis_outcome::solve_limit>>);
+static_assert(lp_iis_outcome<deletion_filter_outcome>);
+static_assert(std::same_as<decltype(std::declval<const iis_by_deletion_t<
+                                        iis_stub_model<false, false>> &>()
+                                        .get_outcome()),
+                           deletion_filter_outcome>);
 static_assert(lp_iis_status<iis_sided_status> &&
               std::same_as<std::variant_alternative_t<0, iis_sided_status>,
                            iis_status::absent>);
@@ -822,12 +835,6 @@ struct iis_by_deletion : ::testing::Test {
     static membership status_of(const Iis & iis, Handle handle) {
         return iis_oracle::membership_of(iis.get_status(handle));
     }
-    template <typename Iis>
-    static void expect_outcome(const Iis & iis, iis_outcome outcome,
-                               std::optional<iis_reason> reason) {
-        EXPECT_EQ(iis.get_outcome(), outcome);
-        EXPECT_EQ(iis.get_reason(), reason);
-    }
     template <typename M>
     static void expect_untouched(const M & model, const stub_data & before) {
         EXPECT_EQ(model.data(), before);
@@ -847,15 +854,17 @@ struct iis_by_deletion : ::testing::Test {
         model.reset_recording();
     }
 
+    template <typename Tag>
     static void expect_scripted_single_variable(
-        std::deque<std::optional<iis_stub_status>> script, iis_outcome outcome,
-        std::optional<iis_reason> reason, membership x_status) {
+        std::deque<std::optional<iis_stub_status>> script, Tag expected,
+        membership x_status) {
         stub model;
         const auto x = bounded_variable(model, 0.0, 10.0);
         const std::size_t expected_solves = script.size();
         model.script = std::move(script);
         const auto iis = compute_iis_by_deletion(model);
-        expect_outcome(iis, outcome, reason);
+        EXPECT_TRUE(
+            outcome_is<Tag>(iis.get_outcome(), expected.conflict_available));
         EXPECT_EQ(model.solves, expected_solves);
         EXPECT_EQ(status_of(iis, x), x_status);
         EXPECT_EQ(iis.num_variable_members(),
@@ -874,16 +883,16 @@ struct iis_by_deletion : ::testing::Test {
                 model, iis_limits{.max_solves = b, .time_limit = time_limit});
             EXPECT_LE(model.solves, b);
             if(b == 0) {
-                expect_outcome(iis, iis_outcome::undetermined,
-                               iis_reason::solve_limit);
+                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    iis.get_outcome(), false));
                 expect_untouched(model, before);
                 continue;
             }
             expect_restored(model, before);
             EXPECT_TRUE(is<status::unknown>(model.get_status()));
             if(b < 8) {
-                expect_outcome(iis, iis_outcome::not_proven_minimal,
-                               iis_reason::solve_limit);
+                EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+                    iis.get_outcome(), true));
                 // the conflict is never dropped
                 const auto x_status = status_of(iis, h.x);
                 EXPECT_TRUE(x_status == membership::upper ||
@@ -895,7 +904,8 @@ struct iis_by_deletion : ::testing::Test {
                     << "b = " << b;
                 continue;
             }
-            expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
             EXPECT_EQ(model.solves, 8u);
             EXPECT_EQ(status_of(iis, h.x), membership::upper);
             EXPECT_EQ(status_of(iis, h.y), membership::absent);
@@ -911,7 +921,7 @@ struct iis_by_deletion : ::testing::Test {
                                           constraint r2,
                                           const iis_limits & limits) {
         const auto iis = compute_iis_by_deletion(model, limits);
-        expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_EQ(status_of(iis, r0), membership::absent);
         EXPECT_EQ(status_of(iis, r1), membership::lower);
         EXPECT_EQ(status_of(iis, r2), membership::absent);
@@ -922,15 +932,14 @@ struct iis_by_deletion : ::testing::Test {
         EXPECT_TRUE(is<status::optimal>(model.get_status()));
     }
 
-    template <typename M>
-    static void expect_crossed_pair_at_zero_budget(const iis_limits & limits,
-                                                   iis_reason reason) {
+    template <typename M, typename Stop>
+    static void expect_crossed_pair_at_zero_budget(const iis_limits & limits) {
         M model;
         const auto [x, y, r] = crossed_variable_model(model);
         prime_optimal(model);
         const auto before = model.data();
         const auto iis = compute_iis_by_deletion(model, limits);
-        expect_outcome(iis, iis_outcome::not_proven_minimal, reason);
+        EXPECT_TRUE(outcome_is<Stop>(iis.get_outcome(), true));
         EXPECT_EQ(status_of(iis, x), membership::both);
         EXPECT_EQ(status_of(iis, y), membership::absent);
         EXPECT_EQ(status_of(iis, r), membership::absent);
@@ -947,59 +956,59 @@ struct iis_by_deletion : ::testing::Test {
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST_F(iis_by_deletion, failed_with_a_solution_is_inconclusive) {
-    expect_scripted_single_variable(
-        {status::failed{true}}, iis_outcome::undetermined,
-        iis_reason::inconclusive_trial, membership::absent);
+    expect_scripted_single_variable({status::failed{true}},
+                                    iis_outcome::inconclusive_trial(false),
+                                    membership::absent);
 }
 
 TEST_F(iis_by_deletion, numerical_failure_is_inconclusive) {
-    expect_scripted_single_variable(
-        {status::numerical_failure{true}}, iis_outcome::undetermined,
-        iis_reason::inconclusive_trial, membership::absent);
+    expect_scripted_single_variable({status::numerical_failure{true}},
+                                    iis_outcome::inconclusive_trial(false),
+                                    membership::absent);
 }
 
 TEST_F(iis_by_deletion, time_limit_with_a_solution_proves_feasibility) {
     expect_scripted_single_variable({status::time_limit{true}},
-                                    iis_outcome::feasible, std::nullopt,
+                                    iis_outcome::feasible{},
                                     membership::absent);
 }
 
 TEST_F(iis_by_deletion, time_limit_without_a_solution_is_inconclusive) {
-    expect_scripted_single_variable(
-        {status::time_limit{false}}, iis_outcome::undetermined,
-        iis_reason::inconclusive_trial, membership::absent);
+    expect_scripted_single_variable({status::time_limit{false}},
+                                    iis_outcome::inconclusive_trial(false),
+                                    membership::absent);
 }
 
 TEST_F(iis_by_deletion, infeasible_or_unbounded_proves_infeasibility) {
     expect_scripted_single_variable({status::infeasible_or_unbounded{},
                                      status::optimal{}, status::optimal{}},
-                                    iis_outcome::irreducible, std::nullopt,
+                                    iis_outcome::irreducible{},
                                     membership::both);
 }
 
 TEST_F(iis_by_deletion, primal_and_dual_infeasible_proves_infeasibility) {
     expect_scripted_single_variable({status::primal_and_dual_infeasible{},
                                      status::optimal{}, status::optimal{}},
-                                    iis_outcome::irreducible, std::nullopt,
+                                    iis_outcome::irreducible{},
                                     membership::both);
 }
 
 TEST_F(iis_by_deletion, optimal_infeasible_unscaled_is_inconclusive) {
-    expect_scripted_single_variable(
-        {status::optimal_infeasible_unscaled{}}, iis_outcome::undetermined,
-        iis_reason::inconclusive_trial, membership::absent);
+    expect_scripted_single_variable({status::optimal_infeasible_unscaled{}},
+                                    iis_outcome::inconclusive_trial(false),
+                                    membership::absent);
 }
 
 TEST_F(iis_by_deletion, unbounded_is_inconclusive) {
-    expect_scripted_single_variable(
-        {status::unbounded{}}, iis_outcome::undetermined,
-        iis_reason::inconclusive_trial, membership::absent);
+    expect_scripted_single_variable({status::unbounded{}},
+                                    iis_outcome::inconclusive_trial(false),
+                                    membership::absent);
 }
 
 TEST_F(iis_by_deletion, unknown_is_inconclusive) {
-    expect_scripted_single_variable(
-        {status::unknown{}}, iis_outcome::undetermined,
-        iis_reason::inconclusive_trial, membership::absent);
+    expect_scripted_single_variable({status::unknown{}},
+                                    iis_outcome::inconclusive_trial(false),
+                                    membership::absent);
 }
 
 // drop lower -> trial({upper}) inconclusive keeps it; drop upper ->
@@ -1007,8 +1016,7 @@ TEST_F(iis_by_deletion, unknown_is_inconclusive) {
 TEST_F(iis_by_deletion, inconclusive_singleton_keeps_the_member) {
     expect_scripted_single_variable(
         {status::infeasible{}, status::failed{true}, status::optimal{}},
-        iis_outcome::not_proven_minimal, iis_reason::inconclusive_trial,
-        membership::both);
+        iis_outcome::inconclusive_trial(true), membership::both);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1022,7 +1030,7 @@ TEST_F(iis_by_deletion, feasible_model_makes_one_solve) {
     model.add_constraint(x <= 5);
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::feasible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
     EXPECT_EQ(model.solves, 1u);
     EXPECT_EQ(iis.num_variable_members(), 0u);
     EXPECT_EQ(iis.num_constraint_members(), 0u);
@@ -1037,7 +1045,7 @@ TEST_F(iis_by_deletion, background_alone_infeasible_has_no_member) {
     model.add_variable({.lower_bound = -model.infinity()});
     model.script = {status::infeasible{}};
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(iis.num_variable_members(), 0u);
     EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_EQ(model.solves, 1u);
@@ -1049,7 +1057,7 @@ TEST_F(iis_by_deletion, bound_and_row_conflict_is_irreducible) {
     const auto h = conflict_model(model);
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, h.x), membership::upper);
     EXPECT_EQ(status_of(iis, h.y), membership::absent);
     EXPECT_EQ(status_of(iis, h.r0), membership::lower);
@@ -1067,7 +1075,7 @@ TEST_F(iis_by_deletion, ranged_row_sides_are_separate_candidates) {
     const auto x = bounded_variable(model, 9.0, 12.0);
     const auto r = model.add_ranged_constraint(x, 2.0, 8.0);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, x), membership::lower);
     EXPECT_EQ(status_of(iis, r), membership::upper);
     EXPECT_EQ(model.solves, 5u);
@@ -1083,7 +1091,7 @@ TEST_F(iis_by_deletion, wrong_infinity_side_is_a_candidate) {
     EXPECT_EQ(model.get_constraint_lower_bound(r), inf);
     EXPECT_EQ(model.get_constraint_upper_bound(r), inf);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, r), membership::lower);
     EXPECT_EQ(status_of(iis, x), membership::absent);
     EXPECT_EQ(model.solves, 4u);
@@ -1096,7 +1104,7 @@ TEST_F(iis_by_deletion, every_finite_side_is_enumerated_in_id_order) {
     stub model;
     const auto [x, y, r0, r1, r2] = conflict_model(model);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     const std::vector<stub_write> expected = {
         // initial trial: no side written
         {stub_side::variable_lower, x.id(), -inf},  // candidate 0, dropped
@@ -1127,7 +1135,7 @@ TEST_F(iis_by_deletion, data_is_restored_after_a_complete_run) {
     conflict_model(model, true);
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     expect_restored(model, before);
     EXPECT_TRUE(model.is_maximization());
     EXPECT_EQ(model.objective_writes, 2u);
@@ -1138,7 +1146,7 @@ TEST_F(iis_by_deletion, lazy_objective_is_restored) {
     stub model;
     const auto h = conflict_model(model);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(model.get_objective_coefficient(h.x), 3.0);
     EXPECT_EQ(model.get_objective_coefficient(h.y), -2.0);
     EXPECT_EQ(model.get_objective_offset(), 7.0);
@@ -1158,7 +1166,7 @@ TEST_F(iis_by_deletion, quadratic_objective_is_restored) {
     model.set_quadratic_objective(x * x + 2 * x * y + 3 * x + 1);
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     ASSERT_QUAD_TERMS(model.get_quadratic_objective().quadratic_terms(),
                       {{x, x, 1.0}, {x, y, 2.0}});
     EXPECT_EQ(model.get_objective_coefficient(x), 3.0);
@@ -1219,7 +1227,8 @@ TEST_F(iis_by_deletion, nothing_is_written_before_the_first_trial) {
         const auto before = model.data();
         const auto iis =
             compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
-        expect_outcome(iis, iis_outcome::undetermined, iis_reason::solve_limit);
+        EXPECT_TRUE(
+            outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
         EXPECT_EQ(model.solves, 0u);
         expect_untouched(model, before);
     }
@@ -1229,7 +1238,8 @@ TEST_F(iis_by_deletion, nothing_is_written_before_the_first_trial) {
         const auto before = model.data();
         const auto iis = compute_iis_by_deletion(
             model, iis_limits{.max_solves = 0, .time_limit = 3600s});
-        expect_outcome(iis, iis_outcome::undetermined, iis_reason::solve_limit);
+        EXPECT_TRUE(
+            outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
         EXPECT_EQ(model.solves, 0u);
         expect_untouched(model, before);
         EXPECT_EQ(model.time_limit_reads, 0u);
@@ -1263,7 +1273,7 @@ TEST_F(iis_by_deletion, column_less_upper_side_below_zero) {
     stub model;
     const auto r = add_row(model, -inf, -3.0);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, r), membership::upper);
     EXPECT_EQ(model.solves, 0u);
 }
@@ -1273,7 +1283,7 @@ TEST_F(iis_by_deletion, column_less_first_violated_side_wins) {
     const auto r0 = add_row(model, -inf, -1.0);
     const auto r1 = add_row(model, 2.0, inf);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, r0), membership::upper);
     EXPECT_EQ(status_of(iis, r1), membership::absent);
     EXPECT_EQ(iis.num_constraint_members(), 1u);
@@ -1287,7 +1297,7 @@ TEST_F(iis_by_deletion, column_less_precheck_compares_exactly_with_zero) {
         add_row(model, -inf, 0.0);
         add_row(model, 0.0, 0.0);
         const auto iis = compute_iis_by_deletion(model);
-        expect_outcome(iis, iis_outcome::feasible, std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
         EXPECT_EQ(iis.num_constraint_members(), 0u);
         EXPECT_EQ(model.solves, 0u);
     }
@@ -1295,7 +1305,7 @@ TEST_F(iis_by_deletion, column_less_precheck_compares_exactly_with_zero) {
         stub model;
         const auto r = add_row(model, 1e-300, inf);
         const auto iis = compute_iis_by_deletion(model);
-        expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_EQ(status_of(iis, r), membership::lower);
     }
     {
@@ -1304,7 +1314,7 @@ TEST_F(iis_by_deletion, column_less_precheck_compares_exactly_with_zero) {
         stub model;
         const auto r = add_row(model, inf, inf);
         const auto iis = compute_iis_by_deletion(model);
-        expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_EQ(status_of(iis, r), membership::lower);
     }
 }
@@ -1317,7 +1327,7 @@ TEST_F(iis_by_deletion, column_less_after_removing_every_variable) {
     model.remove_variable(x);
     EXPECT_TRUE(model.variables().empty());
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, r), membership::lower);
     EXPECT_EQ(status_of(iis, x), membership::absent);
     EXPECT_EQ(model.solves, 0u);
@@ -1369,21 +1379,21 @@ TEST(iis_arithmetic, column_whose_bounds_admit_no_value) {
 TEST_F(iis_by_deletion, empty_model_is_feasible) {
     stub model;
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::feasible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
     EXPECT_EQ(iis.num_variable_members(), 0u);
     EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_EQ(model.solves, 0u);
 }
 
 TEST_F(iis_by_deletion, crossed_pair_at_zero_budget_is_the_proven_pair) {
-    expect_crossed_pair_at_zero_budget<stub>(iis_limits{.max_solves = 0},
-                                             iis_reason::solve_limit);
-    expect_crossed_pair_at_zero_budget<stub>(iis_limits{.time_limit = 0s},
-                                             iis_reason::time_limit);
+    expect_crossed_pair_at_zero_budget<stub, iis_outcome::solve_limit>(
+        iis_limits{.max_solves = 0});
+    expect_crossed_pair_at_zero_budget<stub, iis_outcome::time_limit>(
+        iis_limits{.time_limit = 0s});
     std::stop_source source;
     source.request_stop();
-    expect_crossed_pair_at_zero_budget<stub>(
-        iis_limits{.stop_token = source.get_token()}, iis_reason::cancelled);
+    expect_crossed_pair_at_zero_budget<stub, iis_outcome::interrupted>(
+        iis_limits{.stop_token = source.get_token()});
 }
 
 TEST_F(iis_by_deletion, crossed_variable_is_decided_by_two_trials) {
@@ -1391,7 +1401,7 @@ TEST_F(iis_by_deletion, crossed_variable_is_decided_by_two_trials) {
     const auto [x, y, r] = crossed_variable_model(model);
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, x), membership::both);
     EXPECT_EQ(status_of(iis, y), membership::absent);
     EXPECT_EQ(status_of(iis, r), membership::absent);
@@ -1412,7 +1422,7 @@ TEST_F(iis_by_deletion, crossed_variable_side_infeasible_alone) {
     const auto [x, y, r] = crossed_variable_model(model);
     model.script = {status::infeasible{}, status::optimal{}};
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, x), membership::upper);
     EXPECT_EQ(status_of(iis, y), membership::absent);
     EXPECT_EQ(status_of(iis, r), membership::absent);
@@ -1425,7 +1435,7 @@ TEST_F(iis_by_deletion, crossed_row_without_terms_needs_one_side) {
     const auto x = bounded_variable(model, 0.0, 1.0);
     const auto r = add_row(model, 2.0, 1.0);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, r), membership::lower);
     EXPECT_EQ(status_of(iis, x), membership::absent);
     EXPECT_EQ(model.solves, 2u);
@@ -1436,7 +1446,7 @@ TEST_F(iis_by_deletion, crossed_row_with_terms_needs_both_sides) {
     const auto x = bounded_variable(model, 0.0, 10.0);
     const auto r = model.add_ranged_constraint(x, 7.0, 3.0);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, r), membership::both);
     EXPECT_EQ(status_of(iis, x), membership::absent);
     EXPECT_EQ(model.solves, 2u);
@@ -1448,7 +1458,7 @@ TEST_F(iis_by_deletion, first_crossed_pair_in_enumeration_order_is_used) {
     const auto y = bounded_variable(model, 5.0, 2.0);
     const auto r = add_row(model, 2.0, 1.0);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, x), membership::both);
     EXPECT_EQ(status_of(iis, y), membership::absent);
     EXPECT_EQ(status_of(iis, r), membership::absent);
@@ -1465,8 +1475,7 @@ TEST_F(iis_by_deletion, crossed_pair_under_one_solve) {
     const auto before = model.data();
     const auto iis =
         compute_iis_by_deletion(model, iis_limits{.max_solves = 1});
-    expect_outcome(iis, iis_outcome::not_proven_minimal,
-                   iis_reason::solve_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), true));
     EXPECT_EQ(status_of(iis, x), membership::both);
     EXPECT_EQ(model.solves, 1u);
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
@@ -1484,7 +1493,7 @@ TEST_F(iis_by_deletion, status_is_unknown_after_a_run_that_solved) {
         prime_optimal(model);
         model.script = {status::optimal{}};
         const auto iis = compute_iis_by_deletion(model);
-        expect_outcome(iis, iis_outcome::feasible, std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
         EXPECT_TRUE(is<status::unknown>(model.get_status()));
     }
     {
@@ -1492,7 +1501,7 @@ TEST_F(iis_by_deletion, status_is_unknown_after_a_run_that_solved) {
         conflict_model(model);
         prime_optimal(model);
         const auto iis = compute_iis_by_deletion(model);
-        expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_TRUE(is<status::unknown>(model.get_status()));
     }
 }
@@ -1503,7 +1512,7 @@ TEST_F(iis_by_deletion, status_is_kept_when_no_solve_ran) {
     prime_optimal(model);
     const auto iis =
         compute_iis_by_deletion(model, iis_limits{.max_solves = 0});
-    expect_outcome(iis, iis_outcome::undetermined, iis_reason::solve_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
     EXPECT_TRUE(is<status::optimal>(model.get_status()));
 }
 
@@ -1525,7 +1534,7 @@ TEST_F(iis_by_deletion, stop_requested_beforehand) {
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(
         model, iis_limits{.stop_token = source.get_token()});
-    expect_outcome(iis, iis_outcome::undetermined, iis_reason::cancelled);
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(iis.get_outcome(), false));
     EXPECT_EQ(model.solves, 0u);
     expect_untouched(model, before);
 }
@@ -1536,7 +1545,7 @@ TEST_F(iis_by_deletion, zero_time_budget) {
     const auto before = model.data();
     const auto iis =
         compute_iis_by_deletion(model, iis_limits{.time_limit = 0s});
-    expect_outcome(iis, iis_outcome::undetermined, iis_reason::time_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(iis.get_outcome(), false));
     EXPECT_EQ(model.solves, 0u);
     expect_untouched(model, before);
 }
@@ -1566,7 +1575,7 @@ TEST_F(iis_by_deletion, stop_requested_during_a_trial_keeps_the_proven_set) {
     };
     const auto iis = compute_iis_by_deletion(
         model, iis_limits{.stop_token = source.get_token()});
-    expect_outcome(iis, iis_outcome::not_proven_minimal, iis_reason::cancelled);
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(iis.get_outcome(), true));
     EXPECT_EQ(status_of(iis, h.x), membership::both);
     EXPECT_EQ(status_of(iis, h.y), membership::both);
     EXPECT_EQ(status_of(iis, h.r0), membership::lower);
@@ -1587,7 +1596,7 @@ TEST_F(iis_by_deletion, default_limits_never_touch_the_time_limit) {
     timed_stub model;
     conflict_model(model);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(model.time_limit_reads, 0u);
     EXPECT_TRUE(model.time_limit_writes.empty());
 }
@@ -1599,7 +1608,7 @@ TEST_F(iis_by_deletion, infinite_time_limit_never_touches_the_time_limit) {
         conflict_model(model);
         const auto iis =
             compute_iis_by_deletion(model, iis_limits{.time_limit = limit});
-        expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_EQ(model.time_limit_reads, 0u);
         EXPECT_TRUE(model.time_limit_writes.empty());
     }
@@ -1615,7 +1624,7 @@ TEST_F(iis_by_deletion, finite_deadline_forwards_min_of_remaining_and_saved) {
         conflict_model(model);
         const auto iis =
             compute_iis_by_deletion(model, iis_limits{.time_limit = 3600s});
-        expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_EQ(model.time_limit_reads, 1u);
         const auto & writes = model.time_limit_writes;
         // one per trial plus the restore
@@ -1649,7 +1658,7 @@ TEST_F(iis_by_deletion, caller_limit_shorter_than_saved) {
     conflict_model(model);
     const auto iis =
         compute_iis_by_deletion(model, iis_limits{.time_limit = 1s});
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     const auto & writes = model.time_limit_writes;
     ASSERT_EQ(writes.size(), model.solves + 1);
     for(std::size_t i = 0; i + 1 < writes.size(); ++i) {
@@ -1680,7 +1689,7 @@ TEST_F(iis_by_deletion, untimed_model_ignores_a_finite_deadline) {
     const auto h = conflict_model(model);
     const auto iis =
         compute_iis_by_deletion(model, iis_limits{.time_limit = 3600s});
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, h.x), membership::upper);
     EXPECT_EQ(status_of(iis, h.r0), membership::lower);
     EXPECT_EQ(model.solves, 8u);
@@ -1691,7 +1700,7 @@ TEST_F(iis_by_deletion, no_time_limit_is_read_when_no_trial_runs) {
     conflict_model(model);
     const auto iis = compute_iis_by_deletion(
         model, iis_limits{.max_solves = 0, .time_limit = 3600s});
-    expect_outcome(iis, iis_outcome::undetermined, iis_reason::solve_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(iis.get_outcome(), false));
     EXPECT_EQ(model.time_limit_reads, 0u);
     EXPECT_TRUE(model.time_limit_writes.empty());
 }
@@ -1706,7 +1715,7 @@ TEST_F(iis_by_deletion, handles_the_enumeration_skips_read_absent) {
     const auto x1 = bounded_variable(model, 2.0, 1.0);
     model.remove_variable(x0);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, x1), membership::both);
     EXPECT_EQ(status_of(iis, x0), membership::absent);
     EXPECT_EQ(iis.num_variable_members(), 1u);
@@ -1744,7 +1753,7 @@ TEST_F(iis_by_deletion, rows_without_bound_setters_take_a_sense_and_an_rhs) {
     model.reset_recording();
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, x), membership::upper);
     EXPECT_EQ(status_of(iis, equal), membership::lower);
     EXPECT_EQ(status_of(iis, at_most), membership::absent);
@@ -1793,7 +1802,7 @@ TEST_F(iis_by_deletion, one_sided_rows_are_relaxed_through_their_rhs_alone) {
     model.reset_recording();
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, x), membership::upper);
     EXPECT_EQ(status_of(iis, y), membership::absent);
     EXPECT_EQ(status_of(iis, at_least), membership::lower);
@@ -1831,7 +1840,7 @@ TEST_F(iis_by_deletion, a_row_without_its_sides_is_free_then_restored_whole) {
     model.reset_recording();
     const auto before = model.data();
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(status_of(iis, x), membership::upper);
     EXPECT_EQ(status_of(iis, at_least), membership::lower);
     EXPECT_EQ(status_of(iis, equal), membership::absent);
@@ -1878,7 +1887,7 @@ TEST_F(iis_by_deletion,
     probe model;
     conflict_model(model, true);
     const auto iis = compute_iis_by_deletion(model);
-    expect_outcome(iis, iis_outcome::irreducible, std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     ASSERT_EQ(model.solves, 8u);
     ASSERT_EQ(model.trials.size(), 8u);
     ASSERT_TRUE(model.row_terms_at_construction.has_value());

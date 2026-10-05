@@ -1,9 +1,11 @@
 #include <gmock/gmock.h>
 
 #include <chrono>
+#include <concepts>
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <variant>
 
 #include "mippp/solvers/highs/all.hpp"
 
@@ -165,7 +167,7 @@ TEST_F(highs_qp_test, deletion_filter_keeps_the_quadratic_objective) {
     model.add_constraint(x >= 2.);
     model.set_quadratic_objective(v * v - 2 * v + x);
     const auto iis = compute_iis_by_deletion(model);
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     ASSERT_QUAD_EXPR(model.get_quadratic_objective(), {{v, v, 1.}},
                      {{x, 1.}, {v, -2.}}, 0.);
     model.set_variable_upper_bound(x, 3.);
@@ -176,6 +178,13 @@ TEST_F(highs_qp_test, deletion_filter_keeps_the_quadratic_objective) {
 
 static_assert(has_iis<highs_lp>);
 static_assert(has_iis<highs_qp>);
+// the routine names no stop but the time limit
+static_assert(
+    std::same_as<native_iis_outcome_t<highs_lp>,
+                 std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                              iis_outcome::feasible, iis_outcome::time_limit>>);
+static_assert(std::same_as<native_iis_outcome_t<highs_qp>,
+                           native_iis_outcome_t<highs_lp>>);
 // the routine explains the relaxation only
 static_assert(!has_iis<highs_milp>);
 static_assert(iis_by_deletion_model<highs_lp>);
@@ -240,7 +249,7 @@ struct highs_iis_test : public model_test<highs_api, Model> {
     // it, so a limit that stops a solve leaves the answer whole.
     static void expect_answer_under_zero_iteration_limit(Model & model) {
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_EQ(iis.num_constraint_members(), 6u);
         EXPECT_EQ(iis.num_variable_members(), 0u);
         EXPECT_EQ(model.get_iteration_limit(), 0u);
@@ -305,7 +314,7 @@ TEST_F(highs_lp_iis_test, compute_iis_restores_its_options) {
     model.set_time_limit(std::chrono::seconds(3));
     add_bound_row_conflict(model);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(read_iis_strategy(model), strategy_before);
     EXPECT_EQ(read_iis_time_limit(model), iis_time_limit_before);
 }
@@ -338,7 +347,7 @@ TEST_F(highs_qp_iis_test, compute_iis_keeps_the_quadratic_objective) {
     auto v = model.add_variable();
     model.set_quadratic_objective(v * v + x);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     ASSERT_QUAD_EXPR(model.get_quadratic_objective(), {{v, v, 1.}},
                      {{x, 1.}, {v, 0.}}, 0.);
 }
@@ -359,7 +368,7 @@ TEST_F(highs_lp_iis_test, one_row_answer_on_a_row_wise_matrix) {
     model.native_api()._check(model.native_api().changeRowBounds(
         model.native_model(), model.native_id(c), 1., 0.));
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(c)));
     EXPECT_EQ(iis.num_constraint_members(), 1u);
     EXPECT_EQ(iis.num_variable_members(), 0u);
@@ -387,7 +396,7 @@ TEST_F(highs_lp_iis_test, crossed_row_without_terms_keeps_one_side) {
         model.native_api()._check(model.native_api().changeRowBounds(
             model.native_model(), model.native_id(c), r.lower, r.upper));
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         if(r.lower_side_expected)
             EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(c)));
         else

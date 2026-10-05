@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <concepts>
 #include <cstddef>
 #include <limits>
 #include <optional>
@@ -8,6 +9,7 @@
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "mippp/solvers/xpress/all.hpp"
@@ -280,7 +282,8 @@ struct xpress_iis_test : public xpress_deletion_test<Model> {
             model.set_variable_lower_bound(x, lower);
             model.set_variable_upper_bound(x, upper);
             const auto iis = model.compute_iis();
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible) << placement;
+            EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()))
+                << placement;
             EXPECT_TRUE(is<Side>(iis.get_status(x))) << placement;
             EXPECT_EQ(iis.num_variable_members(), 1u) << placement;
             EXPECT_EQ(iis.num_constraint_members(), 0u) << placement;
@@ -291,6 +294,13 @@ using xpress_lp_iis_test = xpress_iis_test<xpress_lp>;
 using xpress_milp_iis_test = xpress_iis_test<xpress_milp>;
 static_assert(has_iis<xpress_lp>);
 static_assert(has_iis<xpress_milp>);
+static_assert(
+    std::same_as<native_iis_outcome_t<xpress_lp>,
+                 std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                              iis_outcome::feasible, iis_outcome::stopped,
+                              iis_outcome::time_limit>>);
+static_assert(std::same_as<native_iis_outcome_t<xpress_milp>,
+                           native_iis_outcome_t<xpress_lp>>);
 INSTANTIATE_TEST(Xpress_lp, IisTest, xpress_lp_iis_test);
 INSTANTIATE_TEST(Xpress_milp, IisTest, xpress_milp_iis_test);
 
@@ -303,7 +313,7 @@ TEST_F(xpress_lp_iis_test, compute_iis_restores_iisops) {
     write_iisops(model, keep_all_variable_bounds);
     add_bound_row_conflict(model);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(read_iisops(model), keep_all_variable_bounds);
 }
 
@@ -319,7 +329,7 @@ TEST_F(xpress_lp_iis_test, crossed_column_is_answered_from_its_bounds) {
     auto y = model.add_variable({.lower_bound = 0., .upper_bound = 5.});
     auto r = model.add_constraint(y <= 3.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r)));
@@ -329,6 +339,19 @@ TEST_F(xpress_lp_iis_test, crossed_column_is_answered_from_its_bounds) {
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
     EXPECT_EQ(model.get_variable_lower_bound(x), 1.);
     EXPECT_EQ(model.get_variable_upper_bound(x), 0.);
+}
+
+// Without rows the columns hold any conflict, so the model is answered from
+// their bounds, under a zero limit too: 45.01 stops on the gap of the
+// routine's internal MIP on this feasible model.
+TEST_F(xpress_milp_iis_test, model_without_rows_is_answered_from_its_columns) {
+    auto model = this->new_model();
+    model.add_integer_variable({.lower_bound = 0., .upper_bound = 1.});
+    model.set_time_limit(std::chrono::seconds(0));
+    const auto iis = model.compute_iis();
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
+    EXPECT_EQ(iis.num_variable_members(), 0u);
+    EXPECT_EQ(iis.num_constraint_members(), 0u);
 }
 
 // Xpress keeps the bounds of a binary column that exclude [0, 1] (lower bound
@@ -358,25 +381,24 @@ TEST_F(xpress_milp_iis_test, refusal_without_a_decidable_column_throws) {
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
-// A stop of another origin than the model's time limit carries no reason.
-TEST_F(xpress_lp_iis_test, iteration_limit_stop_carries_no_reason) {
+// A stop well before the model's time limit names no cause: STOPSTATUS does
+// not tell an iteration limit from an interrupt.
+TEST_F(xpress_lp_iis_test, iteration_limit_stop_names_no_cause) {
     auto model = this->new_model();
     iis_cases::build(model, iis_cases::four_row_conflict_case());
     limit_lp_iterations_to_one(model);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::stopped>(iis.get_outcome(), false));
     EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
-TEST_F(xpress_milp_iis_test, iteration_limit_stop_carries_no_reason) {
+TEST_F(xpress_milp_iis_test, iteration_limit_stop_names_no_cause) {
     auto model = this->new_model();
     add_market_split_conflict(model);
     limit_lp_iterations_to_one(model);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::stopped>(iis.get_outcome(), false));
     EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
@@ -392,7 +414,7 @@ TEST_F(xpress_milp_iis_test, column_listed_with_both_bounds_merges_the_sides) {
         model.add_integer_variable({.lower_bound = 0., .upper_bound = 10.});
     auto r = model.add_constraint(x + 2 * y == 4.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
     EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(r)));
@@ -411,7 +433,7 @@ TEST_F(xpress_milp_iis_test, ranged_row_keeps_its_side_without_integers) {
     model.set_constraint_upper_bound(ranged, 12.);
     auto at_least = model.add_constraint(x + y >= 15.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(ranged)));
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(at_least)));
     EXPECT_EQ(iis.num_variable_members(), 0u);
@@ -421,8 +443,7 @@ TEST_F(xpress_milp_iis_test, market_split_conflict_completes) {
     auto model = this->new_model();
     add_market_split_conflict(model);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(iis.num_constraint_members(), 4u);
     EXPECT_EQ(iis.num_variable_members(), 0u);
     model.solve();
@@ -438,9 +459,9 @@ TEST_F(xpress_milp_iis_test, market_split_stop_is_a_time_limit_stop) {
     add_market_split_conflict(model);
     model.set_time_limit(std::chrono::milliseconds(10));
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
-    EXPECT_TRUE(iis.get_outcome() == iis_outcome::undetermined ||
-                iis.get_outcome() == iis_outcome::not_proven_minimal);
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(iis.get_outcome()));
+    EXPECT_EQ(iis_outcome::conflict_available(iis.get_outcome()),
+              iis.num_constraint_members() > 0);
     EXPECT_LE(iis.num_constraint_members(), 4u);
     EXPECT_EQ(iis.num_variable_members(), 0u);
     EXPECT_EQ(model.get_time_limit().count(), 0.01);

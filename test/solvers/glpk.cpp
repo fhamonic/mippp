@@ -373,8 +373,7 @@ TEST_F(glpk_milp_test, deletion_filter_returns_on_an_endless_integer_row) {
         compute_iis_by_deletion(model, iis_limits{.time_limit = budget});
     const seconds elapsed = std::chrono::steady_clock::now() - start;
     EXPECT_LT(elapsed.count(), budget.count() + 1.0);
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), iis_reason::time_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(iis.get_outcome(), false));
     EXPECT_TRUE(std::isinf(model.get_time_limit().count()));
 }
 TEST_F(glpk_milp_test, sides_at_the_wrong_infinity_are_infeasible) {

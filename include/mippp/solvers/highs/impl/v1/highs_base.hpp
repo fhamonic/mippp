@@ -7,13 +7,13 @@
 #include <limits>
 #include <memory>
 #include <numeric>
-#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/detail/handle_status_table.hpp"
@@ -776,8 +776,12 @@ private:
     }
 
 protected:
+    using iis_outcome_type =
+        std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                     iis_outcome::feasible, iis_outcome::time_limit>;
     using iis_snapshot_type =
-        iis_snapshot<variable, constraint, iis_sided_status, iis_sided_status>;
+        iis_snapshot<variable, constraint, iis_sided_status, iis_sided_status,
+                     iis_outcome_type>;
 
     iis_snapshot_type _compute_iis() {
         const auto loaded = Highs->library_version();
@@ -840,16 +844,18 @@ protected:
                                    std::chrono::steady_clock::now() - start)
                                    .count();
         // never reached under an infinite budget, always under a zero one
-        const std::optional<iis_reason> stop_reason =
-            elapsed >= budget ? std::optional(iis_reason::time_limit)
-                              : std::nullopt;
+        const bool out_of_time = elapsed >= budget;
+        const auto short_of = [&](bool conflict) -> iis_outcome_type {
+            if(out_of_time) return iis_outcome::time_limit(conflict);
+            return iis_outcome::incomplete(conflict);
+        };
         guard.restore();
 
         if(code == kHighsStatusError) {
-            if(stop_reason)
-                return iis_snapshot_type(
-                    std::move(variable_table), std::move(constraint_table),
-                    iis_outcome::undetermined, stop_reason);
+            if(out_of_time)
+                return iis_snapshot_type(std::move(variable_table),
+                                         std::move(constraint_table),
+                                         iis_outcome::time_limit{});
             throw solver_error(
                 detail::concat_str(
                     "mippp: Highs_getIis failed with model status ",
@@ -864,7 +870,7 @@ protected:
         if(code == kHighsStatusWarning)
             return iis_snapshot_type(std::move(variable_table),
                                      std::move(constraint_table),
-                                     iis_outcome::undetermined, stop_reason);
+                                     short_of(false));
 
         std::size_t num_members = 0;
         bool maybe = false;
@@ -892,20 +898,19 @@ protected:
         // columns would otherwise claim that the background is infeasible.
         if(num_members == 0) {
             const int model_status = Highs->getModelStatus(model);
+            const bool solved = model_status == kHighsModelStatusOptimal ||
+                                model_status == kHighsModelStatusUnbounded;
             return iis_snapshot_type(
                 std::move(variable_table), std::move(constraint_table),
-                (model_status == kHighsModelStatusOptimal ||
-                 model_status == kHighsModelStatusUnbounded)
-                    ? iis_outcome::feasible
-                    : iis_outcome::undetermined);
+                solved ? iis_outcome_type(iis_outcome::feasible{})
+                       : short_of(false));
         }
         if(!maybe)
             return iis_snapshot_type(std::move(variable_table),
                                      std::move(constraint_table),
-                                     iis_outcome::irreducible);
+                                     iis_outcome::irreducible{});
         return iis_snapshot_type(std::move(variable_table),
-                                 std::move(constraint_table),
-                                 iis_outcome::not_proven_minimal, stop_reason);
+                                 std::move(constraint_table), short_of(true));
     }
 };
 

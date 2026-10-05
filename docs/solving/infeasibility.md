@@ -40,7 +40,7 @@ It prints:
 
 The orders need 10 + 18 + 4 = 32 hours of labour and the workshop has 31, so the first `solve()` reports `infeasible`. That is easy to see here and hard among thousands of rows, which is what an IIS is for. The first five lines are the conflict and nothing else: the upper side of the labour row, the upper bound of `overtime` and the lower side of each order, since the trouble with an `==` row is making that much, not making no more. Without any one of the five the other four have a solution: that is what irreducible means. The wood row is absent, since the orders use 58 of the 60 boards, and so are the bounds `>= 0` of `chairs`, `tables` and `desks`, which the orders make redundant.
 
-`compute_iis_by_deletion`, from `mippp/utility/iis_by_deletion.hpp`, which the solver headers do not include, is the deletion filter. A program usually gets there after `is_a<status::infeasible>(model.get_status())`, but the filter does not need that solve: it analyzes the model as it is. It returns a snapshot, whose `get_outcome()` says how far the answer goes: `irreducible` is an IIS, `not_proven_minimal` a conflict the run could not reduce, whose members are still worth printing, and a feasible model is an outcome, not an error, see [Outcomes and reasons](#outcomes-and-reasons).
+`compute_iis_by_deletion`, from `mippp/utility/iis_by_deletion.hpp`, which the solver headers do not include, is the deletion filter. A program usually gets there after `is_a<status::infeasible>(model.get_status())`, but the filter does not need that solve: it analyzes the model as it is. It returns a snapshot, whose `get_outcome()` says how the run ended, as a `std::variant` over the tags of namespace `iis_outcome`: `is<iis_outcome::irreducible>` holds on an IIS, a run cut short can still hold a conflict whose members are worth printing, and a feasible model is an outcome, not an error, see [How a run ends](#how-a-run-ends).
 
 `get_status(v)` and `get_status(c)` say whether a variable or a constraint takes part, and through which side, as a `std::variant` over the tags of namespace `iis_status`. `is_a<iis_status::member>(s)` holds for every member, whichever side, and `is_a<iis_status::member_lower>(s)` or `is_a<iis_status::member_upper>(s)` for a member through that one side. A member through both sides, or one whose side a solver's routine did not name, prints `member` here, see [Reading the answer](#reading-the-answer). `print_conflict` queries the snapshot with the handles of the model, and so gives each member your name for it.
 
@@ -155,29 +155,62 @@ The chairs need 10 hours of a team that has 8, and the desks 4 of a team that ha
 --8<-- "test/doc_snippets/infeasibility_repair.txt"
 ```
 
-The loop returns `feasible` once no conflict remains. An answer can also have no member because the run proved nothing, `undetermined`, or because the background conflicts on its own, `irreducible`, which no relaxed side repairs, see [Outcomes and reasons](#outcomes-and-reasons): the loop then returns that outcome. It changes the model for good, so save the sides you want back before calling it, as `rerun_on_members` does under [Limits](#limits).
+The loop returns `feasible` once no conflict remains. An answer can also have no member because the run proved nothing, a tag of the `incomplete` branch without a conflict, or because the background conflicts on its own, `irreducible`, which no relaxed side repairs, see [How a run ends](#how-a-run-ends): the loop then returns that outcome. It changes the model for good, so save the sides you want back before calling it, as `rerun_on_members` does under [Limits](#limits).
 
-## Outcomes and reasons
+## How a run ends
 
-`get_outcome()` says how far the answer goes, and `get_reason()`, a `std::optional<iis_reason>`, why it stopped short:
+`get_outcome()` says how the run ended, as `get_status()` says how a solve ended: it returns a `std::variant` over the tag types of namespace `iis_outcome`, a hierarchy like that of the [solve status](status-and-limits.md#the-solve-status):
 
-| `iis_outcome` | Members | Meaning |
-| :--- | :--- | :--- |
-| `irreducible` | an IIS | The members conflict, and without any one of them the others have a solution. |
-| `not_proven_minimal` | a conflict, perhaps larger than needed | Not every member could be proven necessary: a limit stopped the run, a trial was inconclusive, or the native routine could not tell. The deletion filter's members are the last subset it proved infeasible; a native routine's are those it could not rule out. |
-| `feasible` | none | The model is feasible as it is. |
-| `undetermined` | none | Nothing was proven: the run stopped before its first proof, its first solve was inconclusive, or the native routine returned no answer. |
+```text
+any                        carries conflict_available
+├── completed
+│   ├── irreducible        an IIS
+│   └── feasible           the model is feasible as it is
+└── incomplete             no decision, for a cause the routine does not name
+    ├── inconclusive_trial a trial of the filter proved neither way
+    └── stopped            cut short from outside the routine
+        ├── interrupted
+        └── limit_reached
+            ├── time_limit
+            ├── solve_limit
+            ├── iteration_limit
+            ├── node_limit
+            └── memory_limit
+```
+
+| Tag | Meaning |
+| :--- | :--- |
+| `irreducible` | The members conflict, and without any one of them the others have a solution. |
+| `feasible` | The model is feasible as it is. There is no member. |
+| `incomplete` | The run decided nothing, for a cause the routine does not name: a gap in its proof, numerical trouble, or a stop it cannot tell from those. It does not imply that a limit stopped the run: raising one may or may not help, see [Limits](#limits). |
+| `inconclusive_trial` | A trial of the filter ended without proving either infeasibility or a feasible point, as a numerical failure does. |
+| `stopped` | Something outside the routine cut the run short, and the routine does not say what. |
+| `interrupted` | A stop was requested: through the filter's `stop_token`, or through the solver during a native call. |
+| `limit_reached` | A limit without a tag of its own stopped the run, see [Limits](#limits). |
+| `time_limit` | The filter's deadline passed, or the model's time limit stopped a native call. |
+| `solve_limit` | The filter made `max_solves` solves. |
+| `iteration_limit` | An iteration limit stopped a native call. |
+| `node_limit` | A node limit stopped a native call, or the solve that precedes COPT's search. |
+| `memory_limit` | A memory limit stopped a native call. |
+
+Every tag carries `conflict_available`, which `iis_outcome::conflict_available(o)` reads, as `status::solution_available` reads a status. It says whether the members form a subsystem proven infeasible, minimal or not. It holds on `irreducible` and never on `feasible`. On the `incomplete` branch it says whether the run kept a conflict: the deletion filter's members are then the last subset it proved infeasible, untested candidates included, and a native routine's are those it could not rule out. An answer without it has no member. The snippet of [Limits](#limits) prints every answer for which it holds.
 
 `irreducible` with no member means that the background alone is infeasible, without any bound or side. The background is what neither path counts as candidates and both keep in every check: integrality, and the indicator constraints of `gurobi_milp` and `cplex_milp`. Neither is ever a member, and the rows and bounds an answer names conflict against them. On the filter, a registered candidate-solution callback is part of the background as well, while the native routines run without it. A filter answer without a member can thus also mean that the callback rejects every point, as on a feasible `xpress_milp` in [Callbacks](../algorithms/deletion-filter.md#callbacks). MIP++ adds no SOS constraint: one added through the native handles, like any native change, is outside the guarantee, see [Native changes](#native-changes).
 
-| `iis_reason` | Set when |
-| :--- | :--- |
-| `solve_limit` | the filter made `max_solves` solves |
-| `time_limit` | the filter's deadline passed, or the model's time limit stopped a native call |
-| `cancelled` | a stop was requested through the filter's `stop_token` |
-| `inconclusive_trial` | a trial of the filter ended without proving either infeasibility or a feasible point, as a numerical failure does |
+Each path's variant lists only the tags its routine can tell apart, as a backend's solve status does, so test with `is_a`: `is_a<iis_outcome::stopped>(o)` holds for every stop the path can tell apart, whatever its cause, and `is_a<iis_outcome::incomplete>(o)` for every run that decided nothing. A stop the routine cannot tell from a gap in its proof is plain `incomplete`, see [Limits](#limits). `is<T>(o)` does not compile on a variant that does not list `T`, nor `is_a<T>(o)` on one that lists neither `T` nor a tag under it. Every path lists `incomplete`, `irreducible` and `feasible`, which the concept `lp_iis_outcome` requires, so generic code can rely on them and on `conflict_available`, and guards a test for a cause with `variant_containing_a`, as in `if constexpr(variant_containing_a<decltype(iis.get_outcome()), iis_outcome::node_limit>)`.
 
-When several limits are reached at once, a stop request is reported before the deadline, and the deadline before the solve count. An empty reason means that no limit of the filter stopped the run, and that no time limit stopped a native call. It comes with every `irreducible` and `feasible` answer, with a native answer that the routine itself could not complete, and with a native stop by another limit or an interrupt, which [Limits](#limits) lists per model.
+| Path | Tags its variant lists |
+| :--- | :--- |
+| Deletion filter | `incomplete`, `irreducible`, `feasible`, `inconclusive_trial`, `interrupted`, `time_limit`, `solve_limit`. A run never returns plain `incomplete`: it is the value of a `deletion_filter_result` no run wrote. |
+| HiGHS | `incomplete`, `irreducible`, `feasible`, `time_limit` |
+| Gurobi | `incomplete`, `irreducible`, `feasible`, `stopped`, `interrupted`, `limit_reached`, `time_limit`, `iteration_limit`, `memory_limit`. `interrupted`, `limit_reached`, `iteration_limit` and `memory_limit` are reachable on `gurobi_lp` only. |
+| CPLEX | `incomplete`, `irreducible`, `feasible`, `interrupted`, `limit_reached`, `time_limit`, `iteration_limit`, `node_limit`, `memory_limit`. `iteration_limit` is reachable on `cplex_lp` only, and `node_limit` on `cplex_milp` only. |
+| Xpress | `incomplete`, `irreducible`, `feasible`, `stopped`, `time_limit` |
+| COPT | `incomplete`, `irreducible`, `feasible`, `interrupted`, `time_limit`, `node_limit`. `node_limit` is reachable on `copt_milp` only. |
+
+The `*_lp` and `*_milp` classes of one solver share a list. A cause that the routine reports and its path has no tag for is reported as its nearest ancestor that the path lists, as `limit_reached` stands for CPLEX's objective and deterministic-time limits.
+
+The filter checks its limits before each trial. When several are reached at once, a stop request is reported before the deadline, and the deadline before the solve count, see [Limits](../algorithms/deletion-filter.md#limits) on the algorithm's page.
 
 ## Limits
 
@@ -193,7 +226,7 @@ Here `stop` is such a token:
 --8<-- "test/doc_snippets/infeasibility.cpp:limits"
 ```
 
-A run stopped by a limit keeps what it proved, which is why the snippet prints a `not_proven_minimal` answer too. With a budget of three solves, the workshop's run ends `not_proven_minimal` with `solve_limit`, and its members include those of the IIS.
+A run stopped by a limit keeps what it proved, which is why the snippet prints every answer that holds a conflict, not only an `irreducible` one. With a budget of three solves, the workshop's run ends `solve_limit` with a conflict, and its members include those of the IIS.
 
 Such an answer of the filter is a start. Run the filter again with a larger budget, or narrow the next run down to the members, which the filter proved to conflict: relax every other side, since a side at infinity is no candidate, run again, and write the relaxed sides back. That run makes at most one solve per member side plus one, and the IIS it finds among the members is an IIS of the whole model:
 
@@ -205,15 +238,15 @@ On the workshop, `rerun_on_members(model, iis)`, passing the answer of the three
 
 Limits are checked between trials, and a trial that has started runs to its end. Every model class has a time limit (`has_time_limit`), so under a finite `time_limit` each trial gets the time that remains as its own time limit. It never gets more than the limit you had set, which is restored afterwards. A trial can still run past the deadline on `glpk_milp` and `cbc_milp`, where the time limit does not bound every phase of a solve. On `clp_lp` and `soplex_lp`, whose time limit counts CPU time, a trial can stop before the deadline. See [Time limits](../algorithms/deletion-filter.md#time-limits). With the default limits, the filter never reads or writes the model's time limit.
 
-`compute_iis()` takes no argument. The model's own time limit, set by `set_time_limit`, bounds each call as a fresh budget, so `solve()` followed by `compute_iis()` may take twice the limit. A stop leaves either no subsystem, `undetermined`, or a subsystem without the proof of minimality, `not_proven_minimal`. The reason is `time_limit` when the time limit stopped the call, and empty when another limit or an interrupt did. A call may return late, since the routines have phases that a limit does not interrupt. What each routine does under the model's limits:
+`compute_iis()` takes no argument. The model's own time limit, set by `set_time_limit`, bounds each call as a fresh budget, so `solve()` followed by `compute_iis()` may take twice the limit. A stop leaves either no subsystem or a subsystem without the proof of minimality, which `conflict_available` tells apart. The tag names the cause where the routine reports it. Where it does not, the time measured around the call decides: `time_limit` once it reached the budget (on Xpress, once it came within 20 ms of it), otherwise `stopped` on Gurobi and Xpress, which tell that a stop occurred, and `incomplete` on HiGHS, on COPT and on a Gurobi answer that holds a subsystem, where a stop cannot be told from an answer the routine did not complete. A call may return late, since the routines have phases that a limit does not interrupt. What each routine does under the model's limits:
 
-| Model | Stop by the time limit | Other limits that stop it | Notes |
+| Model | Stop by the time limit | Other limits that stop it, and their tag | Notes |
 | :--- | :--- | :--- | :--- |
-| `highs_lp`, `highs_qp` | `undetermined` or `not_proven_minimal`; the limit bounds HiGHS's search only, not the checks it runs before and after it, so a call can return after the limit | none: the iteration limit of `set_iteration_limit` stops `solve()`, not a call | the model's limit is copied into HiGHS's own `iis_time_limit` for the call and restored afterwards |
-| `gurobi_lp`, `gurobi_milp` | `undetermined` or `not_proven_minimal` | the iteration limit of `gurobi_lp`, with no answer, see [Native IIS on Gurobi](../solvers/index.md#limitation-gurobi-iis); the memory limit of `set_memory_limit`, by Gurobi's documentation | a small conflict, or a small model an earlier `solve()` proved infeasible, may still answer in full under a limit that stops other calls, a zero limit included, since Gurobi's cheap checks run before its clock |
-| `cplex_lp`, `cplex_milp` | `undetermined`: CPLEX never returns a partial answer | the iteration limit of `cplex_lp`, the node limit of `cplex_milp`, whose stop can come seconds late on a hard model, and the deterministic-time limit set through the [native handles](../solvers/index.md#limitation-native-handles); by CPLEX's documentation, the memory limit of `set_memory_limit` on `cplex_milp` and the objective limit set through the native handles | after an iteration-limit stop, write a bound or a side, even to its current value, before calling again: until then the calls stay `undetermined`, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis); a time-limit stop is forgotten once the limit is raised |
-| `xpress_lp`, `xpress_milp` | `undetermined` or `not_proven_minimal`; a zero limit stops every call before any answer, feasible models included | none of MIP++'s; an interrupt or an iteration limit set through the native handles stops it with no reason | |
-| `copt_lp`, `copt_milp` | `undetermined` or `not_proven_minimal`; one budget covers the routine and the solve described below | COPT's node limit, set through the native handles, stops the solve that precedes the search on `copt_milp`, `undetermined` with no reason, or `feasible` when that solve found a point; it does not stop the search | the phases that a limit does not interrupt grow with the model, and a late return with them; see [Native IIS on COPT](../solvers/index.md#limitation-copt-iis) |
+| `highs_lp`, `highs_qp` | `time_limit`, with or without a conflict; the limit bounds HiGHS's search only, not the checks it runs before and after it, so a call can return after the limit | none: the iteration limit of `set_iteration_limit` stops `solve()`, not a call | the model's limit is copied into HiGHS's own `iis_time_limit` for the call and restored afterwards |
+| `gurobi_lp`, `gurobi_milp` | `time_limit`, with or without a conflict | on `gurobi_lp`, a stop that leaves no subsystem takes the cause Gurobi reports: `iteration_limit` for the iteration limit, which stops the routine with no answer, see [Native IIS on Gurobi](../solvers/index.md#limitation-gurobi-iis); by Gurobi's documentation, `memory_limit` for the memory limit of `set_memory_limit`, `interrupted` for an interrupt, and `limit_reached` for the objective limits set through the native handles; `limit_reached` for the work limit set there (measured). On `gurobi_milp`, where Gurobi reports no cause, such a stop is `stopped`. A stop after a subsystem was found is `incomplete` with a conflict | a small conflict, or a small model an earlier `solve()` proved infeasible, may still answer in full under a limit that stops other calls, a zero limit included, since Gurobi's cheap checks run before its clock |
+| `cplex_lp`, `cplex_milp` | `time_limit`, without a conflict: CPLEX never returns a partial answer | `iteration_limit` for the iteration limit of `cplex_lp`; `node_limit` for the node limit of `cplex_milp`, whose stop can come seconds late on a hard model; `limit_reached` for the deterministic-time limit set through the [native handles](../solvers/index.md#limitation-native-handles) and, by CPLEX's documentation, the objective limit set there; by CPLEX's documentation, `memory_limit` for the memory limit of `set_memory_limit` on `cplex_milp` and `interrupted` for a user abort, as for a solve. None of them holds a conflict | after an iteration-limit stop, write a bound or a side, even to its current value, before calling again: until then the calls end `incomplete`, without a conflict, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis); a time-limit stop is forgotten once the limit is raised |
+| `xpress_lp`, `xpress_milp` | `time_limit`, with or without a conflict; a zero limit stops every call on a model with rows before any answer, feasible models included; a model without rows is answered from its columns' bounds, see [Native IIS on Xpress](../solvers/index.md#limitation-xpress-iis) | none of MIP++'s; an interrupt or an iteration limit set through the native handles is `stopped`, since Xpress does not report the cause | |
+| `copt_lp`, `copt_milp` | `time_limit`, with or without a conflict; one budget covers the routine and the solve described below | COPT's node limit, set through the native handles, stops the solve that precedes the search on `copt_milp`, `node_limit`, or `feasible` when that solve found a point; it does not stop the search. An interrupt of the solve, through the native handles, is `interrupted` | the phases that a limit does not interrupt grow with the model, and a late return with them; see [Native IIS on COPT](../solvers/index.md#limitation-copt-iis) |
 
 On COPT, `compute_iis()` solves the model as well as running the routine, both under the call's budget. On a `copt_milp` with integer columns, which COPT solves as a MIP, the solve comes first, since COPT answers a whole-model conflict on an unsolved feasible MIP. That solve stops at the first incumbent, which settles a feasible model; an infeasible one is solved to its proof. On `copt_lp`, and on a `copt_milp` whose columns are all continuous, the search comes first, and the solve follows when the search found nothing, since COPT returns the same code on a feasible model and on a failure. The solve gets what remains of the budget.
 

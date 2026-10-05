@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "dumb_lp.hpp"
+#include "iis_outcome_assert.hpp"
 #include "mippp/solvers/clp/all.hpp"
 // --8<-- [start:includes]
 #include "mippp/solvers/highs/all.hpp"
@@ -115,7 +116,7 @@ template <typename Model, typename Print>
 void deletion_path(Model & model, Print & print_conflict) {
     // --8<-- [start:workshop-deletion]
     const auto iis = compute_iis_by_deletion(model);
-    if(iis.get_outcome() == iis_outcome::irreducible) print_conflict(iis);
+    if(is<iis_outcome::irreducible>(iis.get_outcome())) print_conflict(iis);
     // --8<-- [end:workshop-deletion]
 }
 
@@ -156,9 +157,7 @@ void bounded_path(Model & model, Print & print_conflict, std::stop_token stop) {
     using namespace std::chrono_literals;
     const auto iis = compute_iis_by_deletion(
         model, {.max_solves = 20, .time_limit = 10s, .stop_token = stop});
-    if(iis.get_outcome() == iis_outcome::irreducible ||
-       iis.get_outcome() == iis_outcome::not_proven_minimal)
-        print_conflict(iis);
+    if(iis_outcome::conflict_available(iis.get_outcome())) print_conflict(iis);
     // --8<-- [end:limits]
 }
 
@@ -254,7 +253,7 @@ void relax_members(Model & model, const Iis & iis) {
 
 // --8<-- [start:repair-loop]
 template <typename Model, typename Report>
-iis_outcome relax_until_feasible(Model & model, Report && report) {
+auto relax_until_feasible(Model & model, Report && report) {
     while(true) {
         const auto iis = compute_iis_by_deletion(model);
         // an answer without members leaves nothing to relax: the model is
@@ -328,7 +327,7 @@ auto rerun_on_members(Model & model, const Iis & partial,
 
 template <typename Model>
 struct repair_run {
-    iis_outcome last;
+    deletion_filter_outcome last;
     int rounds;
     model_status_t<Model> after_repair;
 };
@@ -352,7 +351,7 @@ repair_run<lp_type> teams_workshop() {
 
     // --8<-- [start:teams-repair]
     int round = 0;
-    const iis_outcome last = relax_until_feasible(model, [&](const auto & iis) {
+    const auto last = relax_until_feasible(model, [&](const auto & iis) {
         std::cout << "conflict " << ++round << '\n';
         print_member("team chairs", iis.get_status(team_chairs));
         print_member("order chairs", iis.get_status(order_chairs));
@@ -456,13 +455,11 @@ struct run_bounded_path {
 // A budget too small for the workshop: the members printed are the last
 // subset proven infeasible.
 struct run_three_solves {
-    iis_outcome * outcome;
-    std::optional<iis_reason> * reason;
+    deletion_filter_outcome * outcome;
     template <typename Model, typename Print>
     void operator()(Model & model, Print & print) const {
         const auto iis = compute_iis_by_deletion(model, {.max_solves = 3});
         *outcome = iis.get_outcome();
-        *reason = iis.get_reason();
         print(iis);
     }
 };
@@ -518,11 +515,12 @@ std::vector<std::pair<double, double>> all_sides(Model & model) {
 struct run_on_the_members {
     std::size_t * candidates;
     std::size_t * solves;
-    iis_outcome * outcome;
+    deletion_filter_outcome * outcome;
     template <typename Model, typename Print>
     void operator()(Model & model, Print & print) const {
         const auto partial = compute_iis_by_deletion(model, {.max_solves = 3});
-        ASSERT_EQ(partial.get_outcome(), iis_outcome::not_proven_minimal);
+        ASSERT_TRUE(
+            outcome_is<iis_outcome::solve_limit>(partial.get_outcome(), true));
         *candidates = 0;
         for(auto v : model.variables()) {
             const auto kept = std::visit(sides_named{}, partial.get_status(v));
@@ -558,7 +556,7 @@ struct run_single_removals {
     template <typename Model, typename Print>
     void operator()(Model & model, Print &) const {
         const auto iis = compute_iis_by_deletion(model);
-        ASSERT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         const double inf = model.infinity();
         std::size_t num_sides = 0;
         for(auto v : model.variables()) {
@@ -675,7 +673,7 @@ TEST_F(infeasibility_page_highs_lp, bounded_run_completes_on_the_workshop) {
 
 // A run stopped before its first solve leaves the status of the solve that
 // found the model infeasible, and prints no member.
-TEST_F(infeasibility_page_highs_lp, cancelled_run_prints_no_member) {
+TEST_F(infeasibility_page_highs_lp, interrupted_run_prints_no_member) {
     std::stop_source stop;
     stop.request_stop();
     cout_capture out;
@@ -686,12 +684,10 @@ TEST_F(infeasibility_page_highs_lp, cancelled_run_prints_no_member) {
 }
 
 TEST_F(infeasibility_page_highs_lp, solve_limit_keeps_a_conflicting_subset) {
-    iis_outcome outcome = iis_outcome::irreducible;
-    std::optional<iis_reason> reason;
+    deletion_filter_outcome outcome;
     cout_capture out;
-    expect_page_run(workshop<highs_lp>(run_three_solves{&outcome, &reason}));
-    EXPECT_EQ(outcome, iis_outcome::not_proven_minimal);
-    EXPECT_EQ(reason, iis_reason::solve_limit);
+    expect_page_run(workshop<highs_lp>(run_three_solves{&outcome}));
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(outcome, true));
     // every entity of the irreducible answer, among others
     std::istringstream expected(page_output("infeasibility_workshop.txt"));
     for(std::string line; std::getline(expected, line);) {
@@ -735,11 +731,11 @@ TEST_F(infeasibility_page_highs_lp,
        rerun_on_members_completes_a_partial_answer) {
     std::size_t candidates = 0;
     std::size_t solves = 0;
-    iis_outcome outcome = iis_outcome::undetermined;
+    deletion_filter_outcome outcome;
     cout_capture out;
     expect_page_run(workshop<iis_trial_probe<highs_lp>>(
         run_on_the_members{&candidates, &solves, &outcome}));
-    EXPECT_EQ(outcome, iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(outcome));
     EXPECT_EQ(candidates, 11u);  // of the workshop's 13 finite sides
     EXPECT_EQ(solves, candidates + 1);
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
@@ -749,11 +745,11 @@ TEST_F(infeasibility_page_dumb_lp,
        rerun_on_members_completes_a_partial_answer) {
     std::size_t candidates = 0;
     std::size_t solves = 0;
-    iis_outcome outcome = iis_outcome::undetermined;
+    deletion_filter_outcome outcome;
     cout_capture out;
     expect_page_run(workshop<iis_trial_probe<dumb_lp>>(
         run_on_the_members{&candidates, &solves, &outcome}));
-    EXPECT_EQ(outcome, iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(outcome));
     EXPECT_EQ(candidates, 11u);
     EXPECT_EQ(solves, candidates + 1);
     EXPECT_EQ(out.str(), page_output("infeasibility_workshop.txt"));
@@ -780,7 +776,7 @@ TEST_F(infeasibility_page_dumb_lp, relaxing_the_members_repairs_the_workshop) {
 TEST_F(infeasibility_page_highs_lp, repair_loop_explains_one_conflict_a_round) {
     cout_capture out;
     const auto run = teams_workshop<highs_lp>();
-    EXPECT_EQ(run.last, iis_outcome::feasible);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(run.last));
     EXPECT_EQ(run.rounds, 2);
     EXPECT_TRUE(is_a<status::optimal>(run.after_repair));
     EXPECT_EQ(out.str(), page_output("infeasibility_repair.txt"));
@@ -789,7 +785,7 @@ TEST_F(infeasibility_page_highs_lp, repair_loop_explains_one_conflict_a_round) {
 TEST_F(infeasibility_page_clp_lp, repair_loop_explains_one_conflict_a_round) {
     cout_capture out;
     const auto run = teams_workshop<clp_lp>();
-    EXPECT_EQ(run.last, iis_outcome::feasible);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(run.last));
     EXPECT_EQ(run.rounds, 2);
     EXPECT_TRUE(is_a<status::optimal>(run.after_repair));
     EXPECT_EQ(out.str(), page_output("infeasibility_repair.txt"));
@@ -798,7 +794,7 @@ TEST_F(infeasibility_page_clp_lp, repair_loop_explains_one_conflict_a_round) {
 TEST_F(infeasibility_page_dumb_lp, repair_loop_explains_one_conflict_a_round) {
     cout_capture out;
     const auto run = teams_workshop<dumb_lp>();
-    EXPECT_EQ(run.last, iis_outcome::feasible);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(run.last));
     EXPECT_EQ(run.rounds, 2);
     EXPECT_TRUE(is_a<status::optimal>(run.after_repair));
     EXPECT_EQ(out.str(), page_output("infeasibility_repair.txt"));
@@ -808,7 +804,7 @@ TEST_F(infeasibility_page_dumb_lp, repair_loop_explains_one_conflict_a_round) {
 // same row over a continuous variable is feasible.
 TEST_F(infeasibility_page_highs_milp, trucks_row_needs_both_sides) {
     const auto [outcome, statuses] = truck_loading<highs_milp>();
-    EXPECT_EQ(outcome, iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(outcome));
     EXPECT_TRUE(is<iis_status::absent>(statuses.first));
     EXPECT_TRUE(is<iis_status::member_both>(statuses.second));
     EXPECT_EQ(side_name(statuses.second), "both sides");
@@ -819,6 +815,6 @@ TEST_F(infeasibility_page_highs_lp, trucks_row_is_feasible_on_an_lp) {
     highs_lp model;
     auto trucks = model.add_variable({.lower_bound = 0, .upper_bound = 10});
     model.add_constraint(3 * trucks == 10);
-    EXPECT_EQ(compute_iis_by_deletion(model).get_outcome(),
-              iis_outcome::feasible);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(
+        compute_iis_by_deletion(model).get_outcome()));
 }

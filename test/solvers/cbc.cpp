@@ -141,7 +141,7 @@ struct cbc_time_limit_test : cbc_milp_test {
         model.set_time_limit(caller_limit);
         const auto iis =
             compute_iis_by_deletion(model, iis_limits{.time_limit = budget});
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_EQ(model.get_time_limit(), caller_limit);
         EXPECT_FALSE(model.trial_limits.empty());
         return model;

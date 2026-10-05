@@ -16,6 +16,7 @@
 #include <string_view>
 #include <vector>
 
+#include "iis_outcome_assert.hpp"
 #include "mippp/solvers/highs/all.hpp"
 #include "mippp/utility/deletion_filter.hpp"
 #include "mippp/utility/iis_by_deletion.hpp"
@@ -162,8 +163,7 @@ void build_overfull_model(Model & model) {
 TEST(deletion_filter_page, morning_prints_the_page_output) {
     std::ostringstream out;
     const auto answer = print_morning_conflict(out);
-    EXPECT_EQ(answer.outcome, iis_outcome::irreducible);
-    EXPECT_FALSE(answer.reason.has_value());
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
     EXPECT_EQ(answer.members, (std::vector<std::size_t>{0, 2, 3, 5}));
     EXPECT_EQ(out.str(), page_output("deletion_filter_morning.txt"));
 }
@@ -177,8 +177,8 @@ TEST(deletion_filter_page,
         ++calls;
         return schedulable(active);
     };
-    EXPECT_EQ(deletion_filter(rules.size(), counted).outcome,
-              iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(
+        deletion_filter(rules.size(), counted).outcome));
     EXPECT_EQ(rules.size(), 6u);
     EXPECT_EQ(calls, 7u);
 }
@@ -219,7 +219,7 @@ TEST(deletion_filter_page, non_monotone_oracle_can_claim_a_false_iis) {
                    : deletion_verdict::feasible;
     };
     const auto answer = deletion_filter(3, helped);
-    EXPECT_EQ(answer.outcome, iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
     EXPECT_EQ(answer.members, (std::vector<std::size_t>{0, 2}));
     const std::vector<std::size_t> smaller{2};
     EXPECT_EQ(helped(smaller), deletion_verdict::infeasible);
@@ -233,7 +233,7 @@ TEST(deletion_filter_page, own_deadline_finds_the_morning_conflict) {
         return schedulable(active);
     };
     const auto answer = filter_within_budget(rules.size(), search);
-    EXPECT_EQ(answer.outcome, iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
     EXPECT_EQ(answer.members, (std::vector<std::size_t>{0, 2, 3, 5}));
 }
 
@@ -247,8 +247,8 @@ TEST(deletion_filter_page, own_deadline_inconclusive_search_proves_nothing) {
         return deletion_verdict::inconclusive;
     };
     const auto answer = filter_within_budget(6, give_up);
-    EXPECT_EQ(answer.outcome, iis_outcome::undetermined);
-    EXPECT_EQ(answer.reason, iis_reason::inconclusive_trial);
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::inconclusive_trial>(answer.outcome, false));
     EXPECT_TRUE(answer.members.empty());
     EXPECT_EQ(calls, 1u);
 }
@@ -259,7 +259,7 @@ TEST_F(deletion_filter_page_highs_lp, forwarded_limit_is_capped_and_restored) {
     iis_trial_probe<highs_lp> model(*api);
     build_overfull_model(model);
     const auto iis = analyze_within_a_minute(model);
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(iis.num_variable_members() + iis.num_constraint_members(), 3u);
     EXPECT_EQ(model.solves, 6u);
     ASSERT_EQ(model.trial_time_limits.size(), 6u);

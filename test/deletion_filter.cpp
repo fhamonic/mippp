@@ -9,13 +9,19 @@
 #include <memory>
 #include <numeric>
 #include <ratio>
+#include <set>
 #include <span>
 #include <stdexcept>
 #include <stop_token>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "mippp/utility/deletion_filter.hpp"
+#include "mippp/utility/iis_outcome.hpp"
+#include "mippp/utility/variant.hpp"
+
+#include "iis_outcome_assert.hpp"
 
 using namespace mippp;
 using namespace std::chrono_literals;
@@ -39,11 +45,6 @@ bool contains(std::span<const std::size_t> active, std::size_t id) {
     return std::ranges::find(active, id) != active.end();
 }
 
-bool proven(const deletion_filter_result & answer) {
-    return answer.outcome == iis_outcome::irreducible ||
-           answer.outcome == iis_outcome::not_proven_minimal;
-}
-
 template <typename O>
 deletion_filter_result run_batched(std::size_t candidate_count, O & oracle,
                                    std::size_t batch_size,
@@ -54,6 +55,35 @@ deletion_filter_result run_batched(std::size_t candidate_count, O & oracle,
     return mippp::detail::run_deletion_filter(
         std::move(state), oracle, mippp::detail::make_deletion_budget(limits),
         batch_size);
+}
+
+enum class stop_event { none, stop_request, deadline, solve_limit };
+
+// Call i gets verdict i of the script, and feasible past its end. The event
+// fires during call at, or before the first call when at is 0.
+deletion_filter_result run_scripted(
+    const std::vector<deletion_verdict> & script, stop_event kind,
+    std::size_t at, bool proven, std::size_t batch_size) {
+    fake_clock::current = {};
+    std::stop_source source;
+    iis_limits limits{.time_limit = 1s, .stop_token = source.get_token()};
+    if(kind == stop_event::solve_limit) limits.max_solves = at;
+    if(kind == stop_event::stop_request && at == 0) source.request_stop();
+    if(kind == stop_event::deadline && at == 0)
+        limits.time_limit = seconds::zero();
+    const auto budget = mippp::detail::make_deletion_budget<fake_clock>(limits);
+    std::size_t calls = 0;
+    auto oracle = [&](std::span<const std::size_t>) {
+        const auto call = ++calls;
+        if(kind == stop_event::stop_request && call == at)
+            source.request_stop();
+        if(kind == stop_event::deadline && call == at)
+            fake_clock::current = budget.deadline;
+        return call <= script.size() ? script[call - 1]
+                                     : deletion_verdict::feasible;
+    };
+    return mippp::detail::run_deletion_filter({ids{0, 1, 2}, proven}, oracle,
+                                              budget, batch_size);
 }
 
 struct lvalue_oracle {
@@ -148,8 +178,7 @@ TEST(deletion_filter, feasible_initial_trial) {
             EXPECT_EQ(active.size(), 3u);
             return deletion_verdict::feasible;
         });
-    EXPECT_EQ(answer.outcome, iis_outcome::feasible);
-    EXPECT_FALSE(answer.reason.has_value());
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(answer.outcome));
     EXPECT_TRUE(answer.members.empty());
     EXPECT_EQ(calls, 1u);
 }
@@ -161,8 +190,7 @@ TEST(deletion_filter, infeasible_background_alone_is_an_empty_iis) {
             ++calls;
             return deletion_verdict::infeasible;
         });
-    EXPECT_EQ(answer.outcome, iis_outcome::irreducible);
-    EXPECT_FALSE(answer.reason.has_value());
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
     EXPECT_TRUE(answer.members.empty());
     EXPECT_EQ(calls, 1u);
 }
@@ -175,7 +203,7 @@ TEST(deletion_filter, members_are_listed_in_ascending_order) {
                    : deletion_verdict::feasible;
     };
     const auto answer = deletion_filter(5, oracle);
-    EXPECT_EQ(answer.outcome, iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
     EXPECT_EQ(answer.members, (ids{0, 2, 3}));
 }
 
@@ -186,8 +214,8 @@ TEST(deletion_filter, inconclusive_initial_trial_proves_nothing) {
             ++calls;
             return deletion_verdict::inconclusive;
         });
-    EXPECT_EQ(answer.outcome, iis_outcome::undetermined);
-    EXPECT_EQ(answer.reason, iis_reason::inconclusive_trial);
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::inconclusive_trial>(answer.outcome, false));
     EXPECT_TRUE(answer.members.empty());
     EXPECT_EQ(calls, 1u);
 }
@@ -198,8 +226,8 @@ TEST(deletion_filter, inconclusive_singletons_keep_the_proven_set) {
                                   : deletion_verdict::inconclusive;
     };
     const auto answer = deletion_filter(3, oracle);
-    EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-    EXPECT_EQ(answer.reason, iis_reason::inconclusive_trial);
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::inconclusive_trial>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{0, 1, 2}));
 }
 
@@ -210,8 +238,8 @@ TEST(deletion_filter, move_only_oracle_and_exceptions) {
         return active.empty() ? deletion_verdict::feasible
                               : deletion_verdict::infeasible;
     };
-    EXPECT_EQ(deletion_filter(1, std::move(oracle)).outcome,
-              iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(
+        deletion_filter(1, std::move(oracle)).outcome));
     struct oracle_error {};
     auto throws = [](std::span<const std::size_t>) -> deletion_verdict {
         throw oracle_error{};
@@ -244,15 +272,13 @@ TEST(deletion_filter, exhaustive_monotone_oracles) {
                     << "family " << family << " batch " << batch;
             }
             if(family == 0) {
-                ASSERT_EQ(answer.outcome, iis_outcome::feasible)
+                ASSERT_TRUE(outcome_is<iis_outcome::feasible>(answer.outcome))
                     << "family " << family << " batch " << batch;
                 ASSERT_TRUE(answer.members.empty())
                     << "family " << family << " batch " << batch;
                 continue;
             }
-            ASSERT_EQ(answer.outcome, iis_outcome::irreducible)
-                << "family " << family << " batch " << batch;
-            ASSERT_FALSE(answer.reason.has_value())
+            ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome))
                 << "family " << family << " batch " << batch;
             ASSERT_TRUE(std::ranges::is_sorted(answer.members))
                 << "family " << family << " batch " << batch;
@@ -270,7 +296,7 @@ TEST(deletion_filter, exhaustive_monotone_oracles) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// Stop reasons /////////////////////////////////
+///////////////////////////////////// Stops ///////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 TEST(deletion_filter, limits_stop_between_trials) {
@@ -280,24 +306,20 @@ TEST(deletion_filter, limits_stop_between_trials) {
         return deletion_verdict::infeasible;
     };
     auto answer = deletion_filter(3, oracle, {.max_solves = 2});
-    EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-    EXPECT_EQ(answer.reason, iis_reason::solve_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{1, 2}));
     EXPECT_EQ(calls, 2u);
 
     calls = 0;
     answer = deletion_filter(3, oracle, {.max_solves = 0});
-    EXPECT_EQ(answer.outcome, iis_outcome::undetermined);
-    EXPECT_EQ(answer.reason, iis_reason::solve_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(answer.outcome, false));
     EXPECT_TRUE(answer.members.empty());
     answer = deletion_filter(3, oracle, {.time_limit = seconds::zero()});
-    EXPECT_EQ(answer.outcome, iis_outcome::undetermined);
-    EXPECT_EQ(answer.reason, iis_reason::time_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(answer.outcome, false));
     std::stop_source source;
     source.request_stop();
     answer = deletion_filter(3, oracle, {.stop_token = source.get_token()});
-    EXPECT_EQ(answer.outcome, iis_outcome::undetermined);
-    EXPECT_EQ(answer.reason, iis_reason::cancelled);
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(answer.outcome, false));
     EXPECT_EQ(calls, 0u);
 }
 
@@ -311,10 +333,11 @@ TEST(deletion_filter, stop_request_beats_deadline_beats_solve_limit) {
     const iis_limits limits{.max_solves = 0,
                             .time_limit = seconds::zero(),
                             .stop_token = source.get_token()};
-    EXPECT_EQ(deletion_filter(1, oracle, limits).reason,
-              iis_reason::time_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(
+        deletion_filter(1, oracle, limits).outcome, false));
     source.request_stop();
-    EXPECT_EQ(deletion_filter(1, oracle, limits).reason, iis_reason::cancelled);
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(
+        deletion_filter(1, oracle, limits).outcome, false));
     EXPECT_EQ(calls, 0u);
 }
 
@@ -326,8 +349,7 @@ TEST(deletion_filter, proof_on_the_last_permitted_trial_is_complete) {
                               : deletion_verdict::infeasible;
     };
     const auto answer = deletion_filter(1, oracle, {.max_solves = 2});
-    EXPECT_EQ(answer.outcome, iis_outcome::irreducible);
-    EXPECT_FALSE(answer.reason.has_value());
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
     EXPECT_EQ(answer.members, (ids{0}));
     EXPECT_EQ(calls, 2u);
 }
@@ -338,16 +360,16 @@ TEST(deletion_filter, inconclusive_last_trial_is_not_a_solve_limit) {
                               : deletion_verdict::infeasible;
     };
     auto answer = deletion_filter(1, singleton_inconclusive, {.max_solves = 2});
-    EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-    EXPECT_EQ(answer.reason, iis_reason::inconclusive_trial);
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::inconclusive_trial>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{0}));
 
     auto initial_inconclusive = [](std::span<const std::size_t>) {
         return deletion_verdict::inconclusive;
     };
     answer = deletion_filter(1, initial_inconclusive, {.max_solves = 1});
-    EXPECT_EQ(answer.outcome, iis_outcome::undetermined);
-    EXPECT_EQ(answer.reason, iis_reason::inconclusive_trial);
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::inconclusive_trial>(answer.outcome, false));
     EXPECT_TRUE(answer.members.empty());
 }
 
@@ -359,8 +381,7 @@ TEST(deletion_filter, a_later_stop_replaces_an_inconclusive_trial) {
                    : deletion_verdict::infeasible;
     };
     const auto answer = deletion_filter(3, oracle, {.max_solves = 2});
-    EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-    EXPECT_EQ(answer.reason, iis_reason::solve_limit);
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{0, 1, 2}));
 }
 
@@ -374,8 +395,7 @@ TEST(deletion_filter, stop_requested_during_a_trial_keeps_the_proven_set) {
     };
     const auto answer =
         deletion_filter(3, oracle, {.stop_token = source.get_token()});
-    EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-    EXPECT_EQ(answer.reason, iis_reason::cancelled);
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{0, 1, 2}));
     EXPECT_EQ(calls, 1u);
 }
@@ -395,11 +415,10 @@ TEST(deletion_filter, deadline_passing_inside_the_last_trial) {
             mippp::detail::run_deletion_filter({ids{0}}, oracle, budget);
         EXPECT_EQ(answer.members, (ids{0}));
         if(final_proof) {
-            EXPECT_EQ(answer.outcome, iis_outcome::irreducible);
-            EXPECT_FALSE(answer.reason.has_value());
+            EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
         } else {
-            EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-            EXPECT_EQ(answer.reason, iis_reason::time_limit);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::time_limit>(answer.outcome, true));
         }
     }
 }
@@ -418,16 +437,67 @@ TEST(deletion_filter, deadline_passing_inside_the_initial_trial) {
         };
         const auto answer =
             mippp::detail::run_deletion_filter({ids{0, 1, 2}}, oracle, budget);
-        EXPECT_EQ(answer.reason, iis_reason::time_limit);
         EXPECT_EQ(calls, 1u);
         if(verdict == deletion_verdict::infeasible) {
-            EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::time_limit>(answer.outcome, true));
             EXPECT_EQ(answer.members, (ids{0, 1, 2}));
         } else {
-            EXPECT_EQ(answer.outcome, iis_outcome::undetermined);
+            EXPECT_TRUE(
+                outcome_is<iis_outcome::time_limit>(answer.outcome, false));
             EXPECT_TRUE(answer.members.empty());
         }
     }
+}
+
+TEST(deletion_filter, the_flag_is_set_exactly_when_members_are_returned) {
+    // Every script of five verdicts, monotone or not, against a stop request,
+    // the deadline or the solve limit at every call reaches every return.
+    constexpr std::size_t max_calls = 5;  // three candidates, batches of two
+    std::vector<std::pair<stop_event, std::size_t>> events{
+        {stop_event::none, 0}};
+    for(const auto kind : {stop_event::stop_request, stop_event::deadline,
+                           stop_event::solve_limit})
+        for(std::size_t at = 0; at <= max_calls; ++at)
+            events.emplace_back(kind, at);
+    std::vector<std::vector<deletion_verdict>> scripts{{}};
+    for(std::size_t call = 0; call < max_calls; ++call) {
+        std::vector<std::vector<deletion_verdict>> longer;
+        for(const auto & script : scripts)
+            for(const auto verdict :
+                {deletion_verdict::feasible, deletion_verdict::infeasible,
+                 deletion_verdict::inconclusive}) {
+                longer.push_back(script);
+                longer.back().push_back(verdict);
+            }
+        scripts = std::move(longer);
+    }
+    std::set<std::string> seen;
+    for(const bool proven : {false, true})
+        for(const std::size_t batch : {std::size_t{1}, std::size_t{2}})
+            for(std::size_t index = 0; index < scripts.size(); ++index)
+                for(const auto & [kind, at] : events) {
+                    const auto answer =
+                        run_scripted(scripts[index], kind, at, proven, batch);
+                    const auto text =
+                        iis_outcome_assert_detail::describe(answer.outcome);
+                    ASSERT_EQ(iis_outcome::conflict_available(answer.outcome),
+                              !answer.members.empty() ||
+                                  is<iis_outcome::irreducible>(answer.outcome))
+                        << text << " with " << answer.members.size()
+                        << " members, proven " << proven << " batch " << batch
+                        << " script " << index << " event "
+                        << static_cast<int>(kind) << " at " << at;
+                    seen.insert(text);
+                }
+    // every return, and never the unwritten incomplete
+    EXPECT_EQ(seen,
+              (std::set<std::string>{
+                  "feasible", "irreducible", "inconclusive_trial (no conflict)",
+                  "inconclusive_trial (conflict held)",
+                  "interrupted (no conflict)", "interrupted (conflict held)",
+                  "time_limit (no conflict)", "time_limit (conflict held)",
+                  "solve_limit (no conflict)", "solve_limit (conflict held)"}));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -439,20 +509,10 @@ TEST(deletion_filter, continuation_skips_the_known_proof) {
         return deletion_verdict::infeasible;
     };
     const auto known = deletion_filter(3, infeasible, {.max_solves = 1});
-    ASSERT_EQ(known.outcome, iis_outcome::not_proven_minimal);
+    ASSERT_TRUE(outcome_is<iis_outcome::solve_limit>(known.outcome, true));
     ASSERT_EQ(known.members, (ids{0, 1, 2}));
 
-    for(const auto reason : {iis_reason::solve_limit, iis_reason::time_limit,
-                             iis_reason::cancelled}) {
-        iis_limits limits;
-        std::stop_source source;
-        if(reason == iis_reason::solve_limit) limits.max_solves = 0;
-        if(reason == iis_reason::time_limit)
-            limits.time_limit = seconds::zero();
-        if(reason == iis_reason::cancelled) {
-            source.request_stop();
-            limits.stop_token = source.get_token();
-        }
+    auto resume_stopped = [&known](const iis_limits & limits) {
         std::size_t calls = 0;
         auto counted = [&calls](std::span<const std::size_t>) {
             ++calls;
@@ -462,10 +522,17 @@ TEST(deletion_filter, continuation_skips_the_known_proof) {
             {known.members, true}, counted,
             mippp::detail::make_deletion_budget(limits));
         EXPECT_EQ(calls, 0u);
-        EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-        EXPECT_EQ(answer.reason, reason);
         EXPECT_EQ(answer.members, known.members);
-    }
+        return answer.outcome;
+    };
+    EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(
+        resume_stopped({.max_solves = 0}), true));
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(
+        resume_stopped({.time_limit = seconds::zero()}), true));
+    std::stop_source source;
+    source.request_stop();
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(
+        resume_stopped({.stop_token = source.get_token()}), true));
 
     std::size_t calls = 0;
     auto inconclusive = [&calls](std::span<const std::size_t> active) {
@@ -477,8 +544,8 @@ TEST(deletion_filter, continuation_skips_the_known_proof) {
         {known.members, true}, inconclusive,
         mippp::detail::make_deletion_budget({}));
     EXPECT_EQ(calls, 3u);
-    EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-    EXPECT_EQ(answer.reason, iis_reason::inconclusive_trial);
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::inconclusive_trial>(answer.outcome, true));
     EXPECT_EQ(answer.members, known.members);
 }
 
@@ -497,8 +564,8 @@ TEST(deletion_filter, batching_reduces_trials_on_a_sparse_conflict) {
     const auto single = deletion_filter(1024, oracle);
     const auto single_calls = std::exchange(calls, 0);
     const auto batched = run_batched(1024, oracle, 64);
-    EXPECT_EQ(single.outcome, iis_outcome::irreducible);
-    EXPECT_EQ(batched.outcome, iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(single.outcome));
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(batched.outcome));
     EXPECT_EQ(single.members, (ids{17, 900}));
     EXPECT_EQ(batched.members, single.members);
     EXPECT_LT(calls, single_calls / 4);
@@ -511,8 +578,7 @@ TEST(deletion_filter, inconclusive_batches_still_give_an_irreducible_answer) {
         return deletion_verdict::feasible;
     };
     const auto answer = run_batched(4, oracle, 2);
-    EXPECT_EQ(answer.outcome, iis_outcome::irreducible);
-    EXPECT_FALSE(answer.reason.has_value());
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.outcome));
     EXPECT_EQ(answer.members, (ids{0, 1, 2, 3}));
 }
 
@@ -527,13 +593,15 @@ TEST(deletion_filter, batch_budget_keeps_only_proven_deletions) {
         calls = 0;
         const auto answer = run_batched(8, oracle, 4, {.max_solves = budget});
         EXPECT_LE(calls, budget);
-        if(proven(answer)) {
+        if(iis_outcome::conflict_available(answer.outcome)) {
             EXPECT_TRUE(contains(answer.members, 7));
         }
-        if(answer.outcome == iis_outcome::irreducible) {
+        if(is<iis_outcome::irreducible>(answer.outcome)) {
             EXPECT_EQ(answer.members, (ids{7}));
         } else {
-            EXPECT_EQ(answer.reason, iis_reason::solve_limit);
+            // only a stop before the initial trial holds no conflict
+            EXPECT_TRUE(outcome_is<iis_outcome::solve_limit>(answer.outcome,
+                                                             budget > 0));
         }
     }
 }
@@ -548,8 +616,7 @@ TEST(deletion_filter, stop_after_an_inconclusive_batch_keeps_the_full_set) {
     };
     const auto answer =
         run_batched(8, oracle, 4, {.stop_token = source.get_token()});
-    EXPECT_EQ(answer.outcome, iis_outcome::not_proven_minimal);
-    EXPECT_EQ(answer.reason, iis_reason::cancelled);
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(answer.outcome, true));
     EXPECT_EQ(answer.members, (ids{0, 1, 2, 3, 4, 5, 6, 7}));
     EXPECT_EQ(calls, 2u);
 }

@@ -205,7 +205,10 @@ using sided_status =
                  iis_status::member_upper, iis_status::member_both>;
 using row_status = std::variant<iis_status::absent, iis_status::member_lower,
                                 iis_status::member_upper, iis_status::member>;
-using snapshot = iis_snapshot<variable, constraint, sided_status, row_status>;
+using outcome = std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                             iis_outcome::feasible>;
+using snapshot =
+    iis_snapshot<variable, constraint, sided_status, row_status, outcome>;
 
 }  // namespace
 
@@ -224,7 +227,7 @@ TEST(iis_oracle, reads_a_snapshot_by_case_local_position) {
     mippp::detail::handle_status_table<row_status> rows(2);
     rows.set(1, iis_status::member_lower{});
     const snapshot iis(std::move(variables), std::move(rows),
-                       iis_outcome::irreducible);
+                       iis_outcome::irreducible{});
     // built in reverse: case variable i is handle 2 - i, row j is handle 1 - j
     const std::vector<variable> case_variables{variable(2), variable(1),
                                                variable(0)};

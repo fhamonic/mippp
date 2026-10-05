@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <optional>
+#include <concepts>
 #include <ranges>
+#include <variant>
 
 #include "mippp/solvers/gurobi/all.hpp"
 
@@ -122,6 +123,16 @@ INSTANTIATE_TEST(Gurobi_milp, VerbosityTest, gurobi_milp_test);
 
 static_assert(has_iis<gurobi_lp>);
 static_assert(has_iis<gurobi_milp>);
+static_assert(
+    std::same_as<
+        native_iis_outcome_t<gurobi_lp>,
+        std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                     iis_outcome::feasible, iis_outcome::stopped,
+                     iis_outcome::interrupted, iis_outcome::limit_reached,
+                     iis_outcome::time_limit, iis_outcome::iteration_limit,
+                     iis_outcome::memory_limit>>);
+static_assert(std::same_as<native_iis_outcome_t<gurobi_milp>,
+                           native_iis_outcome_t<gurobi_lp>>);
 // A Gurobi range is a slack column, not a second side on the row, so the
 // models have no row-bound setters and the deletion filter writes their rows
 // through the sense and the rhs.
@@ -131,18 +142,43 @@ static_assert(iis_by_deletion_model<gurobi_milp>);
 static_assert(detail::iis_rows_as_sense_and_rhs<gurobi_lp>);
 static_assert(detail::iis_rows_as_sense_and_rhs<gurobi_milp>);
 
-// Gurobi's IterationLimit also stops the routine's solves, and a stop that
-// is not the time limit's carries no reason: the answer is only that there
-// is none, and the limit stays where the user set it.
-TEST_F(gurobi_lp_test, iteration_limit_stops_compute_iis_without_a_reason) {
+// The cause a stop before any subsystem gets from Status, pinned without a
+// licence since no test run reaches 11, 15 or 17. A stopped MIP reads 1,
+// which leaves the clock to decide.
+struct gurobi_iis_mapping : gurobi_lp {
+    using gurobi_base::_iis_stop_outcome;
+};
+TEST(gurobi_iis_stop_outcome, names_the_cause_status_reports) {
+    using namespace gurobi::impl::v1;
+    const auto map = &gurobi_iis_mapping::_iis_stop_outcome;
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::time_limit>(map(GRB_TIME_LIMIT, false), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::iteration_limit>(
+        map(GRB_ITERATION_LIMIT, false), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::memory_limit>(map(GRB_MEM_LIMIT, false),
+                                                      false));
+    EXPECT_TRUE(outcome_is<iis_outcome::interrupted>(
+        map(GRB_INTERRUPTED, false), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::limit_reached>(
+        map(GRB_USER_OBJ_LIMIT, false), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::limit_reached>(
+        map(GRB_WORK_LIMIT, false), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(map(1, true), false));
+    EXPECT_TRUE(outcome_is<iis_outcome::stopped>(map(1, false), false));
+}
+
+// Gurobi's IterationLimit also stops the routine's solves: a stop before any
+// subsystem leaves Status at 7, read as an iteration limit with no conflict,
+// and the limit stays where the user set it.
+TEST_F(gurobi_lp_test, iteration_limit_stops_compute_iis) {
     auto model = new_model();
     add_depot_store_conflict(model);
     model.set_iteration_limit(0);
     model.solve();
     ASSERT_TRUE(is_a<status::iteration_limit>(model.get_status()));
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(
+        outcome_is<iis_outcome::iteration_limit>(iis.get_outcome(), false));
     EXPECT_EQ(iis.num_variable_members(), 0u);
     EXPECT_EQ(iis.num_constraint_members(), 0u);
     EXPECT_EQ(model.get_iteration_limit(), 0u);
@@ -150,7 +186,7 @@ TEST_F(gurobi_lp_test, iteration_limit_stops_compute_iis_without_a_reason) {
     // lifted, the same model answers in full
     model.set_iteration_limit(1000);
     const auto answer = model.compute_iis();
-    EXPECT_EQ(answer.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(answer.get_outcome()));
     EXPECT_EQ(answer.num_constraint_members(), 6u);
     EXPECT_EQ(answer.num_variable_members(), 0u);
 }
@@ -180,7 +216,7 @@ TEST_F(gurobi_milp_test, compute_iis_restores_the_forcing_attributes) {
     write_int_attribute(model, "IISQConstrForce", 0, 0);
     write_int_attribute(model, "IISGenConstrForce", 0, 0);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(conflict.x)));
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(conflict.row)));
     EXPECT_EQ(read_int_attribute(model, "IISSOSForce", 0), 0);
@@ -193,7 +229,7 @@ TEST_F(gurobi_milp_test, compute_iis_keeps_a_default_forcing_attribute) {
     auto model = new_model();
     add_indicator_conflict(model);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(read_int_attribute(model, "IISGenConstrForce", 0), -1);
 }
 
@@ -205,7 +241,7 @@ TEST_F(gurobi_milp_test, removed_variable_before_an_indicator_conflict) {
     const auto conflict = add_indicator_conflict(model);
     model.remove_variable(gone);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(gone)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(conflict.z)));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(conflict.x)));
@@ -224,7 +260,7 @@ TEST_F(gurobi_milp_test, binary_bounds_are_implicit_background) {
         auto z = model.add_binary_variable();
         auto row = model.add_constraint(z >= 2.);
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_TRUE(is<iis_status::absent>(iis.get_status(z)));
         EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(row)));
         EXPECT_EQ(iis.num_variable_members(), 0u);
@@ -236,7 +272,7 @@ TEST_F(gurobi_milp_test, binary_bounds_are_implicit_background) {
             model.add_integer_variable({.lower_bound = 0., .upper_bound = 1.});
         auto row = model.add_constraint(z >= 2.);
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(z)));
         EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(row)));
         EXPECT_EQ(iis.num_variable_members(), 1u);

@@ -1,9 +1,10 @@
 #include <chrono>
+#include <concepts>
 #include <cstddef>
-#include <optional>
 #include <random>
 #include <ranges>
 #include <stdexcept>
+#include <variant>
 #include <vector>
 
 #include "mippp/solvers/copt/all.hpp"
@@ -102,6 +103,13 @@ INSTANTIATE_TEST(COPT_milp, VerbosityTest, copt_milp_test);
 
 static_assert(has_iis<copt_lp>);
 static_assert(has_iis<copt_milp>);
+static_assert(std::same_as<
+              native_iis_outcome_t<copt_lp>,
+              std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                           iis_outcome::feasible, iis_outcome::interrupted,
+                           iis_outcome::time_limit, iis_outcome::node_limit>>);
+static_assert(std::same_as<native_iis_outcome_t<copt_milp>,
+                           native_iis_outcome_t<copt_lp>>);
 static_assert(iis_by_deletion_model<copt_lp>);
 static_assert(iis_by_deletion_model<copt_milp>);
 INSTANTIATE_TEST(COPT_lp, IisTest, copt_lp_test);
@@ -149,7 +157,8 @@ struct copt_iis_test : public model_test<copt_api, Model> {
             model.set_variable_lower_bound(x, lower);
             model.set_variable_upper_bound(x, upper);
             const auto iis = model.compute_iis();
-            EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible) << placement;
+            EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()))
+                << placement;
             EXPECT_TRUE(is<Side>(iis.get_status(x))) << placement;
             EXPECT_EQ(iis.num_variable_members(), 1u) << placement;
             EXPECT_EQ(iis.num_constraint_members(), 0u) << placement;
@@ -190,13 +199,13 @@ TEST_F(copt_lp_iis_test, compute_iis_leaves_iis_method_alone) {
     auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
     auto r = model.add_constraint(x >= 2.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(r)));
     EXPECT_EQ(read_iis_method(model), method_before);
     model.set_variable_upper_bound(x, 3.);
     const auto iis2 = model.compute_iis();
-    EXPECT_EQ(iis2.get_outcome(), iis_outcome::feasible);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis2.get_outcome()));
     EXPECT_EQ(read_iis_method(model), method_before);
 }
 
@@ -207,7 +216,7 @@ TEST_F(copt_milp_iis_test, compute_iis_leaves_iis_method_alone) {
     auto x = model.add_integer_variable({.lower_bound = 0., .upper_bound = 1.});
     model.add_constraint(x >= 2.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(read_iis_method(model), method_before);
 }
 
@@ -217,13 +226,13 @@ TEST_F(copt_lp_iis_test, row_less_model_is_answered_from_its_columns) {
     {
         auto model = this->new_model();
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+        EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
     }
     {
         auto model = this->new_model();
         auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+        EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
         EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
     }
     {
@@ -231,7 +240,7 @@ TEST_F(copt_lp_iis_test, row_less_model_is_answered_from_its_columns) {
         auto x = model.add_variable({.lower_bound = 0., .upper_bound = 1.});
         auto y = model.add_variable({.lower_bound = 1., .upper_bound = 0.});
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
         EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(y)));
         EXPECT_EQ(iis.num_variable_members(), 1u);
@@ -244,7 +253,7 @@ TEST_F(copt_milp_iis_test, row_less_model_is_answered_from_its_columns) {
         auto x =
             model.add_integer_variable({.lower_bound = 0., .upper_bound = 1.});
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+        EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
         EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
     }
     {
@@ -254,7 +263,7 @@ TEST_F(copt_milp_iis_test, row_less_model_is_answered_from_its_columns) {
         auto y = model.add_integer_variable(
             {.lower_bound = 0.25, .upper_bound = 0.75});
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
         EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
         EXPECT_TRUE(is<iis_status::member_both>(iis.get_status(y)));
         EXPECT_EQ(iis.num_variable_members(), 1u);
@@ -275,7 +284,7 @@ TEST_F(copt_milp_iis_test, feasible_mip_is_feasible_unsolved_or_stale) {
         model.set_objective(x + 2 * y + 1);
         model.add_constraint(x + y <= 6.5);
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+        EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
         EXPECT_EQ(iis.num_variable_members(), 0u);
         EXPECT_EQ(iis.num_constraint_members(), 0u);
         EXPECT_TRUE(is<status::unknown>(model.get_status()));
@@ -292,10 +301,10 @@ TEST_F(copt_milp_iis_test, feasible_mip_is_feasible_unsolved_or_stale) {
         ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
         model.set_variable_upper_bound(x, 3.);
         const auto iis = model.compute_iis();
-        EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+        EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
         model.set_variable_upper_bound(x, 1.);
         const auto iis2 = model.compute_iis();
-        EXPECT_EQ(iis2.get_outcome(), iis_outcome::irreducible);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis2.get_outcome()));
         EXPECT_TRUE(is_a<iis_status::member>(iis2.get_status(x)));
         EXPECT_TRUE(is<iis_status::member_lower>(iis2.get_status(r)));
     }
@@ -312,7 +321,7 @@ TEST_F(copt_milp_iis_test, mip_members_needing_both_sides_are_whole) {
         model.add_integer_variable({.lower_bound = 0., .upper_bound = 10.});
     auto r = model.add_constraint(x + 2 * y == 4.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
     EXPECT_TRUE(is<iis_status::member>(iis.get_status(r)));
@@ -331,7 +340,7 @@ TEST_F(copt_milp_iis_test, one_sided_members_keep_their_side_on_a_mip) {
         {.lower_bound = -model.infinity(), .upper_bound = 1.});
     auto r = model.add_constraint(x + y + w >= 4.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::member>(iis.get_status(y)));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(w)));
@@ -350,7 +359,7 @@ void check_column_less_rows_that_admit_zero_are_feasible(Model model) {
     auto r1 = model.add_constraint(no_terms >= -1.);
     auto r2 = model.add_constraint(no_terms == 0.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r0)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r1)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r2)));
@@ -374,7 +383,7 @@ TEST_F(copt_milp_iis_test, two_bounded_continuous_column_is_whole_on_a_mip) {
         model.add_integer_variable({.lower_bound = 0., .upper_bound = 10.});
     auto r = model.add_constraint(x + 2 * y == 4.);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(y)));
     EXPECT_TRUE(is<iis_status::member>(iis.get_status(r)));
@@ -394,7 +403,7 @@ TEST_F(copt_milp_iis_test, indicator_is_background) {
     add_indicator(model, z, 1, x, 5.);
     ASSERT_EQ(read_int_attr(model, "Indicators"), 1);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is_a<iis_status::member>(iis.get_status(z)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::member_upper>(iis.get_status(r)));
@@ -413,7 +422,7 @@ TEST_F(copt_milp_iis_test, sos_is_background) {
     add_sos1(model, x, y);
     ASSERT_EQ(read_int_attr(model, "Soss"), 1);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::irreducible);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(x)));
     EXPECT_TRUE(is<iis_status::member_lower>(iis.get_status(y)));
     EXPECT_TRUE(is<iis_status::absent>(iis.get_status(r)));
@@ -424,7 +433,7 @@ TEST_F(copt_milp_iis_test, sos_is_background) {
 
 // The confirming solve cannot tell infeasible from unbounded, and the
 // routine would then flag the whole model.
-TEST_F(copt_milp_iis_test, infeasible_or_unbounded_mip_is_undetermined) {
+TEST_F(copt_milp_iis_test, infeasible_or_unbounded_mip_is_incomplete) {
     using namespace operators;
     auto model = this->new_model();
     auto x = model.add_integer_variable();
@@ -432,8 +441,7 @@ TEST_F(copt_milp_iis_test, infeasible_or_unbounded_mip_is_undetermined) {
     model.set_maximization();
     model.set_objective(x);
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::incomplete>(iis.get_outcome(), false));
     EXPECT_EQ(iis.num_variable_members(), 0u);
     EXPECT_EQ(iis.num_constraint_members(), 0u);
 }
@@ -459,8 +467,7 @@ TEST_F(copt_milp_iis_test, node_limit_stops_the_confirming_solve) {
                               model.native_api().SetIntParam(
                                   model.native_model().second, "NodeLimit", 0));
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::undetermined);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::node_limit>(iis.get_outcome(), false));
     EXPECT_EQ(read_int_attr(model, "MipStatus"),
               copt::impl::v1::COPT_MIPSTATUS_NODELIMIT);
 }
@@ -474,8 +481,7 @@ TEST_F(copt_milp_iis_test, feasible_mip_is_answered_at_its_first_incumbent) {
     TimeLimitTest<copt_milp_test>::build_market_split(model, 5);
     model.set_time_limit(std::chrono::minutes(1));
     const auto iis = model.compute_iis();
-    EXPECT_EQ(iis.get_outcome(), iis_outcome::feasible);
-    EXPECT_EQ(iis.get_reason(), std::nullopt);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
     EXPECT_EQ(read_int_attr(model, "MipStatus"),
               copt::impl::v1::COPT_MIPSTATUS_INTERRUPTED);
     EXPECT_EQ(read_int_attr(model, "HasMipSol"), 1);

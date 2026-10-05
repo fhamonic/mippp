@@ -72,7 +72,7 @@ void print_native_conflict(Model & model, Print & print_conflict) {
         // 1.14 does, or when the routine fails
         try {
             const auto native = model.compute_iis();
-            if(native.get_outcome() == iis_outcome::irreducible) {
+            if(is<iis_outcome::irreducible>(native.get_outcome())) {
                 std::println("Irreducible conflict, from the native routine:");
                 print_conflict(native);
             }
@@ -167,7 +167,7 @@ int main() {
     // The filter solves the model about once per finite bound and side: on a
     // large model, bound the run with its second argument, an iis_limits.
     const auto iis = compute_iis_by_deletion(model);
-    if(iis.get_outcome() != iis_outcome::irreducible) {
+    if(!is<iis_outcome::irreducible>(iis.get_outcome())) {
         std::println("The deletion filter proves no irreducible conflict.");
         return 1;
     }

@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <stop_token>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/utility/iis_outcome.hpp"
@@ -29,13 +30,19 @@ concept deletion_oracle =
         { std::invoke(oracle, active) } -> std::same_as<deletion_verdict>;
     };
 
+// incomplete is never returned: it is the value of a result no run wrote
+using deletion_filter_outcome =
+    std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                 iis_outcome::feasible, iis_outcome::inconclusive_trial,
+                 iis_outcome::interrupted, iis_outcome::time_limit,
+                 iis_outcome::solve_limit>;
+
 struct deletion_filter_result {
     // Ascending, and empty unless a trial proved infeasibility. A stop keeps
     // the last proven subset, untested candidates included. Empty members with
     // irreducible mean that the background alone is infeasible.
     std::vector<std::size_t> members;
-    iis_outcome outcome = iis_outcome::undetermined;
-    std::optional<iis_reason> reason;
+    deletion_filter_outcome outcome;
 };
 
 namespace detail {
@@ -70,11 +77,12 @@ template <typename Clock = std::chrono::steady_clock>
 }
 
 template <typename Clock>
-[[nodiscard]] std::optional<iis_reason> deletion_stop_reason(
-    const deletion_budget<Clock> & budget, std::size_t solves) {
-    if(budget.stop_token.stop_requested()) return iis_reason::cancelled;
-    if(Clock::now() >= budget.deadline) return iis_reason::time_limit;
-    if(solves >= budget.max_solves) return iis_reason::solve_limit;
+[[nodiscard]] std::optional<deletion_filter_outcome> deletion_stop(
+    const deletion_budget<Clock> & budget, std::size_t solves, bool proven) {
+    if(budget.stop_token.stop_requested())
+        return iis_outcome::interrupted(proven);
+    if(Clock::now() >= budget.deadline) return iis_outcome::time_limit(proven);
+    if(solves >= budget.max_solves) return iis_outcome::solve_limit(proven);
     return std::nullopt;
 }
 
@@ -95,14 +103,14 @@ template <typename Clock, deletion_oracle O>
         ++solves;
         return std::invoke(oracle, active);
     };
-    auto inconclusive_reason = [&] {
-        return Clock::now() >= budget.deadline ? iis_reason::time_limit
-                                               : iis_reason::inconclusive_trial;
+    auto stop = [&] { return deletion_stop(budget, solves, state.proven); };
+    auto inconclusive = [&]() -> deletion_filter_outcome {
+        if(Clock::now() >= budget.deadline)
+            return iis_outcome::time_limit(state.proven);
+        return iis_outcome::inconclusive_trial(state.proven);
     };
-    auto finish = [&](iis_outcome outcome, std::optional<iis_reason> reason) {
-        deletion_filter_result result;
-        result.outcome = outcome;
-        result.reason = reason;
+    auto finish = [&](deletion_filter_outcome outcome) {
+        deletion_filter_result result{{}, outcome};
         if(state.proven) {
             result.members = std::move(state.members);
             std::ranges::sort(result.members);
@@ -111,18 +119,17 @@ template <typename Clock, deletion_oracle O>
     };
 
     if(!state.proven) {
-        if(auto reason = deletion_stop_reason(budget, solves))
-            return finish(iis_outcome::undetermined, reason);
+        if(auto s = stop()) return finish(*s);
         const auto verdict = trial(state.members);
         if(verdict == deletion_verdict::feasible)
-            return finish(iis_outcome::feasible, std::nullopt);
+            return finish(iis_outcome::feasible{});
         if(verdict != deletion_verdict::infeasible)
-            return finish(iis_outcome::undetermined, inconclusive_reason());
+            return finish(inconclusive());
         state.proven = true;
     }
 
     // Group trials never prove a member necessary, so an inconclusive group
-    // sets no reason: the single pass below decides every survivor.
+    // leaves no gap: the single pass below decides every survivor.
     if(auto size = std::min(batch_size, state.members.size()); size > 1) {
         std::vector<std::size_t> remainder;
         remainder.reserve(state.members.size());
@@ -131,8 +138,7 @@ template <typename Clock, deletion_oracle O>
             while(begin < state.members.size()) {
                 const auto count = std::min(size, state.members.size() - begin);
                 if(count == 1) break;
-                if(auto reason = deletion_stop_reason(budget, solves))
-                    return finish(iis_outcome::not_proven_minimal, reason);
+                if(auto s = stop()) return finish(*s);
                 const auto first =
                     state.members.begin() + static_cast<std::ptrdiff_t>(begin);
                 const auto last = first + static_cast<std::ptrdiff_t>(count);
@@ -149,11 +155,10 @@ template <typename Clock, deletion_oracle O>
 
     // One pass suffices: a member kept before index stays necessary, since
     // removing more candidates keeps its feasible witness feasible.
-    std::optional<iis_reason> reason;
+    std::optional<deletion_filter_outcome> gap;
     std::size_t index = 0;
     while(index < state.members.size()) {
-        if(auto stop = deletion_stop_reason(budget, solves))
-            return finish(iis_outcome::not_proven_minimal, stop);
+        if(auto s = stop()) return finish(*s);
         const auto candidate = state.members[index];
         state.members[index] = state.members.back();
         state.members.pop_back();
@@ -163,12 +168,9 @@ template <typename Clock, deletion_oracle O>
         state.members.push_back(candidate);
         std::swap(state.members[index], state.members.back());
         ++index;
-        if(verdict != deletion_verdict::feasible)
-            reason = inconclusive_reason();
+        if(verdict != deletion_verdict::feasible) gap = inconclusive();
     }
-    return finish(
-        reason ? iis_outcome::not_proven_minimal : iis_outcome::irreducible,
-        reason);
+    return finish(gap.value_or(iis_outcome::irreducible{}));
 }
 
 }  // namespace detail

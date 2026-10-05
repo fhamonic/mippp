@@ -11,6 +11,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/detail/handle_guard.hpp"
@@ -682,12 +683,40 @@ private:
     double _conflict_preference = 0.;
 
 protected:
+    // iteration_limit is reachable on cplex_lp only, node_limit on cplex_milp
+    using iis_outcome_type =
+        std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                     iis_outcome::feasible, iis_outcome::interrupted,
+                     iis_outcome::limit_reached, iis_outcome::time_limit,
+                     iis_outcome::iteration_limit, iis_outcome::node_limit,
+                     iis_outcome::memory_limit>;
     // Membership only: the refiner sides a bound by its group and names a
     // row whole, so an inequality row takes the side of its sense and an
     // equality or ranged row stays a plain member.
     using iis_snapshot_type =
         iis_snapshot<variable, constraint, iis_sided_status,
-                     detail::iis_whole_or_one_side_status>;
+                     detail::iis_whole_or_one_side_status, iis_outcome_type>;
+
+    // 32 is CPLEX's numerical contradiction (documented), also measured on
+    // the unchanged problem after an iteration-limit stop: nothing outside
+    // the call cut it short, so it names no stop.
+    // clang-format off
+    static iis_outcome_type _conflict_abort_outcome(int status) noexcept {
+        using namespace iis_outcome;
+        switch(status) {
+            case CPX_STAT_CONFLICT_ABORT_TIME_LIM: return time_limit{};
+            case CPX_STAT_CONFLICT_ABORT_IT_LIM:   return iteration_limit{};
+            case CPX_STAT_CONFLICT_ABORT_NODE_LIM: return node_limit{};
+            case CPX_STAT_CONFLICT_ABORT_MEM_LIM:  return memory_limit{};
+            case CPX_STAT_CONFLICT_ABORT_USER:     return interrupted{};
+            // no dedicated tag: these collapse into limit_reached
+            case CPX_STAT_CONFLICT_ABORT_OBJ_LIM:
+            case CPX_STAT_CONFLICT_ABORT_DETTIME_LIM: return limit_reached{};
+            case CPX_STAT_CONFLICT_ABORT_CONTRADICTION:
+            default:                               return incomplete{};
+        }
+    }
+    // clang-format on
 
     iis_snapshot_type _compute_iis() {
         const std::size_t num_col = _num_var_native_ids();
@@ -748,7 +777,7 @@ protected:
         if(conflict_status == CPX_STAT_CONFLICT_FEASIBLE)
             return iis_snapshot_type(std::move(variable_table),
                                      std::move(constraint_table),
-                                     iis_outcome::feasible);
+                                     iis_outcome::feasible{});
         // A stopped refinement flags every group possible until its first
         // subproblem completes, on a feasible model too, and a node-limit
         // stop excluded groups whose subproblem had only hit the limit (both
@@ -756,12 +785,9 @@ protected:
         // reported.
         if(conflict_status >= CPX_STAT_CONFLICT_ABORT_CONTRADICTION &&
            conflict_status <= CPX_STAT_CONFLICT_ABORT_DETTIME_LIM)
-            return iis_snapshot_type(
-                std::move(variable_table), std::move(constraint_table),
-                iis_outcome::undetermined,
-                conflict_status == CPX_STAT_CONFLICT_ABORT_TIME_LIM
-                    ? std::optional(iis_reason::time_limit)
-                    : std::nullopt);
+            return iis_snapshot_type(std::move(variable_table),
+                                     std::move(constraint_table),
+                                     _conflict_abort_outcome(conflict_status));
         if(conflict_status != CPX_STAT_CONFLICT_MINIMAL)
             throw solver_error(
                 ("mippp: CPXrefineconflictext left the unexpected status " +
@@ -796,10 +822,10 @@ protected:
                         ? iis_sided_status{iis_status::member_lower{}}
                         : iis_sided_status{iis_status::member_upper{}});
         }
-        return iis_snapshot_type(std::move(variable_table),
-                                 std::move(constraint_table),
-                                 proven ? iis_outcome::irreducible
-                                        : iis_outcome::not_proven_minimal);
+        return iis_snapshot_type(
+            std::move(variable_table), std::move(constraint_table),
+            proven ? iis_outcome_type(iis_outcome::irreducible{})
+                   : iis_outcome_type(iis_outcome::incomplete(true)));
     }
 };
 

@@ -548,28 +548,34 @@ private:
     }
 
 protected:
+    // node_limit is reachable on copt_milp only, from the solve that precedes
+    // the search
+    using iis_outcome_type =
+        std::variant<iis_outcome::incomplete, iis_outcome::irreducible,
+                     iis_outcome::feasible, iis_outcome::interrupted,
+                     iis_outcome::time_limit, iis_outcome::node_limit>;
+
     template <typename VariableStatus, typename ConstraintStatus>
-    iis_snapshot<variable, constraint, VariableStatus, ConstraintStatus>
+    iis_snapshot<variable, constraint, VariableStatus, ConstraintStatus,
+                 iis_outcome_type>
     _compute_iis(const bool mip) {
         using snapshot = iis_snapshot<variable, constraint, VariableStatus,
-                                      ConstraintStatus>;
+                                      ConstraintStatus, iis_outcome_type>;
         const int num_col = static_cast<int>(num_variables());
         const int num_row = static_cast<int>(num_constraints());
         detail::handle_status_table<VariableStatus> variable_table(
             static_cast<std::size_t>(num_col));
         detail::handle_status_table<ConstraintStatus> constraint_table(
             static_cast<std::size_t>(num_row));
-        const auto answer = [&](iis_outcome outcome,
-                                std::optional<iis_reason> reason =
-                                    std::nullopt) {
+        const auto answer = [&](iis_outcome_type outcome) {
             return snapshot(std::move(variable_table),
-                            std::move(constraint_table), outcome, reason);
+                            std::move(constraint_table), outcome);
         };
         const auto single_column = [&](const self_infeasible_column & col) {
             variable_table.set(static_cast<std::size_t>(col.index),
                                detail::iis_flagged_status<VariableStatus>(
                                    col.sides.lower, col.sides.upper, false));
-            return answer(iis_outcome::irreducible);
+            return answer(iis_outcome::irreducible{});
         };
 
         // The routine hands back its previous answer, and calls a model whose
@@ -583,11 +589,11 @@ protected:
         if(num_col == 0) {
             const auto side =
                 detail::iis_column_less_precheck(*this, constraints());
-            if(!side) return answer(iis_outcome::feasible);
+            if(!side) return answer(iis_outcome::feasible{});
             constraint_table.set(side->first.uid(),
                                  detail::iis_flagged_status<ConstraintStatus>(
                                      side->second, !side->second, false));
-            return answer(iis_outcome::irreducible);
+            return answer(iis_outcome::irreducible{});
         }
 
         const double budget = get_time_limit().count();
@@ -618,16 +624,21 @@ protected:
                     break;
                 case COPT_MIPSTATUS_OPTIMAL:
                 case COPT_MIPSTATUS_UNBOUNDED:
-                    return answer(iis_outcome::feasible);
-                case COPT_MIPSTATUS_TIMEOUT:
-                    // an incumbent found before the stop settles the question
-                    if(has_sol) return answer(iis_outcome::feasible);
-                    return answer(iis_outcome::undetermined,
-                                  iis_reason::time_limit);
+                    return answer(iis_outcome::feasible{});
                 default:
-                    // the interrupt above always leaves an incumbent
-                    if(has_sol) return answer(iis_outcome::feasible);
-                    return answer(iis_outcome::undetermined);
+                    // an incumbent found before a stop settles the question,
+                    // and the interrupt above always leaves one
+                    if(has_sol) return answer(iis_outcome::feasible{});
+                    switch(mip_status) {
+                        case COPT_MIPSTATUS_TIMEOUT:
+                            return answer(iis_outcome::time_limit{});
+                        case COPT_MIPSTATUS_NODELIMIT:
+                            return answer(iis_outcome::node_limit{});
+                        case COPT_MIPSTATUS_INTERRUPTED:
+                            return answer(iis_outcome::interrupted{});
+                        default:
+                            return answer(iis_outcome::incomplete{});
+                    }
             }
         }
 
@@ -644,7 +655,7 @@ protected:
                 throw solver_error(
                     "mippp: COPT_Solve found a model without rows infeasible, "
                     "but every column's bounds admit a value");
-            return answer(iis_outcome::feasible);
+            return answer(iis_outcome::feasible{});
         }
 
         std::optional<iis_time_limit_guard> guard;
@@ -654,8 +665,10 @@ protected:
         if(guard) guard->restore();
         // never reached under an infinite budget, always under a zero one
         const bool out_of_time = elapsed() >= budget;
-        const std::optional<iis_reason> stop_reason =
-            out_of_time ? std::optional(iis_reason::time_limit) : std::nullopt;
+        const auto short_of = [&](bool conflict) -> iis_outcome_type {
+            if(out_of_time) return iis_outcome::time_limit(conflict);
+            return iis_outcome::incomplete(conflict);
+        };
 
         // the generic code is the routine's word for a feasible model
         if(code == COPT_RETCODE_INVALID) {
@@ -678,16 +691,17 @@ protected:
             switch(lp_status) {
                 case COPT_LPSTATUS_OPTIMAL:
                 case COPT_LPSTATUS_UNBOUNDED:
-                    return answer(iis_outcome::feasible);
+                    return answer(iis_outcome::feasible{});
                 case COPT_LPSTATUS_INFEASIBLE:
                     throw solver_error(
                         "mippp: COPT_ComputeIIS reports as feasible a model "
                         "COPT_SolveLp found infeasible");
                 case COPT_LPSTATUS_TIMEOUT:
-                    return answer(iis_outcome::undetermined,
-                                  iis_reason::time_limit);
+                    return answer(iis_outcome::time_limit{});
+                case COPT_LPSTATUS_INTERRUPTED:
+                    return answer(iis_outcome::interrupted{});
                 default:
-                    return answer(iis_outcome::undetermined);
+                    return answer(iis_outcome::incomplete{});
             }
         }
         check(code);
@@ -695,9 +709,7 @@ protected:
         int has_iis;
         check(COPT->GetIntAttr(prob, COPT_INTATTR_HASIIS, &has_iis));
         if(!has_iis) {
-            if(out_of_time)
-                return answer(iis_outcome::undetermined,
-                              iis_reason::time_limit);
+            if(out_of_time) return answer(iis_outcome::time_limit{});
             throw solver_error(
                 "mippp: COPT_ComputeIIS returned without an IIS");
         }
@@ -739,14 +751,14 @@ protected:
         // agreement is accepted.
         if(flagged_rows != iis_rows ||
            (flagged_cols != iis_cols && flagged_bounds != iis_cols))
-            return answer(iis_outcome::undetermined, stop_reason);
+            return answer(short_of(false));
         // Without a special constraint as sole member, an empty answer is
         // the routine's word for an integer column whose interval holds no
         // integer, which it never names.
         if(flagged_rows + flagged_cols == 0 && iis_sos + iis_indicators == 0) {
             if(const auto col = _self_infeasible_column(num_col))
                 return single_column(*col);
-            return answer(iis_outcome::undetermined, stop_reason);
+            return answer(short_of(false));
         }
 
         // On a MIP, COPT flags one side of an equality row and one bound of a
@@ -787,8 +799,8 @@ protected:
             variable_table.set(j, detail::iis_flagged_status<VariableStatus>(
                                       lower, upper, whole));
         }
-        if(is_minimal) return answer(iis_outcome::irreducible);
-        return answer(iis_outcome::not_proven_minimal, stop_reason);
+        if(is_minimal) return answer(iis_outcome::irreducible{});
+        return answer(short_of(true));
     }
 };
 
