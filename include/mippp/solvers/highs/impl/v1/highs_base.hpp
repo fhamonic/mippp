@@ -19,6 +19,7 @@
 #include "mippp/detail/handle_status_table.hpp"
 #include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -706,57 +707,6 @@ private:
     // iis_time_limit exists
     static constexpr solver_version _iis_native_floor{1, 14, 0};
 
-    // Every option is written back before the first error is raised, so a
-    // rejected write cannot leave the other one set; a constructor that
-    // throws runs no destructor, so it writes back itself.
-    class iis_option_guard {
-    private:
-        const highs_api & _api;
-        void * _model;
-        HighsInt _strategy;
-        double _time_limit;
-        bool _restored = false;
-
-        int _write_back() const noexcept {
-            const int strategy_status =
-                _api.setIntOptionValue(_model, "iis_strategy", _strategy);
-            const int time_limit_status = _api.setDoubleOptionValue(
-                _model, "iis_time_limit", _time_limit);
-            return strategy_status == kHighsStatusError ? strategy_status
-                                                        : time_limit_status;
-        }
-
-    public:
-        iis_option_guard(const highs_api & api, void * model, HighsInt strategy,
-                         double time_limit)
-            : _api(api), _model(model) {
-            _api._check(
-                _api.getIntOptionValue(_model, "iis_strategy", &_strategy));
-            _api._check(_api.getDoubleOptionValue(_model, "iis_time_limit",
-                                                  &_time_limit));
-            try {
-                _api._check(
-                    _api.setIntOptionValue(_model, "iis_strategy", strategy));
-                _api._check(_api.setDoubleOptionValue(_model, "iis_time_limit",
-                                                      time_limit));
-            } catch(...) {
-                (void)_write_back();
-                throw;
-            }
-        }
-        iis_option_guard(const iis_option_guard &) = delete;
-        iis_option_guard & operator=(const iis_option_guard &) = delete;
-
-        void restore() {
-            _restored = true;
-            _api._check(_write_back());
-        }
-        // values read back moments ago: the writes cannot be rejected
-        ~iis_option_guard() {
-            if(!_restored) (void)_write_back();
-        }
-    };
-
     // HiGHS answers a row whose sides cross as boxed before it reads the
     // row's terms. Without terms the activity is 0, which violates one of two
     // crossed sides, and that side alone is the IIS.
@@ -813,7 +763,23 @@ protected:
         // HiGHS ignores time_limit during the search and reads iis_time_limit
         // instead: the model's limit is copied there for this call only
         const double budget = get_time_limit().count();
-        iis_option_guard guard(*Highs, model, _iis_strategy_full, budget);
+        HighsInt strategy;
+        double iis_time_limit;
+        check(Highs->getIntOptionValue(model, "iis_strategy", &strategy));
+        check(Highs->getDoubleOptionValue(model, "iis_time_limit",
+                                          &iis_time_limit));
+        // armed before the writes, so that a rejected one is undone as well
+        detail::restore_guard options([&] {
+            const int strategy_status =
+                Highs->setIntOptionValue(model, "iis_strategy", strategy);
+            const int time_limit_status = Highs->setDoubleOptionValue(
+                model, "iis_time_limit", iis_time_limit);
+            check(strategy_status);
+            check(time_limit_status);
+        });
+        check(Highs->setIntOptionValue(model, "iis_strategy",
+                                       _iis_strategy_full));
+        check(Highs->setDoubleOptionValue(model, "iis_time_limit", budget));
 
         // HiGHS stores the matrix row-wise once added rows bring more
         // nonzeros than it holds, and its check of an answer made of one row
@@ -850,7 +816,7 @@ protected:
             if(out_of_time) return iis_outcome::time_limit(conflict);
             return iis_outcome::incomplete(conflict);
         };
-        guard.restore();
+        options.restore();
 
         if(code == kHighsStatusError) {
             if(out_of_time)
