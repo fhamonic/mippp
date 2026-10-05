@@ -10,6 +10,7 @@
 #include <utility>
 #include <variant>
 
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
@@ -254,41 +255,6 @@ public:
         check(XPRS->postsolve(prob));
     }
 
-private:
-    // The MIP solves of the routine run a registered callback on their
-    // candidates, whose rejection makes a feasible subsystem read infeasible
-    // and the answer name the whole model: the callback is detached for the
-    // call.
-    class iis_callback_guard {
-    private:
-        xpress_milp * _model;
-
-    public:
-        explicit iis_callback_guard(xpress_milp & model)
-            : _model(model.candidate_solution_callback ? &model : nullptr) {
-            if(_model)
-                _model->check(_model->XPRS->removecbpreintsol(
-                    _model->prob, candidate_solution_callback_fun, _model));
-        }
-        iis_callback_guard(const iis_callback_guard &) = delete;
-        iis_callback_guard & operator=(const iis_callback_guard &) = delete;
-
-        void restore() {
-            if(!_model) return;
-            auto * const model = std::exchange(_model, nullptr);
-            model->check(model->XPRS->addcbpreintsol(
-                model->prob, candidate_solution_callback_fun, model, 1));
-        }
-        // only after an exception, where a second error could not be
-        // reported
-        ~iis_callback_guard() {
-            if(!_model) return;
-            (void)_model->XPRS->addcbpreintsol(
-                _model->prob, candidate_solution_callback_fun, _model, 1);
-        }
-    };
-
-public:
     // The routine solves on its own and overwrites the status attributes and
     // the held solution: the reported status is reset before the first native
     // call, throw or return.
@@ -298,11 +264,25 @@ public:
         reset_status();
         int mip_entities;
         check(XPRS->getintattrib(prob, XPRS_ORIGINALMIPENTS, &mip_entities));
-        iis_callback_guard detached(*this);
+        // The MIP solves of the routine run a registered callback on their
+        // candidates, whose rejection makes a feasible subsystem read
+        // infeasible and the answer name the whole model: the callback is
+        // detached for the call. The guard comes only after a removal that
+        // succeeded: each addcbpreintsol adds one more call, so re-adding a
+        // callback still registered would run it twice.
+        const bool attached = static_cast<bool>(candidate_solution_callback);
+        if(attached)
+            check(XPRS->removecbpreintsol(prob, candidate_solution_callback_fun,
+                                          this));
+        detail::restore_guard reattach([&] {
+            if(attached)
+                check(XPRS->addcbpreintsol(
+                    prob, candidate_solution_callback_fun, this, 1));
+        });
         auto iis =
             _compute_iis<detail::iis_sided_status,
                          detail::iis_whole_or_sided_status>(mip_entities > 0);
-        detached.restore();
+        reattach.restore();
         return iis;
     }
 
