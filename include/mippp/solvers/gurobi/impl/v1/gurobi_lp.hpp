@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <variant>
 
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 
 #include "mippp/solvers/gurobi/impl/v1/gurobi_base.hpp"
@@ -95,14 +96,17 @@ public:
     }
     void refine_lp_status() {
         if(!is<status::infeasible_or_unbounded>(_status)) return;
-        int tmp_dual_reductions;
+        int dual_reductions;
         check(GRB->getintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
-                               &tmp_dual_reductions));
+                               &dual_reductions));
         check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS, 0));
+        detail::restore_guard guard([&] {
+            check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
+                                   dual_reductions));
+        });
         check(GRB->optimize(model));
         _status = _get_status();
-        check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
-                               tmp_dual_reductions));
+        guard.restore();
         if(is<status::infeasible_or_unbounded>(_status))
             throw std::runtime_error("Failed to refine LP status.");
     }

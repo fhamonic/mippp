@@ -191,6 +191,33 @@ TEST_F(gurobi_lp_test, iteration_limit_stops_compute_iis) {
     EXPECT_EQ(answer.num_variable_members(), 0u);
 }
 
+// The re-solve under DualReductions 0 can throw: a callback that returns
+// nonzero aborts GRBoptimize with an error. The parameter must read the
+// user's value again afterwards, not the 0 the call set.
+TEST_F(gurobi_lp_test, refine_lp_status_restores_dual_reductions_on_a_throw) {
+    using namespace operators;
+    using gurobi::impl::v1::GRBmodel;
+    auto model = new_model();
+    // presolve's dual fixing proves x unbounded without telling it from an
+    // infeasible rest, which is what INF_OR_UNBD reports
+    auto x = model.add_variable();
+    model.add_constraint(x >= 1.);
+    model.set_maximization();
+    model.set_objective(1. * x);
+    model.solve();
+    ASSERT_TRUE(is<status::infeasible_or_unbounded>(model.get_status()));
+    const auto [env, native] = model.native_model();
+    const gurobi_api & grb = model.native_api();
+    grb._check(env,
+               grb.setcallbackfunc(
+                   native, +[](GRBmodel *, void *, int, void *) { return 1; },
+                   nullptr));
+    EXPECT_ANY_THROW(model.refine_lp_status());
+    int dual_reductions = 0;
+    grb._check(env, grb.getintparam(env, "DualReductions", &dual_reductions));
+    EXPECT_EQ(dual_reductions, 1);
+}
+
 // The forcing attributes are the user's: values set to 0 beforehand, which
 // the call overrides with 1, must read back as 0 afterwards, on every kind
 // of special constraint the guard covers.
