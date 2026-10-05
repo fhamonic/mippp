@@ -45,6 +45,7 @@ add_executable(
     iis_snapshot.cpp
     iis_oracle.cpp
     iis_by_deletion.cpp
+    restore_guard.cpp
     mapping.cpp
     concat_view.cpp
     cartesian_product_view.cpp
