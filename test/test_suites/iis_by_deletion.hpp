@@ -788,6 +788,35 @@ TYPED_TEST_P(IisByDeletionTest, forwarded_time_limit_is_restored) {
         [this]() { this->check_forwarded_time_limit_is_restored(); });
 }
 
+// A narrowing run relaxes every bound its answer leaves out from its first
+// trial on. The answer here names 2 x0 + 2 x1 == 1 alone, which integrality
+// makes infeasible, so that trial runs over unbounded integer columns, where
+// some solvers branch until a limit stops them: the time limit forwarded to
+// the trial must end the run near its deadline and come back unchanged.
+template <typename Model>
+void check_narrowing_returns_on_an_endless_integer_row(Model model) {
+    using namespace operators;
+    using seconds = std::chrono::duration<double>;
+    auto x0 = model.add_integer_variable({.lower_bound = 0, .upper_bound = 10});
+    auto x1 = model.add_integer_variable({.lower_bound = 0, .upper_bound = 10});
+    auto row = model.add_constraint(2 * x0 + 2 * x1 == 1);
+    detail::handle_status_table<detail::iis_sided_status> columns(2u), rows(1u);
+    rows.set(row.uid(), iis_status::member_both{});
+    const iis_by_deletion_t<Model> within(std::move(columns), std::move(rows),
+                                          iis_outcome::irreducible{});
+    const auto saved_limit = model.get_time_limit();
+    constexpr seconds budget{0.5};
+    const auto start = std::chrono::steady_clock::now();
+    const auto iis = compute_iis_by_deletion(model, within,
+                                             iis_limits{.time_limit = budget});
+    const seconds elapsed = std::chrono::steady_clock::now() - start;
+    EXPECT_LT(elapsed.count(), budget.count() + 1.0);
+    EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(iis.get_outcome(), false));
+    EXPECT_EQ(model.get_time_limit(), saved_limit);
+    EXPECT_EQ(model.get_variable_lower_bound(x0), 0);
+    EXPECT_EQ(model.get_variable_upper_bound(x1), 10);
+}
+
 REGISTER_TYPED_TEST_SUITE_P(
     IisByDeletionTest, bounds_against_a_row, one_side_of_an_equality_row,
     integer_equal_to_one_half, integers_summing_to_one_half,

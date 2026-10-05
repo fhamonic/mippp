@@ -77,6 +77,11 @@ TEST_F(cbc_milp_test, mip_with_an_infeasible_relaxation_is_infeasible) {
     EXPECT_TRUE(is<status::infeasible>(model.get_status()));
 }
 
+// Cbc branches on 2 x0 + 2 x1 == 1 until its time limit stops it, as in a full
+// run.
+TEST_F(cbc_milp_test, narrowing_returns_on_an_endless_integer_row) {
+    check_narrowing_returns_on_an_endless_integer_row(new_model());
+}
 TEST_F(cbc_milp_test, limit_stop_does_not_claim_an_earlier_solution) {
     auto model = new_model();
     std::vector<model_variable_t<cbc_milp>> x;

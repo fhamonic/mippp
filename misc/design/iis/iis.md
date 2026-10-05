@@ -2182,8 +2182,11 @@ from `9dcbbd6` to `4058e69`, none pushed.
     its first trial: on `scip_milp` that throws at the first trial when a
     binary column's bound is left out, on an infeasible and on a feasible
     model, the bounds restored (probe on the local SCIP, documented under
-    N25's limitation); on `cbc_milp` such trials over unbounded integer
-    columns may be slow (inferred, neither tested nor documented).
+    N25's limitation); on `cbc_milp` and `glpk_milp` such a trial branches
+    without end on `2 x0 + 2 x1 == 1` until the forwarded time limit stops
+    it (measured with GLPK 5.0, Cbc 2.10.11 and a Cbc `devel` build after the
+    merge, pinned by `narrowing_returns_on_an_endless_integer_row` and
+    documented on the infeasibility page).
   - (d) The Xpress clear goes (`89524d1`): `XPRSiisfirst` clears the
     previous IIS itself, so `XPRSiisclear`, after a decoded subsystem and on
     the column-answered path of N44 (g), only made `XPRSgetiisdata`,

@@ -252,7 +252,7 @@ On the workshop, the three-solve answer names 11 of the 13 finite sides. The sec
 
 A native answer is another start: `compute_iis_by_deletion(model, model.compute_iis())` names the side of each member that the routine reports whole. On the workshop's `gurobi_lp` and `cplex_lp`, it answers the five sides of the complete run, the orders through their lower sides.
 
-On a `*_milp` model, the bounds of integer columns that the answer leaves out are relaxed in every trial, and some solvers branch without end on rows over unbounded integer columns, see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs). On `scip_milp`, a bound of a binary column that the answer leaves out makes the first trial throw, see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries).
+On a `*_milp` model, the bounds of integer columns that the answer leaves out are relaxed in every trial, and some solvers branch without end on rows over unbounded integer columns, see [Integrality proofs](../solvers/index.md#limitation-integrality-proofs). `glpk_milp` and `cbc_milp` do on `2 x0 + 2 x1 == 1` from the first trial of a run whose answer names that row alone, so give such a run a `time_limit`: it then answers `time_limit` near its deadline (measured with GLPK 5.0, Cbc 2.10.11 and a Cbc `devel` build). On `scip_milp`, a bound of a binary column that the answer leaves out makes the first trial throw, see [Deletion filter on SCIP binaries](../solvers/index.md#limitation-scip-binaries).
 
 ## LP or MILP
 

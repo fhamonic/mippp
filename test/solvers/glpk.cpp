@@ -376,6 +376,11 @@ TEST_F(glpk_milp_test, deletion_filter_returns_on_an_endless_integer_row) {
     EXPECT_TRUE(outcome_is<iis_outcome::time_limit>(iis.get_outcome(), false));
     EXPECT_TRUE(std::isinf(model.get_time_limit().count()));
 }
+// glp_intopt branches on 2 x0 + 2 x1 == 1 until its time limit stops it, as in
+// a full run.
+TEST_F(glpk_milp_test, narrowing_returns_on_an_endless_integer_row) {
+    check_narrowing_returns_on_an_endless_integer_row(new_model());
+}
 TEST_F(glpk_milp_test, sides_at_the_wrong_infinity_are_infeasible) {
     check_sides_at_the_wrong_infinity_are_infeasible(
         [this] { return new_model(); });
