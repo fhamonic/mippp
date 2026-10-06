@@ -694,17 +694,14 @@ public:
 private:
     // Spelled here rather than taken from the HiGHS header: the header a
     // user includes may be any release, and the status numbering changed at
-    // 1.13, so only the loaded library's regime counts, and the floor below
-    // leaves one.
+    // 1.13, so only the loaded library's regime counts, and
+    // highs_api::native_iis_release, checked in _compute_iis(), leaves one.
     static constexpr HighsInt _iis_bound_lower = 2, _iis_bound_upper = 3,
                               _iis_bound_boxed = 4;
     static constexpr HighsInt _iis_status_not_in_conflict = -1,
                               _iis_status_maybe_in_conflict = 0;
     // the default Light strategy finds trivial conflicts only
     static constexpr HighsInt _iis_strategy_full = 6;
-    // the release from which the status numbering is stable and
-    // iis_time_limit exists
-    static constexpr solver_version _iis_native_floor{1, 14, 0};
 
     // HiGHS answers a row whose sides cross as boxed before it reads the
     // row's terms. Without terms the activity is 0, which violates one of two
@@ -749,16 +746,16 @@ protected:
 
     iis_snapshot_type _compute_iis() {
         const auto loaded = Highs->library_version();
-        if(loaded && *loaded < _iis_native_floor)
-            throw solver_error(
+        if(loaded && *loaded < highs_api::native_iis_release)
+            throw feature_unavailable_error(
                 detail::concat_str("mippp: compute_iis() needs HiGHS ",
-                                   to_string(_iis_native_floor),
+                                   to_string(highs_api::native_iis_release),
                                    " or later, the loaded library '",
                                    Highs->library_path().string(), "' reports ",
                                    to_string(*loaded))
                     .c_str());
         if(Highs->getIis == nullptr)
-            throw solver_error(
+            throw feature_unavailable_error(
                 detail::concat_str(
                     "mippp: compute_iis() needs Highs_getIis, which the "
                     "loaded library '",

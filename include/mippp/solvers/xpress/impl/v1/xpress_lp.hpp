@@ -81,6 +81,10 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         reset_status();  // a solve that throws reports unknown
+        if(_bounds_hold_no_value()) {
+            _status = status::infeasible{};
+            return;
+        }
         check(XPRS->lpoptimize(prob, nullptr));
         _status = _get_status();
         // A stopped solve can leave the problem LP-presolved (45.01 does),

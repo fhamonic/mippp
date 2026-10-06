@@ -140,7 +140,7 @@ public:
     // the releases driven through the full suite, see solver_version_range;
     // not checked at runtime, the C API reports no version
     static constexpr std::array validated_versions = {
-        solver_version_range{{7, 1, 1}, {8, 0, 4}}};
+        solver_version_range{{7, 1, 1}, {8, 1, 1}}};
 
 private:
     explicit soplex_api(detail::dynamic_library && library)

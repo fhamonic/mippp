@@ -4,24 +4,32 @@
 
 MIP++ drives each solver through one implementation that adapts at
 runtime to a range of releases, so the question this table answers
-is: **which released versions does that implementation drive
-correctly?** Its passing rows are the evidence behind the
-`validated_versions` each backend declares, and the
-`loaded_release_is_a_validated_one` test fails on a row whose
-release passes but is missing from that claim.
+is: **which released versions does that implementation drive, and
+how far?** Its rows are the evidence behind the two claims a backend
+declares: `validated_versions`, the releases every test passes on,
+and the wider `supported_versions`, those the model core passes on
+while the members a release lacks throw
+`mippp::feature_unavailable_error`. A backend without partially
+supported releases declares the first alone. The
+`loaded_release_is_a_supported_one` test fails on a row whose
+release lies outside both, and the table checks the rest of the
+claim.
 
 Each row is a published library, downloaded and pointed at through
-`MIPPP_<solver>_LIBRARY`, with the backend's full test suite run
-against it on Linux/x86-64. The result column counts the tests that
-passed out of every test accounted for:
+`MIPPP_<solver>_LIBRARY`, with the backend's test suites run against
+it on Linux/x86-64. The result column counts the tests that passed
+out of every test accounted for:
 
 - ✅ every test passed
-- ❌ some test failed
+- ☑️ partially supported: the model core passed, and the tests of the members the release lacks skipped -- the notes say which
+- ❌ some test failed, or the row contradicts the claim: a release outside both lists (unclaimed), a member the model core lacks, or a tier the run disagrees with -- the notes say which
 - ⚠️ passed, but an unusual number of tests skipped, or nothing ran at all -- the notes say which
 
-Capability skips are counted in the total, so a backend that cannot do
-quadratic objectives still shows those tests. The fuzz seed is pinned
-so that rows differ only by the library under test.
+Totals differ between backends, since each runs only the suites its
+model types support; a capability checked at runtime skips, and is
+counted in the total. The fuzz seed is pinned so that rows differ only
+by the library under test. A library that reports no version, such as
+SoPlex, is held against the claim by its package version.
 
 ## Cbc
 
@@ -29,15 +37,15 @@ Implementation `impl/v1`, library from `coin-or-cbc` (conda).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `2.10.13` | `libCbcSolver.so.3.10.13` | ✅ 100/100 | - |
-| `2.10.12` | `libCbcSolver.so.3.10.12` | ✅ 100/100 | - |
-| `2.10.11` | `libCbcSolver.so.3.10.11` | ✅ 100/100 | - |
-| `2.10.10` | `libCbcSolver.so.3.10.10` | ✅ 100/100 | - |
-| `2.10.9` | `libCbcSolver.so.3.10.9` | ✅ 100/100 | - |
-| `2.10.8` | `libCbcSolver.so.3.10.8` | ❌ aborts | killed by signal 6; [ RUN      ] Cbc/MilpModelTest/0.add_integer_variable_and_indexed_integer_variables / [ RUN      ] Cbc/MilpModelTest/0.solve_bounded_integer_variables_max / free(): invalid pointer |
-| `2.10.7` | `libCbcSolver.so.3.10.7` | ❌ aborts | killed by signal 6; [ RUN      ] Cbc/MilpModelTest/0.add_integer_variable_and_indexed_integer_variables / [ RUN      ] Cbc/MilpModelTest/0.solve_bounded_integer_variables_max / free(): invalid pointer |
-| `2.10.5` | `libCbcSolver.so.3.10.5` | ❌ aborts | killed by signal 6; [ RUN      ] Cbc/MilpModelTest/0.add_integer_variable_and_indexed_integer_variables / [ RUN      ] Cbc/MilpModelTest/0.solve_bounded_integer_variables_max / free(): invalid pointer |
-| `2.10.4` | `libCbcSolver.so.3.10.4` | ❌ aborts | killed by signal 6; [ RUN      ] Cbc/MilpModelTest/0.add_integer_variable_and_indexed_integer_variables / [ RUN      ] Cbc/MilpModelTest/0.solve_bounded_integer_variables_max / free(): invalid pointer |
+| `2.10.13` | `libCbcSolver.so.3.10.13` | ✅ 170/175 | 5 skipped |
+| `2.10.12` | `libCbcSolver.so.3.10.12` | ✅ 170/175 | 5 skipped |
+| `2.10.11` | `libCbcSolver.so.3.10.11` | ✅ 170/175 | 5 skipped |
+| `2.10.10` | `libCbcSolver.so.3.10.10` | ✅ 170/175 | 5 skipped |
+| `2.10.9` | `libCbcSolver.so.3.10.9` | ✅ 170/175 | 5 skipped |
+| `2.10.8` | `libCbcSolver.so.3.10.8` | ❌ 169/175 | unclaimed; 5 skipped |
+| `2.10.7` | `libCbcSolver.so.3.10.7` | ❌ 169/175 | unclaimed; 5 skipped |
+| `2.10.5` | `libCbcSolver.so.3.10.5` | ❌ 169/175 | unclaimed; 5 skipped |
+| `2.10.4` | `libCbcSolver.so.3.10.4` | ❌ 169/175 | unclaimed; 5 skipped |
 
 ## Clp
 
@@ -45,22 +53,23 @@ Implementation `impl/v1`, library from `coin-or-clp` (conda).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `1.17.11` | `libClp.so.1.14.11` | ✅ 92/92 | - |
-| `1.17.10` | `libClp.so.1.14.10` | ✅ 92/92 | - |
-| `1.17.8` | `libClp.so.1.14.8` | ✅ 92/92 | - |
-| `1.17.7` | `libClp.so.1.14.7` | ✅ 92/92 | - |
-| `1.17.6` | `libClp.so.1.14.6` | ✅ 92/92 | - |
-| `1.17.4` | `libClp.so.1.14.4` | ✅ 92/92 | - |
+| `1.17.11` | `libClp.so.1.14.11` | ✅ 164/174 | 10 skipped |
+| `1.17.10` | `libClp.so.1.14.10` | ✅ 164/174 | 10 skipped |
+| `1.17.8` | `libClp.so.1.14.8` | ✅ 164/174 | 10 skipped |
+| `1.17.7` | `libClp.so.1.14.7` | ✅ 164/174 | 10 skipped |
+| `1.17.6` | `libClp.so.1.14.6` | ✅ 164/174 | 10 skipped |
+| `1.17.4` | `libClp.so.1.14.4` | ✅ 164/174 | 10 skipped |
 
 ## COPT
 
 Implementation `impl/v1`, library from `coptpy` (pypi).
 
 !!! warning
-    Community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of copt 8.0.5 (2026-09-19).
+    Community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of COPT 8.0.5 (2026-09-19).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
+| `8.0.7` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
 | `8.0.6` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
 | `8.0.5` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
 | `8.0.4` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
@@ -71,6 +80,11 @@ Implementation `impl/v1`, library from `coptpy` (pypi).
 | `7.2.10` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
 | `7.2.9` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
 | `7.2.8` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
+| `7.2.7` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
+| `7.2.6` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
+| `7.2.5` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
+| `7.2.4` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
+| `7.1.7` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcopt.so*']; archive ships coptcore.so, coptpywrap.so, libcopt_python.so |
 
 ## CPLEX
 
@@ -81,10 +95,15 @@ Implementation `impl/v1`, library from `cplex` (pypi).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `2220` | `libcplex2220.so` | ✅ 193/194 | cplex 22.2.0.0-22.2.0.1; 1 skipped |
-| `2212` | `libcplex2212.so` | ✅ 193/194 | cplex 22.1.2.0-22.1.2.1; 1 skipped |
-| `2211` | `libcplex2211.so` | ✅ 193/194 | cplex 20.1.0.5-22.1.1.2; 1 skipped |
-| `2210` | `libcplex2210.so` | ✅ 193/194 | 1 skipped |
+| `2220` | `libcplex2220.so` | ✅ 396/421 | cplex 22.2.0.0-22.2.0.1; 25 skipped |
+| `2212` | `libcplex2212.so` | ✅ 396/421 | cplex 22.1.2.0-22.1.2.1; 25 skipped |
+| `2211` | `libcplex2211.so` | ✅ 396/421 | cplex 20.1.0.5-22.1.1.2; 25 skipped |
+| `2210` | `libcplex2210.so` | ✅ 396/421 | cplex 20.1.0.4-22.1.0.0; 25 skipped |
+| `20.1.0.3` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcplex*.so*']; archive ships py37_cplex2010.so |
+| `20.1.0.2` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcplex*.so*']; archive ships py37_cplex2010.so |
+| `20.1.0.1` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcplex*.so*']; archive ships py37_cplex2010.so |
+| `20.1.0.0` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcplex*.so*']; archive ships py37_cplex2010.so |
+| `12.10.0.3` | `-` | ⚠️ no library in archive | no candidate matched ['**/libcplex*.so*']; archive ships py36_cplex12100.so |
 
 ## GLPK
 
@@ -92,26 +111,27 @@ Implementation `impl/v1`, library from `glpk` (conda).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `5.0` | `libglpk.so.40.3.1` | ✅ 156/156 | - |
-| `4.65` | `libglpk.so.40.3.0` | ✅ 156/156 | - |
-| `4.63` | `libglpk.so.40.2.2` | ✅ 156/156 | - |
-| `4.62` | `libglpk.so.40.2.1` | ✅ 156/156 | - |
-| `4.61` | `libglpk.so.40.2.0` | ✅ 156/156 | - |
-| `4.60` | `libglpk.so.40.1.0` | ✅ 156/156 | - |
-| `4.59` | `libglpk.so.40.0.0` | ✅ 156/156 | - |
+| `5.0` | `libglpk.so.40.3.1` | ✅ 304/316 | 12 skipped |
+| `4.65` | `libglpk.so.40.3.0` | ✅ 304/316 | 12 skipped |
+| `4.63` | `libglpk.so.40.2.2` | ✅ 304/316 | 12 skipped |
+| `4.62` | `libglpk.so.40.2.1` | ✅ 304/316 | 12 skipped |
+| `4.61` | `libglpk.so.40.2.0` | ✅ 304/316 | 12 skipped |
+| `4.60` | `libglpk.so.40.1.0` | ✅ 304/316 | 12 skipped |
+| `4.59` | `libglpk.so.40.0.0` | ✅ 304/316 | 12 skipped |
 
 ## Gurobi
 
 Implementation `impl/v1`, library from `gurobipy` (pypi).
 
 !!! warning
-    The wheel bundles a size-limited licence, so results only cover small models.
+    The licence the wheel bundles only serves gurobipy, so these rows ran under a licence of the maintainer's own, read from GRB_LICENSE_FILE.
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `130` | `libgurobi130.so` | ✅ 193/194 | gurobipy 13.0.0-13.0.3; 1 skipped |
-| `120` | `libgurobi120.so` | ✅ 193/194 | gurobipy 12.0.0-12.0.3; 1 skipped |
-| `110` | `libgurobi110.so` | ✅ 193/194 | gurobipy 11.0.2-11.0.3; 1 skipped |
+| `130` | `libgurobi130.so` | ✅ 374/409 | gurobipy 13.0.0-13.0.3; 35 skipped |
+| `120` | `libgurobi120.so` | ✅ 374/409 | gurobipy 12.0.0-12.0.3; 35 skipped |
+| `110` | `libgurobi110.so` | ✅ 374/409 | gurobipy 11.0.0-11.0.3; 35 skipped |
+| `100` | `libgurobi100.so` | ✅ 374/409 | gurobipy 10.0.0-10.0.3; 35 skipped |
 
 ## HiGHS
 
@@ -119,28 +139,33 @@ Implementation `impl/v1`, library from `highs` (conda).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `1.15.1` | `libhighs.so.1.15.1` | ✅ 286/286 | - |
-| `1.14.0` | `libhighs.so.1.14.0` | ✅ 286/286 | - |
-| `1.13.1` | `libhighs.so.1.13.1` | ✅ 286/286 | - |
-| `1.13.0` | `libhighs.so.1.13.0` | ✅ 286/286 | - |
-| `1.12.0` | `libhighs.so.1.12.0` | ✅ 286/286 | - |
-| `1.11.0` | `libhighs.so.1.11.0` | ✅ 286/286 | - |
-| `1.10.0` | `libhighs.so.1.10.0` | ✅ 286/286 | - |
-| `1.9.0` | `libhighs.so.1.9.0` | ✅ 286/286 | - |
-| `1.8.1` | `libhighs.so.1.8.1` | ✅ 286/286 | - |
-| `1.7.2` | `libhighs.so.1.7.2` | ❌ 269/286 | failing: HiGHS_api.loaded_release_is_a_validated_one, HiGHS_lp/LpModelTest/0.add_constraints, HiGHS_lp/LpModelTest/0.add_constraints_distinct_variables |
+| `1.15.1` | `libhighs.so.1.15.1` | ✅ 554/592 | 38 skipped |
+| `1.14.0` | `libhighs.so.1.14.0` | ✅ 554/592 | 38 skipped |
+| `1.13.1` | `libhighs.so.1.13.1` | ☑️ 507/592 | lacks: compute_iis() needs HiGHS 1.14 or later (48 tests); 37 more skipped |
+| `1.13.0` | `libhighs.so.1.13.0` | ☑️ 507/592 | lacks: compute_iis() needs HiGHS 1.14 or later (48 tests); 37 more skipped |
+| `1.12.0` | `libhighs.so.1.12.0` | ☑️ 507/592 | lacks: compute_iis() needs HiGHS 1.14 or later (48 tests); 37 more skipped |
+| `1.11.0` | `libhighs.so.1.11.0` | ☑️ 507/592 | lacks: compute_iis() needs HiGHS 1.14 or later (48 tests); 37 more skipped |
+| `1.10.0` | `libhighs.so.1.10.0` | ☑️ 507/592 | lacks: compute_iis() needs HiGHS 1.14 or later (48 tests); 37 more skipped |
+| `1.9.0` | `libhighs.so.1.9.0` | ☑️ 507/592 | lacks: compute_iis() needs HiGHS 1.14 or later (48 tests); 37 more skipped |
+| `1.8.1` | `libhighs.so.1.8.1` | ☑️ 507/592 | lacks: compute_iis() needs HiGHS 1.14 or later (48 tests); 37 more skipped |
+| `1.7.2` | `libhighs.so.1.7.2` | ☑️ 506/592 | lacks: compute_iis() needs HiGHS 1.14 or later / add_mip_start() needs Highs_setSparseSolution (49 tests); 37 more skipped |
+| `1.7.1` | `libhighs.so.1.7.1` | ❌ 505/592 | unclaimed; lacks: compute_iis() needs HiGHS 1.14 or later / add_mip_start() needs Highs_setSparseSolution (49 tests); 37 more skipped |
+| `1.7.0` | `libhighs.so.1.7.0` | ❌ 502/592 | failing: HiGHS_api.loaded_release_is_a_supported_one, HiGHS_qp/IterationLimitTest/0.set_get_iteration_limit, HiGHS_qp/IterationLimitTest/0.unlimited_by_default; lacks: compute_iis() needs HiGHS 1.14 or later / add_mip_start() needs Highs_setSparseSolution (49 tests); 37 more skipped |
+| `1.6.0` | `libhighs.so.1.6.0` | ❌ 502/592 | failing: HiGHS_api.loaded_release_is_a_supported_one, HiGHS_qp/IterationLimitTest/0.set_get_iteration_limit, HiGHS_qp/IterationLimitTest/0.unlimited_by_default; lacks: compute_iis() needs HiGHS 1.14 or later / add_mip_start() needs Highs_setSparseSolution (49 tests); 37 more skipped |
+| `1.5.4` | `libhighs.so.1.5.3` | ❌ 502/592 | failing: HiGHS_api.loaded_release_is_a_supported_one, HiGHS_qp/IterationLimitTest/0.set_get_iteration_limit, HiGHS_qp/IterationLimitTest/0.unlimited_by_default; lacks: compute_iis() needs HiGHS 1.14 or later / add_mip_start() needs Highs_setSparseSolution (49 tests); 37 more skipped |
+| `1.5.3` | `libhighs.so.1.5.3` | ❌ will not load (3 symbols missing) | missing: Highs_getIis, Highs_setSparseSolution, Highs_zeroAllClocks |
 
 ## MOSEK
 
 Implementation `impl/v1`, library from `Mosek` (pypi).
 
 !!! warning
-    Needs a licence file; without one every test skips on license_error. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of mosek 11.0.14 (2026-09-19).
+    Needs a licence file; without one every test that solves skips on license_error. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of MOSEK 11.0.14 (2026-09-19).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `11.2` | `libmosek64.so.11.2` | ❌ 156/157 | Mosek 11.2.0-11.2.4; failing: MOSEK_api.loaded_release_is_a_validated_one |
-| `11.1` | `libmosek64.so.11.1` | ❌ 156/157 | Mosek 11.1.7-11.1.11; failing: MOSEK_api.loaded_release_is_a_validated_one |
+| `11.2` | `libmosek64.so.11.2` | ✅ 291/303 | Mosek 11.2.0-11.2.5; 12 skipped |
+| `11.1` | `libmosek64.so.11.1` | ✅ 291/303 | Mosek 11.1.2-11.1.11; 12 skipped |
 
 ## SCIP
 
@@ -148,16 +173,22 @@ Implementation `impl/v1`, library from `scip` (conda).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `10.0.3` | `libscip.so.10.0.3` | ✅ 84/84 | - |
-| `10.0.2` | `libscip.so.10.0.2` | ✅ 84/84 | - |
-| `10.0.1` | `libscip.so.10.0.1` | ✅ 84/84 | - |
-| `10.0.0` | `libscip.so.10.0.0` | ✅ 84/84 | - |
-| `9.2.4` | `libscip.so.9.2.4.0` | ✅ 84/84 | - |
-| `9.2.3` | `libscip.so.9.2.3.0` | ✅ 84/84 | - |
-| `9.2.2` | `libscip.so.9.2.2.0` | ✅ 84/84 | - |
-| `9.2.1` | `libscip.so.9.2.1.0` | ✅ 84/84 | - |
-| `9.2.0` | `libscip.so.9.2.0.0` | ✅ 84/84 | - |
-| `9.1.1` | `libscip.so.9.1.1.0` | ✅ 84/84 | - |
+| `10.1.0` | `libscip.so.10.1.0` | ✅ 155/160 | 5 skipped |
+| `10.0.3` | `libscip.so.10.0.3` | ✅ 155/160 | 5 skipped |
+| `10.0.2` | `libscip.so.10.0.2` | ✅ 155/160 | 5 skipped |
+| `10.0.1` | `libscip.so.10.0.1` | ✅ 155/160 | 5 skipped |
+| `10.0.0` | `libscip.so.10.0.0` | ✅ 155/160 | 5 skipped |
+| `9.2.4` | `libscip.so.9.2.4.0` | ✅ 155/160 | 5 skipped |
+| `9.2.3` | `libscip.so.9.2.3.0` | ✅ 155/160 | 5 skipped |
+| `9.2.2` | `libscip.so.9.2.2.0` | ✅ 155/160 | 5 skipped |
+| `9.2.1` | `libscip.so.9.2.1.0` | ✅ 155/160 | 5 skipped |
+| `9.2.0` | `libscip.so.9.2.0.0` | ✅ 155/160 | 5 skipped |
+| `9.1.1` | `libscip.so.9.1.1.0` | ✅ 155/160 | 5 skipped |
+| `9.1.0` | `libscip.so.9.1.0.0` | ✅ 155/160 | 5 skipped |
+| `9.0.1` | `libscip.so.9.0.1.0` | ✅ 155/160 | 5 skipped |
+| `9.0.0` | `libscip.so.9.0.0.0` | ✅ 155/160 | 5 skipped |
+| `8.1.0` | `libscip.so.8.1.0.0` | ✅ 155/160 | 5 skipped |
+| `8.0.4` | `libscip.so.8.0.4.0` | ⚠️ not tested (dependency missing) | needs libesmumps-6.so, libscotch-6.so, libscotcherr-6.so |
 
 ## SoPlex
 
@@ -165,27 +196,34 @@ Implementation `impl/v1`, library from `soplex` (conda).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `8.0.3` | `libsoplexshared.so.8.0.3` | ✅ 45/46 | 1 skipped |
-| `8.0.2` | `libsoplexshared.so.8.0.2` | ✅ 45/46 | 1 skipped |
-| `8.0.1` | `libsoplexshared.so.8.0.1` | ✅ 45/46 | 1 skipped |
-| `8.0.0` | `libsoplexshared.so.7.0.0.0` | ✅ 45/46 | 1 skipped |
-| `7.1.6` | `libsoplexshared.so.7.1.6.0` | ✅ 45/46 | 1 skipped |
-| `7.1.5` | `libsoplexshared.so.7.1.5.0` | ✅ 45/46 | 1 skipped |
-| `7.1.4` | `libsoplexshared.so.7.1.4.0` | ✅ 45/46 | 1 skipped |
-| `7.1.3` | `libsoplexshared.so.7.1.3.0` | ✅ 45/46 | 1 skipped |
-| `7.1.2` | `libsoplexshared.so.7.1.2.0` | ✅ 45/46 | 1 skipped |
-| `7.1.1` | `libsoplexshared.so.7.1.1.0` | ✅ 45/46 | 1 skipped |
+| `8.1.0` | `libsoplexshared.so.8.1.0` | ✅ 128/137 | 9 skipped |
+| `8.0.3` | `libsoplexshared.so.8.0.3` | ✅ 128/137 | 9 skipped |
+| `8.0.2` | `libsoplexshared.so.8.0.2` | ✅ 128/137 | 9 skipped |
+| `8.0.1` | `libsoplexshared.so.8.0.1` | ✅ 128/137 | 9 skipped |
+| `8.0.0` | `libsoplexshared.so.7.0.0.0` | ✅ 128/137 | 9 skipped |
+| `7.1.6` | `libsoplexshared.so.7.1.6.0` | ✅ 128/137 | 9 skipped |
+| `7.1.5` | `libsoplexshared.so.7.1.5.0` | ✅ 128/137 | 9 skipped |
+| `7.1.4` | `libsoplexshared.so.7.1.4.0` | ✅ 128/137 | 9 skipped |
+| `7.1.3` | `libsoplexshared.so.7.1.3.0` | ✅ 128/137 | 9 skipped |
+| `7.1.2` | `libsoplexshared.so.7.1.2.0` | ✅ 128/137 | 9 skipped |
+| `7.1.1` | `libsoplexshared.so.7.1.1.0` | ✅ 128/137 | 9 skipped |
+| `7.1.0` | `libsoplexshared.so.7.1.0.0` | ❌ 128/137 | unclaimed; 9 skipped |
+| `7.0.1` | `libsoplexshared.so.7.0.1.0` | ❌ 128/137 | unclaimed; 9 skipped |
+| `6.0.4` | `libsoplexshared.so.6.0.4.0` | ❌ 72/137 | failing: soplex_lp_test.ieee_infinity_is_an_absent_column_side, soplex_lp_test.infinite_column_bounds_survive_the_scaling, soplex_lp_test.crossed_sides_are_infeasible_after_a_solve; lacks: SoPlex_getObjReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_getRowBoundsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_setRealParam is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeRowRhsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeVarLowerReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeRowLhsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' (52 tests); 9 more skipped |
+| `6.0.3` | `libsoplexshared.so.6.0.3.0` | ❌ 72/137 | failing: soplex_lp_test.ieee_infinity_is_an_absent_column_side, soplex_lp_test.infinite_column_bounds_survive_the_scaling, soplex_lp_test.crossed_sides_are_infeasible_after_a_solve; lacks: SoPlex_getObjReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_getRowBoundsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_setRealParam is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeRowRhsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeVarLowerReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeRowLhsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' (52 tests); 9 more skipped |
+| `6.0.2` | `libsoplexshared.so.6.0.2.0` | ❌ 72/137 | failing: soplex_lp_test.ieee_infinity_is_an_absent_column_side, soplex_lp_test.infinite_column_bounds_survive_the_scaling, soplex_lp_test.crossed_sides_are_infeasible_after_a_solve; lacks: SoPlex_getObjReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_getRowBoundsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_setRealParam is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeRowRhsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeVarLowerReal is not exported by the loaded SoPlex library 'libsoplexshared.so' / SoPlex_changeRowLhsReal is not exported by the loaded SoPlex library 'libsoplexshared.so' (52 tests); 9 more skipped |
 
 ## Xpress
 
 Implementation `impl/v1`, library from `xpresslibs` (pypi).
 
 !!! warning
-    Community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of xpress 47.1.1 (2026-09-19).
+    Community licence caps model size. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of Xpress 47.1.1 (2026-09-19).
 
 | version | library | result | notes |
 | --- | --- | --- | --- |
-| `47` | `libxprs.so.47` | ✅ 159/160 | xpresslibs 9.9.0-9.9.1; 1 skipped |
-| `46` | `libxprs.so.46` | ✅ 159/160 | xpresslibs 9.8.0-9.8.1; 1 skipped |
-| `45` | `libxprs.so.45` | ✅ 159/160 | xpresslibs 9.6.3-9.7.2; 1 skipped |
+| `47` | `libxprs.so.47` | ✅ 337/369 | xpresslibs 9.9.0-9.9.1; 32 skipped |
+| `46` | `libxprs.so.46` | ✅ 337/369 | xpresslibs 9.8.0-9.8.2; 32 skipped |
+| `45` | `libxprs.so.45` | ✅ 337/369 | xpresslibs 9.6.0-9.7.2; 32 skipped |
+| `44` | `libxprs.so.44` | ❌ 336/369 | xpresslibs 9.5.6-9.5.8; unclaimed; 32 skipped |
 

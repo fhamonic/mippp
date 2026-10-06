@@ -117,12 +117,22 @@ than half-loaded (Ubuntu's `libCbc.so` versus the `libCbcSolver.so` MIP++ needs)
 
 Once loaded, the backend asks the library its release — `api.library_version()`
 returns it, empty when the C API has no version call (SoPlex) or reports something
-that is not a number (a Cbc or Clp `devel` build) — and warns on `stderr` when it
-lies outside the backend's `validated_versions`, the release ranges its
-implementation has been driven through the full test suite on (see the
-[compatibility matrix](#the-version-compatibility-matrix)). The warning is mostly
-harmless, since these C APIs are stable, but it is the first thing to look at when
-a solver misbehaves. Set `MIPPP_NO_VERSION_WARNING` to silence it.
+that is not a number (a Cbc or Clp `devel` build) — and classifies it against two
+lists (see the [compatibility matrix](#the-version-compatibility-matrix)):
+`validated_versions`, the release ranges its implementation has been driven
+through the full test suite on, and the optional, wider `supported_versions`,
+which adds the releases it supports partially, where models build and solve and
+the members the release lacks throw `mippp::feature_unavailable_error`.
+`Api::support_of(api.library_version())` returns the result, a
+`mippp::release_support`: `validated`, `partial` or `untested`. A validated or a
+partial release loads silently. Any other one, and a release that is not a
+number, loads with a warning on `stderr`, which names both lists where the
+backend declares two; SoPlex, which reports nothing, never warns. The warning is
+mostly harmless, since these C APIs are stable, but it is the first thing to look
+at when a solver misbehaves. Set `MIPPP_NO_VERSION_WARNING` to silence it; it
+changes nothing else. No release is refused for its number: only a library the
+api cannot be built from, one missing a required entry point or a probe symbol,
+is rejected.
 
 ### Which of the two you should use
 
@@ -252,11 +262,17 @@ MIPPP_REQUIRED_SOLVERS="CLP;CBC;GLPK;HIGHS" make
 ```
 
 Only the loading of the backend is asserted; tests skipped because a solver
-lacks a capability, or because its license is unavailable, are unaffected.
+lacks a capability, because the loaded release lacks a member (see
+[supporting a release partially](#supporting-a-release-partially)), or because
+its license is unavailable, are unaffected. A partially supported release, such
+as the HiGHS 1.9.0 the Linux jobs install from `apt`, therefore passes such a
+run, with the tests of the members it lacks skipped.
 
 Note that `TEST_SOURCE` is sticky in the CMake cache: after `make test highs`, the
-build directory keeps producing a HiGHS-only binary until you run `make test` (or
-`make clean`) again — the compatibility matrix below needs an all-backends one.
+build directory keeps producing a HiGHS-only binary until you remove it
+(`rm -rf build`; `make clean` does too, but also deletes the matrix's
+`.compat-cache`), since a `make test` without a source leaves the cached list
+alone — the compatibility matrix below needs an all-backends one.
 
 The tests can be built with sanitizers, in which case a Debug build is what
 makes their reports precise:
@@ -309,29 +325,70 @@ push and pull request to `main` and on every `v*` tag:
 Each backend is one implementation, `include/mippp/solvers/<name>/impl/v1/`,
 that adapts at runtime to a range of solver releases (probing for entry points
 that appeared or disappeared along the way) and states that range in its api
-class: `library_names`, the library names it opens, and `validated_versions`, the
+class: `library_names`, the library names it opens, `validated_versions`, the
 half-open release ranges it has been driven through the full suite on —
-`{{10}, {14}}` reads "every 10.x.y up to 13.x.y".
+`{{10}, {14}}` reads "every 10.x.y up to 13.x.y" — and, optionally,
+`supported_versions`, ranges of the same shape that also hold the releases it
+supports partially (see
+[supporting a release partially](#supporting-a-release-partially)). A backend
+without `supported_versions` supports exactly its validated releases; only HiGHS
+declares one today, `{{1, 7, 2}, {1, 16}}` around a validated `{{1, 14}, {1, 16}}`.
 [misc/tools/compat_matrix.py](misc/tools/compat_matrix.py) is the evidence behind those
 ranges: it downloads published libraries, points each one at the test binary
 through `MIPPP_<key>_LIBRARY`, and renders
-[docs/solvers/compatibility.md](docs/solvers/compatibility.md). A ✅ row is what
-earns a release its place in `validated_versions`; the two are tied by the
-`<Solver>_api.loaded_release_is_a_validated_one` test each backend instantiates,
-which fails on a row whose release passes the suite but is missing from the claim,
-so the claim cannot silently lag behind the table. For the solvers the matrix
-cannot obtain or license (COPT, MOSEK, Xpress) the ranges rest on a maintainer's
-local full run instead, recorded with its date in the manifest `note` shown above
-the solver's table.
+[docs/solvers/compatibility.md](docs/solvers/compatibility.md), whose rows read:
+
+- ✅ full: no test failed, and none skipped for a member the release lacks. Such
+  a row earns its release a place in `validated_versions`.
+- ☑️ partial: no test failed, and some skipped with a reason opening with
+  `release lacks: `, none of them in a core suite (`LpModelTest`,
+  `MilpModelTest`, `QpModelTest`). Such a row earns its release a place in
+  `supported_versions`, and only there.
+- ❌ a test failed, or the row contradicts the claim, see below.
+- ⚠️ nothing failed, but an unusual number of tests skipped, or nothing ran.
+
+The table and the claim are tied by the
+`<Solver>_api.loaded_release_is_a_supported_one` test each backend instantiates.
+It records the backend's `validated_versions` and `supported_versions`, and the
+`release_support` of the loaded release (`validated`, `partial` or `untested`),
+as properties of those names in the GoogleTest report, the first two even on a
+skipped row, and fails when the loaded release lies outside both lists. So a row
+whose release passes but is missing from the claim fails on that test alone,
+noted "unclaimed", and the claim cannot silently lag behind the table: add the
+release to `validated_versions` when the row lacks nothing, and to
+`supported_versions` alone when it does. Reading those properties beside the
+skips, the matrix also renders ❌ for:
+
+- a `release lacks: ` skip inside a core suite: a partially supported release
+  still builds and solves models through the whole `lp_model`, `milp_model` and
+  `qp_model` interface;
+- a release in `supported_versions` alone whose row lacks nothing: move it into
+  `validated_versions`;
+- a release in `validated_versions` whose row lacks a member, which the shared
+  suites already fail, see below;
+- on a library that reports no version (SoPlex), a package version the recorded
+  lists do not place where the row's result does: outside both lists on a clean
+  row, or inside `validated_versions` on a row with lacking skips.
+
+Skips for a lacking member are counted apart, so they never make a row ⚠️ nor
+raise the number of skips a fully supported row is compared against. For the
+solvers the matrix cannot obtain or license (COPT, MOSEK, Xpress) the ranges rest
+on a maintainer's local full run instead, recorded with its date in the manifest
+`note` shown above the solver's table.
 
 ```bash
-make test                    # once: an all-backends binary
-make compat_table            # download and test the 5 newest of each
+make test                    # once: an all-backends binary (see TEST_SOURCE)
+make compat_table            # download and test the 10 newest of each
 make compat_table LIMIT=8    # ... or the 8 newest
 ```
 
-The `compat_table` target passes `--commercial`, so rows for solvers you have no
-license for will simply report that the library could not be obtained. Call
+The `compat_table` target passes `--commercial`. Those rows run under whatever
+license your environment provides and read "not tested (licence)" without one,
+with three exceptions: CPLEX runs under the community edition its wheels carry,
+MOSEK only checks its license when it solves, so its rows still count the tests
+that merely build models, and COPT's rows always read "no library in archive".
+Commit commercial rows only from a run under the licenses the manifest notes
+name. Call
 [misc/tools/compat_matrix.py](misc/tools/compat_matrix.py) directly for finer control:
 `list` shows the published versions a source exposes, `run` downloads and tests
 them, `render` rebuilds the table from the cached results in `.compat-cache/`, and
@@ -348,23 +405,75 @@ real library in an auditwheel `.libs/` directory: `highspy` links HiGHS
 statically into a pybind11 extension that exports the whole C API but cannot be
 `dlopen`ed on its own, since it needs libpython. And conda-forge splits runtime
 dependencies across packages — `libCbcSolver` arrives without `libCgl`,
-`libscip` without `libipopt` — so each source has a `depends` list of extra
-packages to put on `LD_LIBRARY_PATH`. When one is missing the tool reports the
-unresolved soname rather than blaming the solver version, so the fix is to name
-the providing package (note that conda-forge splits tools from libraries:
-`scotch` ships binaries, `libscotch` ships the shared objects).
+`libscip` without `libipopt` — so each source has a `depends` list of packages
+the tool lays out beside the library, as one conda environment would hold them.
+Each comes at the exact build the row's own recipe was compiled against: the
+published ranges, such as `coin-or-cgl >=0.60,<0.61`, are not enough, since Cgl
+0.60.7 changed the layout of a class that Cbc inlines, and a Cbc built against
+Cgl 0.60.6 aborts on 0.60.10. BLAS and the other system libraries come from the
+host, and each row records in the results which ones it took. When a package is
+missing the tool reports the unresolved soname rather than blaming the solver
+version, so the fix is to name the providing package (note that conda-forge
+splits tools from libraries: `scotch` ships binaries, `libscotch` ships the
+shared objects).
 
 The run is Linux/x86-64 only. It is deliberately kept out of the PR workflow — it
 is slow and depends on the network — and lives in its own workflow instead
 ([.github/workflows/compat.yml](.github/workflows/compat.yml)), which runs monthly
 and on manual dispatch, and opens a pull request when the regenerated table
 differs. So you do not need to run it yourself for an ordinary change: do it when
-you extend a backend's `validated_versions` or `library_names` to a new solver
-release, or when you edit the manifest, and include the regenerated table in your
-pull request. A release the implementation cannot adapt to at runtime is the one
-case that calls for a new implementation, `impl/v2`, with its own two lists; the
-`mippp` aliases in `all.hpp` then move to it and `impl/v1` stays available
-unchanged.
+you extend a backend's `validated_versions`, `supported_versions` or
+`library_names` to a new solver release, or when you edit the manifest, and
+include the regenerated table in your pull request; never extend either list
+without a recorded ✅ or ☑️ row, or a maintainer's run, behind it. A release the
+implementation can neither drive at runtime nor support partially is the one case
+that calls for a new implementation, `impl/v2`, with its own lists; the `mippp`
+aliases in `all.hpp` then move to it and `impl/v1` stays available unchanged.
+
+### Supporting a release partially
+
+A release is supported partially when the implementation builds and solves
+models on it, but some member needs what the release lacks: an entry point it
+does not export, or a behavior that changed later. HiGHS 1.7.2 to 1.13 is the
+case today, whose `compute_iis()` needs 1.14, and whose 1.7 also lacks the
+entry point `add_mip_start()` needs. Such a member:
+
+- throws `mippp::feature_unavailable_error`, from
+  [include/mippp/utility/solver_exceptions.hpp](include/mippp/utility/solver_exceptions.hpp),
+  never a plain `solver_error`, and throws it before it changes the model's
+  data, so the model stays usable. Its message names what is missing, the
+  library's path and the release it reports. The type derives from
+  `solver_error`, as `license_error` does, and never from `license_error`, on
+  which the tests skip whatever the release.
+- keys on the entry point when the entry point is what is missing
+  (`find_function` returned `nullptr`), as `add_mip_start()` on `highs_milp`
+  does, and on a release floor otherwise. A floor is a public
+  `static constexpr solver_version` of the api class, as
+  `highs_api::native_iis_release` is, never a literal in the model code, and a
+  `static_assert` beside it checks that it is at or below the `from` of every
+  range of `validated_versions`: a validated release never lacks a member.
+- is never called from a core suite (`LpModelTest`, `MilpModelTest`,
+  `QpModelTest`), so that building and solving models is what every supported
+  release does.
+
+The release then goes in `supported_versions`, beside `validated_versions`, on
+the evidence of a matrix row, or a maintainer's run, whose only failure is the
+version test and whose lacking skips all lie outside the core suites; once
+claimed, the row reads ☑️. `solver_api::support_of`, which classifies a release,
+checks with a `static_assert` that `supported_versions` contains
+`validated_versions`.
+
+The shared suites stay solver-agnostic: none of them skips on a solver or on a
+release. `model_test::SkipOnLicenseError`, which wraps the shared test bodies,
+catches `feature_unavailable_error` and skips the test with a reason opening with
+`release lacks: `, the `release_lacks` constant of
+[test/test_suites/all.hpp](test/test_suites/all.hpp) that the matrix matches
+verbatim. On a validated release it fails the test instead, so a gate that
+misfires there cannot pass for a skip, as long as the library reports its
+version: one that reports none (SoPlex, a `devel` build) skips, and only the
+matrix holds it to its claim, by package version. A backend's own tests, in
+`test/solvers/<name>.cpp`, may key a skip on the release, through the api's floor
+constant and with the same prefix, as the HiGHS tests of the native routine do.
 
 ## How the tests are organized
 
@@ -455,15 +564,19 @@ such as [glpk](include/mippp/solvers/glpk/impl/v1/) or
   optional one, returning `nullptr` for entry points absent from older releases
   (see the `*_OPTIONAL_FUNCTIONS` lists of the HiGHS and Gurobi bindings). The
   class derives from `detail::solver_api<<name>_api>`, which provides `load()`,
-  `library_path()` and `library_version()` from four static data members:
-  `key` (the `MIPPP_<KEY>_LIBRARY` stem), `library_names` (newest first),
-  `validated_versions` (half-open `solver_version_range`s, see the
-  [compatibility matrix](#the-version-compatibility-matrix)) and, optionally,
-  `probe_symbols`. The constructor ends by handing the base what the library
+  `library_path()`, `library_version()` and the static `support_of()` from
+  static data members: `key` (the `MIPPP_<KEY>_LIBRARY` stem), `library_names`
+  (newest first), `validated_versions` (half-open `solver_version_range`s, see
+  the [compatibility matrix](#the-version-compatibility-matrix)) and, optionally,
+  `supported_versions`, the wider ranges of a backend that supports some
+  releases partially (see
+  [supporting a release partially](#supporting-a-release-partially)), and
+  `probe_symbols`. A new backend usually starts with `validated_versions`
+  alone. The constructor ends by handing the base what the library
   reports, `check_library_version(...)`, as components (`{major, minor, patch}`)
-  or as the string the solver returns; that call stores it and warns when it is
-  outside the claim. A solver whose C API reports no version (SoPlex) simply
-  does not call it.
+  or as the string the solver returns; that call stores it and warns when the
+  release is in neither list. A solver whose C API reports no version (SoPlex)
+  simply does not call it.
 - `<name>_base.hpp` — shared model machinery. Derive it from `model_base`
   (`remapping_model_base` when the solver renumbers columns on deletion) with
   protected inheritance and re-expose `default_variable_params` and
@@ -481,7 +594,9 @@ such as [glpk](include/mippp/solvers/glpk/impl/v1/) or
 
 Then add a `test/solvers/<name>.cpp` file that instantiates the shared test
 suites (see above) plus `MIPPP_API_VERSION_TEST(<Name>_api, <name>_api, "<KEY>")`,
-and register it in [test/CMakeLists.txt](test/CMakeLists.txt).
+which defines the `<Name>_api.loaded_release_is_a_supported_one` test of the
+[compatibility matrix](#the-version-compatibility-matrix), and register it in
+[test/CMakeLists.txt](test/CMakeLists.txt).
 Update the feature tables in [docs/assets/features_tables/](docs/assets/features_tables/) and
 the solver list in the README. If published builds of the solver are downloadable
 without an account, declare a source for it in

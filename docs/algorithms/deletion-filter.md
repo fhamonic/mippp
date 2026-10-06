@@ -172,7 +172,7 @@ A trial that has started runs to its end, so the deadline can be overrun where t
 - on `glpk_milp`, whose time limit does not bound the whole solve, see [Limits](../solving/status-and-limits.md#limits);
 - on `cbc_milp`, the forwarded limit did not bound the root LP of a trial on the Cbc build where this was measured, a `devel` build; Cbc 2.10 was not measured.
 
-On `clp_lp` and `soplex_lp` the forwarded limit counts the CPU time of the whole process, see [Limits](../solving/status-and-limits.md#limits). Where other threads run, that clock runs ahead of the wall clock, so a trial can stop before the deadline, and a trial stopped without a point is inconclusive. A stop requested through `stop_token` also waits for the running trial to end.
+On `clp_lp` and `soplex_lp` the forwarded limit counts the CPU time of the whole process, see [Limits](../solving/status-and-limits.md#limits). Where other threads run, that clock runs ahead of the wall clock, so a trial can stop before the deadline, and a trial stopped without a point is inconclusive. On `cbc_milp` with Cbc 2.10 a trial can stop before the deadline too, by the CPU time Cbc's preprocessing took beyond the 50 ms the model adds to the limit. A stop requested through `stop_token` also waits for the running trial to end.
 
 ### The status afterwards
 

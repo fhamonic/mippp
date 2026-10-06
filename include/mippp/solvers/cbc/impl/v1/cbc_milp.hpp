@@ -6,6 +6,7 @@
 #include <cstring>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -42,6 +43,8 @@ private:
     std::vector<int> mip_start_indices;
     std::vector<double> mip_start_values;
     std::vector<std::pair<std::string, std::string>> parameters;
+    // the time limit as set, which Cbc below 3.0 is given with a margin
+    std::optional<double> time_limit;
 
     static constexpr char constraint_sense_to_cbc_sense(constraint_sense rel) {
         if(rel == constraint_sense::less_equal) return 'L';
@@ -74,6 +77,12 @@ public:
         , _lazy_num_variables(0)
         , _lazy_num_constraints(0) {
         Cbc->setLogLevel(model, 0);
+        // Below 3.0 the C API bounds a solve by the CPU time of the whole
+        // process, which other threads, a BLAS pool's included, run ahead of
+        // the wall clock; Cbc's master branch counts wall time by default.
+        // Recorded, so that it reaches the private copy MIP solves run on.
+        if(api.library_version() && api.library_version()->major < 3)
+            _set_parameter("timeMode", "elapsed");
     }
     ~cbc_milp() {
         if(mip_copy) Cbc->deleteModel(mip_copy);
@@ -93,6 +102,7 @@ public:
         , mip_start_indices(std::move(other.mip_start_indices))
         , mip_start_values(std::move(other.mip_start_values))
         , parameters(std::move(other.parameters))
+        , time_limit(other.time_limit)
         , _lazy_num_variables(other._lazy_num_variables)
         , _lazy_num_constraints(other._lazy_num_constraints)
         , _status(other._status) {
@@ -477,13 +487,24 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+    // Below 3.0 Cbc takes the CPU time its preprocessing used off the limit,
+    // although its clock has already counted that time (CbcSolver.cpp, gone
+    // from the master branch), so a solve could stop before the limit: it is
+    // given 50 ms more, which covers every shortfall measured on small
+    // models, and the limit set is read back as set.
+    static constexpr double preprocessing_margin = 0.05;
     void set_time_limit(std::chrono::duration<double> t) {
         // Cbc stores a negative limit and stops at once, as under 0.
         if(t.count() < 0) throw solver_error("cbc_milp: negative time limit");
-        Cbc->setMaximumSeconds(model, t.count());
+        const auto loaded = Cbc->library_version();
+        const bool shortened = loaded && loaded->major < 3;
+        Cbc->setMaximumSeconds(
+            model, shortened ? t.count() + preprocessing_margin : t.count());
+        time_limit = t.count();
     }
     auto get_time_limit() {
-        return std::chrono::duration<double>(Cbc->getMaximumSeconds(model));
+        return std::chrono::duration<double>(
+            time_limit ? *time_limit : Cbc->getMaximumSeconds(model));
     }
     void set_node_limit(const std::size_t count) {
         Cbc->setMaximumNodes(model, static_cast<int>(count));

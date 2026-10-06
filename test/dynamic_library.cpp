@@ -1,16 +1,23 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cstddef>
 #include <cstdlib>
 #include <filesystem>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 
 #include "mippp/detail/dynamic_library.hpp"
 #include "mippp/detail/solver_library.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
+
+#include <gtest/gtest-spi.h>
+
+#include "test_suites/all.hpp"
 
 using namespace mippp::detail;
 using mippp::is_validated;
@@ -541,4 +548,124 @@ TEST(solver_api, unvalidated_version_warning_names_the_file) {
     EXPECT_NE(output.find(">= 1 and < 2"), std::string::npos) << output;
     EXPECT_NE(output.find(fixture_path.string()), std::string::npos) << output;
     EXPECT_NE(output.find("reports 0.1"), std::string::npos) << output;
+}
+
+TEST(solver_version_range, covers_and_contains) {
+    using r = solver_version_range;
+    constexpr std::array wide = {r{{1}, {3}}};
+    static_assert(mippp::covers(wide, std::array{r{{1, 5}, {2}}, r{{2}, {3}}}));
+    static_assert(mippp::covers(wide, wide));
+    static_assert(!mippp::covers(wide, std::array{r{{0, 9}, {2}}}));
+    static_assert(!mippp::covers(wide, std::array{r{{2}, {3, 1}}}));
+    static_assert(mippp::contains(wide, solver_version{2, 9}));
+    static_assert(!mippp::contains(wide, solver_version{3}));
+}
+
+// The fixture reports 0.1, which each backend below claims differently.
+template <int Tag, solver_version_range Validated,
+          solver_version_range Supported>
+class tiered_api : public solver_api<tiered_api<Tag, Validated, Supported>> {
+    friend solver_api<tiered_api>;
+    explicit tiered_api(dynamic_library && library)
+        : solver_api<tiered_api>(std::move(library)) {
+        this->check_library_version("0.1");
+    }
+
+public:
+    static constexpr const char * key = "TESTTIER";
+    static constexpr std::array library_names = {"mippp_no_such_name"};
+    static constexpr std::array validated_versions = {Validated};
+    static constexpr std::array supported_versions = {Supported};
+};
+using range = solver_version_range;
+// 0.1 is supported partially, by the wider claim only
+using partial_api = tiered_api<0, range{{1}, {2}}, range{{0, 1}, {2}}>;
+// 0.1 is in neither claim
+using wider_api = tiered_api<1, range{{1}, {2}}, range{{0, 2}, {2}}>;
+// 0.1 is validated
+using full_api = tiered_api<2, range{{0, 1}, {1}}, range{{0, 1}, {1}}>;
+using partial_guard_api = tiered_api<3, range{{1}, {2}}, range{{0, 1}, {2}}>;
+
+TEST(solver_api, release_support_tiers) {
+    using mippp::release_support;
+    using v = solver_version;
+    static_assert(partial_api::support_of(v{1, 5}) ==
+                  release_support::validated);
+    static_assert(partial_api::support_of(v{0, 5}) == release_support::partial);
+    static_assert(partial_api::support_of(v{2}) == release_support::untested);
+    static_assert(partial_api::support_of(v{0, 0, 9}) ==
+                  release_support::untested);
+    static_assert(partial_api::support_of(std::nullopt) ==
+                  release_support::untested);
+    static_assert(&partial_api::supported_ranges() ==
+                  &partial_api::supported_versions);
+    static_assert(&claiming_api::supported_ranges() ==
+                  &claiming_api::validated_versions);
+    EXPECT_EQ(mippp::to_string(release_support::partial), "partial");
+}
+
+TEST(solver_api, partially_supported_release_loads_silently) {
+    const scoped_env unsilenced("MIPPP_NO_VERSION_WARNING");
+    testing::internal::CaptureStderr();
+    const partial_api & api = partial_api::load(fixture_path);
+    const std::string output = testing::internal::GetCapturedStderr();
+    EXPECT_EQ(api.library_version(), (solver_version{0, 1}));
+    EXPECT_EQ(output, "");
+}
+
+TEST(solver_api, untested_release_warning_names_both_claims) {
+    const scoped_env unsilenced("MIPPP_NO_VERSION_WARNING");
+    testing::internal::CaptureStderr();
+    wider_api::load(fixture_path);
+    const std::string output = testing::internal::GetCapturedStderr();
+    EXPECT_NE(output.find("supports versions >= 0.2 and < 2, fully >= 1 and "
+                          "< 2"),
+              std::string::npos)
+        << output;
+    EXPECT_NE(output.find(fixture_path.string()), std::string::npos) << output;
+    EXPECT_NE(output.find("reports 0.1"), std::string::npos) << output;
+}
+
+// The shared suites skip a member the loaded release lacks, unless the
+// backend claims that release in full.
+template <typename Api>
+struct tier_model {
+    explicit tier_model(const Api &) {}
+};
+template <typename Api>
+struct tier_guard_test : model_test<Api, tier_model<Api>> {
+    static void SetUpTestSuite() {
+        model_test<Api, tier_model<Api>>::construct_api(Api::key, fixture_path);
+    }
+    // what a test body throwing feature_unavailable_error reports
+    void run_lacking_member(testing::TestPartResultArray & results) {
+        const testing::ScopedFakeTestPartResultReporter reporter(
+            testing::ScopedFakeTestPartResultReporter::
+                INTERCEPT_ONLY_CURRENT_THREAD,
+            &results);
+        this->SkipOnLicenseError(
+            [] { throw mippp::feature_unavailable_error("no such member"); });
+    }
+};
+using partial_guard_test = tier_guard_test<partial_guard_api>;
+using full_guard_test = tier_guard_test<full_api>;
+
+TEST_F(partial_guard_test, lacking_member_skips) {
+    testing::TestPartResultArray results;
+    run_lacking_member(results);
+    ASSERT_EQ(results.size(), 1);
+    EXPECT_TRUE(results.GetTestPartResult(0).skipped());
+    EXPECT_NE(std::string(results.GetTestPartResult(0).message())
+                  .find("release lacks: no such member"),
+              std::string::npos);
+}
+
+TEST_F(full_guard_test, lacking_member_fails) {
+    testing::TestPartResultArray results;
+    run_lacking_member(results);
+    ASSERT_EQ(results.size(), 1);
+    EXPECT_TRUE(results.GetTestPartResult(0).fatally_failed());
+    EXPECT_NE(std::string(results.GetTestPartResult(0).message())
+                  .find("a validated release lacks a member"),
+              std::string::npos);
 }

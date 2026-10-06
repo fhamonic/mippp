@@ -24,20 +24,28 @@ extending that system without breaking its invariants.
 - One header tree per backend: `include/mippp/solvers/<name>/impl/v1/`
   with `<name>_api.hpp`, `<name>_base.hpp`, `<name>_lp.hpp` (+ `_milp`,
   `_qp` as supported) and an umbrella `all.hpp`. The api class declares
-  `key`, `library_names` (newest first) and `validated_versions` (half-open
-  `detail::solver_version_range`s backed by the compatibility matrix), and
-  its constructor ends with `check_library_version(...)`. A new vendor
-  release the implementation still drives extends those two lists after a
-  matrix run; only a release it cannot adapt to at runtime (no optional
-  entry point can bridge it) gets a new `impl/v2/` tree, and the `mippp`
-  aliases move to it.
+  `key`, `library_names` (newest first), `validated_versions` (half-open
+  `mippp::solver_version_range`s where every test passes, backed by ✅ rows
+  of the compatibility matrix) and, when some releases are supported only
+  partially, a wider `supported_versions` (backed by ☑️ rows), and its
+  constructor ends with `check_library_version(...)`. A new vendor release
+  the implementation still drives extends those lists after a matrix run;
+  only a release it can neither drive nor support partially gets a new
+  `impl/v2/` tree, and the `mippp` aliases move to it.
+- A member a supported release lacks (an entry point it does not export, a
+  behavior that changed later) throws `mippp::feature_unavailable_error`
+  before it changes the model's data, keyed on the missing entry point or on
+  a public `constexpr solver_version` floor of the api that a `static_assert`
+  keeps at or below every `validated_versions` bound. The lp_model /
+  milp_model / qp_model core never depends on such a member.
 - One test TU per backend: `test/solvers/<name>.cpp`, registered in
   `test/CMakeLists.txt` (`MIPPP_TEST_ALL_SOLVER_SOURCES`).
 - One fixture per model class:
   `struct <name>_lp_test : model_test<<name>_api, <name>_lp>` with
-  `SetUpTestSuite() { construct_api(); }`. `construct_api()` turns a missing
-  library into `GTEST_SKIP`, never a failure; license-gated calls go through
-  `SkipOnLicenseError`.
+  `SetUpTestSuite() { construct_api("<KEY>"); }`. `construct_api()` turns a
+  missing library or a refused license into a skip of every test (a failure
+  when `MIPPP_REQUIRED_SOLVERS` names the key and the library will not load);
+  shared test bodies go through `SkipOnLicenseError`.
 - One suite per capability, mirroring the model concepts: a backend claims a
   capability by instantiating the suite, and only then.
 - `dumb.cpp` / `dumb_lp` is the harness-reference backend: it materializes
@@ -112,5 +120,9 @@ extending that system without breaking its invariants.
   expression terms are an unordered multiset; backends must fold duplicates.
 - Comparing solver floating-point output with `ASSERT_EQ`.
 - Starting an `impl/v2/` tree for a vendor release that an optional entry
-  point (`find_function`) would have bridged, or extending
-  `validated_versions` without a recorded full-suite pass.
+  point (`find_function`) would have bridged, or extending either version
+  list without a recorded ✅ / ☑️ row (or a maintainer's run).
+- Skipping a shared suite on a solver or a release. Shared test bodies run
+  through `SkipOnLicenseError`, which turns `feature_unavailable_error` into
+  a skip opening with `release lacks: ` and fails it on a validated release;
+  only a backend's own tests may key a skip on its floor constant.

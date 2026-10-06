@@ -54,7 +54,7 @@ The filter runs on every model class, so `clp_lp` with Clp's header runs the sam
 
 | Path | Call | Where | Returns |
 | :--- | :--- | :--- | :--- |
-| Native routine | `model.compute_iis()` | `has_iis<M>`: `gurobi_lp`, `gurobi_milp`, `cplex_lp`, `cplex_milp`, `xpress_lp`, `xpress_milp`, `copt_lp` and `copt_milp`, and `highs_lp` and `highs_qp` with HiGHS 1.14 or later at runtime | `model_iis_t<M>` |
+| Native routine | `model.compute_iis()` | `has_iis<M>`: `gurobi_lp`, `gurobi_milp`, `cplex_lp`, `cplex_milp`, `xpress_lp`, `xpress_milp`, `copt_lp` and `copt_milp`, and `highs_lp` and `highs_qp` with HiGHS `highs_api::native_iis_release`, 1.14, or later at runtime | `model_iis_t<M>` |
 | Deletion filter | `compute_iis_by_deletion(model)`, `(model, limits)` with an `iis_limits`, see [Limits](#limits), or `(model, within)` and `(model, within, limits)` to narrow an answer, see [Narrowing an answer](#narrowing-an-answer), from `mippp/utility/iis_by_deletion.hpp` | `iis_by_deletion_model<M>`: every model class | `iis_by_deletion_t<M>` |
 
 Both analyze the model as it currently is and never rely on an earlier solve, whose status is stale as soon as the model changes: the workshop's `solve()` only showed that there was something to explain. A feasible model is an outcome, not an error. Neither runs behind your back: each is an explicit call, and can cost many solves.
@@ -67,11 +67,11 @@ The native routine is the solver's own: HiGHS's `Highs_getIis`, Gurobi's `GRBcom
 
 A model can have several IISs, and the two paths may then return different ones, each valid. The workshop has only one.
 
-`has_iis` is a property of the model type, while the routine depends on the HiGHS library loaded at runtime. With a HiGHS older than 1.14, `compute_iis()` throws `solver_error`, whose message names the release it found, the library's path and the 1.14 floor. To load another HiGHS, set `MIPPP_HIGHS_LIBRARY` to the full path of its library file, see [How solver libraries are found](../solvers/index.md#how-solver-libraries-are-found). The routines of Gurobi, CPLEX, Xpress and COPT exist throughout the releases MIP++ validates, and their api objects bind them like any other function, so a library that loads has them.
+`has_iis` is a property of the model type, while the routine depends on the HiGHS library loaded at runtime. With a HiGHS older than `highs_api::native_iis_release`, 1.14, `compute_iis()` throws `mippp::feature_unavailable_error`, a `solver_error`, whose message names the 1.14 floor, the library's path and the release it found. The model stays usable: HiGHS 1.7.2 – 1.13 is [supported partially](../solvers/index.md#one-implementation-per-solver-and-the-releases-it-supports), `compute_iis()` being the member it lacks, and the deletion filter runs there. To know before the call, read `model.native_api().library_version()`: an empty one, a development build, has the routine, and otherwise the routine runs when it is at least `highs_api::native_iis_release`. To load another HiGHS, set `MIPPP_HIGHS_LIBRARY` to the full path of its library file, see [How solver libraries are found](../solvers/index.md#how-solver-libraries-are-found). The routines of Gurobi, CPLEX, Xpress and COPT exist throughout the releases MIP++ validates, and their api objects bind them like any other function, so a library that loads has them.
 
 The deletion filter is an algorithm of the library, independent of the solver. It relaxes each finite variable bound and constraint side in turn, re-solves, and keeps a side only when the rest becomes feasible without it. It runs in place, on your model, which must let it enumerate its variables and constraints and read and change every bound and side; `iis_by_deletion_model` lists the [requirements](../reference/concepts.md#infeasibility-analysis). [The deletion filter](../algorithms/deletion-filter.md) describes the algorithm, what a run changes and costs, and how to run it on constraints of your own.
 
-The two paths may return different types, so code that chooses between them hands the answer to code written for any IIS, as `print_conflict` is. `diagnose` chooses at compile time, and at run time too when the native call throws `solver_error`, as `compute_iis()` does on a HiGHS older than 1.14:
+The two paths may return different types, so code that chooses between them hands the answer to code written for any IIS, as `print_conflict` is. `diagnose` chooses at compile time, and at run time too when the native call throws `solver_error`, as `compute_iis()` does on a HiGHS older than 1.14, since `feature_unavailable_error` is a `solver_error`:
 
 ```cpp
 --8<-- "test/doc_snippets/infeasibility.cpp:diagnose"
@@ -307,7 +307,7 @@ A snapshot is computed once, when the call returns, and later changes to the mod
 
 | Model | `has_iis` | `iis_by_deletion_model` | Notes |
 | :--- | :--- | :--- | :--- |
-| `highs_lp`, `highs_qp` | yes, with HiGHS 1.14 or later at runtime, see [Two paths](#two-paths) | yes | HiGHS repairs sides crossed by less than its tolerance: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
+| `highs_lp`, `highs_qp` | yes, with HiGHS 1.14 or later at runtime; on an older release `compute_iis()` throws `feature_unavailable_error`, see [Two paths](#two-paths) | yes | HiGHS repairs sides crossed by less than its tolerance: see [Deletion filter](../solvers/index.md#limitation-deletion-filter) |
 | `highs_milp` | no: the routine explains the relaxation, see [LP or MILP](#lp-or-milp) | yes | as above |
 | `clp_lp`, `soplex_lp` | no | yes | the time limit a trial gets counts the CPU time of the whole process, so a trial can stop before the deadline, see [Time limits](../algorithms/deletion-filter.md#time-limits) |
 | `glpk_lp` | no | yes | |

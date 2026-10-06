@@ -356,9 +356,11 @@ jobs:
         run: pip install conan
       - name: Autodetect a default conan profile
         run: conan profile detect --name=default
+      # HiGHS 1.15.1 runs the tests of a fully supported release here, and
+      # 1.13.0 in the MinGW job those of a partially supported one.
       - name: Fetch HiGHS
         run: |
-          Invoke-WebRequest -Uri https://github.com/ERGO-Code/HiGHS/releases/download/v1.13.0/highs-1.13.0-x86_64-windows-mit.zip -OutFile highs.zip
+          Invoke-WebRequest -Uri https://github.com/ERGO-Code/HiGHS/releases/download/v1.15.1/highs-1.15.1-x86_64-windows-mit.zip -OutFile highs.zip
           Expand-Archive -Path highs.zip -DestinationPath highs
       - name: Build and run the HiGHS tests
         env:

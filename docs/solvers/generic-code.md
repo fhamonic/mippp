@@ -55,6 +55,8 @@ Instantiating `solve_tsp` with a backend that has no callback support is a **com
 static_assert(has_dual_solution<highs_lp>);
 ```
 
+A concept is a property of the model type, so it holds whichever release is loaded at runtime. On a release that a backend [supports only partially](index.md#one-implementation-per-solver-and-the-releases-it-supports), or on one outside the releases it supports, a member the concept names can still throw `mippp::feature_unavailable_error`, a `solver_error`, as `compute_iis()` does on a HiGHS older than 1.14. Catch it where the code can do without that member.
+
 ## Degrade gracefully with `if constexpr`
 
 When a capability improves a run but is not essential, branch on it. The unsupported branch is never instantiated, so the code still compiles for every backend:

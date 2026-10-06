@@ -12,8 +12,8 @@ CMakeUserPresets.json
 /site
 
 MakeW64.bat
-# compatibility matrix downloads (tools/compat_matrix.py)
+# compatibility matrix downloads (misc/tools/compat_matrix.py)
 /.compat-cache
 
-# Python bytecode from tools/
+# Python bytecode from misc/tools/
 __pycache__/

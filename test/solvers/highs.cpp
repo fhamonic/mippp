@@ -214,11 +214,6 @@ static_assert(std::ranges::all_of(std::array{-1, 0, 1, 5}, [](int code) {
     return highs_iis_decoding::_iis_bound_sides(code) == iis_sides{};
 }));
 
-namespace {
-// Highs_getIis is decodable from this release on; older libraries throw
-constexpr solver_version highs_native_iis_floor{1, 14, 0};
-}  // namespace
-
 // A library reporting no version is taken to be a development build, newer
 // than any release, so it runs the suite.
 template <typename Model>
@@ -232,10 +227,10 @@ struct highs_iis_test : public model_test<highs_api, Model> {
            this->api == nullptr)
             return;
         const auto loaded = this->api->library_version();
-        if(loaded && *loaded < highs_native_iis_floor)
-            GTEST_SKIP() << "Highs_getIis needs HiGHS "
-                         << to_string(highs_native_iis_floor) << ", "
-                         << this->api->library_path() << " is "
+        if(loaded && *loaded < highs_api::native_iis_release)
+            GTEST_SKIP() << release_lacks << "compute_iis() needs HiGHS "
+                         << to_string(highs_api::native_iis_release)
+                         << " or later, " << this->api->library_path() << " is "
                          << to_string(*loaded);
     }
 
@@ -288,8 +283,8 @@ struct highs_iis_test : public model_test<highs_api, Model> {
 };
 using highs_lp_iis_test = highs_iis_test<highs_lp>;
 using highs_qp_iis_test = highs_iis_test<highs_qp>;
-INSTANTIATE_TEST(HiGHS_lp, IisTest, highs_lp_iis_test);
-INSTANTIATE_TEST(HiGHS_qp, IisTest, highs_qp_iis_test);
+INSTANTIATE_TEST(HiGHS_lp, IisTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_qp, IisTest, highs_qp_test);
 
 TEST(HiGHS_lp, compute_iis_below_native_floor_throws) {
     // inline, as MIPPP_API_VERSION_TEST does: GTEST_SKIP returns void, so no
@@ -299,10 +294,10 @@ TEST(HiGHS_lp, compute_iis_below_native_floor_throws) {
         api = &highs_api::load();
     } catch(const std::exception & e) {
         if(is_required_solver("HIGHS")) FAIL() << e.what();
-        GTEST_SKIP() << e.what();
+        GTEST_SKIP() << backend_unavailable << e.what();
     }
     const auto loaded = api->library_version();
-    if(!loaded || *loaded >= highs_native_iis_floor)
+    if(!loaded || *loaded >= highs_api::native_iis_release)
         GTEST_SKIP() << "the loaded HiGHS has the native routine";
     using namespace operators;
     highs_lp model(*api);
@@ -314,7 +309,7 @@ TEST(HiGHS_lp, compute_iis_below_native_floor_throws) {
     try {
         [[maybe_unused]] const auto iis = model.compute_iis();
         ADD_FAILURE() << "compute_iis() returned below the native floor";
-    } catch(const solver_error & e) {
+    } catch(const feature_unavailable_error & e) {
         EXPECT_THAT(e.what(), ::testing::HasSubstr("1.14"));
         EXPECT_THAT(e.what(),
                     ::testing::HasSubstr(api->library_path().string()));

@@ -37,10 +37,16 @@ private:
         return std::clamp(value, -_infinity, _infinity);
     }
 
+    [[noreturn]] void _unavailable(const char * name) const {
+        throw feature_unavailable_error(
+            (std::string("mippp: ") + name +
+             " is not exported by the loaded SoPlex library '" +
+             SoPlex->library_path().string() + "'")
+                .c_str());
+    }
     template <typename F>
-    static F & _optional(F * function, const char * name) {
-        if(function == nullptr)
-            throw solver_error((std::string(name) + " not available.").c_str());
+    F & _optional(F * function, const char * name) const {
+        if(function == nullptr) _unavailable(name);
         return *function;
     }
 
@@ -242,7 +248,7 @@ public:
         // SoPlex 6.0 has SoPlex_changeVarUpperReal, but there it moves the
         // lower bound, so the setter stands or falls with its lower twin
         if(SoPlex->changeVarLowerReal == nullptr)
-            throw solver_error("SoPlex_changeVarUpperReal not available.");
+            _unavailable("SoPlex_changeVarLowerReal");
         ub = _clamp_side(ub);
         _optional(SoPlex->changeVarUpperReal, "SoPlex_changeVarUpperReal")(
             model, v.id(), ub);

@@ -274,13 +274,11 @@ private:
     std::streambuf * previous;
 };
 
-constexpr solver_version highs_native_iis_floor{1, 14, 0};
-
 struct infeasibility_page_highs_lp : model_test<highs_api, highs_lp> {
     static void SetUpTestSuite() { construct_api("HIGHS"); }
     bool has_native_routine() const {
         const auto loaded = api->library_version();
-        return !loaded || *loaded >= highs_native_iis_floor;
+        return !loaded || *loaded >= highs_api::native_iis_release;
     }
 };
 struct infeasibility_page_highs_milp : model_test<highs_api, highs_milp> {
@@ -523,9 +521,9 @@ TEST_F(infeasibility_page_dumb_lp, workshop_prints_the_page_output) {
 // The workshop has a single IIS, so the native routine finds the same one.
 TEST_F(infeasibility_page_highs_lp, workshop_native_answer_is_the_same) {
     if(!has_native_routine())
-        GTEST_SKIP() << "Highs_getIis needs HiGHS "
-                     << to_string(highs_native_iis_floor) << ", "
-                     << api->library_path() << " is "
+        GTEST_SKIP() << release_lacks << "compute_iis() needs HiGHS "
+                     << to_string(highs_api::native_iis_release)
+                     << " or later, " << api->library_path() << " is "
                      << to_string(*api->library_version());
     cout_capture out;
     expect_page_run(workshop<highs_lp>(run_native_path{}));
@@ -643,8 +641,8 @@ TEST_F(infeasibility_page_dumb_lp, narrowing_completes_a_partial_answer) {
 
 TEST_F(infeasibility_page_highs_lp, narrowing_a_native_answer_finds_the_iis) {
     if(!has_native_routine())
-        GTEST_SKIP() << "Highs_getIis needs HiGHS "
-                     << to_string(highs_native_iis_floor);
+        GTEST_SKIP() << release_lacks << "compute_iis() needs HiGHS "
+                     << to_string(highs_api::native_iis_release) << " or later";
     deletion_filter_outcome outcome;
     cout_capture out;
     expect_page_run(workshop<highs_lp>(run_native_narrowing{&outcome}));

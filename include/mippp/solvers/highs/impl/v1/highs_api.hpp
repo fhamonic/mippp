@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 
 #include <cstdint>
@@ -353,9 +354,22 @@ public:
 
     static constexpr const char * key = "HIGHS";
     static constexpr std::array library_names = {"highs"};
+    // from here the IIS status numbering is stable and iis_time_limit exists;
+    // below it compute_iis() throws feature_unavailable_error
+    static constexpr solver_version native_iis_release{1, 14};
     // the releases driven through the full suite, see solver_version_range
     static constexpr std::array validated_versions = {
-        solver_version_range{{1, 8, 1}, {1, 16}}};
+        solver_version_range{{1, 14}, {1, 16}}};
+    // also build and solve: below native_iis_release compute_iis() throws
+    // feature_unavailable_error, and add_mip_start() too without
+    // Highs_setSparseSolution (1.7)
+    static constexpr std::array supported_versions = {
+        solver_version_range{{1, 7, 2}, {1, 16}}};
+    static_assert(std::ranges::all_of(validated_versions,
+                                      [](const solver_version_range & r) {
+                                          return native_iis_release <= r.from;
+                                      }),
+                  "a validated release never lacks native IIS");
 
 private:
     explicit highs_api(detail::dynamic_library && library)

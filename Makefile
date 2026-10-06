@@ -45,7 +45,7 @@ features_tables:
 	python docs/assets/features_tables/tested_features_table.py
 
 compat_table:
-	python3 misc/tools/compat_matrix.py run --limit $(or $(LIMIT),10) --commercial
+	python3 misc/tools/compat_matrix.py run --limit $(or $(LIMIT),16) --commercial
 
 doc:
 	zensical serve

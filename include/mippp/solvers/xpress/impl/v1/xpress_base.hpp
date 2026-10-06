@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdio>
 #include <memory>
@@ -499,6 +500,38 @@ public:
         check(XPRS->getdblcontrol(prob, XPRS_FEASTOL, &tol));
         return tol;
     }
+
+protected:
+    // Xpress 45 solves a model with a column whose bounds hold no value to
+    // optimal, where 46.1.3 and 47.1.1 report it infeasible (measured): below
+    // the first, solve() answers such a model itself, with the tolerances
+    // those releases apply -- FEASTOL to bounds that cross, MIPTOL to the
+    // bounds of an integer column around an integer.
+    static constexpr solver_version _bounds_answered_release{46, 1, 3};
+    bool _bounds_hold_no_value() {
+        const auto loaded = XPRS->library_version();
+        const int num_cols = static_cast<int>(num_variables());
+        if(!loaded || *loaded >= _bounds_answered_release || num_cols == 0)
+            return false;
+        std::vector<double> lower(static_cast<std::size_t>(num_cols));
+        std::vector<double> upper(lower.size());
+        std::vector<char> types(lower.size());
+        check(XPRS->getlb(prob, lower.data(), 0, num_cols - 1));
+        check(XPRS->getub(prob, upper.data(), 0, num_cols - 1));
+        check(XPRS->getcoltype(prob, types.data(), 0, num_cols - 1));
+        double feastol, miptol;
+        check(XPRS->getdblcontrol(prob, XPRS_FEASTOL, &feastol));
+        check(XPRS->getdblcontrol(prob, XPRS_MIPTOL, &miptol));
+        for(std::size_t j = 0; j < lower.size(); ++j) {
+            if(lower[j] - upper[j] > feastol) return true;
+            if((types[j] == 'I' || types[j] == 'B') &&
+               std::ceil(lower[j] - miptol) > std::floor(upper[j] + miptol))
+                return true;
+        }
+        return false;
+    }
+
+public:
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Limits //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

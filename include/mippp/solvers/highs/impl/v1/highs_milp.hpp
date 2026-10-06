@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <memory>
 #include <ranges>
+#include <string>
 #include <utility>
 #include <variant>
 
@@ -45,10 +46,19 @@ public:
 private:
     template <typename ER>
     inline void _add_mip_start(ER && entries) {
+        if(!Highs->setSparseSolution) {
+            const auto loaded = Highs->library_version();
+            throw feature_unavailable_error(
+                detail::concat_str(
+                    "mippp: add_mip_start() needs Highs_setSparseSolution, "
+                    "which the loaded library '",
+                    Highs->library_path().string(), "' (reporting ",
+                    loaded ? to_string(*loaded) : std::string("no version"),
+                    ") does not export")
+                    .c_str());
+        }
         _reset_cache();
         _register_variables_entries<true>(entries);
-        if(!Highs->setSparseSolution)
-            throw solver_error("Highs_setSparseSolution not available.");
         check(Highs->setSparseSolution(model,
                                        static_cast<int>(tmp_indices.size()),
                                        tmp_indices.data(), tmp_scalars.data()));

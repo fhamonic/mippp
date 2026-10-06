@@ -68,47 +68,46 @@ INSTANTIATE_TEST(Xpress_milp, MipGapTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);
 
+// A column whose bounds hold no value makes the model infeasible, beyond the
+// tolerances: FEASTOL for bounds that cross, MIPTOL around an integer.
+// Measured on 46.1.3 and 47.1.1; below 46.1.3 solve() answers it itself.
+template <typename Model>
+static bool solves_infeasible(Model model, double lower, double upper,
+                              bool integer) {
+    using namespace operators;
+    auto x = model.add_variable({.lower_bound = lower, .upper_bound = upper});
+    if constexpr(milp_model<Model>)
+        if(integer)
+            x = model.add_integer_variable(
+                {.lower_bound = lower, .upper_bound = upper});
+    model.add_constraint(x <= 5.);
+    model.solve();
+    return is<status::infeasible>(model.get_status());
+}
+TEST_F(xpress_lp_test, column_whose_bounds_cross_is_infeasible) {
+    EXPECT_TRUE(solves_infeasible(new_model(), 1., 0., false));
+    EXPECT_TRUE(solves_infeasible(new_model(), 1., 1. - 1e-5, false));
+    EXPECT_FALSE(solves_infeasible(new_model(), 1., 1. - 1e-7, false));
+}
+TEST_F(xpress_milp_test, integer_column_holding_no_integer_is_infeasible) {
+    EXPECT_TRUE(solves_infeasible(new_model(), 1., 0., false));
+    EXPECT_TRUE(solves_infeasible(new_model(), 0.2, 0.8, true));
+    EXPECT_TRUE(solves_infeasible(new_model(), 1. + 1e-5, 1.5, true));
+    EXPECT_FALSE(solves_infeasible(new_model(), 1. + 1e-7, 1.5, true));
+    // crossing beyond FEASTOL, though 1 lies within MIPTOL of both bounds
+    EXPECT_TRUE(solves_infeasible(new_model(), 1., 1. - 2e-6, true));
+}
+
 // Xpress stores a ranged row as its upper side and a non-negative width, so
-// a row whose sides cross has no encoding and the setters refuse it. 45.01
-// also solves a model with a column whose bounds hold no value (crossed, or
-// an integer column with no integer between them) beside a row to optimal,
-// where 47.01 reports it infeasible, so the closing solve check of such a
-// case skips below 47.1; no 46 was measured.
+// a row whose sides cross has no encoding and the setters refuse it.
 template <typename Model>
 struct xpress_deletion_test : public model_test<xpress_api, Model> {
     static void SetUpTestSuite() {
         model_test<xpress_api, Model>::construct_api("XPRESS");
     }
-    static std::optional<std::size_t> column_whose_bounds_hold_no_value(
-        const iis_cases::iis_case & c) {
-        constexpr double inf = std::numeric_limits<double>::infinity();
-        for(std::size_t i = 0; i < c.system.variables.size(); ++i) {
-            const auto & bounds = c.system.variables[i];
-            double lower = bounds.lower.value_or(-inf);
-            double upper = bounds.upper.value_or(inf);
-            if(std::ranges::find(c.integer_columns, i) !=
-               c.integer_columns.end()) {
-                lower = std::ceil(lower);
-                upper = std::floor(upper);
-            }
-            if(lower > upper) return i;
-        }
-        return std::nullopt;
-    }
     static std::optional<std::string> iis_case_skip_reason(
         const iis_cases::iis_case & c) {
-        if(auto reason = iis_cases::crossed_row_skip_reason(c, "Xpress"))
-            return reason;
-        const auto * api = model_test<xpress_api, Model>::api;
-        const auto loaded = api ? api->library_version() : std::nullopt;
-        if(!loaded || *loaded >= solver_version{47, 1}) return std::nullopt;
-        if(const auto i = column_whose_bounds_hold_no_value(c))
-            return "Xpress " + to_string(*loaded) +
-                   " solves a model whose column " + std::to_string(*i) +
-                   " has bounds holding no value to optimal (measured on "
-                   "45.01; 47.1 reports infeasible), so the closing solve "
-                   "check cannot run here";
-        return std::nullopt;
+        return iis_cases::crossed_row_skip_reason(c, "Xpress");
     }
 };
 using xpress_lp_deletion_test = xpress_deletion_test<xpress_lp>;

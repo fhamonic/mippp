@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Sources for the solver compatibility matrix, see tools/compat_matrix.py.",
+    "Sources for the solver compatibility matrix, see misc/tools/compat_matrix.py.",
     "",
     "'kind' is either 'conda' (conda-forge linux-64 packages) or 'pypi'",
     "(manylinux x86-64 wheels). Both enumerate every published version over a",
@@ -21,6 +21,13 @@
     "their real library in an auditwheel '.libs' directory -- the top-level",
     "'*.cpython-*.so' is an extension module that cannot be dlopen'd on its own.",
     "",
+    "'title' heads the solver's section of the table. 'gtest_filter' is",
+    "GoogleTest's own filter syntax, and must select the backend's",
+    "<Solver>_api.loaded_release_is_a_supported_one test: that is how a run",
+    "tells the backend is compiled into the binary at all, and the test",
+    "records the validated_versions and supported_versions the row is held",
+    "against.",
+    "",
     "'version_regex' pulls the *solver* version out of the library filename,",
     "since a wheel's version is the binding's, not the solver's (PySCIPOpt",
     "5.2.1 ships libscip 9.1). When it does not match, the package version is",
@@ -28,6 +35,7 @@
   ],
   "solvers": {
     "clp": {
+      "title": "Clp",
       "key": "CLP",
       "wrapper": "impl/v1",
       "gtest_filter": "Clp*:clp*",
@@ -37,10 +45,14 @@
         "package": "coin-or-clp",
         "lib_patterns": [
           "lib/libClp.so*"
+        ],
+        "depends": [
+          "coin-or-utils"
         ]
       }
     },
     "cbc": {
+      "title": "Cbc",
       "key": "CBC",
       "wrapper": "impl/v1",
       "gtest_filter": "Cbc*:cbc*",
@@ -53,11 +65,15 @@
           "lib/libCbc.so*"
         ],
         "depends": [
-          "coin-or-cgl"
+          "coin-or-cgl",
+          "coin-or-clp",
+          "coin-or-osi",
+          "coin-or-utils"
         ]
       }
     },
     "glpk": {
+      "title": "GLPK",
       "key": "GLPK",
       "wrapper": "impl/v1",
       "gtest_filter": "GLPK*:glpk*",
@@ -71,6 +87,7 @@
       }
     },
     "highs": {
+      "title": "HiGHS",
       "key": "HIGHS",
       "wrapper": "impl/v1",
       "gtest_filter": "HiGHS*:highs*",
@@ -84,6 +101,7 @@
       }
     },
     "scip": {
+      "title": "SCIP",
       "key": "SCIP",
       "wrapper": "impl/v1",
       "gtest_filter": "SCIP*:scip*",
@@ -104,6 +122,7 @@
       }
     },
     "soplex": {
+      "title": "SoPlex",
       "key": "SOPLEX",
       "wrapper": "impl/v1",
       "gtest_filter": "SoPlex*:soplex*",
@@ -117,11 +136,12 @@
       }
     },
     "gurobi": {
+      "title": "Gurobi",
       "key": "GUROBI",
       "wrapper": "impl/v1",
       "gtest_filter": "Gurobi*:gurobi*",
       "tier": "commercial",
-      "note": "the wheel bundles a size-limited licence, so results only cover small models",
+      "note": "the licence the wheel bundles only serves gurobipy, so these rows ran under a licence of the maintainer's own, read from GRB_LICENSE_FILE",
       "source": {
         "kind": "pypi",
         "package": "gurobipy",
@@ -133,11 +153,12 @@
       }
     },
     "mosek": {
+      "title": "MOSEK",
       "key": "MOSEK",
       "wrapper": "impl/v1",
       "gtest_filter": "MOSEK*:mosek*",
       "tier": "commercial",
-      "note": "needs a licence file; without one every test skips on license_error. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of MOSEK 11.0.14 (2026-09-19)",
+      "note": "needs a licence file; without one every test that solves skips on license_error. validated_versions rests on the release the wrapper was written against and a maintainer's local full run of MOSEK 11.0.14 (2026-09-19)",
       "source": {
         "kind": "pypi",
         "package": "Mosek",
@@ -148,6 +169,7 @@
       }
     },
     "xpress": {
+      "title": "Xpress",
       "key": "XPRESS",
       "wrapper": "impl/v1",
       "gtest_filter": "Xpress*:xpress*",
@@ -163,6 +185,7 @@
       }
     },
     "copt": {
+      "title": "COPT",
       "key": "COPT",
       "wrapper": "impl/v1",
       "gtest_filter": "COPT*:copt*",
@@ -178,6 +201,7 @@
       }
     },
     "cplex": {
+      "title": "CPLEX",
       "key": "CPLEX",
       "wrapper": "impl/v1",
       "gtest_filter": "CPLEX*:cplex*",

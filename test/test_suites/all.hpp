@@ -2,7 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cstddef>
 #include <cstdlib>
+#include <exception>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -21,7 +24,8 @@
 // Solvers named in MIPPP_REQUIRED_SOLVERS (';'-separated, e.g. "CLP;CBC;GLPK")
 // are ones the caller installed on purpose — CI. An api that fails to
 // construct is then a packaging bug rather than an absent solver, so the run
-// must fail instead of silently skipping every test of that backend.
+// must fail instead of silently skipping every test of that backend. A license
+// the solver refuses still skips, whether the api or the first model meets it.
 // The names are the keys of the MIPPP_<key>_LIBRARY variables: CBC, CLP, COPT,
 // CPLEX, GLPK, GUROBI, HIGHS, MOSEK, SCIP, SOPLEX and XPRESS.
 inline bool is_required_solver(std::string_view solver_key) {
@@ -36,25 +40,57 @@ inline bool is_required_solver(std::string_view solver_key) {
     return false;
 }
 
+// Opens the reason of every skip that stops a whole backend, so that the
+// compatibility matrix can tell a solver that refused to run from tests that
+// skip on their own: misc/tools/compat_matrix.py matches it verbatim.
+inline constexpr std::string_view backend_unavailable = "backend unavailable: ";
+// Opens the reason of a skip for a member the loaded release lacks, which
+// makes the release partially supported; compat_matrix.py matches it too.
+inline constexpr std::string_view release_lacks = "release lacks: ";
+
+// "1.14:1.16,2:3": the half-open ranges of a claim, as compat_matrix.py
+// reads them back from the properties of the version test
+template <std::size_t N>
+std::string claim_text(
+    const std::array<mippp::solver_version_range, N> & ranges) {
+    std::string text;
+    for(const auto & r : ranges) {
+        if(!text.empty()) text += ',';
+        text += mippp::to_string(r.from) + ':' + mippp::to_string(r.before);
+    }
+    return text;
+}
+
 // The compatibility matrix runs each backend's suites against every release
-// it can obtain, so a release that passes but lies outside
-// Api::validated_versions, or one inside that fails, fails this test on that
-// row. A library reporting no version cannot be checked and skips.
+// it can obtain, so a release outside both Api::validated_versions and
+// Api::supported_versions fails this test on that row. Both claims, and the
+// tier of the release, are recorded as properties for the matrix to check
+// against what the row's other tests did. A library reporting no version
+// cannot be checked and skips, and so does a license refused while the api
+// loads, as model_test does with it.
 #define MIPPP_API_VERSION_TEST(prefix, Api, solver_key)                   \
-    TEST(prefix, loaded_release_is_a_validated_one) {                     \
+    TEST(prefix, loaded_release_is_a_supported_one) {                     \
+        RecordProperty("validated_versions",                              \
+                       claim_text(Api::validated_versions));              \
+        RecordProperty("supported_versions",                              \
+                       claim_text(Api::supported_ranges()));              \
         const Api * api = nullptr;                                        \
         try {                                                             \
             api = &Api::load();                                           \
+        } catch(const mippp::license_error & e) {                         \
+            GTEST_SKIP() << backend_unavailable << e.what();              \
         } catch(const std::exception & e) {                               \
             if(is_required_solver(solver_key)) FAIL() << e.what();        \
-            GTEST_SKIP() << e.what();                                     \
+            GTEST_SKIP() << backend_unavailable << e.what();              \
         }                                                                 \
         if(!api->library_version())                                       \
             GTEST_SKIP() << api->library_path() << " reports no version"; \
-        EXPECT_TRUE(mippp::is_validated(Api::validated_versions,          \
-                                        *api->library_version()))         \
+        const auto support = Api::support_of(api->library_version());     \
+        RecordProperty("release_support", mippp::to_string(support));     \
+        EXPECT_NE(support, mippp::release_support::untested)              \
             << "loaded " << api->library_path() << " reporting "          \
-            << mippp::to_string(*api->library_version());                 \
+            << mippp::to_string(*api->library_version()) << ", outside "  \
+            << mippp::to_string(Api::supported_ranges());                 \
     }
 
 template <typename Api, typename Model>
@@ -109,17 +145,29 @@ struct model_test : public ::testing::Test {
     // of a suite whose SetUpTestSuite() failed as skipped.
     void SetUp() override {
         if(!missing_required_api.empty()) FAIL() << missing_required_api;
-        if(!unavailable_reason.empty()) GTEST_SKIP() << unavailable_reason;
+        if(!unavailable_reason.empty())
+            GTEST_SKIP() << backend_unavailable << unavailable_reason;
     }
 
     auto new_model() const { return Model(*api); }
 
+    // The shared suites run their bodies through this. A license refused by
+    // a solve skips; so does a member the loaded release lacks, which keeps
+    // the suites the same for every solver, except on a release the backend
+    // claims in full, where it is a regression. A library reporting no
+    // version (SoPlex) skips there too: only the compatibility matrix, by
+    // package version, holds it to its claim.
     template <typename F>
     void SkipOnLicenseError(F && f) {
         try {
             f();
         } catch(const mippp::license_error & e) {
             GTEST_SKIP() << e.what();
+        } catch(const mippp::feature_unavailable_error & e) {
+            if(Api::support_of(api->library_version()) ==
+               mippp::release_support::validated)
+                FAIL() << "a validated release lacks a member: " << e.what();
+            GTEST_SKIP() << release_lacks << e.what();
         }
     }
 };

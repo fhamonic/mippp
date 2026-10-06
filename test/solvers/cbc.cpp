@@ -20,7 +20,7 @@ struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
     // optimal with x0 = 1.5, which the deletion filter reads as feasible.
     void SetUp() override {
         model_test::SetUp();
-        if(IsSkipped()) return;
+        if(HasFatalFailure() || IsSkipped()) return;
         const std::string_view test_name =
             ::testing::UnitTest::GetInstance()->current_test_info()->name();
         if(test_name != "integers_summing_to_one_half") return;

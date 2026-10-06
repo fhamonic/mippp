@@ -367,26 +367,40 @@ constexpr std::optional<solver_version> parse_solver_version(
     return solver_version{components[0], components[1], components[2]};
 }
 
-// Warns on stderr when the loaded library is a release the wrapper is not
-// validated for -- usually harmless (the C APIs are stable) but worth knowing
-// when behavior differs. `reported` is what the library said, verbatim;
-// `loaded` its parse, nullopt when not a number ("devel").
+// Warns on stderr when the loaded library is a release the wrapper vouches
+// for in neither list -- usually harmless (the C APIs are stable) but worth
+// knowing when behavior differs. A partially supported release loads
+// silently: what it lacks throws feature_unavailable_error when called.
+// `reported` is what the library said, verbatim.
 // Set MIPPP_NO_VERSION_WARNING to silence.
-template <std::size_t N>
+template <std::size_t N, std::size_t M>
 void warn_on_unsupported_version(
     const char * key, const std::filesystem::path & file,
     const std::array<solver_version_range, N> & validated,
-    std::optional<solver_version> loaded, std::string_view reported) {
-    if((loaded && is_validated(validated, *loaded)) ||
+    const std::array<solver_version_range, M> & supported,
+    release_support support, std::string_view reported) {
+    if(support != release_support::untested ||
        std::getenv("MIPPP_NO_VERSION_WARNING") != nullptr)
         return;
-    std::fprintf(stderr,
-                 "mippp: warning: the %s wrapper is validated for versions %s "
-                 "but the loaded library '%s' reports %.*s; behavior may "
-                 "differ. Set MIPPP_%s_LIBRARY to a validated library, or set "
-                 "MIPPP_NO_VERSION_WARNING to silence this warning.\n",
-                 key, to_string(validated).c_str(), file.string().c_str(),
-                 int(reported.size()), reported.data(), key);
+    if(covers(validated, supported))
+        std::fprintf(stderr,
+                     "mippp: warning: the %s wrapper is validated for "
+                     "versions %s but the loaded library '%s' reports %.*s; "
+                     "behavior may differ. Set MIPPP_%s_LIBRARY to a "
+                     "validated library, or set MIPPP_NO_VERSION_WARNING to "
+                     "silence this warning.\n",
+                     key, to_string(validated).c_str(), file.string().c_str(),
+                     int(reported.size()), reported.data(), key);
+    else
+        std::fprintf(stderr,
+                     "mippp: warning: the %s wrapper supports versions %s, "
+                     "fully %s, but the loaded library '%s' reports %.*s; "
+                     "behavior may differ. Set MIPPP_%s_LIBRARY to a supported "
+                     "library, or set MIPPP_NO_VERSION_WARNING to silence this "
+                     "warning.\n",
+                     key, to_string(supported).c_str(),
+                     to_string(validated).c_str(), file.string().c_str(),
+                     int(reported.size()), reported.data(), key);
 }
 
 // Base of every `<solver>_api`: an immortal, interned wrapper over one loaded
@@ -406,6 +420,8 @@ void warn_on_unsupported_version(
 //   static constexpr const char * key = "HIGHS";   // MIPPP_<key>_LIBRARY
 //   static constexpr std::array library_names = {"highs"};
 //   static constexpr std::array validated_versions = {...};
+//   static constexpr std::array supported_versions = {...};  // optional,
+//                                     // wider: releases supported partially
 //   static constexpr std::array probe_symbols = {...};   // optional
 template <typename Derived>
 class solver_api {
@@ -435,20 +451,20 @@ protected:
         return *instances.back().second;
     }
 
-    // Records what the library reports as its release and warns when it is
-    // outside Derived::validated_versions; the constructor calls it once. A
-    // library whose C API reports no version (SoPlex) never does.
+    // Records what the library reports as its release and warns when the
+    // backend vouches for it in neither list; the constructor calls it once.
+    // A library whose C API reports no version (SoPlex) never does.
     void check_library_version(const solver_version & loaded) {
         _library_version = loaded;
-        warn_on_unsupported_version(Derived::key, lib.path(),
-                                    Derived::validated_versions, loaded,
-                                    to_string(loaded));
+        warn_on_unsupported_version(
+            Derived::key, lib.path(), Derived::validated_versions,
+            supported_ranges(), support_of(loaded), to_string(loaded));
     }
     void check_library_version(std::string_view reported) {
         _library_version = parse_solver_version(reported);
-        warn_on_unsupported_version(Derived::key, lib.path(),
-                                    Derived::validated_versions,
-                                    _library_version, reported);
+        warn_on_unsupported_version(
+            Derived::key, lib.path(), Derived::validated_versions,
+            supported_ranges(), support_of(_library_version), reported);
     }
 
     static constexpr std::span<const char * const> probe_symbols_or_none() {
@@ -464,6 +480,30 @@ private:
 public:
     solver_api(const solver_api &) = delete;
     solver_api & operator=(const solver_api &) = delete;
+
+    // Derived::supported_versions when it declares one, else
+    // Derived::validated_versions: a backend that supports every release in
+    // full needs no second list.
+    static constexpr const auto & supported_ranges() noexcept {
+        if constexpr(requires { Derived::supported_versions; })
+            return Derived::supported_versions;
+        else
+            return Derived::validated_versions;
+    }
+    // How far the backend vouches for `release`, see release_support; a
+    // library reporting no release number (SoPlex, a "devel" build) is
+    // untested.
+    static constexpr release_support support_of(
+        const std::optional<solver_version> & release) noexcept {
+        static_assert(covers(supported_ranges(), Derived::validated_versions),
+                      "supported_versions must contain validated_versions");
+        if(!release) return release_support::untested;
+        if(is_validated(Derived::validated_versions, *release))
+            return release_support::validated;
+        if(contains(supported_ranges(), *release))
+            return release_support::partial;
+        return release_support::untested;
+    }
 
     // The newest of Derived::library_names found in the first directory
     // holding any, after the MIPPP_<key>_LIBRARY env var (see
