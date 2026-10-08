@@ -14,27 +14,28 @@ authors:
 affiliations:
   - name: Aix-Marseille Univ, CNRS, Univ Avignon, IRD, IMBE, Marseille, France
     index: 1
-date: 25 July 2026
+date: 8 October 2026
 bibliography: paper.bib
 ---
 
 # Summary
 
 MIP++ is a header-only C++23 library for modeling and solving linear programs
-(LP), mixed-integer linear programs (MILP), and — on backends that support
-them, currently HiGHS — quadratic objectives. It provides an algebraic
-modeling syntax comparable in readability to JuMP [@jump2023] or Pyomo
-[@pyomo2011] — variables, expressions built with overloaded operators, sums
-over index ranges, and constraint families — while compiling down to direct
-calls into each solver's native C API. The same model code can target any of
-eleven solver backends (Gurobi [@gurobi], CPLEX [@cplex], Xpress [@xpress],
-COPT [@copt], MOSEK [@mosek], HiGHS [@highs2018], SCIP [@scip8], Clp [@clp],
-SoPlex [@soplex], GLPK [@glpk], and, experimentally, Cbc [@cbc]); the backend
-is selected at compile time and its shared library is discovered and loaded at
-runtime, so no solver SDK needs to be present at link time and a single
-compiled binary runs on whatever solver the target machine has installed. The
-library is dependency-free, wrapping the platform loader itself; GoogleTest and
-MELON [@melon] are needed only to build the test suite.
+(LP) and mixed-integer linear programs (MILP). It provides an algebraic
+modeling syntax whose readability is comparable to that of JuMP [@jump2023] or
+Pyomo [@pyomo2011]: variables, expressions built with overloaded operators,
+sums over index ranges, and constraint families. Underneath that syntax, every
+modeling call compiles down to a direct call into the native C API of the
+chosen solver. The same model code can target any of eleven solver backends
+(Gurobi [@gurobi], CPLEX [@cplex], Xpress [@xpress], COPT [@copt], MOSEK
+[@mosek], HiGHS [@highs2018], SCIP [@scip8], Clp [@clp], SoPlex [@soplex],
+GLPK [@glpk], and, experimentally, Cbc [@cbc]); quadratic objectives are
+available on the backends that support them, currently HiGHS alone. The
+backend is selected at compile time and its shared library is discovered and
+loaded at runtime, so no solver SDK needs to be present at link time and a
+single compiled binary runs on whatever solver the target machine has
+installed. The library is dependency-free, wrapping the platform loader
+itself; GoogleTest and MELON [@melon] are needed only to build the test suite.
 
 Constraint families are written over ranges, close to their mathematical
 statement. The row constraints of an N-Queens model, for instance, read:
@@ -75,14 +76,15 @@ report them — a distinction resolved entirely at compile time.
 Researchers in operations research and combinatorial optimization face an
 uncomfortable trade-off. High-level modeling languages such as JuMP
 [@jump2023], Pyomo [@pyomo2011], PuLP [@pulp2011], and Python-MIP
-[@pythonmip2020] make models easy to write and solver-independent, but their
-model-construction overhead becomes a real cost in workflows that build many
-models — column generation, Benders decomposition, cutting planes, iterated
-reoptimization, or large-scale experiments — where models are built, modified,
-and re-solved constantly rather than solved once. Conversely, coding directly
-against a solver's C API is maximally fast but verbose, error-prone, and
-locked to a single vendor, which undermines both reproducibility and fair
-computational comparisons across solvers.
+[@pythonmip2020] make models easy to write and solver-independent, but the
+time they spend constructing a model becomes a significant share of the
+running time in workflows where models are built, modified, and re-solved
+constantly rather than solved once, such as column generation, Benders
+decomposition, cutting-plane methods, iterated reoptimization, or large-scale
+computational experiments. Conversely, coding directly against a solver's C
+API is maximally fast but verbose, error-prone, and locked to a single vendor,
+which undermines both reproducibility and fair computational comparisons
+across solvers.
 
 Existing C++ alternatives only partially resolve this tension. Google OR-Tools
 [@ortools] is the closest competitor, offering solver-agnostic linear and
@@ -100,64 +102,69 @@ solvers statically, the COIN-OR Open Solver Interface [@osi] abstracts solvers
 at the matrix level without algebraic modeling, and FlopC++ [@flopcpp2007]
 predates modern C++ facilities and is no longer actively developed.
 Solver-vendor C++ APIs are expressive but proprietary to one solver each. The
-same overhead concern has recently driven work in Python, notably
-PyOptInterface [@pyoptinterface2024].
+same concern about model-construction overhead has recently driven work in
+Python, notably PyOptInterface [@pyoptinterface2024].
 
 MIP++ removes the trade-off by using C++23 ranges, concepts, and lazy views to
 keep the modeling layer thin. On a model-construction benchmark (N-Queens,
-$N^2$ binary variables and $6N-6$ constraints; only construction is timed,
-never the solve), MIP++ builds models within 2–8 % of hand-written C against
-the Gurobi C API, 1.2–1.3$\times$ faster than OR-Tools' `MPSolver` on HiGHS
-and 2.4–3.0$\times$ faster on Cbc (2.6–5.6$\times$ faster than OR-Tools'
-MathOpt on HiGHS), and 3.7–7.3$\times$ faster than JuMP in its default cached
-mode after warm-up; Python layers are one to two orders of magnitude slower,
-though those scripts time a single build without warm-up and should be read as
-orders of magnitude. Both OR-Tools APIs are measured in their fastest
-row-filling form, but the comparison is still not like-for-like: `MPSolver`
-fills its own backend-independent structures and defers the native model build
-to `Solve()`, which the MIP++ timings include — on SCIP this makes the
-OR-Tools fill phase measure 0.3–0.5$\times$ of a full MIP++ build. The model
-is also variable-heavy and constraint-light. Full tables, hardware and library
-versions, and reproduction instructions are in a companion repository
-[@mippp_nqueens].
+$N^2$ binary variables and $6N-6$ constraints, for $N$ from 100 to 1000; only
+construction is timed, never the solve), MIP++ builds models within 2–14 % of
+hand-written C against the Gurobi C API, 1.2–1.5$\times$ faster than OR-Tools'
+`MPSolver` on HiGHS, 1.6–2.4$\times$ faster on Xpress and 2.2–2.9$\times$
+faster on Cbc (2.7–6.2$\times$ faster than OR-Tools' MathOpt on HiGHS), and
+4.2–7.7$\times$ faster than JuMP in its default cached mode after warm-up
+(13–21$\times$ in its direct mode); the Python layers are one to two orders of
+magnitude slower, though those scripts time a single build without warm-up and
+should be read as orders of magnitude. Both OR-Tools APIs are measured in
+their fastest row-filling form, but the comparison is still not like-for-like:
+`MPSolver` fills its own backend-independent structures and defers the native
+model build to `Solve()`, which the MIP++ timings include — on SCIP this makes
+the OR-Tools fill phase measure 0.3–0.5$\times$ of a full MIP++ build. The
+model is also variable-heavy and constraint-light, and the Cbc figures rely on
+its development branch, the only one that caches row insertions. Full tables,
+per-backend timings for nine solvers, hardware and library versions, and
+reproduction instructions are in a companion repository [@mippp_nqueens].
 
 Solver independence, in turn, makes computational studies portable:
 benchmarking Gurobi against HiGHS or SCIP is a two-line change. The
 per-backend feature matrices (duals, reduced costs, callbacks, MIP starts,
 column generation) are verified by a shared, backend-instantiated test suite;
 continuous integration runs it on the four open-source backends installable
-there (Clp, Cbc, GLPK, HiGHS) across GCC 14, GCC 15, Clang 18 and MinGW, and
-the same suites are run manually against the commercial backends. Because
+there (Clp, Cbc, GLPK, HiGHS) with GCC 14, GCC 15, Clang 18 and AppleClang 21
+on Linux and macOS, on HiGHS alone with MinGW and MSVC on Windows, and the
+same suites are run manually against the commercial backends. Because
 backends are loaded rather than linked, a generated compatibility matrix
-additionally records which released versions of each solver library the
-wrapper still drives correctly: 64 published libraries across ten of the eleven
-solvers (COPT's Python wheels ship no loadable C library), each downloaded and
-run through the full backend suite rather than assumed compatible from its
-version number. It documents real breakage — Cbc 2.10.8 and earlier abort
-inside the MILP suite — that version numbers alone would not reveal.
+additionally records how far back each wrapper drives the solver's released
+libraries: 81 published libraries across ten of the eleven solvers (COPT's
+Python wheels ship no loadable C library), each downloaded and run through
+the backend's test suites rather than assumed compatible from its version
+number. It documents real breakage — SoPlex 6.0 lacks six of the C entry
+points the wrapper needs, and HiGHS 1.7.0 and earlier fail the
+iteration-limit tests of the quadratic suite — that version numbers alone
+would not reveal.
 
-MIP++ grew out of the author's doctoral work on optimizing the ecological
-connectivity of landscapes [@hamonic2023], where a flow-based MILP formulation
-is coupled with graph algorithms — from the companion MELON library [@melon] —
-that contract the instance graphs during model construction, and where columns
-and cuts come from shortest-path and flow computations. The modeling layer sits
-inside the algorithmic loop, so per-call overhead is paid thousands of times:
-Python layers made this prohibitive, and raw solver C APIs made it
-non-portable.
+MIP++ grew out of earlier work on optimizing the ecological connectivity of
+landscapes [@hamonic2023], where a flow-based MILP formulation is coupled with
+graph algorithms — from the companion MELON library [@melon] — that contract
+the instance graphs during model construction, and where columns and cuts come
+from shortest-path and flow computations. The modeling layer sits inside the
+algorithmic loop, so per-call overhead is paid thousands of times: Python
+layers made this prohibitive, and raw solver C APIs made it non-portable.
 
-The library targets a deliberate niche: optimization embedded in a larger C++
-system that must run against whatever solver is installed, cross-solver
-computational studies, and build-bound iterative methods. It requires GCC 14
-or Clang 18 in C++23 mode (GCC 15 in C++26 mode remains the primary target)
-and assumes comfort with modern C++ — ranges, concepts, and template
-diagnostics. Quadratic objectives are currently supported on HiGHS only, and
+For everyday one-shot modeling in Python or Julia, or for constraint
+programming and scheduling, the mature ecosystems around gurobipy, JuMP,
+Pyomo, and OR-Tools CP-SAT remain the better choice. MIP++ requires GCC 14 or Clang 18 in
+C++23 mode (GCC 15 in C++26 mode remains the primary target) and assumes
+comfort with modern C++ — ranges, concepts, and template diagnostics.
+Quadratic objectives are currently supported on the HiGHS backend only, and
 several features useful to re-solve-heavy research code — explicit LP basis
 warm-starts, SOS constraints, user-cut callbacks, and heuristic-solution
 injection — are on the roadmap rather than in the current release; the native
 solver handle stays reachable through `native_model()` for solver-specific
-parameters. For everyday one-shot modeling in Python or Julia, or for
-constraint programming and scheduling, the mature ecosystems around gurobipy,
-JuMP, Pyomo, and OR-Tools CP-SAT remain the better choice.
+parameters. The library instead targets a deliberate niche: optimization
+embedded in a larger C++ system that must run against whatever solver is
+installed, cross-solver computational studies, and build-bound iterative
+methods that rebuild or modify a model thousands of times.
 
 # Acknowledgements
 
