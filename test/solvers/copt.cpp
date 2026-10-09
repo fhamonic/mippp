@@ -143,6 +143,23 @@ TEST_F(copt_lp_test, get_basis_reads_back_what_set_basis_wrote) {
     ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.slack)));
 }
 
+// an empty vector's data() is null, which COPT_SetBasis rejects
+TEST_F(copt_lp_test, set_basis_accepts_a_model_with_an_empty_dimension) {
+    using namespace operators;
+    auto columns_only = new_model();
+    columns_only.add_variable();
+    columns_only.add_variable();
+    auto rows_only = new_model();
+    constexpr auto & no_terms =
+        empty_linear_expression<model_variable_t<copt_lp>, double>;
+    rows_only.add_constraint(no_terms <= 1.0);
+    for(copt_lp * model : {&columns_only, &rows_only}) {
+        ASSERT_NO_THROW(model->set_basis(model_basis_t<copt_lp>{}));
+        model->solve();
+        ASSERT_TRUE(is_a<status::optimal>(model->get_status()));
+    }
+}
+
 // COPT_Reset, which compute_iis() runs, leaves a basis of zeros that
 // COPT_GetBasis returns without an error.
 TEST_F(copt_lp_test, get_basis_after_compute_iis_throws) {
