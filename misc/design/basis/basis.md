@@ -81,6 +81,20 @@ behind each ruling letter, and the survey of 2026-10-09 in
   [lp_algorithm.md](../lp_algorithm/lp_algorithm.md). Free simplex against
   dual simplex is settled by a probe of the column-generation case.
 
+## Settled during the implementation
+
+- **MOSEK's one-shot runs `MSK_OPTIMIZER_FREE_SIMPLEX`** (B8). Measured on
+  MOSEK 11.0.14 over 600 column-generation cases (1 to 10 attractive columns
+  added to the dense test LP, 3 to 50 rows each, 10 seeds per shape): 10422
+  simplex iterations in all against 13577 for the dual simplex, fewer in 431
+  cases and more in 109. An optimal basis written into an identical model
+  takes 0 iterations with either.
+- **`GRBreset` is required** (implementation plan, step 3). The
+  `libgurobi100.so` of the gurobipy 10.0.3 wheel exports it, and the basis
+  suites pass on 10.0.3, 11.0.3, 12.0.1 and 13.0.2 alike.
+- **COPT's "no basis"** answers with the message of HiGHS and Clp: return
+  code 3 and a count of basic entries other than the rows both mean no basis.
+
 ## Open questions
 
 None remains on the design. Left to the maintainer outright: an upstream request

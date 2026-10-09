@@ -119,7 +119,7 @@ At any other time its result is unspecified: between a change of the model and t
 The backends differ in a few more ways, see [LP bases](../solvers/index.md#limitation-lp-basis):
 
 - `soplex_lp` reads a basis but cannot write one: SoPlex's C interface has no setter.
-- `mosek_lp` solves an LP by the interior point, which cannot start from a basis: `set_basis()` makes the next `solve()` run the simplex method, and later solves return to the interior point.
+- `mosek_lp` solves an LP by the interior point, which cannot start from a basis: `set_basis()` makes the next `solve()` run MOSEK's free simplex, unless you chose an optimizer through `native_api()`, and later solves return to the interior point.
 - `glpk_lp` replaces a basis it cannot factorize by its standard basis, so the next solve starts cold.
 
 ## Next
