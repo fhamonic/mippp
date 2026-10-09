@@ -46,6 +46,19 @@ void expect_column_less_status_follows_rows(Model empty, Model satisfied,
     EXPECT_FALSE(is_a<status::optimal>(violated.get_status()));
 }
 
+int iteration_count(const mosek_api & api, mosek_lp & model,
+                    mosek::impl::v1::MSKiinfiteme item) {
+    mosek::impl::v1::MSKint32t count;
+    api._check(api.getintinf(model.native_model().second, item, &count));
+    return count;
+}
+int optimizer(const mosek_api & api, mosek_lp & model) {
+    mosek::impl::v1::MSKint32t value;
+    api._check(api.getintparam(model.native_model().second,
+                               mosek::impl::v1::MSK_IPAR_OPTIMIZER, &value));
+    return value;
+}
+
 template <typename Model>
 void expect_reset_status_drops_the_solution(Model model) {
     using namespace operators;
@@ -141,6 +154,7 @@ struct mosek_lp_test : public model_test<mosek_api, mosek_lp> {
     static void SetUpTestSuite() { construct_api("MOSEK"); }
 };
 static_assert(!has_iis<mosek_lp>);
+static_assert(has_lp_basis_warm_start<mosek_lp>);
 TEST_F(mosek_lp_test, license_codes_throw_license_error) {
     for(int code = 1000; code <= 1028; ++code)
         EXPECT_THROW(api->_check(code), license_error) << code;
@@ -211,6 +225,82 @@ TEST_F(mosek_lp_test,
     EXPECT_EQ(model.get_variable_lower_bound(x), -model.infinity());
     EXPECT_EQ(model.get_variable_upper_bound(x), model.infinity());
 }
+// mosek_lp has no iteration limit: MOSEK's own counts prove the warm start
+TEST_F(mosek_lp_test, set_basis_starts_the_next_solve_at_the_optimum) {
+    using namespace mosek::impl::v1;
+    SkipOnLicenseError([this]() {
+        auto a = new_model();
+        lp_basis_cases::build_dense(a);
+        a.solve();
+        ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+        ASSERT_GT(iteration_count(*api, a, MSK_IINF_INTPNT_ITER), 0);
+        auto b = new_model();
+        const auto x = lp_basis_cases::build_dense(b);
+        b.set_basis(a.get_basis());
+        b.solve();
+        ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+        ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
+                    lp_basis_cases::tolerance(a.get_solution_value()));
+        ASSERT_EQ(iteration_count(*api, b, MSK_IINF_SIM_PRIMAL_ITER) +
+                      iteration_count(*api, b, MSK_IINF_SIM_DUAL_ITER),
+                  0);
+        ASSERT_EQ(iteration_count(*api, b, MSK_IINF_INTPNT_ITER), 0);
+        ASSERT_EQ(optimizer(*api, b), MSK_OPTIMIZER_FREE);
+        b.set_variable_upper_bound(x[0], 1.0);
+        b.solve();
+        ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+        ASSERT_GT(iteration_count(*api, b, MSK_IINF_INTPNT_ITER), 0);
+    });
+}
+TEST_F(mosek_lp_test, set_basis_keeps_an_optimizer_chosen_natively) {
+    using namespace mosek::impl::v1;
+    SkipOnLicenseError([this]() {
+        auto a = new_model();
+        lp_basis_cases::build_dense(a);
+        a.solve();
+        auto b = new_model();
+        lp_basis_cases::build_dense(b);
+        api->_check(api->putintparam(b.native_model().second,
+                                     MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_INTPNT));
+        b.set_basis(a.get_basis());
+        b.solve();
+        ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+        ASSERT_GT(iteration_count(*api, b, MSK_IINF_INTPNT_ITER), 0);
+        ASSERT_EQ(optimizer(*api, b), MSK_OPTIMIZER_INTPNT);
+    });
+}
+// MOSEK stores the keys as written: they read back before any solve
+TEST_F(mosek_lp_test, get_basis_reads_back_what_set_basis_wrote) {
+    SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto solved = new_model();
+        const auto v = lp_basis_cases::build_vertex(solved);
+        solved.solve();
+        const auto basis = solved.get_basis();
+        auto model = new_model();
+        lp_basis_cases::build_vertex(model);
+        const auto y = model.add_variable();
+        const auto c = model.add_constraint(y + v.x3 <= 50);
+        model.set_basis(basis);
+        const auto echo = model.get_basis();
+        for(const auto x : {v.x1, v.x2, v.x3, v.x4, v.x5, v.w, v.f})
+            ASSERT_EQ(echo.get_status(x).index(), basis.get_status(x).index());
+        for(const auto r : {v.le, v.ge, v.eq, v.slack})
+            ASSERT_EQ(echo.get_status(r).index(), basis.get_status(r).index());
+        ASSERT_TRUE(
+            is<basis_status::nonbasic_at_lower_bound>(echo.get_status(y)));
+        ASSERT_TRUE(is<basis_status::basic>(echo.get_status(c)));
+    });
+}
+TEST_F(mosek_lp_test, get_basis_before_any_solve_throws) {
+    SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = new_model();
+        auto x = model.add_variable();
+        model.add_constraint(x <= 1);
+        ASSERT_THROW(model.get_basis(), solver_error);
+    });
+}
 INSTANTIATE_TEST(MOSEK_lp, LpModelTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, EnumerableEntitiesTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ReadableObjectiveTest, mosek_lp_test);
@@ -228,11 +318,14 @@ INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, CuttingStockTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, TimeLimitTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, VerbosityTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, LpBasisTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, LpBasisWarmStartTest, mosek_lp_test);
 
 struct mosek_milp_test : public model_test<mosek_api, mosek_milp> {
     static void SetUpTestSuite() { construct_api("MOSEK"); }
 };
 static_assert(!has_iis<mosek_milp>);
+static_assert(!has_lp_basis<mosek_milp>);
 TEST_F(mosek_milp_test, column_less_model_is_optimal_only_if_its_rows_hold) {
     SkipOnLicenseError([this]() {
         expect_column_less_status_follows_rows(new_model(), new_model(),
