@@ -90,13 +90,13 @@ The `column_manager` test suite ([`test/test_suites/column_manager.hpp`](https:/
 
 ## Bases
 
-A master grown in place usually re-solves from the basis the solver kept, and the columns added since enter it nonbasic. On the LP models, `get_basis()` also tells which master columns are basic, through `model_variable_basis_status_t<M>` and the `variable_status` property that `master_refreshed` updates, and `set_basis(b)` starts a solve from a basis of your choice, see [Bases and warm starts](../solving/basis.md):
+A master grown in place usually re-solves from the basis the solver kept, and the columns added since enter it nonbasic. On the LP models, `get_basis()` also tells which master columns are basic, through `model_variable_basis_status_t<M>` and the `variable_status` property that `master_refreshed` updates, and `set_basis(b)`, on every LP model but `soplex_lp`, starts a solve from a basis of your choice, see [Bases and warm starts](../solving/basis.md):
 
 - A master column reads its status from the last `master_refreshed`; until then it holds bare `basis_status::nonbasic`, the status of a column the basis does not cover, so a predicate that classifies fresh columns tests `!is<basis_status::basic>(s)`.
 - When `manage_columns` evicts columns, take the basis after `solve()` and before `manage_columns`, and write it with `set_basis` after it: a column activated in the same call may reuse the id of a column just evicted, and then reads that column's entry, nonbasic since the eviction strategies evict nonbasic columns only, at an optimum.
-- On Gurobi, `remove_variable` discards the basis Gurobi keeps, and an eviction then re-solves cold unless the basis is written back. A basis taken before a basic column was removed is one basic entity short, and Gurobi discards it too.
+- On Gurobi, removing a column that was basic discards the basis Gurobi keeps, and the next solve starts cold. A basis taken before that removal is one basic entity short, and Gurobi discards it too: the eviction strategies evict nonbasic columns only, at an optimum.
 
-Variable reduced costs (`get_reduced_costs`, concept `has_reduced_costs`) are available on the LP backends, for pricing schemes that reason on the master's variables.
+Variable reduced costs (`get_reduced_costs`, concept `has_reduced_costs`) are available on every LP backend but `soplex_lp`, for pricing schemes that reason on the master's variables.
 
 ## Next
 

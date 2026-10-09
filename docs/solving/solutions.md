@@ -82,7 +82,7 @@ They are the natural companion of duals for pricing schemes that reason on the m
 
 ## Bases
 
-On the LP models, `get_basis()` returns the basis an LP solve ended with, which variables and rows are basic and at which bound the others stand, and `set_basis(b)` starts the next solve from a basis: see [Bases and warm starts](basis.md).
+On the LP models, `get_basis()` returns the basis an LP solve ended with, which variables and rows are basic and at which bound the others stand, and `set_basis(b)`, on every LP model but `soplex_lp`, starts the next solve from a basis: see [Bases and warm starts](basis.md).
 
 ## Next
 
