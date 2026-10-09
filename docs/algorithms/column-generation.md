@@ -88,9 +88,15 @@ The `column_manager` test suite ([`test/test_suites/column_manager.hpp`](https:/
 - **Read `get_dual_solution()` once per round**, then index it — each call fetches the whole dual vector.
 - **Keep the pricing data in your own structures.** The generated columns are your objects; the model only holds handles, which stay valid across re-solves.
 
-## What's next
+## Bases
 
-LP-basis warm starts (`has_lp_basis_warm_start`) — so each master re-solve starts from the previous basis instead of from scratch — are specified but not yet implemented on any backend; they are the top item on the [roadmap](https://github.com/fhamonic/mippp#roadmap). Variable reduced costs (`get_reduced_costs`, concept `has_reduced_costs`) are already available on the LP backends, for pricing schemes that reason on the master's variables.
+A master grown in place usually re-solves from the basis the solver kept, and the columns added since enter it nonbasic. On the LP models, `get_basis()` also tells which master columns are basic, through `model_variable_basis_status_t<M>` and the `variable_status` property that `master_refreshed` updates, and `set_basis(b)` starts a solve from a basis of your choice, see [Bases and warm starts](../solving/basis.md):
+
+- A master column reads its status from the last `master_refreshed`; until then it holds bare `basis_status::nonbasic`, the status of a column the basis does not cover, so a predicate that classifies fresh columns tests `!is<basis_status::basic>(s)`.
+- When `manage_columns` evicts columns, take the basis after `solve()` and before `manage_columns`, and write it with `set_basis` after it: a column activated in the same call may reuse the id of a column just evicted, and then reads that column's entry, nonbasic since the eviction strategies evict nonbasic columns only, at an optimum.
+- On Gurobi, `remove_variable` discards the basis Gurobi keeps, and an eviction then re-solves cold unless the basis is written back. A basis taken before a basic column was removed is one basic entity short, and Gurobi discards it too.
+
+Variable reduced costs (`get_reduced_costs`, concept `has_reduced_costs`) are available on the LP backends, for pricing schemes that reason on the master's variables.
 
 ## Next
 

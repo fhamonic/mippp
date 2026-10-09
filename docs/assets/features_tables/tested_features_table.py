@@ -65,6 +65,8 @@ formated_test_names = [
     ("RemoveVariableTest", "Remove variable"),
     ("DualSolutionTest", "Dual solution"),
     ("ReducedCostsTest", "Reduced costs"),
+    ("LpBasisTest", "LP basis"),
+    ("LpBasisWarmStartTest", "LP basis warm start"),
     ("ColumnManagerTest", "Column manager"),
     ("CuttingStockTest", "Cutting stock example"),
     ("CandidateSolutionCallbackTest", "Candidate solution callback"),

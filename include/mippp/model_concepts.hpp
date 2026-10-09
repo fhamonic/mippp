@@ -682,8 +682,8 @@ using model_constraint_basis_status_t =
     std::decay_t<decltype(std::declval<const model_basis_t<T> &>().get_status(
         std::declval<model_constraint_t<T>>()))>;
 
-// The next solve() starts from the basis, read for every live entity: one
-// whose id the basis does not cover reads its alternative 0.
+// The next solve() starts from the basis, read for every live entity: a
+// snapshot reads an entity it does not cover as its alternative 0.
 template <typename T>
 concept has_lp_basis_warm_start =
     has_lp_basis<T> && requires(T & model, const model_basis_t<T> & b,

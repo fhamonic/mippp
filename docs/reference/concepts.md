@@ -123,9 +123,9 @@ set is a limit you can detect.
 | --- | --- |
 | `has_dual_solution` | `get_dual_solution()`, indexed by constraint handles. |
 | `has_reduced_costs` | `get_reduced_costs()`, indexed by variable handles. |
-| `has_lp_basis` | `get_basis()`, whose `get_status(v)` / `get_status(c)` report the LP basis as a variant over the tags of namespace `basis_status`. *(no backend yet)* |
-| `has_modifiable_lp_basis` | `has_lp_basis`, and the basis returned by `get_basis()` can be edited in place: `set_basic`, `set_nonbasic(v, value)` (snaps to the nearest bound) and `set_status(v, tag)`, each for variables and for constraints. *(no backend yet)* |
-| `has_lp_basis_warm_start` | `has_lp_basis`, plus `set_basis(b)` accepting the basis type of `get_basis()`. Warm-starting does not require that type to be modifiable, and a backend may accept other basis sources as well, such as a basis view built from lambdas. *(no backend yet)* |
+| `has_lp_basis` | `get_basis()`, a snapshot by value, `model_basis_t<M>`, whose `get_status(v)` / `get_status(c)` return a variant over the tags of namespace `basis_status`, `model_variable_basis_status_t<M>` and `model_constraint_basis_status_t<M>`: the most specific tag the solver gives, a row on the side of its activity. Defined right after a `solve()` that ran a simplex method, throws `mippp::solver_error` where the solver holds no basis, unspecified at other times. Satisfied by the `*_lp` classes, never by a `*_milp` class nor `highs_qp`. See [Bases and warm starts](../solving/basis.md). |
+| `has_modifiable_lp_basis` | `has_lp_basis`, and the snapshot is edited with `set_status(e, tag)` for variables and constraints, which grows it for handles it does not cover and stores the most specific tag its status lists. A default-constructed `model_basis_t<M>` is the slack basis. |
+| `has_lp_basis_warm_start` | `has_lp_basis`, plus `set_basis(b)`, from which the next `solve()` starts, for any basis `b` whose `get_status(v)` / `get_status(c)` return a variant over tags deriving from `basis_status::basic` and `basis_status::nonbasic`: the model's own snapshot, another model's, or a type of your own. A snapshot reads a handle created after it as nonbasic for a column and basic for a row, which keeps the basis square. `get_status()` keeps reporting the last solve. Satisfied by every `*_lp` class but `soplex_lp`. |
 
 ## Infeasibility analysis
 

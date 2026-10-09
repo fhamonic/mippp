@@ -80,10 +80,10 @@ if(rc[x] > tolerance) { /* x is nonbasic at its lower bound */ }
 
 They are the natural companion of duals for pricing schemes that reason on the master's *variables* rather than its rows, and for sensitivity analysis of an LP.
 
-## Sensitivity and warm starts
+## Bases
 
-LP basis access (`has_lp_basis`) and basis warm starts (`has_lp_basis_warm_start`) are specified in [`model_concepts.hpp`](https://github.com/fhamonic/mippp/blob/main/include/mippp/model_concepts.hpp) — including a full `basis_status` hierarchy — but **no backend implements them yet**; they are the top item on the [roadmap](https://github.com/fhamonic/mippp#roadmap). Until then, a re-solve after a model change starts from whatever the backend itself keeps internally (see [Re-solving and model updates](updates.md)).
+On the LP models, `get_basis()` returns the basis an LP solve ended with, which variables and rows are basic and at which bound the others stand, and `set_basis(b)` starts the next solve from a basis: see [Bases and warm starts](basis.md).
 
 ## Next
 
-[Re-solving and model updates](updates.md) — changing a model between solves without rebuilding it.
+[Bases and warm starts](basis.md) — reading the basis of a solve, and starting a solve from one.

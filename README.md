@@ -172,13 +172,12 @@ Solver shared libraries are discovered at runtime; only the solvers you actually
 
 ## Roadmap
 
-The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS), through the solver's own routine on Gurobi, CPLEX, Xpress, COPT and HiGHS (1.14 or later) and a deletion filter on every backend.
+The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [LP bases](https://fhamonic.github.io/mippp/solving/basis/) read and written on every LP backend (read-only on SoPlex), [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS), through the solver's own routine on Gurobi, CPLEX, Xpress, COPT and HiGHS (1.14 or later) and a deletion filter on every backend.
 
 Planned, roughly by priority:
 
 | Priority | Feature | Notes |
 | :---: | --- | --- |
-| 🔴 | **LP basis warm-starts** | Concepts specified (`has_lp_basis`, `has_lp_basis_warm_start`); no backend implements `get_basis`/`set_basis` yet |
 | 🔴 | **User-cut callbacks** | For cutting-plane methods at node relaxations |
 | 🔴 | **Heuristic-solution injection** | Injecting primal solutions from within callbacks |
 | 🟠 | **SOS1/SOS2 constraints** | Concepts specified (`has_sos1_constraints`, `has_sos2_constraints`); no backend implements `add_sos1_constraint`/`add_sos2_constraint` yet |
@@ -189,9 +188,9 @@ Planned, roughly by priority:
 | ⚪ | Solution pools, multi-objective, semi-continuous variables, progress getters | |
 
 > [!NOTE]
-> Since a MIP++ model *is* the solver's native model, re-solves after in-place modifications (adding rows, changing bounds) almost always warm-start from the last basis implicitly. The roadmap item above is about explicit basis get/set — transferring a basis between models or storing one for later.
+> Since a MIP++ model *is* the solver's native model, re-solves after in-place modifications (adding rows, changing bounds) almost always warm-start from the last basis implicitly. [LP bases](https://fhamonic.github.io/mippp/solving/basis/) can also be read and written explicitly, to transfer a basis between models or store one for later.
 
-The first three items are what build-bound, re-solve-heavy research code wants most. Until they land, a column-generation or cutting-plane study hitting those specific features may still be better served by a direct solver API — and the honest comparison is in the [Is MIP++ for you?](#is-mip-for-you) section above.
+The first two items are what build-bound, re-solve-heavy research code wants most. Until they land, a column-generation or cutting-plane study hitting those specific features may still be better served by a direct solver API — and the honest comparison is in the [Is MIP++ for you?](#is-mip-for-you) section above.
 
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md), and open an issue to claim an item.
 

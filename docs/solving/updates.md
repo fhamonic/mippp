@@ -95,7 +95,7 @@ model.add_mip_start(std::views::transform(items, [&](int i) {
 
 Backends: Cbc, COPT, CPLEX, Gurobi, HiGHS, MOSEK, Xpress. This is the usual way to feed a constructive heuristic's solution into an exact run, and to make a "warm" second solve of a perturbed instance cheap.
 
-For LPs, basis warm starts are specified but not yet implemented on any backend — see [Solutions](solutions.md#sensitivity-and-warm-starts).
+For LPs, a re-solve of the model changed in place usually starts from the basis the solver kept, and `set_basis(b)` starts it from a basis of your choice, another model's or an earlier one, see [Bases and warm starts](basis.md).
 
 ## A benchmark loop
 
