@@ -194,9 +194,10 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
-    // SUPBAS also marks a bounded entity strictly inside its bounds, as a
-    // stop of the dual simplex leaves some. A defined slot holds UNK keys
-    // after a stop before the first pivot, and INF on crossed bounds.
+    // SUPBAS also marks a bounded entity strictly inside its bounds, as a stop
+    // of the dual simplex or the certificate of an unbounded LP leaves some. A
+    // defined slot holds UNK keys after a stop before the first pivot, and INF
+    // on crossed bounds.
     template <typename Status>
     static Status _basis_status(MSKstakeye key) {
         switch(key) {
