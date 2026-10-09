@@ -1,0 +1,49 @@
+library: /usr/local/lib/libhighs.so.1.10.0 version 1.10.0
+
+=== F: partial / extended bases ===
+  extended basis (new col L0, new row B1) rc=0
+  [extended basis + limit 0] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  extended basis (new col B1, new row U2) rc=0
+  basis[read back] rc=0 ncol=9 nrow=6 basic=6 (cols 5) L=2 U=5 Z=1 N=1 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3 new=B1
+    rows: rle(<=)=B1 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=N4 new=U2
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=3(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basics only, others N4 rc=0
+  basis[read back] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=0 U=0 Z=0 N=8 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=N4 x2=B1 x3=B1 x4=B1 x5=B1 x6=N4 f=2=N4 w(free)=N4
+    rows: rle(<=)=N4 rge(>=)=N4 req(==)=N4 rrng[2,6]=N4 rsl(slack)=B1
+  [basics-only N4 + limit 0] model_status=14 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=1 dsol=1 obj=-3
+  basis[after] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=4 U=3 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=L0 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=L0 rsl(slack)=B1
+  basics only, others L0 rc=0
+  basis[read back] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=8 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=L0 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=L0 w(free)=L0
+    rows: rle(<=)=L0 rge(>=)=L0 req(==)=L0 rrng[2,6]=L0 rsl(slack)=B1
+  [basics-only L0 + limit 0] model_status=14 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=1 dsol=1 obj=-3
+  [basics-only L0 unlimited] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[setBasis then add col+row] rc=0 ncol=9 nrow=6 basic=6 (cols 4) L=3 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3 new=L0
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1 new=B1
+  [setBasis, add col+row, limit 0] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[setBasis then remove basic x4] rc=0 ncol=7 nrow=5 basic=4 (cols 3) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:NO
+  -- solve, log:
+LP   has 5 rows; 7 cols; 14 nonzeros
+Coefficient ranges:
+  Matrix [1e+00, 1e+00]
+  Cost   [1e+00, 3e+00]
+  Bound  [2e+00, 4e+00]
+  RHS    [1e+00, 1e+02]
+Solving LP without presolve, or with basis, or unconstrained
+Using EKK dual simplex solver - serial
+  Iteration        Objective     Infeasibilities num(sum)
+          0     0.0000000000e+00 Ph1: 0(0) 0s
+          1    -1.6999993414e+01 0s
+Model status        : Infeasible
+Simplex   iterations: 1
+Objective value     : -1.7000000000e+01
+Relative P-D gap    :  3.8742001523e-07
+HiGHS run time      :          0.00
+  [setBasis, remove basic, solve] model_status=8 basis_validity=1(rc0) simplex_it=1(rc0) ipm_it=0 crossover_it=0 psol=1 dsol=2 obj=-17
+
+done

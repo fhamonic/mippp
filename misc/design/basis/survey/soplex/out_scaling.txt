@@ -1,0 +1,31 @@
+n=1000 rows=1000: cold solve 0.016 s, 1102 iterations, obj 34014.209875
+  read 2000 codes per entity: 0.0000 s
+  wrote 727 lines, 2.7 MB in 0.005 s
+  readBasisFile = 1 in 0.048 s; RSS 16556 -> 16744 kB, peak 16256 -> 19804 kB
+  warm solve ITERLIMIT=0: status -6, 0 iterations, 0.000 s, obj 0.000000
+exit 0
+n=2000 rows=2000: cold solve 0.041 s, 2209 iterations, obj 67989.739296
+  read 4000 codes per entity: 0.0000 s
+  wrote 1456 lines, 11.9 MB in 0.015 s
+  readBasisFile = 1 in 0.261 s; RSS 30940 -> 31004 kB, peak 30592 -> 30592 kB
+  warm solve ITERLIMIT=0: status -6, 0 iterations, 0.001 s, obj 0.000000
+exit 0
+n=4000 rows=4000: cold solve 0.087 s, 4365 iterations, obj 136004.972272
+  read 8000 codes per entity: 0.0001 s
+  wrote 2909 lines, 51.7 MB in 0.058 s
+  readBasisFile = 1 in 1.761 s; RSS 89088 -> 89152 kB, peak 88760 -> 88760 kB
+  warm solve ITERLIMIT=0: status -6, 0 iterations, 0.001 s, obj 0.000000
+exit 0
+n=8000 rows=8000: cold solve 0.302 s, 8759 iterations, obj 271882.960701
+  read 16000 codes per entity: 0.0001 s
+  wrote 5816 lines, 217.3 MB in 0.225 s
+  readBasisFile = 1 in 12.259 s; RSS 322484 -> 322548 kB, peak 322112 -> 322112 kB
+  warm solve ITERLIMIT=0: status -6, 0 iterations, 0.002 s, obj 0.000000
+exit 0
+n=1000 rows=1000: cold solve 0.016 s, 1102 iterations, obj 34014.209875
+  read 2000 codes per entity: 0.0000 s
+  wrote 727 lines, 2.7 MB in 0.005 s
+Syntax error in line 34
+  readBasisFile = 0 in 0.047 s; RSS 16556 -> 16744 kB, peak 16256 -> 19808 kB
+  warm solve ITERLIMIT=0: status -6, 0 iterations, 0.001 s, obj 60010.000000
+exit 0

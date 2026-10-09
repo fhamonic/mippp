@@ -1,0 +1,9 @@
+free row from the start, after optimal solve: row codes 0 4, col codes 1 4, obj 8
+exit 0
+free row from the start, after optimal solve: row codes 0 4, col codes 1 4, obj 8
+calling SoPlex_readBasisFile on a missing path...
+terminate called after throwing an instance of 'strict_fstream::Exception'
+  what():  strict_fstream: open('/nonexistent/dir/x.bas',in): open failed: No such file or directory
+timeout: the monitored command dumped core
+/bin/bash: line 1: 180437 Aborted                 timeout -k 5 60 ./probe_missing_file missing
+exit 134

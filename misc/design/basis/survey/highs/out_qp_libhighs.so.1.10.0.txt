@@ -1,0 +1,61 @@
+library: /usr/local/lib/libhighs.so.1.10.0 version 1.10.0
+  [QP before solve] model_status=0 basis_validity=-99(rc1) simplex_it=-99 qp_it=-99(rc1) psol=-99 obj=0
+    x: 0 0 0 0  rows: 0 0
+  basis[QP before solve] rc=0 basic=0 nrow=2 basic==nrow:NO
+    cols: L0 L0 L0 L0
+    rows: L0 L0
+  [QP A solved] model_status=7 basis_validity=0(rc0) simplex_it=0 qp_it=7(rc0) psol=2 obj=-0.5
+    x: 0.5 1.5 0 1  rows: 2 -1
+  basis[QP A] rc=0 basic=2 nrow=2 basic==nrow:yes
+    cols: N4 B1 L0 U2
+    rows: U2 B1
+  [QP interior solved] model_status=7 basis_validity=0(rc0) simplex_it=0 qp_it=4(rc0) psol=2 obj=-5
+    x: 1 2  rows: 3 -1
+  basis[QP interior] rc=0 basic=2 nrow=2 basic==nrow:yes
+    cols: N4 N4
+    rows: B1 B1
+  [QP solver=ipm] model_status=7 basis_validity=1(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-4
+    x: 0 2 0 1  rows: 2 -2
+  basis[QP solver=ipm] rc=0 basic=2 nrow=2 basic==nrow:yes
+    cols: L0 B1 L0 U2
+    rows: U2 B1
+  [QP B0 control limit 0] model_status=14 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=5
+    x: 0 0 0 0  rows: 0 0
+  basis[QP B0] rc=0 basic=2 nrow=2 basic==nrow:yes
+    cols: L0 L0 L0 L0
+    rows: B1 B1
+  setBasis rc=0
+  basis[QP B1 read back after setBasis] rc=0 basic=2 nrow=2 basic==nrow:yes
+    cols: N4 B1 L0 U2
+    rows: U2 B1
+  [QP B1 setBasis + limit 0] model_status=14 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=5
+    x: 0 0 0 0  rows: 0 0
+  setSolution rc=0 setBasis rc=0
+  basis[read back] rc=0 basic=2 nrow=2 basic==nrow:yes
+    cols: N4 B1 L0 U2
+    rows: U2 B1
+  [QP B2 sol+basis limit 0] model_status=14 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-0.5
+    x: 0.5 1.5 0 1  rows: 2 -1
+  set qp_allow_hot_start rc=-1
+  setSolution rc=0 setBasis rc=0
+  basis[read back] rc=0 basic=2 nrow=2 basic==nrow:yes
+    cols: N4 B1 L0 U2
+    rows: U2 B1
+  [QP B2 sol+basis+hot_start limit 0] model_status=14 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-0.5
+    x: 0.5 1.5 0 1  rows: 2 -1
+  [QP A re-solved in place hot_start=0 limit0=0] model_status=7 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-0.5
+    x: 0.5 1.5 0 1  rows: 2 -1
+  [QP A re-solved in place hot_start=0 limit0=1] model_status=14 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-0.5
+    x: 0.5 1.5 0 1  rows: 2 -1
+  [QP A re-solved in place hot_start=1 limit0=0] model_status=7 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-0.5
+    x: 0.5 1.5 0 1  rows: 2 -1
+  [QP A re-solved in place hot_start=1 limit0=1] model_status=14 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-0.5
+    x: 0.5 1.5 0 1  rows: 2 -1
+  [QP B3 sol+basis+hot_start no limit] model_status=7 basis_validity=0(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-0.5
+    x: 0.5 1.5 0 1  rows: 2 -1
+  [highs_qp linear objective] model_status=7 basis_validity=1(rc0) simplex_it=0 qp_it=0(rc0) psol=2 obj=-5
+    x: 4 1  rows: 6 3
+  basis[highs_qp linear] rc=0 basic=2 nrow=2 basic==nrow:yes
+    cols: U2 B1
+    rows: U2 B1
+done

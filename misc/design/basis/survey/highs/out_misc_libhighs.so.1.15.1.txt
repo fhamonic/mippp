@@ -1,0 +1,38 @@
+library: /home/plaiseek/.local/lib/python3.10/site-packages/highspy/libhighs.so.1.15.1 version 1.15.1
+LP has 3 rows; 3 cols; 5 nonzeros
+Coefficient ranges:
+  Matrix  [1e+00, 2e+00]
+  Cost    [1e+00, 3e+00]
+  Bound   [1e+00, 7e+00]
+  RHS     [4e+00, 1e+02]
+Presolving model
+0 rows, 0 cols, 0 nonzeros 0s
+0 rows, 0 cols, 0 nonzeros 0s
+Presolve reductions: rows 0(-3); columns 0(-3); nonzeros 0(-5) - Reduced to empty
+Performed postsolve
+Solving the original LP from the solution after postsolve
+
+Model status        : Optimal
+Objective value     : -7.0000000000e+00
+P-D objective error :  0.0000000000e+00
+HiGHS run time      :          0.00
+  [presolve to empty] model_status=7 basis_validity=1(rc0) simplex_it=0 obj=-7
+  basis[presolve to empty] rc=0 basic=3 nrow=3  cols: B1 B1 L0  rows: U2 U2 B1
+  [no row] model_status=7 basis_validity=1(rc0) simplex_it=0 obj=-3
+  basis[no row] rc=0 basic=0 nrow=0  cols: U2 L0  rows:
+  setBasis(all basic, row=nullptr) rc=0
+  basis[no row read back] rc=0 basic=0 nrow=0  cols: N4 N4  rows:
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=1 obj=-5
+  basis[optimal] rc=0 basic=3 nrow=3  cols: U2 B1  rows: U2 B1 B1
+  setBasis(slack basis) on the solved model rc=0
+  [after setBasis(slack) no re-solve] model_status=7 basis_validity=1(rc0) simplex_it=1 obj=-5
+  get_solution still reads x=4 y=1
+  basis[read back] rc=0 basic=3 nrow=3  cols: L0 L0  rows: B1 B1 B1
+  [re-solved from slack basis] model_status=7 basis_validity=1(rc0) simplex_it=1 obj=-5
+  setBasis(optimal) rc=0
+  [re-solved from optimal basis, limit 0] model_status=7 basis_validity=1(rc0) simplex_it=0 obj=-5
+  [before compute_iis] model_status=7 basis_validity=1(rc0) simplex_it=0 obj=-5
+  basis[before compute_iis] rc=0 basic=2 nrow=2  cols: U2 B1  rows: U2 B1
+  [after compute_iis] model_status=7 basis_validity=1(rc0) simplex_it=0 obj=-5
+  basis[after compute_iis] rc=0 basic=2 nrow=2  cols: U2 B1  rows: U2 B1
+done

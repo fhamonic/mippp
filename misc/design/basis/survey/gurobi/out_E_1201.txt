@@ -1,0 +1,315 @@
+=== E: warm start
+  [E.A cold solve (wrapper defaults)] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [E.A basis] VBasis(e0): -1 -1 -1 0 0 0 -1 -2 0 -1 -1 0 -1 0 -1 -1 -1 -1 0 -1 -1 -1 0 0 0 -1 -1 -1 -1 0 0 -1 -1 0 -1 -1 -1 -1 -1 -1 0 0 0 -1 0 0 -1 -2 -1 0 -1 0 -1 -1 0 -1 0 -1 -1 0 | CBasis(e0): -1 0 -1 0 -1 0 -1 0 0 -1 -1 0 -1 -1 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 0 0 -1 -1  #basic=40 #rows=40
+  first basic column 3, x=4.79436
+  -- cold controls, IterationLimit=0
+  [E.cold default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.cold presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  -- warm, IterationLimit=0
+  [E.warm default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.warm Method=0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=480(e0) SolCount=0
+  [E.warm Method=1 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.warm Method=2 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=7(e0) ConcWin=-1(e0) ObjVal=-1e+100(e0) SolCount=0
+  [E.warm Method=3 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.warm Presolve=0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.warm LPWarmStart=0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.warm LPWarmStart=1 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.warm LPWarmStart=2 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.warm LPWarmStart=2 Presolve=2 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-1e+100(e0) SolCount=0
+  [E.warm LPWarmStart=2 Presolve=0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  -- warm, no iteration limit
+  [E.warm default nolim] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [E.warm LPWarmStart=0 nolim] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [E.warm LPWarmStart=2 nolim] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  -- read back of a written basis on a fresh model
+  [E.readback before update] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [E.readback after update] VBasis(e0): -1 -1 -1 0 0 0 -1 -2 0 -1 -1 0 -1 0 -1 -1 -1 -1 0 -1 -1 -1 0 0 0 -1 -1 -1 -1 0 0 -1 -1 0 -1 -1 -1 -1 -1 -1 0 0 0 -1 0 0 -1 -2 -1 0 -1 0 -1 -1 0 -1 0 -1 -1 0 | CBasis(e0): -1 0 -1 0 -1 0 -1 0 0 -1 -1 0 -1 -1 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 0 0 -1 -1  #basic=40 #rows=40
+  [E.readback solve lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=0
+  E.readback basis after warm solve equals written: yes
+  -- bound change interplay (column 3 loosened to ub 20)
+  [E.i fresh: write basis, then loosen bound, solve lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.ii fresh: loosen bound, then write basis, solve lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2967.25(e0) SolCount=0
+  [E.A solved] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [E.iv solved A: write all-slack basis, solve lim0] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [E.A re-solved] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [E.iii solved A: loosen bound, write all-slack basis, solve lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=0
+  [E.A re-solved] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [E.v solved A: loosen bound, write A's optimal basis, solve lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=0
+  [E.vi solved A: loosen bound, nothing written, solve lim0 (internal)] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=0
+  -- invalid bases on the core LP (reference basis: Presolve=0 Method=1)
+  [E.core reference basis] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [cold core default lim0] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [cold core presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  E.invalid: unmodified reference
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: too few basic: x basic -> -1
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default lim0] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): -1 0 0 -2 -1 -1 -2 -3 -3 | CBasis(e0): -1 0 -1 0 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: too many basic: u -> 0
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default lim0] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): -1 0 0 -2 -1 -1 -2 -3 -3 | CBasis(e0): -1 0 -1 0 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -2 on w (ub = +inf)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default lim0] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): -1 0 0 -2 -1 -1 -2 -3 -3 | CBasis(e0): -1 0 -1 0 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -1 on z2 (free, empty column)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -1 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -1 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -1 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -2 on z2 (free, empty column)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -2 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -2 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -2 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -3 on u (bounded, at ub)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -3 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -1 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -3 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -1 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -3 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -3 on v (bounded, at lb)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -3 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -3 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -3 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -1 on f (fixed)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -2 on f (fixed)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -2 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -2 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -2 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -2 on t (lb -inf, at ub): already
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: -1 on t (lb = -inf)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -1 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -1 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -1 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: CBasis -2 on le row
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: CBasis -3 on le row
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: CBasis -2 on ge row
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: CBasis -2 on eq row
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: VBasis 1 on x (out of range)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: VBasis -4 on u (out of range)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -1 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -1 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -1 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -1 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -1 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: CBasis 1 on le (out of range)
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default lim0] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): -1 0 0 -2 -1 -1 -2 -3 -3 | CBasis(e0): -1 0 -1 0 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: singular: z2 (empty col) basic
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 0 | CBasis(e0): -1 -1 -1 -1 -1  #basic=5 #rows=5
+  [    default lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=5e+30(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): 0 -1 -1 -1 -1  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 0 | CBasis(e0): -1 -1 -1 -1 -1  #basic=5 #rows=5
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=5e+30(e0) SolCount=0
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): 0 -1 -1 -1 -1  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 0 | CBasis(e0): -1 -1 -1 -1 -1  #basic=5 #rows=5
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=1(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  E.invalid: valid swap, suboptimal: le row basic
+    default lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default lim0] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    presolve0 lim0: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    presolve0 lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [    basis after solve] VBasis(e0): -1 0 0 -2 -1 -1 -2 -3 -3 | CBasis(e0): -1 0 -1 0 0  #basic=5 #rows=5
+    default nolim: write->0 update->0
+  [    read back before solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [    default nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [    basis after solve] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5

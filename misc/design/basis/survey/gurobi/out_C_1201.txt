@@ -1,0 +1,103 @@
+=== C: row side convention on the core LP
+  [C.default] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+    errs: LB0 UB0 X0 RC0 VBasis0 Sense0 RHS0 Slack0 Pi0 CBasis0
+    col 0   x[0,10]  lb=0        ub=10       x=2          rc=0          VBasis=0
+    col 1   y[0,10]  lb=0        ub=10       x=4          rc=0          VBasis=0
+    col 2   w[0,inf) lb=0        ub=1e+100   x=4          rc=0          VBasis=0
+    col 3   u[0,1]   lb=0        ub=1        x=1          rc=1          VBasis=-2
+    col 4   f[3,3]   lb=3        ub=3        x=3          rc=0          VBasis=-1
+    col 5   v[1,5]   lb=1        ub=5        x=1          rc=-1         VBasis=-1
+    col 6   t(-inf,3] lb=-1e+100  ub=3        x=3          rc=1          VBasis=-2
+    col 7   z1free   lb=-1e+100  ub=1e+100   x=86         rc=0          VBasis=0
+    col 8   z2free0  lb=-1e+100  ub=1e+100   x=0          rc=0          VBasis=-3
+    row 0   le:x+y<=6  sense=< rhs=6        slack=0          pi=2.5        CBasis=-1
+    row 1   ge:x-y>=-2 sense=> rhs=-2       slack=0          pi=-0.5       CBasis=-1
+    row 2   eq:y-w=0   sense== rhs=0        slack=0          pi=-0         CBasis=-1
+    row 3   slack<=100 sense=< rhs=100      slack=0          pi=-0         CBasis=-1
+    row 4   geslack>=1 sense=> rhs=1        slack=-5         pi=0          CBasis=0
+    #basic=5 #rows=5
+  [C.primal_nopresolve] Status=2 OPTIMAL(e0) IterCount=4(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=19(e0) SolCount=1
+    errs: LB0 UB0 X0 RC0 VBasis0 Sense0 RHS0 Slack0 Pi0 CBasis0
+    col 0   x[0,10]  lb=0        ub=10       x=2          rc=0          VBasis=0
+    col 1   y[0,10]  lb=0        ub=10       x=4          rc=0          VBasis=0
+    col 2   w[0,inf) lb=0        ub=1e+100   x=4          rc=0          VBasis=0
+    col 3   u[0,1]   lb=0        ub=1        x=1          rc=1          VBasis=-2
+    col 4   f[3,3]   lb=3        ub=3        x=3          rc=0          VBasis=-1
+    col 5   v[1,5]   lb=1        ub=5        x=1          rc=-1         VBasis=-1
+    col 6   t(-inf,3] lb=-1e+100  ub=3        x=3          rc=1          VBasis=-2
+    col 7   z1free   lb=-1e+100  ub=1e+100   x=86         rc=0          VBasis=0
+    col 8   z2free0  lb=-1e+100  ub=1e+100   x=0          rc=0          VBasis=-3
+    row 0   le:x+y<=6  sense=< rhs=6        slack=0          pi=2.5        CBasis=-1
+    row 1   ge:x-y>=-2 sense=> rhs=-2       slack=0          pi=-0.5       CBasis=-1
+    row 2   eq:y-w=0   sense== rhs=0        slack=0          pi=-0         CBasis=-1
+    row 3   slack<=100 sense=< rhs=100      slack=0          pi=-0         CBasis=-1
+    row 4   geslack>=1 sense=> rhs=1        slack=-5         pi=0          CBasis=0
+    #basic=5 #rows=5
+  [C.dual_nopresolve] Status=2 OPTIMAL(e0) IterCount=2(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=19(e0) SolCount=1
+    errs: LB0 UB0 X0 RC0 VBasis0 Sense0 RHS0 Slack0 Pi0 CBasis0
+    col 0   x[0,10]  lb=0        ub=10       x=2          rc=0          VBasis=0
+    col 1   y[0,10]  lb=0        ub=10       x=4          rc=0          VBasis=0
+    col 2   w[0,inf) lb=0        ub=1e+100   x=4          rc=0          VBasis=0
+    col 3   u[0,1]   lb=0        ub=1        x=1          rc=1          VBasis=-2
+    col 4   f[3,3]   lb=3        ub=3        x=3          rc=-0         VBasis=-1
+    col 5   v[1,5]   lb=1        ub=5        x=1          rc=-1         VBasis=-1
+    col 6   t(-inf,3] lb=-1e+100  ub=3        x=3          rc=1          VBasis=-2
+    col 7   z1free   lb=-1e+100  ub=1e+100   x=86         rc=0          VBasis=0
+    col 8   z2free0  lb=-1e+100  ub=1e+100   x=0          rc=0          VBasis=-3
+    row 0   le:x+y<=6  sense=< rhs=6        slack=0          pi=2.5        CBasis=-1
+    row 1   ge:x-y>=-2 sense=> rhs=-2       slack=0          pi=-0.5       CBasis=-1
+    row 2   eq:y-w=0   sense== rhs=0        slack=0          pi=0          CBasis=-1
+    row 3   slack<=100 sense=< rhs=100      slack=0          pi=0          CBasis=-1
+    row 4   geslack>=1 sense=> rhs=1        slack=-5         pi=0          CBasis=0
+    #basic=5 #rows=5
+  [C.dual_presolve] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=19(e0) SolCount=1
+    errs: LB0 UB0 X0 RC0 VBasis0 Sense0 RHS0 Slack0 Pi0 CBasis0
+    col 0   x[0,10]  lb=0        ub=10       x=2          rc=0          VBasis=0
+    col 1   y[0,10]  lb=0        ub=10       x=4          rc=0          VBasis=0
+    col 2   w[0,inf) lb=0        ub=1e+100   x=4          rc=0          VBasis=0
+    col 3   u[0,1]   lb=0        ub=1        x=1          rc=1          VBasis=-2
+    col 4   f[3,3]   lb=3        ub=3        x=3          rc=0          VBasis=-1
+    col 5   v[1,5]   lb=1        ub=5        x=1          rc=-1         VBasis=-1
+    col 6   t(-inf,3] lb=-1e+100  ub=3        x=3          rc=1          VBasis=-2
+    col 7   z1free   lb=-1e+100  ub=1e+100   x=86         rc=0          VBasis=0
+    col 8   z2free0  lb=-1e+100  ub=1e+100   x=0          rc=0          VBasis=-3
+    row 0   le:x+y<=6  sense=< rhs=6        slack=0          pi=2.5        CBasis=-1
+    row 1   ge:x-y>=-2 sense=> rhs=-2       slack=0          pi=-0.5       CBasis=-1
+    row 2   eq:y-w=0   sense== rhs=0        slack=0          pi=-0         CBasis=-1
+    row 3   slack<=100 sense=< rhs=100      slack=0          pi=-0         CBasis=-1
+    row 4   geslack>=1 sense=> rhs=1        slack=-5         pi=0          CBasis=0
+    #basic=5 #rows=5
+  [C.barrier_crossover_nopresolve] Status=2 OPTIMAL(e0) IterCount=5(e0) BarIter=5(e0) ConcWin=-1(e0) ObjVal=19(e0) SolCount=1
+    errs: LB0 UB0 X0 RC0 VBasis0 Sense0 RHS0 Slack0 Pi0 CBasis0
+    col 0   x[0,10]  lb=0        ub=10       x=2          rc=0          VBasis=0
+    col 1   y[0,10]  lb=0        ub=10       x=4          rc=0          VBasis=0
+    col 2   w[0,inf) lb=0        ub=1e+100   x=4          rc=0          VBasis=0
+    col 3   u[0,1]   lb=0        ub=1        x=1          rc=1          VBasis=-2
+    col 4   f[3,3]   lb=3        ub=3        x=3          rc=-0         VBasis=-1
+    col 5   v[1,5]   lb=1        ub=5        x=1          rc=-1         VBasis=-1
+    col 6   t(-inf,3] lb=-1e+100  ub=3        x=3          rc=1          VBasis=-2
+    col 7   z1free   lb=-1e+100  ub=1e+100   x=0          rc=-0         VBasis=-3
+    col 8   z2free0  lb=-1e+100  ub=1e+100   x=0          rc=0          VBasis=-3
+    row 0   le:x+y<=6  sense=< rhs=6        slack=0          pi=2.5        CBasis=-1
+    row 1   ge:x-y>=-2 sense=> rhs=-2       slack=0          pi=-0.5       CBasis=-1
+    row 2   eq:y-w=0   sense== rhs=0        slack=0          pi=0          CBasis=-1
+    row 3   slack<=100 sense=< rhs=100      slack=86         pi=0          CBasis=0
+    row 4   geslack>=1 sense=> rhs=1        slack=-5         pi=0          CBasis=0
+    #basic=5 #rows=5
+  [C.min_negated_nopresolve] Status=2 OPTIMAL(e0) IterCount=2(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=-19(e0) SolCount=1
+    errs: LB0 UB0 X0 RC0 VBasis0 Sense0 RHS0 Slack0 Pi0 CBasis0
+    col 0   x[0,10]  lb=0        ub=10       x=2          rc=0          VBasis=0
+    col 1   y[0,10]  lb=0        ub=10       x=4          rc=0          VBasis=0
+    col 2   w[0,inf) lb=0        ub=1e+100   x=4          rc=0          VBasis=0
+    col 3   u[0,1]   lb=0        ub=1        x=1          rc=-1         VBasis=-2
+    col 4   f[3,3]   lb=3        ub=3        x=3          rc=0          VBasis=-1
+    col 5   v[1,5]   lb=1        ub=5        x=1          rc=1          VBasis=-1
+    col 6   t(-inf,3] lb=-1e+100  ub=3        x=3          rc=-1         VBasis=-2
+    col 7   z1free   lb=-1e+100  ub=1e+100   x=86         rc=0          VBasis=0
+    col 8   z2free0  lb=-1e+100  ub=1e+100   x=0          rc=0          VBasis=-3
+    row 0   le:x+y<=6  sense=< rhs=6        slack=0          pi=-2.5       CBasis=-1
+    row 1   ge:x-y>=-2 sense=> rhs=-2       slack=0          pi=0.5        CBasis=-1
+    row 2   eq:y-w=0   sense== rhs=0        slack=0          pi=-0         CBasis=-1
+    row 3   slack<=100 sense=< rhs=100      slack=0          pi=-0         CBasis=-1
+    row 4   geslack>=1 sense=> rhs=1        slack=-5         pi=0          CBasis=0
+    #basic=5 #rows=5

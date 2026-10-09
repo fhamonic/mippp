@@ -1,0 +1,239 @@
+library: /opt/ibm/ILOG/CPLEX_Studio2211/cplex/bin/x86-64_linux/libcplex2211.so version: 22.1.1
+defaults: ADVIND=1 PREIND=1 LPMETHOD=0 BARCROSSALG=0 ITLIM=2147483647
+
+===== D1: infeasible LP (presolve on / off)
+[D1 infeasible presolve on] wrapper status index=5 objval=nan (ret 1217 CPLEX Error  1217: No solution exists.)
+[D1 infeasible presolve on] getstat=3 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=1262 CPLEX Error  1262: No basis exists.  (ncols=2 nrows=3)
+  #basic=0 (cols 0 + rows 0)
+  getx ret=1217 CPLEX Error  1217: No solution exists. getslack ret=1217 CPLEX Error  1217: No solution exists.
+   col 0        lb=0       ub=1e+20   x=nan       cstat=-7 (untouched)
+   col 1        lb=0       ub=1e+20   x=nan       cstat=-7 (untouched)
+   row 0                              sense=L rhs=4      rng=0      slack=nan       act=nan       rstat=-7 (untouched)
+   row 1                              sense=G rhs=6      rng=0      slack=nan       act=nan       rstat=-7 (untouched)
+   row 2                              sense=G rhs=1      rng=0      slack=nan       act=nan       rstat=-7 (untouched)
+[D1 infeasible presolve off] wrapper status index=5 objval=7 (ret ok)
+[D1 infeasible presolve off] getstat=3 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=2 nrows=3)
+  #basic=3 (cols 0 + rows 3)
+  getx ret=ok getslack ret=ok
+   col 0        lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   col 1        lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   row 0                              sense=L rhs=4      rng=0      slack=4         act=0         rstat=1 BASIC
+   row 1                              sense=G rhs=6      rng=0      slack=6         act=0         rstat=1 BASIC
+   row 2                              sense=G rhs=1      rng=0      slack=1         act=0         rstat=1 BASIC
+
+===== D2: unbounded LP (presolve on / off)
+[D2 unbounded presolve on] wrapper status index=4 objval=nan (ret 1217 CPLEX Error  1217: No solution exists.)
+[D2 unbounded presolve on] getstat=4 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=1262 CPLEX Error  1262: No basis exists.  (ncols=2 nrows=2)
+  #basic=0 (cols 0 + rows 0)
+  getx ret=1217 CPLEX Error  1217: No solution exists. getslack ret=1217 CPLEX Error  1217: No solution exists.
+   col 0        lb=0       ub=1e+20   x=nan       cstat=-7 (untouched)
+   col 1        lb=0       ub=1e+20   x=nan       cstat=-7 (untouched)
+   row 0                              sense=L rhs=1      rng=0      slack=nan       act=nan       rstat=-7 (untouched)
+   row 1                              sense=G rhs=1      rng=0      slack=nan       act=nan       rstat=-7 (untouched)
+[D2 unbounded presolve off] wrapper status index=6 objval=1 (ret ok)
+[D2 unbounded presolve off] getstat=2 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=3 phase1=1
+  getbase ret=ok  (ncols=2 nrows=2)
+  #basic=2 (cols 1 + rows 1)
+  getx ret=ok getslack ret=ok
+   col 0        lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 1        lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   row 0                              sense=L rhs=1      rng=0      slack=0         act=1         rstat=0 AT_LOWER
+   row 1                              sense=G rhs=1      rng=0      slack=-0        act=1         rstat=1 BASIC
+
+===== D3: iteration limit stop (random LP, itlim 3)
+[D3 itlim presolve on] wrapper status index=9 objval=5.331985294 (ret ok)
+[D3 itlim presolve on] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=3 phase1=3
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 3 + rows 57)
+[D3 itlim presolve off] wrapper status index=9 objval=5.331985294 (ret ok)
+[D3 itlim presolve off] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=3 phase1=3
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 3 + rows 57)
+
+===== D4: time limit stop (random LP, limit 0 s)
+[D4 timelim 0] wrapper status index=8 objval=nan (ret 1217 CPLEX Error  1217: No solution exists.)
+[D4 timelim 0] getstat=11 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=1262 CPLEX Error  1262: No basis exists.  (ncols=80 nrows=60)
+  #basic=0 (cols 0 + rows 0)
+
+===== D5: modifications after an optimal solve, no re-solve (model C)
+[D5 optimal] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+[D5 after set_variable_upper_bound(y1,50)] getstat=0 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+[D5 after add_constraint] getstat=0 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+  getx ret=1217 CPLEX Error  1217: No solution exists. getslack ret=1217 CPLEX Error  1217: No solution exists.
+   col 0        lb=0       ub=50      x=nan       cstat=1 BASIC
+   col 1        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 2        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 3        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 4        lb=0       ub=2       x=nan       cstat=2 AT_UPPER
+   col 5        lb=3       ub=3       x=nan       cstat=2 AT_UPPER
+   col 6        lb=2       ub=2       x=nan       cstat=0 AT_LOWER
+   col 7        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 8        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 9        lb=-1e+20  ub=1e+20   x=nan       cstat=3 FREE_SUPER
+   col 10       lb=-1e+20  ub=5       x=nan       cstat=2 AT_UPPER
+   col 11       lb=0       ub=1e+20   x=nan       cstat=0 AT_LOWER
+   row 0                              sense=L rhs=4      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 1                              sense=G rhs=2      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 2                              sense=E rhs=7      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 3                              sense=R rhs=1      rng=5      slack=nan       act=nan       rstat=2 AT_UPPER
+   row 4                              sense=L rhs=100    rng=0      slack=nan       act=nan       rstat=1 BASIC
+   row 5                              sense=R rhs=1      rng=7      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 6                              sense=E rhs=-1     rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 7                              sense=L rhs=1e+20  rng=0      slack=nan       act=nan       rstat=1 BASIC
+   row 8                              sense=L rhs=1000   rng=0      slack=nan       act=nan       rstat=1 BASIC
+[D5 after add_variable] getstat=0 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=13 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+  getx ret=1217 CPLEX Error  1217: No solution exists. getslack ret=1217 CPLEX Error  1217: No solution exists.
+   col 0        lb=0       ub=50      x=nan       cstat=1 BASIC
+   col 1        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 2        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 3        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 4        lb=0       ub=2       x=nan       cstat=2 AT_UPPER
+   col 5        lb=3       ub=3       x=nan       cstat=2 AT_UPPER
+   col 6        lb=2       ub=2       x=nan       cstat=0 AT_LOWER
+   col 7        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 8        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 9        lb=-1e+20  ub=1e+20   x=nan       cstat=3 FREE_SUPER
+   col 10       lb=-1e+20  ub=5       x=nan       cstat=2 AT_UPPER
+   col 11       lb=0       ub=1e+20   x=nan       cstat=0 AT_LOWER
+   col 12       lb=0       ub=4       x=nan       cstat=0 AT_LOWER
+   row 0                              sense=L rhs=4      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 1                              sense=G rhs=2      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 2                              sense=E rhs=7      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 3                              sense=R rhs=1      rng=5      slack=nan       act=nan       rstat=2 AT_UPPER
+   row 4                              sense=L rhs=100    rng=0      slack=nan       act=nan       rstat=1 BASIC
+   row 5                              sense=R rhs=1      rng=7      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 6                              sense=E rhs=-1     rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 7                              sense=L rhs=1e+20  rng=0      slack=nan       act=nan       rstat=1 BASIC
+   row 8                              sense=L rhs=1000   rng=0      slack=nan       act=nan       rstat=1 BASIC
+[D5 after set_objective_coefficient] getstat=0 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=13 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+[D5 re-solved] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=13 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+[D5 after remove_variable(v)] getstat=0 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+  getx ret=1217 CPLEX Error  1217: No solution exists. getslack ret=1217 CPLEX Error  1217: No solution exists.
+   col 0        lb=0       ub=50      x=nan       cstat=1 BASIC
+   col 1        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 2        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 3        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 4        lb=0       ub=2       x=nan       cstat=2 AT_UPPER
+   col 5        lb=3       ub=3       x=nan       cstat=2 AT_UPPER
+   col 6        lb=2       ub=2       x=nan       cstat=0 AT_LOWER
+   col 7        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 8        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 9        lb=-1e+20  ub=1e+20   x=nan       cstat=3 FREE_SUPER
+   col 10       lb=-1e+20  ub=5       x=nan       cstat=2 AT_UPPER
+   col 11       lb=0       ub=4       x=nan       cstat=0 AT_LOWER
+   row 0                              sense=L rhs=4      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 1                              sense=G rhs=2      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 2                              sense=E rhs=7      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 3                              sense=R rhs=1      rng=5      slack=nan       act=nan       rstat=2 AT_UPPER
+   row 4                              sense=L rhs=100    rng=0      slack=nan       act=nan       rstat=1 BASIC
+   row 5                              sense=R rhs=1      rng=7      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 6                              sense=E rhs=-1     rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 7                              sense=L rhs=1e+20  rng=0      slack=nan       act=nan       rstat=1 BASIC
+   row 8                              sense=L rhs=1000   rng=0      slack=nan       act=nan       rstat=1 BASIC
+[D5 re-solved after removal] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+
+===== D5b: bound change that makes the basis infeasible, no re-solve
+[D5b after ub(y1)=1] getstat=0 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  getx ret=1217 CPLEX Error  1217: No solution exists. getslack ret=1217 CPLEX Error  1217: No solution exists.
+   col 0        lb=0       ub=1       x=nan       cstat=1 BASIC
+   col 1        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 2        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 3        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 4        lb=0       ub=2       x=nan       cstat=2 AT_UPPER
+   col 5        lb=3       ub=3       x=nan       cstat=2 AT_UPPER
+   col 6        lb=2       ub=2       x=nan       cstat=0 AT_LOWER
+   col 7        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 8        lb=0       ub=1e+20   x=nan       cstat=1 BASIC
+   col 9        lb=-1e+20  ub=1e+20   x=nan       cstat=3 FREE_SUPER
+   col 10       lb=-1e+20  ub=5       x=nan       cstat=2 AT_UPPER
+   col 11       lb=0       ub=1e+20   x=nan       cstat=0 AT_LOWER
+   row 0                              sense=L rhs=4      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 1                              sense=G rhs=2      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 2                              sense=E rhs=7      rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 3                              sense=R rhs=1      rng=5      slack=nan       act=nan       rstat=2 AT_UPPER
+   row 4                              sense=L rhs=100    rng=0      slack=nan       act=nan       rstat=1 BASIC
+   row 5                              sense=R rhs=1      rng=7      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 6                              sense=E rhs=-1     rng=0      slack=nan       act=nan       rstat=0 AT_LOWER
+   row 7                              sense=L rhs=1e+20  rng=0      slack=nan       act=nan       rstat=1 BASIC
+[D5b re-solved] getstat=3 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=1 phase1=1
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 5 + rows 3)
+
+===== D6: barrier (native CPXbaropt) with / without crossover, random LP
+baropt (BARCROSSALG=0) ret=ok
+[D6 barrier auto crossover] getstat=1 solninfo(ret=0 method=4 type=2 pfeas=1 dfeas=1) getmethod=4 itcnt=0 phase1=0
+  getbase ret=1262 CPLEX Error  1262: No basis exists.  (ncols=80 nrows=60)
+  #basic=0 (cols 0 + rows 0)
+baropt (BARCROSSALG=-1) ret=ok
+[D6 barrier no crossover] getstat=1 solninfo(ret=0 method=4 type=2 pfeas=1 dfeas=1) getmethod=4 itcnt=0 phase1=0
+  getbase ret=1262 CPLEX Error  1262: No basis exists.  (ncols=80 nrows=60)
+  #basic=0 (cols 0 + rows 0)
+
+===== D7: CPXlpopt with LPMETHOD auto (random LP and model C)
+lpopt ret=ok
+[D7 lpopt auto random] getstat=1 solninfo(ret=0 method=2 type=1 pfeas=1 dfeas=1) getmethod=2 itcnt=59 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+lpopt ret=ok
+[D7 lpopt auto C] getstat=1 solninfo(ret=0 method=2 type=1 pfeas=1 dfeas=1) getmethod=2 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+
+===== D8: LP solved entirely by presolve
+[D8 presolve solved] wrapper status index=1 objval=10 (ret ok)
+[D8 presolve solved] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=2 nrows=2)
+  #basic=2 (cols 1 + rows 1)
+  getx ret=ok getslack ret=ok
+   col 0        lb=0       ub=5       x=4         cstat=1 BASIC
+   col 1        lb=0       ub=3       x=3         cstat=2 AT_UPPER
+   row 0                              sense=L rhs=4      rng=0      slack=0         act=4         rstat=0 AT_LOWER
+   row 1                              sense=L rhs=100    rng=0      slack=93        act=7         rstat=1 BASIC
+
+===== D9: compute_iis / refine_lp_status side effects
+[D9 optimal] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+compute_iis outcome index=2
+[D9 after compute_iis on a feasible model] getstat=30 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+[D9 re-solved] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+[D9b infeasible] getstat=3 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=2 nrows=3)
+  #basic=3 (cols 0 + rows 3)
+compute_iis outcome index=1
+[D9b after compute_iis] getstat=31 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=2 nrows=3)
+  #basic=3 (cols 0 + rows 3)
+[D9c infeasible presolve on] getstat=3 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=1262 CPLEX Error  1262: No basis exists.  (ncols=2 nrows=3)
+  #basic=0 (cols 0 + rows 0)
+status index after refine=5
+[D9c after refine_lp_status] getstat=3 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+  getbase ret=1262 CPLEX Error  1262: No basis exists.  (ncols=2 nrows=3)
+  #basic=0 (cols 0 + rows 0)

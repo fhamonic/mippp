@@ -1,0 +1,234 @@
+GLPK version 5.0, library /lib/x86_64-linux-gnu/libglpk.so
+
+=== C/D1: model C before any solve ===
+  [fresh, never solved] rows=6 cols=11 #basic=6 bf_exists=0 glp_get_status=UNDEF prim=UNDEF dual=UNDEF it_cnt=0 obj=0
+    col 1  a    type=DB lb=0        ub=4        stat=NL(2) value=0 redcost=0
+    col 2  b    type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=0
+    col 3  c    type=FR lb=-1.8e+308 ub=1.8e+308 stat=NF(4) value=0 redcost=0
+    col 4  d    type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=0
+    col 5  e    type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=0
+    col 6  f    type=FX lb=2        ub=2        stat=NS(5) value=0 redcost=0
+    col 7  z    type=FR lb=-1.8e+308 ub=1.8e+308 stat=NF(4) value=0 redcost=0
+    col 8  g    type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=0
+    col 9  h    type=DB lb=1        ub=7        stat=NL(2) value=0 redcost=0
+    col 10 k    type=UP lb=-1.8e+308 ub=3        stat=NU(3) value=0 redcost=0
+    col 11 w    type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=0
+    row 1  R1<= type=UP lb=-1.8e+308 ub=10       stat=BS(1) activity=0 dual=0
+    row 2  R2>= type=LO lb=3        ub=1.8e+308 stat=BS(1) activity=0 dual=0
+    row 3  R3== type=FX lb=1        ub=1        stat=BS(1) activity=0 dual=0
+    row 4  R4rg type=DB lb=2        ub=6        stat=BS(1) activity=0 dual=0
+    row 5  R5sl type=UP lb=-1.8e+308 ub=100      stat=BS(1) activity=0 dual=0
+    row 6  R6rg type=DB lb=2        ub=9        stat=BS(1) activity=0 dual=0
+  wrapper status: unknown
+
+=== C/D2: model C after wrapper solve() ===
+  wrapper status: optimal, obj 25
+  [after optimal solve] rows=6 cols=11 #basic=6 bf_exists=1 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=6 obj=25
+    col 1  a    type=DB lb=0        ub=4        stat=NU(3) value=4 redcost=4
+    col 2  b    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=6 redcost=0
+    col 3  c    type=FR lb=-1.8e+308 ub=1.8e+308 stat=BS(1) value=-2 redcost=0
+    col 4  d    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=5 redcost=0
+    col 5  e    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=4 redcost=0
+    col 6  f    type=FX lb=2        ub=2        stat=NS(5) value=2 redcost=-1
+    col 7  z    type=FR lb=-1.8e+308 ub=1.8e+308 stat=NF(4) value=0 redcost=-0
+    col 8  g    type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=-3
+    col 9  h    type=DB lb=1        ub=7        stat=NL(2) value=1 redcost=-2
+    col 10 k    type=UP lb=-1.8e+308 ub=3        stat=NU(3) value=3 redcost=1
+    col 11 w    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=3 redcost=0
+    row 1  R1<= type=UP lb=-1.8e+308 ub=10       stat=NU(3) activity=10 dual=1
+    row 2  R2>= type=LO lb=3        ub=1.8e+308 stat=NL(2) activity=3 dual=-1
+    row 3  R3== type=FX lb=1        ub=1        stat=NS(5) activity=1 dual=-1
+    row 4  R4rg type=DB lb=2        ub=6        stat=NU(3) activity=6 dual=1
+    row 5  R5sl type=UP lb=-1.8e+308 ub=100      stat=BS(1) activity=6 dual=0
+    row 6  R6rg type=DB lb=2        ub=9        stat=NL(2) activity=2 dual=-1
+
+=== C': model C minimized variant (objective negated) ===
+  wrapper status: optimal
+  [minimize -obj] rows=6 cols=11 #basic=6 bf_exists=1 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=6 obj=-25
+    col 1  a    type=DB lb=0        ub=4        stat=NU(3) value=4 redcost=-4
+    col 2  b    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=6 redcost=0
+    col 3  c    type=FR lb=-1.8e+308 ub=1.8e+308 stat=BS(1) value=-2 redcost=0
+    col 4  d    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=5 redcost=0
+    col 5  e    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=4 redcost=0
+    col 6  f    type=FX lb=2        ub=2        stat=NS(5) value=2 redcost=1
+    col 7  z    type=FR lb=-1.8e+308 ub=1.8e+308 stat=NF(4) value=0 redcost=0
+    col 8  g    type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=3
+    col 9  h    type=DB lb=1        ub=7        stat=NL(2) value=1 redcost=2
+    col 10 k    type=UP lb=-1.8e+308 ub=3        stat=NU(3) value=3 redcost=-1
+    col 11 w    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=3 redcost=0
+    row 1  R1<= type=UP lb=-1.8e+308 ub=10       stat=NU(3) activity=10 dual=-1
+    row 2  R2>= type=LO lb=3        ub=1.8e+308 stat=NL(2) activity=3 dual=1
+    row 3  R3== type=FX lb=1        ub=1        stat=NS(5) activity=1 dual=1
+    row 4  R4rg type=DB lb=2        ub=6        stat=NU(3) activity=6 dual=-1
+    row 5  R5sl type=UP lb=-1.8e+308 ub=100      stat=BS(1) activity=6 dual=0
+    row 6  R6rg type=DB lb=2        ub=9        stat=NL(2) activity=2 dual=1
+
+=== D3: infeasible LP ===
+  [before solve] rows=3 cols=2 #basic=3 bf_exists=0 glp_get_status=UNDEF prim=UNDEF dual=UNDEF it_cnt=0 obj=0
+    col 1       type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=0
+    col 2       type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=0
+    row 1       type=UP lb=-1.8e+308 ub=4        stat=BS(1) activity=0 dual=0
+    row 2       type=LO lb=6        ub=1.8e+308 stat=BS(1) activity=0 dual=0
+    row 3       type=UP lb=-1.8e+308 ub=1        stat=BS(1) activity=0 dual=0
+  wrapper status: infeasible
+  [after infeasible solve] rows=3 cols=2 #basic=3 bf_exists=1 glp_get_status=NOFEAS prim=NOFEAS dual=INFEAS it_cnt=2 obj=5.5
+    col 1       type=LO lb=0        ub=1.8e+308 stat=BS(1) value=2.5 redcost=0
+    col 2       type=LO lb=0        ub=1.8e+308 stat=BS(1) value=1.5 redcost=0
+    row 1       type=UP lb=-1.8e+308 ub=4        stat=NU(3) activity=4 dual=1.5
+    row 2       type=LO lb=6        ub=1.8e+308 stat=BS(1) activity=4 dual=0
+    row 3       type=UP lb=-1.8e+308 ub=1        stat=NU(3) activity=1 dual=-0.5
+
+=== D4: unbounded LP ===
+  wrapper status: unbounded
+  [after unbounded solve] rows=2 cols=2 #basic=2 bf_exists=1 glp_get_status=UNBND prim=FEAS dual=NOFEAS it_cnt=2 obj=1
+    col 1       type=LO lb=0        ub=1.8e+308 stat=BS(1) value=1 redcost=0
+    col 2       type=LO lb=0        ub=1.8e+308 stat=BS(1) value=-0 redcost=0
+    row 1       type=UP lb=-1.8e+308 ub=1        stat=NU(3) activity=1 dual=0.333333
+    row 2       type=LO lb=1        ub=1.8e+308 stat=NL(2) activity=1 dual=0.666667
+
+=== D5: limits ===
+  reference full solve: optimal
+  [random 40x60 full] rows=40 cols=60 #basic=40 bf_exists=1 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=49 obj=1038.49
+  wrapper set_time_limit(0): time_limit
+  [after tm_lim=0 stop] rows=40 cols=60 #basic=40 bf_exists=1 glp_get_status=FEAS prim=FEAS dual=INFEAS it_cnt=0 obj=0
+  direct glp_simplex it_lim=5 -> GLP_EITLIM
+  [after it_lim=5 stop] rows=40 cols=60 #basic=40 bf_exists=1 glp_get_status=FEAS prim=FEAS dual=INFEAS it_cnt=5 obj=455.27
+  resume without limit -> 0, extra iterations 44
+
+=== D6: modifications after an optimal solve ===
+  [optimal] rows=6 cols=11 #basic=6 bf_exists=1 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=6 obj=25
+  add row: new row stat=BS
+  [after add row] rows=7 cols=11 #basic=7 bf_exists=0 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=6 obj=25
+  a ub 4->3 (type DB kept): a stat=NU
+  [after bound change (type kept)] rows=7 cols=11 #basic=7 bf_exists=0 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=6 obj=25
+  a ub 3->inf (type DB->LO): a stat=NL
+  a ub inf->4 (type LO->DB): a stat=NL
+  k (UP, NU) lb -inf->-1 (type UP->DB): k stat=NU
+  b (BS) fixed at 6: b stat=BS
+  R1 (UP,NU) lb := 10 (type UP->FX): R1 stat=NS
+  R1 lb := -inf (type FX->UP): R1 stat=NU
+  add cols: DB[-2,5]=NL DB[-5,2]=NU FR=NF FX=NS LO=NL UP=NU add_column DB[0,1]=NL
+  [after all modifications, no re-solve] rows=7 cols=18 #basic=7 bf_exists=0 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=6 obj=25
+  wrapper status still: optimal
+
+=== D7: other algorithms / presolve ===
+  glp_interior after simplex -> ret 0 ipt_status=OPT; basis unchanged: 1
+  [after interior] rows=6 cols=11 #basic=6 bf_exists=1 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=6 obj=25
+  presolve=1 fresh model C -> 0
+  [after presolved optimal solve] rows=6 cols=11 #basic=6 bf_exists=0 glp_get_status=OPT prim=FEAS dual=FEAS it_cnt=2 obj=25
+    col 1  a    type=DB lb=0        ub=4        stat=NU(3) value=4 redcost=4
+    col 2  b    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=6 redcost=0
+    col 3  c    type=FR lb=-1.8e+308 ub=1.8e+308 stat=BS(1) value=-2 redcost=0
+    col 4  d    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=5 redcost=0
+    col 5  e    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=4 redcost=0
+    col 6  f    type=FX lb=2        ub=2        stat=NS(5) value=2 redcost=-1
+    col 7  z    type=FR lb=-1.8e+308 ub=1.8e+308 stat=BS(1) value=94 redcost=0
+    col 8  g    type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=-3
+    col 9  h    type=DB lb=1        ub=7        stat=NL(2) value=1 redcost=-2
+    col 10 k    type=UP lb=-1.8e+308 ub=3        stat=NU(3) value=3 redcost=1
+    col 11 w    type=LO lb=0        ub=1.8e+308 stat=BS(1) value=3 redcost=0
+    row 1  R1<= type=UP lb=-1.8e+308 ub=10       stat=NU(3) activity=10 dual=1
+    row 2  R2>= type=LO lb=3        ub=1.8e+308 stat=NL(2) activity=3 dual=-1
+    row 3  R3== type=FX lb=1        ub=1        stat=NS(5) activity=1 dual=-1
+    row 4  R4rg type=DB lb=2        ub=6        stat=NU(3) activity=6 dual=1
+    row 5  R5sl type=UP lb=-1.8e+308 ub=100      stat=NU(3) activity=100 dual=-0
+    row 6  R6rg type=DB lb=2        ub=9        stat=NL(2) activity=2 dual=-1
+  presolve=1 infeasible -> GLP_ENOPFS
+  [after presolved infeasible solve (input basis x=BS,r1=NU)] rows=3 cols=2 #basic=3 bf_exists=0 glp_get_status=UNDEF prim=UNDEF dual=UNDEF it_cnt=2 obj=0
+    col 1       type=LO lb=0        ub=1.8e+308 stat=BS(1) value=0 redcost=0
+    col 2       type=LO lb=0        ub=1.8e+308 stat=NL(2) value=0 redcost=0
+    row 1       type=UP lb=-1.8e+308 ub=4        stat=NU(3) activity=0 dual=0
+    row 2       type=LO lb=6        ub=1.8e+308 stat=BS(1) activity=0 dual=0
+    row 3       type=UP lb=-1.8e+308 ub=1        stat=BS(1) activity=0 dual=0
+
+=== E1: warm start ===
+  model C: A from scratch: optimal obj=25 iterations=6
+    B after write: bf_exists=0 #basic=6
+    B wrapper solve() with A's basis: optimal obj=25 iterations=0 same basis=1
+    B direct glp_simplex it_lim=0 with A's basis -> GLP_EITLIM, glp_get_status=OPT obj=25 iterations=0
+    B direct glp_simplex it_lim=0 WITHOUT basis -> GLP_EITLIM, glp_get_status=INFEAS obj=2
+    B GLP_DUAL it_lim=0 with A's basis -> GLP_EITLIM, glp_get_status=OPT
+    B glp_warm_up with A's basis -> 0, glp_get_status=OPT obj=25 iterations=0
+    B presolve=1 with A's basis -> 0, glp_get_status=OPT iterations=2 (presolve ignores the basis)
+    B presolve=1 without basis -> 0, iterations=2
+    A re-solved in place: optimal, it_cnt 6 -> 6 (cumulative counter)
+  random 40x60: A from scratch: optimal obj=1038.48861 iterations=49
+    B after write: bf_exists=0 #basic=40
+    B wrapper solve() with A's basis: optimal obj=1038.48861 iterations=0 same basis=1
+    B direct glp_simplex it_lim=0 with A's basis -> GLP_EITLIM, glp_get_status=OPT obj=1038.48861 iterations=0
+    B direct glp_simplex it_lim=0 WITHOUT basis -> GLP_EITLIM, glp_get_status=FEAS obj=0
+    B GLP_DUAL it_lim=0 with A's basis -> GLP_EITLIM, glp_get_status=OPT
+    B glp_warm_up with A's basis -> 0, glp_get_status=OPT obj=1038.48861 iterations=0
+    B presolve=1 with A's basis -> 0, glp_get_status=OPT iterations=67 (presolve ignores the basis)
+    B presolve=1 without basis -> 0, iterations=67
+    A re-solved in place: optimal, it_cnt 49 -> 49 (cumulative counter)
+
+=== E2: write a basis into A after a bound change ===
+  a ub 4->3, write basis, solve: optimal obj=21 extra iterations=0 a=NU
+  a ub ->inf: a stat after bound change=NL
+  wrote NU on a (now LO): reads back NL
+  solve: optimal extra iterations=1
+  b ub ->5 (basic b=6 now infeasible), write basis, solve: optimal obj=24 extra iterations=1
+
+=== E3: invalid bases ===
+  one basic too many: #basic=7 rows=6
+  glp_warm_up -> GLP_EBADB
+  wrapper solve -> failed, #basic after=7
+  direct glp_simplex -> GLP_EBADB (again)
+  wrapper solve a second time -> failed
+Constructing initial basis...
+Size of triangular part is 6
+  after glp_adv_basis: wrapper solve -> optimal obj=25
+  one basic missing: #basic=5
+  direct glp_simplex -> GLP_EBADB
+  singular (right count): #basic=6
+  glp_warm_up -> GLP_ESING
+  wrapper solve -> numerical_failure
+  direct glp_simplex -> GLP_ESING (again)
+  NU on LO column g    wrote NU reads back NL
+  NL on FR column z    wrote NL reads back NF
+  NU on FR column z    wrote NU reads back NF
+  NS on FR column z    wrote NS reads back NF
+  NF on DB column a    wrote NF reads back NL
+  NS on DB column a    wrote NS reads back NL
+  NU on DB column a    wrote NU reads back NU
+  NL on FX column f    wrote NL reads back NS
+  NU on FX column f    wrote NU reads back NS
+  NL on UP column k    wrote NL reads back NU
+  NF on UP row R1      wrote NF reads back NU
+  NL on UP row R1      wrote NL reads back NU
+  NU on LO row R2      wrote NU reads back NL
+  NL on FX row R3      wrote NL reads back NS
+  NU on DB row R4      wrote NU reads back NU
+  NF on DB row R4      wrote NF reads back NL
+glp_set_col_stat: j = 1; stat = 6; invalid status
+Error detected in file api/prob5.c at line 111
+  [invalid stat code 6 on a column] child killed by signal 6
+glp_set_row_stat: i = 1; stat = 0; invalid status
+Error detected in file api/prob5.c at line 57
+  [invalid stat code 0 on a row] child killed by signal 6
+glp_set_col_stat: j = 99; column number out of range
+Error detected in file api/prob5.c at line 107
+  [column index out of range] child killed by signal 6
+glp_get_col_stat: j = 99; column number out of range
+Error detected in file draft/glpapi06.c at line 751
+  [get_col_stat index out of range] child killed by signal 6
+
+=== F: extended bases ===
+  after add: new col stat=NL new row stat=BS #basic=7 rows=7
+  re-solve in place with the old basis: optimal obj=30 extra iterations=2
+  fresh B, old basis on old entries: #basic=7
+  B solve: optimal obj=30 iterations=2
+  B2 from scratch: optimal iterations=7
+  columns-only write: #basic=11 rows=6
+  direct glp_simplex -> GLP_EBADB
+
+=== G: trivial LP (no nonzeros) ignores the basis ===
+  before: x=BS y=NU
+  solve: optimal x=NU y=NL
+  nnz=0
+  solve: optimal x=NU row=BS
+
+=== G: moved-from / copy semantics: none (no copy) ===
+
+done

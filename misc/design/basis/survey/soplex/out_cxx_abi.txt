@@ -1,0 +1,7 @@
+symbols: ctor 0x7f14548a2150 add 0x7f14548a34a0 dtor 0x7f14548a1790 readBasisFile 0x7f14549eb040
+n=8000: cold solve 0.302 s, 8759 iterations, obj 271882.960701
+  file written in 0.002 s
+  C++ readBasisFile with own NameSets = 1 in 0.007 s
+  codes equal to A's: 16000 of 16000
+  warm solve ITERLIMIT=0: status 1, 0 iterations, 0.004 s, obj 271882.960701
+exit 0

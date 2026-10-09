@@ -1,0 +1,49 @@
+library: /usr/local/lib/libhighs.so.1.10.0 version 1.10.0
+
+=== C: row side convention (LP C) ===
+  [min presolve=choose] model_status=7 basis_validity=1(rc0) simplex_it=4(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+    col values: 4 3 3 1 3 0 2 0
+    col duals : -2 0 0 0 0 1 -1 0
+    row values: 10 1 9 6 10
+    row duals : -1 2 1 -1 -0
+  basis[min presolve=choose] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+    native ids: x1=0 w=7 rle=0 rsl=4
+  [max(-obj) presolve=choose] model_status=7 basis_validity=1(rc0) simplex_it=4(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=15
+    col values: 4 3 3 1 3 0 2 0
+    col duals : 2 -0 -0 -0 -0 -1 1 -0
+    row values: 10 1 9 6 10
+    row duals : 1 -2 -1 1 0
+  basis[max(-obj) presolve=choose] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=4 U=3 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=L0 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=L0 rrng[2,6]=U2 rsl(slack)=B1
+    native ids: x1=0 w=7 rle=0 rsl=4
+  [min presolve=off] model_status=7 basis_validity=1(rc0) simplex_it=5(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+    col values: 4 3 3 1 3 0 2 0
+    col duals : -2 0 0 0 0 1 -1 0
+    row values: 10 1 9 6 10
+    row duals : -1 2 1 -1 -0
+  basis[min presolve=off] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+    native ids: x1=0 w=7 rle=0 rsl=4
+  [max(-obj) presolve=off] model_status=7 basis_validity=1(rc0) simplex_it=5(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=15
+    col values: 4 3 3 1 3 0 2 0
+    col duals : 2 -0 -0 -0 -0 -1 1 -0
+    row values: 10 1 9 6 10
+    row duals : 1 -2 -1 1 0
+  basis[max(-obj) presolve=off] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=4 U=3 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=L0 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=L0 rrng[2,6]=U2 rsl(slack)=B1
+    native ids: x1=0 w=7 rle=0 rsl=4
+  [negated rows, presolve off] model_status=7 basis_validity=1(rc0) simplex_it=5(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+    col values: 4 3 3 1 3 0 2 0
+    col duals : -2 0 0 0 0 1 -1 0
+    row values: -10 -1 9 -6 10
+    row duals : 1 -2 1 1 -0
+  basis[negated rows] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=3 U=4 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: -rle(>=-10)=L0 -rge(<=-1)=U2 req=U2 -rrng[-6,-2]=L0 rsl=B1
+
+done

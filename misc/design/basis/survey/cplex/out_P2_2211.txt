@@ -1,0 +1,134 @@
+library: /opt/ibm/ILOG/CPLEX_Studio2211/cplex/bin/x86-64_linux/libcplex2211.so version: 22.1.1
+
+===== P1: iteration limit 1 vs 0 with an optimal basis; itlim 1 cold
+wrapper status index=9
+[warm itlim=0] getstat=10 method=1 soltype=1 pfeas=1 dfeas=0 itcnt=0 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60
+wrapper status index=1
+[warm itlim=1] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60
+wrapper status index=1
+[warm itlim=2] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60
+cold itlim=1 wrapper status index=9
+
+===== P2: CPXlpopt with LPMETHOD=barrier(4) / concurrent(6), SolutionType 0 / 2
+[lpopt LPMETHOD=4 SOLUTIONTYPE=0 ret=0] getstat=1 method=2 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60
+[lpopt LPMETHOD=4 SOLUTIONTYPE=2 ret=0] getstat=1 method=4 soltype=2 pfeas=1 dfeas=1 itcnt=0 obj=629.6387865(ok) getbase=1262 CPLEX Error  1262: No basis exists.
+  cstat: -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7
+  rstat: -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7 -7
+  #basic=0 nrows=60
+[lpopt LPMETHOD=6 SOLUTIONTYPE=0 ret=0] getstat=1 method=2 soltype=1 pfeas=1 dfeas=1 itcnt=59 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60
+[lpopt LPMETHOD=6 SOLUTIONTYPE=2 ret=0] getstat=1 method=2 soltype=1 pfeas=1 dfeas=1 itcnt=59 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60
+
+===== P3: refine_lp_status on INForUNBD (unbounded, presolve on)
+[before refine] getstat=4 method=-1 soltype=0 pfeas=0 dfeas=0 itcnt=0 obj=nan(1217 CPLEX Error  1217: No solution exists.) getbase=1262 CPLEX Error  1262: No basis exists.
+  cstat: -7 -7
+  rstat: -7 -7
+  #basic=0 nrows=2
+status index after refine=6
+[after refine] getstat=2 method=1 soltype=1 pfeas=1 dfeas=0 itcnt=3 obj=1(ok) getbase=ok
+  cstat: 1 0
+  rstat: 0 1
+  #basic=2 nrows=2
+
+===== P4: codes of new columns / rows in the resident basis (solved model, no re-solve)
+[solved] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=5(ok) getbase=ok
+  cstat: 2 1
+  rstat: 0
+  #basic=1 nrows=1
+[after adding cols [0,3] (-inf,3] free [1,1] [-2,3] and rows G, E, R] getstat=0 method=-1 soltype=0 pfeas=0 dfeas=0 itcnt=0 obj=nan(1217 CPLEX Error  1217: No solution exists.) getbase=ok
+  cstat: 2 1 0 2 3 0 0
+  rstat: 0 1 1 1
+  #basic=4 nrows=4
+
+===== P5: stale codes after bound/sense change (no re-solve)
+[solved (x at upper 2, c1 tight)] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=5(ok) getbase=ok
+  cstat: 2 1
+  rstat: 0
+  #basic=1 nrows=1
+[after ub(x)=inf] getstat=0 method=-1 soltype=0 pfeas=0 dfeas=0 itcnt=0 obj=nan(1217 CPLEX Error  1217: No solution exists.) getbase=ok
+  cstat: 0 1
+  rstat: 0
+  #basic=1 nrows=1
+[after sense(c1) L->G] getstat=0 method=-1 soltype=0 pfeas=0 dfeas=0 itcnt=0 obj=nan(1217 CPLEX Error  1217: No solution exists.) getbase=ok
+  cstat: 0 1
+  rstat: 0
+  #basic=1 nrows=1
+status index after re-solve=6
+[re-solved] getstat=2 method=1 soltype=1 pfeas=1 dfeas=0 itcnt=1 obj=6(ok) getbase=ok
+  cstat: 1 0
+  rstat: 0
+  #basic=1 nrows=1
+
+===== P6: empty arrays (model without rows / without columns)
+no rows: getbase(cstat,NULL)=ok cstat=2
+no rows: getbase(cstat,dummy)=ok
+no rows: copybase(cstat,NULL)=1004 CPLEX Error  1004: Null pointer for required data.
+no rows: copybase(cstat,dummy)=ok
+[no rows re-solved after copybase] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=1 obj=2(ok) getbase=ok
+  cstat: 2
+  rstat:
+  #basic=0 nrows=0
+empty model status index=1
+[empty model] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=0(ok) getbase=ok
+  cstat:
+  rstat:
+  #basic=0 nrows=0
+empty model copybase(NULL,NULL)=1004 CPLEX Error  1004: Null pointer for required data.
+empty model copybase(dummy,dummy)=ok
+
+===== P7: problem type switch LP -> MILP -> LP (native)
+[LP solved] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=100 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60
+chgprobtype MILP=ok
+getbase on MILP-typed problem=ok
+chgprobtype LP=ok
+getbase back on LP=ok
+[re-solved] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60
+
+===== P8: real time-limit stop mid-simplex
+time limit 0.002: wrapper status index=8 elapsed=0.007
+  getstat=11 itcnt=0 soltype=0 pfeas=0 dfeas=0 getbase=1262 CPLEX Error  1262: No basis exists. #basic=0 nrows=900
+time limit 0.02: wrapper status index=8 elapsed=0.059
+  getstat=11 itcnt=0 soltype=0 pfeas=0 dfeas=0 getbase=1262 CPLEX Error  1262: No basis exists. #basic=0 nrows=900
+no time limit: status index=1 elapsed=0.477 itcnt=2591
+
+===== P9: FREE_SUPER on a column with bounds [1,5] (itlim 0 and default)
+itlim=0 x=1 y=7
+[P9] getstat=10 method=1 soltype=1 pfeas=1 dfeas=0 itcnt=0 obj=8(ok) getbase=ok
+  cstat: 0 1
+  rstat: 0
+  #basic=1 nrows=1
+itlim=default x=1 y=7
+[P9] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=8(ok) getbase=ok
+  cstat: 0 1
+  rstat: 0
+  #basic=1 nrows=1
+
+===== P10: copystart with basis only, itlim 1
+copystart ret=ok
+[copystart warm itlim 1] getstat=1 method=1 soltype=1 pfeas=1 dfeas=1 itcnt=0 obj=629.6387864(ok) getbase=ok
+  cstat: 0 0 1 1 0 1 0 0 1 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 1 0 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 1 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 1 0 0 1 0 0 0
+  rstat: 1 1 0 0 1 1 1 0 1 1 0 1 0 0 1 1 0 0 1 1 0 1 1 0 1 1 1 1 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 1 1 1 1 0 1 1 1 0 1 0 1 0 0 0 0 1
+  #basic=60 nrows=60

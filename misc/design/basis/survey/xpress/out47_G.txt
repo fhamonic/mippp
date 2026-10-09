@@ -1,0 +1,35 @@
+library /home/plaiseek/Softwares/solvers/xpressmp/lib/libxprs.so version 47.1.1 handle 0x147fe10
+dlsym XPRSgetbasis             found
+dlsym XPRSloadbasis            found
+dlsym XPRSgetbasisval          found
+dlsym XPRSgetpresolvebasis     found
+dlsym XPRSloadpresolvebasis    found
+dlsym XPRSgetslacks            found
+dlsym XPRSremovecbmessage      found
+
+=== G1: load basis, then add a row, then solve (LPITERLIMIT=0)
+  [G1 A] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [G1 A] LPOBJVAL=-17.5 (rc 0)
+  [G1] loadbasis rc=0 KEEPBASIS after=1
+  [G1 getbasis after add row] getbasis rc=0 rows(11) 0:3 1:5 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=11 vs ROWS=11
+     row codes 02201120111
+     col codes 1120130111220
+  [G1] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=11/11/11 COLS=13/13/13
+  [G1] LPOBJVAL=-17.5 (rc 0)
+
+=== G2: KEEPBASIS after optimal solve; second solve iterations
+  KEEPBASIS initial=0
+  [G2 first] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [G2 first] LPOBJVAL=321053.874 (rc 0)
+  [G2 second] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [G2 second] LPOBJVAL=321053.874 (rc 0)
+
+=== G3: set objective sense change after solve then getbasis
+  [G3] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [G3] LPOBJVAL=-17.5 (rc 0)
+  [G3 after set_maximization] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [G3 after sense back] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220

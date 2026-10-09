@@ -1,0 +1,321 @@
+dlsym MSK_getskc -> found
+dlsym MSK_getskx -> found
+dlsym MSK_putskc -> found
+dlsym MSK_putskx -> found
+dlsym MSK_putskcslice -> found
+dlsym MSK_putskxslice -> found
+dlsym MSK_getintinf -> found
+dlsym MSK_getdouinf -> found
+dlsym MSK_getskcslice -> found
+== write side under primal simplex (model C, presolve OFF) ==
+  [C cold dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=7 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- C basis ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  [C cold primal (control)] optimizetrm rc=0(OK) trm=0(OK) | iters primal=5 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [exact] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [exact] BAS def=1 solsta=UNKNOWN pobj=28 (ref 28) MATCH
+    xc: 3 2 5 6 1 -4 -8 11 12
+    xx: 3 2 5 6 1 4 8 4 2 0 7 0
+  [exact] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [exact] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+  [ranged row up UPR->LOW] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [ranged row up UPR->LOW] BAS def=1 solsta=UNKNOWN pobj=23 (ref 28) differs
+    xc: 3 2 5 1 1 -4 -8 11 12
+    xx: 3 2 5 1 1 4 8 4 2 0 7 0
+  [ranged row up UPR->LOW] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=1 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [ranged row up UPR->LOW] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+  [ranged row lo LOW->UPR] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [ranged row lo LOW->UPR] BAS def=1 solsta=UNKNOWN pobj=23 (ref 28) differs
+    xc: 3 2 5 6 6 -4 -8 11 12
+    xx: 3 2 5 6 6 4 8 4 2 0 7 0
+  [ranged row lo LOW->UPR] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=1 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [ranged row lo LOW->UPR] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+  [col x1[0,4] UPR->LOW] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [col x1[0,4] UPR->LOW] BAS def=1 solsta=UNKNOWN pobj=24 (ref 28) differs
+    xc: 3 2 5 6 1 -4 -8 7 12
+    xx: 3 2 5 6 1 4 8 0 2 0 7 0
+  [col x1[0,4] UPR->LOW] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=1 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [col x1[0,4] UPR->LOW] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+  [<= row UPR->LOW (no such side)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=1 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [<= row UPR->LOW (no such side)] BAS def=1 solsta=PRIM_FEAS pobj=28 (ref 28) MATCH
+    xc: 3 2 5 6 1 -4 -8 11 12
+    xx: 3 2 5 6 1 4 8 4 2 0 7 0
+  [<= row UPR->LOW (no such side)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=1 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [<= row UPR->LOW (no such side)] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+  [slack-flip convention: every row LOW<->UPR] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=1 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [slack-flip convention: every row LOW<->UPR] BAS def=1 solsta=PRIM_FEAS pobj=10 (ref 28) differs
+    xc: 3 2 5 1 6 -4 0 11 12
+    xx: 3 2 5 1 6 4 0 4 2 0 7 0
+  [slack-flip convention: every row LOW<->UPR] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [primal no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=4 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [slack-flip convention: every row LOW<->UPR] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+
+== MOSEK log for invalid bases (model R, dual, presolve OFF) ==
+  [A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- A optimal ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+* one basic too few
+  [one basic too few] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    MSG| Problem
+    MSG|   Name                   :                 
+    MSG|   Objective sense        : maximize        
+    MSG|   Type                   : LO (linear optimization problem)
+    MSG|   Constraints            : 21              
+    MSG|   Affine conic cons.     : 0               
+    MSG|   Disjunctive cons.      : 0               
+    MSG|   Cones                  : 0               
+    MSG|   Scalar variables       : 31              
+    MSG|   Matrix variables       : 0               
+    MSG|   Integer variables      : 0               
+    MSG| 
+    MSG| Optimizer started.
+    MSG| Simplex optimizer started.
+    MSG| Dual simplex optimizer started.
+    MSG| Dual simplex optimizer setup started.
+    MSG| Dual simplex optimizer setup terminated.
+    MSG| Optimizer  - solved problem         : the primal      
+    MSG| Optimizer  - Constraints            : 21              
+    MSG| Optimizer  - Scalar variables       : 31                conic                  : 0               
+    MSG| Optimizer  - hotstart               : yes             
+    LOG| Optimizer  - hotstart               : yes             
+    MSG| Optimizer  - Num. basic             : 20                Basis rank             : 20              
+    LOG| Optimizer  - Num. basic             : 20                Basis rank             : 20              
+    MSG| Optimizer  - Valid bas. fac.        : no              
+    LOG| Optimizer  - Valid bas. fac.        : no              
+    MSG| ITER      DEGITER(%)  PFEAS       DFEAS       POBJ                  DOBJ                  TIME      TOTTIME 
+    MSG| 0         0.00        NA          6.48e-02    NA                    1.7052420593e+02      0.00      0.00    
+    MSG| 1         0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| Dual simplex optimizer terminated.
+    MSG| Simplex optimizer terminated. Time: 0.00. 
+
+    MSG| Optimizer terminated. Time: 0.00    
+    MSG| 
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=1 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [one basic too few] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* one basic too many
+  [one basic too many] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    MSG| Problem
+    MSG|   Name                   :                 
+    MSG|   Objective sense        : maximize        
+    MSG|   Type                   : LO (linear optimization problem)
+    MSG|   Constraints            : 21              
+    MSG|   Affine conic cons.     : 0               
+    MSG|   Disjunctive cons.      : 0               
+    MSG|   Cones                  : 0               
+    MSG|   Scalar variables       : 31              
+    MSG|   Matrix variables       : 0               
+    MSG|   Integer variables      : 0               
+    MSG| 
+    MSG| Optimizer started.
+    MSG| Simplex optimizer started.
+    MSG| Dual simplex optimizer started.
+    MSG| Dual simplex optimizer setup started.
+    MSG| Dual simplex optimizer setup terminated.
+    MSG| Optimizer  - solved problem         : the primal      
+    MSG| Optimizer  - Constraints            : 21              
+    MSG| Optimizer  - Scalar variables       : 31                conic                  : 0               
+    MSG| Optimizer  - hotstart               : yes             
+    LOG| Optimizer  - hotstart               : yes             
+    MSG| Optimizer  - Num. basic             : 21                Basis rank             : 21              
+    LOG| Optimizer  - Num. basic             : 21                Basis rank             : 21              
+    MSG| Optimizer  - Valid bas. fac.        : no              
+    LOG| Optimizer  - Valid bas. fac.        : no              
+    MSG| ITER      DEGITER(%)  PFEAS       DFEAS       POBJ                  DOBJ                  TIME      TOTTIME 
+    MSG| 0         0.00        NA          6.48e-02    NA                    1.7071847104e+02      0.00      0.00    
+    MSG| 1         0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| Dual simplex optimizer terminated.
+    MSG| Simplex optimizer terminated. Time: 0.00. 
+
+    MSG| Optimizer terminated. Time: 0.00    
+    MSG| 
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=1 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [one basic too many] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* UPR on +inf upper bound
+  [UPR on +inf upper bound] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    MSG| Problem
+    MSG|   Name                   :                 
+    MSG|   Objective sense        : maximize        
+    MSG|   Type                   : LO (linear optimization problem)
+    MSG|   Constraints            : 21              
+    MSG|   Affine conic cons.     : 0               
+    MSG|   Disjunctive cons.      : 0               
+    MSG|   Cones                  : 0               
+    MSG|   Scalar variables       : 31              
+    MSG|   Matrix variables       : 0               
+    MSG|   Integer variables      : 0               
+    MSG| 
+    MSG| Optimizer started.
+    MSG| Simplex optimizer started.
+    MSG| Dual simplex optimizer started.
+    MSG| Dual simplex optimizer setup started.
+    MSG| Dual simplex optimizer setup terminated.
+    MSG| Optimizer  - solved problem         : the primal      
+    MSG| Optimizer  - Constraints            : 21              
+    MSG| Optimizer  - Scalar variables       : 31                conic                  : 0               
+    MSG| Optimizer  - hotstart               : yes             
+    LOG| Optimizer  - hotstart               : yes             
+    MSG| Optimizer  - Num. basic             : 21                Basis rank             : 21              
+    LOG| Optimizer  - Num. basic             : 21                Basis rank             : 21              
+    MSG| Optimizer  - Valid bas. fac.        : no              
+    LOG| Optimizer  - Valid bas. fac.        : no              
+    MSG| ITER      DEGITER(%)  PFEAS       DFEAS       POBJ                  DOBJ                  TIME      TOTTIME 
+    MSG| 0         0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| 0         0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| Dual simplex optimizer terminated.
+    MSG| Simplex optimizer terminated. Time: 0.00. 
+
+    MSG| Optimizer terminated. Time: 0.00    
+    MSG| 
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [UPR on +inf upper bound] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* all rows BAS, all columns LOW (slack basis)
+  [all rows BAS, all columns LOW (slack basis)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    MSG| Problem
+    MSG|   Name                   :                 
+    MSG|   Objective sense        : maximize        
+    MSG|   Type                   : LO (linear optimization problem)
+    MSG|   Constraints            : 21              
+    MSG|   Affine conic cons.     : 0               
+    MSG|   Disjunctive cons.      : 0               
+    MSG|   Cones                  : 0               
+    MSG|   Scalar variables       : 31              
+    MSG|   Matrix variables       : 0               
+    MSG|   Integer variables      : 0               
+    MSG| 
+    MSG| Optimizer started.
+    MSG| Simplex optimizer started.
+    MSG| Dual simplex optimizer started.
+    MSG| Dual simplex optimizer setup started.
+    MSG| Dual simplex optimizer setup terminated.
+    MSG| Optimizer  - solved problem         : the primal      
+    MSG| Optimizer  - Constraints            : 21              
+    MSG| Optimizer  - Scalar variables       : 31                conic                  : 0               
+    MSG| Optimizer  - hotstart               : yes             
+    LOG| Optimizer  - hotstart               : yes             
+    MSG| Optimizer  - Num. basic             : 21                Basis rank             : 21              
+    LOG| Optimizer  - Num. basic             : 21                Basis rank             : 21              
+    MSG| Optimizer  - Valid bas. fac.        : no              
+    LOG| Optimizer  - Valid bas. fac.        : no              
+    MSG| ITER      DEGITER(%)  PFEAS       DFEAS       POBJ                  DOBJ                  TIME      TOTTIME 
+    MSG| 0         0.00        NA          1.70e+02    NA                    -0.0000000000e+00     0.00      0.00    
+    MSG| 25        0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| Dual simplex optimizer terminated.
+    MSG| Simplex optimizer terminated. Time: 0.00. 
+
+    MSG| Optimizer terminated. Time: 0.00    
+    MSG| 
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=25 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [all rows BAS, all columns LOW (slack basis)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+
+== presolve during a warm start (dual, presolve FREE / ON) ==
+  [exact] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    MSG| Problem
+    MSG|   Name                   :                 
+    MSG|   Objective sense        : maximize        
+    MSG|   Type                   : LO (linear optimization problem)
+    MSG|   Constraints            : 21              
+    MSG|   Affine conic cons.     : 0               
+    MSG|   Disjunctive cons.      : 0               
+    MSG|   Cones                  : 0               
+    MSG|   Scalar variables       : 31              
+    MSG|   Matrix variables       : 0               
+    MSG|   Integer variables      : 0               
+    MSG| 
+    MSG| Optimizer started.
+    MSG| Simplex optimizer started.
+    MSG| Dual simplex optimizer started.
+    MSG| Dual simplex optimizer setup started.
+    MSG| Dual simplex optimizer setup terminated.
+    MSG| Optimizer  - solved problem         : the primal      
+    MSG| Optimizer  - Constraints            : 21              
+    MSG| Optimizer  - Scalar variables       : 31                conic                  : 0               
+    MSG| Optimizer  - hotstart               : yes             
+    LOG| Optimizer  - hotstart               : yes             
+    MSG| Optimizer  - Num. basic             : 21                Basis rank             : 21              
+    LOG| Optimizer  - Num. basic             : 21                Basis rank             : 21              
+    MSG| Optimizer  - Valid bas. fac.        : no              
+    LOG| Optimizer  - Valid bas. fac.        : no              
+    MSG| ITER      DEGITER(%)  PFEAS       DFEAS       POBJ                  DOBJ                  TIME      TOTTIME 
+    MSG| 0         0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| 0         0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| Dual simplex optimizer terminated.
+    MSG| Simplex optimizer terminated. Time: 0.00. 
+
+    MSG| Optimizer terminated. Time: 0.00    
+    MSG| 
+  [dual presolve FREE maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [presolve warm] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [exact] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    MSG| Problem
+    MSG|   Name                   :                 
+    MSG|   Objective sense        : maximize        
+    MSG|   Type                   : LO (linear optimization problem)
+    MSG|   Constraints            : 21              
+    MSG|   Affine conic cons.     : 0               
+    MSG|   Disjunctive cons.      : 0               
+    MSG|   Cones                  : 0               
+    MSG|   Scalar variables       : 31              
+    MSG|   Matrix variables       : 0               
+    MSG|   Integer variables      : 0               
+    MSG| 
+    MSG| Optimizer started.
+    MSG| Simplex optimizer started.
+    MSG| Presolve started.
+    LOG| Presolve started.
+    MSG| Linear dependency checker started.
+    MSG| Linear dependency checker terminated.
+    MSG| Eliminator started.
+    MSG| Freed constraints in eliminator : 0
+    MSG| Eliminator terminated.
+    MSG| Eliminator - tries                  : 1                 time                   : 0.00            
+    MSG| Lin. dep.  - tries                  : 1                 time                   : 0.00            
+    MSG| Lin. dep.  - primal attempts        : 1                 successes              : 1               
+    MSG| Lin. dep.  - dual attempts          : 0                 successes              : 0               
+    MSG| Lin. dep.  - primal deps.           : 0                 dual deps.             : 0               
+    MSG| Presolve terminated. Time: 0.00    
+    LOG| Presolve terminated. Time: 0.00    
+    MSG| Dual simplex optimizer started.
+    MSG| Dual simplex optimizer setup started.
+    MSG| Dual simplex optimizer setup terminated.
+    MSG| Optimizer  - solved problem         : the primal      
+    MSG| Optimizer  - Constraints            : 20              
+    MSG| Optimizer  - Scalar variables       : 30                conic                  : 0               
+    MSG| Optimizer  - hotstart               : yes             
+    LOG| Optimizer  - hotstart               : yes             
+    MSG| Optimizer  - Num. basic             : 20                Basis rank             : 20              
+    LOG| Optimizer  - Num. basic             : 20                Basis rank             : 20              
+    MSG| Optimizer  - Valid bas. fac.        : no              
+    LOG| Optimizer  - Valid bas. fac.        : no              
+    MSG| ITER      DEGITER(%)  PFEAS       DFEAS       POBJ                  DOBJ                  TIME      TOTTIME 
+    MSG| 0         0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| 0         0.00        NA          0.00e+00    NA                    1.7059407521e+02      0.00      0.00    
+    MSG| Dual simplex optimizer terminated.
+    MSG| Simplex optimizer terminated. Time: 0.00. 
+
+    MSG| Optimizer terminated. Time: 0.00    
+    MSG| 
+  [dual presolve ON maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [presolve warm] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+
+DONE

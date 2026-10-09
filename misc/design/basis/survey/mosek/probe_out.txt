@@ -1,0 +1,1120 @@
+library /home/plaiseek/Softwares/solvers/mosek/11.0/tools/platform/linux64x86/bin/libmosek64.so version 11.0.14
+dlsym MSK_getskc -> found
+dlsym MSK_getskx -> found
+dlsym MSK_putskc -> found
+dlsym MSK_putskx -> found
+dlsym MSK_putskcslice -> found
+dlsym MSK_putskxslice -> found
+dlsym MSK_getintinf -> found
+dlsym MSK_getdouinf -> found
+dlsym MSK_getskcslice -> found
+default MSK_IPAR_OPTIMIZER=2 (FREE=2)
+default MSK_IPAR_INTPNT_BASIS=1 (ALWAYS=1)
+default MSK_IPAR_SIM_HOTSTART=1 (FREE=1)
+default MSK_IPAR_PRESOLVE_USE=2 (FREE=2)
+default MSK_IPAR_SIM_MAX_ITERATIONS=10000000
+
+===== C. side convention =====
+--- C before any solve ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> nullopt
+  getskc(BAS) rc=22000(MSK_RES_ERR_UNDEF_SOLUTION) getskx rc=22000(MSK_RES_ERR_UNDEF_SOLUTION)
+  wrapper status index=1 (optimal is 1)
+  [C re-solve default, for counters] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- C after default solve (BAS) ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  row  0 y1<=3          bk=UP [-1e+30, 3] act=3  -> UPR
+  row  1 y2>=2          bk=LO [2, 1e+30] act=2  -> LOW
+  row  2 y3==5          bk=FX [5, 5] act=5  -> FIX
+  row  3 1<=y4<=6 up    bk=RA [1, 6] act=6  -> UPR
+  row  4 1<=y5<=6 lo    bk=RA [1, 6] act=1  -> LOW
+  row  5 -y6<=-4        bk=UP [-1e+30, -4] act=-4  -> UPR
+  row  6 -y7>=-8        bk=LO [-8, 1e+30] act=-8  -> LOW
+  row  7 slack<=100     bk=UP [-1e+30, 100] act=11  -> BAS
+  row  8 slack>=-50     bk=LO [-50, 1e+30] act=12  -> BAS
+  col  0 y1             bk=LO [0, 1e+30] val=3 -> BAS
+  col  1 y2             bk=LO [0, 1e+30] val=2 -> BAS
+  col  2 y3             bk=LO [0, 1e+30] val=5 -> BAS
+  col  3 y4             bk=LO [0, 1e+30] val=6 -> BAS
+  col  4 y5             bk=LO [0, 1e+30] val=1 -> BAS
+  col  5 y6             bk=LO [0, 1e+30] val=4 -> BAS
+  col  6 y7             bk=LO [0, 1e+30] val=8 -> BAS
+  col  7 x1[0,4]ub      bk=RA [0, 4] val=4 -> UPR
+  col  8 x2fixed2       bk=FX [2, 2] val=2 -> FIX
+  col  9 x4lo           bk=LO [0, 1e+30] val=0 -> LOW
+  col 10 x5(-inf,7]     bk=UP [-1e+30, 7] val=7 -> UPR
+  col 11 x3free_empty   bk=FR [-1e+30, 1e+30] val=0 -> SUPBAS
+--- C after default solve (ITR keys) ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(ITR) rc=0(OK) getskx rc=0(OK)
+  #BAS=0 (numcon=9) #SUPBAS=10
+  row  0 y1<=3          bk=UP [-1e+30, 3] act=3  -> UPR
+  row  1 y2>=2          bk=LO [2, 1e+30] act=2  -> LOW
+  row  2 y3==5          bk=FX [5, 5] act=5  -> FIX
+  row  3 1<=y4<=6 up    bk=RA [1, 6] act=6  -> UPR
+  row  4 1<=y5<=6 lo    bk=RA [1, 6] act=1  -> LOW
+  row  5 -y6<=-4        bk=UP [-1e+30, -4] act=-4  -> UPR
+  row  6 -y7>=-8        bk=LO [-8, 1e+30] act=-8  -> LOW
+  row  7 slack<=100     bk=UP [-1e+30, 100] act=11  -> SUPBAS
+  row  8 slack>=-50     bk=LO [-50, 1e+30] act=12  -> SUPBAS
+  col  0 y1             bk=LO [0, 1e+30] val=3 -> SUPBAS
+  col  1 y2             bk=LO [0, 1e+30] val=2 -> SUPBAS
+  col  2 y3             bk=LO [0, 1e+30] val=5 -> SUPBAS
+  col  3 y4             bk=LO [0, 1e+30] val=6 -> SUPBAS
+  col  4 y5             bk=LO [0, 1e+30] val=1 -> SUPBAS
+  col  5 y6             bk=LO [0, 1e+30] val=4 -> SUPBAS
+  col  6 y7             bk=LO [0, 1e+30] val=8 -> SUPBAS
+  col  7 x1[0,4]ub      bk=RA [0, 4] val=4 -> UPR
+  col  8 x2fixed2       bk=FX [2, 2] val=2 -> FIX
+  col  9 x4lo           bk=LO [0, 1e+30] val=0 -> LOW
+  col 10 x5(-inf,7]     bk=UP [-1e+30, 7] val=7 -> UPR
+  col 11 x3free_empty   bk=FR [-1e+30, 1e+30] val=0 -> SUPBAS
+  [C primal presolve=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=5 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- C primal presolve=0 ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  row  0 y1<=3          bk=UP [-1e+30, 3] act=3  -> UPR
+  row  1 y2>=2          bk=LO [2, 1e+30] act=2  -> LOW
+  row  2 y3==5          bk=FX [5, 5] act=5  -> FIX
+  row  3 1<=y4<=6 up    bk=RA [1, 6] act=6  -> UPR
+  row  4 1<=y5<=6 lo    bk=RA [1, 6] act=1  -> LOW
+  row  5 -y6<=-4        bk=UP [-1e+30, -4] act=-4  -> UPR
+  row  6 -y7>=-8        bk=LO [-8, 1e+30] act=-8  -> LOW
+  row  7 slack<=100     bk=UP [-1e+30, 100] act=11  -> BAS
+  row  8 slack>=-50     bk=LO [-50, 1e+30] act=12  -> BAS
+  col  0 y1             bk=LO [0, 1e+30] val=3 -> BAS
+  col  1 y2             bk=LO [0, 1e+30] val=2 -> BAS
+  col  2 y3             bk=LO [0, 1e+30] val=5 -> BAS
+  col  3 y4             bk=LO [0, 1e+30] val=6 -> BAS
+  col  4 y5             bk=LO [0, 1e+30] val=1 -> BAS
+  col  5 y6             bk=LO [0, 1e+30] val=4 -> BAS
+  col  6 y7             bk=LO [0, 1e+30] val=8 -> BAS
+  col  7 x1[0,4]ub      bk=RA [0, 4] val=4 -> UPR
+  col  8 x2fixed2       bk=FX [2, 2] val=2 -> FIX
+  col  9 x4lo           bk=LO [0, 1e+30] val=0 -> LOW
+  col 10 x5(-inf,7]     bk=UP [-1e+30, 7] val=7 -> UPR
+  col 11 x3free_empty   bk=FR [-1e+30, 1e+30] val=0 -> SUPBAS
+  [C primal presolve=2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- C primal presolve=2 ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  row  0 y1<=3          bk=UP [-1e+30, 3] act=3  -> UPR
+  row  1 y2>=2          bk=LO [2, 1e+30] act=2  -> LOW
+  row  2 y3==5          bk=FX [5, 5] act=5  -> FIX
+  row  3 1<=y4<=6 up    bk=RA [1, 6] act=6  -> UPR
+  row  4 1<=y5<=6 lo    bk=RA [1, 6] act=1  -> LOW
+  row  5 -y6<=-4        bk=UP [-1e+30, -4] act=-4  -> UPR
+  row  6 -y7>=-8        bk=LO [-8, 1e+30] act=-8  -> LOW
+  row  7 slack<=100     bk=UP [-1e+30, 100] act=11  -> BAS
+  row  8 slack>=-50     bk=LO [-50, 1e+30] act=12  -> BAS
+  col  0 y1             bk=LO [0, 1e+30] val=3 -> BAS
+  col  1 y2             bk=LO [0, 1e+30] val=2 -> BAS
+  col  2 y3             bk=LO [0, 1e+30] val=5 -> BAS
+  col  3 y4             bk=LO [0, 1e+30] val=6 -> BAS
+  col  4 y5             bk=LO [0, 1e+30] val=1 -> BAS
+  col  5 y6             bk=LO [0, 1e+30] val=4 -> BAS
+  col  6 y7             bk=LO [0, 1e+30] val=8 -> BAS
+  col  7 x1[0,4]ub      bk=RA [0, 4] val=4 -> UPR
+  col  8 x2fixed2       bk=FX [2, 2] val=2 -> FIX
+  col  9 x4lo           bk=LO [0, 1e+30] val=0 -> LOW
+  col 10 x5(-inf,7]     bk=UP [-1e+30, 7] val=7 -> UPR
+  col 11 x3free_empty   bk=FR [-1e+30, 1e+30] val=0 -> SUPBAS
+  [C dual presolve=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=7 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- C dual presolve=0 ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  row  0 y1<=3          bk=UP [-1e+30, 3] act=3  -> UPR
+  row  1 y2>=2          bk=LO [2, 1e+30] act=2  -> LOW
+  row  2 y3==5          bk=FX [5, 5] act=5  -> FIX
+  row  3 1<=y4<=6 up    bk=RA [1, 6] act=6  -> UPR
+  row  4 1<=y5<=6 lo    bk=RA [1, 6] act=1  -> LOW
+  row  5 -y6<=-4        bk=UP [-1e+30, -4] act=-4  -> UPR
+  row  6 -y7>=-8        bk=LO [-8, 1e+30] act=-8  -> LOW
+  row  7 slack<=100     bk=UP [-1e+30, 100] act=11  -> BAS
+  row  8 slack>=-50     bk=LO [-50, 1e+30] act=12  -> BAS
+  col  0 y1             bk=LO [0, 1e+30] val=3 -> BAS
+  col  1 y2             bk=LO [0, 1e+30] val=2 -> BAS
+  col  2 y3             bk=LO [0, 1e+30] val=5 -> BAS
+  col  3 y4             bk=LO [0, 1e+30] val=6 -> BAS
+  col  4 y5             bk=LO [0, 1e+30] val=1 -> BAS
+  col  5 y6             bk=LO [0, 1e+30] val=4 -> BAS
+  col  6 y7             bk=LO [0, 1e+30] val=8 -> BAS
+  col  7 x1[0,4]ub      bk=RA [0, 4] val=4 -> UPR
+  col  8 x2fixed2       bk=FX [2, 2] val=2 -> FIX
+  col  9 x4lo           bk=LO [0, 1e+30] val=0 -> LOW
+  col 10 x5(-inf,7]     bk=UP [-1e+30, 7] val=7 -> UPR
+  col 11 x3free_empty   bk=FR [-1e+30, 1e+30] val=0 -> SUPBAS
+  [C dual presolve=2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- C dual presolve=2 ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  row  0 y1<=3          bk=UP [-1e+30, 3] act=3  -> UPR
+  row  1 y2>=2          bk=LO [2, 1e+30] act=2  -> LOW
+  row  2 y3==5          bk=FX [5, 5] act=5  -> FIX
+  row  3 1<=y4<=6 up    bk=RA [1, 6] act=6  -> UPR
+  row  4 1<=y5<=6 lo    bk=RA [1, 6] act=1  -> LOW
+  row  5 -y6<=-4        bk=UP [-1e+30, -4] act=-4  -> UPR
+  row  6 -y7>=-8        bk=LO [-8, 1e+30] act=-8  -> LOW
+  row  7 slack<=100     bk=UP [-1e+30, 100] act=11  -> BAS
+  row  8 slack>=-50     bk=LO [-50, 1e+30] act=12  -> BAS
+  col  0 y1             bk=LO [0, 1e+30] val=3 -> BAS
+  col  1 y2             bk=LO [0, 1e+30] val=2 -> BAS
+  col  2 y3             bk=LO [0, 1e+30] val=5 -> BAS
+  col  3 y4             bk=LO [0, 1e+30] val=6 -> BAS
+  col  4 y5             bk=LO [0, 1e+30] val=1 -> BAS
+  col  5 y6             bk=LO [0, 1e+30] val=4 -> BAS
+  col  6 y7             bk=LO [0, 1e+30] val=8 -> BAS
+  col  7 x1[0,4]ub      bk=RA [0, 4] val=4 -> UPR
+  col  8 x2fixed2       bk=FX [2, 2] val=2 -> FIX
+  col  9 x4lo           bk=LO [0, 1e+30] val=0 -> LOW
+  col 10 x5(-inf,7]     bk=UP [-1e+30, 7] val=7 -> UPR
+  col 11 x3free_empty   bk=FR [-1e+30, 1e+30] val=0 -> SUPBAS
+  [C intpnt BI=NEVER] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- C intpnt BI=NEVER (BAS) ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=0
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> ITR
+  getskc(BAS) rc=22000(MSK_RES_ERR_UNDEF_SOLUTION) getskx rc=22000(MSK_RES_ERR_UNDEF_SOLUTION)
+--- C intpnt BI=NEVER (ITR) ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=0
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> ITR
+  getskc(ITR) rc=0(OK) getskx rc=0(OK)
+  #BAS=0 (numcon=9) #SUPBAS=10
+  row  0 y1<=3          bk=UP [-1e+30, 3] act=3  -> UPR
+  row  1 y2>=2          bk=LO [2, 1e+30] act=2  -> LOW
+  row  2 y3==5          bk=FX [5, 5] act=5  -> FIX
+  row  3 1<=y4<=6 up    bk=RA [1, 6] act=6  -> UPR
+  row  4 1<=y5<=6 lo    bk=RA [1, 6] act=1  -> LOW
+  row  5 -y6<=-4        bk=UP [-1e+30, -4] act=-4  -> UPR
+  row  6 -y7>=-8        bk=LO [-8, 1e+30] act=-8  -> LOW
+  row  7 slack<=100     bk=UP [-1e+30, 100] act=11  -> SUPBAS
+  row  8 slack>=-50     bk=LO [-50, 1e+30] act=12  -> SUPBAS
+  col  0 y1             bk=LO [0, 1e+30] val=3 -> SUPBAS
+  col  1 y2             bk=LO [0, 1e+30] val=2 -> SUPBAS
+  col  2 y3             bk=LO [0, 1e+30] val=5 -> SUPBAS
+  col  3 y4             bk=LO [0, 1e+30] val=6 -> SUPBAS
+  col  4 y5             bk=LO [0, 1e+30] val=1 -> SUPBAS
+  col  5 y6             bk=LO [0, 1e+30] val=4 -> SUPBAS
+  col  6 y7             bk=LO [0, 1e+30] val=8 -> SUPBAS
+  col  7 x1[0,4]ub      bk=RA [0, 4] val=4 -> UPR
+  col  8 x2fixed2       bk=FX [2, 2] val=2 -> FIX
+  col  9 x4lo           bk=LO [0, 1e+30] val=0 -> LOW
+  col 10 x5(-inf,7]     bk=UP [-1e+30, 7] val=7 -> UPR
+  col 11 x3free_empty   bk=FR [-1e+30, 1e+30] val=0 -> SUPBAS
+
+===== D. availability =====
+--- R before solve ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> nullopt
+  getskc(BAS) rc=22000(MSK_RES_ERR_UNDEF_SOLUTION) getskx rc=22000(MSK_RES_ERR_UNDEF_SOLUTION)
+  [R default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R after default solve ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  ref_obj=170.594075
+  [infeasible opt=2 presolve=2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- infeasible opt=2 presolve=2 ---
+  numcon=3 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=3 (numcon=3) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 1] act=0  -> BAS
+  row  1                bk=LO [3, 1e+30] act=0  -> BAS
+  row  2                bk=LO [2, 1e+30] act=0  -> LOW
+  col  0                bk=LO [0, 1e+30] val=0 -> BAS
+  col  1                bk=LO [0, 1e+30] val=0 -> LOW
+  [infeasible opt=2 presolve=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=4 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- infeasible opt=2 presolve=0 ---
+  numcon=3 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0.980545048
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=3 (numcon=3) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 1] act=0  -> BAS
+  row  1                bk=LO [3, 1e+30] act=0  -> LOW
+  row  2                bk=LO [2, 1e+30] act=0  -> LOW
+  col  0                bk=LO [0, 1e+30] val=0 -> BAS
+  col  1                bk=LO [0, 1e+30] val=0 -> BAS
+  [infeasible opt=8 presolve=2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- infeasible opt=8 presolve=2 ---
+  numcon=3 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=3 (numcon=3) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 1] act=0  -> BAS
+  row  1                bk=LO [3, 1e+30] act=0  -> BAS
+  row  2                bk=LO [2, 1e+30] act=0  -> LOW
+  col  0                bk=LO [0, 1e+30] val=0 -> BAS
+  col  1                bk=LO [0, 1e+30] val=0 -> LOW
+  [infeasible opt=8 presolve=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=1 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- infeasible opt=8 presolve=0 ---
+  numcon=3 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=3 (numcon=3) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 1] act=0  -> BAS
+  row  1                bk=LO [3, 1e+30] act=0  -> BAS
+  row  2                bk=LO [2, 1e+30] act=0  -> LOW
+  col  0                bk=LO [0, 1e+30] val=-0 -> BAS
+  col  1                bk=LO [0, 1e+30] val=0 -> LOW
+  [infeasible opt=1 presolve=2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- infeasible opt=1 presolve=2 ---
+  numcon=3 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=3 (numcon=3) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 1] act=0  -> BAS
+  row  1                bk=LO [3, 1e+30] act=0  -> BAS
+  row  2                bk=LO [2, 1e+30] act=0  -> LOW
+  col  0                bk=LO [0, 1e+30] val=0 -> BAS
+  col  1                bk=LO [0, 1e+30] val=0 -> LOW
+  [infeasible opt=1 presolve=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=5 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- infeasible opt=1 presolve=0 ---
+  numcon=3 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=2.5
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=3 (numcon=3) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 1] act=1.5  -> BAS
+  row  1                bk=LO [3, 1e+30] act=0  -> LOW
+  row  2                bk=LO [2, 1e+30] act=0  -> LOW
+  col  0                bk=LO [0, 1e+30] val=2 -> BAS
+  col  1                bk=LO [0, 1e+30] val=0.5 -> BAS
+  [unbounded opt=2 presolve=2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- unbounded opt=2 presolve=2 ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=DUAL_INFEAS_CER prosta=5 pobj=1
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=DUAL_INFEAS_CER prosta=5 pobj=1
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=1
+  row  0                bk=UP [-1e+30, 1] act=-1  -> BAS
+  row  1                bk=LO [1, 1e+30] act=1  -> BAS
+  col  0                bk=LO [0, 1e+30] val=0 -> LOW
+  col  1                bk=LO [0, 1e+30] val=1 -> SUPBAS
+  [unbounded opt=2 presolve=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=4 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- unbounded opt=2 presolve=0 ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=DUAL_INFEAS_CER prosta=5 pobj=1
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=DUAL_INFEAS_CER prosta=5 pobj=0.67765208
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=1
+  row  0                bk=UP [-1e+30, 1] act=-1  -> BAS
+  row  1                bk=LO [1, 1e+30] act=1  -> BAS
+  col  0                bk=LO [0, 1e+30] val=0 -> LOW
+  col  1                bk=LO [0, 1e+30] val=1 -> SUPBAS
+  [unbounded opt=8 presolve=2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- unbounded opt=8 presolve=2 ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=DUAL_INFEAS_CER prosta=5 pobj=1
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=1
+  row  0                bk=UP [-1e+30, 1] act=-1  -> BAS
+  row  1                bk=LO [1, 1e+30] act=1  -> BAS
+  col  0                bk=LO [0, 1e+30] val=0 -> LOW
+  col  1                bk=LO [0, 1e+30] val=1 -> SUPBAS
+  [unbounded opt=8 presolve=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=3 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- unbounded opt=8 presolve=0 ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=DUAL_INFEAS_CER prosta=5 pobj=1
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=1
+  row  0                bk=UP [-1e+30, 1] act=-1  -> BAS
+  row  1                bk=LO [1, 1e+30] act=1  -> SUPBAS
+  col  0                bk=LO [0, 1e+30] val=0 -> LOW
+  col  1                bk=LO [0, 1e+30] val=1 -> BAS
+  [unbounded opt=1 presolve=2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- unbounded opt=1 presolve=2 ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=DUAL_INFEAS_CER prosta=5 pobj=1
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=1
+  row  0                bk=UP [-1e+30, 1] act=-1  -> BAS
+  row  1                bk=LO [1, 1e+30] act=1  -> BAS
+  col  0                bk=LO [0, 1e+30] val=0 -> LOW
+  col  1                bk=LO [0, 1e+30] val=1 -> SUPBAS
+  [unbounded opt=1 presolve=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=2 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- unbounded opt=1 presolve=0 ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=DUAL_INFEAS_CER prosta=5 pobj=1
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 1] act=-1  -> BAS
+  row  1                bk=LO [1, 1e+30] act=1  -> LOW
+  col  0                bk=LO [0, 1e+30] val=0 -> LOW
+  col  1                bk=LO [0, 1e+30] val=1 -> BAS
+  [R primal simplex SIM_MAX_ITERATIONS=3] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=3 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R primal simplex iter-limit ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_FEAS prosta=2 pobj=72.904321
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [R dual simplex SIM_MAX_ITERATIONS=3] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=3 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R dual simplex iter-limit ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=DUAL_FEAS prosta=3 pobj=289.440767
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=4
+  [R intpnt INTPNT_MAX_ITERATIONS=2 BI=ALWAYS] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=2 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R intpnt iter-limit ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=159.052482
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [R intpnt iter-limit BI=NO_ERROR IGNORE_MAX_ITER=ON] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=2 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R intpnt iter-limit BI ignore ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=159.052482
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [big R time limit 1e-4 opt=2] optimizetrm rc=0(OK) trm=100001(MSK_RES_TRM_MAX_TIME) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- big R time limit 1e-4 opt=2 ---
+  numcon=401 numvar=601
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=774.342372
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=0 (numcon=401) #SUPBAS=0
+  [big R time limit 1e-4 opt=8] optimizetrm rc=0(OK) trm=100001(MSK_RES_TRM_MAX_TIME) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- big R time limit 1e-4 opt=8 ---
+  numcon=401 numvar=601
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=0 (numcon=401) #SUPBAS=0
+  [big R time limit 1e-4 opt=1] optimizetrm rc=0(OK) trm=100001(MSK_RES_TRM_MAX_TIME) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- big R time limit 1e-4 opt=1 ---
+  numcon=401 numvar=601
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=0 (numcon=401) #SUPBAS=0
+  [R default for mods] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R solved ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+--- R after set_variable_upper_bound (no re-solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=3 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=3 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [R default for mods 2] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R after set_constraint_upper_bound (no re-solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=DUAL_FEAS prosta=3 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=DUAL_FEAS prosta=3 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [R default for mods 3] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R after add_constraint (no re-solve) ---
+  numcon=22 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=22 (numcon=22) #SUPBAS=0
+  new row code=BAS
+  [R default for mods 4] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R after add_variable (no re-solve) ---
+  numcon=21 numvar=32
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  new col code=FIX
+  [R default for mods 5] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R after set_objective_coefficient (no re-solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=2 pobj=268.781108
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=2 pobj=268.781102
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [R default for mods 6] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- R after reset_status() ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+
+===== E. warm start =====
+  [A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- A optimal ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [COLD opt=8 presolve=OFF maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [COLD opt=8 presolve=OFF maxit=0] BAS def=1 solsta=UNKNOWN pobj=20.25 (ref 170.594075) differs
+  [COLD opt=1 presolve=OFF maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=1 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [COLD opt=1 presolve=OFF maxit=0] BAS def=1 solsta=DUAL_FEAS pobj=289.440767 (ref 170.594075) differs
+  [COLD opt=3 presolve=OFF maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=1 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [COLD opt=3 presolve=OFF maxit=0] BAS def=1 solsta=DUAL_FEAS pobj=289.440767 (ref 170.594075) differs
+  [wrapper defaults (FREE opt, presolve FREE), SIM_MAX_IT=0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [wrapper defaults (FREE opt, presolve FREE), SIM_MAX_IT=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [wrapper defaults (FREE opt, presolve FREE), SIM_MAX_IT=0] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [wrapper defaults, no iteration limit] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [wrapper defaults, no iteration limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [wrapper defaults, no iteration limit] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [INTPNT explicit, maxit=0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [INTPNT explicit, maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [INTPNT explicit, maxit=0] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [PRIMAL presolve FREE maxit=0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [PRIMAL presolve FREE maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [PRIMAL presolve FREE maxit=0] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [PRIMAL presolve OFF maxit=0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [PRIMAL presolve OFF maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [PRIMAL presolve OFF maxit=0] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [DUAL presolve FREE maxit=0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [DUAL presolve FREE maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [DUAL presolve FREE maxit=0] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [DUAL presolve OFF maxit=0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [DUAL presolve OFF maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [DUAL presolve OFF maxit=0] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [FREE_SIMPLEX presolve FREE maxit=0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [FREE_SIMPLEX presolve FREE maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [FREE_SIMPLEX presolve FREE maxit=0] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [FREE_SIMPLEX presolve OFF maxit=0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [FREE_SIMPLEX presolve OFF maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [FREE_SIMPLEX presolve OFF maxit=0] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [PRIMAL presolve OFF maxit=0 HOTSTART=STATUS_KEYS] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [PRIMAL presolve OFF maxit=0 HOTSTART=STATUS_KEYS] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [PRIMAL presolve OFF maxit=0 HOTSTART=STATUS_KEYS] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [DUAL presolve OFF maxit=0 HOTSTART=STATUS_KEYS] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [DUAL presolve OFF maxit=0 HOTSTART=STATUS_KEYS] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [DUAL presolve OFF maxit=0 HOTSTART=STATUS_KEYS] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [FREE_SIMPLEX presolve FREE maxit=0 HOTSTART=STATUS_KEYS] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [FREE_SIMPLEX presolve FREE maxit=0 HOTSTART=STATUS_KEYS] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [FREE_SIMPLEX presolve FREE maxit=0 HOTSTART=STATUS_KEYS] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [PRIMAL presolve OFF maxit=0 HOTSTART=NONE] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [PRIMAL presolve OFF maxit=0 HOTSTART=NONE] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [PRIMAL presolve OFF maxit=0 HOTSTART=NONE] BAS def=1 solsta=UNKNOWN pobj=20.25 (ref 170.594075) differs
+  [PRIMAL presolve FREE no limit] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [PRIMAL presolve FREE no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [PRIMAL presolve FREE no limit] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [DUAL presolve FREE no limit] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- B after put (readback, no solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [DUAL presolve FREE no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+  [DUAL presolve FREE no limit] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [wrapper solve after put] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  wrapper solve(): status index=1 (1 optimal, 9 iteration_limit)
+  [wrapper solve after put] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [A2 default first] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [A2 re-solve same model, primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [A2 re-solve] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [A3 default first] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- A3 optimal ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+--- A3 after relaxing x5 ub (no re-solve) ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=3 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=3 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [A3 put after bound change] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- A3 readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=3 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=3 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [A3 primal maxit=0 after put] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [A3] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [A4 default first] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- A4 optimal ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [A4 put BEFORE bound change] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- A4 after put then bound change ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=3 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=3 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback equals written: 1
+  [A4 primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [A4] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [A5 default first] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- A5 optimal ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [A5 put after tightening row 0] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [A5 dual simplex after put (expect few iters, hotstart)] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=12 ipm=0 | hotstart primal=0 dual=1 | hotstartLU primal=0 dual=0
+
+===== E. invalid bases =====
+* invalid: one basic too few (a basic column -> LOW), maxit=0
+    column 0 BAS -> LOW
+  [one basic too few (a basic column -> LOW)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=20 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [one basic too few (a basic column -> LOW)] BAS def=1 solsta=UNKNOWN pobj=170.524206 (ref 170.594075) differs
+* invalid: one basic too few (a basic column -> LOW), maxit=-1
+    column 0 BAS -> LOW
+  [one basic too few (a basic column -> LOW)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=20 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=1 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [one basic too few (a basic column -> LOW)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: one basic too many (a nonbasic row -> BAS), maxit=0
+    row 0 UPR -> BAS
+  [one basic too many (a nonbasic row -> BAS)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=22 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [one basic too many (a nonbasic row -> BAS)] BAS def=1 solsta=UNKNOWN pobj=170.718471 (ref 170.594075) differs
+* invalid: one basic too many (a nonbasic row -> BAS), maxit=-1
+    row 0 UPR -> BAS
+  [one basic too many (a nonbasic row -> BAS)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=22 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=8 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [one basic too many (a nonbasic row -> BAS)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: UPR on a column with infinite upper bound, maxit=0
+    column 1 LOW -> UPR (ub = +inf)
+  [UPR on a column with infinite upper bound] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [UPR on a column with infinite upper bound] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+* invalid: UPR on a column with infinite upper bound, maxit=-1
+    column 1 LOW -> UPR (ub = +inf)
+  [UPR on a column with infinite upper bound] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [UPR on a column with infinite upper bound] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: LOW on the free column (basic at optimum, swap with a LOW column), maxit=0
+    free column 30 BAS -> LOW, column 1 LOW -> BAS
+  [LOW on the free column (basic at optimum, swap with a LOW column)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [LOW on the free column (basic at optimum, swap with a LOW column)] BAS def=1 solsta=UNKNOWN pobj=157.596212 (ref 170.594075) differs
+* invalid: LOW on the free column (basic at optimum, swap with a LOW column), maxit=-1
+    free column 30 BAS -> LOW, column 1 LOW -> BAS
+  [LOW on the free column (basic at optimum, swap with a LOW column)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=6 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [LOW on the free column (basic at optimum, swap with a LOW column)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: LOW on the free column only (count off by one), maxit=0
+    free column 30 BAS -> LOW
+  [LOW on the free column only (count off by one)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=20 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [LOW on the free column only (count off by one)] BAS def=1 solsta=UNKNOWN pobj=170.718471 (ref 170.594075) differs
+* invalid: LOW on the free column only (count off by one), maxit=-1
+    free column 30 BAS -> LOW
+  [LOW on the free column only (count off by one)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=20 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=8 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [LOW on the free column only (count off by one)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: SUPBAS on a nonbasic bounded column, maxit=0
+    column 1 LOW -> SUPBAS
+  [SUPBAS on a nonbasic bounded column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=1
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [SUPBAS on a nonbasic bounded column] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+* invalid: SUPBAS on a nonbasic bounded column, maxit=-1
+    column 1 LOW -> SUPBAS
+  [SUPBAS on a nonbasic bounded column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=1
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [SUPBAS on a nonbasic bounded column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: FIX on a non-fixed nonbasic column, maxit=0
+    column 1 LOW -> FIX
+  [FIX on a non-fixed nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [FIX on a non-fixed nonbasic column] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+* invalid: FIX on a non-fixed nonbasic column, maxit=-1
+    column 1 LOW -> FIX
+  [FIX on a non-fixed nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [FIX on a non-fixed nonbasic column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: INF code on a nonbasic column, maxit=0
+    column 1 LOW -> INF
+  [INF code on a nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [INF code on a nonbasic column] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+* invalid: INF code on a nonbasic column, maxit=-1
+    column 1 LOW -> INF
+  [INF code on a nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [INF code on a nonbasic column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: UNK everywhere, maxit=0
+  [UNK everywhere] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=0 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [UNK everywhere] BAS def=1 solsta=UNKNOWN pobj=20.25 (ref 170.594075) differs
+* invalid: UNK everywhere, maxit=-1
+  [UNK everywhere] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=0 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=18 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [UNK everywhere] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: all BAS (way too many), maxit=0
+  [all BAS (way too many)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=52 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [all BAS (way too many)] BAS def=1 solsta=UNKNOWN pobj=20.25 (ref 170.594075) differs
+* invalid: all BAS (way too many), maxit=-1
+  [all BAS (way too many)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=52 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=18 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [all BAS (way too many)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: out-of-range code 7, maxit=0
+  [out-of-range code 7] putskx rc=1268(MSK_RES_ERR_INV_SKX) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=10 (numcon=21) #SUPBAS=0
+  readback differs from written in 31 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [out-of-range code 7] BAS def=1 solsta=UNKNOWN pobj=20.25 (ref 170.594075) differs
+* invalid: out-of-range code 7, maxit=-1
+  [out-of-range code 7] putskx rc=1268(MSK_RES_ERR_INV_SKX) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=10 (numcon=21) #SUPBAS=0
+  readback differs from written in 31 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=18 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [out-of-range code 7] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* invalid: singular basis (rows all BAS->LOW swapped with zero-coef columns), maxit=0
+  [singular basis (rows all BAS->LOW swapped with zero-coef columns)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [singular basis (rows all BAS->LOW swapped with zero-coef columns)] BAS def=1 solsta=UNKNOWN pobj=173.870559 (ref 170.594075) differs
+* invalid: singular basis (rows all BAS->LOW swapped with zero-coef columns), maxit=-1
+  [singular basis (rows all BAS->LOW swapped with zero-coef columns)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+--- readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  readback differs from written in 0 entries
+  [primal] optimizetrm rc=0(OK) trm=0(OK) | iters primal=40 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [singular basis (rows all BAS->LOW swapped with zero-coef columns)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+
+===== F. partial / extended bases =====
+  [F1 A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+--- F1 A optimal ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+--- F1 A after growth (no re-solve) ---
+  numcon=22 numvar=32
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=22 (numcon=22) #SUPBAS=0
+  new col=FIX new row=BAS
+  [F1 put extended (new col LOW, new row BAS)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [F1 primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  F1 solsta=UNKNOWN obj=170.594075 (ref 170.594075)
+  [F2 A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [F2 grown, no put, primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [F2] BAS def=1 solsta=UNKNOWN pobj=170.594075 (ref 170.594075) MATCH
+  [F2b A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  [F2b grown, no put, primal no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [F2b] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  F3 putskx only rc=0(OK)
+--- F3 fresh model after putskx only ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=11 (numcon=21) #SUPBAS=0
+  F3 rows read back UNK: 21 of 21
+  [F3 primal maxit=0] optimizetrm rc=0(OK) trm=100000(MSK_RES_TRM_MAX_ITERATIONS) | iters primal=1 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [F3] BAS def=1 solsta=UNKNOWN pobj=-107.371489 (ref 170.594075) differs
+  F4 putskxslice[0,15) rc=0(OK) putskc rc=0(OK)
+--- F4 readback ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=15 (numcon=21) #SUPBAS=0
+  F4 unset columns read back UNK: 16 of 16
+  [F4 primal no limit] optimizetrm rc=0(OK) trm=0(OK) | iters primal=18 dual=0 ipm=0 | hotstart primal=1 dual=0 | hotstartLU primal=0 dual=0
+  [F4] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [F5 A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=0 dual=0 ipm=6 | hotstart primal=0 dual=0 | hotstartLU primal=0 dual=0
+  F5 putskcslice row0 := BAS rc=0(OK)
+--- F5 after single-entry put ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> ITR
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=22 (numcon=21) #SUPBAS=0
+
+DONE

@@ -93,7 +93,11 @@ Ruling B8 (a) of 2026-10-09 (`misc/design/basis/basis.md`): on `mosek_lp`,
 `set_basis()` makes the next `solve()` run a simplex optimizer, then restores
 the optimizer setting. It is defined as "when the optimizer is MOSEK's
 automatic choice, the solve after `set_basis()` runs a simplex; an explicit
-choice is respected". With no selector there is no explicit choice yet, so it
-is the plain one-shot. When the selector lands, the one-shot applies only
-under `automatic`, and an explicit `interior_point` keeps ignoring the basis,
-as the docs of `set_basis()` must then say.
+choice is respected". The one-shot already switches only when
+`MSK_IPAR_OPTIMIZER` reads `MSK_OPTIMIZER_FREE` (pinned by
+`mosek_lp_test.set_basis_keeps_an_optimizer_chosen_natively`), so an optimizer
+set through `native_api()` is today's explicit choice. A selector that writes
+`MSK_IPAR_OPTIMIZER` needs no change to the one-shot; what it must settle is
+whether `automatic` writes `MSK_OPTIMIZER_FREE` at each solve, and so
+overrides a native setting. An explicit `interior_point` keeps ignoring the
+basis, as the docs of `set_basis()` must then say.

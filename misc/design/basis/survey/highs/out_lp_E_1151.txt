@@ -1,0 +1,222 @@
+library: /home/plaiseek/.local/lib/python3.10/site-packages/highspy/libhighs.so.1.15.1 version 1.15.1
+
+=== E: warm start ===
+  [R model A default] model_status=7 basis_validity=1(rc0) simplex_it=48(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R A] rc=0 ncol=60 nrow=40 basic=40 (cols 19) L=39 U=21 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  -- control B0 (no basis, limit 0), log:
+LP has 40 rows; 60 cols; 1140 nonzeros
+Coefficient ranges:
+  Matrix  [1e-03, 1e+00]
+  Cost    [1e+00, 2e+00]
+  Bound   [5e+00, 5e+00]
+  RHS     [1e+01, 2e+01]
+Presolving model
+40 rows, 60 cols, 1140 nonzeros 0s
+40 rows, 60 cols, 1140 nonzeros 0s
+Presolve reductions: rows 40(-0); columns 60(-0); nonzeros 1140(-0) - Not reduced
+Problem not reduced by presolve: solving the LP
+Using dual simplex solver
+  Iteration        Objective     Infeasibilities num(sum)
+          0     0.0000000000e+00 Pr: 0(0) 0.0s
+
+Model status        : Iteration limit reached
+Objective value     :  0.0000000000e+00
+P-D objective error :  0.0000000000e+00
+HiGHS run time      :          0.00
+  [R B0 control no basis limit 0] model_status=14 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=1 obj=0
+  setBasis on fresh B rc=0
+  [R B1 after setBasis, before solve] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis read back equals written: yes
+  -- B1 (basis, limit 0), log:
+LP has 40 rows; 60 cols; 1140 nonzeros
+Coefficient ranges:
+  Matrix  [1e-03, 1e+00]
+  Cost    [1e+00, 2e+00]
+  Bound   [5e+00, 5e+00]
+  RHS     [1e+01, 2e+01]
+Solving LP with useful basis so presolve not used
+
+Model status        : Optimal
+Objective value     :  1.0602262857e+02
+P-D objective error :  1.3340690993e-16
+HiGHS run time      :          0.00
+  [R B1 basis + limit 0] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  [R B2 basis, no limit] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  [R B3 basis + limit 0 solver=simplex] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R B3 basis + limit 0 solver=simplex] rc=0 ncol=60 nrow=40 basic=40 (cols 19) L=39 U=21 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [R B3 basis + limit 0 solver=ipm] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=12 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R B3 basis + limit 0 solver=ipm] rc=0 ncol=60 nrow=40 basic=40 (cols 19) L=39 U=21 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [R B3 basis + limit 0 solver=pdlp] model_status=7 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022631
+  basis[R B3 basis + limit 0 solver=pdlp] rc=0 ncol=60 nrow=40 basic=40 (cols 0) L=0 U=0 Z=0 N=60 unwritten=0 other=0  basic==nrow:yes
+  [R B4 basis + limit 0 presolve=on] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  [R B5 basis + limit 0 simplex_strategy=1] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  [R B5 basis + limit 0 simplex_strategy=4] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  [R B6 setBasis then bound change] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  -- B6 solve, log:
+LP has 40 rows; 60 cols; 1140 nonzeros
+Coefficient ranges:
+  Matrix  [1e-03, 1e+00]
+  Cost    [1e+00, 2e+00]
+  Bound   [5e-01, 5e+00]
+  RHS     [1e+01, 2e+01]
+Solving LP with useful basis so presolve not used
+
+Model status        : Optimal
+Objective value     :  1.0602262857e+02
+P-D objective error :  1.3340690993e-16
+HiGHS run time      :          0.00
+  [R B6 solved] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  changing ub of basic column 2 to 0.1
+  [A after bound change] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  HiGHS kept its basis through the change: same codes
+  setBasis(old) after change rc=0
+  read back equals written: yes
+  [A after setBasis(old)] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  -- A re-solve, log:
+LP has 40 rows; 60 cols; 1140 nonzeros
+Coefficient ranges:
+  Matrix  [1e-03, 1e+00]
+  Cost    [1e+00, 2e+00]
+  Bound   [1e-01, 5e+00]
+  RHS     [1e+01, 2e+01]
+Solving LP with useful basis so presolve not used
+Using dual simplex solver
+  Iteration        Objective     Infeasibilities num(sum)
+          0     1.0602137339e+02 Pr: 1(0.410367) 0.0s
+          8     1.0476284789e+02 Pr: 0(0) 0.0s
+
+Model status        : Optimal
+Simplex   iterations: 8
+Objective value     :  1.0476284789e+02
+P-D objective error :  6.0751582826e-16
+HiGHS run time      :          0.00
+  [A re-solved] model_status=7 basis_validity=1(rc0) simplex_it=8(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=104.762848
+  [cold solve of the changed model (reference)] model_status=7 basis_validity=1(rc0) simplex_it=44(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=104.762848
+  basis[C A] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [C B basis + limit 0] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  [C B0 control no basis limit 0] model_status=14 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=0 dsol=0 obj=0
+  [C B0' control no basis limit 0 presolve off] model_status=14 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=1 dsol=1 obj=0
+  -- invalid case: all basic (13 > 5 rows)
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 3) L=0 U=0 Z=0 N=8 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=B1 x2=N4 x3=N4 x4=N4 x5=N4 x6=B1 f=2=B1 w(free)=N4
+    rows: rle(<=)=N4 rge(>=)=B1 req(==)=N4 rrng[2,6]=B1 rsl(slack)=N4
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=5(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: all nonbasic at lower (0 basic)
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 0) L=8 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=L0 x2=L0 x3=L0 x4=L0 x5=L0 x6=L0 f=2=L0 w(free)=L0
+    rows: rle(<=)=B1 rge(>=)=B1 req(==)=B1 rrng[2,6]=B1 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=5(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: optimal basis but x6 U2 with infinite ub
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=1 U=6 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=U2 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: optimal basis but w(free) L0
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=3 U=5 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=L0
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: optimal basis but x1[0,4] Z3
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=4 Z=2 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=Z3 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: optimal basis but x1[0,4] N4
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=4 Z=1 N=1 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=N4 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: optimal basis but x1[0,4] L0 (wrong side)
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=3 U=4 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=L0 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: optimal basis but rle(<=) L0 (infinite side)
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=3 U=4 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=L0 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: optimal basis but rrng L0 (wrong finite side)
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=3 U=4 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=L0 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: code 5 on x1
+    setBasis rc=-1
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 0) L=0 U=0 Z=0 N=8 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=N4 x2=N4 x3=N4 x4=N4 x5=N4 x6=N4 f=2=N4 w(free)=N4
+    rows: rle(<=)=B1 rge(>=)=B1 req(==)=B1 rrng[2,6]=B1 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=4(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: code -1 on rle
+    setBasis rc=-1
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 0) L=0 U=0 Z=0 N=8 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=N4 x2=N4 x3=N4 x4=N4 x5=N4 x6=N4 f=2=N4 w(free)=N4
+    rows: rle(<=)=B1 rge(>=)=B1 req(==)=B1 rrng[2,6]=B1 rsl(slack)=B1
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=4(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- invalid case: singular (empty column w basic)
+    setBasis rc=0
+  [after setBasis] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[read back after setBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=4 U=3 Z=0 N=1 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=L0 w(free)=N4
+    rows: rle(<=)=B1 rge(>=)=L0 req(==)=L0 rrng[2,6]=U2 rsl(slack)=U2
+  [solved] model_status=7 basis_validity=1(rc0) simplex_it=2(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after solve] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+
+done

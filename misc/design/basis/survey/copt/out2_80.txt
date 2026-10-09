@@ -1,0 +1,115 @@
+library: /home/plaiseek/Softwares/solvers/copt80/lib/libcopt.so
+
+=== 1. stored status after bound edits (solved conv LP) ===
+  [y (UPPER) ub 3 -> 2] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC LOWER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-4.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [y (UPPER) ub 3 -> 5] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC LOWER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-7.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [y (UPPER) ub 3 -> 3 (same value)] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC LOWER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-5.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [y (UPPER) lb 0 -> 1] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC LOWER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-5.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [y (UPPER) ub 3 -> inf] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC LOWER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=1 BarrierIter=0 obj=-94.5
+      basis:  BASIC BASIC BASIC BASIC BASIC FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER UPPER 
+  [l (LOWER) lb 0 -> 1] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-4.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [l (LOWER) lb 0 -> -inf (becomes free)] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC SUPERBASIC | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=3 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 obj=1e+30
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC SUPERBASIC | UPPER LOWER FIXED UPPER BASIC 
+  [z (FIXED) ub 2 -> 4] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER LOWER SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-5.5
+      basis:  BASIC BASIC BASIC BASIC UPPER LOWER SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [x1 (BASIC) ub inf -> 1] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=1 BarrierIter=0 obj=-3.5
+      basis:  UPPER BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | BASIC LOWER FIXED UPPER BASIC 
+  [f (SUPERBASIC) lb -inf -> 0] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED LOWER LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-5.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED LOWER LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [R1 (UPPER) ub 4 -> 5] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-6.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [R2 (LOWER) lb 2 -> 1] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-6.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+  [R3 (FIXED) ub 1 -> 2 (becomes ranged)] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER LOWER UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-5.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER LOWER UPPER BASIC 
+  [R4 (UPPER) ub 3 -> inf (becomes >=)] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED LOWER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=1 BarrierIter=0 obj=-7.5
+      basis:  BASIC BASIC LOWER BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED BASIC BASIC 
+  [R5 (BASIC) ub 100 -> inf (becomes free row)] GetBasis ret=0 LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0
+      before: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      after:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=-5.5
+      basis:  BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER | UPPER LOWER FIXED UPPER BASIC 
+
+=== 2. basis after compute_iis / Reset ===
+  infeasible, before anything: LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 GetBasis ret=0 LOWER LOWER | BASIC BASIC 
+  infeasible, after compute_iis(): LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 GetBasis ret=0 LOWER LOWER | LOWER LOWER 
+  infeasible, solve then Reset(0): LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 GetBasis ret=0 LOWER LOWER | LOWER LOWER 
+  infeasible, compute_iis then relax a row: LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 GetBasis ret=0 LOWER LOWER | LOWER UPPER 
+     re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 GetBasis ret=0 BASIC LOWER | BASIC UPPER 
+  dense: after Reset(0) LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=149 BarrierIter=0; #basic read=0 (rows 200)
+  dense: solve after Reset(0): LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0
+
+=== 3. SetBasis on a solved model ===
+  solved: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0
+  SetBasis(own optimal basis) ret=0: LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=149 BarrierIter=0
+  re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=321053.874
+  SetBasis(slack basis) ret=0: LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0
+  re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 obj=321053.874
+
+=== 4. warm optimal basis under TimeLimit=0 ===
+  Presolve=-1: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=321053.874 GetBasis ret=0 same-as-written=1
+  Presolve=0: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 obj=321053.874 GetBasis ret=0 same-as-written=1
+
+=== 5. BarIterLimit stop ===
+  Crossover=0: LpStatus=11 HasBasis=0 HasLpSol=0 SimplexIter=0 BarrierIter=2 Status=11 GetBasis ret=3 #basic=0 wrapper status index=0
+  Crossover=1: LpStatus=11 HasBasis=0 HasLpSol=0 SimplexIter=0 BarrierIter=2 Status=11 GetBasis ret=3 #basic=0 wrapper status index=0
+
+=== 6. code histograms after crossover paths (dense) ===
+  LpMethod=2: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=19 cols L/B/U/S/F=168/32/0/0/0 rows=0/168/32/0/0
+  LpMethod=6: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=19 BarrierIter=0 cols L/B/U/S/F=168/32/0/0/0 rows=0/168/32/0/0
+
+=== 7. free row ===
+  free row code: BASIC (LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0)
+
+=== 8. columns only, no rows ===
+  before solve: LpStatus=0 HasBasis=0 HasLpSol=0 SimplexIter=0 BarrierIter=0 GetBasis ret=3 untouched 
+  after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 GetBasis ret=0 UPPER 
+
+DONE

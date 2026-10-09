@@ -1,0 +1,14 @@
+library /home/plaiseek/Softwares/solvers/xpressmp/lib/libxprs.so version 47.1.1 handle 0x37ae4e10
+dlsym XPRSgetbasis             found
+dlsym XPRSloadbasis            found
+dlsym XPRSgetbasisval          found
+dlsym XPRSgetpresolvebasis     found
+dlsym XPRSloadpresolvebasis    found
+dlsym XPRSgetslacks            found
+dlsym XPRSgetlpsol             found
+dlsym XPRSremovecbmessage      found
+  [Z] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=0/0/0 COLS=2/2/2
+  [Z] LPOBJVAL=-3 (rc 0)
+  empty.data() = (nil)
+  getbasis(NULL rows) rc=0 cols 0 2
+  getbasis(dummy rows) rc=0 dummy -9 cols 0 2

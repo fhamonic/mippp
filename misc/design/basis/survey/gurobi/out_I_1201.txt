@@ -1,0 +1,25 @@
+=== I: written basis on a model that was solved before
+  [I suboptimal basis source (primal, 5 iters)] Status=7 ITERATION_LIMIT(e0) IterCount=5(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=480(e0) SolCount=0
+  [I18 fresh: suboptimal basis written, nolim (baseline)] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I18b fresh: slack basis written, nolim (baseline)] Status=2 OPTIMAL(e0) IterCount=40(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I16 solved A, unmodified: suboptimal basis written, nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I16 basis after] VBasis(e0): -1 -1 -1 -1 -1 0 -1 -1 -1 -1 -1 -2 -1 -1 -1 -1 -1 -1 -1 -1 -1 0 -1 -2 -1 -1 -1 -1 -1 -1 0 -1 -1 0 -1 -1 -1 -2 -1 -1 -1 -1 -1 -1 -2 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0 -1 -1 | CBasis(e0): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 -1 0 0 0 -1 -1  #basic=40 #rows=40
+  [I17 solved A, obj coef change, slack basis written, nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I17b solved A, obj coef change, nothing written, nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I17c solved A, obj coef change, update, slack basis written, nolim] Status=2 OPTIMAL(e0) IterCount=40(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I23 solved A, write slack, update, loosen bound, nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I24 solved A, loosen bound, update, write slack, nolim] Status=2 OPTIMAL(e0) IterCount=47(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I24b solved A, loosen bound, update, write slack, update, nolim] Status=2 OPTIMAL(e0) IterCount=47(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I26 solved A unmodified, update, write slack, update, nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  I26 X e0; basis after == slack written: yes
+  GRBreset symbol found
+  I19 GRBreset(0) -> 0
+  [I19 basis after reset] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [I19 solved A, GRBreset(0), slack basis written, nolim] Status=2 OPTIMAL(e0) IterCount=40(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I20 solved A, GRBreset(0), suboptimal basis written, nolim] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I21 solved A, GRBreset(0), nothing written, nolim] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  I22 reset after write -> 0
+  [I22 basis after write+reset] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [I22 solved A, write suboptimal, GRBreset(0), nolim] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [I25 solved A, update, GRBreset(0), optimal basis written, lim1] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  I25 basis after == written: yes

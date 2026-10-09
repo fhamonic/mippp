@@ -94,9 +94,19 @@ behind each ruling letter, and the survey of 2026-10-09 in
   suites pass on 10.0.3, 11.0.3, 12.0.1 and 13.0.2 alike.
 - **COPT's "no basis"** answers with the message of HiGHS and Clp: return
   code 3 and a count of basic entries other than the rows both mean no basis.
+- **The explicit choice of B8 (a)** is today an `MSK_IPAR_OPTIMIZER` set
+  through `native_api()` to anything but `MSK_OPTIMIZER_FREE`: the one-shot
+  switches from `MSK_OPTIMIZER_FREE` only, and restores it.
+- **Xpress after a bare `XPRSloadbasis`** (measured on 45.01 and 47.01):
+  PRESOLVESTATE bit 7 stays clear on a model never solved, so `get_basis()`
+  throws there, and stays set on a solved one, whose `get_basis()` then
+  returns the basis just written. B5 leaves that window unspecified; a
+  backend test pins the measurement.
+- **`clp_lp`'s `set_basis()`** reads live entities only, as every backend
+  does: a removed column, which stays in Clp fixed at [0, 0], is written
+  fixed without asking the source for its dead handle.
 
 ## Open questions
 
 None remains on the design. Left to the maintainer outright: an upstream request
-for a SoPlex C setter, the `paper/paper.md` edit, and Gurobi 10 if it lacks
-`GRBreset` (implementation plan, step 3).
+for a SoPlex C setter and the `paper/paper.md` edit.

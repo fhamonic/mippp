@@ -1,0 +1,48 @@
+library /home/plaiseek/Softwares/solvers/xpressmp/lib/libxprs.so version 47.1.1 handle 0x233d7e10
+dlsym XPRSgetbasis             found
+dlsym XPRSloadbasis            found
+dlsym XPRSgetbasisval          found
+dlsym XPRSgetpresolvebasis     found
+dlsym XPRSloadpresolvebasis    found
+dlsym XPRSgetslacks            found
+dlsym XPRSremovecbmessage      found
+
+=== F1: small, add col+row after get, load extended (lim 0)
+  [F1 first] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [F1 first] LPOBJVAL=-17.5 (rc 0)
+  [F1 getbasis after add] getbasis rc=0 rows(11) 0:3 1:5 2:3 3:0 other:0 | cols(14) 0:4 1:6 2:3 3:1 other:0 | #basic=11 vs ROWS=11
+     row codes 02201120111
+     col codes 11201301112200
+  [F1] loadbasis rc=0 KEEPBASIS after=1
+  [F1] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x6c06e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=11/11/11 COLS=14/14/14
+  [F1] LPOBJVAL=-17.5 (rc 0)
+  [F1 final] getbasis rc=0 rows(11) 0:3 1:5 2:3 3:0 other:0 | cols(14) 0:4 1:6 2:3 3:1 other:0 | #basic=11 vs ROWS=11
+     row codes 02201120111
+     col codes 11201301112200
+
+=== F1: small, add col+row after get, load extended (lim -1)
+  [F1 first] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [F1 first] LPOBJVAL=-17.5 (rc 0)
+  [F1 getbasis after add] getbasis rc=0 rows(11) 0:3 1:5 2:3 3:0 other:0 | cols(14) 0:4 1:6 2:3 3:1 other:0 | #basic=11 vs ROWS=11
+     row codes 02201120111
+     col codes 11201301112200
+  [F1] loadbasis rc=0 KEEPBASIS after=1
+  [F1] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x6c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=11/11/11 COLS=14/14/14
+  [F1] LPOBJVAL=-17.5 (rc 0)
+  [F1 final] getbasis rc=0 rows(11) 0:3 1:5 2:3 3:0 other:0 | cols(14) 0:4 1:6 2:3 3:1 other:0 | #basic=11 vs ROWS=11
+     row codes 02201120111
+     col codes 11201301112200
+
+=== F2: big model, add a binding row after solve; load extended with the new row basic
+  [F2 first] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [F2 first] LPOBJVAL=321053.874 (rc 0)
+  [F2] loadbasis rc=0 KEEPBASIS after=1
+  [F2 (slack new row)] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=201/201/201 COLS=200/200/200
+  [F2 (slack new row)] LPOBJVAL=321053.874 (rc 0)
+
+=== F3: big model, fresh model with one extra column and row, load A's basis extended
+  [F3 A] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [F3 A] LPOBJVAL=321053.874 (rc 0)
+  [F3] loadbasis rc=0 KEEPBASIS after=1
+  [F3] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=201/201/201 COLS=201/201/201
+  [F3] LPOBJVAL=321053.874 (rc 0)

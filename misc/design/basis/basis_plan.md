@@ -1,3 +1,7 @@
+> The plan as written before the implementation, kept so that the options and
+> evidence behind each ruling letter stay readable. [basis.md](basis.md)
+> records the rulings and what the implementation settled.
+
 # LP basis support: design plan
 
 Plan for implementing the basis concepts drafted in `model_concepts.hpp`
@@ -20,7 +24,8 @@ range, is not installed); CPLEX 22.1.1 and 22.1.2; Xpress 45.01 and 47.01;
 COPT 8.0.5 (7.2.5 by its exported symbols only, its license is refused here);
 MOSEK 11.0.14, 11.1.11 and 11.2.6.
 
-Nothing is implemented yet. Each question gives the options, a
+Nothing was implemented when this plan was written. Each question gives the
+options, a
 recommendation and the evidence; the [proposed shape](#proposed-shape)
 assumes every recommendation. The maintainer ruled B1, B4 to B7 and B9 to B13
 on 2026-10-09, asked about B2, B3 and B8, whose entries below were revised
@@ -149,7 +154,9 @@ fresh_model.set_basis(slack);           // writes, works on an unsolved model
 
 ## Decisions to take
 
-None is ruled. B1 to B13 deviate from the draft or from an existing pattern,
+None was ruled when this plan was written; the rulings are in
+[basis.md](basis.md). B1 to B13 deviate from the draft or from an existing
+pattern,
 or trade flexibility, ease of use or performance.
 
 - **B1. The writer of `has_modifiable_lp_basis`.** (a) `set_status(e, tag)`
@@ -260,8 +267,10 @@ or trade flexibility, ease of use or performance.
     lower on a new free column, MOSEK `FIX` on an appended column, SoPlex
     `nonbasic_free` on a row whose active side was freed, after which its
     next `solve()` reloads the LP without any basis, `soplex_lp.hpp:515`);
-  - after `set_basis()`: HiGHS throws on a model never solved, Xpress was not
-    measured, the others return the basis as the solver stored it;
+  - after `set_basis()`: HiGHS throws on a model never solved, Xpress throws
+    on a model never solved and returns the written basis on a solved one
+    (measured during the implementation), the others return the basis as the
+    solver stored it;
   - after a `solve()` the wrapper answers without a simplex, after
     `refine_lp_status()`, `compute_iis()` or `compute_iis_by_deletion`.
 
@@ -487,7 +496,7 @@ These follow existing patterns; say so if one should be a question.
   `feature_unavailable_error` when absent: `SoPlex_basisColStatus` (absent
   from 6.0.4, which loads anyway; every SoPlex 7.0 addition is optional,
   `soplex_api.hpp:109-120`) and `GRBreset`, optional only until Gurobi 10.x
-  is checked (see the implementation plan). HiGHS and COPT need nothing new
+  is checked (it was, and became required, see basis.md). HiGHS and COPT need nothing new
   but constants.
 - **Native traps avoided.**
   - Clp: removed columns stay in Clp, so the status buffer spans

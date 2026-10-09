@@ -1,0 +1,163 @@
+library /home/plaiseek/Softwares/solvers/xpressmp_old/lib/libxprs.so.45.01.01 version 45.1.1 handle 0x3889530
+dlsym XPRSgetbasis             found
+dlsym XPRSloadbasis            found
+dlsym XPRSgetbasisval          found
+dlsym XPRSgetpresolvebasis     found
+dlsym XPRSloadpresolvebasis    found
+dlsym XPRSgetslacks            found
+dlsym XPRSremovecbmessage      found
+
+=== H1: simplex optimal, then barrier CROSSOVER=0 re-solve
+  [H1 simplex] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [H1 simplex] LPOBJVAL=321053.874 (rc 0)
+  [H1 barrier] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1500a1 ALGORITHM=4 OPTTYPE=0 SIMPLEXITER=0 BARITER=12 XOVERITER=0 KEEPBASIS=0 ROWS=200/200/200 COLS=200/200/200
+  [H1 barrier] LPOBJVAL=321053.874 (rc 0)
+  [H1 after barrier] getbasis rc=429 err=?429 Error: No basis is available rows(200) 0:0 1:0 2:0 3:0 other:200 | cols(200) 0:0 1:0 2:0 3:0 other:200 | #basic=0 vs ROWS=200
+     row codes ________________________________________...
+     col codes ________________________________________...
+  same as simplex basis: no
+
+=== H1b: simplex optimal, then barrier CROSSOVER=0 re-solve, KEEPBASIS left 1
+  [H1b simplex] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [H1b simplex] LPOBJVAL=321053.874 (rc 0)
+   [H1b simplex msg type 4] ?429 Error: No basis is available
+  [H1b barrier] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1500a1 ALGORITHM=4 OPTTYPE=0 SIMPLEXITER=0 BARITER=12 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [H1b barrier] LPOBJVAL=321053.874 (rc 0)
+  [H1b after barrier] getbasis rc=429 err=?429 Error: No basis is available rows(200) 0:0 1:0 2:0 3:0 other:200 | cols(200) 0:0 1:0 2:0 3:0 other:200 | #basic=0 vs ROWS=200
+     row codes ________________________________________...
+     col codes ________________________________________...
+
+=== H2: optimal small, then presolve-detected infeasible re-solve
+  [H2 first] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=2 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H2 first] LPOBJVAL=-17.5 (rc 0)
+   [H2 first msg type 4] ?429 Error: No basis is available
+  [H2 infeasible] wrapper=infeasible LPSTATUS=2 STOPSTATUS=0 SOLSTATUS=3 SOLVESTATUS=3 PRESOLVESTATE=0x21 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H2 infeasible] LPOBJVAL=-17.5 (rc 0)
+  [H2 after] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  same as optimal basis: yes
+
+=== H3: values of code-3 columns after LPITERLIMIT stops
+  [H3] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [H3] LPOBJVAL=19217474.1 (rc 0)
+  lim 0 getsolution rc 0 avail 0
+   col 0 code 3 x=nan (lb 0, ub inf)
+   col 1 code 3 x=nan (lb 0, ub inf)
+   col 2 code 3 x=nan (lb 0, ub inf)
+   col 3 code 3 x=nan (lb 0, ub inf)
+   col 4 code 3 x=nan (lb 0, ub inf)
+   col 5 code 3 x=nan (lb 0, ub inf)
+  [H3] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=5 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [H3] LPOBJVAL=696980.549 (rc 0)
+  lim 5 getsolution rc 0 avail 0
+   col 29 code 3 x=nan (lb 0, ub inf)
+   col 184 code 3 x=nan (lb 0, ub inf)
+   col 0 code 0 x=nan
+   col 1 code 0 x=nan
+   col 2 code 0 x=nan
+   col 3 code 0 x=nan
+   col 4 code 0 x=nan
+   col 5 code 0 x=nan
+   col 6 code 0 x=nan
+  [H basis] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H basis] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip G row r2 -> 0 (slack lb -inf)
+  loading row 0020112011 col 1120130111220 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip E row r3 (code 2) -> 0
+  loading row 0200112011 col 1120130111220 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:4 1:4 2:2 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0200112011
+     col codes 1120130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip E row r8 (code 0) -> 2
+  loading row 0220112211 col 1120130111220 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:2 1:4 2:4 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112211
+     col codes 1120130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip R row r4 (code 0) -> 2
+  loading row 0222112011 col 1120130111220 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:2 1:4 2:4 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0222112011
+     col codes 1120130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip R row r7 (code 2) -> 0
+  loading row 0220110011 col 1120130111220 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:4 1:4 2:2 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220110011
+     col codes 1120130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip N row r9 (basic) -> 0, and r5 basic->... no: count off
+  loading row 0220112001 col 1120130111220 (#basic 9)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:3 1:3 2:3 3:1 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=9 vs ROWS=10
+     row codes 0220112031
+     col codes 1120130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip fixed x4 (code 0) -> 2
+  loading row 0220112011 col 1122130111220 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:2 1:6 2:4 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1122130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip fixed x12 (code 2) -> 0
+  loading row 0220112011 col 1120130111020 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:4 1:6 2:2 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111020
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip fixed x4 (code 0) -> 3
+  loading row 0220112011 col 1123130111220 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:2 1:6 2:3 3:2 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1123130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H4: flip free x6 (code 3) -> 3 kept
+  loading row 0220112011 col 1120130111220 (#basic 10)
+  [H4] loadbasis rc=0 KEEPBASIS after=1
+  [H4 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [H4] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H4] LPOBJVAL=-17.5 (rc 0)
+
+=== H5: N row r9 basic->0 with x6 3->1? (count kept)
+  [H5] loadbasis rc=0 KEEPBASIS after=1
+  [H5 getbasis after load] getbasis rc=0 rows(10) 0:3 1:3 2:3 3:1 other:0 | cols(13) 0:2 1:7 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112031
+     col codes 1121130111220
+  [H5] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=1 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [H5] LPOBJVAL=-17.5 (rc 0)
+   [H5 msg type 3] ?140 Warning: Basis lost - recovering

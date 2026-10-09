@@ -1,0 +1,11 @@
+=== J: the update + GRBreset(0) + write recipe
+  [J1 solved A, recipe(optimal), then add column + loose row, nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [J2 solved A, recipe(optimal), then loosen bound, nolim] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [J3 solved A, recipe(slack), then loosen bound, nolim] Status=2 OPTIMAL(e0) IterCount=47(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [J4 fresh, recipe(optimal), wrapper solve lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=0
+  [J4b same model, recipe(optimal), wrapper solve lim1] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  J4b X e0
+  J5 reset with a queued column -> 0, NumVars after reset 61 (expected 61 if it flushes)
+  J6 after recipe on a solved model: X e10005, Status 1
+  [J6 read back before update] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [J6 read back after update] VBasis(e0): -1 -1 -1 0 0 0 -1 -2 0 -1 -1 0 -1 0 -1 -1 -1 -1 0 -1 -1 -1 0 0 0 -1 -1 -1 -1 0 0 -1 -1 0 -1 -1 -1 -1 -1 -1 0 0 0 -1 0 0 -1 -2 -1 0 -1 0 -1 -1 0 -1 0 -1 -1 0 | CBasis(e0): -1 0 -1 0 -1 0 -1 0 0 -1 -1 0 -1 -1 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 0 0 -1 -1  #basic=40 #rows=40

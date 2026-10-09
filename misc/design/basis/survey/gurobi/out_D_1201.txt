@@ -1,0 +1,85 @@
+=== D: availability
+  D.before_solve, no update:
+  [D.before_solve_noupdate(len 9/5)] VBasis(e10006 Index out of range for attribute 'CBasis'): | CBasis(e10006):
+  [D.before_solve_updated] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  D.infeasible_trivial presolve=-99
+  [status] Status=3 INFEASIBLE(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  D.infeasible_trivial presolve=0
+  [status] Status=3 INFEASIBLE(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): 0 -1 | CBasis(e0): -1 0  #basic=2 #rows=2
+  D.infeasible_depot presolve=-99 method=-99
+  [status] Status=3 INFEASIBLE(e0) IterCount=8(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): -2 0 -2 0 0 0 0 -2 -2 | CBasis(e0): -1 -1 0 -1 -1 -1  #basic=6 #rows=6
+  D.infeasible_depot presolve=0 method=1
+  [status] Status=3 INFEASIBLE(e0) IterCount=8(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): -2 0 -2 0 0 0 0 -2 -2 | CBasis(e0): -1 -1 0 -1 -1 -1  #basic=6 #rows=6
+  D.infeasible_depot presolve=0 method=0
+  [status] Status=3 INFEASIBLE(e0) IterCount=5(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): -2 -2 0 -2 0 0 0 0 -2 | CBasis(e0): -1 -1 -1 -1 -1 0  #basic=6 #rows=6
+  D.unbounded presolve=-99 method=-99
+  [status] Status=4 INF_OR_UNBD(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [status after DualReductions=0 re-solve] Status=5 UNBOUNDED(e0) IterCount=2(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): 0 0 -1 | CBasis(e0): -1 -1 0  #basic=3 #rows=3
+  D.unbounded presolve=0 method=0
+  [status] Status=5 UNBOUNDED(e0) IterCount=2(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): -1 0 -2 | CBasis(e0): 0 0 -1  #basic=3 #rows=3
+  [status after DualReductions=0 re-solve] Status=5 UNBOUNDED(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): -1 0 -2 | CBasis(e0): 0 0 -1  #basic=3 #rows=3
+  D.unbounded presolve=0 method=1
+  [status] Status=5 UNBOUNDED(e0) IterCount=2(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): 0 0 -1 | CBasis(e0): -1 -1 0  #basic=3 #rows=3
+  [status after DualReductions=0 re-solve] Status=5 UNBOUNDED(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=nan(e10005) SolCount=0
+  [basis] VBasis(e0): 0 0 -1 | CBasis(e0): -1 -1 0  #basic=3 #rows=3
+  D.iteration_limit presolve=-99 method=-99 limit=1
+  [status] Status=7 ITERATION_LIMIT(e0) IterCount=1(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2070.75(e0) SolCount=0
+  [basis] VBasis(e0): -2 -2 -1 -1 0 -2 -1 -2 -2 -2 -1 -1 -1 -2 -2 -2 -1 -1 -1 -1 -1 -2 -1 -2 -2 -1 -1 -2 -1 -2 -1 -2 -1 -2 -1 -1 -2 -2 -1 -2 -2 -1 -1 -2 -2 -1 -2 -1 -1 -2 -2 0 -1 0 -1 -1 -2 -2 -1 -2 | CBasis(e0): -1 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0  #basic=40 #rows=40
+  D.iteration_limit presolve=0 method=1 limit=1
+  [status] Status=7 ITERATION_LIMIT(e0) IterCount=1(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=2070.75(e0) SolCount=0
+  [basis] VBasis(e0): -2 -2 -1 -1 0 -2 -1 -2 -2 -2 -1 -1 -1 -2 -2 -2 -1 -1 -1 -1 -1 -2 -1 -2 -2 -1 -1 -2 -1 -2 -1 -2 -1 -2 -1 -1 -2 -2 -1 -2 -2 -1 -1 -2 -2 -1 -2 -1 -1 -2 -2 0 -1 0 -1 -1 -2 -2 -1 -2 | CBasis(e0): -1 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0  #basic=40 #rows=40
+  D.iteration_limit presolve=0 method=0 limit=5
+  [status] Status=7 ITERATION_LIMIT(e0) IterCount=5(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=480(e0) SolCount=0
+  [basis] VBasis(e0): -1 -1 -1 -1 -1 0 -1 -1 -1 -1 -1 -2 -1 -1 -1 -1 -1 -1 -1 -1 -1 0 -1 -2 -1 -1 -1 -1 -1 -1 0 -1 -1 0 -1 -1 -1 -2 -1 -1 -1 -1 -1 -1 -2 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0 -1 -1 | CBasis(e0): 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 -1 0 0 0 -1 -1  #basic=40 #rows=40
+  D.iteration_limit presolve=-99 method=2 limit=3
+  [status] Status=7 ITERATION_LIMIT(e0) IterCount=4(e0) BarIter=7(e0) ConcWin=-1(e0) ObjVal=-1e+100(e0) SolCount=0
+  [basis] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  D.bar_iter_limit method=2 BarIterLimit=2
+  [status] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=2(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=1
+  [basis] VBasis(e0): -1 -1 -1 0 0 0 -1 -2 0 -1 -1 0 -1 0 -1 -1 -1 -1 0 -1 -1 -1 0 0 0 -1 -1 -1 -1 0 0 -1 -1 0 -1 -1 -1 -1 -1 -1 0 0 0 -1 0 0 -1 -2 -1 0 -1 0 -1 -1 0 -1 0 -1 -1 0 | CBasis(e0): -1 0 -1 0 -1 0 -1 0 0 -1 -1 0 -1 -1 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 0 0 -1 -1  #basic=40 #rows=40
+  D.time_limit_0
+  [status] Status=9 TIME_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-1e+100(e0) SolCount=0
+  [basis] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  D.method=2 crossover=0
+  [status] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=7(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=1
+  [basis] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  D.method=2 crossover=-99
+  [status] Status=2 OPTIMAL(e0) IterCount=4(e0) BarIter=7(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=1
+  [basis] VBasis(e0): -1 -1 -1 0 0 0 -1 -2 0 -1 -1 0 -1 0 -1 -1 -1 -1 0 -1 -1 -1 0 0 0 -1 -1 -1 -1 0 0 -1 -1 0 -1 -1 -1 -1 -1 -1 0 0 0 -1 0 0 -1 -2 -1 0 -1 0 -1 -1 0 -1 0 -1 -1 0 | CBasis(e0): -1 0 -1 0 -1 0 -1 0 0 -1 -1 0 -1 -1 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 0 0 -1 -1  #basic=40 #rows=40
+  D.method=6 crossover=0
+  [status] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=1900(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=1
+  [basis] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  D.method=6 crossover=-99
+  [status] Status=2 OPTIMAL(e0) IterCount=25(e0) BarIter=1900(e0) ConcWin=-1(e0) ObjVal=629.581256(e0) SolCount=1
+  [basis] VBasis(e0): -1 -1 -1 0 0 0 -1 -2 0 -1 -1 0 -1 0 -1 -1 -1 -1 0 -1 -1 -1 0 0 0 -1 -1 -1 -1 0 0 -1 -1 0 -1 -1 -1 -1 -1 -1 0 0 0 -1 0 0 -1 -2 -1 0 -1 0 -1 -1 0 -1 0 -1 -1 0 | CBasis(e0): -1 0 -1 0 -1 0 -1 0 0 -1 -1 0 -1 -1 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 0 0 -1 -1  #basic=40 #rows=40
+  D.wrapper_solve_medium
+  [status] Status=2 OPTIMAL(e0) IterCount=39(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=629.581256(e0) SolCount=1
+  [basis] VBasis(e0): -1 -1 -1 0 0 0 -1 -2 0 -1 -1 0 -1 0 -1 -1 -1 -1 0 -1 -1 -1 0 0 0 -1 -1 -1 -1 0 0 -1 -1 0 -1 -1 -1 -1 -1 -1 0 0 0 -1 0 0 -1 -2 -1 0 -1 0 -1 -1 0 -1 0 -1 -1 0 | CBasis(e0): -1 0 -1 0 -1 0 -1 0 0 -1 -1 0 -1 -1 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 0 0 -1 -1  #basic=40 #rows=40
+  [D.mod base solve] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [D.mod ub(x)=9 queued, no update] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+    X[x] read -> e0 2
+  [D.mod ub(x)=9 after GRBupdatemodel] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+    X[x] read -> e10005 2
+  [D.mod re-solve] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [D.mod after wrapper getter (no pending change)] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [D.mod add row queued, len 9/5, no update] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  [D.mod add row queued, len 9/6, no update] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e10006):
+  [D.mod add row after update] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [D.mod re-solve 2] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [D.mod add column queued, len 9/6, no update] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0 0  #basic=6 #rows=6
+  [D.mod add column queued, len 10/6, no update] VBasis(e10006 ): | CBasis(e0): -1 -1 -1 -1 0 0
+  [D.mod add column after update] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [D.mod re-solve 3] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=19(e0) SolCount=1
+  [D.mod obj coef change after update] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [D.mod rhs change after update] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [D.mod param change (Method=1)] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 -1 | CBasis(e0): -1 -1 -1 -1 0 0  #basic=6 #rows=6

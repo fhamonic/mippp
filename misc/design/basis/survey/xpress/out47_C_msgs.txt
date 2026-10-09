@@ -1,0 +1,475 @@
+library /home/plaiseek/Softwares/solvers/xpressmp/lib/libxprs.so version 47.1.1 handle 0x2f3e9e10
+dlsym XPRSgetbasis             found
+dlsym XPRSloadbasis            found
+dlsym XPRSgetbasisval          found
+dlsym XPRSgetpresolvebasis     found
+dlsym XPRSloadpresolvebasis    found
+dlsym XPRSgetslacks            found
+dlsym XPRSremovecbmessage      found
+
+=== C: default
+  DEFAULTALG=1 LPFLAGS=0 PRESOLVE=1 CROSSOVER=-1
+  [C] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=2 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [C] LPOBJVAL=-17.5 (rc 0)
+   [C msg type 1] FICO Xpress v9.9.0, Community, solve started 17:06:55, Oct 9, 2026
+   [C msg type 1] Heap usage: 179KB (peak 179KB, 42KB system)
+   [C msg type 1] Minimizing LP  using up to 16 threads and up to 30GB memory, with these control settings:
+   [C msg type 1] OUTPUTLOG = 1
+   [C msg type 1] TIMELIMIT = 10
+   [C msg type 1] Original problem has:
+   [C msg type 1]         10 rows           13 cols           25 elements
+   [C msg type 1] Presolved problem has:
+   [C msg type 1]          2 rows            3 cols            4 elements
+   [C msg type 1] Presolve finished in 0 seconds
+   [C msg type 1] Heap usage: 178KB (peak 207KB, 42KB system)
+   [C msg type 1] Coefficient range                    original                 solved        
+   [C msg type 1]   Coefficients   [min,max] : [ 1.00e+00,  1.00e+00] / [ 1.00e+00,  1.00e+00]
+   [C msg type 1]   RHS and bounds [min,max] : [ 1.00e+00,  1.00e+02] / [ 3.00e+00,  1.00e+02]
+   [C msg type 1]   Objective      [min,max] : [ 1.00e+00,  3.00e+00] / [ 1.00e+00,  2.50e+00]
+   [C msg type 1] Autoscaling applied standard scaling
+   [C msg type 1] Starting concurrent solve with dual (1 thread)
+   [C msg type 1]  Concurrent-Solve,   0s
+   [C msg type 1]             Dual        
+   [C msg type 1]     objective   dual inf
+   [C msg type 1]                         
+   [C msg type 1] ------- optimal --------
+   [C msg type 1] Concurrent statistics:
+   [C msg type 1]            Dual: 2 simplex iterations, 0.00s
+   [C msg type 1] Uncrunching matrix
+   [C msg type 1] Optimal solution found
+   [C msg type 1]  
+   [C msg type 1]    Its         Obj Value      S   Ninf  Nneg   Sum Dual Inf  Time
+   [C msg type 1]      2        -17.500000      D      0     0        .000000     0
+   [C msg type 1] Dual solved problem
+   [C msg type 1]   2 simplex iterations in 0.00 seconds at time 0
+   [C msg type 1] Final objective                       : -1.750000000000000e+01
+   [C msg type 1]   Max primal violation      (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max dual violation        (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max complementarity viol. (abs/rel) :       0.0 /       0.0
+  [C] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  sol rc 0 0 0 0
+  col          lb       ub          x         dj  code  getbasisval
+  x1            0       10          5          0  1     1 (rc 0)
+  x2            0       10          3          0  1     1 (rc 0)
+  x3            0        4          4         -2  2     2 (rc 0)
+  x4            2        2          2          3  0     0 (rc 0)
+  x5         -inf      inf          2          0  1     1 (rc 0)
+  x6         -inf      inf          0          0  3     3 (rc 0)
+  x7            0       10          0          2  0     0 (rc 0)
+  x8            0       10          3          0  1     1 (rc 0)
+  x10           0      100          2          0  1     1 (rc 0)
+  x11           0       10          4          0  1     1 (rc 0)
+  x12           1        1          1         -3  2     2 (rc 0)
+  x13        -inf        5          5         -1  2     2 (rc 0)
+  x14          -3      inf         -3          1  0     0 (rc 0)
+  row          type      rhs    range   activity      slack       dual  code  getbasisval
+  r1 L tight      L        8    1e+20          8          0      -0.25  0     0 (rc 0)
+  r2 G tight      G        2    1e+20          2          0       0.75  2     2 (rc 0)
+  r3 E y>0        E        7        0          7          0          1  2     2 (rc 0)
+  r4 R@upper      R        6        5          6          0         -2  0     0 (rc 0)
+  r5 L basic      L      100    1e+20          9         91         -0  1     1 (rc 0)
+  r6 L basic      L       20    1e+20         13          7         -0  1     1 (rc 0)
+  r7 R@lower      R       12        7          5          7          1  2     2 (rc 0)
+  r8 E y<0        E        4        0          4          0         -1  0     0 (rc 0)
+  r9 N free       N        0    1e+20          9         -9         -0  1     1 (rc 0)
+  r10 G basic     G        1    1e+20          8         -7         -0  1     1 (rc 0)
+
+=== C: presolve=0
+  DEFAULTALG=1 LPFLAGS=0 PRESOLVE=0 CROSSOVER=-1
+  [C] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [C] LPOBJVAL=-17.5 (rc 0)
+   [C msg type 1] FICO Xpress v9.9.0, Community, solve started 17:06:55, Oct 9, 2026
+   [C msg type 1] Heap usage: 179KB (peak 179KB, 47KB system)
+   [C msg type 1] Minimizing LP  using up to 16 threads and up to 30GB memory, with these control settings:
+   [C msg type 1] PRESOLVE = 0
+   [C msg type 1] OUTPUTLOG = 1
+   [C msg type 1] TIMELIMIT = 10
+   [C msg type 1] Original problem has:
+   [C msg type 1]         10 rows           13 cols           25 elements
+   [C msg type 1] Coefficient range                    original                 solved        
+   [C msg type 1]   Coefficients   [min,max] : [ 1.00e+00,  1.00e+00] / [ 1.00e+00,  1.00e+00]
+   [C msg type 1]   RHS and bounds [min,max] : [ 1.00e+00,  1.00e+02] / [ 1.00e+00,  1.00e+02]
+   [C msg type 1]   Objective      [min,max] : [ 1.00e+00,  3.00e+00] / [ 1.00e+00,  3.00e+00]
+   [C msg type 1] Autoscaling applied standard scaling
+   [C msg type 1] Starting concurrent solve with dual (1 thread)
+   [C msg type 1]  Concurrent-Solve,   0s
+   [C msg type 1]             Dual        
+   [C msg type 1]     objective   dual inf
+   [C msg type 1]                         
+   [C msg type 1] ------- optimal --------
+   [C msg type 1] Concurrent statistics:
+   [C msg type 1]            Dual: 6 simplex iterations, 0.00s
+   [C msg type 1] Optimal solution found
+   [C msg type 1]  
+   [C msg type 1]    Its         Obj Value      S   Ninf  Nneg   Sum Dual Inf  Time
+   [C msg type 1]      6        -17.500000      D      0     0        .000000     0
+   [C msg type 1] Dual solved problem
+   [C msg type 1]   6 simplex iterations in 0.00 seconds at time 0
+   [C msg type 1] Final objective                       : -1.750000000000000e+01
+   [C msg type 1]   Max primal violation      (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max dual violation        (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max complementarity viol. (abs/rel) :       0.0 /       0.0
+  [C] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  sol rc 0 0 0 0
+  col          lb       ub          x         dj  code  getbasisval
+  x1            0       10          5          0  1     1 (rc 0)
+  x2            0       10          3          0  1     1 (rc 0)
+  x3            0        4          4         -2  2     2 (rc 0)
+  x4            2        2          2          3  0     0 (rc 0)
+  x5         -inf      inf          2          0  1     1 (rc 0)
+  x6         -inf      inf          0          0  3     3 (rc 0)
+  x7            0       10          0          2  0     0 (rc 0)
+  x8            0       10          3          0  1     1 (rc 0)
+  x10           0      100          2          0  1     1 (rc 0)
+  x11           0       10          4          0  1     1 (rc 0)
+  x12           1        1          1         -3  2     2 (rc 0)
+  x13        -inf        5          5         -1  2     2 (rc 0)
+  x14          -3      inf         -3          1  0     0 (rc 0)
+  row          type      rhs    range   activity      slack       dual  code  getbasisval
+  r1 L tight      L        8    1e+20          8          0      -0.25  0     0 (rc 0)
+  r2 G tight      G        2    1e+20          2          0       0.75  2     2 (rc 0)
+  r3 E y>0        E        7        0          7          0          1  2     2 (rc 0)
+  r4 R@upper      R        6        5          6          0         -2  0     0 (rc 0)
+  r5 L basic      L      100    1e+20          9         91         -0  1     1 (rc 0)
+  r6 L basic      L       20    1e+20         13          7         -0  1     1 (rc 0)
+  r7 R@lower      R       12        7          5          7          1  2     2 (rc 0)
+  r8 E y<0        E        4        0          4          0         -1  0     0 (rc 0)
+  r9 N free       N        0    1e+20          9         -9         -0  1     1 (rc 0)
+  r10 G basic     G        1    1e+20          8         -7         -0  1     1 (rc 0)
+
+=== C: presolve=0 LPFLAGS dual
+  DEFAULTALG=1 LPFLAGS=1 PRESOLVE=0 CROSSOVER=-1
+  [C] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [C] LPOBJVAL=-17.5 (rc 0)
+   [C msg type 1] FICO Xpress v9.9.0, Community, solve started 17:06:55, Oct 9, 2026
+   [C msg type 1] Heap usage: 179KB (peak 179KB, 51KB system)
+   [C msg type 1] Minimizing LP  using up to 16 threads and up to 30GB memory, with these control settings:
+   [C msg type 1] PRESOLVE = 0
+   [C msg type 1] OUTPUTLOG = 1
+   [C msg type 1] LPFLAGS = 1
+   [C msg type 1] TIMELIMIT = 10
+   [C msg type 1] Original problem has:
+   [C msg type 1]         10 rows           13 cols           25 elements
+   [C msg type 1] Coefficient range                    original                 solved        
+   [C msg type 1]   Coefficients   [min,max] : [ 1.00e+00,  1.00e+00] / [ 1.00e+00,  1.00e+00]
+   [C msg type 1]   RHS and bounds [min,max] : [ 1.00e+00,  1.00e+02] / [ 1.00e+00,  1.00e+02]
+   [C msg type 1]   Objective      [min,max] : [ 1.00e+00,  3.00e+00] / [ 1.00e+00,  3.00e+00]
+   [C msg type 1] Autoscaling applied standard scaling
+   [C msg type 1]  
+   [C msg type 1]    Its         Obj Value      S   Ninf  Nneg   Sum Dual Inf  Time
+   [C msg type 1]      0        -63.000000      D      6     1       1.000000     0
+   [C msg type 1]      6        -17.500000      D      0     0        .000000     0
+   [C msg type 1] Optimal solution found
+   [C msg type 1] Dual solved problem
+   [C msg type 1]   6 simplex iterations in 0.00 seconds at time 0
+   [C msg type 1] Final objective                       : -1.750000000000000e+01
+   [C msg type 1]   Max primal violation      (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max dual violation        (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max complementarity viol. (abs/rel) :       0.0 /       0.0
+  [C] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  sol rc 0 0 0 0
+  col          lb       ub          x         dj  code  getbasisval
+  x1            0       10          5          0  1     1 (rc 0)
+  x2            0       10          3          0  1     1 (rc 0)
+  x3            0        4          4         -2  2     2 (rc 0)
+  x4            2        2          2          3  0     0 (rc 0)
+  x5         -inf      inf          2          0  1     1 (rc 0)
+  x6         -inf      inf          0          0  3     3 (rc 0)
+  x7            0       10          0          2  0     0 (rc 0)
+  x8            0       10          3          0  1     1 (rc 0)
+  x10           0      100          2          0  1     1 (rc 0)
+  x11           0       10          4          0  1     1 (rc 0)
+  x12           1        1          1         -3  2     2 (rc 0)
+  x13        -inf        5          5         -1  2     2 (rc 0)
+  x14          -3      inf         -3          1  0     0 (rc 0)
+  row          type      rhs    range   activity      slack       dual  code  getbasisval
+  r1 L tight      L        8    1e+20          8          0      -0.25  0     0 (rc 0)
+  r2 G tight      G        2    1e+20          2          0       0.75  2     2 (rc 0)
+  r3 E y>0        E        7        0          7          0          1  2     2 (rc 0)
+  r4 R@upper      R        6        5          6          0         -2  0     0 (rc 0)
+  r5 L basic      L      100    1e+20          9         91         -0  1     1 (rc 0)
+  r6 L basic      L       20    1e+20         13          7         -0  1     1 (rc 0)
+  r7 R@lower      R       12        7          5          7          1  2     2 (rc 0)
+  r8 E y<0        E        4        0          4          0         -1  0     0 (rc 0)
+  r9 N free       N        0    1e+20          9         -9         -0  1     1 (rc 0)
+  r10 G basic     G        1    1e+20          8         -7         -0  1     1 (rc 0)
+
+=== C: presolve=0 LPFLAGS primal
+  DEFAULTALG=1 LPFLAGS=2 PRESOLVE=0 CROSSOVER=-1
+  [C] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=3 OPTTYPE=0 SIMPLEXITER=7 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [C] LPOBJVAL=-17.5 (rc 0)
+   [C msg type 1] FICO Xpress v9.9.0, Community, solve started 17:06:55, Oct 9, 2026
+   [C msg type 1] Heap usage: 179KB (peak 179KB, 54KB system)
+   [C msg type 1] Minimizing LP  using up to 16 threads and up to 30GB memory, with these control settings:
+   [C msg type 1] PRESOLVE = 0
+   [C msg type 1] OUTPUTLOG = 1
+   [C msg type 1] LPFLAGS = 2
+   [C msg type 1] TIMELIMIT = 10
+   [C msg type 1] Original problem has:
+   [C msg type 1]         10 rows           13 cols           25 elements
+   [C msg type 1] Coefficient range                    original                 solved        
+   [C msg type 1]   Coefficients   [min,max] : [ 1.00e+00,  1.00e+00] / [ 1.00e+00,  1.00e+00]
+   [C msg type 1]   RHS and bounds [min,max] : [ 1.00e+00,  1.00e+02] / [ 1.00e+00,  1.00e+02]
+   [C msg type 1]   Objective      [min,max] : [ 1.00e+00,  3.00e+00] / [ 1.00e+00,  3.00e+00]
+   [C msg type 1] Autoscaling applied standard scaling
+   [C msg type 1] Crash basis containing 4 structural columns created
+   [C msg type 1]  
+   [C msg type 1]    Its         Obj Value      S   Ninf  Nneg        Sum Inf  Time
+   [C msg type 1]      0         -4.000000      p      2     5       3.000000     0
+   [C msg type 1]      7        -17.500000      p      0     0        .000000     0
+   [C msg type 1] Optimal solution found
+   [C msg type 1] Primal solved problem
+   [C msg type 1]   7 simplex iterations in 0.00 seconds at time 0
+   [C msg type 1] Final objective                       : -1.750000000000000e+01
+   [C msg type 1]   Max primal violation      (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max dual violation        (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max complementarity viol. (abs/rel) :       0.0 /       0.0
+  [C] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  sol rc 0 0 0 0
+  col          lb       ub          x         dj  code  getbasisval
+  x1            0       10          5          0  1     1 (rc 0)
+  x2            0       10          3          0  1     1 (rc 0)
+  x3            0        4          4         -2  2     2 (rc 0)
+  x4            2        2          2          3  0     0 (rc 0)
+  x5         -inf      inf          2          0  1     1 (rc 0)
+  x6         -inf      inf          0          0  3     3 (rc 0)
+  x7            0       10          0          2  0     0 (rc 0)
+  x8            0       10          3          0  1     1 (rc 0)
+  x10           0      100          2          0  1     1 (rc 0)
+  x11           0       10          4          0  1     1 (rc 0)
+  x12           1        1          1         -3  2     2 (rc 0)
+  x13        -inf        5          5         -1  2     2 (rc 0)
+  x14          -3      inf         -3          1  0     0 (rc 0)
+  row          type      rhs    range   activity      slack       dual  code  getbasisval
+  r1 L tight      L        8    1e+20          8          0      -0.25  0     0 (rc 0)
+  r2 G tight      G        2    1e+20          2          0       0.75  2     2 (rc 0)
+  r3 E y>0        E        7        0          7          0          1  2     2 (rc 0)
+  r4 R@upper      R        6        5          6          0         -2  0     0 (rc 0)
+  r5 L basic      L      100    1e+20          9         91         -0  1     1 (rc 0)
+  r6 L basic      L       20    1e+20         13          7         -0  1     1 (rc 0)
+  r7 R@lower      R       12        7          5          7          1  2     2 (rc 0)
+  r8 E y<0        E        4        0          4          0         -1  0     0 (rc 0)
+  r9 N free       N        0    1e+20          9         -9         -0  1     1 (rc 0)
+  r10 G basic     G        1    1e+20          8         -7         -0  1     1 (rc 0)
+
+=== C: LPFLAGS primal
+  DEFAULTALG=1 LPFLAGS=2 PRESOLVE=1 CROSSOVER=-1
+  [C] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=3 OPTTYPE=0 SIMPLEXITER=1 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [C] LPOBJVAL=-17.5 (rc 0)
+   [C msg type 1] FICO Xpress v9.9.0, Community, solve started 17:06:55, Oct 9, 2026
+   [C msg type 1] Heap usage: 179KB (peak 179KB, 56KB system)
+   [C msg type 1] Minimizing LP  using up to 16 threads and up to 30GB memory, with these control settings:
+   [C msg type 1] OUTPUTLOG = 1
+   [C msg type 1] LPFLAGS = 2
+   [C msg type 1] TIMELIMIT = 10
+   [C msg type 1] Original problem has:
+   [C msg type 1]         10 rows           13 cols           25 elements
+   [C msg type 1] Presolved problem has:
+   [C msg type 1]          2 rows            3 cols            4 elements
+   [C msg type 1] Presolve finished in 0 seconds
+   [C msg type 1] Heap usage: 178KB (peak 207KB, 56KB system)
+   [C msg type 1] Coefficient range                    original                 solved        
+   [C msg type 1]   Coefficients   [min,max] : [ 1.00e+00,  1.00e+00] / [ 1.00e+00,  1.00e+00]
+   [C msg type 1]   RHS and bounds [min,max] : [ 1.00e+00,  1.00e+02] / [ 3.00e+00,  1.00e+02]
+   [C msg type 1]   Objective      [min,max] : [ 1.00e+00,  3.00e+00] / [ 1.00e+00,  2.50e+00]
+   [C msg type 1] Autoscaling applied standard scaling
+   [C msg type 1] Crash basis containing 1 structural columns created
+   [C msg type 1]  
+   [C msg type 1]    Its         Obj Value      S   Ninf  Nneg        Sum Inf  Time
+   [C msg type 1]      0        -11.500000      p      0     0        .000000     0
+   [C msg type 1]      1        -17.500000      p      0     0        .000000     0
+   [C msg type 1] Uncrunching matrix
+   [C msg type 1] Optimal solution found
+   [C msg type 1] Primal solved problem
+   [C msg type 1]   1 simplex iterations in 0.00 seconds at time 0
+   [C msg type 1] Final objective                       : -1.750000000000000e+01
+   [C msg type 1]   Max primal violation      (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max dual violation        (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max complementarity viol. (abs/rel) :       0.0 /       0.0
+  [C] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  sol rc 0 0 0 0
+  col          lb       ub          x         dj  code  getbasisval
+  x1            0       10          5          0  1     1 (rc 0)
+  x2            0       10          3          0  1     1 (rc 0)
+  x3            0        4          4         -2  2     2 (rc 0)
+  x4            2        2          2          3  0     0 (rc 0)
+  x5         -inf      inf          2          0  1     1 (rc 0)
+  x6         -inf      inf          0          0  3     3 (rc 0)
+  x7            0       10          0          2  0     0 (rc 0)
+  x8            0       10          3          0  1     1 (rc 0)
+  x10           0      100          2          0  1     1 (rc 0)
+  x11           0       10          4          0  1     1 (rc 0)
+  x12           1        1          1         -3  2     2 (rc 0)
+  x13        -inf        5          5         -1  2     2 (rc 0)
+  x14          -3      inf         -3          1  0     0 (rc 0)
+  row          type      rhs    range   activity      slack       dual  code  getbasisval
+  r1 L tight      L        8    1e+20          8          0      -0.25  0     0 (rc 0)
+  r2 G tight      G        2    1e+20          2          0       0.75  2     2 (rc 0)
+  r3 E y>0        E        7        0          7          0          1  2     2 (rc 0)
+  r4 R@upper      R        6        5          6          0         -2  0     0 (rc 0)
+  r5 L basic      L      100    1e+20          9         91         -0  1     1 (rc 0)
+  r6 L basic      L       20    1e+20         13          7         -0  1     1 (rc 0)
+  r7 R@lower      R       12        7          5          7          1  2     2 (rc 0)
+  r8 E y<0        E        4        0          4          0         -1  0     0 (rc 0)
+  r9 N free       N        0    1e+20          9         -9         -0  1     1 (rc 0)
+  r10 G basic     G        1    1e+20          8         -7         -0  1     1 (rc 0)
+
+=== C: LPFLAGS barrier (crossover default)
+  DEFAULTALG=1 LPFLAGS=4 PRESOLVE=1 CROSSOVER=-1
+  [C] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=4 OPTTYPE=0 SIMPLEXITER=0 BARITER=6 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [C] LPOBJVAL=-17.5 (rc 0)
+   [C msg type 1] FICO Xpress v9.9.0, Community, solve started 17:06:55, Oct 9, 2026
+   [C msg type 1] Heap usage: 179KB (peak 179KB, 58KB system)
+   [C msg type 1] Minimizing LP  using up to 16 threads and up to 30GB memory, with these control settings:
+   [C msg type 1] OUTPUTLOG = 1
+   [C msg type 1] LPFLAGS = 4
+   [C msg type 1] TIMELIMIT = 10
+   [C msg type 1] Original problem has:
+   [C msg type 1]         10 rows           13 cols           25 elements
+   [C msg type 1] Presolved problem has:
+   [C msg type 1]          2 rows            3 cols            4 elements
+   [C msg type 1] Presolve finished in 0 seconds
+   [C msg type 1] Heap usage: 178KB (peak 207KB, 58KB system)
+   [C msg type 1] Coefficient range                    original                 solved        
+   [C msg type 1]   Coefficients   [min,max] : [ 1.00e+00,  1.00e+00] / [ 1.00e+00,  1.00e+00]
+   [C msg type 1]   RHS and bounds [min,max] : [ 1.00e+00,  1.00e+02] / [ 3.00e+00,  1.00e+02]
+   [C msg type 1]   Objective      [min,max] : [ 1.00e+00,  3.00e+00] / [ 1.00e+00,  2.50e+00]
+   [C msg type 1] Using AVX2 support
+   [C msg type 1] Cores per CPU (CORESPERCPU): 16
+   [C msg type 1] Barrier starts after 0 seconds, using up to 16 threads, 8 cores
+   [C msg type 1] Matrix ordering - Dense cols.:      0   NZ(L):        11   Flops:           12
+   [C msg type 1]  
+   [C msg type 1]   Its   P.inf      D.inf      U.inf      Primal obj.     Dual obj.      Compl.
+   [C msg type 1]    0   8.50e+00   2.36e+00   1.60e+01  -3.2750000e+01  -3.6858132e+01   1.3e+02
+   [C msg type 1]    1   3.33e-01   4.44e-16   6.27e-01  -1.5087235e+01  -2.8962959e+01   1.7e+01
+   [C msg type 1]    2   2.78e-02   1.78e-14   5.23e-02  -1.7042897e+01  -1.9067877e+01   2.2e+00
+   [C msg type 1]    3   1.93e-15   8.26e-16   3.47e-18  -1.7348207e+01  -1.7609814e+01   2.6e-01
+   [C msg type 1]    4   8.88e-16   4.44e-16   8.88e-16  -1.7499753e+01  -1.7500635e+01   8.8e-04
+   [C msg type 1]    5   1.78e-15   1.11e-16   1.56e-16  -1.7500000e+01  -1.7500001e+01   8.8e-07
+   [C msg type 1]    6   3.90e-16   3.11e-16   2.43e-16  -1.7500000e+01  -1.7500000e+01   8.8e-10
+   [C msg type 1] Barrier method finished in 0 seconds
+   [C msg type 1] Crossover crash basis containing 2 structurals form 2 candidates
+   [C msg type 1] Crossover starts
+   [C msg type 1]  
+   [C msg type 1]    Its         Obj Value      S   Ninf  Nneg        Sum Inf  Time
+   [C msg type 1]      0        -17.500000      P      0     0        .000000     0
+   [C msg type 1]      0        -17.500000      N      0     0        .000000     0
+   [C msg type 1]      0        -17.500000      D      0     0        .000000     0
+   [C msg type 1] Crossover successful
+   [C msg type 1] Objective function value:   -17.500000 time: 0
+   [C msg type 1]      0        -17.500000      P      0     0        .000000     0
+   [C msg type 1] Uncrunching matrix
+   [C msg type 1] Optimal solution found
+   [C msg type 1] Barrier solved problem
+   [C msg type 1]   6 barrier iterations in 0.00 seconds at time 0
+   [C msg type 1] Final objective                       : -1.750000000000000e+01
+   [C msg type 1]   Max primal violation      (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max dual violation        (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max complementarity viol. (abs/rel) :       0.0 /       0.0
+  [C] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  sol rc 0 0 0 0
+  col          lb       ub          x         dj  code  getbasisval
+  x1            0       10          5          0  1     1 (rc 0)
+  x2            0       10          3          0  1     1 (rc 0)
+  x3            0        4          4         -2  2     2 (rc 0)
+  x4            2        2          2          3  0     0 (rc 0)
+  x5         -inf      inf          2          0  1     1 (rc 0)
+  x6         -inf      inf          0          0  3     3 (rc 0)
+  x7            0       10          0          2  0     0 (rc 0)
+  x8            0       10          3          0  1     1 (rc 0)
+  x10           0      100          2          0  1     1 (rc 0)
+  x11           0       10          4          0  1     1 (rc 0)
+  x12           1        1          1         -3  2     2 (rc 0)
+  x13        -inf        5          5         -1  2     2 (rc 0)
+  x14          -3      inf         -3          1  0     0 (rc 0)
+  row          type      rhs    range   activity      slack       dual  code  getbasisval
+  r1 L tight      L        8    1e+20          8          0      -0.25  0     0 (rc 0)
+  r2 G tight      G        2    1e+20          2          0       0.75  2     2 (rc 0)
+  r3 E y>0        E        7        0          7          0          1  2     2 (rc 0)
+  r4 R@upper      R        6        5          6          0         -2  0     0 (rc 0)
+  r5 L basic      L      100    1e+20          9         91         -0  1     1 (rc 0)
+  r6 L basic      L       20    1e+20         13          7         -0  1     1 (rc 0)
+  r7 R@lower      R       12        7          5          7          1  2     2 (rc 0)
+  r8 E y<0        E        4        0          4          0         -1  0     0 (rc 0)
+  r9 N free       N        0    1e+20          9         -9         -0  1     1 (rc 0)
+  r10 G basic     G        1    1e+20          8         -7         -0  1     1 (rc 0)
+
+=== C: presolve=0 LPFLAGS barrier CROSSOVER=0
+  DEFAULTALG=1 LPFLAGS=4 PRESOLVE=0 CROSSOVER=0
+  [C] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x4d04e1 ALGORITHM=4 OPTTYPE=0 SIMPLEXITER=0 BARITER=5 XOVERITER=0 KEEPBASIS=0 ROWS=10/10/10 COLS=13/13/13
+  [C] LPOBJVAL=-17.4999996 (rc 0)
+   [C msg type 1] FICO Xpress v9.9.0, Community, solve started 17:06:55, Oct 9, 2026
+   [C msg type 1] Heap usage: 179KB (peak 179KB, 60KB system)
+   [C msg type 1] Minimizing LP  using up to 16 threads and up to 30GB memory, with these control settings:
+   [C msg type 1] PRESOLVE = 0
+   [C msg type 1] OUTPUTLOG = 1
+   [C msg type 1] CROSSOVER = 0
+   [C msg type 1] LPFLAGS = 4
+   [C msg type 1] TIMELIMIT = 10
+   [C msg type 1] Original problem has:
+   [C msg type 1]         10 rows           13 cols           25 elements
+   [C msg type 1] Coefficient range                    original                 solved        
+   [C msg type 1]   Coefficients   [min,max] : [ 1.00e+00,  1.00e+00] / [ 1.00e+00,  1.00e+00]
+   [C msg type 1]   RHS and bounds [min,max] : [ 1.00e+00,  1.00e+02] / [ 1.00e+00,  1.00e+02]
+   [C msg type 1]   Objective      [min,max] : [ 1.00e+00,  3.00e+00] / [ 1.00e+00,  3.00e+00]
+   [C msg type 1] Using AVX2 support
+   [C msg type 1] Cores per CPU (CORESPERCPU): 16
+   [C msg type 1] Barrier starts after 0 seconds, using up to 16 threads, 8 cores
+   [C msg type 1] Matrix ordering - Dense cols.:      0   NZ(L):        69   Flops:          266
+   [C msg type 1]  
+   [C msg type 1]   Its   P.inf      D.inf      U.inf      Primal obj.     Dual obj.      Compl.
+   [C msg type 1]    0   3.04e+01   1.33e+00   2.56e+01   3.5553637e+00  -2.8647915e+02   7.6e+02
+   [C msg type 1]    1   3.38e-01   4.18e-03   2.85e-01   4.9427683e+00  -8.6695654e+01   9.5e+01
+   [C msg type 1]    2   1.90e-07   1.01e-04   4.44e-16  -1.2958915e+01  -2.7907178e+01   1.5e+01
+   [C msg type 1]    3   1.26e-07   2.39e-05   4.44e-16  -1.7245770e+01  -1.7752509e+01   5.1e-01
+   [C msg type 1]    4   4.24e-10   4.02e-06   1.78e-15  -1.7499642e+01  -1.7500448e+01   8.0e-04
+   [C msg type 1]    5   4.03e-12   4.19e-09   8.88e-16  -1.7500000e+01  -1.7500000e+01   8.0e-07
+   [C msg type 1] Barrier method finished in 0 seconds
+   [C msg type 1] Optimal solution found
+   [C msg type 1] Barrier solved problem
+   [C msg type 1]   5 barrier iterations in 0.00 seconds at time 0
+   [C msg type 1] Final objective                       : -1.749999964172568e+01
+   [C msg type 1]   Max primal violation      (abs/rel) : 4.031e-12 / 4.031e-12
+   [C msg type 1]   Max dual violation        (abs/rel) :       0.0 /       0.0
+   [C msg type 1]   Max complementarity viol. (abs/rel) : 1.643e-07 / 1.806e-09
+  [C] getbasis rc=429 err=?429 Error: No basis is available rows(10) 0:0 1:0 2:0 3:0 other:10 | cols(13) 0:0 1:0 2:0 3:0 other:13 | #basic=0 vs ROWS=10
+     row codes __________
+     col codes _____________
+  sol rc 0 0 0 0
+  col          lb       ub          x         dj  code  getbasisval
+  x1            0       10          5 -4.0331e-09  -9     -9 (rc 429)
+  x2            0       10          3 1.0026e-08  -9     -9 (rc 429)
+  x3            0        4          4         -2  -9     -9 (rc 429)
+  x4            2        2          2          3  -9     -9 (rc 429)
+  x5         -inf      inf          2          0  -9     -9 (rc 429)
+  x6         -inf      inf         -0          0  -9     -9 (rc 429)
+  x7            0       10 6.3028e-09          2  -9     -9 (rc 429)
+  x8            0       10          3 3.6541e-08  -9     -9 (rc 429)
+  x10           0      100          2 2.2095e-08  -9     -9 (rc 429)
+  x11           0       10          4 3.2797e-10  -9     -9 (rc 429)
+  x12           1        1          1         -3  -9     -9 (rc 429)
+  x13        -inf        5          5         -1  -9     -9 (rc 429)
+  x14          -3      inf         -3          1  -9     -9 (rc 429)
+  row          type      rhs    range   activity      slack       dual  code  getbasisval
+  r1 L tight      L        8    1e+20          8 3.1578e-07      -0.25  -9     -9 (rc 429)
+  r2 G tight      G        2    1e+20          2  -6.86e-08       0.75  -9     -9 (rc 429)
+  r3 E y>0        E        7        0          7 4.0306e-12          1  -9     -9 (rc 429)
+  r4 R@upper      R        6        5          6 7.6081e-10         -2  -9     -9 (rc 429)
+  r5 L basic      L      100    1e+20          9         91 -1.021e-10  -9     -9 (rc 429)
+  r6 L basic      L       20    1e+20         13          7 -2.8869e-09  -9     -9 (rc 429)
+  r7 R@lower      R       12        7          5          7          1  -9     -9 (rc 429)
+  r8 E y<0        E        4        0          4 7.5229e-13         -1  -9     -9 (rc 429)
+  r9 N free       N        0    1e+20          9         -9          0  -9     -9 (rc 429)
+  r10 G basic     G        1    1e+20          8         -7 2.1437e-09  -9     -9 (rc 429)

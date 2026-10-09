@@ -1,0 +1,251 @@
+library /home/plaiseek/Softwares/solvers/xpressmp/lib/libxprs.so version 47.1.1 handle 0x37617e10
+dlsym XPRSgetbasis             found
+dlsym XPRSloadbasis            found
+dlsym XPRSgetbasisval          found
+dlsym XPRSgetpresolvebasis     found
+dlsym XPRSloadpresolvebasis    found
+dlsym XPRSgetslacks            found
+dlsym XPRSremovecbmessage      found
+
+=== D1: before any solve (small model)
+  [D1] wrapper=unknown LPSTATUS=0 STOPSTATUS=0 SOLSTATUS=0 SOLVESTATUS=0 PRESOLVESTATE=0x280041 ALGORITHM=1 OPTTYPE=-1 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=0 ROWS=10/10/10 COLS=13/13/13
+  [D1] getbasis rc=0 rows(10) 0:0 1:10 2:0 3:0 other:0 | cols(13) 0:10 1:0 2:1 3:2 other:0 | #basic=10 vs ROWS=10
+     row codes 1111111111
+     col codes 0000330000020
+  [D1] getbasisval(0,0) rc=0 rs=1 cs=0 
+
+=== D1b: empty model getbasis
+  [D1b] getbasis rc=0 rows(0) 0:0 1:0 2:0 3:0 other:0 | cols(0) 0:0 1:0 2:0 3:0 other:0 | #basic=0 vs ROWS=0
+     row codes 
+     col codes 
+
+=== D3: infeasible LP presolve=1
+  [D3] wrapper=infeasible LPSTATUS=2 STOPSTATUS=0 SOLSTATUS=3 SOLVESTATUS=3 PRESOLVESTATE=0x21 ALGORITHM=1 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=0 ROWS=3/3/3 COLS=3/3/3
+  [D3] LPOBJVAL=0 (rc 0)
+  [D3] getbasis rc=0 rows(3) 0:0 1:3 2:0 3:0 other:0 | cols(3) 0:3 1:0 2:0 3:0 other:0 | #basic=3 vs ROWS=3
+     row codes 111
+     col codes 000
+
+=== D3: infeasible LP presolve=0
+  [D3] wrapper=infeasible LPSTATUS=2 STOPSTATUS=0 SOLSTATUS=3 SOLVESTATUS=3 PRESOLVESTATE=0x6c06e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=2 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=3/3/3 COLS=3/3/3
+  [D3] LPOBJVAL=4 (rc 0)
+  [D3] getbasis rc=0 rows(3) 0:1 1:1 2:1 3:0 other:0 | cols(3) 0:1 1:2 2:0 3:0 other:0 | #basic=3 vs ROWS=3
+     row codes 201
+     col codes 011
+
+=== D4: unbounded LP presolve=1
+  [D4] wrapper=unbounded LPSTATUS=5 STOPSTATUS=0 SOLSTATUS=4 SOLVESTATUS=3 PRESOLVESTATE=0x21 ALGORITHM=1 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=0 ROWS=2/2/2 COLS=3/3/3
+  [D4] LPOBJVAL=0 (rc 0)
+  [D4] getbasis rc=0 rows(2) 0:0 1:2 2:0 3:0 other:0 | cols(3) 0:3 1:0 2:0 3:0 other:0 | #basic=2 vs ROWS=2
+     row codes 11
+     col codes 000
+
+=== D4: unbounded LP presolve=0
+  [D4] wrapper=unbounded LPSTATUS=5 STOPSTATUS=0 SOLSTATUS=4 SOLVESTATUS=3 PRESOLVESTATE=0x6c06e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=2/2/2 COLS=3/3/3
+  [D4] LPOBJVAL=0 (rc 0)
+  [D4] getbasis rc=0 rows(2) 0:0 1:2 2:0 3:0 other:0 | cols(3) 0:3 1:0 2:0 3:0 other:0 | #basic=2 vs ROWS=2
+     row codes 11
+     col codes 000
+
+=== D0: big model default cold solve
+  [D0] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D0] LPOBJVAL=321053.874 (rc 0)
+  [D0] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+
+=== D5: big model LPITERLIMIT=5 via model.solve()
+  [D5] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=5 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D5] LPOBJVAL=696980.549 (rc 0)
+  [D5] getbasis rc=0 rows(200) 0:5 1:195 2:0 3:0 other:0 | cols(200) 0:193 1:5 2:0 3:2 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111111111111111111111011111111111...
+     col codes 0000000000000000000000000000030000000000...
+  -> resume with no limit (KEEPBASIS=1)
+  [D5 resume] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=218 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D5 resume] LPOBJVAL=321053.874 (rc 0)
+
+=== D5: big model LPITERLIMIT=0 via model.solve()
+  [D5] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D5] LPOBJVAL=19217474.1 (rc 0)
+  [D5] getbasis rc=0 rows(200) 0:0 1:200 2:0 3:0 other:0 | cols(200) 0:0 1:0 2:0 3:200 other:0 | #basic=200 vs ROWS=200
+     row codes 1111111111111111111111111111111111111111...
+     col codes 3333333333333333333333333333333333333333...
+  -> resume with no limit (KEEPBASIS=1)
+  [D5 resume] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=185 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D5 resume] LPOBJVAL=321053.874 (rc 0)
+
+=== D5n: big model LPITERLIMIT=5 native lpoptimize, no postsolve
+  lpoptimize rc=0
+  [D5n] wrapper=unknown LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x6c06e3 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=5 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D5n getbasis] getbasis rc=0 rows(200) 0:5 1:195 2:0 3:0 other:0 | cols(200) 0:193 1:5 2:0 3:2 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111111111111111111111011111111111...
+     col codes 0000000000000000000000000000030000000000...
+  [D5n getpresolvebasis] getbasis rc=0 rows(200) 0:5 1:195 2:0 3:0 other:0 | cols(200) 0:193 1:5 2:0 3:2 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111111111111111111111011111111111...
+     col codes 0000000000000000000000000000030000000000...
+  [D5n] loadbasis while (maybe) presolved rc=266 ?266 Error: Cannot read basis for presolved problem. Re-input matrix
+  postsolve rc=0
+  [D5n post] wrapper=unknown LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=5 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D5n post getbasis] getbasis rc=0 rows(200) 0:5 1:195 2:0 3:0 other:0 | cols(200) 0:193 1:5 2:0 3:2 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111111111111111111111011111111111...
+     col codes 0000000000000000000000000000030000000000...
+   [D5n msg type 4] ?266 Error: Cannot read basis for presolved problem. Re-input matrix
+
+=== D5n: big model LPITERLIMIT=0 native lpoptimize, no postsolve
+  lpoptimize rc=0
+  [D5n] wrapper=unknown LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x6c06e3 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D5n getbasis] getbasis rc=0 rows(200) 0:0 1:200 2:0 3:0 other:0 | cols(200) 0:0 1:0 2:0 3:200 other:0 | #basic=200 vs ROWS=200
+     row codes 1111111111111111111111111111111111111111...
+     col codes 3333333333333333333333333333333333333333...
+  [D5n getpresolvebasis] getbasis rc=0 rows(200) 0:0 1:200 2:0 3:0 other:0 | cols(200) 0:0 1:0 2:0 3:200 other:0 | #basic=200 vs ROWS=200
+     row codes 1111111111111111111111111111111111111111...
+     col codes 3333333333333333333333333333333333333333...
+  [D5n] loadbasis while (maybe) presolved rc=266 ?266 Error: Cannot read basis for presolved problem. Re-input matrix
+  postsolve rc=0
+  [D5n post] wrapper=unknown LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D5n post getbasis] getbasis rc=0 rows(200) 0:0 1:200 2:0 3:0 other:0 | cols(200) 0:0 1:0 2:0 3:200 other:0 | #basic=200 vs ROWS=200
+     row codes 1111111111111111111111111111111111111111...
+     col codes 3333333333333333333333333333333333333333...
+   [D5n msg type 4] ?266 Error: Cannot read basis for presolved problem. Re-input matrix
+
+=== D6: time limit stop (n=400 dense, 1 ms)
+  [D6] wrapper=time_limit LPSTATUS=4 STOPSTATUS=1 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x21 ALGORITHM=1 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=0 ROWS=400/400/400 COLS=400/400/400
+  [D6] LPOBJVAL=0 (rc 0)
+  [D6] getbasis rc=0 rows(400) 0:0 1:400 2:0 3:0 other:0 | cols(400) 0:400 1:0 2:0 3:0 other:0 | #basic=400 vs ROWS=400
+     row codes 1111111111111111111111111111111111111111...
+     col codes 0000000000000000000000000000000000000000...
+
+=== D8: barrier LPFLAGS=4 CROSSOVER=0 (big)
+  [D8] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1500a1 ALGORITHM=4 OPTTYPE=0 SIMPLEXITER=0 BARITER=12 XOVERITER=0 KEEPBASIS=0 ROWS=200/200/200 COLS=200/200/200
+  [D8] LPOBJVAL=321053.874 (rc 0)
+  [D8] getbasis rc=429 err=?429 Error: No basis is available rows(200) 0:0 1:0 2:0 3:0 other:200 | cols(200) 0:0 1:0 2:0 3:0 other:200 | #basic=0 vs ROWS=200
+     row codes ________________________________________...
+     col codes ________________________________________...
+
+=== D8: barrier LPFLAGS=4 CROSSOVER=-1 (big)
+  [D8] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=4 OPTTYPE=0 SIMPLEXITER=0 BARITER=12 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [D8] LPOBJVAL=321053.874 (rc 0)
+   [D8 msg type 4] ?429 Error: No basis is available
+   [D8 msg type 1] Crossover crash basis containing 32 structurals form 32 candidates
+  [D8] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+
+=== D8s: barrier no crossover on the small model
+  [D8s] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x4d04e1 ALGORITHM=4 OPTTYPE=0 SIMPLEXITER=0 BARITER=5 XOVERITER=0 KEEPBASIS=0 ROWS=10/10/10 COLS=13/13/13
+  [D8s] LPOBJVAL=-17.4999996 (rc 0)
+  [D8s] getbasis rc=429 err=?429 Error: No basis is available rows(10) 0:0 1:0 2:0 3:0 other:10 | cols(13) 0:0 1:0 2:0 3:0 other:13 | #basic=0 vs ROWS=10
+     row codes __________
+     col codes _____________
+  sol rc 0 0 0 0
+  col          lb       ub          x         dj  code  getbasisval
+  x1            0       10          5 -4.0331e-09  -9     -9 (rc 429)
+  x2            0       10          3 1.0026e-08  -9     -9 (rc 429)
+  x3            0        4          4         -2  -9     -9 (rc 429)
+  x4            2        2          2          3  -9     -9 (rc 429)
+  x5         -inf      inf          2          0  -9     -9 (rc 429)
+  x6         -inf      inf         -0          0  -9     -9 (rc 429)
+  x7            0       10 6.3028e-09          2  -9     -9 (rc 429)
+  x8            0       10          3 3.6541e-08  -9     -9 (rc 429)
+  x10           0      100          2 2.2095e-08  -9     -9 (rc 429)
+  x11           0       10          4 3.2797e-10  -9     -9 (rc 429)
+  x12           1        1          1         -3  -9     -9 (rc 429)
+  x13        -inf        5          5         -1  -9     -9 (rc 429)
+  x14          -3      inf         -3          1  -9     -9 (rc 429)
+  row          type      rhs    range   activity      slack       dual  code  getbasisval
+  r1 L tight      L        8    1e+20          8 3.1578e-07      -0.25  -9     -9 (rc 429)
+  r2 G tight      G        2    1e+20          2  -6.86e-08       0.75  -9     -9 (rc 429)
+  r3 E y>0        E        7        0          7 4.0306e-12          1  -9     -9 (rc 429)
+  r4 R@upper      R        6        5          6 7.6081e-10         -2  -9     -9 (rc 429)
+  r5 L basic      L      100    1e+20          9         91 -1.021e-10  -9     -9 (rc 429)
+  r6 L basic      L       20    1e+20         13          7 -2.8869e-09  -9     -9 (rc 429)
+  r7 R@lower      R       12        7          5          7          1  -9     -9 (rc 429)
+  r8 E y<0        E        4        0          4 7.5229e-13         -1  -9     -9 (rc 429)
+  r9 N free       N        0    1e+20          9         -9          0  -9     -9 (rc 429)
+  r10 G basic     G        1    1e+20          8         -7 2.1437e-09  -9     -9 (rc 429)
+
+=== D7: optimal small model then add row (no re-solve)
+  [D7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [D7] LPOBJVAL=-17.5 (rc 0)
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+   [D7 msg type 4] ?429 Error: No basis is available
+  [D7 before] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [D7 after] wrapper=optimal LPSTATUS=0 STOPSTATUS=0 SOLSTATUS=0 SOLVESTATUS=0 PRESOLVESTATE=0x2c0441 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=11/11/11 COLS=13/13/13
+  [D7 after] getbasis rc=0 rows(11) 0:3 1:5 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=11 vs ROWS=11
+     row codes 02201120111
+     col codes 1120130111220
+  [D7 resolve] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=11/11/11 COLS=13/13/13
+  [D7 resolve] LPOBJVAL=-17.5 (rc 0)
+  [D7 resolve] getbasis rc=0 rows(11) 0:3 1:5 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=11 vs ROWS=11
+     row codes 02201120111
+     col codes 1120130111220
+
+=== D7: optimal small model then change bound (no re-solve)
+  [D7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [D7] LPOBJVAL=-17.5 (rc 0)
+  [D7 before] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [D7 after] wrapper=optimal LPSTATUS=0 STOPSTATUS=0 SOLSTATUS=0 SOLVESTATUS=0 PRESOLVESTATE=0x2c0461 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [D7 after] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [D7 resolve] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [D7 resolve] LPOBJVAL=-15.5 (rc 0)
+  [D7 resolve] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== D7: optimal small model then add column (no re-solve)
+  [D7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [D7] LPOBJVAL=-17.5 (rc 0)
+  [D7 before] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [D7 after] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c0461 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=14/14/14
+  [D7 after] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(14) 0:4 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 11201301112200
+  [D7 resolve] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=14/14/14
+  [D7 resolve] LPOBJVAL=-17.5 (rc 0)
+  [D7 resolve] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(14) 0:4 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 11201301112200
+
+=== D7: optimal small model then change rhs (no re-solve)
+  [D7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [D7] LPOBJVAL=-17.5 (rc 0)
+  [D7 before] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [D7 after] wrapper=optimal LPSTATUS=0 STOPSTATUS=0 SOLSTATUS=0 SOLVESTATUS=0 PRESOLVESTATE=0x2c0461 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [D7 after] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [D7 resolve] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [D7 resolve] LPOBJVAL=-17.75 (rc 0)
+  [D7 resolve] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220

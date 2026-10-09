@@ -1,0 +1,23 @@
+GLPK version 5.0
+
+=== I1: glp_factorize on m == 0 ===
+  (child) bf_exists=1 factorize -> 0 bf_exists=1
+  [m==0, no columns basic] child exited with code 0
+  (child) factorize -> GLP_EBADB
+  (child) solve -> optimal col stat=NL
+  [m==0, a column basic] child exited with code 0
+  (child) factorize -> 0
+  [m==0, no variables at all] child exited with code 0
+
+=== I2: glp_factorize on rows with nnz == 0 ===
+  (child) nnz=0
+Assertion failed: k1 < k2
+Error detected in file bflib/sgf.c at line 185
+  [nnz==0, column basic, row nonbasic] child killed by signal 6
+  (child) factorize -> 0
+  [nnz==0, valid (row basic)] child exited with code 0
+  (child) factorize -> GLP_EBADB
+  (child) solve -> optimal
+  [nnz==0, count wrong (col and row basic)] child exited with code 0
+
+done

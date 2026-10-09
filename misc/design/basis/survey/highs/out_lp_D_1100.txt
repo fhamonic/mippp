@@ -1,0 +1,152 @@
+library: /usr/local/lib/libhighs.so.1.10.0 version 1.10.0
+
+=== D: availability ===
+  [before any solve] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[before any solve] rc=0 ncol=8 nrow=5 basic=0 (cols 0) L=13 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:NO
+    cols: x1[0,4]=L0 x2=L0 x3=L0 x4=L0 x5=L0 x6=L0 f=2=L0 w(free)=L0
+    rows: rle(<=)=L0 rge(>=)=L0 req(==)=L0 rrng[2,6]=L0 rsl(slack)=L0
+  [empty model, before solve] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[empty model] rc=0 ncol=0 nrow=0 basic=0 (cols 0) L=0 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [infeasible presolve=choose] model_status=8 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=0 dsol=0 obj=0
+  basis[infeasible] rc=0 ncol=2 nrow=3 basic=0 (cols 0) L=5 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:NO
+    cols: x=L0 y=L0
+    rows: r0=L0 r1=L0 r2=L0
+  [unbounded presolve=choose] model_status=10 basis_validity=1(rc0) simplex_it=1(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=1 obj=-0.5
+  basis[unbounded] rc=0 ncol=2 nrow=2 basic=2 (cols 1) L=2 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x=L0 y=B1
+    rows: r0=B1 r1=L0
+  [infeasible presolve=off] model_status=8 basis_validity=1(rc0) simplex_it=2(rc0) ipm_it=0 crossover_it=0 psol=1 dsol=2 obj=5
+  basis[infeasible] rc=0 ncol=2 nrow=3 basic=3 (cols 2) L=1 U=1 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x=B1 y=B1
+    rows: r0=L0 r1=U2 r2=B1
+  [unbounded presolve=off] model_status=10 basis_validity=1(rc0) simplex_it=2(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=1 obj=-1
+  basis[unbounded] rc=0 ncol=2 nrow=2 basic=2 (cols 2) L=1 U=1 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x=B1 y=B1
+    rows: r0=U2 r1=L0
+  [R iteration_limit=1] model_status=14 basis_validity=1(rc0) simplex_it=1(rc0) ipm_it=0 crossover_it=0 psol=1 dsol=1 obj=153.701772
+  basis[R iteration_limit=1] rc=0 ncol=60 nrow=40 basic=40 (cols 1) L=59 U=1 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [R iteration_limit=5] model_status=14 basis_validity=1(rc0) simplex_it=5(rc0) ipm_it=0 crossover_it=0 psol=1 dsol=1 obj=355.30114
+  basis[R iteration_limit=5] rc=0 ncol=60 nrow=40 basic=40 (cols 5) L=55 U=5 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [R time_limit=0] model_status=13 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=1 obj=0
+  basis[R time_limit=0] rc=0 ncol=60 nrow=40 basic=40 (cols 0) L=60 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [C solver=simplex crossover=on presolve=choose] model_status=7 basis_validity=1(rc0) simplex_it=4(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[C solver=simplex crossover=on presolve=choose] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+  [R solver=simplex crossover=on presolve=choose] model_status=7 basis_validity=1(rc0) simplex_it=48(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R solver=simplex crossover=on presolve=choose] rc=0 ncol=60 nrow=40 basic=40 (cols 19) L=39 U=21 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [C solver=choose crossover=on presolve=choose] model_status=7 basis_validity=1(rc0) simplex_it=4(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[C solver=choose crossover=on presolve=choose] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+  [R solver=choose crossover=on presolve=choose] model_status=7 basis_validity=1(rc0) simplex_it=48(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R solver=choose crossover=on presolve=choose] rc=0 ncol=60 nrow=40 basic=40 (cols 19) L=39 U=21 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [C solver=ipm crossover=off presolve=choose] model_status=7 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=5 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[C solver=ipm crossover=off presolve=choose] rc=0 ncol=8 nrow=5 basic=0 (cols 0) L=13 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:NO
+  [R solver=ipm crossover=off presolve=choose] model_status=7 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=12 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R solver=ipm crossover=off presolve=choose] rc=0 ncol=60 nrow=40 basic=0 (cols 0) L=100 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:NO
+  [C solver=ipm crossover=on presolve=choose] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=5 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[C solver=ipm crossover=on presolve=choose] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+  [R solver=ipm crossover=on presolve=choose] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=12 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R solver=ipm crossover=on presolve=choose] rc=0 ncol=60 nrow=40 basic=40 (cols 19) L=39 U=21 Z=0 N=0 unwritten=0 other=0  basic==nrow:yes
+  [C solver=ipm crossover=off presolve=off] model_status=7 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=6 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[C solver=ipm crossover=off presolve=off] rc=0 ncol=8 nrow=5 basic=0 (cols 0) L=13 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:NO
+  [R solver=ipm crossover=off presolve=off] model_status=7 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=12 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R solver=ipm crossover=off presolve=off] rc=0 ncol=60 nrow=40 basic=0 (cols 0) L=100 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:NO
+  [C solver=pdlp crossover=off presolve=choose] model_status=7 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15.0000001
+  basis[C solver=pdlp crossover=off presolve=choose] rc=0 ncol=8 nrow=5 basic=0 (cols 0) L=13 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:NO
+  [R solver=pdlp crossover=off presolve=choose] model_status=7 basis_validity=0(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=106.022629
+  basis[R solver=pdlp crossover=off presolve=choose] rc=0 ncol=60 nrow=40 basic=0 (cols 0) L=100 U=0 Z=0 N=0 unwritten=0 other=0  basic==nrow:NO
+  [after x1 ub 4->3.5] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[after bound change] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- resolve with limit 0, log:
+LP   has 5 rows; 8 cols; 17 nonzeros
+Coefficient ranges:
+  Matrix [1e+00, 1e+00]
+  Cost   [1e+00, 3e+00]
+  Bound  [2e+00, 4e+00]
+  RHS    [1e+00, 1e+02]
+Solving LP without presolve, or with basis, or unconstrained
+Model status        : Optimal
+Objective value     : -1.4000000000e+01
+Relative P-D gap    :  0.0000000000e+00
+HiGHS run time      :          0.00
+  [resolve limit 0] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-14
+  [resolve unlimited] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-14
+  basis[resolved] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [after rle ub 10->11] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[after row bound change] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [after add row (slack)] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[after add row] rc=0 ncol=8 nrow=6 basic=6 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1 new=B1
+  [resolve limit 0 after add row] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  [after add 5 cols] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[after add cols [0,inf) [-1,3] [-5,3] (-inf,3] free] rc=0 ncol=13 nrow=5 basic=5 (cols 4) L=4 U=7 Z=2 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3 new=L0 new=L0 new=U2 new=U2 new=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [resolve limit 0 after add cols] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  [after cost change] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[after cost change] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  [after remove x6 (nonbasic)] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[after remove x6] rc=0 ncol=7 nrow=5 basic=5 (cols 4) L=1 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    by handle: x1=U2 x5=B1 f=U2 w=Z3
+  -- resolve with limit 0, log:
+LP   has 5 rows; 7 cols; 16 nonzeros
+Coefficient ranges:
+  Matrix [1e+00, 1e+00]
+  Cost   [2e+00, 3e+00]
+  Bound  [2e+00, 4e+00]
+  RHS    [1e+00, 1e+02]
+Solving LP without presolve, or with basis, or unconstrained
+Model status        : Optimal
+Objective value     : -1.5000000000e+01
+Relative P-D gap    :  0.0000000000e+00
+HiGHS run time      :          0.00
+  [resolve limit 0 after remove nonbasic] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  [after remove x4 (basic)] model_status=0 basis_validity=-99(rc1) simplex_it=-99(rc1) ipm_it=-99 crossover_it=-99 psol=-99 dsol=-99 obj=0
+  basis[after remove x4] rc=0 ncol=7 nrow=5 basic=4 (cols 3) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:NO
+  -- resolve, log:
+LP   has 5 rows; 7 cols; 14 nonzeros
+Coefficient ranges:
+  Matrix [1e+00, 1e+00]
+  Cost   [1e+00, 3e+00]
+  Bound  [2e+00, 4e+00]
+  RHS    [1e+00, 1e+02]
+Solving LP without presolve, or with basis, or unconstrained
+Using EKK dual simplex solver - serial
+  Iteration        Objective     Infeasibilities num(sum)
+          0     0.0000000000e+00 Ph1: 0(0) 0s
+          1    -1.6999993414e+01 0s
+Model status        : Infeasible
+Simplex   iterations: 1
+Objective value     : -1.7000000000e+01
+Relative P-D gap    :  3.8742001523e-07
+HiGHS run time      :          0.00
+  [resolve after remove basic] model_status=8 basis_validity=1(rc0) simplex_it=1(rc0) ipm_it=0 crossover_it=0 psol=1 dsol=2 obj=-17
+  basis[resolved after remove basic] rc=0 ncol=7 nrow=5 basic=5 (cols 3) L=2 U=4 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+  Highs_setLogicalBasis found: yes
+  setLogicalBasis rc=0
+  [after setLogicalBasis] model_status=7 basis_validity=1(rc0) simplex_it=5(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+  basis[after setLogicalBasis] rc=0 ncol=8 nrow=5 basic=5 (cols 4) L=2 U=5 Z=1 N=0 unwritten=0 other=0  basic==nrow:yes
+    cols: x1[0,4]=U2 x2=B1 x3=B1 x4=B1 x5=B1 x6=L0 f=2=U2 w(free)=Z3
+    rows: rle(<=)=U2 rge(>=)=L0 req(==)=U2 rrng[2,6]=U2 rsl(slack)=B1
+  -- resolve, log:
+LP   has 5 rows; 8 cols; 17 nonzeros
+Coefficient ranges:
+  Matrix [1e+00, 1e+00]
+  Cost   [1e+00, 3e+00]
+  Bound  [2e+00, 4e+00]
+  RHS    [1e+00, 1e+02]
+Solving LP without presolve, or with basis, or unconstrained
+Model status        : Optimal
+Objective value     : -1.5000000000e+01
+Relative P-D gap    :  0.0000000000e+00
+HiGHS run time      :          0.00
+  [resolve after setLogicalBasis] model_status=7 basis_validity=1(rc0) simplex_it=0(rc0) ipm_it=0 crossover_it=0 psol=2 dsol=2 obj=-15
+
+done

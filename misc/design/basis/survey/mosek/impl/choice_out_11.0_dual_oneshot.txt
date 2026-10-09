@@ -1,0 +1,104 @@
+MOSEK 11.0.14 (/home/plaiseek/Softwares/solvers/mosek/11.0/tools/platform/linux64x86/bin/libmosek64.so)
+
+== baselines: cold solves of the dense model ==
+  cold FREE(ipm)                                   status=optimal   obj=77196.0988 | primal=0 dual=0 ipm=7 | IPAR_OPTIMIZER after=FREE(ipm)
+  cold FREE_SIMPLEX                                status=optimal   obj=77196.0988 | primal=35 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  cold DUAL_SIMPLEX                                status=optimal   obj=77196.0988 | primal=0 dual=33 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+  cold PRIMAL_SIMPLEX                              status=optimal   obj=77196.0988 | primal=35 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+
+== (1) basis -> fresh identical model ==
+  warm native FREE_SIMPLEX                         status=optimal   obj=77196.0988 | primal=0 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+    |obj - optimum| = 0
+  warm native DUAL_SIMPLEX                         status=optimal   obj=77196.0988 | primal=0 dual=0 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+    |obj - optimum| = 1.46e-11
+  warm wrapper one-shot                            status=optimal   obj=77196.0988 | primal=0 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE(ipm)
+    |obj - optimum| = 1.46e-11
+    next solve after a bound change                status=optimal   obj=77196.0988 | primal=0 dual=0 ipm=7 | IPAR_OPTIMIZER after=FREE(ipm)
+
+== (2) column generation: 1 column(s), 5 rows each, price factor 1.5, seed 1 ==
+  cold FREE(ipm) of the extended model             status=optimal   obj=77486.8483 | primal=0 dual=0 ipm=7 | IPAR_OPTIMIZER after=FREE(ipm)
+  cold FREE_SIMPLEX of the extended                status=optimal   obj=77486.8483 | primal=35 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  cold DUAL_SIMPLEX of the extended                status=optimal   obj=77486.8483 | primal=0 dual=37 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+  cold PRIMAL_SIMPLEX of the extended              status=optimal   obj=77486.8483 | primal=35 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+  warm native FREE_SIMPLEX                         status=optimal   obj=77486.8483 | primal=5 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+    |obj - cold extended| = 1.46e-11 (gain 290.75)
+  warm native DUAL_SIMPLEX                         status=optimal   obj=77486.8483 | primal=0 dual=3 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+    |obj - cold extended| = 1.46e-11 (gain 290.75)
+  warm native PRIMAL_SIMPLEX                       status=optimal   obj=77486.8483 | primal=5 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+    |obj - cold extended| = 1.46e-11 (gain 290.75)
+  warm wrapper one-shot                            status=optimal   obj=77486.8483 | primal=0 dual=3 ipm=0 | IPAR_OPTIMIZER after=FREE(ipm)
+    |obj - cold extended| = 1.46e-11 (gain 290.75)
+  in place, no set_basis, FREE_SIMPLEX             status=optimal   obj=77486.8483 | primal=5 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  in place, no set_basis, DUAL_SIMPLEX             status=optimal   obj=77486.8483 | primal=0 dual=3 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+
+== (2) column generation: 1 column(s), 25 rows each, price factor 1.5, seed 2 ==
+  cold FREE(ipm) of the extended model             status=optimal   obj=77299.7052 | primal=0 dual=0 ipm=7 | IPAR_OPTIMIZER after=FREE(ipm)
+  cold FREE_SIMPLEX of the extended                status=optimal   obj=77299.7052 | primal=32 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  cold DUAL_SIMPLEX of the extended                status=optimal   obj=77299.7052 | primal=0 dual=38 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+  cold PRIMAL_SIMPLEX of the extended              status=optimal   obj=77299.7052 | primal=32 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+  warm native FREE_SIMPLEX                         status=optimal   obj=77299.7052 | primal=2 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+    |obj - cold extended| = 1.46e-11 (gain 103.606)
+  warm native DUAL_SIMPLEX                         status=optimal   obj=77299.7052 | primal=0 dual=6 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+    |obj - cold extended| = 2.91e-11 (gain 103.606)
+  warm native PRIMAL_SIMPLEX                       status=optimal   obj=77299.7052 | primal=2 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+    |obj - cold extended| = 1.46e-11 (gain 103.606)
+  warm wrapper one-shot                            status=optimal   obj=77299.7052 | primal=0 dual=6 ipm=0 | IPAR_OPTIMIZER after=FREE(ipm)
+    |obj - cold extended| = 2.91e-11 (gain 103.606)
+  in place, no set_basis, FREE_SIMPLEX             status=optimal   obj=77299.7052 | primal=2 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  in place, no set_basis, DUAL_SIMPLEX             status=optimal   obj=77299.7052 | primal=0 dual=6 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+
+== (2) column generation: 1 column(s), 10 rows each, price factor 3.0, seed 3 ==
+  cold FREE(ipm) of the extended model             status=optimal   obj=77416.324 | primal=0 dual=0 ipm=7 | IPAR_OPTIMIZER after=FREE(ipm)
+  cold FREE_SIMPLEX of the extended                status=optimal   obj=77416.324 | primal=41 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  cold DUAL_SIMPLEX of the extended                status=optimal   obj=77416.324 | primal=0 dual=33 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+  cold PRIMAL_SIMPLEX of the extended              status=optimal   obj=77416.324 | primal=41 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+  warm native FREE_SIMPLEX                         status=optimal   obj=77416.324 | primal=2 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+    |obj - cold extended| = 0 (gain 220.225)
+  warm native DUAL_SIMPLEX                         status=optimal   obj=77416.324 | primal=0 dual=2 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+    |obj - cold extended| = 1.46e-11 (gain 220.225)
+  warm native PRIMAL_SIMPLEX                       status=optimal   obj=77416.324 | primal=2 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+    |obj - cold extended| = 0 (gain 220.225)
+  warm wrapper one-shot                            status=optimal   obj=77416.324 | primal=0 dual=2 ipm=0 | IPAR_OPTIMIZER after=FREE(ipm)
+    |obj - cold extended| = 1.46e-11 (gain 220.225)
+  in place, no set_basis, FREE_SIMPLEX             status=optimal   obj=77416.324 | primal=2 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  in place, no set_basis, DUAL_SIMPLEX             status=optimal   obj=77416.324 | primal=0 dual=2 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+
+== (2) column generation: 5 column(s), 10 rows each, price factor 1.5, seed 4 ==
+  cold FREE(ipm) of the extended model             status=optimal   obj=78481.9159 | primal=0 dual=0 ipm=8 | IPAR_OPTIMIZER after=FREE(ipm)
+  cold FREE_SIMPLEX of the extended                status=optimal   obj=78481.9159 | primal=40 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  cold DUAL_SIMPLEX of the extended                status=optimal   obj=78481.9159 | primal=0 dual=38 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+  cold PRIMAL_SIMPLEX of the extended              status=optimal   obj=78481.9159 | primal=40 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+  warm native FREE_SIMPLEX                         status=optimal   obj=78481.9159 | primal=15 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+    |obj - cold extended| = 2.91e-11 (gain 1285.82)
+  warm native DUAL_SIMPLEX                         status=optimal   obj=78481.9159 | primal=0 dual=15 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+    |obj - cold extended| = 1.46e-11 (gain 1285.82)
+  warm native PRIMAL_SIMPLEX                       status=optimal   obj=78481.9159 | primal=15 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+    |obj - cold extended| = 2.91e-11 (gain 1285.82)
+  warm wrapper one-shot                            status=optimal   obj=78481.9159 | primal=0 dual=15 ipm=0 | IPAR_OPTIMIZER after=FREE(ipm)
+    |obj - cold extended| = 1.46e-11 (gain 1285.82)
+  in place, no set_basis, FREE_SIMPLEX             status=optimal   obj=78481.9159 | primal=15 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  in place, no set_basis, DUAL_SIMPLEX             status=optimal   obj=78481.9159 | primal=0 dual=15 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+
+== (2) column generation: 20 column(s), 10 rows each, price factor 1.2, seed 5 ==
+  cold FREE(ipm) of the extended model             status=optimal   obj=89826.6129 | primal=0 dual=0 ipm=11 | IPAR_OPTIMIZER after=FREE(ipm)
+  cold FREE_SIMPLEX of the extended                status=optimal   obj=89826.6129 | primal=36 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  cold DUAL_SIMPLEX of the extended                status=optimal   obj=89826.6129 | primal=0 dual=100 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+  cold PRIMAL_SIMPLEX of the extended              status=optimal   obj=89826.6129 | primal=36 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+  warm native FREE_SIMPLEX                         status=optimal   obj=89826.6129 | primal=59 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+    |obj - cold extended| = 0 (gain 12630.5)
+  warm native DUAL_SIMPLEX                         status=optimal   obj=89826.6129 | primal=0 dual=52 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+    |obj - cold extended| = 0 (gain 12630.5)
+  warm native PRIMAL_SIMPLEX                       status=optimal   obj=89826.6129 | primal=59 dual=0 ipm=0 | IPAR_OPTIMIZER after=PRIMAL_SIMPLEX
+    |obj - cold extended| = 0 (gain 12630.5)
+  warm wrapper one-shot                            status=optimal   obj=89826.6129 | primal=0 dual=52 ipm=0 | IPAR_OPTIMIZER after=FREE(ipm)
+    |obj - cold extended| = 0 (gain 12630.5)
+  in place, no set_basis, FREE_SIMPLEX             status=optimal   obj=89826.6129 | primal=59 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE_SIMPLEX
+  in place, no set_basis, DUAL_SIMPLEX             status=optimal   obj=89826.6129 | primal=0 dual=52 ipm=0 | IPAR_OPTIMIZER after=DUAL_SIMPLEX
+
+== edge: a column, no row ==
+  set_basis on 0 rows: ok
+  solve                                            status=optimal   obj=2 | primal=0 dual=0 ipm=0 | IPAR_OPTIMIZER after=FREE(ipm)
+  get_basis x: index 3
+
+== edge: get_basis before any solve ==
+  threw: mippp: get_basis() found no basis, MOSEK holds no basic solution

@@ -1,0 +1,367 @@
+library /home/plaiseek/Softwares/solvers/xpressmp_old/lib/libxprs.so.45.01.01 version 45.1.1 handle 0x244e7530
+dlsym XPRSgetbasis             found
+dlsym XPRSloadbasis            found
+dlsym XPRSgetbasisval          found
+dlsym XPRSgetpresolvebasis     found
+dlsym XPRSloadpresolvebasis    found
+dlsym XPRSgetslacks            found
+dlsym XPRSremovecbmessage      found
+
+=== E1: model A cold
+  [E1] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E1] LPOBJVAL=321053.874 (rc 0)
+  [E1] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+
+=== E2: fresh B, cold, LPITERLIMIT=0
+  KEEPBASIS before load=0
+  [E2] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=19217474.1 (rc 0)
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:0 1:200 2:0 3:0 other:0 | cols(200) 0:0 1:0 2:0 3:200 other:0 | #basic=200 vs ROWS=200
+     row codes 1111111111111111111111111111111111111111...
+     col codes 3333333333333333333333333333333333333333...
+  basis after == A's: no
+
+=== E2: fresh B, load, LPITERLIMIT=0
+  KEEPBASIS before load=0
+  [E2] loadbasis rc=0 KEEPBASIS after=1
+  [E2] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=321053.874 (rc 0)
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  basis after == A's: yes
+
+=== E2: fresh B, load, LPITERLIMIT=1
+  KEEPBASIS before load=0
+  [E2] loadbasis rc=0 KEEPBASIS after=1
+  [E2] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=321053.874 (rc 0)
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  basis after == A's: yes
+
+=== E2: fresh B, load, unlimited
+  KEEPBASIS before load=0
+  [E2] loadbasis rc=0 KEEPBASIS after=1
+  [E2] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=321053.874 (rc 0)
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  basis after == A's: yes
+
+=== E2: fresh B, load, presolve=0 LPITERLIMIT=0
+  KEEPBASIS before load=0
+  [E2] loadbasis rc=0 KEEPBASIS after=1
+  [E2] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x6c06e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=321053.874 (rc 0)
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  basis after == A's: yes
+
+=== E2: fresh B, load, primal LPITERLIMIT=0
+  KEEPBASIS before load=0
+  [E2] loadbasis rc=0 KEEPBASIS after=1
+  [E2] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=3 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=321053.874 (rc 0)
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  basis after == A's: yes
+
+=== E2: fresh B, load, dual LPITERLIMIT=0
+  KEEPBASIS before load=0
+  [E2] loadbasis rc=0 KEEPBASIS after=1
+  [E2] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=321053.874 (rc 0)
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  basis after == A's: yes
+
+=== E2: fresh B, load, barrier unlimited
+  KEEPBASIS before load=0
+  [E2] loadbasis rc=0 KEEPBASIS after=1
+  [E2] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=4 OPTTYPE=0 SIMPLEXITER=0 BARITER=12 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=321053.874 (rc 0)
+   [E2 msg type 1] Crossover crash basis containing 32 structurals form 32 candidates
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  basis after == A's: yes
+
+=== E2: fresh B, load, KEEPBASIS=0 after load, unlimited
+  KEEPBASIS before load=0
+  [E2] loadbasis rc=0 KEEPBASIS after=1
+  [E2] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E2] LPOBJVAL=321053.874 (rc 0)
+  objA=321053.874
+  [E2 after] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  basis after == A's: yes
+
+=== E3: small model A (presolve=0)
+  [E3] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E3] LPOBJVAL=-17.5 (rc 0)
+  [E3] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E3b: small model B load, LPITERLIMIT=0 presolve=1
+  [E3b] loadbasis rc=0 KEEPBASIS after=1
+  [E3b] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E3b] LPOBJVAL=-17.5 (rc 0)
+  [E3b after] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E3b: small model B load, LPITERLIMIT=0 presolve=0
+  [E3b] loadbasis rc=0 KEEPBASIS after=1
+  [E3b] wrapper=iteration_limit LPSTATUS=4 STOPSTATUS=4 SOLSTATUS=0 SOLVESTATUS=1 PRESOLVESTATE=0x2c06e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E3b] LPOBJVAL=-17.5 (rc 0)
+  [E3b after] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E4: A solved, bound changed, re-solve (no load)
+  [E4 first] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E4 first] LPOBJVAL=321053.874 (rc 0)
+  tightening ub of basic col 2 (x=12.5069) to x/2
+  [E4 after chgbound] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  [E4 resolve] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=13 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E4 resolve] LPOBJVAL=320817.024 (rc 0)
+
+=== E5: A solved, bound changed, then load A's basis
+  [E5 first] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=118 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E5 first] LPOBJVAL=321053.874 (rc 0)
+  [E5] loadbasis rc=0 KEEPBASIS after=1
+  [E5 getbasis after load] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  [E5 resolve] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=13 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E5 resolve] LPOBJVAL=320817.024 (rc 0)
+
+=== E6: fresh B, load A's basis, then change a bound, solve
+  [E6] loadbasis rc=0 KEEPBASIS after=1
+  [E6 getbasis right after load] getbasis rc=0 rows(200) 0:32 1:168 2:0 3:0 other:0 | cols(200) 0:168 1:32 2:0 3:0 other:0 | #basic=200 vs ROWS=200
+     row codes 1110111111011011101111111111101101110110...
+     col codes 0010000000000000000000100000010000000000...
+  [E6] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x1400a1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=200/200/200 COLS=200/200/200
+  [E6] LPOBJVAL=321053.592 (rc 0)
+
+=== E7: invalid basis: one extra basic (x3 U->basic)
+  loading row 0220112011 col 1110130111220 (#basic 11, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:4 1:6 2:2 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1110130110220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=1 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: one missing basic (x1 basic->0)
+  loading row 0220112011 col 0120130111220 (#basic 9, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:4 1:5 2:3 3:1 other:0 | #basic=9 vs ROWS=10
+     row codes 0220112011
+     col codes 0120130111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=1 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+   [E7 msg type 3] ?140 Warning: Basis lost - recovering
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 2 on x14 (ub=+inf)
+  loading row 0220112011 col 1120130111222 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 0 on free x6
+  loading row 0220112011 col 1120100111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 2 on free x6
+  loading row 0220112011 col 1120120111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 3 on bounded x7 (dual)
+  loading row 0220112011 col 1120133111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:2 1:6 2:3 3:2 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120133111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 3 on bounded x7 (primal)
+  loading row 0220112011 col 1120133111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:2 1:6 2:3 3:2 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120133111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=3 OPTTYPE=0 SIMPLEXITER=1 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 3 on bounded x7 (default)
+  loading row 0220112011 col 1120133111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:2 1:6 2:3 3:2 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120133111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 7 on column x7
+  loading row 0220112011 col 1120137111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=411 err=?411 Error: Invalid column basis type passed to XPRSloadbasis.
+Element 6 of your array has invalid column basis type 7 KEEPBASIS after=0
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:7 1:3 2:2 3:1 other:0 | #basic=7 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130000020
+   [E7 load msg type 4] ?411 Error: Invalid column basis type passed to XPRSloadbasis.
+Element 6 of your array has invalid column basis type 7
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 7 on row r1
+  loading row 7220112011 col 1120130111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=410 err=?410 Error: Invalid row basis type passed to XPRSloadbasis.
+Element 0 of your array has invalid row basis type 7 KEEPBASIS after=0
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:0 1:10 2:0 3:0 other:0 | cols(13) 0:10 1:0 2:1 3:2 other:0 | #basic=10 vs ROWS=10
+     row codes 1111111111
+     col codes 0000330000020
+   [E7 load msg type 4] ?410 Error: Invalid row basis type passed to XPRSloadbasis.
+Element 0 of your array has invalid row basis type 7
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 2 on r1 (L row, slack ub inf?)
+  loading row 2220112011 col 1120130111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 2 on r2 (G row)
+  loading row 0220112011 col 1120130111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: all-slack basis
+  loading row 1111111111 col 0000000000000 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:0 1:10 2:0 3:0 other:0 | cols(13) 0:10 1:0 2:1 3:2 other:0 | #basic=10 vs ROWS=10
+     row codes 1111111111
+     col codes 0000330000020
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code -1 on column x7
+  loading row 0220112011 col 112013-1111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=411 err=?411 Error: Invalid column basis type passed to XPRSloadbasis.
+Element 6 of your array has invalid column basis type -1 KEEPBASIS after=0
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:7 1:3 2:2 3:1 other:0 | #basic=7 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130000020
+   [E7 load msg type 4] ?411 Error: Invalid column basis type passed to XPRSloadbasis.
+Element 6 of your array has invalid column basis type -1
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=6 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: code 3 on row r1
+  loading row 3220112011 col 1120130111220 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:2 1:4 2:3 3:1 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 3220112011
+     col codes 1120130111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+
+=== E7: invalid basis: x13 (lb -inf) code 0
+  loading row 0220112011 col 1120130111200 (#basic 10, rows 10)
+  [E7] loadbasis rc=0 KEEPBASIS after=1
+  [E7 getbasis after load] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220
+  [E7] wrapper=optimal LPSTATUS=1 STOPSTATUS=0 SOLSTATUS=1 SOLVESTATUS=3 PRESOLVESTATE=0x2c04e1 ALGORITHM=2 OPTTYPE=0 SIMPLEXITER=0 BARITER=0 XOVERITER=0 KEEPBASIS=1 ROWS=10/10/10 COLS=13/13/13
+  [E7] LPOBJVAL=-17.5 (rc 0)
+  [E7 final] getbasis rc=0 rows(10) 0:3 1:4 2:3 3:0 other:0 | cols(13) 0:3 1:6 2:3 3:1 other:0 | #basic=10 vs ROWS=10
+     row codes 0220112011
+     col codes 1120130111220

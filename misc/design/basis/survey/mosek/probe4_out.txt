@@ -1,0 +1,27 @@
+dlsym MSK_getskc -> found
+dlsym MSK_getskx -> found
+dlsym MSK_putskc -> found
+dlsym MSK_putskx -> found
+dlsym MSK_putskcslice -> found
+dlsym MSK_putskxslice -> found
+dlsym MSK_getintinf -> found
+dlsym MSK_getdouinf -> found
+dlsym MSK_getskcslice -> found
+  [C optimal] getskc rc=0(OK) getskx rc=0(OK) getsolution(keys only) rc=0(OK) -> arrays equal: 1
+  [R optimal] getskc rc=0(OK) getskx rc=0(OK) getsolution(keys only) rc=0(OK) -> arrays equal: 1
+  [R dual iteration limit] getskc rc=0(OK) getskx rc=0(OK) getsolution(keys only) rc=0(OK) -> arrays equal: 1
+  [unsolved] getsolution(keys) rc=22000(MSK_RES_ERR_UNDEF_SOLUTION)
+--- A ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [B] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  wrapper solve() after put, primal maxit=0: status index=8 iteration_limit solution_available=0
+  get_solution_value()=170.594075 (ref 170.594075)
+  [B] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  wrapper solve() after put, dual maxit=0: status index=1
+  get_solution_value()=170.594075 (ref 170.594075)
+DONE

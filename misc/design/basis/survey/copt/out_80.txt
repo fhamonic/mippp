@@ -1,0 +1,575 @@
+library: /home/plaiseek/Softwares/solvers/copt80/lib/libcopt.so version: 8.0.5
+dlsym SetSlackBasis=0x7bb03b88a560 GetColBasis=0x7bb03b88adf0 GetRowBasis=0x7bb03b88ae00
+default Presolve = -1 (ret 0)
+default LpMethod = -1 (ret 0)
+default Crossover = 1 (ret 0)
+default Dualize = -1 (ret 0)
+default DualPerturb = -1 (ret 0)
+default Threads = -1 (ret 0)
+
+=== C. row side convention ===
+  -- R4 [1,3] tight at UPPER, wrapper defaults []
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=-5.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [1,3] tight at UPPER, Presolve=0 [Presolve=0:ret0 ]
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=-5.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=-0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [1,3] tight at UPPER, LpMethod=1 dual simplex, Presolve=0 [LpMethod=1:ret0 Presolve=0:ret0 ]
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=-5.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=-0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [1,3] tight at UPPER, LpMethod=2 barrier, Crossover=1 (default) [LpMethod=2:ret0 ]
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=5 PDLPIter=0  GetBasis ret=0 obj=-5.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [1,3] tight at UPPER, LpMethod=2 barrier, Crossover=0 [LpMethod=2:ret0 Crossover=0:ret0 ]
+    LpStatus=1 HasBasis=0 HasLpSol=1 SimplexIter=0 BarrierIter=5 PDLPIter=0  GetBasis ret=3 obj=-5.5
+      col x1(basic)      code=untouched  value=2 redcost=0
+      col x2(basic)      code=untouched  value=2 redcost=1.20345e-11
+      col x3(basic)      code=untouched  value=1 redcost=2.49346e-12
+      col x4(basic)      code=untouched  value=1 redcost=1.74214e-11
+      col y[0,3]         code=untouched  value=3 redcost=-1
+      col z[2,2]fixed    code=untouched  value=2 redcost=1
+      col f free,empty   code=untouched  value=0 redcost=0
+      col l[0,inf)       code=untouched  value=0 redcost=1
+      row R1 <=4 tight    code=untouched  activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=untouched  activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=untouched  activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=untouched  activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=untouched  activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 0 (cols 0 + rows 0), rows = 5
+  -- R4 [1,3] tight at UPPER, LpMethod=2 barrier, Crossover=0, Presolve=0 [LpMethod=2:ret0 Crossover=0:ret0 Presolve=0:ret0 ]
+    LpStatus=1 HasBasis=0 HasLpSol=1 SimplexIter=0 BarrierIter=6 PDLPIter=0  GetBasis ret=3 obj=-5.5
+      col x1(basic)      code=untouched  value=2 redcost=1.13958e-12
+      col x2(basic)      code=untouched  value=2 redcost=3.82259e-12
+      col x3(basic)      code=untouched  value=1 redcost=1.36855e-11
+      col x4(basic)      code=untouched  value=1 redcost=2.97022e-12
+      col y[0,3]         code=untouched  value=3 redcost=-1
+      col z[2,2]fixed    code=untouched  value=2 redcost=1
+      col f free,empty   code=untouched  value=0 redcost=0
+      col l[0,inf)       code=untouched  value=1.04797e-12 redcost=1
+      row R1 <=4 tight    code=untouched  activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=untouched  activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=untouched  activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=untouched  activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=untouched  activity("slack")=11 dual=-4.26902e-15 [LB=-1e+30, UB=100]
+      #basic = 0 (cols 0 + rows 0), rows = 5
+  -- R4 [1,3] tight at UPPER, LpMethod=4 concurrent [LpMethod=4:ret0 ]
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=-5.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [1,3] tight at UPPER, LpMethod=5 auto simplex/barrier [LpMethod=5:ret0 ]
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=5 PDLPIter=0  GetBasis ret=0 obj=-5.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [1,3] tight at UPPER, LpMethod=6 PDLP, Crossover=1 [LpMethod=6:ret0 ]
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=80  GetBasis ret=0 obj=-5.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [1,3] tight at UPPER, LpMethod=6 PDLP, Crossover=0 [LpMethod=6:ret0 Crossover=0:ret0 ]
+    LpStatus=1 HasBasis=0 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=80  GetBasis ret=3 obj=-5.5
+      col x1(basic)      code=untouched  value=2 redcost=0
+      col x2(basic)      code=untouched  value=2 redcost=0
+      col x3(basic)      code=untouched  value=1 redcost=0
+      col x4(basic)      code=untouched  value=0.999998 redcost=0
+      col y[0,3]         code=untouched  value=3 redcost=-1
+      col z[2,2]fixed    code=untouched  value=2 redcost=1
+      col f free,empty   code=untouched  value=0 redcost=0
+      col l[0,inf)       code=untouched  value=0 redcost=1
+      row R1 <=4 tight    code=untouched  activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=untouched  activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=untouched  activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=untouched  activity("slack")=3 dual=-1 [LB=1, UB=3]
+      row R5 <=100 slack  code=untouched  activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 0 (cols 0 + rows 0), rows = 5
+  -- LpMethod=3 crossover-only: exception API call failed: internal error
+  -- R4 [3,7] tight at LOWER, wrapper defaults []
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=0.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=LOWER      activity("slack")=3 dual=1 [LB=3, UB=7]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [3,7] tight at LOWER, Presolve=0 [Presolve=0:ret0 ]
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=0.5
+      col x1(basic)      code=BASIC      value=2 redcost=0
+      col x2(basic)      code=BASIC      value=2 redcost=0
+      col x3(basic)      code=BASIC      value=1 redcost=0
+      col x4(basic)      code=BASIC      value=1 redcost=0
+      col y[0,3]         code=UPPER      value=3 redcost=-1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=LOWER      activity("slack")=3 dual=1 [LB=3, UB=7]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=-0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- R4 [3,7] tight at LOWER, LpMethod=2 barrier, Crossover=0 [LpMethod=2:ret0 Crossover=0:ret0 ]
+    LpStatus=1 HasBasis=0 HasLpSol=1 SimplexIter=0 BarrierIter=5 PDLPIter=0  GetBasis ret=3 obj=0.5
+      col x1(basic)      code=untouched  value=2 redcost=0
+      col x2(basic)      code=untouched  value=2 redcost=2.64068e-12
+      col x3(basic)      code=untouched  value=1 redcost=1.20026e-11
+      col x4(basic)      code=untouched  value=1 redcost=4.21836e-11
+      col y[0,3]         code=untouched  value=3 redcost=-1
+      col z[2,2]fixed    code=untouched  value=2 redcost=1
+      col f free,empty   code=untouched  value=0 redcost=0
+      col l[0,inf)       code=untouched  value=0 redcost=1
+      row R1 <=4 tight    code=untouched  activity("slack")=4 dual=-1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=untouched  activity("slack")=2 dual=1 [LB=2, UB=1e+30]
+      row R3 ==1          code=untouched  activity("slack")=1 dual=0.5 [LB=1, UB=1]
+      row R4 ranged       code=untouched  activity("slack")=3 dual=1 [LB=3, UB=7]
+      row R5 <=100 slack  code=untouched  activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 0 (cols 0 + rows 0), rows = 5
+  -- maximize(-obj), R4 at upper, Presolve default
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=5.5
+      col x1(basic)      code=BASIC      value=2 redcost=-0
+      col x2(basic)      code=BASIC      value=2 redcost=-0
+      col x3(basic)      code=BASIC      value=1 redcost=-0
+      col x4(basic)      code=BASIC      value=1 redcost=-0
+      col y[0,3]         code=UPPER      value=3 redcost=1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=-1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=-1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=-1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=-0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=-0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- maximize(-obj), R4 at upper, Presolve 0
+    LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=5.5
+      col x1(basic)      code=BASIC      value=2 redcost=-0
+      col x2(basic)      code=BASIC      value=2 redcost=-0
+      col x3(basic)      code=BASIC      value=1 redcost=-0
+      col x4(basic)      code=BASIC      value=1 redcost=-0
+      col y[0,3]         code=UPPER      value=3 redcost=1
+      col z[2,2]fixed    code=FIXED      value=2 redcost=-1
+      col f free,empty   code=SUPERBASIC value=0 redcost=0
+      col l[0,inf)       code=LOWER      value=0 redcost=-1
+      row R1 <=4 tight    code=UPPER      activity("slack")=4 dual=1 [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=LOWER      activity("slack")=2 dual=-1 [LB=2, UB=1e+30]
+      row R3 ==1          code=FIXED      activity("slack")=1 dual=-0.5 [LB=1, UB=1]
+      row R4 ranged       code=UPPER      activity("slack")=3 dual=1 [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=11 dual=0 [LB=-1e+30, UB=100]
+      #basic = 5 (cols 4 + rows 1), rows = 5
+  -- COPT_SetSlackBasis before any solve: ret=0
+    LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0  GetBasis ret=0 obj=0
+      col x1(basic)      code=LOWER      value=nan redcost=nan
+      col x2(basic)      code=LOWER      value=nan redcost=nan
+      col x3(basic)      code=LOWER      value=nan redcost=nan
+      col x4(basic)      code=LOWER      value=nan redcost=nan
+      col y[0,3]         code=LOWER      value=nan redcost=nan
+      col z[2,2]fixed    code=FIXED      value=nan redcost=nan
+      col f free,empty   code=SUPERBASIC value=nan redcost=nan
+      col l[0,inf)       code=LOWER      value=nan redcost=nan
+      row R1 <=4 tight    code=BASIC      activity("slack")=nan dual=nan [LB=-1e+30, UB=4]
+      row R2 >=2 tight    code=BASIC      activity("slack")=nan dual=nan [LB=2, UB=1e+30]
+      row R3 ==1          code=BASIC      activity("slack")=nan dual=nan [LB=1, UB=1]
+      row R4 ranged       code=BASIC      activity("slack")=nan dual=nan [LB=1, UB=3]
+      row R5 <=100 slack  code=BASIC      activity("slack")=nan dual=nan [LB=-1e+30, UB=100]
+      #basic = 5 (cols 0 + rows 5), rows = 5
+
+=== D. availability ===
+  D1 before solve: LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: LOWER LOWER LOWER LOWER LOWER FIXED SUPERBASIC LOWER 
+      rows: BASIC BASIC BASIC BASIC BASIC 
+      GetColBasis(y) ret=0 code=LOWER
+  D0 empty model, no solve: LpStatus=0 HasBasis=0 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=3
+  D0 empty model, solved: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+  D3 infeasible Presolve=-1: LpStatus=2 HasBasis=0 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=3 cols: untouched untouched  rows: untouched untouched 
+  D4 unbounded Presolve=-1: LpStatus=3 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0 cols: BASIC LOWER  rows: UPPER BASIC 
+  D3 infeasible Presolve=0: LpStatus=2 HasBasis=0 HasLpSol=0 SimplexIter=0 BarrierIter=5 PDLPIter=0 GetBasis ret=3 cols: untouched untouched  rows: untouched untouched 
+  D4 unbounded Presolve=0: LpStatus=3 HasBasis=1 HasLpSol=0 SimplexIter=2 BarrierIter=0 PDLPIter=0 GetBasis ret=0 cols: LOWER LOWER  rows: BASIC BASIC 
+  D5 SetIntParam("IterLimit", 0) ret=3; GetIntParam ret=3 value=-999
+     GetDblParam("IterLimit") ret=3 value=nan
+  D5 SetIntParam("SimplexIterLimit", 0) ret=3; GetIntParam ret=3 value=-999
+     GetDblParam("SimplexIterLimit") ret=3 value=nan
+  D5 SetIntParam("LpIterLimit", 0) ret=3; GetIntParam ret=3 value=-999
+     GetDblParam("LpIterLimit") ret=3 value=nan
+  D5 SetIntParam("BarIterLimit", 0) ret=0; GetIntParam ret=0 value=0
+     GetDblParam("BarIterLimit") ret=3 value=nan
+  D5 time limit 0 Presolve=-1: LpStatus=8 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0 #basic=300 rows=300 untouched=0
+  D5 time limit 0 Presolve=0: LpStatus=8 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0 #basic=300 rows=300 untouched=0
+  D5 time limit 0.0001 Presolve=-1: LpStatus=8 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0 #basic=300 rows=300 untouched=0
+  D5 time limit 0.0001 Presolve=0: LpStatus=8 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0 #basic=300 rows=300 untouched=0
+  D5 time limit 0.01 Presolve=-1: LpStatus=8 HasBasis=1 HasLpSol=0 SimplexIter=1 BarrierIter=0 PDLPIter=0 GetBasis ret=0 #basic=300 rows=300 untouched=0
+  D5 time limit 0.01 Presolve=0: LpStatus=8 HasBasis=1 HasLpSol=0 SimplexIter=106 BarrierIter=0 PDLPIter=0 GetBasis ret=0 #basic=300 rows=300 untouched=0
+  D6 Presolve=-1 after "add a row (slack)": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=-1 after "change a column bound (y ub 3 -> 2)": LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC LOWER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-4.5
+  D6 Presolve=-1 after "change a column bound (l ub inf -> 1000, irrelevant)": LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=-1 after "add a column": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=-1 after "add a column with entries (add_column)": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=-1 after "change an objective coefficient": LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=-1 after "change a row bound (R5 ub 100 -> 90)": LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+      Reset ret=0
+  D6 Presolve=-1 after "COPT_Reset(prob, 0)": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: LOWER LOWER LOWER LOWER LOWER LOWER LOWER LOWER 
+      rows: LOWER LOWER LOWER LOWER LOWER 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5
+      Reset ret=0
+  D6 Presolve=-1 after "COPT_Reset(prob, 1)": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: LOWER LOWER LOWER LOWER LOWER LOWER LOWER LOWER 
+      rows: LOWER LOWER LOWER LOWER LOWER 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=-1 after "set_time_limit (a parameter)": LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=-1 after "compute_iis() on the feasible model": LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=0 after "add a row (slack)": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=0 after "change a column bound (y ub 3 -> 2)": LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=4 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC LOWER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-4.5
+  D6 Presolve=0 after "change a column bound (l ub inf -> 1000, irrelevant)": LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=4 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=0 after "add a column": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=0 after "add a column with entries (add_column)": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=0 after "change an objective coefficient": LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=4 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=0 after "change a row bound (R5 ub 100 -> 90)": LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=4 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+      Reset ret=0
+  D6 Presolve=0 after "COPT_Reset(prob, 0)": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=4 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: LOWER LOWER LOWER LOWER LOWER LOWER LOWER LOWER 
+      rows: LOWER LOWER LOWER LOWER LOWER 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5
+      Reset ret=0
+  D6 Presolve=0 after "COPT_Reset(prob, 1)": LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=4 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: LOWER LOWER LOWER LOWER LOWER LOWER LOWER LOWER 
+      rows: LOWER LOWER LOWER LOWER LOWER 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=0 after "set_time_limit (a parameter)": LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D6 Presolve=0 after "compute_iis() on the feasible model": LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 GetBasis ret=0
+      cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER 
+      rows: UPPER LOWER FIXED UPPER BASIC 
+      re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5
+  D7 dense first solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 PDLPIter=0
+  D7 dense re-solve unchanged: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0
+
+=== E. warm start ===
+  A cold (defaults): LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 PDLPIter=0 obj=321053.874 #basic=200 rows=200
+    col codes L/B/U/S/F = 168/32/0/0/0 ; row codes = 0/168/32/0/0
+  C cold, Presolve=0: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 PDLPIter=0 obj=321053.874
+  B [defaults]: SetBasis ret=0; before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0; GetBasis ret=0 round-trip equal=1
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  B [Presolve=0]: SetBasis ret=0; before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0; GetBasis ret=0 round-trip equal=1
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  B [LpMethod=1]: SetBasis ret=0; before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0; GetBasis ret=0 round-trip equal=1
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  B [LpMethod=1 Presolve=0]: SetBasis ret=0; before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0; GetBasis ret=0 round-trip equal=1
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  B [LpMethod=2 barrier]: SetBasis ret=0; before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0; GetBasis ret=0 round-trip equal=1
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=19 PDLPIter=0 obj=321053.874 (A 321053.874)
+  B [LpMethod=4 concurrent]: SetBasis ret=0; before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0; GetBasis ret=0 round-trip equal=1
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  B [LpMethod=6 PDLP]: SetBasis ret=0; before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0; GetBasis ret=0 round-trip equal=1
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=19 BarrierIter=0 PDLPIter=3840 obj=321053.874 (A 321053.874)
+  E2 Presolve=-1 SetBasis(ret=0) then "none": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=-1 SetBasis(ret=0) then "upper bound of a nonbasic column inf -> 1e6 (irrelevant)": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=-1 SetBasis(ret=0) then "upper bound of a basic column inf -> 1e6 (irrelevant)": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=-1 SetBasis(ret=0) then "add a slack row": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=-1 SetBasis(ret=0) then "add an empty column": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=-1 SetBasis(ret=0) then "objective coefficient of a nonbasic column made less attractive": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=-1 SetBasis(ret=0) then "set_time_limit": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=-1 SetBasis(ret=0) then "upper bound of a basic column tightened below its value": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=7 BarrierIter=0 PDLPIter=0 obj=320817.0239
+  E2 Presolve=0 SetBasis(ret=0) then "none": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=0 SetBasis(ret=0) then "upper bound of a nonbasic column inf -> 1e6 (irrelevant)": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=0 SetBasis(ret=0) then "upper bound of a basic column inf -> 1e6 (irrelevant)": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=0 SetBasis(ret=0) then "add a slack row": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=0 SetBasis(ret=0) then "add an empty column": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=0 SetBasis(ret=0) then "objective coefficient of a nonbasic column made less attractive": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=0 SetBasis(ret=0) then "set_time_limit": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  E2 Presolve=0 SetBasis(ret=0) then "upper bound of a basic column tightened below its value": before solve LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+     after solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=7 BarrierIter=0 PDLPIter=0 obj=320817.0239
+  E2b Presolve=-1 A solved, basic col ub -> value/2: LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=149 BarrierIter=0 PDLPIter=0
+     re-solve without SetBasis: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=7 BarrierIter=0 PDLPIter=0 obj=320817.0239
+     fresh cold model with that bound: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=143 BarrierIter=0 PDLPIter=0 obj=320817.0239
+     fresh model with that bound + SetBasis(A's, ret=0): LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=7 BarrierIter=0 PDLPIter=0 obj=320817.0239
+  E2b Presolve=0 A solved, basic col ub -> value/2: LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=149 BarrierIter=0 PDLPIter=0
+     re-solve without SetBasis: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=7 BarrierIter=0 PDLPIter=0 obj=320817.0239
+     fresh cold model with that bound: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=143 BarrierIter=0 PDLPIter=0 obj=320817.0239
+     fresh model with that bound + SetBasis(A's, ret=0): LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=7 BarrierIter=0 PDLPIter=0 obj=320817.0239
+
+=== E3. invalid bases (convention LP, R4 at upper) ===
+  reference (Presolve=0): obj=-5.5 cols: BASIC BASIC BASIC BASIC UPPER FIXED SUPERBASIC LOWER  rows: UPPER LOWER FIXED UPPER BASIC 
+  Presolve=0 [valid optimal basis (control)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [l -> BASIC (m+1 basic)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [x1 -> LOWER (m-1 basic)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [l -> UPPER (infinite upper bound)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [f (free) -> LOWER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [f (free) -> UPPER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [f (free) -> FIXED]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [l -> SUPERBASIC]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [l -> FIXED (not fixed)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [z (fixed) -> LOWER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [z (fixed) -> UPPER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [y -> LOWER (suboptimal but valid)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [l -> code 7 (out of range)]: SetBasis ret=3; GetBasis ret=0 HasBasis=1 echo=DIFFERENT
+      echo cols: LOWER LOWER LOWER LOWER LOWER FIXED SUPERBASIC LOWER 
+      echo rows: BASIC BASIC BASIC BASIC BASIC 
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [l -> code -1 (out of range)]: SetBasis ret=3; GetBasis ret=0 HasBasis=1 echo=DIFFERENT
+      echo cols: LOWER LOWER LOWER LOWER LOWER FIXED SUPERBASIC LOWER 
+      echo rows: BASIC BASIC BASIC BASIC BASIC 
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [R2 (>= row) -> UPPER (infinite activity upper)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [R1 (<= row) -> LOWER (infinite activity lower)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [R3 (== row) -> LOWER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [R3 (== row) -> UPPER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [R3 (== row) -> FIXED]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [R1 -> UPPER, R2 -> LOWER (activity convention)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [R1 -> LOWER, R2 -> UPPER (slack convention)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [R5 -> SUPERBASIC]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [every column and row BASIC]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=0 [slack basis by hand (cols LOWER, f SUPERBASIC, z FIXED, y LOWER, rows BASIC)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=4 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [valid optimal basis (control)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [l -> BASIC (m+1 basic)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [x1 -> LOWER (m-1 basic)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [l -> UPPER (infinite upper bound)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [f (free) -> LOWER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [f (free) -> UPPER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [f (free) -> FIXED]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [l -> SUPERBASIC]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [l -> FIXED (not fixed)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [z (fixed) -> LOWER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [z (fixed) -> UPPER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [y -> LOWER (suboptimal but valid)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [l -> code 7 (out of range)]: SetBasis ret=3; GetBasis ret=0 HasBasis=1 echo=DIFFERENT
+      echo cols: LOWER LOWER LOWER LOWER LOWER FIXED SUPERBASIC LOWER 
+      echo rows: BASIC BASIC BASIC BASIC BASIC 
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [l -> code -1 (out of range)]: SetBasis ret=3; GetBasis ret=0 HasBasis=1 echo=DIFFERENT
+      echo cols: LOWER LOWER LOWER LOWER LOWER FIXED SUPERBASIC LOWER 
+      echo rows: BASIC BASIC BASIC BASIC BASIC 
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [R2 (>= row) -> UPPER (infinite activity upper)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [R1 (<= row) -> LOWER (infinite activity lower)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [R3 (== row) -> LOWER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [R3 (== row) -> UPPER]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [R3 (== row) -> FIXED]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [R1 -> UPPER, R2 -> LOWER (activity convention)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [R1 -> LOWER, R2 -> UPPER (slack convention)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [R5 -> SUPERBASIC]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [every column and row BASIC]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+  Presolve=-1 [slack basis by hand (cols LOWER, f SUPERBASIC, z FIXED, y LOWER, rows BASIC)]: SetBasis ret=0; GetBasis ret=0 HasBasis=1 echo=same
+      SolveLp ret=0 LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=3 BarrierIter=0 PDLPIter=0 obj=-5.5 (correct)
+
+=== F. extended / partial bases ===
+  F Presolve=-1 variant 0: SetBasis ret=0 after solve LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  F Presolve=-1 variant 1: SetBasis ret=0 after solve LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  F Presolve=-1 variant 2: SetBasis ret=0 after solve LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  F Presolve=-1 variant 3: SetBasis ret=0 after solve LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  F Presolve=0 variant 0: SetBasis ret=0 after solve LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  F Presolve=0 variant 1: SetBasis ret=0 after solve LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  F Presolve=0 variant 2: SetBasis ret=0 after solve LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=149 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  F Presolve=0 variant 3: SetBasis ret=0 after solve LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874 (A 321053.874)
+  F on A Presolve=-1 after add col+row: LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0 new col=LOWER new row=BASIC
+     SetBasis(extended) ret=0, re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  F on A Presolve=0 after add col+row: LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0 GetBasis ret=0 new col=LOWER new row=BASIC
+     SetBasis(extended) ret=0, re-solve: LpStatus=1 HasBasis=1 HasLpSol=1 SimplexIter=0 BarrierIter=0 PDLPIter=0 obj=321053.874
+  F SetBasis(cols, nullptr) ret=3 LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+  F SetBasis(nullptr, rows) ret=3 LpStatus=0 HasBasis=1 HasLpSol=0 SimplexIter=0 BarrierIter=0 PDLPIter=0
+  F GetBasis(cols, nullptr) after solve ret=0 first=LOWER
+  F GetBasis(nullptr, rows) ret=0 first=BASIC
+  F GetColBasis(list {3,1}) ret=0 -> LOWER LOWER (bulk: LOWER LOWER)
+  F GetRowBasis(list {3,1}) ret=0 -> UPPER BASIC (bulk: UPPER BASIC)
+
+DONE

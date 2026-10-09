@@ -1,0 +1,647 @@
+library /home/plaiseek/Projects/mippp/.compat-cache/extracted/_deps/coin-or-clp-1.17.10-hc03379b_4.conda/lib/libClp.so version 1.17.10
+symbols: statusExists=0x76b278886c30 statusArray=0x76b278886c50 copyinStatus=0x76b278886c60 getRowActivity=0x76b278887440 setMaximumIterations=0x76b2788867f0 numberIterations=0x76b2788867c0 Clp_maximumIterations=(nil)
+
+######## D0: before any solve
+  statusExists=0 statusArray=(nil) Clp_status=-1
+  [getColumnStatus(0) before solve] child killed by signal 11 (Segmentation fault)
+  [getRowStatus(0) before solve] child killed by signal 11 (Segmentation fault)
+  [setColumnStatus(0,3) before solve] child killed by signal 11 (Segmentation fault)
+  [setRowStatus(0,1) before solve] child killed by signal 11 (Segmentation fault)
+
+######## C: optimal solve (min), cold start
+wrapper status optimal
+---- A optimal (min)
+  Clp_status=0 secondary=0 iterations=7 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+wrapper status optimal
+---- A optimal (max of -obj)
+  Clp_status=0 secondary=0 iterations=7 obj=15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper   
+  col  1 x2[1,1]        code 5 isFixed   
+  col  2 x3[0,inf]      code 1 basic     
+  col  3 x4[0,inf]      code 1 basic     
+  col  4 x5 free        code 1 basic     
+  col  5 x6[0,inf]      code 1 basic     
+  col  6 x7[2,2]        code 5 isFixed   
+  col  7 x8[0,inf]      code 1 basic     
+  col  8 x9[0,inf]      code 1 basic     
+  col  9 x10[0,inf]     code 3 atLower   
+  col 10 y free empty   code 0 isFree    
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper   
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower   
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed   
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed   
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper   
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower   
+  row  6 slack ...<=100           code 1 basic     
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+
+######## E: warm start
+cold iterations of A = 7
+== E1 B <- basis(A) masked, maxIter 0: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E1 B <- basis(A) masked, maxIter 0
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E1b B <- basis(A) raw bytes, maxIter 0: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+== E1c B <- basis(A) masked, maxIter 1000: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+== E0 B cold, maxIter 0: wrapper=limit_reached Clp_status=3 iterations=0 obj=-1.8e+11
+== E2 per-entity setters after copyin(all-slack): primalColumnSolution now: 2 1 0 0 0 0 2 0 0 0 0
+   after solve maxIter 0: wrapper=optimal Clp_status=0 iterations=0 obj=-15
+== G1 setColumnStatus overwrites values: x10 0 -> 1.79769e+308, x1 2 -> 0; wrapper status still optimal
+== E3 after bound change, status array unchanged: yes
+   resolve maxIter 0 (implicit warm start): wrapper=optimal Clp_status=0 iterations=0 obj=-14 x1=1.5
+   copyin(A) + x3.lb=3 then solve: wrapper=optimal Clp_status=0 iterations=1 obj=-13
+== E4 solved model, copyin(all-slack) then solve: iterations=7 (cold was 7) obj=-15
+
+######## E5: invalid bases (bulk copyin, maxIter 1000)
+== E5a all basic (too many): wrapper=optimal Clp_status=0 secondary=0 iterations=7 obj=-15 #basic=7
+---- E5a all basic (too many)
+  Clp_status=0 secondary=0 iterations=7 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5b all atLower, no basic (too few): wrapper=optimal Clp_status=0 secondary=0 iterations=7 obj=-15 #basic=7
+---- E5b all atLower, no basic (too few)
+  Clp_status=0 secondary=0 iterations=7 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5c x10 atUpper on infinite ub: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E5c x10 atUpper on infinite ub
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5c' same, maxIter 0: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+== E5d y(free) atLower, maxIter 0: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E5d y(free) atLower, maxIter 0
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5e basic free x5 -> atLower (one basic short): wrapper=optimal Clp_status=0 secondary=0 iterations=1 obj=-15 #basic=7
+---- E5e basic free x5 -> atLower (one basic short)
+  Clp_status=0 secondary=0 iterations=1 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5f x10 superBasic, maxIter 0: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E5f x10 superBasic, maxIter 0
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5g x10 isFixed although not fixed, maxIter 0: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E5g x10 isFixed although not fixed, maxIter 0
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5h le row atLower (lo=-inf), maxIter 0: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E5h le row atLower (lo=-inf), maxIter 0
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5i ge row atUpper (up=inf), maxIter 0: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E5i ge row atUpper (up=inf), maxIter 0
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5j rngU row on wrong finite side, maxIter 0: wrapper=limit_reached Clp_status=3 secondary=0 iterations=0 obj=-12 #basic=7
+---- E5j rngU row on wrong finite side, maxIter 0
+  Clp_status=3 secondary=0 iterations=0 obj=-12 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=1          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 3 atLower    act=1        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=10       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 03 03 01
+  #basic=7 #rows=7
+== E5j' same, maxIter 1000: wrapper=optimal Clp_status=0 secondary=0 iterations=1 obj=-15 #basic=7
+== E5k singular basis (x6 + rngU logical), maxIter 1000: wrapper=optimal Clp_status=0 secondary=0 iterations=2 obj=-15 #basic=7
+---- E5k singular basis (x6 + rngU logical), maxIter 1000
+  Clp_status=0 secondary=0 iterations=2 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== E5l x10 code 6 via copyin, maxIter 1000: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E5l x10 code 6 via copyin, maxIter 1000
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 6 ??         x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 06 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+  [E5l code 6 via copyin] child returned normally
+  [E5l code 6 via copyin] child exit code 0
+== E5m x10 code 7 via copyin, maxIter 1000: wrapper=optimal Clp_status=0 secondary=0 iterations=0 obj=-15 #basic=7
+---- E5m x10 code 7 via copyin, maxIter 1000
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 7 ??         x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 07 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+  [E5m code 7 via copyin] child returned normally
+  [E5m code 7 via copyin] child exit code 0
+== E5n setColumnStatus(x10, 7) / (x1, -1): codes now 3 / 2 (were 3 / 2)
+
+######## D: availability
+wrapper status infeasible
+---- D2 infeasible LP
+  Clp_status=1 secondary=0 iterations=0 obj=0 statusExists=1 cols=2 rows=2
+  col  0 x>=0           code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col  1 y>=0           code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  row  0 x+y<=-1                  code 1 basic      act=0        lo=-inf   up=-1     pi=0
+  row  1 x-y>=2                   code 1 basic      act=0        lo=2      up=inf    pi=0
+  raw bytes (cols then rows): 03 03 01 01
+  #basic=2 #rows=2
+wrapper status unbounded
+---- D3 unbounded LP
+  Clp_status=2 secondary=0 iterations=2 obj=1.66667 statusExists=1 cols=2 rows=2
+  col  0 x>=0           code 1 basic      x=1.33333    lb=0      ub=inf    dj=-0
+  col  1 y>=0           code 1 basic      x=0.333333   lb=0      ub=inf    dj=-0
+  row  0 x-y<=1                   code 2 atUpper    act=1        lo=-inf   up=1      pi=0.333333
+  row  1 x+2y>=2                  code 3 atLower    act=2        lo=2      up=inf    pi=0.666667
+  raw bytes (cols then rows): 01 01 02 03
+  #basic=2 #rows=2
+wrapper status limit_reached
+---- D4 iteration limit 1 (cold)
+  Clp_status=3 secondary=0 iterations=1 obj=-1.8e+11 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 3 atLower    x=0          lb=0      ub=2      dj=-4003
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=-1997
+  col  2 x3[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1
+  col  3 x4[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1999
+  col  4 x5 free        code 1 basic      x=5          lb=-inf   ub=inf    dj=-1998
+  col  5 x6[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-2001
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-2002
+  col  8 x9[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1999
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 1 basic      act=0        lo=-inf   up=4      pi=0
+  row  1 ge  x4+x2>=3 (dual +1)   code 1 basic      act=1        lo=3      up=inf    pi=2000
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2000
+  row  3 eq2 x8+x1==7 (dual -2)   code 1 basic      act=0        lo=7      up=7      pi=2000
+  row  4 rngU 1<=x6<=4 (upper)    code 1 basic      act=0        lo=1      up=4      pi=2000
+  row  5 rngL 2<=x9<=6 (lower)    code 1 basic      act=0        lo=2      up=6      pi=2000
+  row  6 slack ...<=100           code 1 basic      act=7        lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 03 05 03 03 01 03 05 03 03 03 00 01 01 05 01 01 01 01
+  #basic=7 #rows=7
+wrapper status limit_reached
+---- D4b iteration limit 3 (cold)
+  Clp_status=3 secondary=0 iterations=3 obj=-1.8e+11 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 3 atLower    x=0          lb=0      ub=2      dj=-3
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=-1997
+  col  2 x3[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1
+  col  3 x4[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1999
+  col  4 x5 free        code 1 basic      x=5          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=-2001
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=7          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1999
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 1 basic      act=0        lo=-inf   up=4      pi=0
+  row  1 ge  x4+x2>=3 (dual +1)   code 1 basic      act=1        lo=3      up=inf    pi=2000
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2000
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=2000
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=2000
+  row  5 rngL 2<=x9<=6 (lower)    code 1 basic      act=0        lo=2      up=6      pi=2000
+  row  6 slack ...<=100           code 1 basic      act=11       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 03 05 03 03 01 01 05 01 03 03 00 01 01 05 05 02 01 01
+  #basic=7 #rows=7
+wrapper status time_limit
+---- D5 time limit 0
+  Clp_status=3 secondary=9 iterations=0 obj=-1.8e+11 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 3 atLower    x=0          lb=0      ub=2      dj=-4003
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=-1997
+  col  2 x3[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1
+  col  3 x4[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1999
+  col  4 x5 free        code 0 isFree     x=0          lb=-inf   ub=inf    dj=-1998
+  col  5 x6[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-2001
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-2002
+  col  8 x9[0,inf]      code 3 atLower    x=0          lb=0      ub=inf    dj=-1999
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 1 basic      act=0        lo=-inf   up=4      pi=0
+  row  1 ge  x4+x2>=3 (dual +1)   code 1 basic      act=1        lo=3      up=inf    pi=2000
+  row  2 eq  x5+x1==5 (dual +2)   code 1 basic      act=0        lo=5      up=5      pi=2000
+  row  3 eq2 x8+x1==7 (dual -2)   code 1 basic      act=0        lo=7      up=7      pi=2000
+  row  4 rngU 1<=x6<=4 (upper)    code 1 basic      act=0        lo=1      up=4      pi=2000
+  row  5 rngL 2<=x9<=6 (lower)    code 1 basic      act=0        lo=2      up=6      pi=2000
+  row  6 slack ...<=100           code 1 basic      act=2        lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 03 05 03 03 00 03 05 03 03 03 00 01 01 01 01 01 01 01
+  #basic=7 #rows=7
+== D6a bound change: statusExists=1 codes kept=yes Clp_status=0 wrapper=optimal
+   after add row + 3 cols: statusExists=1 Clp_status=-1 wrapper=optimal
+---- D6b after modifications, no re-solve
+  Clp_status=-1 secondary=0 iterations=7 obj=-15 statusExists=1 cols=14 rows=8
+  col  0 x1[0,2]        code 2 atUpper   
+  col  1 x2[1,1]        code 5 isFixed   
+  col  2 x3[0,inf]      code 1 basic     
+  col  3 x4[0,inf]      code 1 basic     
+  col  4 x5 free        code 1 basic     
+  col  5 x6[0,inf]      code 1 basic     
+  col  6 x7[2,2]        code 5 isFixed   
+  col  7 x8[0,inf]      code 1 basic     
+  col  8 x9[0,inf]      code 1 basic     
+  col  9 x10[0,inf]     code 3 atLower   
+  col 10 y free empty   code 0 isFree    
+  col 11 new free col   code 3 atLower   
+  col 12 new col (-inf,5] code 3 atLower   
+  col 13 new add_column [0,inf) code 3 atLower   
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper   
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower   
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed   
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed   
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper   
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower   
+  row  6 slack ...<=100           code 1 basic     
+  row  7 new row x3+x4<=50        code 1 basic     
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 03 03 03 02 03 05 05 02 03 01 01
+  #basic=8 #rows=8
+   old entries preserved: yes
+   re-solve (implicit warm start): wrapper=optimal Clp_status=0 iterations=0 obj=-13
+---- D6c after re-solve
+  Clp_status=0 secondary=0 iterations=0 obj=-13 statusExists=1 cols=14 rows=8
+  col  0 x1[0,2]        code 2 atUpper    x=1          lb=0      ub=1      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=3          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=4          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=6          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  col 11 new free col   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  col 12 new col (-inf,5] code 2 atUpper    x=5          lb=-inf   ub=5      dj=0
+  col 13 new add_column [0,inf) code 3 atLower    x=0          lb=0      ub=inf    dj=5
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=15       lo=-inf   up=100    pi=0
+  row  7 new row x3+x4<=50        code 1 basic      act=5        lo=-inf   up=50     pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 00 02 03 02 03 05 05 02 03 01 01
+  #basic=8 #rows=8
+wrapper status optimal
+---- D7a columns only, no rows
+  Clp_status=0 secondary=6 iterations=0 obj=-3 statusExists=1 cols=2 rows=0
+  col  0 x[0,3]         code 2 atUpper    x=3          lb=-inf   ub=3      dj=-1
+  col  1 y free         code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  raw bytes (cols then rows): 02 00
+  #basic=0 #rows=0
+wrapper status optimal
+---- D7b + an all-zero row
+  Clp_status=0 secondary=6 iterations=0 obj=-3 statusExists=1 cols=2 rows=1
+  col  0 x[0,3]         code 2 atUpper    x=3          lb=-inf   ub=3      dj=-1
+  col  1 y free         code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 0x<=1 (stored empty)     code 1 basic      act=1        lo=-inf   up=1      pi=0
+  raw bytes (cols then rows): 02 00 01
+  #basic=1 #rows=1
+---- D7c y has no element
+  Clp_status=0 secondary=0 iterations=1 obj=-4 statusExists=1 cols=2 rows=1
+  col  0 x[0,3]         code 1 basic      x=1          lb=-inf   ub=3      dj=0
+  col  1 y[0,3]         code 2 atUpper    x=3          lb=-inf   ub=3      dj=-1
+  row  0 x<=1                     code 2 atUpper    act=1        lo=-inf   up=1      pi=-1
+  raw bytes (cols then rows): 01 02 02
+  #basic=1 #rows=1
+wrapper status optimal
+---- D8 after remove_variable(x1) and re-solve
+  Clp_status=0 secondary=0 iterations=0 obj=-11 statusExists=1 cols=11 rows=7
+  col  0 x1[0,2]        code 5 isFixed    x=0          lb=0      ub=0      dj=0
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=5          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=7          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=17       lo=-inf   up=100    pi=0
+  raw bytes (cols then rows): 05 05 01 01 01 01 05 01 01 03 00 02 03 05 05 02 03 01
+  #basic=7 #rows=7
+== D9 empty model solve: statusExists=0 wrapper=unknown
+
+######## F: extended bases
+== F1 solved A + new col(atLower) + new row(basic), copyin, maxIter 0: wrapper=optimal Clp_status=0 iterations=0 obj=-15
+== F2 fresh extended model, copyin(ext), maxIter 0: wrapper=optimal Clp_status=0 iterations=0 obj=-15
+== F3 new FREE col given atLower, maxIter 0: wrapper=optimal Clp_status=0 iterations=0
+---- F3
+  Clp_status=0 secondary=0 iterations=0 obj=-15 statusExists=1 cols=12 rows=8
+  col  0 x1[0,2]        code 2 atUpper    x=2          lb=0      ub=2      dj=-2
+  col  1 x2[1,1]        code 5 isFixed    x=1          lb=1      ub=1      dj=2
+  col  2 x3[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  3 x4[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  4 x5 free        code 1 basic      x=3          lb=-inf   ub=inf    dj=0
+  col  5 x6[0,inf]      code 1 basic      x=4          lb=0      ub=inf    dj=0
+  col  6 x7[2,2]        code 5 isFixed    x=2          lb=2      ub=2      dj=-3
+  col  7 x8[0,inf]      code 1 basic      x=5          lb=0      ub=inf    dj=0
+  col  8 x9[0,inf]      code 1 basic      x=2          lb=0      ub=inf    dj=0
+  col  9 x10[0,inf]     code 3 atLower    x=0          lb=0      ub=inf    dj=1
+  col 10 y free empty   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  col 11 new free col   code 0 isFree     x=0          lb=-inf   ub=inf    dj=0
+  row  0 le  x3+x1<=4 (dual -1)   code 2 atUpper    act=4        lo=-inf   up=4      pi=-1
+  row  1 ge  x4+x2>=3 (dual +1)   code 3 atLower    act=3        lo=3      up=inf    pi=1
+  row  2 eq  x5+x1==5 (dual +2)   code 5 isFixed    act=5        lo=5      up=5      pi=2
+  row  3 eq2 x8+x1==7 (dual -2)   code 5 isFixed    act=7        lo=7      up=7      pi=-2
+  row  4 rngU 1<=x6<=4 (upper)    code 2 atUpper    act=4        lo=1      up=4      pi=-1
+  row  5 rngL 2<=x9<=6 (lower)    code 3 atLower    act=2        lo=2      up=6      pi=1
+  row  6 slack ...<=100           code 1 basic      act=13       lo=-inf   up=100    pi=0
+  row  7 new row                  code 1 basic      act=4        lo=-inf   up=50     pi=0
+  raw bytes (cols then rows): 02 05 01 01 01 01 05 01 01 03 00 00 02 03 05 05 02 03 01 01
+  #basic=8 #rows=8
+   (F4 short array copyin is an out-of-bounds read: not run)
+== F5 per-entity setter touches 1 entry
+
+######## W: write-side codes that need translation
+== W1 x1[0,2] (opt atUpper) written isFree: wrote 0 -> code after solve 2 (atUpper) value 2; wrapper=optimal iterations=0 obj=-15
+== W2 x10[0,inf) (opt atLower) written isFree: wrote 0 -> code after solve 3 (atLower) value 0; wrapper=optimal iterations=0 obj=-15
+== W3 x1[0,2] written superBasic: wrote 4 -> code after solve 2 (atUpper) value 2; wrapper=optimal iterations=0 obj=-15
+== W4 x10[0,inf) written superBasic: wrote 4 -> code after solve 3 (atLower) value 0; wrapper=optimal iterations=0 obj=-15
+== W5 x2 fixed written atLower: wrote 3 -> code after solve 5 (isFixed) value 1; wrapper=optimal iterations=0 obj=-15
+== W6 x2 fixed written atUpper: wrote 2 -> code after solve 5 (isFixed) value 1; wrapper=optimal iterations=0 obj=-15
+== W7 x7 fixed written atLower: wrote 3 -> code after solve 5 (isFixed) value 2; wrapper=optimal iterations=0 obj=-15
+== W8 eq row written atLower: wrote 3 -> code after solve 5 (isFixed) value 5; wrapper=optimal iterations=0 obj=-15
+== W9 eq row written atUpper: wrote 2 -> code after solve 5 (isFixed) value 5; wrapper=optimal iterations=0 obj=-15
+== W10 le row (opt atUpper) written isFree: wrote 0 -> code after solve 2 (atUpper) value 4; wrapper=optimal iterations=0 obj=-15
+== W11 rngU row (opt atUpper) written isFree: wrote 0 -> code after solve 2 (atUpper) value 4; wrapper=optimal iterations=0 obj=-15
+== W12 rngU row written superBasic: wrote 4 -> code after solve 2 (atUpper) value 4; wrapper=optimal iterations=0 obj=-15
+== W13 x1[0,2] written atLower (valid, nonoptimal): wrote 3 -> code after solve 3 (atLower) value 0; wrapper=limit_reached iterations=0 obj=-11
+== R maxIter -1: wrapper=optimal iterations=36 obj=21.521 #basic=40 rows=40 codes0..5: 0 40 8 32 0 20 flag bits seen: 0x00
+== R maxIter 1: wrapper=limit_reached iterations=1 obj=4.45306e+11 #basic=40 rows=40 codes0..5: 8 40 0 41 0 11 flag bits seen: 0x00
+== R maxIter 5: wrapper=limit_reached iterations=5 obj=4.45306e+11 #basic=40 rows=40 codes0..5: 4 40 1 41 0 14 flag bits seen: 0x00
+== R maxIter 15: wrapper=limit_reached iterations=15 obj=4.45306e+11 #basic=40 rows=40 codes0..5: 0 40 1 39 0 20 flag bits seen: 0x00
+== X1 copyinStatus on a solved model leaves get_solution unchanged: yes; wrapper=optimal; Clp_status=0
+== X2 copyinStatus(nullptr): statusExists=0
+   then solve: wrapper=optimal iterations=7 (cold 7)
+
+DONE

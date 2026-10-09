@@ -1,0 +1,32 @@
+library: /opt/ibm/ILOG/CPLEX_Studio2211/cplex/bin/x86-64_linux/libcplex2211.so version: 22.1.1
+defaults: ADVIND=1 PREIND=1 LPMETHOD=0 BARCROSSALG=0 ITLIM=2147483647
+
+===== F1: basis of C extended with a new column (AT_LOWER) and a new row (BASIC)
+[F1 new col=AT_LOWER new row=BASIC copybase=ok itlim 0] wrapper status index=9 objval=15 (ret ok)
+[F1 new col=AT_LOWER new row=BASIC copybase=ok itlim 0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=13 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+[F1 new col=AT_LOWER new row=AT_LOWER copybase=ok itlim 0] wrapper status index=9 objval=896 (ret ok)
+[F1 new col=AT_LOWER new row=AT_LOWER copybase=ok itlim 0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=13 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+[F1 new col=BASIC new row=BASIC copybase=ok itlim 0] wrapper status index=9 objval=489 (ret ok)
+[F1 new col=BASIC new row=BASIC copybase=ok itlim 0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=13 nrows=9)
+  #basic=9 (cols 7 + rows 2)
+[F1 new col=BASIC new row=AT_LOWER copybase=ok itlim 0] wrapper status index=9 objval=489 (ret ok)
+[F1 new col=BASIC new row=AT_LOWER copybase=ok itlim 0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=13 nrows=9)
+  #basic=9 (cols 7 + rows 2)
+
+===== F2: resident basis after add_constraint / add_column on a solved model, then re-solve
+[F2 solved] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=100 phase1=7
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+F2 getbase after mods ret=ok sizes=81/61
+[F2 re-solved (warm from resident basis?)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=1 phase1=0
+  getbase ret=ok  (ncols=81 nrows=61)
+  #basic=61 (cols 24 + rows 37)
+[F2 same model solved cold] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=100 phase1=7
+  getbase ret=ok  (ncols=81 nrows=61)
+  #basic=61 (cols 24 + rows 37)

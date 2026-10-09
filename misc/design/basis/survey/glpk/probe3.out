@@ -1,0 +1,14 @@
+GLPK version 5.0
+
+=== F2: snapshot older than entities that a later solve made nonbasic/basic ===
+  after second solve: optimal obj=30; new col=NU new row=NU
+  S written on old entries only: #basic=6 rows=7; glp_factorize -> GLP_EBADB
+  solve: failed extra iterations=0
+  S + (new row BS, new col NL): #basic=7; glp_factorize -> 0
+  solve: optimal obj=30 extra iterations=2
+
+=== F3: basis of a bigger model into a smaller one ===
+  truncated write: #basic=7 rows=6; glp_factorize -> GLP_EBADB
+  solve: failed iterations=0
+
+done

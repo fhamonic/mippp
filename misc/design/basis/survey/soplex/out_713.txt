@@ -1,0 +1,1318 @@
+library: /home/plaiseek/Softwares/solvers/scipoptsuite-9.2.1/build/lib/libsoplexshared.so.7.1.3.0
+api.basisRowStatus=0x7c7d38eac8d0 dlsym: basisColStatus=0x7c7d38eac920 readBasisFile=0x7c7d38ebd7c0 getNumIterations=0x7c7d38eac8c0 getStatus=0x7c7d38eac890 getRedCostReal=0x7c7d38eb9530 getRowBoundsReal(api)=0x7c7d38eacad0 getRowVectorReal(api)=0x7c7d38eadac0
+  dlsym(SoPlex_setBasis) = (nil)
+  dlsym(SoPlex_getBasis) = (nil)
+  dlsym(SoPlex_writeBasisFile) = (nil)
+  dlsym(SoPlex_clearBasis) = (nil)
+  dlsym(SoPlex_hasBasis) = (nil)
+  dlsym(SoPlex_getBasisInd) = (nil)
+  dlsym(_ZN6soplex10SoPlexBaseIdE8setBasisEPKNS_13SPxSolverBaseIdE9VarStatusES6_) = (nil)
+
+==================== C: row side convention
+default IntParams: SIMPLIFIER=3 REPRESENTATION=0 ALGORITHM=1 ITERLIMIT=-1
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 3, obj -21
+---- C1 main LP, minimize, wrapper defaults
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+  redcost: -0 -0 -0 -0 -2 -1 2 0
+  duals: -1.5 0.5 1 -1 -0
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 3, obj 21
+---- C2 main LP, maximize (negated objective)
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 4, obj -21
+---- C3 main LP, minimize, SIMPLIFIER off
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 4, obj -21
+---- C4 main LP, SIMPLIFIER off, REPRESENTATION=COLUMN, ALGORITHM=PRIMAL
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 4, obj -21
+---- C4 main LP, SIMPLIFIER off, REPRESENTATION=COLUMN, ALGORITHM=DUAL
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 4, obj -21
+---- C4 main LP, SIMPLIFIER off, REPRESENTATION=ROW, ALGORITHM=PRIMAL
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 4, obj -21
+---- C4 main LP, SIMPLIFIER off, REPRESENTATION=ROW, ALGORITHM=DUAL
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 3, obj -21
+---- C5 tall LP (20 rows, 8 cols), wrapper defaults
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 3
+  col x0     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col x1     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col x2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col x3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col x4     code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col x5     code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col x6     code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col x7     code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row C0      code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row C1      code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row C2      code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row C3      code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row C4      code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  row C5      code 4 BASIC     sides [-inf, 12] activity 11 (strictly inside)
+  row C6      code 4 BASIC     sides [-inf, 13] activity 11.3 (strictly inside)
+  row C7      code 4 BASIC     sides [-inf, 14] activity 11.6 (strictly inside)
+  row C8      code 4 BASIC     sides [-inf, 15] activity 11.9 (strictly inside)
+  row C9      code 4 BASIC     sides [-inf, 16] activity 12.2 (strictly inside)
+  row C10     code 4 BASIC     sides [-inf, 17] activity 12.5 (strictly inside)
+  row C11     code 4 BASIC     sides [-inf, 18] activity 12.8 (strictly inside)
+  row C12     code 4 BASIC     sides [-inf, 19] activity 13.1 (strictly inside)
+  row C13     code 4 BASIC     sides [-inf, 20] activity 13.4 (strictly inside)
+  row C14     code 4 BASIC     sides [-inf, 21] activity 13.7 (strictly inside)
+  row C15     code 4 BASIC     sides [-inf, 22] activity 14 (strictly inside)
+  row C16     code 4 BASIC     sides [-inf, 23] activity 14.3 (strictly inside)
+  row C17     code 4 BASIC     sides [-inf, 24] activity 14.6 (strictly inside)
+  row C18     code 4 BASIC     sides [-inf, 25] activity 14.9 (strictly inside)
+  row C19     code 4 BASIC     sides [-inf, 26] activity 15.2 (strictly inside)
+  #basic = 20, #rows = 20 -> equal
+
+==================== D: availability
+---- D1 before any solve
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 0
+  col y1     code 1 ON_LOWER  bounds [0, 10]
+  col y2     code 1 ON_LOWER  bounds [0, 10]
+  col y3     code 1 ON_LOWER  bounds [0, 10]
+  col y4     code 1 ON_LOWER  bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 1 ON_LOWER  bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 4 BASIC     sides [-inf, 8]
+  row r_ge    code 4 BASIC     sides [2, inf]
+  row r_eq    code 4 BASIC     sides [5, 5]
+  row r_rng   code 4 BASIC     sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  wrapper solve(): status infeasible, SoPlex_getStatus 3 (INFEASIBLE), iterations 2, obj 1e+100
+---- D2a infeasible LP, wrapper defaults (presolve on)
+  SoPlex_getStatus = 3 (INFEASIBLE), iterations = 2
+  col x0     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col x1     code 4 BASIC     bounds [0, 10] value 2 (strictly inside)
+  row C0      code 1 ON_LOWER  sides [5, inf] activity 5 (at lower)
+  row C1      code 4 BASIC     sides [-inf, 3] activity 5 (strictly inside)
+  row C2      code 0 ON_UPPER  sides [-inf, 1] activity 1 (at upper)
+  #basic = 3, #rows = 3 -> equal
+  wrapper solve(): status infeasible, SoPlex_getStatus 3 (INFEASIBLE), iterations 2, obj 1e+100
+---- D2b infeasible LP, SIMPLIFIER off
+  SoPlex_getStatus = 3 (INFEASIBLE), iterations = 2
+  col x0     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col x1     code 4 BASIC     bounds [0, 10] value 2 (strictly inside)
+  row C0      code 1 ON_LOWER  sides [5, inf] activity 5 (at lower)
+  row C1      code 4 BASIC     sides [-inf, 3] activity 5 (strictly inside)
+  row C2      code 0 ON_UPPER  sides [-inf, 1] activity 1 (at upper)
+  #basic = 3, #rows = 3 -> equal
+  wrapper solve(): status unbounded, SoPlex_getStatus 2 (UNBOUNDED), iterations 0, obj -1e+100
+---- D3 unbounded LP, SIMPLIFIER auto
+  SoPlex_getStatus = 2 (UNBOUNDED), iterations = 0
+  col x0     code 1 ON_LOWER  bounds [0, 1e+100] value 0 (at lower)
+  col x1     code 1 ON_LOWER  bounds [0, 1e+100] value 0 (at lower)
+  col x2     code 1 ON_LOWER  bounds [0, 3] value 0 (at lower)
+  row C0      code 4 BASIC     sides [-inf, 1] activity 0 (strictly inside)
+  row C1      code 4 BASIC     sides [1, inf] activity 0 (strictly inside)
+  #basic = 2, #rows = 2 -> equal
+  wrapper solve(): status unbounded, SoPlex_getStatus 2 (UNBOUNDED), iterations 2, obj -1e+100
+---- D3 unbounded LP, SIMPLIFIER off
+  SoPlex_getStatus = 2 (UNBOUNDED), iterations = 2
+  col x0     code 4 BASIC     bounds [0, 1e+100] value 1 (strictly inside)
+  col x1     code 1 ON_LOWER  bounds [0, 1e+100] value 0 (at lower)
+  col x2     code 1 ON_LOWER  bounds [0, 3] value 0 (at lower)
+  row C0      code 0 ON_UPPER  sides [-inf, 1] activity 1 (at upper)
+  row C1      code 4 BASIC     sides [1, inf] activity 1 (at lower)
+  #basic = 2, #rows = 2 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 8, obj 121.346089
+  (D4 reference: dense LP cold solve above)
+  wrapper solve(): status failed, SoPlex_getStatus -6 (ABORT_ITER), iterations 3, obj 173.573042
+---- D4a dense LP, ITERLIMIT=3, wrapper defaults
+  SoPlex_getStatus = -6 (ABORT_ITER), iterations = 3
+  col x0     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x1     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x2     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x3     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x4     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x5     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x6     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x7     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x8     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x9     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x10    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x11    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x12    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x13    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x14    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x15    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x16    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x17    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x18    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x19    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x20    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x21    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x22    code 4 BASIC     bounds [0, 10] value 10.3229 (strictly inside)
+  col x23    code 4 BASIC     bounds [0, 10] value 5.77711 (strictly inside)
+  col x24    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x25    code 4 BASIC     bounds [0, 10] value 2.79718 (strictly inside)
+  col x26    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x27    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x28    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x29    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  row C0      code 4 BASIC     sides [-inf, 114.3] activity 64.3484 (strictly inside)
+  row C1      code 4 BASIC     sides [-inf, 107.7] activity 43.8502 (strictly inside)
+  row C2      code 4 BASIC     sides [-inf, 141.1] activity 160.761 (strictly inside)
+  row C3      code 4 BASIC     sides [-inf, 127.1] activity 94.2617 (strictly inside)
+  row C4      code 4 BASIC     sides [-inf, 66.3] activity 134.649 (strictly inside)
+  row C5      code 4 BASIC     sides [-inf, 106.4] activity 60.0827 (strictly inside)
+  row C6      code 4 BASIC     sides [-inf, 81.8] activity 161.035 (strictly inside)
+  row C7      code 4 BASIC     sides [-inf, 75.3] activity 122.259 (strictly inside)
+  row C8      code 4 BASIC     sides [-inf, 148.8] activity 110.471 (strictly inside)
+  row C9      code 0 ON_UPPER  sides [-inf, 98.7] activity 98.7 (at upper)
+  row C10     code 0 ON_UPPER  sides [-inf, 81.8] activity 81.8 (at upper)
+  row C11     code 4 BASIC     sides [-inf, 109.6] activity 77.5819 (strictly inside)
+  row C12     code 4 BASIC     sides [-inf, 89.1] activity 117.333 (strictly inside)
+  row C13     code 0 ON_UPPER  sides [-inf, 58.8] activity 58.8 (at upper)
+  row C14     code 4 BASIC     sides [-inf, 135.7] activity 70.0713 (strictly inside)
+  row C15     code 4 BASIC     sides [-inf, 50.7] activity 54.0138 (strictly inside)
+  row C16     code 4 BASIC     sides [-inf, 133.5] activity 158.396 (strictly inside)
+  row C17     code 4 BASIC     sides [-inf, 54.7] activity 117.032 (strictly inside)
+  row C18     code 4 BASIC     sides [-inf, 93.3] activity 130.285 (strictly inside)
+  row C19     code 4 BASIC     sides [-inf, 79.7] activity 90.3416 (strictly inside)
+  #basic = 20, #rows = 20 -> equal
+  wrapper solve(): status failed, SoPlex_getStatus -6 (ABORT_ITER), iterations 3, obj 173.573042
+---- D4b dense LP, ITERLIMIT=3, SIMPLIFIER off
+  SoPlex_getStatus = -6 (ABORT_ITER), iterations = 3
+  col x0     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x1     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x2     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x3     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x4     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x5     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x6     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x7     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x8     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x9     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x10    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x11    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x12    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x13    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x14    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x15    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x16    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x17    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x18    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x19    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x20    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x21    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x22    code 4 BASIC     bounds [0, 10] value 10.3229 (strictly inside)
+  col x23    code 4 BASIC     bounds [0, 10] value 5.77711 (strictly inside)
+  col x24    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x25    code 4 BASIC     bounds [0, 10] value 2.79718 (strictly inside)
+  col x26    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x27    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x28    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x29    code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  row C0      code 4 BASIC     sides [-inf, 114.3] activity 64.3484 (strictly inside)
+  row C1      code 4 BASIC     sides [-inf, 107.7] activity 43.8502 (strictly inside)
+  row C2      code 4 BASIC     sides [-inf, 141.1] activity 160.761 (strictly inside)
+  row C3      code 4 BASIC     sides [-inf, 127.1] activity 94.2617 (strictly inside)
+  row C4      code 4 BASIC     sides [-inf, 66.3] activity 134.649 (strictly inside)
+  row C5      code 4 BASIC     sides [-inf, 106.4] activity 60.0827 (strictly inside)
+  row C6      code 4 BASIC     sides [-inf, 81.8] activity 161.035 (strictly inside)
+  row C7      code 4 BASIC     sides [-inf, 75.3] activity 122.259 (strictly inside)
+  row C8      code 4 BASIC     sides [-inf, 148.8] activity 110.471 (strictly inside)
+  row C9      code 0 ON_UPPER  sides [-inf, 98.7] activity 98.7 (at upper)
+  row C10     code 0 ON_UPPER  sides [-inf, 81.8] activity 81.8 (at upper)
+  row C11     code 4 BASIC     sides [-inf, 109.6] activity 77.5819 (strictly inside)
+  row C12     code 4 BASIC     sides [-inf, 89.1] activity 117.333 (strictly inside)
+  row C13     code 0 ON_UPPER  sides [-inf, 58.8] activity 58.8 (at upper)
+  row C14     code 4 BASIC     sides [-inf, 135.7] activity 70.0713 (strictly inside)
+  row C15     code 4 BASIC     sides [-inf, 50.7] activity 54.0138 (strictly inside)
+  row C16     code 4 BASIC     sides [-inf, 133.5] activity 158.396 (strictly inside)
+  row C17     code 4 BASIC     sides [-inf, 54.7] activity 117.032 (strictly inside)
+  row C18     code 4 BASIC     sides [-inf, 93.3] activity 130.285 (strictly inside)
+  row C19     code 4 BASIC     sides [-inf, 79.7] activity 90.3416 (strictly inside)
+  #basic = 20, #rows = 20 -> equal
+  wrapper solve(): status time_limit, SoPlex_getStatus -7 (ABORT_TIME), iterations 0, obj 1410.9
+---- D4c dense LP, time limit 0 s
+  SoPlex_getStatus = -7 (ABORT_TIME), iterations = 0
+  col x0     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x1     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x2     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x3     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x4     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x5     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x6     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x7     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x8     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x9     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x10    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x11    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x12    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x13    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x14    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x15    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x16    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x17    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x18    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x19    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x20    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x21    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x22    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x23    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x24    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x25    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x26    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x27    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x28    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x29    code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  row C0      code 4 BASIC     sides [-inf, 114.3] activity 1409.7 (strictly inside)
+  row C1      code 4 BASIC     sides [-inf, 107.7] activity 1546.7 (strictly inside)
+  row C2      code 4 BASIC     sides [-inf, 141.1] activity 1480.3 (strictly inside)
+  row C3      code 4 BASIC     sides [-inf, 127.1] activity 1229.1 (strictly inside)
+  row C4      code 4 BASIC     sides [-inf, 66.3] activity 1571.7 (strictly inside)
+  row C5      code 4 BASIC     sides [-inf, 106.4] activity 1360 (strictly inside)
+  row C6      code 4 BASIC     sides [-inf, 81.8] activity 1635.9 (strictly inside)
+  row C7      code 4 BASIC     sides [-inf, 75.3] activity 1634.2 (strictly inside)
+  row C8      code 4 BASIC     sides [-inf, 148.8] activity 1363 (strictly inside)
+  row C9      code 4 BASIC     sides [-inf, 98.7] activity 1653 (strictly inside)
+  row C10     code 4 BASIC     sides [-inf, 81.8] activity 1862.6 (strictly inside)
+  row C11     code 4 BASIC     sides [-inf, 109.6] activity 1459.2 (strictly inside)
+  row C12     code 4 BASIC     sides [-inf, 89.1] activity 1282.7 (strictly inside)
+  row C13     code 4 BASIC     sides [-inf, 58.8] activity 1435.2 (strictly inside)
+  row C14     code 4 BASIC     sides [-inf, 135.7] activity 1421.6 (strictly inside)
+  row C15     code 4 BASIC     sides [-inf, 50.7] activity 1567.5 (strictly inside)
+  row C16     code 4 BASIC     sides [-inf, 133.5] activity 1549.1 (strictly inside)
+  row C17     code 4 BASIC     sides [-inf, 54.7] activity 1566.6 (strictly inside)
+  row C18     code 4 BASIC     sides [-inf, 93.3] activity 1673.1 (strictly inside)
+  row C19     code 4 BASIC     sides [-inf, 79.7] activity 1562.7 (strictly inside)
+  #basic = 20, #rows = 20 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 5, obj 121.346089
+  D4d: resolving D4a without limit continues from its basis (iterations above)
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 3, obj -21
+---- D5a after add_constraint (y1 + y3 <= 50), no re-solve
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row C0      code 0 ON_UPPER  sides [-inf, 8]
+  row C1      code 1 ON_LOWER  sides [2, inf]
+  row C2      code 2 FIXED     sides [5, 5]
+  row C3      code 0 ON_UPPER  sides [1, 7]
+  row C4      code 4 BASIC     sides [-inf, 100]
+  row C5      code 4 BASIC     sides [-inf, 50]
+  #basic = 6, #rows = 6 -> equal
+---- D5b after xup ub 4 -> 3.5 (xup was ON_UPPER), no re-solve
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 3.5]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row C0      code 0 ON_UPPER  sides [-inf, 8]
+  row C1      code 1 ON_LOWER  sides [2, inf]
+  row C2      code 2 FIXED     sides [5, 5]
+  row C3      code 0 ON_UPPER  sides [1, 7]
+  row C4      code 4 BASIC     sides [-inf, 100]
+  row C5      code 4 BASIC     sides [-inf, 50]
+  #basic = 6, #rows = 6 -> equal
+---- D5c after xup ub -> infinity (xup was ON_UPPER)
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 1e+100]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row C0      code 0 ON_UPPER  sides [-inf, 8]
+  row C1      code 1 ON_LOWER  sides [2, inf]
+  row C2      code 2 FIXED     sides [5, 5]
+  row C3      code 0 ON_UPPER  sides [1, 7]
+  row C4      code 4 BASIC     sides [-inf, 100]
+  row C5      code 4 BASIC     sides [-inf, 50]
+  #basic = 6, #rows = 6 -> equal
+---- D5d after xup ub back to 4, xlow lb -> -inf (xlow was ON_LOWER)
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 0 ON_UPPER  bounds [-1e+100, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row C0      code 0 ON_UPPER  sides [-inf, 8]
+  row C1      code 1 ON_LOWER  sides [2, inf]
+  row C2      code 2 FIXED     sides [5, 5]
+  row C3      code 0 ON_UPPER  sides [1, 7]
+  row C4      code 4 BASIC     sides [-inf, 100]
+  row C5      code 4 BASIC     sides [-inf, 50]
+  #basic = 6, #rows = 6 -> equal
+---- D5e after add_variable [0,10] and add_column (-inf,6] (no re-solve)
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 0 ON_UPPER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  col x8     code 1 ON_LOWER  bounds [0, 10]
+  col x9     code 0 ON_UPPER  bounds [-1e+100, 6]
+  row C0      code 0 ON_UPPER  sides [-inf, 8]
+  row C1      code 1 ON_LOWER  sides [2, inf]
+  row C2      code 2 FIXED     sides [5, 5]
+  row C3      code 0 ON_UPPER  sides [1, 7]
+  row C4      code 4 BASIC     sides [-inf, 100]
+  row C5      code 4 BASIC     sides [-inf, 50]
+  #basic = 6, #rows = 6 -> equal
+---- D5f after freeing r_le's active upper side (no re-solve)
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 0 ON_UPPER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  col x8     code 1 ON_LOWER  bounds [0, 10]
+  col x9     code 0 ON_UPPER  bounds [-1e+100, 6]
+  row C0      code 3 ZERO      sides [-inf, 1e+100]
+  row C1      code 1 ON_LOWER  sides [2, inf]
+  row C2      code 2 FIXED     sides [5, 5]
+  row C3      code 0 ON_UPPER  sides [1, 7]
+  row C4      code 4 BASIC     sides [-inf, 100]
+  row C5      code 4 BASIC     sides [-inf, 50]
+  #basic = 6, #rows = 6 -> equal
+---- D5g after restoring r_le's upper side
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 0 ON_UPPER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  col x8     code 1 ON_LOWER  bounds [0, 10]
+  col x9     code 0 ON_UPPER  bounds [-1e+100, 6]
+  row C0      code 0 ON_UPPER  sides [-inf, 8]
+  row C1      code 1 ON_LOWER  sides [2, inf]
+  row C2      code 2 FIXED     sides [5, 5]
+  row C3      code 0 ON_UPPER  sides [1, 7]
+  row C4      code 4 BASIC     sides [-inf, 100]
+  row C5      code 4 BASIC     sides [-inf, 50]
+  #basic = 6, #rows = 6 -> equal
+  wrapper solve(): status unbounded, SoPlex_getStatus 2 (UNBOUNDED), iterations 1, obj -1e+100
+---- D5h after re-solve
+  SoPlex_getStatus = 2 (UNBOUNDED), iterations = 1
+  col y1     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col y2     code 4 BASIC     bounds [0, 10] value 8 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  col x8     code 1 ON_LOWER  bounds [0, 10] value 0 (at lower)
+  col x9     code 4 BASIC     bounds [-1e+100, 6] value -10 (strictly inside)
+  row C0      code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row C1      code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row C2      code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row C3      code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row C4      code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  row C5      code 4 BASIC     sides [-inf, 50] activity 13 (strictly inside)
+  #basic = 6, #rows = 6 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 0, obj -2
+---- D6 LP that presolve solves entirely (redundant row)
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 0
+  col x0     code 1 ON_LOWER  bounds [1, 3] value 1 (at lower)
+  col x1     code 0 ON_UPPER  bounds [0, 3] value 3 (at upper)
+  row C0      code 4 BASIC     sides [-inf, 10] activity 4 (strictly inside)
+  #basic = 1, #rows = 1 -> equal
+
+==================== E: warm start
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 3, obj -21
+  basis of A read; pairing ok = 1
+-- E0 control: fresh B, no basis, ITERLIMIT=0
+  raw SoPlex_optimize = -6 (ABORT_ITER), iterations = 0, obj = -47
+-- E1 fresh B, basis of A written via SoPlex_readBasisFile, ITERLIMIT=0
+  .bas file e1.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E1 codes read back after readBasisFile, before solve
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+---- E1 after the 0-iteration solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+  (E1 re-solve without the limit)
+  .bas file e1b.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+-- E1b fresh B, basis written, no iteration limit, wrapper solve()
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 0, obj -21
+  .bas file e1c.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+-- E1c same, SIMPLIFIER off
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+  .bas file e1d.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+-- E1d same, primal simplex
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 3, obj -21
+-- E2a A solved; xup ub 4 -> 3.5; write A's old basis into A; ITERLIMIT=0
+  .bas file e2a.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E2a codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 3.5]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -20
+  expected optimum after the change: -21 + 3*0.5 - 0.5 = -20
+-- E2b fresh B, basis written, THEN r_slk rhs 100 -> 200 (basis stays optimal); ITERLIMIT=0
+  .bas file e2b.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E2b codes after the change
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 200]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+-- E2c fresh B, basis written, THEN y1 ub 10 -> 4 (basis primal infeasible); no limit
+  .bas file e2c.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 1, obj = -18
+-- E2c control: cold solve of the changed LP
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 2, obj = -18
+-- E2d ranged row r_rng (C3) written XL (lower side) instead of XU
+  .bas file e2d.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XL x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E2d codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 1 ON_LOWER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 2, obj = -21
+-- E2e XL written on the <= row r_le (C0) and XU on the >= row r_ge (C1): sides forced by row type?
+  .bas file e2e.bas:
+    |NAME  soplex.bas
+    | XL x0             C0
+    | XU x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E2e codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+
+==================== E3: invalid bases
+-- E3a too many basic (xlow basic, paired with C0 again)
+  .bas file e3a.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    | XU x0x1x2x3x4x5x6       C0
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E3a too many basic (xlow basic, paired with C0 again): codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 0 ON_UPPER  bounds [0, 10]
+  col y2     code 0 ON_UPPER  bounds [0, 10]
+  col y3     code 1 ON_LOWER  bounds [0, 10]
+  col y4     code 0 ON_UPPER  bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 4 BASIC     sides [-inf, 8]
+  row r_ge    code 4 BASIC     sides [2, inf]
+  row r_eq    code 4 BASIC     sides [5, 5]
+  row r_rng   code 4 BASIC     sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 4, obj = -21
+---- E3a too many basic (xlow basic, paired with C0 again): after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3b too few basic (y1 paired twice: C0 and C4 nonbasic)
+  .bas file e3b.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    | XU x0             C0C1C2C3C4
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E3b too few basic (y1 paired twice: C0 and C4 nonbasic): codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 0 ON_UPPER  bounds [0, 10]
+  col y2     code 0 ON_UPPER  bounds [0, 10]
+  col y3     code 1 ON_LOWER  bounds [0, 10]
+  col y4     code 0 ON_UPPER  bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 4 BASIC     sides [-inf, 8]
+  row r_ge    code 4 BASIC     sides [2, inf]
+  row r_eq    code 4 BASIC     sides [5, 5]
+  row r_rng   code 4 BASIC     sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 4, obj = -21
+---- E3b too few basic (y1 paired twice: C0 and C4 nonbasic): after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3c UL on a free column (infinite upper)
+  .bas file e3c.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    | UL x0x1x2x3x4x5x6x7
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E3c UL on a free column (infinite upper): codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+---- E3c UL on a free column (infinite upper): after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3d LL on a free column (infinite lower)
+  .bas file e3d.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    | LL x0x1x2x3x4x5x6x7
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E3d LL on a free column (infinite lower): codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+---- E3d LL on a free column (infinite lower): after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3e unknown column name x99
+  .bas file e3e.bas:
+    |NAME  soplex.bas
+    | UL x99
+    |ENDATA
+  SoPlex_readBasisFile returned 0
+---- E3e unknown column name x99: codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 1 ON_LOWER  bounds [0, 10]
+  col y2     code 1 ON_LOWER  bounds [0, 10]
+  col y3     code 1 ON_LOWER  bounds [0, 10]
+  col y4     code 1 ON_LOWER  bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 1 ON_LOWER  bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 4 BASIC     sides [-inf, 8]
+  row r_ge    code 4 BASIC     sides [2, inf]
+  row r_eq    code 4 BASIC     sides [5, 5]
+  row r_rng   code 4 BASIC     sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 3, obj = -21
+---- E3e unknown column name x99: after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3f singular: empty column xfree basic, paired with C4
+  .bas file e3f.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    | XU x0x1x2x3x4x5x6x7       C0C1C2C3C4
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E3f singular: empty column xfree basic, paired with C4: codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 4 BASIC     bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 0 ON_UPPER  sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 4, obj = -21
+---- E3f singular: empty column xfree basic, paired with C4: after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3g LL on the fixed column xfix (explicit lower)
+  .bas file e3g.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    | LL x0x1x2x3x4x5
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E3g LL on the fixed column xfix (explicit lower): codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 0 ON_UPPER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+---- E3g LL on the fixed column xfix (explicit lower): after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3h short line ' XU x0 C0' (fixed-format heuristic)
+  .bas file e3h.bas:
+    |NAME  soplex.bas
+    | XU x0 C0
+    |ENDATA
+  SoPlex_readBasisFile returned 0
+---- E3h short line ' XU x0 C0' (fixed-format heuristic): codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 1 ON_LOWER  bounds [0, 10]
+  col y2     code 1 ON_LOWER  bounds [0, 10]
+  col y3     code 1 ON_LOWER  bounds [0, 10]
+  col y4     code 1 ON_LOWER  bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 1 ON_LOWER  bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 4 BASIC     sides [-inf, 8]
+  row r_ge    code 4 BASIC     sides [2, inf]
+  row r_eq    code 4 BASIC     sides [5, 5]
+  row r_rng   code 4 BASIC     sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 3, obj = -21
+---- E3h short line ' XU x0 C0' (fixed-format heuristic): after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3i plain names x1/C1 (what the C header suggests)
+  .bas file e3i.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x1             C1
+    |ENDATA
+  SoPlex_readBasisFile returned 0
+---- E3i plain names x1/C1 (what the C header suggests): codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 1 ON_LOWER  bounds [0, 10]
+  col y2     code 1 ON_LOWER  bounds [0, 10]
+  col y3     code 1 ON_LOWER  bounds [0, 10]
+  col y4     code 1 ON_LOWER  bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 1 ON_LOWER  bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 4 BASIC     sides [-inf, 8]
+  row r_ge    code 4 BASIC     sides [2, inf]
+  row r_eq    code 4 BASIC     sides [5, 5]
+  row r_rng   code 4 BASIC     sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 3, obj = -21
+---- E3i plain names x1/C1 (what the C header suggests): after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 3
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+-- E3j empty basis file (NAME + ENDATA only)
+  .bas file e3j.bas:
+    |NAME  soplex.bas
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- E3j empty basis file (NAME + ENDATA only): codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 1 ON_LOWER  bounds [0, 10]
+  col y2     code 1 ON_LOWER  bounds [0, 10]
+  col y3     code 1 ON_LOWER  bounds [0, 10]
+  col y4     code 1 ON_LOWER  bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 4 BASIC     sides [-inf, 8]
+  row r_ge    code 4 BASIC     sides [2, inf]
+  row r_eq    code 4 BASIC     sides [5, 5]
+  row r_rng   code 4 BASIC     sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 7, obj = -21
+---- E3j empty basis file (NAME + ENDATA only): after solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 7
+  col y1     code 4 BASIC     bounds [0, 10] value 5 (strictly inside)
+  col y2     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y3     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col y4     code 4 BASIC     bounds [0, 10] value 3 (strictly inside)
+  col xup    code 0 ON_UPPER  bounds [0, 4] value 4 (at upper)
+  col xfix   code 2 FIXED     bounds [2, 2] value 2 (at both)
+  col xlow   code 1 ON_LOWER  bounds [1, 5] value 1 (at lower)
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100] value 0 (strictly inside)
+  row r_le    code 0 ON_UPPER  sides [-inf, 8] activity 8 (at upper)
+  row r_ge    code 1 ON_LOWER  sides [2, inf] activity 2 (at lower)
+  row r_eq    code 2 FIXED     sides [5, 5] activity 5 (at both)
+  row r_rng   code 0 ON_UPPER  sides [1, 7] activity 7 (at upper)
+  row r_slk   code 4 BASIC     sides [-inf, 100] activity 15 (strictly inside)
+  #basic = 5, #rows = 5 -> equal
+
+==================== F: partial / extended bases
+-- F1 model grew a column (x8, obj +1, lb 0) and a row (C5); A's basis written (names only old entities); ITERLIMIT=0
+  .bas file f1.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | UL x0x1x2x3x4
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- F1 codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col x0     code 4 BASIC     bounds [0, 10]
+  col x1     code 4 BASIC     bounds [0, 10]
+  col x2     code 4 BASIC     bounds [0, 10]
+  col x3     code 4 BASIC     bounds [0, 10]
+  col x4     code 0 ON_UPPER  bounds [0, 4]
+  col x5     code 2 FIXED     bounds [2, 2]
+  col x6     code 1 ON_LOWER  bounds [1, 5]
+  col x7     code 3 ZERO      bounds [-1e+100, 1e+100]
+  col x8     code 1 ON_LOWER  bounds [0, 10]
+  row C0      code 0 ON_UPPER  sides [-inf, 8]
+  row C1      code 1 ON_LOWER  sides [2, inf]
+  row C2      code 2 FIXED     sides [5, 5]
+  row C3      code 0 ON_UPPER  sides [1, 7]
+  row C4      code 4 BASIC     sides [-inf, 100]
+  row C5      code 4 BASIC     sides [-inf, 50]
+  #basic = 6, #rows = 6 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+-- F2 subset: A's basis without xup's UL line
+  .bas file f2.bas:
+    |NAME  soplex.bas
+    | XU x0             C0
+    | XL x0x1           C0C1
+    | XL x0x1x2         C0C1C2
+    | XU x0x1x2x3       C0C1C2C3
+    | LL x0x1x2x3x4x5x6
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- F2 codes after readBasisFile
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 0
+  col y1     code 4 BASIC     bounds [0, 10]
+  col y2     code 4 BASIC     bounds [0, 10]
+  col y3     code 4 BASIC     bounds [0, 10]
+  col y4     code 4 BASIC     bounds [0, 10]
+  col xup    code 1 ON_LOWER  bounds [0, 4]
+  col xfix   code 2 FIXED     bounds [2, 2]
+  col xlow   code 1 ON_LOWER  bounds [1, 5]
+  col xfree  code 3 ZERO      bounds [-1e+100, 1e+100]
+  row r_le    code 0 ON_UPPER  sides [-inf, 8]
+  row r_ge    code 1 ON_LOWER  sides [2, inf]
+  row r_eq    code 2 FIXED     sides [5, 5]
+  row r_rng   code 0 ON_UPPER  sides [1, 7]
+  row r_slk   code 4 BASIC     sides [-inf, 100]
+  #basic = 5, #rows = 5 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 0, obj = -21
+
+==================== G: gotchas
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 2, obj 8
+-- G1.0 freed active row, then raw optimize (no reload); expect 31
+---- G1 codes before re-solve
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 2
+  col x0     code 4 BASIC     bounds [0, 10]
+  col x1     code 4 BASIC     bounds [0, 10]
+  col x2     code 4 BASIC     bounds [0, 10]
+  row C0      code 3 ZERO      sides [-inf, 1e+100]
+  row C1      code 1 ON_LOWER  sides [-2, inf]
+  row C2      code 2 FIXED     sides [1, 1]
+  #basic = 3, #rows = 3 -> equal
+  raw SoPlex_optimize = -1 (RUNNING), iterations = 0, obj = 2
+---- G1 after re-solve
+  SoPlex_getStatus = -1 (RUNNING), iterations = 0
+  col x0     code 4 BASIC     bounds [0, 10] value -1 (strictly inside)
+  col x1     code 4 BASIC     bounds [0, 10] value 1 (strictly inside)
+  col x2     code 4 BASIC     bounds [0, 10] value 1 (strictly inside)
+  row C0      code 3 ZERO      sides [-inf, 1e+100] activity 0 (strictly inside)
+  row C1      code 1 ON_LOWER  sides [-2, inf] activity -2 (at lower)
+  row C2      code 2 FIXED     sides [1, 1] activity 1 (at both)
+  #basic = 3, #rows = 3 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 2, obj 8
+-- G1.1 freed active row, then readBasisFile(empty NAME/ENDATA file) then raw optimize; expect 31
+---- G1 codes before re-solve
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 2
+  col x0     code 4 BASIC     bounds [0, 10]
+  col x1     code 4 BASIC     bounds [0, 10]
+  col x2     code 4 BASIC     bounds [0, 10]
+  row C0      code 3 ZERO      sides [-inf, 1e+100]
+  row C1      code 1 ON_LOWER  sides [-2, inf]
+  row C2      code 2 FIXED     sides [1, 1]
+  #basic = 3, #rows = 3 -> equal
+  .bas file g1.bas:
+    |NAME  soplex.bas
+    |ENDATA
+  SoPlex_readBasisFile returned 1
+---- G1.1 codes after readBasisFile(empty)
+  SoPlex_getStatus = -3 (NO_PROBLEM), iterations = 2
+  col x0     code 1 ON_LOWER  bounds [0, 10]
+  col x1     code 1 ON_LOWER  bounds [0, 10]
+  col x2     code 1 ON_LOWER  bounds [0, 10]
+  row C0      code 4 BASIC     sides [-inf, 1e+100]
+  row C1      code 4 BASIC     sides [-2, inf]
+  row C2      code 4 BASIC     sides [1, 1]
+  #basic = 3, #rows = 3 -> equal
+  raw SoPlex_optimize = 1 (OPTIMAL), iterations = 4, obj = 31
+---- G1 after re-solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 4
+  col x0     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x1     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x2     code 4 BASIC     bounds [0, 10] value 1 (strictly inside)
+  row C0      code 4 BASIC     sides [-inf, 1e+100] activity 20 (strictly inside)
+  row C1      code 4 BASIC     sides [-2, inf] activity 0 (strictly inside)
+  row C2      code 2 FIXED     sides [1, 1] activity 1 (at both)
+  #basic = 3, #rows = 3 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 2, obj 8
+-- G1.2 freed active row, then wrapper solve() (reload); expect 31
+---- G1 codes before re-solve
+  SoPlex_getStatus = 0 (UNKNOWN), iterations = 2
+  col x0     code 4 BASIC     bounds [0, 10]
+  col x1     code 4 BASIC     bounds [0, 10]
+  col x2     code 4 BASIC     bounds [0, 10]
+  row C0      code 3 ZERO      sides [-inf, 1e+100]
+  row C1      code 1 ON_LOWER  sides [-2, inf]
+  row C2      code 2 FIXED     sides [1, 1]
+  #basic = 3, #rows = 3 -> equal
+  wrapper solve(): status optimal, SoPlex_getStatus 1 (OPTIMAL), iterations 1, obj 31
+---- G1 after re-solve
+  SoPlex_getStatus = 1 (OPTIMAL), iterations = 1
+  col x0     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x1     code 0 ON_UPPER  bounds [0, 10] value 10 (at upper)
+  col x2     code 4 BASIC     bounds [0, 10] value 1 (strictly inside)
+  row C0      code 4 BASIC     sides [-inf, 1e+100] activity 20 (strictly inside)
+  row C1      code 4 BASIC     sides [-2, inf] activity 0 (strictly inside)
+  row C2      code 2 FIXED     sides [1, 1] activity 1 (at both)
+  #basic = 3, #rows = 3 -> equal

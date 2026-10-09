@@ -1,0 +1,31 @@
+GLPK version 5.0
+Assertion failed: k1 < k2
+Error detected in file bflib/sgf.c at line 185
+  [1 row, basis={empty col z} / glp_factorize] child killed by signal 6
+Assertion failed: k1 < k2
+Error detected in file bflib/sgf.c at line 185
+  [1 row, basis={empty col z} / wrapper solve] child killed by signal 6
+Assertion failed: k1 < k2
+Error detected in file bflib/sgf.c at line 185
+  [2 rows, basis={z, R1} / glp_factorize] child killed by signal 6
+Assertion failed: k1 < k2
+Error detected in file bflib/sgf.c at line 185
+  [2 rows, basis={z, R1} / wrapper solve] child killed by signal 6
+  (child) #basic=2 factorize -> GLP_ESING
+  [2 rows, basis={z, x} / glp_factorize] child exited with code 0
+  (child) solve -> numerical_failure
+  [2 rows, basis={z, x} / wrapper solve] child exited with code 0
+  (child) #basic=2 factorize -> GLP_ESING
+  [2 rows, basis={x, w} duplicate columns / glp_factorize] child exited with code 0
+  (child) solve -> numerical_failure
+  [2 rows, basis={x, w} duplicate columns / wrapper solve] child exited with code 0
+  (child) #basic=2 factorize -> GLP_EBADB
+  [1 row, basis={x, w} count wrong / glp_factorize] child exited with code 0
+  (child) solve -> failed
+  [1 row, basis={x, w} count wrong / wrapper solve] child exited with code 0
+  (child) #basic=2 factorize -> 0
+  [2 rows, basis={x, R2} valid / glp_factorize] child exited with code 0
+  (child) solve -> optimal
+  [2 rows, basis={x, R2} valid / wrapper solve] child exited with code 0
+
+done

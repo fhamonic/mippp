@@ -1,0 +1,34 @@
+=== G: gotchas
+  G1 after VBasis/CBasis write, no update: X e0 2, Pi e0 2.5, Status 2
+  [G1 basis, no update] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  G1 after update: X e0 2, Pi e0 2.5, Status 2
+  [G1 basis after update] VBasis(e0): 0 0 0 -2 -1 -1 -2 0 -3 | CBasis(e0): -1 -1 -1 -1 0  #basic=5 #rows=5
+  G1 wrapper get_solution OK
+  G1 wrapper get_solution_value = 19
+  G2 addrangeconstr -> 0; NumVars before update 0, after update 3
+  [G2 ranged max (activity at upper 5)] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=10(e0) SolCount=1
+    errs: LB0 UB0 X0 RC0 VBasis0 Sense0 RHS0 Slack0 Pi0 CBasis0
+    col 0   x        lb=0        ub=10       x=0          rc=-1         VBasis=-1
+    col 1   y        lb=0        ub=10       x=5          rc=0          VBasis=0
+    col 2   RgRange  lb=0        ub=3        x=0          rc=-2         VBasis=-1
+    row 0   x-y<=1     sense=< rhs=1        slack=6          pi=0          CBasis=0
+    row 1   rng[2,5]   sense== rhs=5        slack=0          pi=2          CBasis=-1
+    #basic=2 #rows=2
+  G2 addrangeconstr -> 0; NumVars before update 0, after update 3
+  [G2 ranged min (activity at lower 2)] Status=2 OPTIMAL(e0) IterCount=2(e0) BarIter=0(e0) ConcWin=1(e0) ObjVal=2.5(e0) SolCount=1
+    errs: LB0 UB0 X0 RC0 VBasis0 Sense0 RHS0 Slack0 Pi0 CBasis0
+    col 0   x        lb=0        ub=10       x=1.5        rc=0          VBasis=0
+    col 1   y        lb=0        ub=10       x=0.5        rc=0          VBasis=0
+    col 2   RgRange  lb=0        ub=3        x=3          rc=-1.5       VBasis=-2
+    row 0   x-y<=1     sense=< rhs=1        slack=0          pi=-0.5       CBasis=-1
+    row 1   rng[2,5]   sense== rhs=5        slack=0          pi=1.5        CBasis=-1
+    #basic=2 #rows=2
+  G3 queued column, set VBasis len 10 before update -> 0 ()
+  G3 after update -> 0
+  [G4 after remove_variable(z1) (wrapper updates)] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  [G4 re-solve lim0] Status=7 ITERATION_LIMIT(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=-0(e0) SolCount=0
+  [G4 basis] VBasis(e0): -1 0 0 -2 -1 -1 -2 -3 | CBasis(e0): -1 0 -1 0 0  #basic=5 #rows=5
+  G4 native_id(t)=6 native_id(z2)=7
+  [G5 core with x integer (native VType write)] Status=2 OPTIMAL(e0) IterCount=0(e0) BarIter=0(e0) ConcWin=-1(e0) ObjVal=19(e0) SolCount=4
+  [G5 basis after MIP solve] VBasis(e10005 Unable to retrieve attribute 'CBasis'): | CBasis(e10005):
+  G5 set VBasis on MIP -> 0

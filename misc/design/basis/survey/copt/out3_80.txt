@@ -1,0 +1,23 @@
+library: /home/plaiseek/Softwares/solvers/copt80/lib/libcopt.so
+
+=== 1. basis before any solve, by construction order ===
+  empty: GetBasis ret=3 HasBasis=0
+  1 col: GetBasis ret=3 HasBasis=0
+  2 cols (y ub only): GetBasis ret=3 HasBasis=0
+  2 cols + 1 row: GetBasis ret=0 HasBasis=1 LOWER UPPER | BASIC 
+  3 cols + 1 row: GetBasis ret=0 HasBasis=1 LOWER UPPER SUPERBASIC | BASIC 
+  0 cols + 1 row: GetBasis ret=0 HasBasis=1 | BASIC 
+  2 cols, 0 rows: SetBasis ret=0 HasBasis=1
+
+=== 2. infeasible dense LP (simplex has to find it) ===
+  Presolve=-1: LpStatus=2 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 GetBasis ret=0
+  Presolve=-1 LpMethod=1: LpStatus=2 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 GetBasis ret=0
+  Presolve=0: LpStatus=2 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 GetBasis ret=0
+  Presolve=0 LpMethod=1: LpStatus=2 HasBasis=1 HasLpSol=0 SimplexIter=3 BarrierIter=0 GetBasis ret=0
+
+=== 3. solution reads after SetBasis on a solved model ===
+  after SetBasis: LpStatus=1 HasBasis=1 HasLpSol=0 SimplexIter=149 BarrierIter=0 GetLpSolution ret=3 x0=nan LpObjval ret=0 value=321054
+  wrapper status still index 1 (1 = optimal)
+  wrapper get_solution() threw: API call failed: invalid data
+
+DONE

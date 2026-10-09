@@ -1,0 +1,112 @@
+library: /opt/ibm/ILOG/CPLEX_Studio2211/cplex/bin/x86-64_linux/libcplex2211.so version: 22.1.1
+defaults: ADVIND=1 PREIND=1 LPMETHOD=0 BARCROSSALG=0 ITLIM=2147483647
+
+===== C1: model C, wrapper defaults (primopt, presolve on)
+[C1 before solve] getbase ret=1262 CPLEX Error  1262: No basis exists.
+[C1 before solve] getstat=0 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+[C1] wrapper status index=1 objval=15 (ret ok)
+[C1] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  getx ret=ok getslack ret=ok
+   col 0   y1   lb=0       ub=1e+20   x=3         cstat=1 BASIC
+   col 1   y2   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 2   y3   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 3   y4   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 4   u[0,2] lb=0       ub=2       x=2         cstat=2 AT_UPPER
+   col 5   f1=3 lb=3       ub=3       x=3         cstat=2 AT_UPPER
+   col 6   f2=2 lb=2       ub=2       x=2         cstat=0 AT_LOWER
+   col 7   y5   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 8   y6   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 9   z free lb=-1e+20  ub=1e+20   x=0         cstat=3 FREE_SUPER
+   col 10  w(-inf,5] lb=-1e+20  ub=5       x=5         cstat=2 AT_UPPER
+   col 11  v>=0 lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   row 0   R1 L y1+y2<=4 tight        sense=L rhs=4      rng=0      slack=0         act=4         rstat=0 AT_LOWER
+   row 1   R2 G y1-y2>=2 tight        sense=G rhs=2      rng=0      slack=0         act=2         rstat=0 AT_LOWER
+   row 2   R3 E y3+f1==7 (pi<0)       sense=E rhs=7      rng=0      slack=0         act=7         rstat=0 AT_LOWER
+   row 3   R4 R 1<=y4+u<=6 @up        sense=R rhs=1      rng=5      slack=5         act=6         rstat=2 AT_UPPER
+   row 4   R5 L <=100 loose           sense=L rhs=100    rng=0      slack=89        act=11        rstat=1 BASIC
+   row 5   R6 R 1<=y5<=8 @low         sense=R rhs=1      rng=7      slack=0         act=1         rstat=0 AT_LOWER
+   row 6   R7 E y6-f2==-1 (pi>0)      sense=E rhs=-1     rng=0      slack=0         act=-1        rstat=0 AT_LOWER
+   row 7   R8 free row (L,1e20)       sense=L rhs=1e+20  rng=0      slack=1e+20     act=0         rstat=1 BASIC
+
+===== C2: model C, presolve off
+[C2] wrapper status index=1 objval=15 (ret ok)
+[C2] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=5 phase1=1
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  getx ret=ok getslack ret=ok
+   col 0   y1   lb=0       ub=1e+20   x=3         cstat=1 BASIC
+   col 1   y2   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 2   y3   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 3   y4   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 4   u[0,2] lb=0       ub=2       x=2         cstat=2 AT_UPPER
+   col 5   f1=3 lb=3       ub=3       x=3         cstat=2 AT_UPPER
+   col 6   f2=2 lb=2       ub=2       x=2         cstat=0 AT_LOWER
+   col 7   y5   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 8   y6   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 9   z free lb=-1e+20  ub=1e+20   x=0         cstat=3 FREE_SUPER
+   col 10  w(-inf,5] lb=-1e+20  ub=5       x=5         cstat=2 AT_UPPER
+   col 11  v>=0 lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   row 0   R1 L y1+y2<=4 tight        sense=L rhs=4      rng=0      slack=0         act=4         rstat=0 AT_LOWER
+   row 1   R2 G y1-y2>=2 tight        sense=G rhs=2      rng=0      slack=0         act=2         rstat=0 AT_LOWER
+   row 2   R3 E y3+f1==7 (pi<0)       sense=E rhs=7      rng=0      slack=0         act=7         rstat=0 AT_LOWER
+   row 3   R4 R 1<=y4+u<=6 @up        sense=R rhs=1      rng=5      slack=5         act=6         rstat=2 AT_UPPER
+   row 4   R5 L <=100 loose           sense=L rhs=100    rng=0      slack=89        act=11        rstat=1 BASIC
+   row 5   R6 R 1<=y5<=8 @low         sense=R rhs=1      rng=7      slack=0         act=1         rstat=0 AT_LOWER
+   row 6   R7 E y6-f2==-1 (pi>0)      sense=E rhs=-1     rng=0      slack=0         act=-1        rstat=0 AT_LOWER
+   row 7   R8 free row (L,1e20)       sense=L rhs=1e+20  rng=0      slack=1e+20     act=0         rstat=1 BASIC
+
+===== C3: model C, ranged rows rewritten with a NEGATIVE range value (native), presolve off
+[C3] wrapper status index=1 objval=15 (ret ok)
+[C3] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=4 phase1=1
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  getx ret=ok getslack ret=ok
+   col 0   y1   lb=0       ub=1e+20   x=3         cstat=1 BASIC
+   col 1   y2   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 2   y3   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 3   y4   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 4   u[0,2] lb=0       ub=2       x=2         cstat=2 AT_UPPER
+   col 5   f1=3 lb=3       ub=3       x=3         cstat=2 AT_UPPER
+   col 6   f2=2 lb=2       ub=2       x=2         cstat=0 AT_LOWER
+   col 7   y5   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 8   y6   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 9   z free lb=-1e+20  ub=1e+20   x=0         cstat=3 FREE_SUPER
+   col 10  w(-inf,5] lb=-1e+20  ub=5       x=5         cstat=2 AT_UPPER
+   col 11  v>=0 lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   row 0   R1 L y1+y2<=4 tight        sense=L rhs=4      rng=0      slack=0         act=4         rstat=0 AT_LOWER
+   row 1   R2 G y1-y2>=2 tight        sense=G rhs=2      rng=0      slack=0         act=2         rstat=0 AT_LOWER
+   row 2   R3 E y3+f1==7 (pi<0)       sense=E rhs=7      rng=0      slack=0         act=7         rstat=0 AT_LOWER
+   row 3   R4 R 1<=y4+u<=6 @up        sense=R rhs=6      rng=-5     slack=0         act=6         rstat=2 AT_UPPER
+   row 4   R5 L <=100 loose           sense=L rhs=100    rng=0      slack=89        act=11        rstat=1 BASIC
+   row 5   R6 R 1<=y5<=8 @low         sense=R rhs=8      rng=-7     slack=-7        act=1         rstat=0 AT_LOWER
+   row 6   R7 E y6-f2==-1 (pi>0)      sense=E rhs=-1     rng=0      slack=0         act=-1        rstat=0 AT_LOWER
+   row 7   R8 free row (L,1e20)       sense=L rhs=1e+20  rng=0      slack=1e+20     act=0         rstat=1 BASIC
+
+===== C4: model C, dual simplex via CPXdualopt (native), presolve off
+dualopt ret=ok
+[C4] getstat=1 solninfo(ret=0 method=2 type=1 pfeas=1 dfeas=1) getmethod=2 itcnt=4 phase1=2
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  getx ret=ok getslack ret=ok
+   col 0   y1   lb=0       ub=1e+20   x=3         cstat=1 BASIC
+   col 1   y2   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 2   y3   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 3   y4   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 4   u[0,2] lb=0       ub=2       x=2         cstat=2 AT_UPPER
+   col 5   f1=3 lb=3       ub=3       x=3         cstat=2 AT_UPPER
+   col 6   f2=2 lb=2       ub=2       x=2         cstat=0 AT_LOWER
+   col 7   y5   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 8   y6   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 9   z free lb=-1e+20  ub=1e+20   x=0         cstat=3 FREE_SUPER
+   col 10  w(-inf,5] lb=-1e+20  ub=5       x=5         cstat=2 AT_UPPER
+   col 11  v>=0 lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   row 0   R1 L y1+y2<=4 tight        sense=L rhs=4      rng=0      slack=0         act=4         rstat=0 AT_LOWER
+   row 1   R2 G y1-y2>=2 tight        sense=G rhs=2      rng=0      slack=0         act=2         rstat=0 AT_LOWER
+   row 2   R3 E y3+f1==7 (pi<0)       sense=E rhs=7      rng=0      slack=0         act=7         rstat=0 AT_LOWER
+   row 3   R4 R 1<=y4+u<=6 @up        sense=R rhs=1      rng=5      slack=5         act=6         rstat=2 AT_UPPER
+   row 4   R5 L <=100 loose           sense=L rhs=100    rng=0      slack=89        act=11        rstat=1 BASIC
+   row 5   R6 R 1<=y5<=8 @low         sense=R rhs=1      rng=7      slack=0         act=1         rstat=0 AT_LOWER
+   row 6   R7 E y6-f2==-1 (pi>0)      sense=E rhs=-1     rng=0      slack=0         act=-1        rstat=0 AT_LOWER
+   row 7   R8 free row (L,1e20)       sense=L rhs=1e+20  rng=0      slack=1e+20     act=0         rstat=1 BASIC

@@ -1,0 +1,10 @@
+library: /usr/local/lib/libsoplexshared.so.6.0.4.0
+api.basisRowStatus=(nil) dlsym: basisColStatus=(nil) readBasisFile=(nil) getNumIterations=(nil) getStatus=(nil) getRedCostReal=(nil) getRowBoundsReal(api)=(nil) getRowVectorReal(api)=(nil)
+  dlsym(SoPlex_setBasis) = (nil)
+  dlsym(SoPlex_getBasis) = (nil)
+  dlsym(SoPlex_writeBasisFile) = (nil)
+  dlsym(SoPlex_clearBasis) = (nil)
+  dlsym(SoPlex_hasBasis) = (nil)
+  dlsym(SoPlex_getBasisInd) = (nil)
+  dlsym(_ZN6soplex10SoPlexBaseIdE8setBasisEPKNS_13SPxSolverBaseIdE9VarStatusES6_) = (nil)
+basis functions unavailable in this release: stop

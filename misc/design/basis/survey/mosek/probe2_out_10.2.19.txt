@@ -1,0 +1,765 @@
+dlsym MSK_getskc -> found
+dlsym MSK_getskx -> found
+dlsym MSK_putskc -> found
+dlsym MSK_putskx -> found
+dlsym MSK_putskcslice -> found
+dlsym MSK_putskxslice -> found
+dlsym MSK_getintinf -> found
+dlsym MSK_getdouinf -> found
+dlsym MSK_getskcslice -> found
+  [A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- A optimal ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  getskc(ITR) after default solve rc=0(OK)
+
+== (a) cold iteration counts, presolve OFF, no limit ==
+  [COLD opt=8] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [COLD opt=8] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  getskc(ITR) after simplex rc=0(OK)
+  [COLD opt=1] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [COLD opt=1] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  getskc(ITR) after simplex rc=0(OK)
+  [COLD opt=3] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [COLD opt=3] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  getskc(ITR) after simplex rc=0(OK)
+
+== (n) MOSEK log: cold vs warm dual simplex ==
+    LOG| Problem
+    LOG|   Name                   :                 
+    LOG|   Objective sense        : maximize        
+    LOG|   Type                   : LO (linear optimization problem)
+    LOG|   Constraints            : 21              
+    LOG|   Affine conic cons.     : 0               
+    LOG|   Disjunctive cons.      : 0               
+    LOG|   Cones                  : 0               
+    LOG|   Scalar variables       : 31              
+    LOG|   Matrix variables       : 0               
+    LOG|   Integer variables      : 0               
+    LOG| 
+    LOG| Optimizer started.
+    LOG| Presolve started.
+    LOG| Linear dependency checker started.
+    LOG| Linear dependency checker terminated.
+    LOG| Eliminator started.
+    LOG| Freed constraints in eliminator : 0
+    LOG| Eliminator terminated.
+    LOG| Eliminator - tries                  : 1                 time                   : 0.00            
+    LOG| Lin. dep.  - tries                  : 1                 time                   : 0.00            
+    LOG| Lin. dep.  - primal attempts        : 1                 successes              : 1               
+    LOG| Lin. dep.  - dual attempts          : 0                 successes              : 0               
+    LOG| Lin. dep.  - primal deps.           : 0                 dual deps.             : 0               
+    LOG| Presolve terminated. Time: 0.00    
+    LOG| Optimizer  - threads                : 8               
+    LOG| Optimizer  - solved problem         : the primal      
+    LOG| Optimizer  - Constraints            : 20              
+    LOG| Optimizer  - Cones                  : 0               
+    LOG| Optimizer  - Scalar variables       : 50                conic                  : 0               
+    LOG| Optimizer  - Semi-definite variables: 0                 scalarized             : 0               
+    LOG| Factor     - setup time             : 0.00            
+    LOG| Factor     - dense det. time        : 0.00              GP order time          : 0.00            
+    LOG| Factor     - nonzeros before factor : 210               after factor           : 210             
+    LOG| Factor     - dense dim.             : 0                 flops                  : 6.23e+03        
+    LOG| ITE PFEAS    DFEAS    GFEAS    PRSTATUS   POBJ              DOBJ              MU       TIME  
+    LOG| 0   7.4e+00  8.4e+00  2.6e+01  0.00e+00   6.653879132e+01   4.042432378e+01   2.1e-01  0.00  
+    LOG| 1   1.0e+00  1.2e+00  3.6e+00  -5.33e-01  1.283462966e+02   1.176087180e+02   2.9e-02  0.00  
+    LOG| 2   2.2e-01  2.5e-01  7.6e-01  4.05e-01   1.590875323e+02   1.561043716e+02   6.2e-03  0.00  
+    LOG| 3   3.5e-02  4.0e-02  1.2e-01  8.49e-01   1.685633523e+02   1.680483311e+02   1.0e-03  0.00  
+    LOG| 4   4.6e-03  5.2e-03  1.6e-02  9.77e-01   1.703254150e+02   1.702572546e+02   1.3e-04  0.00  
+    LOG| 5   8.8e-06  1.0e-05  3.1e-05  9.95e-01   1.705935534e+02   1.705934242e+02   2.5e-07  0.00  
+    LOG| 6   8.9e-10  1.0e-09  3.1e-09  1.00e+00   1.705940752e+02   1.705940751e+02   2.5e-11  0.00  
+    LOG| Basis identification started.
+    LOG| Primal basis identification phase started.
+    LOG| Primal basis identification phase terminated. Time: 0.00
+    LOG| Dual basis identification phase started.
+    LOG| Dual basis identification phase terminated. Time: 0.00
+    LOG| Basis identification terminated. Time: 0.00
+    LOG| Optimizer terminated. Time: 0.00    
+    LOG| 
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [COLD dual with log] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [WARM dual with log] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    LOG| Problem
+    LOG|   Name                   :                 
+    LOG|   Objective sense        : maximize        
+    LOG|   Type                   : LO (linear optimization problem)
+    LOG|   Constraints            : 21              
+    LOG|   Affine conic cons.     : 0               
+    LOG|   Disjunctive cons.      : 0               
+    LOG|   Cones                  : 0               
+    LOG|   Scalar variables       : 31              
+    LOG|   Matrix variables       : 0               
+    LOG|   Integer variables      : 0               
+    LOG| 
+    LOG| Optimizer started.
+    LOG| Presolve started.
+    LOG| Linear dependency checker started.
+    LOG| Linear dependency checker terminated.
+    LOG| Eliminator started.
+    LOG| Freed constraints in eliminator : 0
+    LOG| Eliminator terminated.
+    LOG| Eliminator - tries                  : 1                 time                   : 0.00            
+    LOG| Lin. dep.  - tries                  : 1                 time                   : 0.00            
+    LOG| Lin. dep.  - primal attempts        : 1                 successes              : 1               
+    LOG| Lin. dep.  - dual attempts          : 0                 successes              : 0               
+    LOG| Lin. dep.  - primal deps.           : 0                 dual deps.             : 0               
+    LOG| Presolve terminated. Time: 0.00    
+    LOG| Optimizer  - threads                : 8               
+    LOG| Optimizer  - solved problem         : the primal      
+    LOG| Optimizer  - Constraints            : 20              
+    LOG| Optimizer  - Cones                  : 0               
+    LOG| Optimizer  - Scalar variables       : 50                conic                  : 0               
+    LOG| Optimizer  - Semi-definite variables: 0                 scalarized             : 0               
+    LOG| Factor     - setup time             : 0.00            
+    LOG| Factor     - dense det. time        : 0.00              GP order time          : 0.00            
+    LOG| Factor     - nonzeros before factor : 210               after factor           : 210             
+    LOG| Factor     - dense dim.             : 0                 flops                  : 6.23e+03        
+    LOG| ITE PFEAS    DFEAS    GFEAS    PRSTATUS   POBJ              DOBJ              MU       TIME  
+    LOG| 0   7.4e+00  8.4e+00  2.6e+01  0.00e+00   6.653879132e+01   4.042432378e+01   2.1e-01  0.00  
+    LOG| 1   1.0e+00  1.2e+00  3.6e+00  -5.33e-01  1.283462966e+02   1.176087180e+02   2.9e-02  0.00  
+    LOG| 2   2.2e-01  2.5e-01  7.6e-01  4.05e-01   1.590875323e+02   1.561043716e+02   6.2e-03  0.00  
+    LOG| 3   3.5e-02  4.0e-02  1.2e-01  8.49e-01   1.685633523e+02   1.680483311e+02   1.0e-03  0.00  
+    LOG| 4   4.6e-03  5.2e-03  1.6e-02  9.77e-01   1.703254150e+02   1.702572546e+02   1.3e-04  0.00  
+    LOG| 5   8.8e-06  1.0e-05  3.1e-05  9.95e-01   1.705935534e+02   1.705934242e+02   2.5e-07  0.00  
+    LOG| 6   8.9e-10  1.0e-09  3.1e-09  1.00e+00   1.705940752e+02   1.705940751e+02   2.5e-11  0.00  
+    LOG| Basis identification started.
+    LOG| Primal basis identification phase started.
+    LOG| Primal basis identification phase terminated. Time: 0.00
+    LOG| Dual basis identification phase started.
+    LOG| Dual basis identification phase terminated. Time: 0.00
+    LOG| Basis identification terminated. Time: 0.00
+    LOG| Optimizer terminated. Time: 0.00    
+    LOG| 
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [WARM dual with log] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [WARM wrapper defaults with log] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    LOG| Problem
+    LOG|   Name                   :                 
+    LOG|   Objective sense        : maximize        
+    LOG|   Type                   : LO (linear optimization problem)
+    LOG|   Constraints            : 21              
+    LOG|   Affine conic cons.     : 0               
+    LOG|   Disjunctive cons.      : 0               
+    LOG|   Cones                  : 0               
+    LOG|   Scalar variables       : 31              
+    LOG|   Matrix variables       : 0               
+    LOG|   Integer variables      : 0               
+    LOG| 
+    LOG| Optimizer started.
+    LOG| Presolve started.
+    LOG| Linear dependency checker started.
+    LOG| Linear dependency checker terminated.
+    LOG| Eliminator started.
+    LOG| Freed constraints in eliminator : 0
+    LOG| Eliminator terminated.
+    LOG| Eliminator - tries                  : 1                 time                   : 0.00            
+    LOG| Lin. dep.  - tries                  : 1                 time                   : 0.00            
+    LOG| Lin. dep.  - primal attempts        : 1                 successes              : 1               
+    LOG| Lin. dep.  - dual attempts          : 0                 successes              : 0               
+    LOG| Lin. dep.  - primal deps.           : 0                 dual deps.             : 0               
+    LOG| Presolve terminated. Time: 0.00    
+    LOG| Optimizer  - threads                : 8               
+    LOG| Optimizer  - solved problem         : the primal      
+    LOG| Optimizer  - Constraints            : 20              
+    LOG| Optimizer  - Cones                  : 0               
+    LOG| Optimizer  - Scalar variables       : 50                conic                  : 0               
+    LOG| Optimizer  - Semi-definite variables: 0                 scalarized             : 0               
+    LOG| Factor     - setup time             : 0.00            
+    LOG| Factor     - dense det. time        : 0.00              GP order time          : 0.00            
+    LOG| Factor     - nonzeros before factor : 210               after factor           : 210             
+    LOG| Factor     - dense dim.             : 0                 flops                  : 6.23e+03        
+    LOG| ITE PFEAS    DFEAS    GFEAS    PRSTATUS   POBJ              DOBJ              MU       TIME  
+    LOG| 0   7.4e+00  8.4e+00  2.6e+01  0.00e+00   6.653879132e+01   4.042432378e+01   2.1e-01  0.00  
+    LOG| 1   1.0e+00  1.2e+00  3.6e+00  -5.33e-01  1.283462966e+02   1.176087180e+02   2.9e-02  0.00  
+    LOG| 2   2.2e-01  2.5e-01  7.6e-01  4.05e-01   1.590875323e+02   1.561043716e+02   6.2e-03  0.00  
+    LOG| 3   3.5e-02  4.0e-02  1.2e-01  8.49e-01   1.685633523e+02   1.680483311e+02   1.0e-03  0.00  
+    LOG| 4   4.6e-03  5.2e-03  1.6e-02  9.77e-01   1.703254150e+02   1.702572546e+02   1.3e-04  0.00  
+    LOG| 5   8.8e-06  1.0e-05  3.1e-05  9.95e-01   1.705935534e+02   1.705934242e+02   2.5e-07  0.00  
+    LOG| 6   8.9e-10  1.0e-09  3.1e-09  1.00e+00   1.705940752e+02   1.705940751e+02   2.5e-11  0.00  
+    LOG| Basis identification started.
+    LOG| Primal basis identification phase started.
+    LOG| Primal basis identification phase terminated. Time: 0.00
+    LOG| Dual basis identification phase started.
+    LOG| Dual basis identification phase terminated. Time: 0.00
+    LOG| Basis identification terminated. Time: 0.00
+    LOG| Optimizer terminated. Time: 0.00    
+    LOG| 
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+    LOG| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [WARM wrapper defaults (FREE) with log] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+
+== (b) dual simplex maxit=0 confirmations ==
+  [B exact] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  putintparam(121,2) -> 1215(MSK_RES_ERR_PARAM_IS_TOO_LARGE)
+  [B exact, dual presolve FREE maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [B exact] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [B exact] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [B exact, primal presolve OFF maxit=1] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [B exact primal maxit=1] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [A3 default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- A3 ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [A3 put after relaxing a bound] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [A3 dual maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [A3] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [F1 A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- F1 A ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [F1 extended] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [F1 dual maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [F1] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [F1b A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- F1b A ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  [F1b extended the wrong way] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [F1b dual maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [F1b] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+  [F2 A default] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- F2 grown, keys MOSEK kept ---
+  numcon=22 numvar=32
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=UNKNOWN prosta=0 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=22 (numcon=22) #SUPBAS=0
+  new col=FIX new row=BAS
+  [F2 grown, no put, dual maxit=0] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [F2] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+--- F2 after re-solve ---
+  numcon=22 numvar=32
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=22 (numcon=22) #SUPBAS=0
+  new col after re-solve=LOW
+  putskc only on unsolved grown model rc=0(OK)
+  column keys after defining the slot by putskc: last=UNK
+
+== (c) invalid bases, dual simplex presolve OFF ==
+* exact (control), dual maxit=0 (col1 was LOW)
+  [exact (control)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [exact (control)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* exact (control), dual maxit=-1 (col1 was LOW)
+  [exact (control)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [exact (control)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* one basic too few, dual maxit=0 (col1 was LOW)
+  [one basic too few] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [one basic too few] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* one basic too few, dual maxit=-1 (col1 was LOW)
+  [one basic too few] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [one basic too few] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* one basic too many, dual maxit=0 (col1 was LOW)
+  [one basic too many] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [one basic too many] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* one basic too many, dual maxit=-1 (col1 was LOW)
+  [one basic too many] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [one basic too many] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* UPR on +inf upper bound, dual maxit=0 (col1 was LOW)
+  [UPR on +inf upper bound] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [UPR on +inf upper bound] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* UPR on +inf upper bound, dual maxit=-1 (col1 was LOW)
+  [UPR on +inf upper bound] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [UPR on +inf upper bound] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* LOW on free basic column (count -1), dual maxit=0 (col1 was LOW)
+  [LOW on free basic column (count -1)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [LOW on free basic column (count -1)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* LOW on free basic column (count -1), dual maxit=-1 (col1 was LOW)
+  [LOW on free basic column (count -1)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [LOW on free basic column (count -1)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* SUPBAS on nonbasic bounded column, dual maxit=0 (col1 was LOW)
+  [SUPBAS on nonbasic bounded column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [SUPBAS on nonbasic bounded column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* SUPBAS on nonbasic bounded column, dual maxit=-1 (col1 was LOW)
+  [SUPBAS on nonbasic bounded column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [SUPBAS on nonbasic bounded column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* FIX on non-fixed nonbasic column, dual maxit=0 (col1 was LOW)
+  [FIX on non-fixed nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [FIX on non-fixed nonbasic column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* FIX on non-fixed nonbasic column, dual maxit=-1 (col1 was LOW)
+  [FIX on non-fixed nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [FIX on non-fixed nonbasic column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* INF on nonbasic column, dual maxit=0 (col1 was LOW)
+  [INF on nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [INF on nonbasic column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* INF on nonbasic column, dual maxit=-1 (col1 was LOW)
+  [INF on nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [INF on nonbasic column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* UNK on nonbasic column, dual maxit=0 (col1 was LOW)
+  [UNK on nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [UNK on nonbasic column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* UNK on nonbasic column, dual maxit=-1 (col1 was LOW)
+  [UNK on nonbasic column] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [UNK on nonbasic column] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* LOW on a tight <= row (lower = -inf), dual maxit=0 (col1 was LOW)
+    row 0 UPR -> LOW
+  [LOW on a tight <= row (lower = -inf)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [LOW on a tight <= row (lower = -inf)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* LOW on a tight <= row (lower = -inf), dual maxit=-1 (col1 was LOW)
+    row 0 UPR -> LOW
+  [LOW on a tight <= row (lower = -inf)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [LOW on a tight <= row (lower = -inf)] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* UNK everywhere, dual maxit=0 (col1 was LOW)
+  [UNK everywhere] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 128 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 121 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 125 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 118 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 126 is out of range.
+    ERR| MOSEK error 1220 (MSK_RES_ERR_INF_INT_INDEX): The integer information index 119 is out of range.
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [UNK everywhere] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+* UNK everywhere, dual maxit=-1 (col1 was LOW)
+  [UNK everywhere] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [UNK everywhere] BAS def=1 solsta=OPTIMAL pobj=170.594075 (ref 170.594075) MATCH
+
+== (d) dual simplex iteration limit: SUPBAS entries ==
+  [R dual maxit=3] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- R dual iter-limit entries ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 75] act=75  -> UPR
+  row  1                bk=UP [-1e+30, 59] act=59  -> UPR
+  row  2                bk=UP [-1e+30, 54] act=54  -> UPR
+  row  3                bk=LO [8, 1e+30] act=20.8179  -> BAS
+  row  4                bk=UP [-1e+30, 55] act=55  -> UPR
+  row  5                bk=UP [-1e+30, 97] act=45.2455  -> BAS
+  row  6                bk=UP [-1e+30, 50] act=50  -> UPR
+  row  7                bk=UP [-1e+30, 69] act=35.2982  -> BAS
+  row  8                bk=UP [-1e+30, 64] act=47.2086  -> BAS
+  row  9                bk=UP [-1e+30, 60] act=38.9338  -> BAS
+  row 10                bk=LO [5, 1e+30] act=61.011  -> BAS
+  row 11                bk=UP [-1e+30, 73] act=73  -> UPR
+  row 12                bk=UP [-1e+30, 58] act=58  -> UPR
+  row 13                bk=UP [-1e+30, 60] act=60  -> UPR
+  row 14                bk=UP [-1e+30, 72] act=17.5035  -> BAS
+  row 15                bk=UP [-1e+30, 84] act=84  -> UPR
+  row 16                bk=UP [-1e+30, 94] act=39.6063  -> BAS
+  row 17                bk=LO [7, 1e+30] act=42.2093  -> BAS
+  row 18                bk=UP [-1e+30, 91] act=37.7831  -> BAS
+  row 19                bk=UP [-1e+30, 65] act=65  -> UPR
+  row 20                bk=FX [-3, -3] act=-3  -> FIX
+  col  0                bk=LO [0, 1e+30] val=1.07898 -> BAS
+  col  1                bk=LO [0, 1e+30] val=0 -> LOW
+  col  2                bk=LO [0, 1e+30] val=0 -> LOW
+  col  3                bk=LO [0, 1e+30] val=0 -> LOW
+  col  4                bk=RA [0, 3] val=0 -> LOW
+  col  5                bk=LO [0, 1e+30] val=0 -> LOW
+  col  6                bk=LO [0, 1e+30] val=0 -> LOW
+  col  7                bk=LO [0, 1e+30] val=2.06625 -> BAS
+  col  8                bk=LO [0, 1e+30] val=0.514353 -> BAS
+  col  9                bk=RA [0, 3] val=0 -> LOW
+  col 10                bk=LO [0, 1e+30] val=0 -> LOW
+  col 11                bk=LO [0, 1e+30] val=3.14235 -> BAS
+  col 12                bk=LO [0, 1e+30] val=1.3992 -> BAS
+  col 13                bk=LO [0, 1e+30] val=0 -> LOW
+  col 14                bk=RA [0, 3] val=3 -> UPR
+  col 15                bk=LO [0, 1e+30] val=0 -> LOW
+  col 16                bk=LO [0, 1e+30] val=1.25122 -> BAS
+  col 17                bk=LO [0, 1e+30] val=0 -> LOW
+  col 18                bk=LO [0, 1e+30] val=5.99151 -> BAS
+  col 19                bk=RA [0, 3] val=0 -> LOW
+  col 20                bk=LO [0, 1e+30] val=1.92847 -> BAS
+  col 21                bk=LO [0, 1e+30] val=0 -> LOW
+  col 22                bk=LO [0, 1e+30] val=2.66894 -> BAS
+  col 23                bk=LO [0, 1e+30] val=1.12631 -> BAS
+  col 24                bk=RA [0, 3] val=0 -> LOW
+  col 25                bk=LO [0, 1e+30] val=0 -> LOW
+  col 26                bk=LO [0, 1e+30] val=0 -> LOW
+  col 27                bk=LO [0, 1e+30] val=0 -> LOW
+  col 28                bk=LO [0, 1e+30] val=0 -> LOW
+  col 29                bk=RA [0, 3] val=0 -> LOW
+  col 30                bk=FR [-1e+30, 1e+30] val=-1.92102 -> BAS
+  [R primal maxit=3] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- R primal iter-limit ---
+  numcon=21 numvar=31
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=170.594075
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=21 (numcon=21) #SUPBAS=0
+  rows: BAS=10 UPR=10 FIX=1 | cols: BAS=11 LOW=19 UPR=1
+
+== (e) time limit key distribution ==
+  [big R time 1e-4 FREE] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- time-limit ---
+  numcon=401 numvar=601
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=205.327698
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=205.327698
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=401 (numcon=401) #SUPBAS=0
+  rows: BAS=324 UPR=76 FIX=1 | cols: BAS=77 LOW=524
+  [big R time 1e-4 DUAL] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- time-limit ---
+  numcon=401 numvar=601
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=205.327698
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=205.327698
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=401 (numcon=401) #SUPBAS=0
+  rows: BAS=324 UPR=76 FIX=1 | cols: BAS=77 LOW=524
+  [bigger R time 0.02 DUAL] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- time-limit 0.02 ---
+  numcon=801 numvar=1201
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=196.846965
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=196.846965
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=801 (numcon=801) #SUPBAS=0
+  rows: BAS=694 UPR=106 FIX=1 | cols: BAS=107 LOW=1094
+
+== (f) write mapping variants on model C (dual, presolve OFF, maxit=0) ==
+  [C cold dual] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- C basis ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  [C cold dual maxit=0 (control)] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [C cold control] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+  [exact] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [exact] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [exact] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [fixed col FIX->LOW] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [fixed col FIX->LOW] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [fixed col FIX->LOW] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [fixed col FIX->UPR] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [fixed col FIX->UPR] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [fixed col FIX->UPR] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [== row FIX->LOW] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [== row FIX->LOW] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [== row FIX->LOW] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [== row FIX->UPR] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [== row FIX->UPR] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [== row FIX->UPR] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [free col SUPBAS->LOW] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [free col SUPBAS->LOW] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [free col SUPBAS->LOW] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [free col SUPBAS->UPR] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [free col SUPBAS->UPR] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [free col SUPBAS->UPR] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [free col SUPBAS->UNK] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [free col SUPBAS->UNK] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [free col SUPBAS->UNK] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [free col SUPBAS->FIX] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [free col SUPBAS->FIX] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [free col SUPBAS->FIX] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [ranged row up UPR->LOW (wrong side)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [ranged row up UPR->LOW (wrong side)] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [ranged row up UPR->LOW (wrong side)] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [<= row UPR->LOW (side does not exist)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [<= row UPR->LOW (side does not exist)] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [<= row UPR->LOW (side does not exist)] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [>= row LOW->UPR (side does not exist)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [>= row LOW->UPR (side does not exist)] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [>= row LOW->UPR (side does not exist)] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [col x1[0,4] UPR->LOW (wrong side)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [col x1[0,4] UPR->LOW (wrong side)] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [col x1[0,4] UPR->LOW (wrong side)] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [col x5(-inf,7] UPR->LOW (side does not exist)] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [col x5(-inf,7] UPR->LOW (side does not exist)] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [col x5(-inf,7] UPR->LOW (side does not exist)] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+  [-y6<=-4 row UPR->FIX] putskx rc=0(OK) putskc rc=0(OK) -> BAS defined=1 solsta=UNKNOWN
+  [-y6<=-4 row UPR->FIX] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+  [-y6<=-4 row UPR->FIX] BAS def=1 solsta=OPTIMAL pobj=28 (ref 28) MATCH
+--- after ---
+  numcon=9 numvar=12
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=28
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=9 (numcon=9) #SUPBAS=1
+  after: x2fixed=FIX eqrow=FIX x3free=SUPBAS rangedup=UPR le_row=UPR ge_row=LOW x1=UPR x5=UPR
+
+== (g) INF key: column with lb > ub ==
+  [lb>ub] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- lb>ub ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 10] act=0  -> BAS
+  row  1                bk=RA [5, -20] act=0  -> BAS
+  col  0                bk=RA [5, 3] val=0 -> INF
+  col  1                bk=LO [0, 1e+30] val=0 -> LOW
+  [lb>ub] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- lb>ub ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=PRIM_INFEAS_CER prosta=4 pobj=0
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=0
+  row  0                bk=UP [-1e+30, 10] act=0  -> BAS
+  row  1                bk=RA [5, -20] act=0  -> BAS
+  col  0                bk=RA [5, 3] val=0 -> INF
+  col  1                bk=LO [0, 1e+30] val=0 -> LOW
+
+== (h) bounds made equal through the wrapper setters ==
+  [equal bounds via setters] optimizetrm rc=0(OK) trm=0(OK) | iters primal=-1 dual=-1 ipm=8 | hotstart primal=-1 dual=-1 | hotstartLU primal=-1 dual=-1
+--- equal bounds via setters ---
+  numcon=2 numvar=2
+  slot BAS: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=10
+  slot ITR: solutiondef rc=0(OK) defined=1 solsta=OPTIMAL prosta=1 pobj=10
+  wrapper _pick_continuous_solution -> BAS
+  getskc(BAS) rc=0(OK) getskx rc=0(OK)
+  #BAS=2 (numcon=2) #SUPBAS=0
+  row  0                bk=FX [6, 6] act=6  -> FIX
+  row  1                bk=UP [-1e+30, 100] act=10  -> BAS
+  col  0                bk=FX [4, 4] val=4 -> FIX
+  col  1                bk=LO [0, 1e+30] val=6 -> BAS
+
+DONE

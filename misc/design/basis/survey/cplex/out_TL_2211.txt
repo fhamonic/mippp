@@ -1,0 +1,10 @@
+library: /opt/ibm/ILOG/CPLEX_Studio2211/cplex/bin/x86-64_linux/libcplex2211.so version: 22.1.1
+
+===== P8: real time-limit stop mid-simplex
+time limit 0.1: wrapper status index=8 elapsed=0.101
+  getstat=11 itcnt=559 soltype=1 pfeas=1 dfeas=0 getbase=ok #basic=900 nrows=900
+time limit 0.2: wrapper status index=8 elapsed=0.202
+  getstat=11 itcnt=1305 soltype=1 pfeas=1 dfeas=0 getbase=ok #basic=900 nrows=900
+time limit 0.3: wrapper status index=8 elapsed=0.302
+  getstat=11 itcnt=1902 soltype=1 pfeas=1 dfeas=0 getbase=ok #basic=900 nrows=900
+no time limit: status index=1 elapsed=0.481 itcnt=2591

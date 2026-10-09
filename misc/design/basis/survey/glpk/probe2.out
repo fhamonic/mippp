@@ -1,0 +1,28 @@
+GLPK version 5.0
+
+=== H1: glp_factorize as a set_basis validator ===
+  fresh B + optimal basis: glp_factorize -> 0, bf_exists=1 glp_get_status=UNDEF col_prim(b)=0
+  then wrapper solve: optimal iterations=0
+  solved B + singular basis: glp_factorize -> GLP_ESING bf_exists=0 glp_get_status=OPT col_prim(b)=6 wrapper status=optimal
+  restored + glp_factorize -> 0; solve: optimal extra iterations=0
+  count+1: glp_factorize -> GLP_EBADB
+
+=== H2: glp_warm_up side effects on a solved model ===
+  std basis + glp_warm_up -> 0; glp_get_status=INFEAS obj=2 col_prim(b)=0; wrapper status=optimal wrapper solution value=2 solution[b]=0
+  std basis + glp_factorize -> 0; glp_get_status=OPT obj=25 col_prim(b)=6 (solution kept)
+
+=== H3: term_out silences glp_adv_basis ===
+  -- adv_basis with terminal output on:
+Constructing initial basis...
+Size of triangular part is 6
+  -- adv_basis with glp_term_out(GLP_OFF) (old=1):
+  -- end
+
+=== H4: wrapper solve after crossed bounds keeps basis ===
+  crossed h bounds: wrapper infeasible; basis unchanged=1
+
+=== H5: time limit stop mid-search then read ===
+  300x400 tm 1ms: time_limit
+  [after time limit] rows=300 cols=400 #basic=300 bf_exists=1 glp_get_status=FEAS prim=FEAS dual=INFEAS it_cnt=49 obj=704.808
+
+done

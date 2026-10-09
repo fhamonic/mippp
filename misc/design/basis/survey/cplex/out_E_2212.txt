@@ -1,0 +1,486 @@
+library: /home/plaiseek/Softwares/solvers/cplex-community/cplex/bin/x86-64_linux/libcplex2212.so version: 22.1.2
+defaults: ADVIND=1 PREIND=1 LPMETHOD=0 BARCROSSALG=0 ITLIM=2147483647
+
+===== E1: random LP A -> basis -> fresh B, copybase, itlim 0
+[E1 A] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=100 phase1=7
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+[E1 B ADVIND=1 PREIND=1 itlim=0 copybase=ok] wrapper status index=9 objval=629.6387864 (ret ok)
+[E1 B ADVIND=1 PREIND=1 itlim=0 copybase=ok] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=1 PREIND=1 itlim=default copybase=ok] wrapper status index=1 objval=629.6387864 (ret ok)
+[E1 B ADVIND=1 PREIND=1 itlim=default copybase=ok] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=1 PREIND=0 itlim=0 copybase=ok] wrapper status index=9 objval=629.6387864 (ret ok)
+[E1 B ADVIND=1 PREIND=0 itlim=0 copybase=ok] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=1 PREIND=0 itlim=default copybase=ok] wrapper status index=1 objval=629.6387864 (ret ok)
+[E1 B ADVIND=1 PREIND=0 itlim=default copybase=ok] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=0 PREIND=1 itlim=0 copybase=ok] wrapper status index=9 objval=25.125 (ret ok)
+[E1 B ADVIND=0 PREIND=1 itlim=0 copybase=ok] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 0 + rows 60)
+  B basis == A basis: no ; objA=629.6387864
+[E1 B ADVIND=0 PREIND=1 itlim=default copybase=ok] wrapper status index=1 objval=629.6387864 (ret ok)
+[E1 B ADVIND=0 PREIND=1 itlim=default copybase=ok] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=100 phase1=7
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=0 PREIND=0 itlim=0 copybase=ok] wrapper status index=9 objval=25.125 (ret ok)
+[E1 B ADVIND=0 PREIND=0 itlim=0 copybase=ok] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 0 + rows 60)
+  B basis == A basis: no ; objA=629.6387864
+[E1 B ADVIND=0 PREIND=0 itlim=default copybase=ok] wrapper status index=1 objval=629.6387864 (ret ok)
+[E1 B ADVIND=0 PREIND=0 itlim=default copybase=ok] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=100 phase1=7
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=2 PREIND=1 itlim=0 copybase=ok] wrapper status index=9 objval=629.6387864 (ret ok)
+[E1 B ADVIND=2 PREIND=1 itlim=0 copybase=ok] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=2 PREIND=1 itlim=default copybase=ok] wrapper status index=1 objval=629.6387864 (ret ok)
+[E1 B ADVIND=2 PREIND=1 itlim=default copybase=ok] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=2 PREIND=0 itlim=0 copybase=ok] wrapper status index=9 objval=629.6387864 (ret ok)
+[E1 B ADVIND=2 PREIND=0 itlim=0 copybase=ok] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+[E1 B ADVIND=2 PREIND=0 itlim=default copybase=ok] wrapper status index=1 objval=629.6387864 (ret ok)
+[E1 B ADVIND=2 PREIND=0 itlim=default copybase=ok] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=80 nrows=60)
+  #basic=60 (cols 24 + rows 36)
+  B basis == A basis: yes ; objA=629.6387864
+
+===== E2: copybase then getbase without solving
+copybase ret=ok
+getbase after copybase ret=ok equal=yes
+[E2] getstat=0 solninfo(ret=0 method=-1 type=0 pfeas=0 dfeas=0) getmethod=0 itcnt=0 phase1=0
+
+===== E3: model C basis into fresh C', itlim 0
+copybase ret=ok
+[E3 C' itlim 0] wrapper status index=9 objval=15 (ret ok)
+[E3 C' itlim 0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  getx ret=ok getslack ret=ok
+   col 0   y1   lb=0       ub=1e+20   x=3         cstat=1 BASIC
+   col 1   y2   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 2   y3   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 3   y4   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 4   u[0,2] lb=0       ub=2       x=2         cstat=2 AT_UPPER
+   col 5   f1=3 lb=3       ub=3       x=3         cstat=2 AT_UPPER
+   col 6   f2=2 lb=2       ub=2       x=2         cstat=0 AT_LOWER
+   col 7   y5   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 8   y6   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 9   z free lb=-1e+20  ub=1e+20   x=0         cstat=3 FREE_SUPER
+   col 10  w(-inf,5] lb=-1e+20  ub=5       x=5         cstat=2 AT_UPPER
+   col 11  v>=0 lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   row 0   R1 L y1+y2<=4 tight        sense=L rhs=4      rng=0      slack=0         act=4         rstat=0 AT_LOWER
+   row 1   R2 G y1-y2>=2 tight        sense=G rhs=2      rng=0      slack=0         act=2         rstat=0 AT_LOWER
+   row 2   R3 E y3+f1==7 (pi<0)       sense=E rhs=7      rng=0      slack=0         act=7         rstat=0 AT_LOWER
+   row 3   R4 R 1<=y4+u<=6 @up        sense=R rhs=1      rng=5      slack=5         act=6         rstat=2 AT_UPPER
+   row 4   R5 L <=100 loose           sense=L rhs=100    rng=0      slack=89        act=11        rstat=1 BASIC
+   row 5   R6 R 1<=y5<=8 @low         sense=R rhs=1      rng=7      slack=0         act=1         rstat=0 AT_LOWER
+   row 6   R7 E y6-f2==-1 (pi>0)      sense=E rhs=-1     rng=0      slack=0         act=-1        rstat=0 AT_LOWER
+   row 7   R8 free row (L,1e20)       sense=L rhs=1e+20  rng=0      slack=1e+20     act=0         rstat=1 BASIC
+
+===== E4: bound change and copybase on A
+E4a copybase after ub(u)=1.5: ret=ok
+[E4a solve itlim 0] wrapper status index=9 objval=14.5 (ret ok)
+[E4a solve itlim 0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  getx ret=ok getslack ret=ok
+   col 0   y1   lb=0       ub=1e+20   x=3         cstat=1 BASIC
+   col 1   y2   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 2   y3   lb=0       ub=1e+20   x=4         cstat=1 BASIC
+   col 3   y4   lb=0       ub=1e+20   x=4.5       cstat=1 BASIC
+   col 4   u[0,2] lb=0       ub=1.5     x=1.5       cstat=2 AT_UPPER
+   col 5   f1=3 lb=3       ub=3       x=3         cstat=2 AT_UPPER
+   col 6   f2=2 lb=2       ub=2       x=2         cstat=0 AT_LOWER
+   col 7   y5   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 8   y6   lb=0       ub=1e+20   x=1         cstat=1 BASIC
+   col 9   z free lb=-1e+20  ub=1e+20   x=0         cstat=3 FREE_SUPER
+   col 10  w(-inf,5] lb=-1e+20  ub=5       x=5         cstat=2 AT_UPPER
+   col 11  v>=0 lb=0       ub=1e+20   x=0         cstat=0 AT_LOWER
+   row 0   R1 L y1+y2<=4 tight        sense=L rhs=4      rng=0      slack=0         act=4         rstat=0 AT_LOWER
+   row 1   R2 G y1-y2>=2 tight        sense=G rhs=2      rng=0      slack=0         act=2         rstat=0 AT_LOWER
+   row 2   R3 E y3+f1==7 (pi<0)       sense=E rhs=7      rng=0      slack=0         act=7         rstat=0 AT_LOWER
+   row 3   R4 R 1<=y4+u<=6 @up        sense=R rhs=1      rng=5      slack=5         act=6         rstat=2 AT_UPPER
+   row 4   R5 L <=100 loose           sense=L rhs=100    rng=0      slack=88.5      act=11.5      rstat=1 BASIC
+   row 5   R6 R 1<=y5<=8 @low         sense=R rhs=1      rng=7      slack=0         act=1         rstat=0 AT_LOWER
+   row 6   R7 E y6-f2==-1 (pi>0)      sense=E rhs=-1     rng=0      slack=0         act=-1        rstat=0 AT_LOWER
+   row 7   R8 free row (L,1e20)       sense=L rhs=1e+20  rng=0      slack=1e+20     act=0         rstat=1 BASIC
+E4b copybase on fresh C: ret=ok
+E4b getbase after bound change: ret=ok equal=yes
+[E4b solve itlim 0] wrapper status index=9 objval=14.5 (ret ok)
+[E4b solve itlim 0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+E4c copybase then add_constraint: getbase ret=ok nrows=9 last rstat=1
+[E4c solve itlim 0] wrapper status index=9 objval=15 (ret ok)
+[E4c solve itlim 0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=9)
+  #basic=9 (cols 6 + rows 3)
+
+===== E5: invalid bases written into fresh model C (presolve default)
+
+-- E5 [too many basic: u(col4) BASIC] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[too many basic: u(col4) BASIC] wrapper status index=9 objval=1e+20 (ret ok)
+[too many basic: u(col4) BASIC] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: no
+  cstat: 1 1 1 0 1 2 0 1 1 3 2 0  rstat: 0 1 0 2 1 0 0 0
+
+-- E5 [too many basic: u(col4) BASIC] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[too many basic: u(col4) BASIC] wrapper status index=1 objval=15 (ret ok)
+[too many basic: u(col4) BASIC] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=4 phase1=3
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [too few basic: y1(col0) AT_LOWER] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[too few basic: y1(col0) AT_LOWER] wrapper status index=9 objval=15 (ret ok)
+[too few basic: y1(col0) AT_LOWER] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [too few basic: y1(col0) AT_LOWER] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[too few basic: y1(col0) AT_LOWER] wrapper status index=1 objval=15 (ret ok)
+[too few basic: y1(col0) AT_LOWER] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_UPPER on v (col11, ub=+inf)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on v (col11, ub=+inf)] wrapper status index=9 objval=15 (ret ok)
+[AT_UPPER on v (col11, ub=+inf)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_UPPER on v (col11, ub=+inf)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on v (col11, ub=+inf)] wrapper status index=1 objval=15 (ret ok)
+[AT_UPPER on v (col11, ub=+inf)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_LOWER on free z (col9)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_LOWER on free z (col9)] wrapper status index=9 objval=15 (ret ok)
+[AT_LOWER on free z (col9)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_LOWER on free z (col9)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_LOWER on free z (col9)] wrapper status index=1 objval=15 (ret ok)
+[AT_LOWER on free z (col9)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_UPPER on free z (col9)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on free z (col9)] wrapper status index=9 objval=15 (ret ok)
+[AT_UPPER on free z (col9)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_UPPER on free z (col9)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on free z (col9)] wrapper status index=1 objval=15 (ret ok)
+[AT_UPPER on free z (col9)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [FREE_SUPER on bounded u (col4)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[FREE_SUPER on bounded u (col4)] wrapper status index=9 objval=13 (ret ok)
+[FREE_SUPER on bounded u (col4)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: no
+  cstat: 1 1 1 1 0 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [FREE_SUPER on bounded u (col4)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[FREE_SUPER on bounded u (col4)] wrapper status index=1 objval=15 (ret ok)
+[FREE_SUPER on bounded u (col4)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=1 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [FREE_SUPER on v (col11, [0,inf))] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[FREE_SUPER on v (col11, [0,inf))] wrapper status index=9 objval=15 (ret ok)
+[FREE_SUPER on v (col11, [0,inf))] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [FREE_SUPER on v (col11, [0,inf))] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[FREE_SUPER on v (col11, [0,inf))] wrapper status index=1 objval=15 (ret ok)
+[FREE_SUPER on v (col11, [0,inf))] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_LOWER on fixed f1 (col5, read AT_UPPER)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_LOWER on fixed f1 (col5, read AT_UPPER)] wrapper status index=9 objval=15 (ret ok)
+[AT_LOWER on fixed f1 (col5, read AT_UPPER)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_LOWER on fixed f1 (col5, read AT_UPPER)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_LOWER on fixed f1 (col5, read AT_UPPER)] wrapper status index=1 objval=15 (ret ok)
+[AT_LOWER on fixed f1 (col5, read AT_UPPER)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_UPPER on fixed f2 (col6, read AT_LOWER)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on fixed f2 (col6, read AT_LOWER)] wrapper status index=9 objval=15 (ret ok)
+[AT_UPPER on fixed f2 (col6, read AT_LOWER)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_UPPER on fixed f2 (col6, read AT_LOWER)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on fixed f2 (col6, read AT_LOWER)] wrapper status index=1 objval=15 (ret ok)
+[AT_UPPER on fixed f2 (col6, read AT_LOWER)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [FREE_SUPER on fixed f2 (col6)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[FREE_SUPER on fixed f2 (col6)] wrapper status index=9 objval=15 (ret ok)
+[FREE_SUPER on fixed f2 (col6)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [FREE_SUPER on fixed f2 (col6)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[FREE_SUPER on fixed f2 (col6)] wrapper status index=1 objval=15 (ret ok)
+[FREE_SUPER on fixed f2 (col6)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_UPPER on R row R6 (wrong side, tight at lower)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on R row R6 (wrong side, tight at lower)] wrapper status index=9 objval=8 (ret ok)
+[AT_UPPER on R row R6 (wrong side, tight at lower)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: no
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 2 0 1
+
+-- E5 [AT_UPPER on R row R6 (wrong side, tight at lower)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on R row R6 (wrong side, tight at lower)] wrapper status index=1 objval=15 (ret ok)
+[AT_UPPER on R row R6 (wrong side, tight at lower)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=1 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_LOWER on w (col10, (-inf,5]) at upper] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_LOWER on w (col10, (-inf,5]) at upper] wrapper status index=9 objval=15 (ret ok)
+[AT_LOWER on w (col10, (-inf,5]) at upper] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_LOWER on w (col10, (-inf,5]) at upper] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_LOWER on w (col10, (-inf,5]) at upper] wrapper status index=1 objval=15 (ret ok)
+[AT_LOWER on w (col10, (-inf,5]) at upper] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_UPPER on L row R1] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on L row R1] wrapper status index=9 objval=15 (ret ok)
+[AT_UPPER on L row R1] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_UPPER on L row R1] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on L row R1] wrapper status index=1 objval=15 (ret ok)
+[AT_UPPER on L row R1] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_UPPER on G row R2] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on G row R2] wrapper status index=9 objval=15 (ret ok)
+[AT_UPPER on G row R2] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_UPPER on G row R2] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on G row R2] wrapper status index=1 objval=15 (ret ok)
+[AT_UPPER on G row R2] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_UPPER on E row R3] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on E row R3] wrapper status index=9 objval=15 (ret ok)
+[AT_UPPER on E row R3] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [AT_UPPER on E row R3] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER on E row R3] wrapper status index=1 objval=15 (ret ok)
+[AT_UPPER on E row R3] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_UPPER -> AT_LOWER on R row R4 (wrong side)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER -> AT_LOWER on R row R4 (wrong side)] wrapper status index=9 objval=1 (ret ok)
+[AT_UPPER -> AT_LOWER on R row R4 (wrong side)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: no
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 0 1 0 0 1
+
+-- E5 [AT_UPPER -> AT_LOWER on R row R4 (wrong side)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_UPPER -> AT_LOWER on R row R4 (wrong side)] wrapper status index=1 objval=15 (ret ok)
+[AT_UPPER -> AT_LOWER on R row R4 (wrong side)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=3 phase1=1
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [FREE_SUPER on L row R1] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[FREE_SUPER on L row R1] wrapper status index=9 objval=15 (ret ok)
+[FREE_SUPER on L row R1] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [FREE_SUPER on L row R1] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[FREE_SUPER on L row R1] wrapper status index=1 objval=15 (ret ok)
+[FREE_SUPER on L row R1] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [AT_LOWER on free row R8 (swap with R1 basic)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_LOWER on free row R8 (swap with R1 basic)] wrapper status index=9 objval=1e+20 (ret ok)
+[AT_LOWER on free row R8 (swap with R1 basic)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 5 + rows 3)
+  after solve basis == good optimal basis: no
+  cstat: 0 1 1 1 2 2 0 1 1 3 2 0  rstat: 1 1 0 2 1 0 0 0
+
+-- E5 [AT_LOWER on free row R8 (swap with R1 basic)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[AT_LOWER on free row R8 (swap with R1 basic)] wrapper status index=1 objval=15 (ret ok)
+[AT_LOWER on free row R8 (swap with R1 basic)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=6 phase1=4
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [code 7 on col0] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[code 7 on col0] wrapper status index=9 objval=15 (ret ok)
+[code 7 on col0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [code 7 on col0] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[code 7 on col0] wrapper status index=1 objval=15 (ret ok)
+[code 7 on col0] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [code -1 on row0] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[code -1 on row0] wrapper status index=9 objval=15 (ret ok)
+[code -1 on row0] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [code -1 on row0] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[code -1 on row0] wrapper status index=1 objval=15 (ret ok)
+[code -1 on row0] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [rstat nullptr] itlim=0: copybase ret=1004 CPLEX Error  1004: Null pointer for required data. ; getbase before solve ret=1262 CPLEX Error  1262: No basis exists. equal-to-written=no
+[rstat nullptr] wrapper status index=9 objval=15 (ret ok)
+[rstat nullptr] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+  cstat: 1 1 1 1 2 2 0 1 1 3 2 0  rstat: 0 0 0 2 1 0 0 1
+
+-- E5 [rstat nullptr] itlim=default: copybase ret=1004 CPLEX Error  1004: Null pointer for required data. ; getbase before solve ret=1262 CPLEX Error  1262: No basis exists. equal-to-written=no
+[rstat nullptr] wrapper status index=1 objval=15 (ret ok)
+[rstat nullptr] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [singular: y1,y2 basic swapped for z,w basic] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[singular: y1,y2 basic swapped for z,w basic] wrapper status index=9 objval=2 (ret ok)
+[singular: y1,y2 basic swapped for z,w basic] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 4 + rows 4)
+  after solve basis == good optimal basis: no
+  cstat: 0 0 1 1 2 2 0 1 1 3 2 0  rstat: 1 1 0 2 1 0 0 1
+
+-- E5 [singular: y1,y2 basic swapped for z,w basic] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[singular: y1,y2 basic swapped for z,w basic] wrapper status index=1 objval=15 (ret ok)
+[singular: y1,y2 basic swapped for z,w basic] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=2 phase1=1
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes
+
+-- E5 [all slack basis (cols nonbasic at lower/free, rows basic)] itlim=0: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[all slack basis (cols nonbasic at lower/free, rows basic)] wrapper status index=9 objval=9 (ret ok)
+[all slack basis (cols nonbasic at lower/free, rows basic)] getstat=10 solninfo(ret=0 method=1 type=1 pfeas=0 dfeas=0) getmethod=1 itcnt=0 phase1=0
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 0 + rows 8)
+  after solve basis == good optimal basis: no
+  cstat: 0 0 0 0 0 2 0 0 0 3 2 0  rstat: 1 1 1 1 1 1 1 1
+
+-- E5 [all slack basis (cols nonbasic at lower/free, rows basic)] itlim=default: copybase ret=ok ; getbase before solve ret=ok equal-to-written=yes
+[all slack basis (cols nonbasic at lower/free, rows basic)] wrapper status index=1 objval=15 (ret ok)
+[all slack basis (cols nonbasic at lower/free, rows basic)] getstat=1 solninfo(ret=0 method=1 type=1 pfeas=1 dfeas=1) getmethod=1 itcnt=8 phase1=5
+  getbase ret=ok  (ncols=12 nrows=8)
+  #basic=8 (cols 6 + rows 2)
+  after solve basis == good optimal basis: yes

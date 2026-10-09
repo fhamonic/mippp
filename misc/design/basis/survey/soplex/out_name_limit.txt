@@ -1,0 +1,69 @@
+UL col 60: line length 177 -> ret 1, code read back 0
+UL col 61: line length 180 -> ret 1, code read back 0
+UL col 62: line length 183 -> ret 1, code read back 0
+UL col 63: line length 186 -> ret 1, code read back 0
+UL col 64: line length 189 -> ret 1, code read back 0
+UL col 65: line length 192 -> ret 1, code read back 0
+UL col 66: line length 195 -> ret 1, code read back 0
+UL col 67: line length 198 -> ret 1, code read back 0
+UL col 68: line length 201 -> ret 1, code read back 0
+UL col 69: line length 204 -> ret 1, code read back 0
+UL col 70: line length 207 -> ret 1, code read back 0
+UL col 71: line length 210 -> ret 1, code read back 0
+UL col 72: line length 213 -> ret 1, code read back 0
+UL col 73: line length 216 -> ret 1, code read back 0
+UL col 74: line length 219 -> ret 1, code read back 0
+UL col 75: line length 222 -> ret 1, code read back 0
+UL col 76: line length 225 -> ret 1, code read back 0
+UL col 77: line length 228 -> ret 1, code read back 0
+UL col 78: line length 231 -> ret 1, code read back 0
+UL col 79: line length 234 -> ret 1, code read back 0
+UL col 80: line length 237 -> ret 1, code read back 0
+UL col 81: line length 240 -> ret 1, code read back 0
+UL col 82: line length 243 -> ret 1, code read back 0
+UL col 83: line length 246 -> ret 1, code read back 0
+UL col 84: line length 249 -> ret 1, code read back 0
+UL col 85: line length 252 -> ret 1, code read back 0
+UL col 86: line length 255 -> ret 1, code read back 0
+Syntax error in line 1
+UL col 87: line length 258 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 88: line length 261 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 89: line length 264 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 90: line length 267 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 91: line length 270 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 92: line length 273 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 93: line length 276 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 94: line length 279 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 95: line length 282 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 96: line length 285 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 97: line length 288 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 98: line length 291 -> ret 0, code read back 1
+Syntax error in line 1
+UL col 99: line length 294 -> ret 0, code read back 1
+last column nameable on an UL line: 86
+XU x0 with row 30: line length 102 -> ret 1, row code 0
+XU x0 with row 35: line length 117 -> ret 1, row code 0
+XU x0 with row 40: line length 132 -> ret 1, row code 0
+XU x0 with row 45: line length 147 -> ret 1, row code 0
+XU x0 with row 50: line length 162 -> ret 1, row code 0
+XU x0 with row 55: line length 177 -> ret 1, row code 0
+XU x0 with row 60: line length 192 -> ret 1, row code 0
+XU x0 with row 65: line length 207 -> ret 1, row code 0
+XU x0 with row 70: line length 222 -> ret 1, row code 0
+XU x0 with row 75: line length 237 -> ret 1, row code 0
+XU x0 with row 80: line length 252 -> ret 1, row code 0
+Syntax error in line 1
+XU x0 with row 82: line length 258 -> ret 0, row code 4
+last row nameable next to column 0: 81
+exit 0
