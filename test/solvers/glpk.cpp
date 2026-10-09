@@ -169,6 +169,7 @@ struct glpk_lp_test : public model_test<glpk_api, glpk_lp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
 };
 static_assert(!has_iis<glpk_lp>);
+static_assert(has_lp_basis_warm_start<glpk_lp>);
 // GLPK refuses to start on crossed bounds with GLP_EBOUND, and the crossing
 // alone proves infeasibility
 TEST_F(glpk_lp_test, crossing_variable_bounds_are_infeasible) {
@@ -211,6 +212,88 @@ TEST_F(glpk_lp_test, sides_at_the_wrong_infinity_are_infeasible) {
 TEST_F(glpk_lp_test, infinite_column_bounds_are_free) {
     check_infinite_column_bounds_are_free([this] { return new_model(); });
 }
+// glpk_lp has no iteration limit: GLPK's own count proves the warm start
+TEST_F(glpk_lp_test, set_basis_starts_at_the_optimum) {
+    auto a = new_model();
+    lp_basis_cases::build_dense(a);
+    a.solve();
+    ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+    ASSERT_GT(api->get_it_cnt(a.native_model()), 0);
+    auto b = new_model();
+    lp_basis_cases::build_dense(b);
+    b.set_basis(a.get_basis());
+    b.solve();
+    ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+    ASSERT_EQ(api->get_it_cnt(b.native_model()), 0);
+    ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
+                lp_basis_cases::tolerance(a.get_solution_value()));
+}
+// GLPK keeps a written code that the entity's bounds allow
+TEST_F(glpk_lp_test, set_basis_reads_back_before_any_solve) {
+    auto a = new_model();
+    lp_basis_cases::build_vertex(a);
+    a.solve();
+    ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+    auto b = new_model();
+    const auto v = lp_basis_cases::build_vertex(b);
+    b.set_basis(a.get_basis());
+    const auto basis = b.get_basis();
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_upper_bound>(basis.get_status(v.x1)));
+    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.x2)));
+    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.x3)));
+    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.x4)));
+    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.x5)));
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_lower_bound>(basis.get_status(v.w)));
+    ASSERT_TRUE(is<basis_status::nonbasic_free>(basis.get_status(v.f)));
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_upper_bound>(basis.get_status(v.le)));
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_lower_bound>(basis.get_status(v.ge)));
+    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.eq)));
+    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.slack)));
+}
+// f is in no row. Basic in a basis of the right count, it would make GLPK's
+// factorizer abort the process.
+TEST_F(glpk_lp_test, set_basis_never_writes_a_basic_column_in_no_row) {
+    auto model = new_model();
+    const auto v = lp_basis_cases::build_vertex(model);
+    model.solve();
+    auto basis = model.get_basis();
+    basis.set_status(v.f, basis_status::basic{});
+    basis.set_status(v.x3, basis_status::nonbasic_at_lower_bound{});
+    model.set_basis(basis);
+    ASSERT_FALSE(is<basis_status::basic>(model.get_basis().get_status(v.f)));
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    ASSERT_NEAR(model.get_solution_value(), -8.0, TEST_EPSILON);
+}
+TEST_F(glpk_lp_test, set_basis_replaces_a_basis_glpk_cannot_factorize) {
+    const auto check = [this](auto make_basis) {
+        auto model = new_model();
+        const auto v = lp_basis_cases::build_vertex(model);
+        model.solve();
+        model.set_basis(make_basis(v));
+        const auto basis = model.get_basis();
+        for(const auto x : {v.x1, v.x2, v.x3, v.x4, v.x5, v.w, v.f})
+            ASSERT_FALSE(is<basis_status::basic>(basis.get_status(x)));
+        for(const auto c : {v.le, v.ge, v.eq, v.slack})
+            ASSERT_TRUE(is<basis_status::basic>(basis.get_status(c)));
+        model.solve();
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+        ASSERT_NEAR(model.get_solution_value(), -8.0, TEST_EPSILON);
+    };
+    check([](const auto &) { return lp_basis_cases::all_basic{}; });
+    // the right count, but singular: x2 is in row eq only, as eq's auxiliary
+    // variable is
+    check([](const auto & v) {
+        model_basis_t<glpk_lp> basis;
+        basis.set_status(v.x2, basis_status::basic{});
+        basis.set_status(v.slack, basis_status::nonbasic_at_upper_bound{});
+        return basis;
+    });
+}
 INSTANTIATE_TEST(GLPK_lp, LpModelTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, EnumerableEntitiesTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, ReadableObjectiveTest, glpk_lp_test);
@@ -228,11 +311,14 @@ INSTANTIATE_TEST(GLPK_lp, LpStatusTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, CuttingStockTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, VerbosityTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, TimeLimitTest, glpk_lp_test);
+INSTANTIATE_TEST(GLPK_lp, LpBasisTest, glpk_lp_test);
+INSTANTIATE_TEST(GLPK_lp, LpBasisWarmStartTest, glpk_lp_test);
 
 struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }
 };
 static_assert(!has_iis<glpk_milp>);
+static_assert(!has_lp_basis<glpk_milp>);
 TEST_F(glpk_milp_test, crossing_variable_bounds_are_infeasible) {
     using namespace operators;
     auto model = new_model();
