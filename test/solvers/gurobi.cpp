@@ -260,6 +260,38 @@ TEST_F(gurobi_lp_test, get_basis_throws_once_the_model_changed) {
     ASSERT_THROW(model.get_basis(), solver_error);
 }
 
+// CBasis names no side on a row: an '=' row at its right-hand side reads
+// nonbasic_fixed, from the sense.
+TEST_F(gurobi_lp_test, get_basis_reads_an_equality_row_fixed) {
+    auto model = new_model();
+    const auto v = lp_basis_cases::build_vertex(model);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    const auto basis = model.get_basis();
+    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.eq)));
+}
+
+// Without rows, the row arrays reach Gurobi with length 0 and a null buffer.
+TEST_F(gurobi_lp_test, basis_of_a_model_without_rows) {
+    using namespace operators;
+    auto model = new_model();
+    const auto x =
+        model.add_variable(lp_basis_cases::bounds<gurobi_lp>(0.0, 1.0));
+    const auto y =
+        model.add_variable(lp_basis_cases::bounds<gurobi_lp>(-1.0, 3.0));
+    model.set_maximization();
+    model.set_objective(x - y);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    const auto basis = model.get_basis();
+    ASSERT_FALSE(is<basis_status::basic>(basis.get_status(x)));
+    ASSERT_FALSE(is<basis_status::basic>(basis.get_status(y)));
+    model.set_basis(basis);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    ASSERT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+}
+
 // The forcing attributes are the user's: values set to 0 beforehand, which
 // the call overrides with 1, must read back as 0 afterwards, on every kind
 // of special constraint the guard covers.
