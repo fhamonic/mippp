@@ -66,6 +66,9 @@ void Clp_setColumnStatus(Clp_Simplex * model, int sequence, int value);
 int Clp_getColumnStatus(Clp_Simplex * model, int sequence);
 void Clp_setRowStatus(Clp_Simplex * model, int sequence, int value);
 int Clp_getRowStatus(Clp_Simplex * model, int sequence);
+unsigned char * Clp_statusArray(Clp_Simplex * model);
+void Clp_copyinStatus(Clp_Simplex * model, const unsigned char * statusArray);
+int Clp_numberIterations(Clp_Simplex * model);
 
 void Clp_scaling(Clp_Simplex * model, int mode);
 int Clp_scalingFlag(Clp_Simplex * model);
@@ -133,6 +136,9 @@ namespace clp::impl::v1 {
     F(Clp_getColumnStatus, getColumnStatus)                   \
     F(Clp_setRowStatus, setRowStatus)                         \
     F(Clp_getRowStatus, getRowStatus)                         \
+    F(Clp_statusArray, statusArray)                           \
+    F(Clp_copyinStatus, copyinStatus)                         \
+    F(Clp_numberIterations, numberIterations)                 \
     F(Clp_scaling, scaling)                                   \
     F(Clp_scalingFlag, scalingFlag)                           \
     F(Clp_initialSolve, initialSolve)                         \

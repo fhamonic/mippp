@@ -63,6 +63,51 @@ struct clp_lp_test : public model_test<clp_api, clp_lp> {
     static void SetUpTestSuite() { construct_api("CLP"); }
 };
 static_assert(!has_iis<clp_lp>);
+static_assert(has_lp_basis_warm_start<clp_lp>);
+
+// Clp keeps no status array before its first solve, and its own getters
+// would read through a null pointer.
+TEST_F(clp_lp_test, get_basis_before_the_first_solve_throws) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable();
+    model.add_constraint(x <= 1);
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
+
+// clp_lp has no iteration limit: Clp's own count proves the warm start
+TEST_F(clp_lp_test, set_basis_starts_at_the_optimum) {
+    auto a = new_model();
+    lp_basis_cases::build_dense(a);
+    a.solve();
+    ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+    ASSERT_GT(api->numberIterations(a.native_model()), 0);
+    auto b = new_model();
+    lp_basis_cases::build_dense(b);
+    b.set_basis(a.get_basis());
+    b.solve();
+    ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+    ASSERT_EQ(api->numberIterations(b.native_model()), 0);
+    ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
+                lp_basis_cases::tolerance(a.get_solution_value()));
+}
+
+// A removed column stays in Clp, empty and fixed at [0, 0]: written basic, as
+// its entry in a snapshot taken before the removal says, it would make the
+// basis singular.
+TEST_F(clp_lp_test, set_basis_writes_a_removed_column_fixed) {
+    auto model = new_model();
+    const auto v = lp_basis_cases::build_vertex(model);
+    model.solve();
+    const auto basis = model.get_basis();
+    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.x3)));
+    model.remove_variable(v.x3);
+    model.set_basis(basis);
+    const unsigned char * status = api->statusArray(model.native_model());
+    ASSERT_NE(status, nullptr);
+    ASSERT_EQ(status[model.native_id(v.x3)] & 7, 5);
+    ASSERT_EQ(status[model.native_id(v.x4)] & 7, 1);
+}
 // infeasible, but scaling shrinks the violation at x = 0 below Clp's
 // tolerance, and its primary status says optimal
 TEST_F(clp_lp_test, infeasible_once_unscaled_is_not_plain_optimal) {
@@ -109,3 +154,5 @@ INSTANTIATE_TEST(Clp, ColumnManagerTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, LpFuzzyTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, VerbosityTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, TimeLimitTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, LpBasisTest, clp_lp_test);
+INSTANTIATE_TEST(Clp, LpBasisWarmStartTest, clp_lp_test);

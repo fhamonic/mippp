@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -18,6 +19,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
 
 #include "mippp/solvers/clp/impl/v1/clp_api.hpp"
 #include "mippp/solvers/model_base.hpp"
@@ -647,6 +649,113 @@ public:
     }
     auto get_reduced_costs() {
         return _snapshot_variables(Clp->dualColumnSolution(model));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::superbasic,
+                     basis_status::nonbasic_free>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::superbasic,
+                     basis_status::nonbasic_free>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    // ClpSimplex::Status, in the low three bits of a status byte whose
+    // higher bits are flags of the solver
+    static constexpr unsigned char _clp_free = 0;
+    static constexpr unsigned char _clp_basic = 1;
+    static constexpr unsigned char _clp_at_upper = 2;
+    static constexpr unsigned char _clp_at_lower = 3;
+    static constexpr unsigned char _clp_superbasic = 4;
+    static constexpr unsigned char _clp_fixed = 5;
+
+    template <typename Status>
+    static Status _basis_status(unsigned char byte) noexcept {
+        switch(byte & 7) {
+            case _clp_free:
+                return Status(std::in_place_type<basis_status::nonbasic_free>);
+            case _clp_basic:
+                return Status(std::in_place_type<basis_status::basic>);
+            case _clp_at_upper:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case _clp_at_lower:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case _clp_superbasic:
+                return Status(std::in_place_type<basis_status::superbasic>);
+            case _clp_fixed:
+                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
+            default:
+                return Status(std::in_place_type<basis_status::nonbasic>);
+        }
+    }
+    // Clp snaps a side the bounds do not have at the next solve.
+    static unsigned char _basis_code(detail::basis_kind kind) noexcept {
+        switch(kind) {
+            case detail::basis_kind::basic:
+                return _clp_basic;
+            case detail::basis_kind::nonbasic_at_upper_bound:
+                return _clp_at_upper;
+            case detail::basis_kind::nonbasic_fixed:
+                return _clp_fixed;
+            case detail::basis_kind::superbasic:
+                return _clp_superbasic;
+            case detail::basis_kind::nonbasic_free:
+                return _clp_free;
+            default:
+                return _clp_at_lower;
+        }
+    }
+
+public:
+    // Removed columns stay in Clp until their id is reused, so the tables
+    // cover every native column.
+    auto get_basis() {
+        if(num_variables() == 0u) return basis_type{};
+        const unsigned char * status = Clp->statusArray(model);
+        if(status == nullptr)
+            throw solver_error(
+                "mippp: get_basis() found no basis, Clp holds none before "
+                "its first solve");
+        const auto num_col = static_cast<std::size_t>(Clp->getNumCols(model));
+        const auto num_row = static_cast<std::size_t>(Clp->getNumRows(model));
+        detail::handle_status_table<basis_variable_status> columns(num_col);
+        for(std::size_t j = 0; j < num_col; ++j)
+            columns.set(j, _basis_status<basis_variable_status>(status[j]));
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i)
+            rows.set(
+                i, _basis_status<basis_constraint_status>(status[num_col + i]));
+        return basis_type(std::move(columns), std::move(rows));
+    }
+    // One copy of the whole array, columns first: Clp's per-entity setters
+    // need an array to exist and overwrite the primal solution.
+    template <detail::lp_basis_over<variable, constraint> B>
+    void set_basis(const B & basis) {
+        const auto num_col = static_cast<std::size_t>(Clp->getNumCols(model));
+        const auto num_row = static_cast<std::size_t>(Clp->getNumRows(model));
+        std::vector<unsigned char> status(num_col + num_row);
+        for(std::size_t j = 0; j < num_col; ++j)
+            status[j] = _basis_code(detail::variable_basis_kind(
+                basis, variable(static_cast<int>(j))));
+        // a removed column is fixed at [0, 0], whatever its old entry
+        for(const int id : _free_variable_ids)
+            status[static_cast<std::size_t>(id)] = _clp_fixed;
+        for(std::size_t i = 0; i < num_row; ++i)
+            status[num_col + i] = _basis_code(detail::constraint_basis_kind(
+                basis, constraint(static_cast<int>(i))));
+        Clp->copyinStatus(model, status.data());
     }
 };
 
