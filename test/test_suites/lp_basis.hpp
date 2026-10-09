@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <concepts>
 #include <cstddef>
 #include <optional>
 #include <random>
@@ -112,6 +113,17 @@ std::vector<model_variable_t<M>> build_dense(M & model) {
     return x;
 }
 
+// x, y >= 0, x + y >= 5, x + 2 y <= 3: infeasible, as presolve proves
+// before any simplex run
+template <typename M>
+void build_infeasible(M & model) {
+    using namespace operators;
+    const auto x = model.add_variable();
+    const auto y = model.add_variable();
+    model.add_constraint(x + y >= 5);
+    model.add_constraint(x + 2 * y <= 3);
+}
+
 inline double tolerance(double value) {
     return 1e-6 * std::max(1.0, std::abs(value));
 }
@@ -141,6 +153,25 @@ struct own_basis {
         if(is_a<basis_status::nonbasic_at_upper_bound>(status))
             return own_upper{};
         return basis_status::nonbasic{};
+    }
+};
+
+// Records whether set_basis asked for the status of a variable the model no
+// longer holds: a source mapping handles may have none for it.
+template <typename B, typename Variable>
+struct live_only_basis {
+    const B * basis;
+    std::vector<Variable> live;
+    bool * read_a_dead_variable;
+    auto get_status(Variable v) const {
+        if(std::ranges::none_of(live, [&](Variable w) { return w == v; }))
+            *read_a_dead_variable = true;
+        return basis->get_status(v);
+    }
+    template <typename Constraint>
+        requires(!std::same_as<Constraint, Variable>)
+    auto get_status(Constraint c) const {
+        return basis->get_status(c);
     }
 };
 
@@ -371,7 +402,10 @@ TYPED_TEST_P(LpBasisWarmStartTest, extends_a_basis_to_entities_added_later) {
     });
 }
 
-TYPED_TEST_P(LpBasisWarmStartTest, a_default_basis_is_the_slack_basis) {
+// The cold start of a model never solved is a slack basis too, so only the
+// answer is checked: replaces_the_basis_of_a_solved_model sees the write.
+TYPED_TEST_P(LpBasisWarmStartTest,
+             accepts_a_default_basis_on_a_model_never_solved) {
     using M = typename TestFixture::model_type;
     this->SkipOnLicenseError([this]() {
         auto a = this->new_model();
@@ -497,11 +531,77 @@ TYPED_TEST_P(LpBasisWarmStartTest, survives_the_removal_of_a_nonbasic_column) {
     }
 }
 
+// Removing a column other than the last shifts the solver's indices away from
+// the handles on HiGHS, Gurobi and CPLEX: a basis keyed by handle still lands
+// on the right columns, both ways.
+TYPED_TEST_P(LpBasisWarmStartTest, follows_handles_across_a_removal) {
+    using M = typename TestFixture::model_type;
+    if constexpr(!has_remove_variable<M> || !has_iteration_limit<M>) {
+        GTEST_SKIP() << "no remove_variable or no iteration limit";
+    } else {
+        this->SkipOnLicenseError([this]() {
+            auto a = this->new_model();
+            const auto xa = lp_basis_cases::build_dense(a);
+            a.solve();
+            ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+            const auto basis = a.get_basis();
+            const auto removed =
+                std::find_if(xa.begin(), xa.end() - 1, [&](auto v) {
+                    return !lp_basis_cases::is_basic(basis.get_status(v));
+                });
+            ASSERT_NE(removed, xa.end() - 1);
+            const auto index = static_cast<std::size_t>(removed - xa.begin());
+
+            auto b = this->new_model();
+            const auto xb = lp_basis_cases::build_dense(b);
+            b.remove_variable(xb[index]);
+            b.set_basis(basis);
+            TestFixture::limit_to_one_iteration(b);
+            b.solve();
+            ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+            ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
+                        lp_basis_cases::tolerance(a.get_solution_value()));
+            const auto read = b.get_basis();
+            for(std::size_t j = 0; j < xb.size(); ++j) {
+                if(j == index) continue;
+                ASSERT_EQ(read.get_status(xb[j]).index(),
+                          basis.get_status(xa[j]).index());
+            }
+        });
+    }
+}
+
+TYPED_TEST_P(LpBasisWarmStartTest, never_reads_a_removed_variable) {
+    using M = typename TestFixture::model_type;
+    if constexpr(!has_remove_variable<M> || !has_enumerable_variables<M>) {
+        GTEST_SKIP() << "no remove_variable";
+    } else {
+        this->SkipOnLicenseError([this]() {
+            auto model = this->new_model();
+            const auto x = lp_basis_cases::build_dense(model);
+            model.solve();
+            const auto basis = model.get_basis();
+            model.remove_variable(x[3]);
+            bool read_a_dead_variable = false;
+            const auto live = model.variables();
+            model.set_basis(
+                lp_basis_cases::live_only_basis<decltype(basis),
+                                                model_variable_t<M>>{
+                    &basis, {live.begin(), live.end()}, &read_a_dead_variable});
+            ASSERT_FALSE(read_a_dead_variable);
+            model.solve();
+            ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+        });
+    }
+}
+
 REGISTER_TYPED_TEST_SUITE_P(
     LpBasisWarmStartTest, starts_an_identical_model_at_the_optimum,
-    extends_a_basis_to_entities_added_later, a_default_basis_is_the_slack_basis,
+    extends_a_basis_to_entities_added_later,
+    accepts_a_default_basis_on_a_model_never_solved,
     accepts_a_basis_of_the_callers_making, leaves_the_status_alone,
     an_invalid_basis_still_solves, replaces_the_basis_of_a_solved_model,
-    survives_the_removal_of_a_nonbasic_column);
+    survives_the_removal_of_a_nonbasic_column, follows_handles_across_a_removal,
+    never_reads_a_removed_variable);
 
 }  // namespace mippp
