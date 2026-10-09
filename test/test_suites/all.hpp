@@ -183,6 +183,7 @@ struct model_test : public ::testing::Test {
 #include "integrality_tolerance.hpp"
 #include "iteration_limit.hpp"
 #include "lazy_constraints.hpp"
+#include "lp_basis.hpp"
 #include "lp_fuzzy_tests.hpp"
 #include "lp_model.hpp"
 #include "lp_status.hpp"
