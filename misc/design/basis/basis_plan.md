@@ -421,10 +421,11 @@ or trade flexibility, ease of use or performance.
   `MSK_getintinf` with both simplex and interior-point counts at 0, which
   also proves B8's switch); and echo tests that write a basis into a fresh
   model and read it back before any solve where the native read returns what
-  was written (COPT, MOSEK, GLPK for tags consistent with the bounds), which
-  pin the write mapping. Recommended: (a) and (c). The shared read suite pins
-  the read mapping, row flips included, on a known nondegenerate LP; the
-  echo pins the write mapping; the counter pins that the basis is used.
+  was written (COPT, MOSEK, GLPK for tags consistent with the bounds, Xpress
+  for boxed entities), which pin the write mapping. Recommended: (a) and
+  (c). The shared read suite pins the read mapping, row flips included, on a
+  known nondegenerate LP; the echo pins the write mapping; the counter pins
+  that the basis is used.
 - **B13. A basis short after a removal.** Removing a column that was basic
   at the snapshot leaves the snapshot one basic short over the live entities,
   unless a later column reuses the id; Gurobi then discards it and starts
