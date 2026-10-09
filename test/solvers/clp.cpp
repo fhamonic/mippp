@@ -92,6 +92,22 @@ TEST_F(clp_lp_test, set_basis_starts_at_the_optimum) {
                 lp_basis_cases::tolerance(a.get_solution_value()));
 }
 
+// Clp codes a fixed column and an equality row 5, where the shared suite also
+// accepts a side.
+TEST_F(clp_lp_test, get_basis_reads_fixed_entities_as_nonbasic_fixed) {
+    for(const bool maximize : {false, true}) {
+        auto model = new_model();
+        const auto v = lp_basis_cases::build_vertex(model, maximize);
+        model.solve();
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status())) << maximize;
+        const auto basis = model.get_basis();
+        ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.x2)))
+            << maximize;
+        ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.eq)))
+            << maximize;
+    }
+}
+
 // A removed column stays in Clp, empty and fixed at [0, 0]: written basic, as
 // its entry in a snapshot taken before the removal says, it would make the
 // basis singular.

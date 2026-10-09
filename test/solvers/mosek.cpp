@@ -303,6 +303,25 @@ TEST_F(mosek_lp_test, get_basis_before_any_solve_throws) {
         ASSERT_THROW(model.get_basis(), solver_error);
     });
 }
+// an empty vector's data() may be null, on the dimension set_basis() writes
+// nothing for
+TEST_F(mosek_lp_test, set_basis_accepts_a_model_with_an_empty_dimension) {
+    SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto columns_only = new_model();
+        columns_only.add_variable();
+        columns_only.add_variable();
+        auto rows_only = new_model();
+        constexpr auto & no_terms =
+            empty_linear_expression<model_variable_t<mosek_lp>, double>;
+        rows_only.add_constraint(no_terms <= 1.0);
+        for(mosek_lp * model : {&columns_only, &rows_only}) {
+            ASSERT_NO_THROW(model->set_basis(model_basis_t<mosek_lp>{}));
+            model->solve();
+            ASSERT_TRUE(is_a<status::optimal>(model->get_status()));
+        }
+    });
+}
 // A put defines MOSEK's basic slot while the keys it left unwritten read UNK
 TEST_F(mosek_lp_test, get_basis_throws_on_an_unknown_or_infeasible_key) {
     using namespace mosek::impl::v1;

@@ -66,6 +66,7 @@ struct cbc_milp_test : public model_test<cbc_api, cbc_milp> {
     }
 };
 static_assert(!has_iis<cbc_milp>);
+static_assert(!has_lp_basis<cbc_milp>);
 
 // Cbc_solve stops before branch and bound, as for an LP
 TEST_F(cbc_milp_test, mip_with_an_infeasible_relaxation_is_infeasible) {

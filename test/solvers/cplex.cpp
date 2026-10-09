@@ -513,6 +513,35 @@ TEST_F(cplex_lp_test, get_basis_before_the_first_solve_throws) {
 
 // CPXgetbase returns what CPXcopybase stored until the next solve, so a
 // basis written on a fresh model reads back through both translations.
+TEST_F(cplex_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
+    auto model = new_model();
+    lp_basis_cases::build_infeasible(model);
+    model.solve();
+    ASSERT_TRUE(is_a<status::infeasible_or_unbounded>(model.get_status()));
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
+// CPXcopybase drops the solution, whose getters fail until the next solve
+// while the status still reports the last one.
+TEST_F(cplex_lp_test, set_basis_discards_the_solution) {
+    auto model = new_model();
+    lp_basis_cases::build_dense(model);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    model.set_basis(model.get_basis());
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    EXPECT_THROW(model.get_solution(), solver_error);
+    EXPECT_THROW(model.get_dual_solution(), solver_error);
+    EXPECT_THROW(model.get_solution_value(), solver_error);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    ASSERT_NO_THROW(model.get_solution());
+}
+// A row of CPLEX is never at no bound: is_a<superbasic> compiles on a
+// column status only.
+static_assert(variant_containing_a<model_variable_basis_status_t<cplex_lp>,
+                                   basis_status::superbasic>);
+static_assert(!variant_containing_a<model_constraint_basis_status_t<cplex_lp>,
+                                    basis_status::superbasic>);
 TEST_F(cplex_lp_test, a_written_basis_reads_back_before_a_solve) {
     using namespace operators;
     using namespace cplex::impl::v1;

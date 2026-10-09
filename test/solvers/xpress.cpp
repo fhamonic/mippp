@@ -105,6 +105,68 @@ TEST_F(xpress_lp_test, set_basis_writes_the_side_of_boxed_entities) {
               xpress::impl::v1::XPRS_BASISSTATUS_NONBASIC_UPPER);
 }
 
+// get_basis() keys on PRESOLVESTATE bit 7, which a solve sets, any change of
+// the model clears, and a bare XPRSloadbasis leaves alone: set_basis() on a
+// model never solved reads no basis, and over a solved one reads the basis
+// just written, although Xpress keeps its basis through a change.
+TEST_F(xpress_lp_test, get_basis_follows_the_valid_solution_bit) {
+    using namespace operators;
+    auto model = new_model();
+    const auto x = model.add_variable({.lower_bound = 0.0, .upper_bound = 4.0});
+    const auto y = model.add_variable();
+    const auto z = model.add_variable();
+    model.set_minimization();
+    model.set_objective(-x + y + z);
+    const auto r1 = lp_basis_cases::add_ranged_row(model, x + y, 1.0, 3.0);
+    const auto r2 = lp_basis_cases::add_ranged_row(model, y + z, 2.0, 8.0);
+    model_basis_t<xpress_lp> basis;
+    basis.set_status(x, basis_status::nonbasic_at_upper_bound{});
+    basis.set_status(y, basis_status::basic{});
+    basis.set_status(z, basis_status::basic{});
+    basis.set_status(r1, basis_status::nonbasic_at_upper_bound{});
+    basis.set_status(r2, basis_status::nonbasic_at_lower_bound{});
+    model.set_basis(basis);
+    ASSERT_THROW(model.get_basis(), solver_error);
+
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    model.set_basis(basis);
+    const auto read = model.get_basis();
+    ASSERT_TRUE(is<basis_status::nonbasic_at_upper_bound>(read.get_status(x)));
+    ASSERT_TRUE(is<basis_status::basic>(read.get_status(y)));
+    ASSERT_TRUE(is<basis_status::basic>(read.get_status(z)));
+    ASSERT_TRUE(is<basis_status::nonbasic_at_upper_bound>(read.get_status(r1)));
+    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(read.get_status(r2)));
+
+    model.solve();
+    ASSERT_NO_THROW(model.get_basis());
+    model.set_variable_upper_bound(x, 3.5);
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
+// Presolve proves the infeasibility without a simplex run, and Xpress would
+// hand back the slack basis, or after an optimal solve that basis, stale.
+TEST_F(xpress_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
+    using namespace operators;
+    auto fresh = new_model();
+    lp_basis_cases::build_infeasible(fresh);
+    fresh.solve();
+    ASSERT_TRUE(is_a<status::infeasible_or_unbounded>(fresh.get_status()));
+    ASSERT_THROW(fresh.get_basis(), solver_error);
+
+    auto solved = new_model();
+    const auto x = solved.add_variable();
+    const auto y = solved.add_variable();
+    solved.set_maximization();
+    solved.set_objective(x + y);
+    solved.add_constraint(x + 2 * y <= 3);
+    solved.solve();
+    ASSERT_TRUE(is_a<status::optimal>(solved.get_status()));
+    solved.add_constraint(x + y >= 5);
+    solved.solve();
+    ASSERT_TRUE(is_a<status::infeasible_or_unbounded>(solved.get_status()));
+    ASSERT_THROW(solved.get_basis(), solver_error);
+}
+
 struct xpress_milp_test : public model_test<xpress_api, xpress_milp> {
     static void SetUpTestSuite() { construct_api("XPRESS"); }
 };

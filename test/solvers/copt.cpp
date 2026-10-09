@@ -177,6 +177,44 @@ TEST_F(copt_lp_test, get_basis_after_compute_iis_throws) {
     ASSERT_THROW(model.get_basis(), solver_error);
 }
 
+// COPT holds no basis for a model without rows until it is solved, and says
+// so by COPT_RETCODE_INVALID rather than by zeros
+TEST_F(copt_lp_test, get_basis_on_a_model_without_rows_throws) {
+    auto model = new_model();
+    model.add_variable();
+    model.add_variable();
+    int col_status[2] = {-1, -1}, row_status[1] = {-1};
+    ASSERT_EQ(
+        api->GetBasis(model.native_model().second, col_status, row_status),
+        copt::impl::v1::COPT_RETCODE_INVALID);
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
+TEST_F(copt_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
+    auto model = new_model();
+    lp_basis_cases::build_infeasible(model);
+    model.solve();
+    ASSERT_TRUE(is_a<status::infeasible_or_unbounded>(model.get_status()));
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
+// COPT_SetBasis drops the solution, whose getters fail until the next solve,
+// but not the objective value, which still reads the last solve's.
+TEST_F(copt_lp_test, set_basis_discards_the_solution) {
+    auto model = new_model();
+    lp_basis_cases::build_dense(model);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    const double optimum = model.get_solution_value();
+    model.set_basis(model.get_basis());
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    EXPECT_THROW(model.get_solution(), solver_error);
+    EXPECT_THROW(model.get_dual_solution(), solver_error);
+    EXPECT_NEAR(model.get_solution_value(), optimum,
+                lp_basis_cases::tolerance(optimum));
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    ASSERT_NO_THROW(model.get_solution());
+}
+
 struct copt_milp_test : public model_test<copt_api, copt_milp> {
     static void SetUpTestSuite() { construct_api("COPT"); }
 };

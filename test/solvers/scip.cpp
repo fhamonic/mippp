@@ -47,6 +47,7 @@ struct scip_milp_test : public model_test<scip_api, scip_milp> {
     static void SetUpTestSuite() { construct_api("SCIP"); }
 };
 static_assert(!has_iis<scip_milp>);
+static_assert(!has_lp_basis<scip_milp>);
 
 // presolve fixes both columns here, which SCIP's global bounds follow
 TEST_F(scip_milp_test, variable_bounds_after_a_solve_are_the_model_ones) {
