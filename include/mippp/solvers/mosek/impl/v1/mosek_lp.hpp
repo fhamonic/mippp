@@ -1,11 +1,17 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <variant>
+#include <vector>
 
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 #include "mippp/solvers/mosek/impl/v1/mosek_base.hpp"
 
@@ -38,6 +44,9 @@ private:
 
     status_variant _status = status::unknown{};
     std::optional<MSKsoltypee> _solution;
+    // set by set_basis() for the next solve() only, and left alone by the
+    // reset_status() that solve() calls first
+    bool _starts_from_basis = false;
 
     // whether a stopped solve left the solution get_solution() reads
     bool _has_solution() {
@@ -107,12 +116,35 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+private:
+    // MOSEK's automatic choice runs the interior point, which ignores a
+    // basis: the solve after set_basis() runs a simplex instead, and an
+    // optimizer chosen natively is kept.
+    bool _switches_to_simplex() {
+        if(!std::exchange(_starts_from_basis, false)) return false;
+        MSKint32t optimizer;
+        check(MSK->getintparam(task, MSK_IPAR_OPTIMIZER, &optimizer));
+        return optimizer == MSK_OPTIMIZER_FREE;
+    }
+
+public:
     void solve() {
         reset_status();  // a solve that throws reports unknown
         // MSK_optimize reports a limit as an error code; MSK_optimizetrm
         // returns it as the termination code, and is the solve itself
         MSKrescodee trm = MSK_RES_OK;
-        check(MSK->optimizetrm(task, &trm));
+        if(_switches_to_simplex()) {
+            check(MSK->putintparam(task, MSK_IPAR_OPTIMIZER,
+                                   MSK_OPTIMIZER_FREE_SIMPLEX));
+            detail::restore_guard guard([&] {
+                check(MSK->putintparam(task, MSK_IPAR_OPTIMIZER,
+                                       MSK_OPTIMIZER_FREE));
+            });
+            check(MSK->optimizetrm(task, &trm));
+            guard.restore();
+        } else {
+            check(MSK->optimizetrm(task, &trm));
+        }
         _solution = _pick_continuous_solution();
         _status = _get_status(trm);
     }
@@ -143,6 +175,106 @@ public:
                                    static_cast<int>(num_vars),
                                    reduced_costs.get()));
         return variable_mapping(std::move(reduced_costs));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::superbasic>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::superbasic>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    // SUPBAS also marks a bounded entity strictly inside its bounds, as a
+    // stop of the dual simplex leaves some. A defined slot holds UNK keys
+    // after a stop before the first pivot, and INF on crossed bounds.
+    template <typename Status>
+    static Status _basis_status(MSKstakeye key) {
+        switch(key) {
+            case MSK_SK_BAS:
+                return Status(std::in_place_type<basis_status::basic>);
+            case MSK_SK_LOW:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case MSK_SK_UPR:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case MSK_SK_FIX:
+                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
+            case MSK_SK_SUPBAS:
+                return Status(std::in_place_type<basis_status::superbasic>);
+            default:
+                throw solver_error(
+                    "mippp: get_basis() found no basis, MOSEK's basic "
+                    "solution holds an unknown or infeasible status key");
+        }
+    }
+    // MOSEK snaps a side the bounds do not have at the next solve.
+    static MSKstakeye _basis_key(detail::basis_kind kind) noexcept {
+        switch(kind) {
+            case detail::basis_kind::basic:
+                return MSK_SK_BAS;
+            case detail::basis_kind::nonbasic_at_upper_bound:
+                return MSK_SK_UPR;
+            case detail::basis_kind::nonbasic_fixed:
+                return MSK_SK_FIX;
+            case detail::basis_kind::superbasic:
+            case detail::basis_kind::nonbasic_free:
+                return MSK_SK_SUPBAS;
+            default:
+                return MSK_SK_LOW;
+        }
+    }
+
+public:
+    // Reads the basic slot whichever slot solve() picked: the interior one
+    // holds keys that are no basis. MOSEK keeps its keys through changes of
+    // the model, and a column appended since reads FIX.
+    auto get_basis() {
+        if(num_variables() == 0u) return basis_type{};
+        MSKbooleant defined = 0;
+        check(MSK->solutiondef(task, MSK_SOL_BAS, &defined));
+        if(!defined)
+            throw solver_error(
+                "mippp: get_basis() found no basis, MOSEK holds no basic "
+                "solution");
+        const std::size_t num_col = num_variables();
+        const std::size_t num_row = num_constraints();
+        std::vector<MSKstakeye> skx(num_col), skc(num_row);
+        check(MSK->getsolution(task, MSK_SOL_BAS, nullptr, nullptr, skc.data(),
+                               skx.data(), nullptr, nullptr, nullptr, nullptr,
+                               nullptr, nullptr, nullptr, nullptr, nullptr));
+        detail::handle_status_table<basis_variable_status> columns(num_col);
+        for(std::size_t j = 0; j < num_col; ++j)
+            columns.set(j, _basis_status<basis_variable_status>(skx[j]));
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i)
+            rows.set(i, _basis_status<basis_constraint_status>(skc[i]));
+        return basis_type(std::move(columns), std::move(rows));
+    }
+    template <detail::lp_basis_over<variable, constraint> B>
+    void set_basis(const B & basis) {
+        const std::size_t num_col = num_variables();
+        const std::size_t num_row = num_constraints();
+        std::vector<MSKstakeye> skx(num_col), skc(num_row);
+        for(std::size_t j = 0; j < num_col; ++j)
+            skx[j] = _basis_key(detail::variable_basis_kind(
+                basis, variable(static_cast<int>(j))));
+        for(std::size_t i = 0; i < num_row; ++i)
+            skc[i] = _basis_key(detail::constraint_basis_kind(
+                basis, constraint(static_cast<int>(i))));
+        check(MSK->putskx(task, MSK_SOL_BAS, skx.data()));
+        check(MSK->putskc(task, MSK_SOL_BAS, skc.data()));
+        _starts_from_basis = true;
     }
 };
 

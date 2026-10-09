@@ -216,6 +216,11 @@ enum MSKstakeye : int {
     MSK_SK_INF = 6
 };
 
+MSKrescodee MSK_putskc(MSKtask_t task, MSKsoltypee whichsol,
+                       const MSKstakeye * skc);
+MSKrescodee MSK_putskx(MSKtask_t task, MSKsoltypee whichsol,
+                       const MSKstakeye * skx);
+
 MSKrescodee MSK_solutiondef(MSKtask_t task, MSKsoltypee whichsol,
                             MSKbooleant * isdef);
 enum MSKsolstae : int {
@@ -243,6 +248,14 @@ MSKrescodee MSK_deletesolution(MSKtask_t task, MSKsoltypee whichsol);
 MSKrescodee MSK_getreducedcosts(MSKtask_t task, MSKsoltypee whichsol,
                                 MSKint32t first, MSKint32t last,
                                 MSKrealt * redcosts);
+
+enum MSKiinfiteme : int {
+    MSK_IINF_INTPNT_ITER = 17,
+    MSK_IINF_SIM_DUAL_ITER = 121,
+    MSK_IINF_SIM_PRIMAL_ITER = 128
+};
+MSKrescodee MSK_getintinf(MSKtask_t task, MSKiinfiteme whichiinf,
+                          MSKint32t * ivalue);
 
 enum MSKcallbackcodee : int {
     MSK_CALLBACK_BEGIN_BI = 0,
@@ -435,8 +448,11 @@ namespace mosek::impl::v1 {
     F(MSK_solutiondef, solutiondef)                           \
     F(MSK_getsolsta, getsolsta)                               \
     F(MSK_getsolution, getsolution)                           \
+    F(MSK_putskc, putskc)                                     \
+    F(MSK_putskx, putskx)                                     \
     F(MSK_deletesolution, deletesolution)                     \
-    F(MSK_getreducedcosts, getreducedcosts)
+    F(MSK_getreducedcosts, getreducedcosts)                   \
+    F(MSK_getintinf, getintinf)
 
 #define DECLARE_MOSEK_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);    \
