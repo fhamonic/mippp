@@ -4,12 +4,16 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 #include "mippp/solvers/highs/impl/v1/highs_base.hpp"
 
@@ -133,6 +137,99 @@ public:
                                            reduced_costs)](const variable & v) {
             return *(reduced_costs.get() + _native_id(v));
         });
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // HiGHS names no fixed entity: a fixed one reads the side of its dual
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_free>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_free>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    template <typename Status>
+    static Status _basis_status(HighsInt code) noexcept {
+        switch(code) {
+            case kHighsBasisStatusBasic:
+                return Status(std::in_place_type<basis_status::basic>);
+            case kHighsBasisStatusLower:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case kHighsBasisStatusUpper:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case kHighsBasisStatusZero:
+                return Status(std::in_place_type<basis_status::nonbasic_free>);
+            default:
+                return Status(std::in_place_type<basis_status::nonbasic>);
+        }
+    }
+    // Zero on a bounded entity and Lower on a fixed one are snapped by
+    // HiGHS, and Nonbasic lets it pick the side.
+    static HighsInt _basis_code(detail::basis_kind kind) noexcept {
+        switch(kind) {
+            case detail::basis_kind::basic:
+                return kHighsBasisStatusBasic;
+            case detail::basis_kind::nonbasic_at_lower_bound:
+            case detail::basis_kind::nonbasic_fixed:
+                return kHighsBasisStatusLower;
+            case detail::basis_kind::nonbasic_at_upper_bound:
+                return kHighsBasisStatusUpper;
+            case detail::basis_kind::superbasic:
+            case detail::basis_kind::nonbasic_free:
+                return kHighsBasisStatusZero;
+            default:
+                return kHighsBasisStatusNonbasic;
+        }
+    }
+
+public:
+    // HiGHS keeps and extends its basis through changes of the model, but
+    // reports it valid only until the first one.
+    auto get_basis() {
+        if(num_variables() == 0u) return basis_type{};
+        HighsInt validity = 0;  // left unwritten when HiGHS holds no info
+        check(Highs->getIntInfoValue(model, "basis_validity", &validity));
+        if(validity != kHighsBasisValidityValid)
+            throw solver_error(
+                "mippp: get_basis() found no basis, HiGHS holds none since "
+                "the last change of the model");
+        const std::size_t num_col = _num_var_native_ids();
+        const std::size_t num_row = num_constraints();
+        std::vector<HighsInt> col_status(num_col), row_status(num_row);
+        check(Highs->getBasis(model, col_status.data(), row_status.data()));
+        detail::handle_status_table<basis_variable_status> columns(
+            _handle_id_bound(num_col));
+        for(std::size_t j = 0; j < num_col; ++j)
+            columns.set(_var_handle(static_cast<int>(j)).uid(),
+                        _basis_status<basis_variable_status>(col_status[j]));
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i)
+            rows.set(i, _basis_status<basis_constraint_status>(row_status[i]));
+        return basis_type(std::move(columns), std::move(rows));
+    }
+    template <detail::lp_basis_over<variable, constraint> B>
+    void set_basis(const B & basis) {
+        const std::size_t num_col = _num_var_native_ids();
+        const std::size_t num_row = num_constraints();
+        std::vector<HighsInt> col_status(num_col), row_status(num_row);
+        for(std::size_t j = 0; j < num_col; ++j)
+            col_status[j] = _basis_code(detail::variable_basis_kind(
+                basis, _var_handle(static_cast<int>(j))));
+        for(std::size_t i = 0; i < num_row; ++i)
+            row_status[i] = _basis_code(detail::constraint_basis_kind(
+                basis, constraint(static_cast<int>(i))));
+        check(Highs->setBasis(model, col_status.data(), row_status.data()));
     }
 };
 

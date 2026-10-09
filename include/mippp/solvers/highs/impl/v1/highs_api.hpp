@@ -207,6 +207,7 @@ enum BasisStatus : HighsInt {
     kHighsBasisStatusZero = 3,
     kHighsBasisStatusNonbasic = 4  // non-basic
 };
+constexpr HighsInt kHighsBasisValidityValid = 1;
 HighsInt Highs_setBasis(void * highs, const HighsInt * col_status,
                         const HighsInt * row_status);
 HighsInt Highs_getBasis(const void * highs, HighsInt * col_status,

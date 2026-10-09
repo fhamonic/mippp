@@ -43,6 +43,8 @@ INSTANTIATE_TEST(HiGHS_lp, ColumnManagerTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpFuzzyTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, TimeLimitTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, IterationLimitTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, LpBasisTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, LpBasisWarmStartTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, VerbosityTest, highs_lp_test);
 
 // A <= row given a finite lower side is ranged: its sides still read back,
@@ -190,6 +192,10 @@ static_assert(std::same_as<native_iis_outcome_t<highs_qp>,
                            native_iis_outcome_t<highs_lp>>);
 // the routine explains the relaxation only
 static_assert(!has_iis<highs_milp>);
+static_assert(has_lp_basis_warm_start<highs_lp>);
+// the QP solver reports no simplex basis and ignores one it is given
+static_assert(!has_lp_basis<highs_qp>);
+static_assert(!has_lp_basis<highs_milp>);
 static_assert(iis_by_deletion_model<highs_lp>);
 static_assert(iis_by_deletion_model<highs_milp>);
 static_assert(iis_by_deletion_model<highs_qp>);
