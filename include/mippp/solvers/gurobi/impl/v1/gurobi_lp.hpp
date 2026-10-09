@@ -245,7 +245,7 @@ private:
 
 public:
     // Gurobi holds the basis of its last simplex solve until the update that
-    // commits a change of the model, which every getter runs.
+    // commits a change of the model, which get_basis() runs itself.
     auto get_basis() {
         if(num_variables() == 0u) return basis_type{};
         _lazily_remove_variables();
