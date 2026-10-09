@@ -76,6 +76,34 @@ TEST_F(xpress_lp_test, set_basis_starts_at_the_optimum) {
     ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
                 lp_basis_cases::tolerance(a.get_solution_value()));
 }
+// Xpress repairs at load time a code naming a side the bounds lack, so only a
+// boxed entity reads back either side as written.
+TEST_F(xpress_lp_test, set_basis_writes_the_side_of_boxed_entities) {
+    using namespace operators;
+    auto model = new_model();
+    const auto x = model.add_variable({.lower_bound = 0.0, .upper_bound = 4.0});
+    const auto y = model.add_variable();
+    const auto z = model.add_variable();
+    const auto r1 = lp_basis_cases::add_ranged_row(model, x + y, 1.0, 3.0);
+    const auto r2 = lp_basis_cases::add_ranged_row(model, y + z, 2.0, 8.0);
+    model_basis_t<xpress_lp> basis;
+    basis.set_status(x, basis_status::nonbasic_at_upper_bound{});
+    basis.set_status(y, basis_status::basic{});
+    basis.set_status(z, basis_status::basic{});
+    basis.set_status(r1, basis_status::nonbasic_at_upper_bound{});
+    basis.set_status(r2, basis_status::nonbasic_at_lower_bound{});
+    model.set_basis(basis);
+    int rows[2] = {}, cols[3] = {};
+    model.native_api()._check(
+        model.native_model(),
+        model.native_api().getbasis(model.native_model(), rows, cols));
+    ASSERT_EQ(cols[model.native_id(x)],
+              xpress::impl::v1::XPRS_BASISSTATUS_NONBASIC_UPPER);
+    ASSERT_EQ(rows[model.native_id(r1)],
+              xpress::impl::v1::XPRS_BASISSTATUS_NONBASIC_LOWER);
+    ASSERT_EQ(rows[model.native_id(r2)],
+              xpress::impl::v1::XPRS_BASISSTATUS_NONBASIC_UPPER);
+}
 
 struct xpress_milp_test : public model_test<xpress_api, xpress_milp> {
     static void SetUpTestSuite() { construct_api("XPRESS"); }
