@@ -177,6 +177,7 @@ constexpr const char * COPT_INTATTR_MIPSTATUS = "MipStatus";
 constexpr const char * COPT_INTATTR_HASLPSOL = "HasLpSol";
 constexpr const char * COPT_INTATTR_HASMIPSOL = "HasMipSol";
 constexpr const char * COPT_DBLATTR_LPOBJVAL = "LpObjval";
+constexpr const char * COPT_INTATTR_SIMPLEXITER = "SimplexIter";
 constexpr const char * COPT_DBLATTR_BESTOBJ = "BestObj";
 ret_code COPT_GetSolution(copt_prob * prob, double * colVal);
 ret_code COPT_GetLpSolution(copt_prob * prob, double * value, double * slack,
@@ -184,6 +185,11 @@ ret_code COPT_GetLpSolution(copt_prob * prob, double * value, double * slack,
 ret_code COPT_SetLpSolution(copt_prob * prob, const double * value,
                             const double * slack, const double * rowDual,
                             const double * redCost);
+constexpr int COPT_BASIS_LOWER = 0;
+constexpr int COPT_BASIS_BASIC = 1;
+constexpr int COPT_BASIS_UPPER = 2;
+constexpr int COPT_BASIS_SUPERBASIC = 3;
+constexpr int COPT_BASIS_FIXED = 4;
 ret_code COPT_GetBasis(copt_prob * prob, int * colBasis, int * rowBasis);
 ret_code COPT_SetBasis(copt_prob * prob, const int * colBasis,
                        const int * rowBasis);

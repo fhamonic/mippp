@@ -1,10 +1,16 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <memory>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 #include "mippp/solvers/copt/impl/v1/copt_base.hpp"
 
@@ -97,6 +103,105 @@ public:
         check(COPT->GetLpSolution(prob, nullptr, nullptr, nullptr,
                                   reduced_costs.get()));
         return variable_mapping(std::move(reduced_costs));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // COPT's superbasic code covers free entities too: no nonbasic_free
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::superbasic>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::superbasic>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    template <typename Status>
+    static Status _basis_status(int code) noexcept {
+        switch(code) {
+            case COPT_BASIS_BASIC:
+                return Status(std::in_place_type<basis_status::basic>);
+            case COPT_BASIS_LOWER:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case COPT_BASIS_UPPER:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case COPT_BASIS_FIXED:
+                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
+            case COPT_BASIS_SUPERBASIC:
+                return Status(std::in_place_type<basis_status::superbasic>);
+            default:
+                return Status(std::in_place_type<basis_status::nonbasic>);
+        }
+    }
+    // COPT snaps a side the bounds do not have at the next solve.
+    static int _basis_code(detail::basis_kind kind) noexcept {
+        switch(kind) {
+            case detail::basis_kind::basic:
+                return COPT_BASIS_BASIC;
+            case detail::basis_kind::nonbasic_at_upper_bound:
+                return COPT_BASIS_UPPER;
+            case detail::basis_kind::nonbasic_fixed:
+                return COPT_BASIS_FIXED;
+            case detail::basis_kind::superbasic:
+            case detail::basis_kind::nonbasic_free:
+                return COPT_BASIS_SUPERBASIC;
+            default:
+                return COPT_BASIS_LOWER;
+        }
+    }
+
+public:
+    // COPT_Reset, which compute_iis() runs, leaves zeros that COPT_GetBasis
+    // returns as a basis, every entity at lower and none basic: a count of
+    // basic entries other than the rows is no basis.
+    auto get_basis() {
+        const std::size_t num_col = num_variables();
+        if(num_col == 0u) return basis_type{};
+        const std::size_t num_row = num_constraints();
+        std::vector<int> col_status(num_col), row_status(num_row);
+        check(COPT->GetBasis(prob, col_status.data(), row_status.data()));
+        std::size_t num_basic = 0;
+        detail::handle_status_table<basis_variable_status> columns(num_col);
+        for(std::size_t j = 0; j < num_col; ++j) {
+            if(col_status[j] == COPT_BASIS_BASIC) ++num_basic;
+            columns.set(j, _basis_status<basis_variable_status>(col_status[j]));
+        }
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i) {
+            if(row_status[i] == COPT_BASIS_BASIC) ++num_basic;
+            rows.set(i, _basis_status<basis_constraint_status>(row_status[i]));
+        }
+        if(num_basic != num_row)
+            throw solver_error(
+                "mippp: get_basis() found no basis, COPT holds none from its "
+                "last solve");
+        return basis_type(std::move(columns), std::move(rows));
+    }
+    // COPT_SetBasis rejects a null array, even for an empty dimension. It
+    // drops the solution but not COPT's status: the solution getters throw
+    // until the next solve, while get_status() reports the last one.
+    template <detail::lp_basis_over<variable, constraint> B>
+    void set_basis(const B & basis) {
+        const std::size_t num_col = num_variables();
+        const std::size_t num_row = num_constraints();
+        std::vector<int> col_status(std::max(num_col, std::size_t{1}));
+        std::vector<int> row_status(std::max(num_row, std::size_t{1}));
+        for(std::size_t j = 0; j < num_col; ++j)
+            col_status[j] = _basis_code(detail::variable_basis_kind(
+                basis, variable(static_cast<int>(j))));
+        for(std::size_t i = 0; i < num_row; ++i)
+            row_status[i] = _basis_code(detail::constraint_basis_kind(
+                basis, constraint(static_cast<int>(i))));
+        check(COPT->SetBasis(prob, col_status.data(), row_status.data()));
     }
 };
 
