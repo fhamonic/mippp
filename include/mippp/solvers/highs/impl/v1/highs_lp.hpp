@@ -202,8 +202,8 @@ public:
         check(Highs->getIntInfoValue(model, "basis_validity", &validity));
         if(validity != kHighsBasisValidityValid)
             throw solver_error(
-                "mippp: get_basis() found no basis, HiGHS holds none since "
-                "the last change of the model");
+                "mippp: get_basis() found no basis, HiGHS holds none from "
+                "its last solve");
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
         std::vector<HighsInt> col_status(num_col), row_status(num_row);
