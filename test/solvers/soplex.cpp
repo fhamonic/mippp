@@ -177,13 +177,27 @@ TEST_F(soplex_lp_test, get_basis_before_the_first_solve_reads_the_slack_basis) {
     auto model = new_model();
     const auto v = lp_basis_cases::build_vertex(model);
     const auto basis = model.get_basis();
-    for(const auto x : {v.x1, v.x3, v.x4, v.x5, v.w})
+    for(const auto x : {v.x1, v.x2, v.x3, v.x4, v.x5, v.w})
         ASSERT_TRUE(
             is<basis_status::nonbasic_at_lower_bound>(basis.get_status(x)));
-    ASSERT_TRUE(is_a<basis_status::nonbasic_at_bound>(basis.get_status(v.x2)));
     ASSERT_TRUE(is<basis_status::nonbasic_free>(basis.get_status(v.f)));
     for(const auto c : {v.le, v.ge, v.eq, v.slack})
         ASSERT_TRUE(is<basis_status::basic>(basis.get_status(c)));
+}
+// After a solve SoPlex codes a fixed column and an equality row FIXED, where
+// the shared suite would also accept a side.
+TEST_F(soplex_lp_test, get_basis_reads_fixed_entities_as_nonbasic_fixed) {
+    for(const bool maximize : {false, true}) {
+        auto model = new_model();
+        const auto v = lp_basis_cases::build_vertex(model, maximize);
+        model.solve();
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status())) << maximize;
+        const auto basis = model.get_basis();
+        ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.x2)))
+            << maximize;
+        ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.eq)))
+            << maximize;
+    }
 }
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, LpStatusTest, soplex_lp_test);
