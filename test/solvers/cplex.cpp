@@ -498,3 +498,88 @@ TEST_F(cplex_milp_test, node_limit_stops_compute_iis_without_an_answer) {
     EXPECT_EQ(model.get_node_limit(), 0u);
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// Basis ////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TEST_F(cplex_lp_test, get_basis_before_the_first_solve_throws) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable();
+    model.add_constraint(x <= 1);
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
+
+// CPXgetbase returns what CPXcopybase stored until the next solve, so a
+// basis written on a fresh model reads back through both translations.
+TEST_F(cplex_lp_test, a_written_basis_reads_back_before_a_solve) {
+    using namespace operators;
+    using namespace cplex::impl::v1;
+    auto model = new_model();
+    const auto x = model.add_variable({.lower_bound = 0., .upper_bound = 4.});
+    const auto y = model.add_variable({.lower_bound = 0., .upper_bound = 4.});
+    const auto z = model.add_variable({.lower_bound = 0., .upper_bound = 4.});
+    const auto f = model.add_variable({.lower_bound = std::nullopt});
+    const auto le = model.add_constraint(x + y <= 4.);
+    const auto ge = model.add_constraint(x + z >= 1.);
+    const auto eq = model.add_constraint(y + f == 2.);
+    const auto lower = model.add_constraint(y + z >= 1.);
+    model.set_constraint_upper_bound(lower, 5.);
+    const auto upper = model.add_constraint(x + f >= 1.);
+    model.set_constraint_upper_bound(upper, 5.);
+    const auto loose = model.add_constraint(x + y + z <= 100.);
+    model_basis_t<cplex_lp> written;
+    written.set_status(x, basis_status::basic{});
+    written.set_status(y, basis_status::nonbasic_at_lower_bound{});
+    written.set_status(z, basis_status::nonbasic_at_upper_bound{});
+    written.set_status(f, basis_status::superbasic{});
+    written.set_status(le, basis_status::nonbasic_at_upper_bound{});
+    written.set_status(ge, basis_status::nonbasic_at_lower_bound{});
+    written.set_status(eq, basis_status::nonbasic_fixed{});
+    written.set_status(lower, basis_status::nonbasic_at_lower_bound{});
+    written.set_status(upper, basis_status::nonbasic_at_upper_bound{});
+    written.set_status(loose, basis_status::basic{});
+    model.set_basis(written);
+
+    const auto read = model.get_basis();
+    for(const auto v : {x, y, z, f})
+        EXPECT_EQ(read.get_status(v).index(), written.get_status(v).index());
+    for(const auto c : {le, ge, eq, lower, upper, loose})
+        EXPECT_EQ(read.get_status(c).index(), written.get_status(c).index());
+    const auto & native = model.native_api();
+    const auto [env, lp] = model.native_model();
+    std::array<int, 4> cstat{};
+    std::array<int, 6> rstat{};
+    native._check(env, native.getbase(env, lp, cstat.data(), rstat.data()));
+    EXPECT_EQ(cstat, (std::array<int, 4>{CPX_BASIC, CPX_AT_LOWER, CPX_AT_UPPER,
+                                         CPX_FREE_SUPER}));
+    EXPECT_EQ(rstat,
+              (std::array<int, 6>{CPX_AT_LOWER, CPX_AT_LOWER, CPX_AT_LOWER,
+                                  CPX_AT_LOWER, CPX_AT_UPPER, CPX_BASIC}));
+}
+
+// CPXcopybase refuses a null array, which an empty std::vector may hold.
+TEST_F(cplex_lp_test, set_basis_writes_an_empty_dimension) {
+    using namespace operators;
+    auto no_rows = new_model();
+    const auto x = no_rows.add_variable({.lower_bound = 0., .upper_bound = 2.});
+    no_rows.set_maximization();
+    no_rows.set_objective(x);
+    model_basis_t<cplex_lp> basis;
+    basis.set_status(x, basis_status::nonbasic_at_upper_bound{});
+    no_rows.set_basis(basis);
+    no_rows.solve();
+    ASSERT_TRUE(is<status::optimal>(no_rows.get_status()));
+    EXPECT_NEAR(no_rows.get_solution_value(), 2., TEST_EPSILON);
+    EXPECT_TRUE(is<basis_status::nonbasic_at_upper_bound>(
+        no_rows.get_basis().get_status(x)));
+
+    auto no_columns = new_model();
+    constexpr auto & no_terms =
+        empty_linear_expression<model_variable_t<cplex_lp>, double>;
+    no_columns.add_constraint(no_terms <= 1.);
+    no_columns.set_basis(model_basis_t<cplex_lp>{});
+    no_columns.solve();
+    EXPECT_TRUE(is<status::optimal>(no_columns.get_status()));
+}
