@@ -246,8 +246,8 @@ public:
         return basis_type(std::move(columns), std::move(rows));
     }
     // A basis GLPK cannot use is replaced by its standard one, so the next
-    // solve starts cold: a basic column with no matrix entry would make
-    // GLPK's factorizer abort the process, and a basis glp_factorize refuses
+    // solve starts cold: a basic column with no matrix entry can make GLPK's
+    // factorizer abort the process, and a basis glp_factorize refuses
     // would fail every later solve. glp_warm_up would overwrite the last
     // solution, and glp_adv_basis prints whatever msg_lev says.
     template <detail::lp_basis_over<variable, constraint> B>
