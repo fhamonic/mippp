@@ -119,8 +119,10 @@ behind each ruling letter, and the survey of 2026-10-09 in
   `highs_lp`, `nonbasic_fixed` and `superbasic` now write `Nonbasic` instead
   of `Lower` and `Zero`, and on `glpk_lp`, `superbasic` writes `GLP_NL`
   instead of `GLP_NF`. GLPK's `glp_set_col_stat` replaces either by the code
-  the column's type implies, and HiGHS places a `Nonbasic` column itself;
-  test/solvers/glpk.cpp and highs.cpp pin both.
+  the column's type implies, so the two codes store alike there, and HiGHS
+  keeps `Nonbasic` and places the column itself at the solve.
+  test/solvers/highs.cpp echoes the code and the warm start; glpk.cpp pins
+  what GLPK stores.
 
 ## Open questions
 

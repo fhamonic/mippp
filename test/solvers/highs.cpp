@@ -6,6 +6,7 @@
 #include <concepts>
 #include <cstddef>
 #include <exception>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
