@@ -74,7 +74,91 @@ INSTANTIATE_TEST(COPT_lp, ReducedCostsTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, LpStatusTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, CuttingStockTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, TimeLimitTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_lp, LpBasisTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_lp, LpBasisWarmStartTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, VerbosityTest, copt_lp_test);
+static_assert(has_lp_basis_warm_start<copt_lp>);
+
+namespace {
+int simplex_iterations(const copt_lp & model) {
+    using namespace copt::impl::v1;
+    int count = -1;
+    model.native_api()._check(
+        model.native_model().first,
+        model.native_api().GetIntAttr(model.native_model().second,
+                                      COPT_INTATTR_SIMPLEXITER, &count));
+    return count;
+}
+}  // namespace
+
+// copt_lp has no iteration limit: COPT's own count proves the warm start
+TEST_F(copt_lp_test, set_basis_starts_at_the_optimum) {
+    auto a = new_model();
+    lp_basis_cases::build_dense(a);
+    a.solve();
+    ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+    ASSERT_GT(simplex_iterations(a), 0);
+    auto b = new_model();
+    lp_basis_cases::build_dense(b);
+    b.set_basis(a.get_basis());
+    b.solve();
+    ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+    ASSERT_EQ(simplex_iterations(b), 0);
+    ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
+                lp_basis_cases::tolerance(a.get_solution_value()));
+}
+
+// Before a solve, COPT returns a written basis as it is; a bare nonbasic
+// entity is written at its lower bound.
+TEST_F(copt_lp_test, get_basis_reads_back_what_set_basis_wrote) {
+    auto model = new_model();
+    const auto v = lp_basis_cases::build_vertex(model);
+    model_basis_t<copt_lp> basis;
+    basis.set_status(v.x1, basis_status::nonbasic_at_upper_bound{});
+    basis.set_status(v.x2, basis_status::nonbasic_fixed{});
+    basis.set_status(v.x3, basis_status::basic{});
+    basis.set_status(v.x4, basis_status::basic{});
+    basis.set_status(v.x5, basis_status::basic{});
+    basis.set_status(v.f, basis_status::superbasic{});
+    basis.set_status(v.le, basis_status::nonbasic_at_upper_bound{});
+    basis.set_status(v.ge, basis_status::nonbasic_at_lower_bound{});
+    basis.set_status(v.eq, basis_status::nonbasic_fixed{});
+    basis.set_status(v.slack, basis_status::basic{});
+    model.set_basis(basis);
+    const auto echo = model.get_basis();
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_upper_bound>(echo.get_status(v.x1)));
+    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(echo.get_status(v.x2)));
+    ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.x3)));
+    ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.x4)));
+    ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.x5)));
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_lower_bound>(echo.get_status(v.w)));
+    ASSERT_TRUE(is<basis_status::superbasic>(echo.get_status(v.f)));
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_upper_bound>(echo.get_status(v.le)));
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_lower_bound>(echo.get_status(v.ge)));
+    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(echo.get_status(v.eq)));
+    ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.slack)));
+}
+
+// COPT_Reset, which compute_iis() runs, leaves a basis of zeros that
+// COPT_GetBasis returns without an error.
+TEST_F(copt_lp_test, get_basis_after_compute_iis_throws) {
+    using namespace operators;
+    auto model = new_model();
+    const auto x = model.add_variable();
+    const auto y = model.add_variable();
+    model.add_constraint(x + y >= 5);
+    model.add_constraint(x + 2 * y <= 3);
+    const auto iis = model.compute_iis();
+    ASSERT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    int col_status[2] = {-1, -1}, row_status[2] = {-1, -1};
+    ASSERT_EQ(
+        api->GetBasis(model.native_model().second, col_status, row_status), 0);
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
 
 struct copt_milp_test : public model_test<copt_api, copt_milp> {
     static void SetUpTestSuite() { construct_api("COPT"); }
@@ -101,6 +185,7 @@ INSTANTIATE_TEST(COPT_milp, MipGapTest, copt_milp_test);
 // INSTANTIATE_TEST(COPT_milp, IntegralityToleranceTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, VerbosityTest, copt_milp_test);
 
+static_assert(!has_lp_basis<copt_milp>);
 static_assert(has_iis<copt_lp>);
 static_assert(has_iis<copt_milp>);
 static_assert(std::same_as<
