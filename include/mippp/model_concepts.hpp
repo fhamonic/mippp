@@ -652,7 +652,7 @@ concept has_lp_basis = lp_basis<model_basis_t<T>, T>;
 // clang-format off
 template <typename T>
 concept has_modifiable_lp_basis =
-    has_lp_basis<T> &&
+    has_lp_basis<T> && std::default_initializable<model_basis_t<T>> &&
     requires(model_basis_t<T> & b, model_variable_t<T> v,
              model_constraint_t<T> c) {
         { b.set_status(v, basis_status::basic{}) };

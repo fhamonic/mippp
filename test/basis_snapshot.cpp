@@ -27,7 +27,8 @@ struct handles_only_model {
     constraint add_constraint(LC &&);
 };
 
-// a backend that names no fixed entity and no superbasic one, as HiGHS
+// columns as HiGHS's, without fixed or superbasic, and rows as Gurobi's and
+// CPLEX's, with fixed but neither superbasic nor free
 using column_status = std::variant<basis_status::nonbasic, basis_status::basic,
                                    basis_status::nonbasic_at_lower_bound,
                                    basis_status::nonbasic_at_upper_bound,
@@ -62,6 +63,21 @@ struct mutable_reads_model : handles_only_model {
 };
 
 struct my_lower : basis_status::nonbasic_at_lower_bound {};
+struct own_basic : basis_status::basic {};
+
+// a status per entity, but no default snapshot to start a basis from
+struct no_default_basis {
+    no_default_basis() = delete;
+    column_status get_status(variable) const;
+    row_status get_status(constraint) const;
+    template <typename Tag>
+    void set_status(variable, Tag);
+    template <typename Tag>
+    void set_status(constraint, Tag);
+};
+struct no_default_model : handles_only_model {
+    no_default_basis get_basis();
+};
 struct unrelated {};
 
 template <typename V, typename C, typename VS, typename CS>
@@ -111,6 +127,10 @@ static_assert(!has_lp_basis_warm_start<reading_model>);
 static_assert(has_lp_basis_warm_start<warm_model>);
 static_assert(!has_lp_basis_warm_start<narrow_warm_model>);
 static_assert(!has_lp_basis<mutable_reads_model>);
+static_assert(
+    !mippp::detail::lp_basis_over<mutable_reads, variable, constraint>);
+static_assert(has_lp_basis<no_default_model>);
+static_assert(!has_modifiable_lp_basis<no_default_model>);
 static_assert(!has_lp_basis<handles_only_model>);
 static_assert(std::same_as<model_basis_t<warm_model>, snapshot>);
 static_assert(
@@ -125,12 +145,15 @@ static_assert(!snapshot_accepts<variable, constraint, row_status, row_status>);
 static_assert(
     !snapshot_accepts<variable, constraint, column_status, column_status>);
 static_assert(!snapshot_accepts<variable, variable, column_status, row_status>);
-// basic and nonbasic are what an unlisted tag falls back to
+// bare basic and nonbasic are what an unlisted tag falls back to: a type
+// derived from them does not stand in
+static_assert(!snapshot_accepts<variable, constraint,
+                                std::variant<basis_status::nonbasic, own_basic>,
+                                row_status>);
 static_assert(
-    !snapshot_accepts<variable, constraint,
-                      std::variant<basis_status::nonbasic,
-                                   basis_status::nonbasic_at_lower_bound>,
-                      row_status>);
+    !snapshot_accepts<variable, constraint, column_status,
+                      std::variant<basis_status::basic,
+                                   basis_status::nonbasic_at_lower_bound>>);
 
 static_assert(writes<snapshot, variable, basis_status::nonbasic_fixed>);
 static_assert(writes<snapshot, constraint, basis_status::superbasic>);

@@ -27,8 +27,9 @@ template <typename Status, typename Tag, typename Candidate,
         return basis_nearest_listed_status<Status, Tag, Candidates...>();
 }
 
-// Tag itself when Status lists it, else the most derived tag Status lists
-// that Tag derives from. Status must list basic and nonbasic.
+// Tag itself when Status lists it, else the most derived basis_status tag
+// that Status lists and Tag derives from: a refinement of the caller's that
+// Status lists is never the fallback. Status must list basic and nonbasic.
 template <typename Status, basis_tag Tag>
 [[nodiscard]] constexpr Status basis_stored_status(Tag) noexcept {
     if constexpr(variant_with_alternative<Status, Tag>)
@@ -141,8 +142,8 @@ public:
         return _constraints.get(c.uid());
     }
 
-    // A tag the status does not list is stored as the most derived tag it
-    // lists: what the backend could write of it.
+    // A tag the status does not list is stored as the most derived
+    // basis_status tag it lists: what the backend could write of it.
     template <detail::basis_tag Tag>
     void set_status(Variable v, Tag tag) {
         _variables.grow_and_set(

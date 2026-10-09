@@ -40,8 +40,9 @@ public:
                  !variant_with_alternative<Status, Tag>)
     void set(std::size_t, Tag) = delete;
 
-    // as set(), but an id past the bound grows the table, the ids added
-    // reading alternative 0
+    // As set(), but an id past the bound grows the table, the ids added
+    // reading alternative 0. It takes a Status only, without set()'s guard:
+    // a tag the variant does not list would convert to a base alternative.
     constexpr void grow_and_set(std::size_t id, const Status & status) {
         if(id >= _statuses.size()) _statuses.resize(id + 1);
         _statuses[id] = status;
