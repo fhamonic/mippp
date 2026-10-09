@@ -745,13 +745,12 @@ public:
     void set_basis(const B & basis) {
         const auto num_col = static_cast<std::size_t>(Clp->getNumCols(model));
         const auto num_row = static_cast<std::size_t>(Clp->getNumRows(model));
-        std::vector<unsigned char> status(num_col + num_row);
-        for(std::size_t j = 0; j < num_col; ++j)
-            status[j] = _basis_code(detail::variable_basis_kind(
-                basis, variable(static_cast<int>(j))));
-        // a removed column is fixed at [0, 0], whatever its old entry
-        for(const int id : _free_variable_ids)
-            status[static_cast<std::size_t>(id)] = _clp_fixed;
+        // A removed column stays in Clp, fixed at [0, 0]: it is written
+        // fixed, and its dead handle is never read from the basis.
+        std::vector<unsigned char> status(num_col + num_row, _clp_fixed);
+        for(const variable v : variables())
+            status[static_cast<std::size_t>(v.id())] =
+                _basis_code(detail::variable_basis_kind(basis, v));
         for(std::size_t i = 0; i < num_row; ++i)
             status[num_col + i] = _basis_code(detail::constraint_basis_kind(
                 basis, constraint(static_cast<int>(i))));
