@@ -4,7 +4,6 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
-#include <string>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -12,7 +11,6 @@
 #include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
-#include "mippp/utility/solver_exceptions.hpp"
 
 #include "mippp/solvers/gurobi/impl/v1/gurobi_base.hpp"
 
@@ -279,17 +277,6 @@ public:
     // the last one.
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
-        if(GRB->reset == nullptr) {
-            const auto loaded = GRB->library_version();
-            throw feature_unavailable_error(
-                detail::concat_str(
-                    "mippp: set_basis() needs GRBreset, which the loaded "
-                    "library '",
-                    GRB->library_path().string(), "' (reporting ",
-                    loaded ? to_string(*loaded) : std::string("no version"),
-                    ") does not export")
-                    .c_str());
-        }
         _lazily_remove_variables();
         update_gurobi_model();
         const std::size_t num_col = _num_var_native_ids;

@@ -260,6 +260,7 @@ namespace gurobi::impl::v1 {
     F(GRBgetconstrs, getconstrs)                       \
     F(GRBoptimize, optimize)                           \
     F(GRBcomputeIIS, computeIIS)                       \
+    F(GRBreset, reset)                                 \
     F(GRBsetintparam, setintparam)                     \
     F(GRBgetintparam, getintparam)                     \
     F(GRBsetdblparam, setdblparam)                     \
@@ -296,8 +297,7 @@ namespace gurobi::impl::v1 {
     F(GRBemptyenvinternal, emptyenvinternal) \
     F(GRBcbsetintparam, cbsetintparam)       \
     F(GRBcbsetdblparam, cbsetdblparam)       \
-    F(GRBcbsetstrparam, cbsetstrparam)       \
-    F(GRBreset, reset)
+    F(GRBcbsetstrparam, cbsetstrparam)
 
 #define DECLARE_GRB_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);  \
