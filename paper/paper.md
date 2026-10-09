@@ -20,56 +20,36 @@ bibliography: paper.bib
 
 # Summary
 
-MIP++ is a header-only C++23 library for modeling and solving linear programs
-(LP) and mixed-integer linear programs (MILP). It provides an algebraic
-modeling syntax whose readability is comparable to that of JuMP [@jump2023] or
-Pyomo [@pyomo2011]: variables, expressions built with overloaded operators,
-sums over index ranges, and constraint families. Underneath that syntax, every
-modeling call compiles down to a direct call into the native C API of the
-chosen solver. The same model code can target any of eleven solver backends
-(Gurobi [@gurobi], CPLEX [@cplex], Xpress [@xpress], COPT [@copt], MOSEK
-[@mosek], HiGHS [@highs2018], SCIP [@scip8], Clp [@clp], SoPlex [@soplex],
-GLPK [@glpk], and, experimentally, Cbc [@cbc]); quadratic objectives are
-available on the backends that support them, currently HiGHS alone. The
-backend is selected at compile time and its shared library is discovered and
-loaded at runtime, so no solver SDK needs to be present at link time and a
-single compiled binary runs on whatever solver the target machine has
-installed. The library is dependency-free, wrapping the platform loader
-itself; GoogleTest and MELON [@melon] are needed only to build the test suite.
+Many questions in science, engineering and planning come down to choosing the
+best option under constraints: which habitat patches to protect, how to route
+vehicles, or how to schedule staff. Mathematical programming turns such a
+question into a model, a set of decision variables, linear constraints and an
+objective, where some variables may be restricted to whole numbers. A program
+called a solver then finds an optimal solution, and several commercial and
+open-source solvers compete on that task.
 
-Constraint families are written over ranges, close to their mathematical
-statement. The row constraints of an N-Queens model, for instance, read:
+MIP++ is a C++23 library that lets researchers write these models in a notation
+close to the mathematics, as JuMP [@jump2023] or Pyomo [@pyomo2011] do in Julia
+and Python, and run them unchanged on any of eleven solvers: Gurobi [@gurobi],
+CPLEX [@cplex], Xpress [@xpress], COPT [@copt], MOSEK [@mosek], HiGHS
+[@highs2018], SCIP [@scip8], Clp [@clp], SoPlex [@soplex], GLPK [@glpk] and,
+experimentally, Cbc [@cbc]. Variables, sums over index ranges and whole
+families of constraints are written as ordinary C++ expressions, and every such
+expression is translated, when the program is compiled, into direct calls to
+the chosen solver's own programming interface, so the convenience costs almost
+nothing at run time. The solver is picked at compile time and its shared
+library is located and loaded when the program runs: nothing solver-specific is
+needed on the machine that builds the program, and one compiled binary runs on
+whatever solver the target machine has installed. The library is a set of
+header files with no dependency of its own; GoogleTest and MELON [@melon] are
+needed only to build the test suite.
 
-```cpp
-highs_milp model;  // loads HiGHS at runtime; or gurobi_milp, cplex_milp, …
-auto indices = std::views::iota(0, n);
-auto X = model.add_binary_variables(
-    n * n, [n](int row, int col) { return row * n + col; });
-model.add_constraints(indices, [&](int row) {
-    return xsum(indices, [&, row](int col) { return X(row, col); }) == 1;
-});
-```
-
-The expression layer is functional and allocation-free: objectives and
-constraint families are composed from C++ ranges as lazy views, and `xsum`
-expresses sums over index sets. When a constraint is added, its term range is
-iterated directly into pre-allocated scratch buffers passed to the solver's C
-entry points (`Highs_addRow`, `GRBaddconstr`, …); no intermediate model
-representation is built, extracted, or garbage-collected. A MIP++ model *is*
-the solver's model, so re-solves after in-place modifications — added rows or
-columns, changed bounds or coefficients, removed variables — pay only the
-solver's incremental update cost.
-
-Beyond model construction, MIP++ exposes the facilities that decomposition and
-cutting-plane methods need: branch-and-cut callbacks with lazy constraints,
-column generation with `add_column` and a column-pool manager, dual values,
-reduced costs, MIP starts, and indicator constraints.
-Solve statuses are not flattened into a lowest-common-denominator enum: each
-backend returns a `std::variant` whose alternatives are exactly the outcomes
-that solver reports, arranged in a type hierarchy so that generic queries
-(`is_a<status::infeasible_or_unbounded>`) work everywhere while exact ones
-(`is<status::primal_and_dual_infeasible>`) compile only on backends that can
-report them — a distinction resolved entirely at compile time.
+Beyond writing models, MIP++ provides what advanced algorithms need:
+constraints added while the solver searches (branch-and-cut callbacks with
+lazy constraints), columns generated on demand with a column-pool manager,
+dual values and reduced costs, starting solutions, indicator constraints, and
+in-place modification of a model between solves. Quadratic objectives are
+available on the solvers that support them, currently HiGHS alone.
 
 # Statement of need
 
@@ -135,7 +115,7 @@ on Linux and macOS, on HiGHS alone with MinGW and MSVC on Windows, and the
 same suites are run manually against the commercial backends. Because
 backends are loaded rather than linked, a generated compatibility matrix
 additionally records how far back each wrapper drives the solver's released
-libraries: 81 published libraries across ten of the eleven solvers (COPT's
+libraries: 83 published libraries across ten of the eleven solvers (COPT's
 Python wheels ship no loadable C library), each downloaded and run through
 the backend's test suites rather than assumed compatible from its version
 number. It documents real breakage — SoPlex 6.0 lacks six of the C entry
@@ -166,7 +146,56 @@ embedded in a larger C++ system that must run against whatever solver is
 installed, cross-solver computational studies, and build-bound iterative
 methods that rebuild or modify a model thousands of times.
 
+# Software design
+
+Three decisions shape the library. The first is that a MIP++ model *is* the
+solver's model. The expression layer is functional and allocation-free:
+objectives and constraint families are composed from C++ ranges as lazy views,
+and `xsum` expresses sums over index sets. When a constraint is added, its term
+range is iterated directly into pre-allocated scratch buffers passed to the
+solver's C entry points (`Highs_addRow`, `GRBaddconstr`, …); no intermediate
+model representation is built, extracted, or garbage-collected. The row
+constraints of an N-Queens model, for instance, read:
+
+```cpp
+highs_milp model;  // loads HiGHS at runtime; or gurobi_milp, cplex_milp, …
+auto rows = std::views::iota(0, n), cols = std::views::iota(0, n);
+auto X = model.add_binary_variables(std::views::cartesian_product(rows, cols));
+model.add_constraints(rows, [&](int row) {
+    return xsum(cols, [&, row](int col) { return X(row, col); }) == 1;
+}); // exactly on queen per row
+```
+
+The price of this choice is that nothing stands between the model and the
+solver: there is no stage at which the library could reformulate a constraint
+the solver does not accept natively, as JuMP's bridges do, and the solver of
+an existing model cannot be changed. The gain is that re-solves after in-place
+modifications — added rows or columns, changed bounds or coefficients, removed
+variables — pay only the solver's incremental update cost, which is what
+build-bound iterative methods need.
+
+The second decision is to select the backend at compile time and load its
+shared library at run time. The model type (`highs_milp`, `gurobi_milp`, …)
+fixes the solver, so every call resolves statically; the library itself is
+located through an explicit path, a per-solver environment variable or the
+platform's search path when the program first creates a model. Nothing
+solver-specific reaches the build system, at the cost of discovering a missing
+or incompatible library only when the program runs — which is why the
+compatibility matrix described above exists.
+
+The third is that solve statuses are not flattened into a
+lowest-common-denominator enum: each backend returns a `std::variant` whose
+alternatives are exactly the outcomes that solver reports, arranged in a type
+hierarchy so that generic queries (`is_a<status::infeasible_or_unbounded>`)
+work everywhere while exact ones (`is<status::primal_and_dual_infeasible>`)
+compile only on backends that can report them — a distinction resolved
+entirely at compile time.
+
 # Acknowledgements
+
+Michael Heyman contributed the runtime discovery of the Gurobi 13 and CPLEX
+22.2 libraries and the initial implementation of the infeasibility-diagnosis
+(IIS) support.
 
 MIP++ is grounded in the PhD thesis and postdoctoral positions of François Hamonic, funded by Région Sud - Provence-Alpes-Côte d'Azur, Natural Solutions, the European Research Council grant [SCALED](https://www.scaled-erc.eu/) to Cécile ALBERT (ERC-STG no. 949812), the ANR project [RESILIENCE](https://www.pepr-resilience.eu/index.php) (no. ANR-24-PEVD-0002) and the project OASIS of [ITEM](https://institut-item.univ-amu.fr), an A\*Midex Initiative d'Excellence institute funded under France 2030 (AMX-19-IET-012).
 

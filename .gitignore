@@ -1,7 +1,6 @@
 .vscode
 .cache
-/build
-/build_mingw
+/build*
 *.log
 *.lp
 CMakeUserPresets.json

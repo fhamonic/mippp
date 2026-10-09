@@ -56,7 +56,7 @@ Benchmarking Gurobi vs. CPLEX vs. HiGHS vs. SCIP is a two-line change and a reco
 
 ### No modeling tax
 
-Filling a model through MIP++ costs **102–108% of what calling the solver's own C API costs**. Against the other modeling layers, on the same backend: **1.2–5.6× faster than OR-Tools'** two C++ APIs, **3.7–18× faster than JuMP**, and one to two orders of magnitude faster than the Python interfaces — all measured on model construction alone, never on solving. Build time is noise for a one-shot solve that runs for hours, but can dominate in algorithms that build, modify, and re-solve constantly: column generation, Benders decomposition, cutting planes, large-scale experiments. MIP++ is built for those. [See the benchmark ↓](#performance)
+Filling a model through MIP++ costs **102–114 % of what calling the solver's own C API costs**. Against the other modeling layers, on the same backend: **1.2–6.2× faster than OR-Tools'** two C++ APIs, **4.2–21× faster than JuMP**, and one to two orders of magnitude faster than the Python interfaces — all measured on model construction alone, never on solving. Build time is noise for a one-shot solve that runs for hours, but can dominate in algorithms that build, modify, and re-solve constantly: column generation, Benders decomposition, cutting planes, large-scale experiments. MIP++ is built for those. [See the benchmark ↓](#performance)
 
 The speedup comes from the expression system's architecture: objectives and constraints are composed from C++ ranges as lazy views using `xsum`, and they allocate nothing. When a constraint is added, its term range is iterated directly into the pre-allocated scratch buffers passed to the solver's C API (`Highs_addRow`, `GRBaddconstr`, etc.). There is no intermediate model representation to build, extract, or garbage-collect. ([Expressions and constraints](https://fhamonic.github.io/mippp/modeling/expressions/))
 
@@ -89,11 +89,11 @@ The most direct measure of modeling overhead — the raw C API in milliseconds, 
 
 | N | Gurobi C API | MIP++ | gurobipy | JuMP direct | Python-MIP |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | **3.2 ms** | 102% | 6.5× | 3.5× | 19.4× |
-| 500 | **48.2 ms** | 104% | 9.6× | 7.5× | 17.8× |
-| 1000 | **190.0 ms** | 107% | 12.3× | 7.4× | 18.5× |
+| 100 | **3.2 ms** | 104 % | 6.4× | 3.6× | 20.0× |
+| 500 | **46.1 ms** | 114 % | 10.3× | 8.0× | 19.5× |
+| 1000 | **185.6 ms** | 113 % | 12.8× | 7.7× | 19.4× |
 
-MIP++ stays within 2–8% of the raw C API across the whole sweep: the abstraction layer is thin. Handing Gurobi the entire matrix in one `GRBaddconstrs` call rather than one `GRBaddconstr` per constraint is worth nothing, so matching the per-constraint path is the meaningful comparison rather than a handicap.
+MIP++ stays within 2–14 % of the raw C API across the whole sweep: the abstraction layer is thin. Handing Gurobi the entire matrix in one `GRBaddconstrs` call rather than one `GRBaddconstr` per constraint is worth nothing (99–104 %), so matching the per-constraint path is the meaningful comparison rather than a handicap.
 
 ### MIP++ vs. the other C++/Julia interfaces
 
@@ -101,23 +101,23 @@ MIP++ in absolute milliseconds, the other interfaces as multiples of it **on the
 
 | N | **MIP++** | OR-Tools `MPSolver` | OR-Tools MathOpt | JuMP cached | JuMP direct |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 100 | **1.6 ms** | 1.3× | 2.6× | 3.7× | 12.0× |
-| 500 | **37.4 ms** | 1.3× | 3.7× | 6.1× | 16.1× |
-| 1000 | **151.5 ms** | 1.3× | 5.6× | 5.7× | 18.3× |
+| 100 | **1.5 ms** | 1.4× | 2.8× | 4.2× | 13.0× |
+| 500 | **34.4 ms** | 1.4× | 4.1× | 6.8× | 17.7× |
+| 1000 | **135.5 ms** | 1.5× | 6.2× | 6.4× | 20.8× |
 
-Both OR-Tools APIs are benchmarked in their fastest row-filling form — coefficients written straight into an opened row, worth ~1.8× for `MPSolver` and ~1.2× for MathOpt over the idiomatic expression object — so OR-Tools is shown at its best. On Cbc the gap against `MPSolver` is wider than on HiGHS: 2.4–3.0× across the sweep, MIP++ filling the model in 66.7 ms at N=1000.
+Both OR-Tools APIs are benchmarked in their fastest row-filling form — coefficients written straight into an opened row, worth 1.6–1.9× for `MPSolver` and ~1.2× for MathOpt over the idiomatic expression object — so OR-Tools is shown at its best. On Cbc and Xpress the gap against `MPSolver` is wider than on HiGHS: 2.2–2.9× and 1.6–2.4× across the sweep, MIP++ filling the Cbc model in 69.1 ms at N=1000.
 
 > [!NOTE]
-> The comparison is **not work-for-work, and the bias is against MIP++**. OR-Tools' two APIs and JuMP's default `Model` accumulate the model in their own structures and hand it to the solver later; MIP++, the Gurobi C API and JuMP's `direct_model` write into the solver's own model as each constraint is added. Two tells: JuMP cached fills at the same speed whichever backend is named (867 ms HiGHS, 873 ms Gurobi at N=1000), and `MPSolver` needs ~200–220 ms at N=1000 for Cbc, HiGHS and SCIP alike. This is also why OR-Tools appears *faster* on SCIP (45% of MIP++) — it has not handed SCIP anything yet.
+> The comparison is **not work-for-work, and the bias is against MIP++**. OR-Tools' two APIs and JuMP's default `Model` accumulate the model in their own structures and hand it to the solver later; MIP++, the Gurobi C API and JuMP's `direct_model` write into the solver's own model as each constraint is added. Two tells: JuMP cached fills at the same speed whichever backend is named (872 ms HiGHS, 876 ms Gurobi at N=1000), and `MPSolver` needs ~200–220 ms at N=1000 for Cbc, HiGHS and SCIP alike. This is also why OR-Tools appears *faster* on SCIP (29–47 % of MIP++) — it has not handed SCIP anything yet.
 
-Against the Python interfaces on the same backend, MIP++ is 11× faster than gurobipy, 54× than Python-MIP, 103× than PuLP and 128× than highspy.
+Against the Python interfaces on the same backend, MIP++ is 11× faster than gurobipy, 53× than Python-MIP, 103× than PuLP and 146× than highspy.
 
 > [!WARNING]
 > The Cbc figures were measured against Cbc's `devel` branch, the only version that caches `addRow`; release 2.10.13 (what `coinor-libcbc-dev` ships) flushes the matrix on every call and is substantially slower for every interface that builds directly in Cbc.
 
 N-Queens is a variable-heavy, constraint-light model, measured on a single machine and compiler — the ratios transfer, the absolute times do not.
 
-Full tables (N=100–1000 in steps of 100), per-backend results for eight solvers, build-variant comparisons, limitations, and reproduction instructions: [Performance](https://fhamonic.github.io/mippp/performance/) — benchmark code in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
+Full tables (N=100–1000 in steps of 100), per-backend results for nine solvers, build-variant comparisons, limitations, and reproduction instructions: [Performance](https://fhamonic.github.io/mippp/performance/) — benchmark code in [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens).
 
 
 ## Supported solvers
@@ -154,7 +154,7 @@ MIP++ has a deliberate niche. It is worth being honest about where it fits and w
 **Constraint programming or scheduling.** Use OR-Tools CP-SAT or a dedicated CP solver.
 
 > [!IMPORTANT]
-> MIP++ requires **GCC 14+ / C++23** (GCC 15 / C++26 recommended) and assumes comfort with modern C++ — ranges, concepts, and template diagnostics. It is a young, single-maintainer project; contributions are welcome, but pin a version if you build long-lived research code on it.
+> MIP++ requires a C++23 compiler — CI builds and tests it with **GCC 14 and 15, Clang 18, AppleClang 21, MinGW GCC 15 and MSVC 17.11** (GCC 15 / C++26 remains the primary target) — and assumes comfort with modern C++ — ranges, concepts, and template diagnostics. It is a young, single-maintainer project; contributions are welcome, but pin a version if you build long-lived research code on it.
 
 
 ## Installation

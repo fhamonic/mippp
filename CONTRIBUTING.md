@@ -10,8 +10,8 @@ Participation in this project is governed by its
 
 ## Getting help & reporting issues
 
-- **Questions and support:** open a [GitHub Discussion](https://github.com/fhamonic/mippp/discussions)
-  or an issue with the `question` label.
+- **Questions and support:** open a [GitHub issue](https://github.com/fhamonic/mippp/issues)
+  with the `question` label.
 - **Bugs:** open a [GitHub issue](https://github.com/fhamonic/mippp/issues). Please include:
   - the solver backend and its version (e.g. `highs 1.10`) — please check it against
     the [compatibility table](docs/solvers/compatibility.md) first, a version known
@@ -417,12 +417,11 @@ version, so the fix is to name the providing package (note that conda-forge
 splits tools from libraries: `scotch` ships binaries, `libscotch` ships the
 shared objects).
 
-The run is Linux/x86-64 only. It is deliberately kept out of the PR workflow — it
-is slow and depends on the network — and lives in its own workflow instead
-([.github/workflows/compat.yml](.github/workflows/compat.yml)), which runs monthly
-and on manual dispatch, and opens a pull request when the regenerated table
-differs. So you do not need to run it yourself for an ordinary change: do it when
-you extend a backend's `validated_versions`, `supported_versions` or
+The run is Linux/x86-64 only, and it is not part of CI: it is slow, it depends
+on the network, and the commercial rows need licences the runners do not have,
+so a maintainer regenerates the table locally with `make compat_table`. You do
+not need to run it yourself for an ordinary change: do it when you extend a
+backend's `validated_versions`, `supported_versions` or
 `library_names` to a new solver release, or when you edit the manifest, and
 include the regenerated table in your pull request; never extend either list
 without a recorded ✅ or ☑️ row, or a maintainer's run, behind it. A release the
