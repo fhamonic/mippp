@@ -94,6 +94,11 @@ behind each ruling letter, and the survey of 2026-10-09 in
   suites pass on 10.0.3, 11.0.3, 12.0.1 and 13.0.2 alike.
 - **COPT's "no basis"** answers with the message of HiGHS and Clp: return
   code 3 and a count of basic entries other than the rows both mean no basis.
+- **`is_a<superbasic>` (B3) is a column-level test.** The row statuses of
+  `gurobi_lp` and `cplex_lp` list no superbasic tag, since their rows never
+  read one (B2 b), so `is_a<superbasic>` does not compile on them: generic
+  code over rows tests by derivation, as the docs' `describe` does (pinned
+  in test/solvers/gurobi.cpp and cplex.cpp).
 - **The explicit choice of B8 (a)** is today an `MSK_IPAR_OPTIMIZER` set
   through `native_api()` to anything but `MSK_OPTIMIZER_FREE`: the one-shot
   switches from `MSK_OPTIMIZER_FREE` only, and restores it.
