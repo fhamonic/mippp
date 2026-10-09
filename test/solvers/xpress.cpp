@@ -37,7 +37,45 @@ INSTANTIATE_TEST(Xpress_lp, ReducedCostsTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, LpStatusTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, CuttingStockTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, TimeLimitTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_lp, LpBasisTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_lp, LpBasisWarmStartTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, VerbosityTest, xpress_lp_test);
+static_assert(has_lp_basis_warm_start<xpress_lp>);
+
+// XPRSgetbasis answers before any solve too, with a slack basis no solve
+// produced.
+TEST_F(xpress_lp_test, get_basis_before_the_first_solve_throws) {
+    using namespace operators;
+    auto model = new_model();
+    auto x = model.add_variable();
+    model.add_constraint(x <= 1);
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
+
+// xpress_lp has no iteration limit: Xpress's own count proves the warm start
+static int simplex_iterations(const xpress_lp & model) {
+    int count = -1;
+    model.native_api()._check(
+        model.native_model(),
+        model.native_api().getintattrib(
+            model.native_model(), xpress::impl::v1::XPRS_SIMPLEXITER, &count));
+    return count;
+}
+TEST_F(xpress_lp_test, set_basis_starts_at_the_optimum) {
+    auto a = new_model();
+    lp_basis_cases::build_dense(a);
+    a.solve();
+    ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+    ASSERT_GT(simplex_iterations(a), 0);
+    auto b = new_model();
+    lp_basis_cases::build_dense(b);
+    b.set_basis(a.get_basis());
+    b.solve();
+    ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+    ASSERT_EQ(simplex_iterations(b), 0);
+    ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
+                lp_basis_cases::tolerance(a.get_solution_value()));
+}
 
 struct xpress_milp_test : public model_test<xpress_api, xpress_milp> {
     static void SetUpTestSuite() { construct_api("XPRESS"); }
@@ -67,6 +105,7 @@ INSTANTIATE_TEST(Xpress_milp, OptimalityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, MipGapTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);
+static_assert(!has_lp_basis<xpress_milp>);
 
 // A column whose bounds hold no value makes the model infeasible, beyond the
 // tolerances: FEASTOL for bounds that cross, MIPTOL around an integer.
