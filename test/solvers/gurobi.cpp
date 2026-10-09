@@ -247,6 +247,19 @@ TEST_F(gurobi_lp_test, a_throwing_solve_reports_unknown) {
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
+// Gurobi holds no basis before its first solve, and drops it at the update
+// that commits a change of the model, which get_basis() runs itself.
+TEST_F(gurobi_lp_test, get_basis_throws_once_the_model_changed) {
+    auto model = new_model();
+    const auto v = lp_basis_cases::build_vertex(model);
+    ASSERT_THROW(model.get_basis(), solver_error);
+    model.solve();
+    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+    ASSERT_NO_THROW(model.get_basis());
+    model.set_variable_upper_bound(v.w, 10.);
+    ASSERT_THROW(model.get_basis(), solver_error);
+}
+
 // The forcing attributes are the user's: values set to 0 beforehand, which
 // the call overrides with 1, must read back as 0 afterwards, on every kind
 // of special constraint the guard covers.
