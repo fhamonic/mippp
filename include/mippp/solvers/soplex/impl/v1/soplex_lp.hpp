@@ -18,6 +18,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
 
 #include "mippp/solvers/model_base.hpp"
 #include "mippp/solvers/soplex/impl/v1/soplex_api.hpp"
@@ -567,6 +568,70 @@ public:
         SoPlex->getDualReal(model, solution.get(),
                             static_cast<int>(num_constrs));
         return constraint_mapping(std::move(solution));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::nonbasic_free>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::nonbasic_free>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    // A row's code already names the side of its activity.
+    template <typename Status>
+    static Status _basis_status(int code) noexcept {
+        switch(code) {
+            case SOPLEX_BASIS_BASIC:
+                return Status(std::in_place_type<basis_status::basic>);
+            case SOPLEX_BASIS_ON_LOWER:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case SOPLEX_BASIS_ON_UPPER:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case SOPLEX_BASIS_FIXED:
+                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
+            case SOPLEX_BASIS_ZERO:
+                return Status(std::in_place_type<basis_status::nonbasic_free>);
+            default:
+                return Status(std::in_place_type<basis_status::nonbasic>);
+        }
+    }
+
+public:
+    // SoPlex always holds a basis: before the first solve, and after a solve
+    // whose presolve found the LP infeasible or unbounded, a slack basis of
+    // its own making, in which a fixed column reads at its lower bound.
+    // No set_basis(): the C interface writes a basis only from a file, whose
+    // reader expects column j to be named x0x1...xj, on lines of at most 255
+    // characters.
+    auto get_basis() {
+        auto & col_status =
+            _optional(SoPlex->basisColStatus, "SoPlex_basisColStatus");
+        auto & row_status =
+            _optional(SoPlex->basisRowStatus, "SoPlex_basisRowStatus");
+        const std::size_t num_col = num_variables();
+        if(num_col == 0u) return basis_type{};
+        const std::size_t num_row = num_constraints();
+        detail::handle_status_table<basis_variable_status> columns(num_col);
+        for(std::size_t j = 0; j < num_col; ++j)
+            columns.set(j, _basis_status<basis_variable_status>(
+                               col_status(model, static_cast<int>(j))));
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i)
+            rows.set(i, _basis_status<basis_constraint_status>(
+                            row_status(model, static_cast<int>(i))));
+        return basis_type(std::move(columns), std::move(rows));
     }
 };
 

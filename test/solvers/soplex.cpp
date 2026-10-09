@@ -15,6 +15,10 @@ struct soplex_lp_test : public model_test<soplex_api, soplex_lp> {
     static void SetUpTestSuite() { construct_api("SOPLEX"); }
 };
 static_assert(!has_iis<soplex_lp>);
+static_assert(has_lp_basis<soplex_lp>);
+static_assert(has_modifiable_lp_basis<soplex_lp>);
+// the C interface of SoPlex reads a basis but cannot write one
+static_assert(!has_lp_basis_warm_start<soplex_lp>);
 TEST_F(soplex_lp_test, a_new_model_minimizes) {
     using namespace operators;
     auto model = new_model();
@@ -168,6 +172,19 @@ TEST_F(soplex_lp_test, freeing_an_active_row_keeps_the_resolve_right) {
         }
     }
 }
+// SoPlex makes up a slack basis for a model it never solved, from the bounds.
+TEST_F(soplex_lp_test, get_basis_before_the_first_solve_reads_the_slack_basis) {
+    auto model = new_model();
+    const auto v = lp_basis_cases::build_vertex(model);
+    const auto basis = model.get_basis();
+    for(const auto x : {v.x1, v.x3, v.x4, v.x5, v.w})
+        ASSERT_TRUE(
+            is<basis_status::nonbasic_at_lower_bound>(basis.get_status(x)));
+    ASSERT_TRUE(is_a<basis_status::nonbasic_at_bound>(basis.get_status(v.x2)));
+    ASSERT_TRUE(is<basis_status::nonbasic_free>(basis.get_status(v.f)));
+    for(const auto c : {v.le, v.ge, v.eq, v.slack})
+        ASSERT_TRUE(is<basis_status::basic>(basis.get_status(c)));
+}
 INSTANTIATE_TEST(SoPlex, LpModelTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, LpStatusTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, EnumerableEntitiesTest, soplex_lp_test);
@@ -179,6 +196,8 @@ INSTANTIATE_TEST(SoPlex, ReadableConstraintBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, ModifiableConstraintBoundsTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, IisByDeletionTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, DualSolutionTest, soplex_lp_test);
+INSTANTIATE_TEST(SoPlex, LpBasisTest, soplex_lp_test);
+// INSTANTIATE_TEST(SoPlex, LpBasisWarmStartTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, CuttingStockTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, TimeLimitTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, VerbosityTest, soplex_lp_test);

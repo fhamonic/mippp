@@ -24,6 +24,7 @@ void SoPlex_changeRowRhsReal(void * soplex, int rowidx, double rhs);
 void SoPlex_getRowVectorReal(void * soplex, int i, int * nnonzeros,
                              long * indices, double * coefs);
 int SoPlex_basisRowStatus(void * soplex, int rowidx);
+int SoPlex_basisColStatus(void * soplex, int colidx);
 void SoPlex_clearLPReal(void * soplex);
 
 void SoPlex_changeVarLowerReal(void * soplex, int colidx, double lb);
@@ -58,7 +59,11 @@ constexpr int SOPLEX_VERBOSITY_NORMAL = 3;  // the default
 constexpr int SOPLEX_TIMELIMIT = 7;         // RealParam
 
 // SPxSolverBase::VarStatus
+constexpr int SOPLEX_BASIS_ON_UPPER = 0;
+constexpr int SOPLEX_BASIS_ON_LOWER = 1;
+constexpr int SOPLEX_BASIS_FIXED = 2;
 constexpr int SOPLEX_BASIS_ZERO = 3;  // a free variable or row, nonbasic
+constexpr int SOPLEX_BASIS_BASIC = 4;
 
 enum Status {
     ERROR_ = -15,  // ERROR clashes with a macro imported by <windows.h>...
@@ -118,6 +123,7 @@ namespace soplex::impl::v1 {
     F(SoPlex_getObjReal, getObjReal)                 \
     F(SoPlex_getRowVectorReal, getRowVectorReal)     \
     F(SoPlex_basisRowStatus, basisRowStatus)         \
+    F(SoPlex_basisColStatus, basisColStatus)         \
     F(SoPlex_clearLPReal, clearLPReal)
 
 #define DECLARE_SOPLEX_FUNCTIONS(FULL, SHORT) \
