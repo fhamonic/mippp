@@ -67,8 +67,10 @@ enum IntegerAttribute : int {
     XPRS_ROWS = 1001,
     XPRS_SETS = 1004,
     XPRS_ELEMS = 1006,
+    XPRS_SIMPLEXITER = 1009,
     XPRS_LPSTATUS = 1010,
     XPRS_MIPSTATUS = 1011,
+    XPRS_PRESOLVESTATE = 1026,
     XPRS_STOPSTATUS = 1179,
     XPRS_NUMIIS = 1031,
     XPRS_IISSOLSTATUS = 1406,
@@ -113,6 +115,7 @@ enum STOPStatus : int {
     XPRS_STOP_NUMERICALERROR = 13,
     XPRS_STOP_WORKLIMIT = 14
 };
+enum PresolveState : int { XPRS_PRESOLVESTATE_SOLUTIONVALID = 1 << 7 };
 int XPRSgetintattrib(XPRSprob prob, int attrib, int * p_value);
 int XPRSgetstrattrib(XPRSprob prob, int attrib, char * value);
 enum DoubleAttribute : int { XPRS_LPOBJVAL = 2001, XPRS_MIPOBJVAL = 2003 };
@@ -136,6 +139,15 @@ int XPRSgetduals(XPRSprob prob, int * status, double duals[], int first,
                  int last);
 int XPRSgetredcosts(XPRSprob prob, int * status, double djs[], int first,
                     int last);
+
+enum BasisStatus : int {
+    XPRS_BASISSTATUS_NONBASIC_LOWER = 0,
+    XPRS_BASISSTATUS_BASIC = 1,
+    XPRS_BASISSTATUS_NONBASIC_UPPER = 2,
+    XPRS_BASISSTATUS_SUPERBASIC = 3
+};
+int XPRSgetbasis(XPRSprob prob, int rowstat[], int colstat[]);
+int XPRSloadbasis(XPRSprob prob, const int rowstat[], const int colstat[]);
 
 enum DblCtrlPar : int {
     XPRS_FEASTOL = 7003,
@@ -255,6 +267,8 @@ namespace xpress::impl::v1 {
     F(XPRSgetcallbacksolution, getcallbacksolution) \
     F(XPRSgetduals, getduals)                       \
     F(XPRSgetredcosts, getredcosts)                 \
+    F(XPRSgetbasis, getbasis)                       \
+    F(XPRSloadbasis, loadbasis)                     \
     F(XPRSsetdblcontrol, setdblcontrol)             \
     F(XPRSgetdblcontrol, getdblcontrol)             \
     F(XPRSsetintcontrol, setintcontrol)             \

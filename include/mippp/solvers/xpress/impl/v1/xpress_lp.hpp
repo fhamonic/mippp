@@ -1,10 +1,15 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 #include "mippp/solvers/xpress/impl/v1/xpress_base.hpp"
 
@@ -127,6 +132,114 @@ public:
         check(XPRS->getredcosts(prob, nullptr, reduced_costs.get(), 0,
                                 static_cast<int>(num_vars) - 1));
         return variable_mapping(std::move(reduced_costs));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // Xpress names no fixed entity, a fixed one reads the side of its dual,
+    // and its superbasic code covers free entities too.
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::superbasic>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::superbasic>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    // A row's code names the side of its slack rhs - a.x, the opposite of the
+    // side of its activity, on every row type.
+    static constexpr int _column_at_lower = XPRS_BASISSTATUS_NONBASIC_LOWER;
+    static constexpr int _column_at_upper = XPRS_BASISSTATUS_NONBASIC_UPPER;
+    static constexpr int _row_at_lower = XPRS_BASISSTATUS_NONBASIC_UPPER;
+    static constexpr int _row_at_upper = XPRS_BASISSTATUS_NONBASIC_LOWER;
+
+    template <typename Status, int AtLower, int AtUpper>
+    static Status _basis_status(int code) noexcept {
+        switch(code) {
+            case XPRS_BASISSTATUS_BASIC:
+                return Status(std::in_place_type<basis_status::basic>);
+            case AtLower:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case AtUpper:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case XPRS_BASISSTATUS_SUPERBASIC:
+                return Status(std::in_place_type<basis_status::superbasic>);
+            default:
+                return Status(std::in_place_type<basis_status::nonbasic>);
+        }
+    }
+    // Xpress snaps at the write a side the bounds lack, so the native lower
+    // code serves a fixed entity and a bare nonbasic one.
+    template <int AtLower, int AtUpper>
+    static int _basis_code(detail::basis_kind kind) noexcept {
+        switch(kind) {
+            case detail::basis_kind::basic:
+                return XPRS_BASISSTATUS_BASIC;
+            case detail::basis_kind::nonbasic_at_lower_bound:
+                return AtLower;
+            case detail::basis_kind::nonbasic_at_upper_bound:
+                return AtUpper;
+            case detail::basis_kind::superbasic:
+            case detail::basis_kind::nonbasic_free:
+                return XPRS_BASISSTATUS_SUPERBASIC;
+            default:
+                return XPRS_BASISSTATUS_NONBASIC_LOWER;
+        }
+    }
+
+public:
+    // Xpress returns the slack basis before any solve, and the previous
+    // solve's basis after one whose presolve proves the LP infeasible or
+    // unbounded: only the valid-solution bit of PRESOLVESTATE marks a basis
+    // the last solve produced, and any change of the model clears it.
+    auto get_basis() {
+        const std::size_t num_col = num_variables();
+        if(num_col == 0u) return basis_type{};
+        int presolve_state = 0;
+        check(XPRS->getintattrib(prob, XPRS_PRESOLVESTATE, &presolve_state));
+        if((presolve_state & XPRS_PRESOLVESTATE_SOLUTIONVALID) == 0)
+            throw solver_error(
+                "mippp: get_basis() found no basis, Xpress holds none from "
+                "its last solve");
+        const std::size_t num_row = num_constraints();
+        std::vector<int> col_status(num_col), row_status(num_row);
+        check(XPRS->getbasis(prob, row_status.data(), col_status.data()));
+        detail::handle_status_table<basis_variable_status> columns(num_col);
+        for(std::size_t j = 0; j < num_col; ++j)
+            columns.set(j,
+                        _basis_status<basis_variable_status, _column_at_lower,
+                                      _column_at_upper>(col_status[j]));
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i)
+            rows.set(i, _basis_status<basis_constraint_status, _row_at_lower,
+                                      _row_at_upper>(row_status[i]));
+        return basis_type(std::move(columns), std::move(rows));
+    }
+    // Xpress reads both arrays whole, through a null pointer too, and refuses
+    // a presolved problem, which solve() never leaves.
+    template <detail::lp_basis_over<variable, constraint> B>
+    void set_basis(const B & basis) {
+        const std::size_t num_col = num_variables();
+        const std::size_t num_row = num_constraints();
+        std::vector<int> col_status(num_col), row_status(num_row);
+        for(std::size_t j = 0; j < num_col; ++j)
+            col_status[j] = _basis_code<_column_at_lower, _column_at_upper>(
+                detail::variable_basis_kind(basis,
+                                            variable(static_cast<int>(j))));
+        for(std::size_t i = 0; i < num_row; ++i)
+            row_status[i] = _basis_code<_row_at_lower, _row_at_upper>(
+                detail::constraint_basis_kind(basis,
+                                              constraint(static_cast<int>(i))));
+        check(XPRS->loadbasis(prob, row_status.data(), col_status.data()));
     }
 };
 
