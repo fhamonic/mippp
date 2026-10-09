@@ -224,6 +224,14 @@ int CPXgetpi(CPXCENVptr env, CPXCLPptr lp, double * pi, int begin, int end);
 int CPXsolution(CPXCENVptr env, CPXCLPptr lp, int * lpstat_p, double * objval_p,
                 double * x, double * pi, double * slack, double * dj);
 
+constexpr int CPX_AT_LOWER = 0;
+constexpr int CPX_BASIC = 1;
+constexpr int CPX_AT_UPPER = 2;
+constexpr int CPX_FREE_SUPER = 3;
+int CPXgetbase(CPXCENVptr env, CPXCLPptr lp, int * cstat, int * rstat);
+int CPXcopybase(CPXCENVptr env, CPXLPptr lp, int const * cstat,
+                int const * rstat);
+
 constexpr int CPX_CON_LOWER_BOUND = 1;
 constexpr int CPX_CON_UPPER_BOUND = 2;
 constexpr int CPX_CON_LINEAR = 3;
@@ -353,6 +361,8 @@ namespace cplex::impl::v1 {
     F(CPXgetx, getx)                                                 \
     F(CPXgetpi, getpi)                                               \
     F(CPXsolution, solution)                                         \
+    F(CPXgetbase, getbase)                                           \
+    F(CPXcopybase, copybase)                                         \
     F(CPXrefineconflictext, refineconflictext)                       \
     F(CPXgetconflictext, getconflictext)                             \
     F(CPXcallbacksetfunc, callbacksetfunc)                           \
