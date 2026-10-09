@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <concepts>
 #include <cstddef>
 #include <limits>
 #include <memory>

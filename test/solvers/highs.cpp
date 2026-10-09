@@ -4,12 +4,14 @@
 #include <array>
 #include <chrono>
 #include <concepts>
+#include <cstddef>
 #include <exception>
 #include <ranges>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/solvers/highs/all.hpp"
 
@@ -203,7 +205,7 @@ TEST_F(highs_lp_test, set_basis_writes_unlisted_tags_as_bare_nonbasic) {
             model.add_variable(
                 lp_basis_cases::bounds<highs_lp>(std::nullopt, std::nullopt))};
     };
-    const auto iterations = [this](highs_lp & model) {
+    const auto iterations = [](highs_lp & model) {
         using namespace highs::impl::v1;
         HighsInt count = -1;
         EXPECT_EQ(api->getIntInfoValue(model.native_model(),
@@ -220,6 +222,17 @@ TEST_F(highs_lp_test, set_basis_writes_unlisted_tags_as_bare_nonbasic) {
     const auto [fixed_column, free_column] = build(b);
     b.set_basis(
         basis_with_unlisted_tags{a.get_basis(), fixed_column, free_column});
+    {
+        using namespace highs::impl::v1;
+        std::vector<HighsInt> col_status(b.num_variables()),
+            row_status(b.num_constraints());
+        ASSERT_EQ(api->getBasis(b.native_model(), col_status.data(),
+                                row_status.data()),
+                  0);
+        for(const auto v : {fixed_column, free_column})
+            ASSERT_EQ(col_status[static_cast<std::size_t>(b.native_id(v))],
+                      kHighsBasisStatusNonbasic);
+    }
     b.solve();
     ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
     ASSERT_EQ(iterations(b), 0);

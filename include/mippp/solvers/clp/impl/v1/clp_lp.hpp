@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <concepts>
 #include <cstddef>
 #include <cstring>
 #include <limits>
