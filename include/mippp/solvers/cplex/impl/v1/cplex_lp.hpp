@@ -5,11 +5,14 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
 
 #include "mippp/solvers/cplex/impl/v1/cplex_base.hpp"
 
@@ -177,6 +180,135 @@ public:
                                            reduced_costs)](const variable & v) {
             return *(reduced_costs.get() + _native_id(v));
         });
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // CPLEX names no fixed column, a fixed one reads the side of its reduced
+    // cost, and one code covers free and superbasic columns
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::superbasic>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    static basis_variable_status _column_basis_status(int code) noexcept {
+        switch(code) {
+            case CPX_BASIC:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::basic>);
+            case CPX_AT_LOWER:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case CPX_AT_UPPER:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case CPX_FREE_SUPER:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::superbasic>);
+            default:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::nonbasic>);
+        }
+    }
+    // A row code names the side of CPLEX's slack s >= 0, a.x + s = rhs on an
+    // 'L' row and a.x - s = rhs on a 'G' or 'R' row: at lower, the activity
+    // of an 'L' row is at its upper side.
+    static basis_constraint_status _row_basis_status(int code,
+                                                     char sense) noexcept {
+        if(code == CPX_BASIC)
+            return basis_constraint_status(
+                std::in_place_type<basis_status::basic>);
+        if(code == CPX_AT_LOWER && sense == 'L')
+            return basis_constraint_status(
+                std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+        if(code == CPX_AT_LOWER && sense == 'E')
+            return basis_constraint_status(
+                std::in_place_type<basis_status::nonbasic_fixed>);
+        if(code == CPX_AT_LOWER && (sense == 'G' || sense == 'R'))
+            return basis_constraint_status(
+                std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+        if(code == CPX_AT_UPPER && sense == 'R')
+            return basis_constraint_status(
+                std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+        return basis_constraint_status(
+            std::in_place_type<basis_status::nonbasic>);
+    }
+    // CPLEX snaps a side the bounds do not have at the next solve.
+    static int _column_basis_code(detail::basis_kind kind) noexcept {
+        switch(kind) {
+            case detail::basis_kind::basic:
+                return CPX_BASIC;
+            case detail::basis_kind::nonbasic_at_upper_bound:
+                return CPX_AT_UPPER;
+            case detail::basis_kind::superbasic:
+            case detail::basis_kind::nonbasic_free:
+                return CPX_FREE_SUPER;
+            default:
+                return CPX_AT_LOWER;
+        }
+    }
+    // only the slack of an 'R' row has two distinct bounds
+    static int _row_basis_code(detail::basis_kind kind, char sense) noexcept {
+        if(kind == detail::basis_kind::basic) return CPX_BASIC;
+        if(kind == detail::basis_kind::nonbasic_at_upper_bound && sense == 'R')
+            return CPX_AT_UPPER;
+        return CPX_AT_LOWER;
+    }
+    std::vector<char> _row_senses(std::size_t num_row) {
+        std::vector<char> senses(num_row);
+        if(num_row > 0)
+            check(CPX->getsense(env, lp, senses.data(), 0,
+                                static_cast<int>(num_row) - 1));
+        return senses;
+    }
+
+public:
+    // CPLEX keeps and adjusts its basis through changes of the model, and
+    // reads a written one back verbatim until the next solve.
+    auto get_basis() {
+        if(num_variables() == 0u) return basis_type{};
+        const std::size_t num_col = _num_var_native_ids();
+        const std::size_t num_row = num_constraints();
+        std::vector<int> col_status(num_col), row_status(num_row);
+        check(CPX->getbase(env, lp, col_status.data(), row_status.data()));
+        const std::vector<char> senses = _row_senses(num_row);
+        detail::handle_status_table<basis_variable_status> columns(
+            _handle_id_bound(num_col));
+        for(std::size_t j = 0; j < num_col; ++j)
+            columns.set(_var_handle(static_cast<int>(j)).uid(),
+                        _column_basis_status(col_status[j]));
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i)
+            rows.set(i, _row_basis_status(row_status[i], senses[i]));
+        return basis_type(std::move(columns), std::move(rows));
+    }
+    // CPXcopybase refuses a null array, even for an empty dimension.
+    template <detail::lp_basis_over<variable, constraint> B>
+    void set_basis(const B & basis) {
+        const std::size_t num_col = _num_var_native_ids();
+        const std::size_t num_row = num_constraints();
+        const std::vector<char> senses = _row_senses(num_row);
+        std::vector<int> col_status(std::max<std::size_t>(num_col, 1)),
+            row_status(std::max<std::size_t>(num_row, 1));
+        for(std::size_t j = 0; j < num_col; ++j)
+            col_status[j] = _column_basis_code(detail::variable_basis_kind(
+                basis, _var_handle(static_cast<int>(j))));
+        for(std::size_t i = 0; i < num_row; ++i)
+            row_status[i] =
+                _row_basis_code(detail::constraint_basis_kind(
+                                    basis, constraint(static_cast<int>(i))),
+                                senses[i]);
+        check(CPX->copybase(env, lp, col_status.data(), row_status.data()));
     }
 };
 

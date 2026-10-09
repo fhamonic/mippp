@@ -100,6 +100,8 @@ INSTANTIATE_TEST(CPLEX_lp, ColumnManagerTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, LpFuzzyTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, TimeLimitTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, IterationLimitTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, LpBasisTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, LpBasisWarmStartTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, OptimalityToleranceTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, VerbosityTest, cplex_lp_test);
 
@@ -155,6 +157,8 @@ static_assert(iis_by_deletion_model<cplex_milp>);
 // sides, not the sense and the rhs
 static_assert(!detail::iis_rows_as_sense_and_rhs<cplex_lp>);
 static_assert(!detail::iis_rows_as_sense_and_rhs<cplex_milp>);
+static_assert(has_lp_basis_warm_start<cplex_lp>);
+static_assert(!has_lp_basis<cplex_milp>);
 
 // The cause of each conflict-abort status, pinned without a licence since no
 // test run reaches 36 to 38.
