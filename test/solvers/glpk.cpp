@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cmath>
 #include <limits>
+#include <tuple>
 #include <utility>
 
 #include "mippp/linear_constraint.hpp"
@@ -228,7 +229,8 @@ TEST_F(glpk_lp_test, set_basis_starts_at_the_optimum) {
     ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
                 lp_basis_cases::tolerance(a.get_solution_value()));
 }
-// GLPK keeps a written code that the entity's bounds allow
+// GLPK rewrites a nonbasic code to the one the entity's type implies, so NL
+// and NU stay apart only on a double-bounded entity, x1 here
 TEST_F(glpk_lp_test, set_basis_reads_back_before_any_solve) {
     auto a = new_model();
     lp_basis_cases::build_vertex(a);
@@ -253,16 +255,61 @@ TEST_F(glpk_lp_test, set_basis_reads_back_before_any_solve) {
         is<basis_status::nonbasic_at_lower_bound>(basis.get_status(v.ge)));
     ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.eq)));
     ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.slack)));
+    auto source = a.get_basis();
+    source.set_status(v.x1, basis_status::nonbasic_at_lower_bound{});
+    b.set_basis(source);
+    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(
+        b.get_basis().get_status(v.x1)));
+    source.set_status(v.x1, basis_status::nonbasic{});
+    b.set_basis(source);
+    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(
+        b.get_basis().get_status(v.x1)));
 }
-// f is in no row. Basic in a basis of the right count, it would make GLPK's
-// factorizer abort the process.
+namespace {
+// LpBasisTest's ranged rows: r1 is tight at its upper side, r2 at its lower
+auto build_ranged(glpk_lp & model) {
+    using namespace operators;
+    const auto x =
+        model.add_variable(lp_basis_cases::bounds<glpk_lp>(0.0, 10.0));
+    const auto y = model.add_variable();
+    const auto z = model.add_variable();
+    model.set_minimization();
+    model.set_objective(-x + y + z);
+    const auto r1 = lp_basis_cases::add_ranged_row(model, x + y, 1.0, 3.0);
+    const auto r2 = lp_basis_cases::add_ranged_row(model, z + y, 2.0, 8.0);
+    return std::tuple{x, y, z, r1, r2};
+}
+}  // namespace
+TEST_F(glpk_lp_test, set_basis_reads_back_a_ranged_row_before_any_solve) {
+    auto a = new_model();
+    build_ranged(a);
+    a.solve();
+    ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+    auto b = new_model();
+    const auto [x, y, z, r1, r2] = build_ranged(b);
+    b.set_basis(a.get_basis());
+    const auto basis = b.get_basis();
+    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(x)));
+    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(basis.get_status(y)));
+    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(z)));
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_upper_bound>(basis.get_status(r1)));
+    ASSERT_TRUE(
+        is<basis_status::nonbasic_at_lower_bound>(basis.get_status(r2)));
+    b.solve();
+    ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+    ASSERT_EQ(api->get_it_cnt(b.native_model()), 0);
+}
+// f is in no row. Basic beside the auxiliaries of le, ge and eq, it makes
+// GLPK's factorizer abort the process (bflib/sgf.c:185) instead of reporting
+// GLP_ESING; not every basis holding f does.
 TEST_F(glpk_lp_test, set_basis_never_writes_a_basic_column_in_no_row) {
     auto model = new_model();
     const auto v = lp_basis_cases::build_vertex(model);
     model.solve();
-    auto basis = model.get_basis();
+    model_basis_t<glpk_lp> basis;
     basis.set_status(v.f, basis_status::basic{});
-    basis.set_status(v.x3, basis_status::nonbasic_at_lower_bound{});
+    basis.set_status(v.slack, basis_status::nonbasic_at_upper_bound{});
     model.set_basis(basis);
     ASSERT_FALSE(is<basis_status::basic>(model.get_basis().get_status(v.f)));
     model.solve();
@@ -284,7 +331,12 @@ TEST_F(glpk_lp_test, set_basis_replaces_a_basis_glpk_cannot_factorize) {
         ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
         ASSERT_NEAR(model.get_solution_value(), -8.0, TEST_EPSILON);
     };
-    check([](const auto &) { return lp_basis_cases::all_basic{}; });
+    // every row is basic by default: w makes one basic entity too many
+    check([](const auto & v) {
+        model_basis_t<glpk_lp> basis;
+        basis.set_status(v.w, basis_status::basic{});
+        return basis;
+    });
     // the right count, but singular: x2 is in row eq only, as eq's auxiliary
     // variable is
     check([](const auto & v) {
