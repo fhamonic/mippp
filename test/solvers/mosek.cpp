@@ -277,6 +277,8 @@ TEST_F(mosek_lp_test, get_basis_reads_back_what_set_basis_wrote) {
         const auto v = lp_basis_cases::build_vertex(solved);
         solved.solve();
         const auto basis = solved.get_basis();
+        ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.x2)));
+        ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.eq)));
         auto model = new_model();
         lp_basis_cases::build_vertex(model);
         const auto y = model.add_variable();
@@ -299,6 +301,28 @@ TEST_F(mosek_lp_test, get_basis_before_any_solve_throws) {
         auto x = model.add_variable();
         model.add_constraint(x <= 1);
         ASSERT_THROW(model.get_basis(), solver_error);
+    });
+}
+// A put defines MOSEK's basic slot while the keys it left unwritten read UNK
+TEST_F(mosek_lp_test, get_basis_throws_on_an_unknown_or_infeasible_key) {
+    using namespace mosek::impl::v1;
+    SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = new_model();
+        const auto x = model.add_variable();
+        const auto y = model.add_variable();
+        model.add_constraint(x + y <= 1);
+        const auto task = model.native_model().second;
+        const std::vector<MSKstakeye> columns(2, MSK_SK_LOW);
+        const std::vector<MSKstakeye> rows(1, MSK_SK_BAS);
+        api->_check(api->putskx(task, MSK_SOL_BAS, columns.data()));
+        ASSERT_THROW(model.get_basis(), solver_error);
+        const std::vector<MSKstakeye> infeasible{MSK_SK_INF, MSK_SK_LOW};
+        api->_check(api->putskx(task, MSK_SOL_BAS, infeasible.data()));
+        api->_check(api->putskc(task, MSK_SOL_BAS, rows.data()));
+        ASSERT_THROW(model.get_basis(), solver_error);
+        api->_check(api->putskx(task, MSK_SOL_BAS, columns.data()));
+        ASSERT_NO_THROW(model.get_basis());
     });
 }
 INSTANTIATE_TEST(MOSEK_lp, LpModelTest, mosek_lp_test);
