@@ -70,6 +70,7 @@ void glp_set_col_kind(glp_prob * P, int j, int kind);
 int glp_get_col_kind(glp_prob * P, int j);
 
 int glp_get_mat_row(glp_prob * P, int i, int ind[], double val[]);
+int glp_get_mat_col(glp_prob * P, int j, int ind[], double val[]);
 int glp_get_row_type(glp_prob * P, int i);
 void glp_set_row_bnds(glp_prob * P, int i, int type, double lb, double ub);
 double glp_get_row_lb(glp_prob * P, int i);
@@ -90,6 +91,8 @@ void glp_set_row_stat(glp_prob * P, int i, int stat);
 int glp_get_row_stat(glp_prob * P, int i);
 void glp_set_col_stat(glp_prob * P, int j, int stat);
 int glp_get_col_stat(glp_prob * P, int j);
+void glp_std_basis(glp_prob * P);
+int glp_factorize(glp_prob * P);
 
 constexpr int GLP_MSG_OFF = 0;     // msg_lev: no output
 constexpr int GLP_MSG_ERR = 1;     // msg_lev: warning and error messages only
@@ -136,6 +139,7 @@ constexpr int GLP_NOFEAS = 4;  // no feasible solution exists
 constexpr int GLP_OPT = 5;     // solution is optimal
 constexpr int GLP_UNBND = 6;   // solution is unbounded
 int glp_get_status(glp_prob * P);
+int glp_get_it_cnt(glp_prob * P);
 int glp_get_prim_stat(glp_prob * P);
 int glp_get_dual_stat(glp_prob * P);
 double glp_get_obj_val(glp_prob * P);
@@ -232,6 +236,7 @@ namespace glpk::impl::v1 {
     F(glp_set_mat_row, set_mat_row)     \
     F(glp_set_mat_col, set_mat_col)     \
     F(glp_get_mat_row, get_mat_row)     \
+    F(glp_get_mat_col, get_mat_col)     \
     F(glp_set_row_bnds, set_row_bnds)   \
     F(glp_get_row_lb, get_row_lb)       \
     F(glp_get_row_ub, get_row_ub)       \
@@ -245,9 +250,12 @@ namespace glpk::impl::v1 {
     F(glp_get_row_stat, get_row_stat)   \
     F(glp_set_col_stat, set_col_stat)   \
     F(glp_get_col_stat, get_col_stat)   \
+    F(glp_std_basis, std_basis)         \
+    F(glp_factorize, factorize)         \
     F(glp_init_smcp, init_smcp)         \
     F(glp_simplex, simplex)             \
     F(glp_get_status, get_status)       \
+    F(glp_get_it_cnt, get_it_cnt)       \
     F(glp_get_prim_stat, get_prim_stat) \
     F(glp_get_dual_stat, get_dual_stat) \
     F(glp_get_obj_val, get_obj_val)     \

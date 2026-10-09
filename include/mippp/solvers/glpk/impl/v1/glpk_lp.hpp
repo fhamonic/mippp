@@ -5,10 +5,13 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
 
 #include "mippp/solvers/glpk/impl/v1/glpk_base.hpp"
 
@@ -168,6 +171,106 @@ public:
                 glp->get_col_dual(model, static_cast<int>(var) + 1);
         }
         return variable_mapping(std::move(reduced_costs));
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // GLP_NF is given to free entities only: GLPK has no superbasic code
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::nonbasic_free>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::nonbasic_free>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    template <typename Status>
+    static Status _basis_status(int code) noexcept {
+        switch(code) {
+            case GLP_BS:
+                return Status(std::in_place_type<basis_status::basic>);
+            case GLP_NL:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case GLP_NU:
+                return Status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case GLP_NS:
+                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
+            case GLP_NF:
+                return Status(std::in_place_type<basis_status::nonbasic_free>);
+            default:
+                return Status(std::in_place_type<basis_status::nonbasic>);
+        }
+    }
+    // GLPK replaces a nonbasic code the entity's bounds do not allow: NL
+    // stands for bare nonbasic, and NF on a bounded entity lands on a bound.
+    static int _basis_code(detail::basis_kind kind) noexcept {
+        switch(kind) {
+            case detail::basis_kind::basic:
+                return GLP_BS;
+            case detail::basis_kind::nonbasic_at_upper_bound:
+                return GLP_NU;
+            case detail::basis_kind::nonbasic_fixed:
+                return GLP_NS;
+            case detail::basis_kind::superbasic:
+            case detail::basis_kind::nonbasic_free:
+                return GLP_NF;
+            default:
+                return GLP_NL;
+        }
+    }
+
+public:
+    // GLPK always holds a basis, a new model's included.
+    auto get_basis() {
+        if(num_variables() == 0u) return basis_type{};
+        const std::size_t num_col = num_variables();
+        const std::size_t num_row = num_constraints();
+        detail::handle_status_table<basis_variable_status> columns(num_col);
+        for(std::size_t j = 0; j < num_col; ++j)
+            columns.set(j,
+                        _basis_status<basis_variable_status>(
+                            glp->get_col_stat(model, static_cast<int>(j) + 1)));
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i)
+            rows.set(i, _basis_status<basis_constraint_status>(
+                            glp->get_row_stat(model, static_cast<int>(i) + 1)));
+        return basis_type(std::move(columns), std::move(rows));
+    }
+    // A basis GLPK cannot use is replaced by its standard one, so the next
+    // solve starts cold: a basic column with no matrix entry would make
+    // GLPK's factorizer abort the process, and a basis glp_factorize refuses
+    // would fail every later solve. glp_warm_up would overwrite the last
+    // solution, and glp_adv_basis prints whatever msg_lev says.
+    template <detail::lp_basis_over<variable, constraint> B>
+    void set_basis(const B & basis) {
+        const std::size_t num_col = num_variables();
+        const std::size_t num_row = num_constraints();
+        std::vector<int> col_stat(num_col);
+        for(std::size_t j = 0; j < num_col; ++j) {
+            const variable v(static_cast<int>(j));
+            col_stat[j] = _basis_code(detail::variable_basis_kind(basis, v));
+            if(col_stat[j] == GLP_BS &&
+               glp->get_mat_col(model, native_id(v), nullptr, nullptr) == 0) {
+                glp->std_basis(model);
+                return;
+            }
+        }
+        for(std::size_t j = 0; j < num_col; ++j)
+            glp->set_col_stat(model, static_cast<int>(j) + 1, col_stat[j]);
+        for(std::size_t i = 0; i < num_row; ++i)
+            glp->set_row_stat(model, static_cast<int>(i) + 1,
+                              _basis_code(detail::constraint_basis_kind(
+                                  basis, constraint(static_cast<int>(i)))));
+        if(glp->factorize(model) != 0) glp->std_basis(model);
     }
 };
 
