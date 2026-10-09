@@ -521,6 +521,7 @@ TEST_F(cplex_lp_test, a_written_basis_reads_back_before_a_solve) {
     const auto y = model.add_variable({.lower_bound = 0., .upper_bound = 4.});
     const auto z = model.add_variable({.lower_bound = 0., .upper_bound = 4.});
     const auto f = model.add_variable({.lower_bound = std::nullopt});
+    const auto w = model.add_variable({.lower_bound = 0., .upper_bound = 4.});
     const auto le = model.add_constraint(x + y <= 4.);
     const auto ge = model.add_constraint(x + z >= 1.);
     const auto eq = model.add_constraint(y + f == 2.);
@@ -534,6 +535,7 @@ TEST_F(cplex_lp_test, a_written_basis_reads_back_before_a_solve) {
     written.set_status(y, basis_status::nonbasic_at_lower_bound{});
     written.set_status(z, basis_status::nonbasic_at_upper_bound{});
     written.set_status(f, basis_status::superbasic{});
+    written.set_status(w, basis_status::nonbasic{});
     written.set_status(le, basis_status::nonbasic_at_upper_bound{});
     written.set_status(ge, basis_status::nonbasic_at_lower_bound{});
     written.set_status(eq, basis_status::nonbasic_fixed{});
@@ -545,15 +547,16 @@ TEST_F(cplex_lp_test, a_written_basis_reads_back_before_a_solve) {
     const auto read = model.get_basis();
     for(const auto v : {x, y, z, f})
         EXPECT_EQ(read.get_status(v).index(), written.get_status(v).index());
+    EXPECT_TRUE(is<basis_status::nonbasic_at_lower_bound>(read.get_status(w)));
     for(const auto c : {le, ge, eq, lower, upper, loose})
         EXPECT_EQ(read.get_status(c).index(), written.get_status(c).index());
     const auto & native = model.native_api();
     const auto [env, lp] = model.native_model();
-    std::array<int, 4> cstat{};
+    std::array<int, 5> cstat{};
     std::array<int, 6> rstat{};
     native._check(env, native.getbase(env, lp, cstat.data(), rstat.data()));
-    EXPECT_EQ(cstat, (std::array<int, 4>{CPX_BASIC, CPX_AT_LOWER, CPX_AT_UPPER,
-                                         CPX_FREE_SUPER}));
+    EXPECT_EQ(cstat, (std::array<int, 5>{CPX_BASIC, CPX_AT_LOWER, CPX_AT_UPPER,
+                                         CPX_FREE_SUPER, CPX_AT_LOWER}));
     EXPECT_EQ(rstat,
               (std::array<int, 6>{CPX_AT_LOWER, CPX_AT_LOWER, CPX_AT_LOWER,
                                   CPX_AT_LOWER, CPX_AT_UPPER, CPX_BASIC}));
