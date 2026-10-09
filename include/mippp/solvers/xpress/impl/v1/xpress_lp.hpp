@@ -177,8 +177,9 @@ private:
                 return Status(std::in_place_type<basis_status::nonbasic>);
         }
     }
-    // Xpress snaps at the write a side the bounds lack, so the native lower
-    // code serves a fixed entity and a bare nonbasic one.
+    // A fixed entity sits at both its sides, and Xpress snaps at the write a
+    // side the bounds lack, so the native lower code serves a fixed entity
+    // and a bare nonbasic one.
     template <int AtLower, int AtUpper>
     static int _basis_code(detail::basis_kind kind) noexcept {
         switch(kind) {
@@ -197,10 +198,12 @@ private:
     }
 
 public:
-    // Xpress returns the slack basis before any solve, and the previous
-    // solve's basis after one whose presolve proves the LP infeasible or
-    // unbounded: only the valid-solution bit of PRESOLVESTATE marks a basis
-    // the last solve produced, and any change of the model clears it.
+    // Xpress answers before any solve with the slack basis, and after a
+    // re-solve whose presolve proves the LP infeasible or unbounded with the
+    // previous solve's basis; the valid-solution bit of PRESOLVESTATE is
+    // clear in both, and any change of the model clears it. set_basis()
+    // leaves the bit alone: a basis written over a solved model reads back as
+    // written, one written before any solve still throws here.
     auto get_basis() {
         const std::size_t num_col = num_variables();
         if(num_col == 0u) return basis_type{};
