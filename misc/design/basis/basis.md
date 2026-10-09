@@ -1,0 +1,88 @@
+# LP basis support: design decisions
+
+Design note for LP basis support (roadmap item "LP basis warm-starts"). It
+records the maintainer's rulings on the questions of
+[basis_plan.md](basis_plan.md), whose entries keep the options and evidence
+behind each ruling letter, and the survey of 2026-10-09 in
+[survey/](survey/). It is not user documentation.
+
+## Rulings of 2026-10-09
+
+- **B1 (a). The writer.** `has_modifiable_lp_basis` requires
+  `set_status(e, tag)` only, for the leaf tags and bare `nonbasic`;
+  `set_basic` and `set_nonbasic(e, value)` are dropped from the draft. A free
+  helper giving a status from a value and the model's bounds stays deferred.
+- **B4 (a), documented. Entities the snapshot does not cover.** A column whose
+  id is past the snapshot's bound reads bare `nonbasic` (alternative 0 of
+  every column variant), a row reads `basic` (alternative 0 of every row
+  variant), and `set_basis` writes them so. `set_status` past the bound
+  grows the table; `basis_snapshot` is publicly default-constructible, an
+  empty snapshot being the slack basis. A handle that reuses a removed id
+  reads the removed entity's entry (N8 a). The maintainer asked for this to
+  be documented: the docs state the defaults, the slack basis, the recycled
+  ids and what `colgen::variable_status` holds before the first refresh.
+- **B5 (a) with (i) and (ii). What `get_basis()` promises.** Right after a
+  `solve()` that ran a simplex, before any other call that changes the model
+  or the solver's state, it returns the basis that solve ended with, or
+  throws `solver_error` where the solver says it holds none. Elsewhere its
+  result is unspecified and documented per backend. (i) `copt_lp` counts the
+  basic entries while decoding and throws unless they equal the rows (the
+  zero arrays after `COPT_Reset`). (ii) A model without columns gets, with
+  no native call, the snapshot whose rows all read basic.
+- **B6 (c). The status after `set_basis`.** Left alone. The maintainer's
+  reason: if `set_basis()` reset the status, so should every other setter,
+  which is painful; better to document that `get_status()` refers to the last
+  solve. The basis page, the concept rows and `status-and-limits.md` say so.
+- **B7 (a). What `set_basis` accepts.** Any `lp_basis<B, M>`, checked by
+  `has_lp_basis_warm_start` through an archetype; tags map to native codes by
+  derivation, most derived first; an alternative derived from neither
+  `basic` nor `nonbasic` writes as the kind's alternative 0. A transfer
+  between models is meaningful when the handle ids match.
+- **B9 (a). SoPlex.** Read-only: `get_basis()`, no `set_basis()`.
+- **B10 (a). `highs_qp`.** No basis members.
+- **B11 (a). An invalid basis on GLPK.** Never an error: the empty basic
+  column guard prevents the abort, and a basis GLPK cannot factorize is
+  replaced by GLPK's standard basis, so the next solve starts cold.
+- **B12 (a) and (c). Proof of a warm start.** The shared warm-start suite
+  proves the basis is used at an iteration limit of 1 where
+  `has_iteration_limit` holds (HiGHS, Gurobi, CPLEX); backend tests prove it
+  elsewhere by the native simplex count, and echo tests pin the write
+  mapping. Iteration limits on other classes stay out of this change.
+- **B13 (a). A basis short after a removal.** Documented: after removing a
+  column that was basic, Gurobi discards a written basis and starts cold;
+  evict nonbasic columns, as the shipped eviction predicates do at an
+  optimum.
+
+## Rulings of 2026-10-09, after the maintainer's questions
+
+- **B2 (b). What `get_basis()` reports.** The maintainer asked whether the
+  variant over a tag hierarchy is not useful here, then ruled the revised
+  option. Each backend reports the most specific tag its solver's answer
+  gives. Rows are translated to the side of their activity: flipped on
+  CPLEX's 'L' rows and on every Xpress row, derived from the sense on Gurobi.
+  No bound is read. A fixed entity reads `nonbasic_fixed` where the solver
+  has a fixed code or the sense says `=`, and otherwise the side the solver
+  names; `is_a<nonbasic_at_bound>` holds for both. Each backend's variants
+  list the tags it reports plus bare `nonbasic`; `set_status` stores the most
+  specific tag the variant lists, by derivation, most derived first.
+- **B3 (b). Free and superbasic.** The maintainer asked why not add a
+  superbasic tag, then ruled: "the shipped basis interface in 1.0.0 was only
+  a draft and already modified in the current rulings". The hierarchy
+  becomes `superbasic : nonbasic` ("nonbasic at no bound: strictly inside
+  its bounds, or free") and `nonbasic_free : superbasic` ("no finite
+  bound"). A backend reports `nonbasic_free` where its code means free only
+  and `superbasic` where one code covers both; generic code tests
+  `is_a<superbasic>`.
+- **B8 (a). MOSEK.** `set_basis()` makes the next `solve()` run a simplex
+  optimizer, then restores the setting, defined as "when the optimizer is
+  MOSEK's automatic choice, the solve after `set_basis()` runs a simplex; an
+  explicit choice is respected". The maintainer's question on an algorithm
+  selector is answered by a note for a later change,
+  [lp_algorithm.md](../lp_algorithm/lp_algorithm.md). Free simplex against
+  dual simplex is settled by a probe of the column-generation case.
+
+## Open questions
+
+None remains on the design. Left to the maintainer outright: an upstream request
+for a SoPlex C setter, the `paper/paper.md` edit, and Gurobi 10 if it lacks
+`GRBreset` (implementation plan, step 3).
