@@ -168,7 +168,9 @@ public:
         if(num_col == 0u) return basis_type{};
         const std::size_t num_row = num_constraints();
         std::vector<int> col_status(num_col), row_status(num_row);
-        check(COPT->GetBasis(prob, col_status.data(), row_status.data()));
+        const auto code =
+            COPT->GetBasis(prob, col_status.data(), row_status.data());
+        if(code != COPT_RETCODE_INVALID) check(code);
         std::size_t num_basic = 0;
         detail::handle_status_table<basis_variable_status> columns(num_col);
         for(std::size_t j = 0; j < num_col; ++j) {
@@ -180,7 +182,8 @@ public:
             if(row_status[i] == COPT_BASIS_BASIC) ++num_basic;
             rows.set(i, _basis_status<basis_constraint_status>(row_status[i]));
         }
-        if(num_basic != num_row)
+        // COPT answers COPT_RETCODE_INVALID when it holds no basis
+        if(code == COPT_RETCODE_INVALID || num_basic != num_row)
             throw solver_error(
                 "mippp: get_basis() found no basis, COPT holds none from its "
                 "last solve");
