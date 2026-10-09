@@ -67,6 +67,7 @@ int GRBaddqconstr(GRBmodel * model, int numlnz, int * lind, double * lval,
                   double rhs, const char * QCname);
 
 int GRBoptimize(GRBmodel * model);
+int GRBreset(GRBmodel * model, int clearall);
 int GRBcomputeIIS(GRBmodel * model);
 constexpr int GRB_ERROR_DATA_NOT_AVAILABLE = 10005;
 constexpr int GRB_ERROR_IIS_NOT_INFEASIBLE = 10015;
@@ -114,6 +115,14 @@ enum ModelStatus : int {
     GRB_USER_OBJ_LIMIT = 15,
     GRB_WORK_LIMIT = 16,
     GRB_MEM_LIMIT = 17
+};
+constexpr const char * GRB_INT_ATTR_VBASIS = "VBasis";
+constexpr const char * GRB_INT_ATTR_CBASIS = "CBasis";
+enum BasisStatus : int {
+    GRB_BASIC = 0,
+    GRB_NONBASIC_LOWER = -1,
+    GRB_NONBASIC_UPPER = -2,
+    GRB_SUPERBASIC = -3
 };
 constexpr const char * GRB_INT_ATTR_IIS_MINIMAL = "IISMinimal";
 constexpr const char * GRB_INT_ATTR_IIS_LB = "IISLB";
@@ -287,7 +296,8 @@ namespace gurobi::impl::v1 {
     F(GRBemptyenvinternal, emptyenvinternal) \
     F(GRBcbsetintparam, cbsetintparam)       \
     F(GRBcbsetdblparam, cbsetdblparam)       \
-    F(GRBcbsetstrparam, cbsetstrparam)
+    F(GRBcbsetstrparam, cbsetstrparam)       \
+    F(GRBreset, reset)
 
 #define DECLARE_GRB_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);  \

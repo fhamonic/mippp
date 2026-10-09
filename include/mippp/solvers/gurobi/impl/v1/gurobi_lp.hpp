@@ -4,10 +4,15 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
+#include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 #include "mippp/solvers/gurobi/impl/v1/gurobi_base.hpp"
 
@@ -152,6 +157,157 @@ public:
                                            reduced_costs)](const variable & v) {
             return *(reduced_costs.get() + _native_id(v));
         });
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////// Basis //////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // Gurobi names no fixed column, a fixed one reads the side it gives, and
+    // -3 is its one code for a free column and a superbasic one.
+    using basis_variable_status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::superbasic>;
+    using basis_constraint_status =
+        std::variant<basis_status::basic, basis_status::nonbasic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed>;
+    using basis_type =
+        basis_snapshot<variable, constraint, basis_variable_status,
+                       basis_constraint_status>;
+
+    static basis_variable_status _basis_variable_status(int code) noexcept {
+        switch(code) {
+            case GRB_BASIC:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::basic>);
+            case GRB_NONBASIC_LOWER:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+            case GRB_NONBASIC_UPPER:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
+            case GRB_SUPERBASIC:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::superbasic>);
+            default:
+                return basis_variable_status(
+                    std::in_place_type<basis_status::nonbasic>);
+        }
+    }
+    // CBasis names no side: -1 holds the slack at zero, so the activity at
+    // the right-hand side, which the sense places.
+    static basis_constraint_status _basis_constraint_status(
+        int code, char sense) noexcept {
+        if(code == GRB_BASIC)
+            return basis_constraint_status(
+                std::in_place_type<basis_status::basic>);
+        if(code == GRB_NONBASIC_LOWER) {
+            switch(sense) {
+                case GRB_LESS_EQUAL:
+                    return basis_constraint_status(
+                        std::in_place_type<
+                            basis_status::nonbasic_at_upper_bound>);
+                case GRB_GREATER_EQUAL:
+                    return basis_constraint_status(
+                        std::in_place_type<
+                            basis_status::nonbasic_at_lower_bound>);
+                case GRB_EQUAL:
+                    return basis_constraint_status(
+                        std::in_place_type<basis_status::nonbasic_fixed>);
+            }
+        }
+        return basis_constraint_status(
+            std::in_place_type<basis_status::nonbasic>);
+    }
+    // Gurobi repairs a side the bounds lack at the next solve.
+    static int _basis_variable_code(detail::basis_kind kind) noexcept {
+        switch(kind) {
+            case detail::basis_kind::basic:
+                return GRB_BASIC;
+            case detail::basis_kind::nonbasic_at_upper_bound:
+                return GRB_NONBASIC_UPPER;
+            case detail::basis_kind::superbasic:
+            case detail::basis_kind::nonbasic_free:
+                return GRB_SUPERBASIC;
+            default:
+                return GRB_NONBASIC_LOWER;
+        }
+    }
+    // A row's side is not written: Gurobi holds a nonbasic row at its
+    // right-hand side.
+    static int _basis_constraint_code(detail::basis_kind kind) noexcept {
+        return kind == detail::basis_kind::basic ? GRB_BASIC
+                                                 : GRB_NONBASIC_LOWER;
+    }
+
+public:
+    // Gurobi holds the basis of its last simplex solve until the update that
+    // commits a change of the model, which every getter runs.
+    auto get_basis() {
+        if(num_variables() == 0u) return basis_type{};
+        _lazily_remove_variables();
+        update_gurobi_model();
+        const std::size_t num_col = _num_var_native_ids;
+        const std::size_t num_row = num_constraints();
+        std::vector<int> col_codes(num_col), row_codes(num_row);
+        std::vector<char> senses(num_row);
+        check(GRB->getintattrarray(model, GRB_INT_ATTR_VBASIS, 0,
+                                   static_cast<int>(num_col),
+                                   col_codes.data()));
+        check(GRB->getintattrarray(model, GRB_INT_ATTR_CBASIS, 0,
+                                   static_cast<int>(num_row),
+                                   row_codes.data()));
+        check(GRB->getcharattrarray(model, GRB_CHAR_ATTR_SENSE, 0,
+                                    static_cast<int>(num_row), senses.data()));
+        detail::handle_status_table<basis_variable_status> columns(
+            _handle_id_bound(num_col));
+        for(std::size_t j = 0; j < num_col; ++j)
+            columns.set(_var_handle(static_cast<int>(j)).uid(),
+                        _basis_variable_status(col_codes[j]));
+        detail::handle_status_table<basis_constraint_status> rows(num_row);
+        for(std::size_t i = 0; i < num_row; ++i)
+            rows.set(i, _basis_constraint_status(row_codes[i], senses[i]));
+        return basis_type(std::move(columns), std::move(rows));
+    }
+    // A basis written over queued entities is lost, and one written over a
+    // solved model is ignored, in ways that differ between releases: the
+    // update and GRBreset come first. The reset drops the solution, whose
+    // getters fail until the next solve, while get_status() still reports
+    // the last one.
+    template <detail::lp_basis_over<variable, constraint> B>
+    void set_basis(const B & basis) {
+        if(GRB->reset == nullptr) {
+            const auto loaded = GRB->library_version();
+            throw feature_unavailable_error(
+                detail::concat_str(
+                    "mippp: set_basis() needs GRBreset, which the loaded "
+                    "library '",
+                    GRB->library_path().string(), "' (reporting ",
+                    loaded ? to_string(*loaded) : std::string("no version"),
+                    ") does not export")
+                    .c_str());
+        }
+        _lazily_remove_variables();
+        update_gurobi_model();
+        const std::size_t num_col = _num_var_native_ids;
+        const std::size_t num_row = num_constraints();
+        std::vector<int> col_codes(num_col), row_codes(num_row);
+        for(std::size_t j = 0; j < num_col; ++j)
+            col_codes[j] = _basis_variable_code(detail::variable_basis_kind(
+                basis, _var_handle(static_cast<int>(j))));
+        for(std::size_t i = 0; i < num_row; ++i)
+            row_codes[i] = _basis_constraint_code(detail::constraint_basis_kind(
+                basis, constraint(static_cast<int>(i))));
+        check(GRB->reset(model, 0));
+        check(GRB->setintattrarray(model, GRB_INT_ATTR_VBASIS, 0,
+                                   static_cast<int>(num_col),
+                                   col_codes.data()));
+        check(GRB->setintattrarray(model, GRB_INT_ATTR_CBASIS, 0,
+                                   static_cast<int>(num_row),
+                                   row_codes.data()));
     }
 };
 

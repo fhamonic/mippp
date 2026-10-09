@@ -56,6 +56,8 @@ INSTANTIATE_TEST(Gurobi_lp, ColumnManagerTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpFuzzyTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, TimeLimitTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, IterationLimitTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, LpBasisTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, LpBasisWarmStartTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, VerbosityTest, gurobi_lp_test);
 
 struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {
@@ -123,6 +125,8 @@ INSTANTIATE_TEST(Gurobi_milp, VerbosityTest, gurobi_milp_test);
 
 static_assert(has_iis<gurobi_lp>);
 static_assert(has_iis<gurobi_milp>);
+static_assert(has_lp_basis_warm_start<gurobi_lp>);
+static_assert(!has_lp_basis<gurobi_milp>);
 static_assert(
     std::same_as<
         native_iis_outcome_t<gurobi_lp>,
