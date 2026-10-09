@@ -174,10 +174,10 @@ enum MipStatus : int {
 };
 constexpr const char * COPT_INTATTR_LPSTATUS = "LpStatus";
 constexpr const char * COPT_INTATTR_MIPSTATUS = "MipStatus";
+constexpr const char * COPT_INTATTR_SIMPLEXITER = "SimplexIter";
 constexpr const char * COPT_INTATTR_HASLPSOL = "HasLpSol";
 constexpr const char * COPT_INTATTR_HASMIPSOL = "HasMipSol";
 constexpr const char * COPT_DBLATTR_LPOBJVAL = "LpObjval";
-constexpr const char * COPT_INTATTR_SIMPLEXITER = "SimplexIter";
 constexpr const char * COPT_DBLATTR_BESTOBJ = "BestObj";
 ret_code COPT_GetSolution(copt_prob * prob, double * colVal);
 ret_code COPT_GetLpSolution(copt_prob * prob, double * value, double * slack,
