@@ -40,6 +40,13 @@ public:
                  !variant_with_alternative<Status, Tag>)
     void set(std::size_t, Tag) = delete;
 
+    // as set(), but an id past the bound grows the table, the ids added
+    // reading alternative 0
+    constexpr void grow_and_set(std::size_t id, const Status & status) {
+        if(id >= _statuses.size()) _statuses.resize(id + 1);
+        _statuses[id] = status;
+    }
+
     [[nodiscard]] constexpr Status get(std::size_t id) const
         noexcept(std::is_nothrow_copy_constructible_v<Status>) {
         return id < _statuses.size() ? _statuses[id] : Status{};

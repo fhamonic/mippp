@@ -43,6 +43,7 @@ add_executable(
     column_manager.cpp
     deletion_filter.cpp
     iis_snapshot.cpp
+    basis_snapshot.cpp
     iis_oracle.cpp
     iis_by_deletion.cpp
     restore_guard.cpp

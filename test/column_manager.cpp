@@ -26,14 +26,14 @@ struct fake_model {
     }
 };
 
-// the status variant a solver's basis returns through get_status (see
-// has_lp_basis in model_concepts.hpp), spelled out over the leaf statuses
-// since the fake model carries no real basis
+// shaped like the column status of a basis_snapshot, bare nonbasic first: a
+// master column holds it until its first master_refreshed
 using fake_basis_status =
-    std::variant<basis_status::basic, basis_status::nonbasic_free,
+    std::variant<basis_status::nonbasic, basis_status::basic,
                  basis_status::nonbasic_at_lower_bound,
                  basis_status::nonbasic_at_upper_bound,
-                 basis_status::nonbasic_fixed>;
+                 basis_status::nonbasic_fixed, basis_status::superbasic,
+                 basis_status::nonbasic_free>;
 
 // times_activated is listed in both states so that it survives the
 // pool <-> master transitions (see transfer_common_properties)

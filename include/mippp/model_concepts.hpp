@@ -606,14 +606,19 @@ concept has_remove_variable = requires(T & model, model_variable_t<T> v) {
 //////////////////////////////////// Basis ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// A backend reports the most specific tag its solver's answer gives: test
+// with is_a. A row's side is the side of its activity a.x, and a fixed
+// entity may read nonbasic_fixed or the side its solver names. superbasic is
+// any nonbasic entity at no bound, free ones included.
 namespace basis_status {
 struct basic {};
 struct nonbasic {};
-struct nonbasic_free : nonbasic {};
 struct nonbasic_at_bound : nonbasic {};
 struct nonbasic_at_lower_bound : nonbasic_at_bound {};
 struct nonbasic_at_upper_bound : nonbasic_at_bound {};
 struct nonbasic_fixed : nonbasic_at_bound {};
+struct superbasic : nonbasic {};
+struct nonbasic_free : superbasic {};
 }  // namespace basis_status
 
 template <typename S>
@@ -622,10 +627,21 @@ concept lp_basis_status = variant_containing_a<S, basis_status::basic> &&
 
 template <typename B, typename T>
 concept lp_basis =
-    requires(B & basis, model_variable_t<T> v, model_constraint_t<T> c) {
+    requires(const B & basis, model_variable_t<T> v, model_constraint_t<T> c) {
         { basis.get_status(v) } -> lp_basis_status;
         { basis.get_status(c) } -> lp_basis_status;
     };
+
+namespace archetype {
+// the weakest basis set_basis must accept
+template <typename M>
+struct lp_basis {
+    std::variant<basis_status::nonbasic, basis_status::basic> get_status(
+        model_variable_t<M>) const;
+    std::variant<basis_status::basic, basis_status::nonbasic> get_status(
+        model_constraint_t<M>) const;
+};
+}  // namespace archetype
 
 template <typename T>
 using model_basis_t = std::decay_t<decltype(std::declval<T &>().get_basis())>;
@@ -633,43 +649,48 @@ using model_basis_t = std::decay_t<decltype(std::declval<T &>().get_basis())>;
 template <typename T>
 concept has_lp_basis = lp_basis<model_basis_t<T>, T>;
 
+// clang-format off
 template <typename T>
 concept has_modifiable_lp_basis =
     has_lp_basis<T> &&
-    requires(T & model, model_basis_t<T> b, model_variable_t<T> v,
-             model_constraint_t<T> c, model_scalar_t<T> s) {
-        // variables
-        { b.set_basic(v) };
-        { b.set_nonbasic(v, s) };  // snaps to lower/upper/free within tolerance
+    requires(model_basis_t<T> & b, model_variable_t<T> v,
+             model_constraint_t<T> c) {
         { b.set_status(v, basis_status::basic{}) };
-        { b.set_status(v, basis_status::nonbasic_free{}) };
+        { b.set_status(v, basis_status::nonbasic{}) };
         { b.set_status(v, basis_status::nonbasic_at_lower_bound{}) };
         { b.set_status(v, basis_status::nonbasic_at_upper_bound{}) };
         { b.set_status(v, basis_status::nonbasic_fixed{}) };
-        // constraints
-        { b.set_basic(c) };
-        { b.set_nonbasic(c, s) };  // s: row activity (a·x) to compare w/ bounds
+        { b.set_status(v, basis_status::superbasic{}) };
+        { b.set_status(v, basis_status::nonbasic_free{}) };
         { b.set_status(c, basis_status::basic{}) };
-        { b.set_status(c, basis_status::nonbasic_free{}) };
+        { b.set_status(c, basis_status::nonbasic{}) };
         { b.set_status(c, basis_status::nonbasic_at_lower_bound{}) };
         { b.set_status(c, basis_status::nonbasic_at_upper_bound{}) };
         { b.set_status(c, basis_status::nonbasic_fixed{}) };
+        { b.set_status(c, basis_status::superbasic{}) };
+        { b.set_status(c, basis_status::nonbasic_free{}) };
     };
+// clang-format on
 
 template <typename T>
 using model_variable_basis_status_t =
-    std::decay_t<decltype(std::declval<T>().get_basis().get_status(
+    std::decay_t<decltype(std::declval<const model_basis_t<T> &>().get_status(
         std::declval<model_variable_t<T>>()))>;
 
 template <typename T>
 using model_constraint_basis_status_t =
-    std::decay_t<decltype(std::declval<T>().get_basis().get_status(
+    std::decay_t<decltype(std::declval<const model_basis_t<T> &>().get_status(
         std::declval<model_constraint_t<T>>()))>;
 
+// The next solve() starts from the basis, read for every live entity: one
+// whose id the basis does not cover reads its alternative 0.
 template <typename T>
 concept has_lp_basis_warm_start =
-    has_lp_basis<T> &&
-    requires(T & model, model_basis_t<T> b) { model.set_basis(b); };
+    has_lp_basis<T> && requires(T & model, const model_basis_t<T> & b,
+                                const archetype::lp_basis<T> & any_basis) {
+        model.set_basis(b);
+        model.set_basis(any_basis);
+    };
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////// IIS /////////////////////////////////////
