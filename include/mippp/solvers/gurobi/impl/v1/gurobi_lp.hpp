@@ -176,69 +176,60 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
+    // clang-format off
     static basis_variable_status _basis_variable_status(int code) noexcept {
+        using namespace basis_status;
         switch(code) {
-            case GRB_BASIC:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::basic>);
-            case GRB_NONBASIC_LOWER:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case GRB_NONBASIC_UPPER:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case GRB_SUPERBASIC:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::superbasic>);
+            case GRB_BASIC:          return basic{};
+            case GRB_NONBASIC_LOWER: return nonbasic_at_lower_bound{};
+            case GRB_NONBASIC_UPPER: return nonbasic_at_upper_bound{};
+            case GRB_SUPERBASIC:     return superbasic{};
             default:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::nonbasic>);
+                                     return nonbasic{};
         }
     }
     // CBasis names no side: -1 holds the slack at zero, so the activity at
     // the right-hand side, which the sense places.
     static basis_constraint_status _basis_constraint_status(
         int code, char sense) noexcept {
-        if(code == GRB_BASIC)
-            return basis_constraint_status(
-                std::in_place_type<basis_status::basic>);
+        using namespace basis_status;
+        if(code == GRB_BASIC)           return basic{};
         if(code == GRB_NONBASIC_LOWER) {
             switch(sense) {
-                case GRB_LESS_EQUAL:
-                    return basis_constraint_status(
-                        std::in_place_type<
-                            basis_status::nonbasic_at_upper_bound>);
-                case GRB_GREATER_EQUAL:
-                    return basis_constraint_status(
-                        std::in_place_type<
-                            basis_status::nonbasic_at_lower_bound>);
-                case GRB_EQUAL:
-                    return basis_constraint_status(
-                        std::in_place_type<basis_status::nonbasic_fixed>);
+                case GRB_LESS_EQUAL:    return nonbasic_at_upper_bound{};
+                case GRB_GREATER_EQUAL: return nonbasic_at_lower_bound{};
+                case GRB_EQUAL:         return nonbasic_fixed{};
             }
         }
-        return basis_constraint_status(
-            std::in_place_type<basis_status::nonbasic>);
+        return nonbasic{};
     }
+    // clang-format on
     // Gurobi repairs a side the bounds lack at the next solve.
-    static int _basis_variable_code(detail::basis_kind kind) noexcept {
-        switch(kind) {
-            case detail::basis_kind::basic:
-                return GRB_BASIC;
-            case detail::basis_kind::nonbasic_at_upper_bound:
-                return GRB_NONBASIC_UPPER;
-            case detail::basis_kind::superbasic:
-            case detail::basis_kind::nonbasic_free:
-                return GRB_SUPERBASIC;
-            default:
-                return GRB_NONBASIC_LOWER;
-        }
+    template <typename Status>
+    static int _basis_variable_code(const Status & status) noexcept {
+        return std::visit(
+            []<typename Tag>(Tag) -> int {
+                using namespace basis_status;
+                if constexpr(std::same_as<Tag, basic>)
+                    return GRB_BASIC;
+                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
+                    return GRB_NONBASIC_LOWER;
+                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
+                    return GRB_NONBASIC_UPPER;
+                else if constexpr(std::same_as<Tag, superbasic>)
+                    return GRB_SUPERBASIC;
+                else {
+                    static_assert(std::same_as<Tag, nonbasic>);
+                    return GRB_NONBASIC_LOWER;
+                }
+            },
+            status);
     }
     // A row's side is not written: Gurobi holds a nonbasic row at its
     // right-hand side.
-    static int _basis_constraint_code(detail::basis_kind kind) noexcept {
-        return kind == detail::basis_kind::basic ? GRB_BASIC
-                                                 : GRB_NONBASIC_LOWER;
+    static int _basis_constraint_code(
+        const basis_constraint_status & status) noexcept {
+        return is<basis_status::basic>(status) ? GRB_BASIC : GRB_NONBASIC_LOWER;
     }
 
 public:
@@ -283,11 +274,13 @@ public:
         const std::size_t num_row = num_constraints();
         std::vector<int> col_codes(num_col), row_codes(num_row);
         for(std::size_t j = 0; j < num_col; ++j)
-            col_codes[j] = _basis_variable_code(detail::variable_basis_kind(
-                basis, _var_handle(static_cast<int>(j))));
+            col_codes[j] = _basis_variable_code(
+                detail::basis_status_as<basis_variable_status>(
+                    basis.get_status(_var_handle(static_cast<int>(j)))));
         for(std::size_t i = 0; i < num_row; ++i)
-            row_codes[i] = _basis_constraint_code(detail::constraint_basis_kind(
-                basis, constraint(static_cast<int>(i))));
+            row_codes[i] = _basis_constraint_code(
+                detail::basis_status_as<basis_constraint_status>(
+                    basis.get_status(constraint(static_cast<int>(i)))));
         check(GRB->reset(model, 0));
         check(GRB->setintattrarray(model, GRB_INT_ATTR_VBASIS, 0,
                                    static_cast<int>(num_col),

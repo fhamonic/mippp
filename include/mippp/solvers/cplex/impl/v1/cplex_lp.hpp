@@ -244,23 +244,31 @@ private:
             std::in_place_type<basis_status::nonbasic>);
     }
     // CPLEX snaps a side the bounds do not have at the next solve.
-    static int _column_basis_code(detail::basis_kind kind) noexcept {
-        switch(kind) {
-            case detail::basis_kind::basic:
-                return CPX_BASIC;
-            case detail::basis_kind::nonbasic_at_upper_bound:
-                return CPX_AT_UPPER;
-            case detail::basis_kind::superbasic:
-            case detail::basis_kind::nonbasic_free:
-                return CPX_FREE_SUPER;
-            default:
-                return CPX_AT_LOWER;
-        }
+    template <typename Status>
+    static int _column_basis_code(const Status & status) noexcept {
+        return std::visit(
+            []<typename Tag>(Tag) -> int {
+                using namespace basis_status;
+                if constexpr(std::same_as<Tag, basic>)
+                    return CPX_BASIC;
+                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
+                    return CPX_AT_LOWER;
+                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
+                    return CPX_AT_UPPER;
+                else if constexpr(std::same_as<Tag, superbasic>)
+                    return CPX_FREE_SUPER;
+                else {
+                    static_assert(std::same_as<Tag, nonbasic>);
+                    return CPX_AT_LOWER;
+                }
+            },
+            status);
     }
     // only the slack of an 'R' row has two distinct bounds
-    static int _row_basis_code(detail::basis_kind kind, char sense) noexcept {
-        if(kind == detail::basis_kind::basic) return CPX_BASIC;
-        if(kind == detail::basis_kind::nonbasic_at_upper_bound && sense == 'R')
+    static int _row_basis_code(const basis_constraint_status & status,
+                               char sense) noexcept {
+        if(is<basis_status::basic>(status)) return CPX_BASIC;
+        if(is<basis_status::nonbasic_at_upper_bound>(status) && sense == 'R')
             return CPX_AT_UPPER;
         return CPX_AT_LOWER;
     }
@@ -301,13 +309,14 @@ public:
         std::vector<int> col_status(std::max<std::size_t>(num_col, 1)),
             row_status(std::max<std::size_t>(num_row, 1));
         for(std::size_t j = 0; j < num_col; ++j)
-            col_status[j] = _column_basis_code(detail::variable_basis_kind(
-                basis, _var_handle(static_cast<int>(j))));
+            col_status[j] = _column_basis_code(
+                detail::basis_status_as<basis_variable_status>(
+                    basis.get_status(_var_handle(static_cast<int>(j)))));
         for(std::size_t i = 0; i < num_row; ++i)
-            row_status[i] =
-                _row_basis_code(detail::constraint_basis_kind(
-                                    basis, constraint(static_cast<int>(i))),
-                                senses[i]);
+            row_status[i] = _row_basis_code(
+                detail::basis_status_as<basis_constraint_status>(
+                    basis.get_status(constraint(static_cast<int>(i)))),
+                senses[i]);
         check(CPX->copybase(env, lp, col_status.data(), row_status.data()));
     }
 };

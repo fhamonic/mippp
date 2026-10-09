@@ -8,6 +8,7 @@
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <variant>
 
 #include "mippp/solvers/highs/all.hpp"
@@ -169,6 +170,61 @@ TEST_F(highs_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     model.solve();
     ASSERT_TRUE(is_a<status::infeasible_or_unbounded>(model.get_status()));
     ASSERT_THROW(model.get_basis(), solver_error);
+}
+namespace {
+// A basis naming what highs_lp's own snapshot does not list: HiGHS reads a
+// fixed column as a side and has no superbasic code.
+struct basis_with_unlisted_tags {
+    using status =
+        std::variant<basis_status::nonbasic, basis_status::basic,
+                     basis_status::nonbasic_at_lower_bound,
+                     basis_status::nonbasic_at_upper_bound,
+                     basis_status::nonbasic_fixed, basis_status::superbasic,
+                     basis_status::nonbasic_free>;
+    model_basis_t<highs_lp> own;
+    model_variable_t<highs_lp> fixed_column, free_column;
+    status get_status(model_variable_t<highs_lp> v) const {
+        if(v == fixed_column) return basis_status::nonbasic_fixed{};
+        if(v == free_column) return basis_status::superbasic{};
+        return std::visit([](auto tag) -> status { return tag; },
+                          own.get_status(v));
+    }
+    auto get_status(model_constraint_t<highs_lp> c) const {
+        return own.get_status(c);
+    }
+};
+}  // namespace
+// Both write as bare nonbasic, whose code lets HiGHS place the column.
+TEST_F(highs_lp_test, set_basis_writes_unlisted_tags_as_bare_nonbasic) {
+    const auto build = [](highs_lp & model) {
+        lp_basis_cases::build_dense(model);
+        return std::pair{
+            model.add_variable(lp_basis_cases::bounds<highs_lp>(1.0, 1.0)),
+            model.add_variable(
+                lp_basis_cases::bounds<highs_lp>(std::nullopt, std::nullopt))};
+    };
+    const auto iterations = [this](highs_lp & model) {
+        using namespace highs::impl::v1;
+        HighsInt count = -1;
+        EXPECT_EQ(api->getIntInfoValue(model.native_model(),
+                                       "simplex_iteration_count", &count),
+                  0);
+        return count;
+    };
+    auto a = new_model();
+    build(a);
+    a.solve();
+    ASSERT_TRUE(is_a<status::optimal>(a.get_status()));
+    ASSERT_GT(iterations(a), 0);
+    auto b = new_model();
+    const auto [fixed_column, free_column] = build(b);
+    b.set_basis(
+        basis_with_unlisted_tags{a.get_basis(), fixed_column, free_column});
+    b.solve();
+    ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+    ASSERT_EQ(iterations(b), 0);
+    ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
+                lp_basis_cases::tolerance(a.get_solution_value()));
 }
 TEST_F(highs_lp_test, time_limit_bounds_each_solve) {
     check_time_limit_bounds_each_solve<highs_lp_test>(new_model());

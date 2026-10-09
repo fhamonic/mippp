@@ -174,23 +174,27 @@ private:
                 return Status(std::in_place_type<basis_status::nonbasic>);
         }
     }
-    // Zero on a bounded entity and Lower on a fixed one are snapped by
-    // HiGHS, and Nonbasic lets it pick the side.
-    static HighsInt _basis_code(detail::basis_kind kind) noexcept {
-        switch(kind) {
-            case detail::basis_kind::basic:
-                return kHighsBasisStatusBasic;
-            case detail::basis_kind::nonbasic_at_lower_bound:
-            case detail::basis_kind::nonbasic_fixed:
-                return kHighsBasisStatusLower;
-            case detail::basis_kind::nonbasic_at_upper_bound:
-                return kHighsBasisStatusUpper;
-            case detail::basis_kind::superbasic:
-            case detail::basis_kind::nonbasic_free:
-                return kHighsBasisStatusZero;
-            default:
-                return kHighsBasisStatusNonbasic;
-        }
+    // A tag this variant lacks, as nonbasic_fixed or superbasic, arrives as
+    // bare nonbasic, whose Nonbasic code lets HiGHS pick the side.
+    template <typename Status>
+    static HighsInt _basis_code(const Status & status) noexcept {
+        return std::visit(
+            []<typename Tag>(Tag) -> HighsInt {
+                using namespace basis_status;
+                if constexpr(std::same_as<Tag, basic>)
+                    return kHighsBasisStatusBasic;
+                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
+                    return kHighsBasisStatusLower;
+                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
+                    return kHighsBasisStatusUpper;
+                else if constexpr(std::same_as<Tag, nonbasic_free>)
+                    return kHighsBasisStatusZero;
+                else {
+                    static_assert(std::same_as<Tag, nonbasic>);
+                    return kHighsBasisStatusNonbasic;
+                }
+            },
+            status);
     }
 
 public:
@@ -224,11 +228,13 @@ public:
         const std::size_t num_row = num_constraints();
         std::vector<HighsInt> col_status(num_col), row_status(num_row);
         for(std::size_t j = 0; j < num_col; ++j)
-            col_status[j] = _basis_code(detail::variable_basis_kind(
-                basis, _var_handle(static_cast<int>(j))));
+            col_status[j] =
+                _basis_code(detail::basis_status_as<basis_variable_status>(
+                    basis.get_status(_var_handle(static_cast<int>(j)))));
         for(std::size_t i = 0; i < num_row; ++i)
-            row_status[i] = _basis_code(detail::constraint_basis_kind(
-                basis, constraint(static_cast<int>(i))));
+            row_status[i] =
+                _basis_code(detail::basis_status_as<basis_constraint_status>(
+                    basis.get_status(constraint(static_cast<int>(i)))));
         check(Highs->setBasis(model, col_status.data(), row_status.data()));
     }
 };

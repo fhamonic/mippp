@@ -212,20 +212,27 @@ private:
     }
     // GLPK replaces a nonbasic code the entity's bounds do not allow: NL
     // stands for bare nonbasic, and NF on a bounded entity lands on a bound.
-    static int _basis_code(detail::basis_kind kind) noexcept {
-        switch(kind) {
-            case detail::basis_kind::basic:
-                return GLP_BS;
-            case detail::basis_kind::nonbasic_at_upper_bound:
-                return GLP_NU;
-            case detail::basis_kind::nonbasic_fixed:
-                return GLP_NS;
-            case detail::basis_kind::superbasic:
-            case detail::basis_kind::nonbasic_free:
-                return GLP_NF;
-            default:
-                return GLP_NL;
-        }
+    template <typename Status>
+    static int _basis_code(const Status & status) noexcept {
+        return std::visit(
+            []<typename Tag>(Tag) -> int {
+                using namespace basis_status;
+                if constexpr(std::same_as<Tag, basic>)
+                    return GLP_BS;
+                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
+                    return GLP_NL;
+                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
+                    return GLP_NU;
+                else if constexpr(std::same_as<Tag, nonbasic_fixed>)
+                    return GLP_NS;
+                else if constexpr(std::same_as<Tag, nonbasic_free>)
+                    return GLP_NF;
+                else {
+                    static_assert(std::same_as<Tag, nonbasic>);
+                    return GLP_NL;
+                }
+            },
+            status);
     }
 
 public:
@@ -257,7 +264,9 @@ public:
         std::vector<int> col_stat(num_col);
         for(std::size_t j = 0; j < num_col; ++j) {
             const variable v(static_cast<int>(j));
-            col_stat[j] = _basis_code(detail::variable_basis_kind(basis, v));
+            col_stat[j] =
+                _basis_code(detail::basis_status_as<basis_variable_status>(
+                    basis.get_status(v)));
             if(col_stat[j] == GLP_BS &&
                glp->get_mat_col(model, native_id(v), nullptr, nullptr) == 0) {
                 glp->std_basis(model);
@@ -267,9 +276,10 @@ public:
         for(std::size_t j = 0; j < num_col; ++j)
             glp->set_col_stat(model, static_cast<int>(j) + 1, col_stat[j]);
         for(std::size_t i = 0; i < num_row; ++i)
-            glp->set_row_stat(model, static_cast<int>(i) + 1,
-                              _basis_code(detail::constraint_basis_kind(
-                                  basis, constraint(static_cast<int>(i)))));
+            glp->set_row_stat(
+                model, static_cast<int>(i) + 1,
+                _basis_code(detail::basis_status_as<basis_constraint_status>(
+                    basis.get_status(constraint(static_cast<int>(i))))));
         if(glp->factorize(model) != 0) glp->std_basis(model);
     }
 };

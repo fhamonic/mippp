@@ -701,21 +701,29 @@ private:
         }
     }
     // Clp snaps a side the bounds do not have at the next solve.
-    static unsigned char _basis_code(detail::basis_kind kind) noexcept {
-        switch(kind) {
-            case detail::basis_kind::basic:
-                return _clp_basic;
-            case detail::basis_kind::nonbasic_at_upper_bound:
-                return _clp_at_upper;
-            case detail::basis_kind::nonbasic_fixed:
-                return _clp_fixed;
-            case detail::basis_kind::superbasic:
-                return _clp_superbasic;
-            case detail::basis_kind::nonbasic_free:
-                return _clp_free;
-            default:
-                return _clp_at_lower;
-        }
+    template <typename Status>
+    static unsigned char _basis_code(const Status & status) noexcept {
+        return std::visit(
+            []<typename Tag>(Tag) -> unsigned char {
+                using namespace basis_status;
+                if constexpr(std::same_as<Tag, basic>)
+                    return _clp_basic;
+                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
+                    return _clp_at_lower;
+                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
+                    return _clp_at_upper;
+                else if constexpr(std::same_as<Tag, nonbasic_fixed>)
+                    return _clp_fixed;
+                else if constexpr(std::same_as<Tag, superbasic>)
+                    return _clp_superbasic;
+                else if constexpr(std::same_as<Tag, nonbasic_free>)
+                    return _clp_free;
+                else {
+                    static_assert(std::same_as<Tag, nonbasic>);
+                    return _clp_at_lower;
+                }
+            },
+            status);
     }
 
 public:
@@ -750,10 +758,12 @@ public:
         std::vector<unsigned char> status(num_col + num_row, _clp_fixed);
         for(const variable v : variables())
             status[static_cast<std::size_t>(v.id())] =
-                _basis_code(detail::variable_basis_kind(basis, v));
+                _basis_code(detail::basis_status_as<basis_variable_status>(
+                    basis.get_status(v)));
         for(std::size_t i = 0; i < num_row; ++i)
-            status[num_col + i] = _basis_code(detail::constraint_basis_kind(
-                basis, constraint(static_cast<int>(i))));
+            status[num_col + i] =
+                _basis_code(detail::basis_status_as<basis_constraint_status>(
+                    basis.get_status(constraint(static_cast<int>(i)))));
         Clp->copyinStatus(model, status.data());
     }
 };

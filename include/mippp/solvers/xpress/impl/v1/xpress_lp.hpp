@@ -180,21 +180,25 @@ private:
     // A fixed entity sits at both its sides, and Xpress snaps at the write a
     // side the bounds lack, so the native lower code serves a fixed entity
     // and a bare nonbasic one.
-    template <int AtLower, int AtUpper>
-    static int _basis_code(detail::basis_kind kind) noexcept {
-        switch(kind) {
-            case detail::basis_kind::basic:
-                return XPRS_BASISSTATUS_BASIC;
-            case detail::basis_kind::nonbasic_at_lower_bound:
-                return AtLower;
-            case detail::basis_kind::nonbasic_at_upper_bound:
-                return AtUpper;
-            case detail::basis_kind::superbasic:
-            case detail::basis_kind::nonbasic_free:
-                return XPRS_BASISSTATUS_SUPERBASIC;
-            default:
-                return XPRS_BASISSTATUS_NONBASIC_LOWER;
-        }
+    template <int AtLower, int AtUpper, typename Status>
+    static int _basis_code(const Status & status) noexcept {
+        return std::visit(
+            []<typename Tag>(Tag) -> int {
+                using namespace basis_status;
+                if constexpr(std::same_as<Tag, basic>)
+                    return XPRS_BASISSTATUS_BASIC;
+                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
+                    return AtLower;
+                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
+                    return AtUpper;
+                else if constexpr(std::same_as<Tag, superbasic>)
+                    return XPRS_BASISSTATUS_SUPERBASIC;
+                else {
+                    static_assert(std::same_as<Tag, nonbasic>);
+                    return XPRS_BASISSTATUS_NONBASIC_LOWER;
+                }
+            },
+            status);
     }
 
 public:
@@ -236,12 +240,12 @@ public:
         std::vector<int> col_status(num_col), row_status(num_row);
         for(std::size_t j = 0; j < num_col; ++j)
             col_status[j] = _basis_code<_column_at_lower, _column_at_upper>(
-                detail::variable_basis_kind(basis,
-                                            variable(static_cast<int>(j))));
+                detail::basis_status_as<basis_variable_status>(
+                    basis.get_status(variable(static_cast<int>(j)))));
         for(std::size_t i = 0; i < num_row; ++i)
             row_status[i] = _basis_code<_row_at_lower, _row_at_upper>(
-                detail::constraint_basis_kind(basis,
-                                              constraint(static_cast<int>(i))));
+                detail::basis_status_as<basis_constraint_status>(
+                    basis.get_status(constraint(static_cast<int>(i)))));
         check(XPRS->loadbasis(prob, row_status.data(), col_status.data()));
     }
 };

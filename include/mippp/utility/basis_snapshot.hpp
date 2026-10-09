@@ -43,47 +43,20 @@ template <typename Status, basis_tag Tag>
             basis_status::basic>();
 }
 
-// What a backend writes, whatever the status type of the basis it is given.
-enum class basis_kind : unsigned char {
-    basic,
-    nonbasic,
-    nonbasic_at_lower_bound,
-    nonbasic_at_upper_bound,
-    nonbasic_fixed,
-    superbasic,
-    nonbasic_free
-};
-
-// Decided by derivation, most derived first, so a refinement tag writes as
-// the tag it refines and nonbasic_at_bound as bare nonbasic. An alternative
-// derived from neither basic nor nonbasic writes as Default, the status of
-// an entity the basis does not cover.
-template <basis_kind Default, lp_basis_status Status>
-[[nodiscard]] constexpr basis_kind basis_kind_of(
-    const Status & status) noexcept {
+// What a status of any basis writes as in a backend's Status: its tag stored
+// as set_status stores one, and alternative 0, the status of an entity a
+// basis does not cover, for an alternative that is no basis tag. set_basis
+// thus writes what the backend's own snapshot would hold.
+template <typename Status, lp_basis_status Source>
+[[nodiscard]] constexpr Status basis_status_as(const Source & source) noexcept {
     return std::visit(
-        []<typename Tag>(const Tag &) -> basis_kind {
-            if constexpr(std::derived_from<Tag, basis_status::nonbasic_free>)
-                return basis_kind::nonbasic_free;
-            else if constexpr(std::derived_from<Tag, basis_status::superbasic>)
-                return basis_kind::superbasic;
-            else if constexpr(std::derived_from<Tag,
-                                                basis_status::nonbasic_fixed>)
-                return basis_kind::nonbasic_fixed;
-            else if constexpr(std::derived_from<
-                                  Tag, basis_status::nonbasic_at_lower_bound>)
-                return basis_kind::nonbasic_at_lower_bound;
-            else if constexpr(std::derived_from<
-                                  Tag, basis_status::nonbasic_at_upper_bound>)
-                return basis_kind::nonbasic_at_upper_bound;
-            else if constexpr(std::derived_from<Tag, basis_status::nonbasic>)
-                return basis_kind::nonbasic;
-            else if constexpr(std::derived_from<Tag, basis_status::basic>)
-                return basis_kind::basic;
+        []<typename Tag>(const Tag & tag) -> Status {
+            if constexpr(basis_tag<Tag>)
+                return basis_stored_status<Status>(tag);
             else
-                return Default;
+                return Status{};
         },
-        status);
+        source);
 }
 
 // The sources a backend's set_basis accepts: lp_basis over its own handles,
@@ -93,17 +66,6 @@ concept lp_basis_over = requires(const B & basis, Variable v, Constraint c) {
     { basis.get_status(v) } -> lp_basis_status;
     { basis.get_status(c) } -> lp_basis_status;
 };
-
-template <typename B, typename Variable>
-[[nodiscard]] constexpr basis_kind variable_basis_kind(const B & basis,
-                                                       Variable v) {
-    return basis_kind_of<basis_kind::nonbasic>(basis.get_status(v));
-}
-template <typename B, typename Constraint>
-[[nodiscard]] constexpr basis_kind constraint_basis_kind(const B & basis,
-                                                         Constraint c) {
-    return basis_kind_of<basis_kind::basic>(basis.get_status(c));
-}
 
 }  // namespace detail
 

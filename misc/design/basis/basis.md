@@ -110,6 +110,17 @@ behind each ruling letter, and the survey of 2026-10-09 in
 - **`clp_lp`'s `set_basis()`** reads live entities only, as every backend
   does: a removed column, which stays in Clp fixed at [0, 0], is written
   fixed without asking the source for its dead handle.
+- **`set_basis()` writes what the backend's own snapshot would hold**
+  (the maintainer's question of 2026-10-10, removing `detail::basis_kind`).
+  A source's status is first converted to the backend's variant as
+  `set_status` stores it (B2 b), an alternative that is no basis tag reading
+  as alternative 0 (B7), then each listed tag has its native code. A tag the
+  variant does not list loses its refinement, as in a snapshot: on
+  `highs_lp`, `nonbasic_fixed` and `superbasic` now write `Nonbasic` instead
+  of `Lower` and `Zero`, and on `glpk_lp`, `superbasic` writes `GLP_NL`
+  instead of `GLP_NF`. GLPK's `glp_set_col_stat` replaces either by the code
+  the column's type implies, and HiGHS places a `Nonbasic` column itself;
+  test/solvers/glpk.cpp and highs.cpp pin both.
 
 ## Open questions
 

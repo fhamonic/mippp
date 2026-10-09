@@ -18,7 +18,6 @@ namespace {
 
 using variable = model_variable<int, double>;
 using constraint = model_constraint<int>;
-using mippp::detail::basis_kind;
 
 // the surface model_variable_t and model_constraint_t deduce from
 struct handles_only_model {
@@ -87,9 +86,9 @@ template <typename Snapshot, typename Handle, typename Tag>
 concept writes =
     requires(Snapshot & s, Handle h, Tag t) { s.set_status(h, t); };
 
-template <typename Status>
-constexpr basis_kind column_kind_of(Status status) {
-    return mippp::detail::basis_kind_of<basis_kind::nonbasic>(status);
+template <typename Status, typename Source>
+constexpr Status as(Source source) {
+    return mippp::detail::basis_status_as<Status>(source);
 }
 
 }  // namespace
@@ -184,33 +183,39 @@ static_assert(is<basis_status::nonbasic>(
         basis_status::nonbasic_at_bound{})));
 
 ///////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// Classifier ///////////////////////////////////
+//////////////////////////////// Conversion ///////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-static_assert(column_kind_of(column_status(basis_status::basic{})) ==
-              basis_kind::basic);
-static_assert(column_kind_of(column_status(basis_status::nonbasic{})) ==
-              basis_kind::nonbasic);
-static_assert(column_kind_of(row_status(basis_status::nonbasic_fixed{})) ==
-              basis_kind::nonbasic_fixed);
-static_assert(column_kind_of(column_status(basis_status::nonbasic_free{})) ==
-              basis_kind::nonbasic_free);
+// a tag the target lists is kept, another stored as set_status stores it
+static_assert(is<basis_status::basic>(
+    as<column_status>(row_status(basis_status::basic{}))));
+static_assert(is<basis_status::nonbasic_fixed>(
+    as<row_status>(row_status(basis_status::nonbasic_fixed{}))));
+static_assert(is<basis_status::nonbasic>(
+    as<column_status>(row_status(basis_status::nonbasic_fixed{}))));
+static_assert(is<basis_status::nonbasic_free>(
+    as<column_status>(column_status(basis_status::nonbasic_free{}))));
+static_assert(is<basis_status::nonbasic>(
+    as<row_status>(column_status(basis_status::nonbasic_free{}))));
 // a refinement writes as the tag it refines
-static_assert(column_kind_of(std::variant<basis_status::basic, my_lower>(
-                  my_lower{})) == basis_kind::nonbasic_at_lower_bound);
-static_assert(column_kind_of(std::variant<basis_status::basic,
-                                          basis_status::nonbasic_at_bound>(
-                  basis_status::nonbasic_at_bound{})) == basis_kind::nonbasic);
-static_assert(
-    column_kind_of(std::variant<basis_status::basic, basis_status::superbasic>(
-        basis_status::superbasic{})) == basis_kind::superbasic);
-// an alternative that is no basis tag writes as the entity's default
-static_assert(column_kind_of(std::variant<basis_status::basic,
-                                          basis_status::nonbasic, unrelated>(
-                  unrelated{})) == basis_kind::nonbasic);
-static_assert(mippp::detail::basis_kind_of<basis_kind::basic>(
-                  std::variant<basis_status::basic, basis_status::nonbasic,
-                               unrelated>(unrelated{})) == basis_kind::basic);
+static_assert(is<basis_status::nonbasic_at_lower_bound>(as<column_status>(
+    std::variant<basis_status::basic, my_lower>(my_lower{}))));
+static_assert(is<basis_status::basic>(as<row_status>(
+    std::variant<own_basic, basis_status::nonbasic>(own_basic{}))));
+static_assert(is<basis_status::nonbasic>(as<column_status>(
+    std::variant<basis_status::basic, basis_status::nonbasic_at_bound>(
+        basis_status::nonbasic_at_bound{}))));
+static_assert(is<basis_status::nonbasic>(
+    as<row_status>(std::variant<basis_status::basic, basis_status::superbasic>(
+        basis_status::superbasic{}))));
+// an alternative that is no basis tag writes as the target's alternative 0,
+// the status of an entity a basis does not cover
+static_assert(is<basis_status::nonbasic>(as<column_status>(
+    std::variant<basis_status::basic, basis_status::nonbasic, unrelated>(
+        unrelated{}))));
+static_assert(is<basis_status::basic>(as<row_status>(
+    std::variant<basis_status::basic, basis_status::nonbasic, unrelated>(
+        unrelated{}))));
 
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// Snapshot /////////////////////////////////////

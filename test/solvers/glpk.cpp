@@ -3,6 +3,7 @@
 #include <limits>
 #include <tuple>
 #include <utility>
+#include <variant>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -264,6 +265,19 @@ TEST_F(glpk_lp_test, set_basis_reads_back_before_any_solve) {
     b.set_basis(source);
     ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(
         b.get_basis().get_status(v.x1)));
+    // superbasic, which glpk_lp's snapshot does not list, writes as bare
+    // nonbasic: NL, NF on the free f
+    basis_snapshot<model_variable_t<glpk_lp>, model_constraint_t<glpk_lp>,
+                   std::variant<basis_status::nonbasic, basis_status::basic,
+                                basis_status::superbasic>,
+                   std::variant<basis_status::basic, basis_status::nonbasic>>
+        foreign;
+    foreign.set_status(v.x1, basis_status::superbasic{});
+    foreign.set_status(v.f, basis_status::superbasic{});
+    b.set_basis(foreign);
+    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(
+        b.get_basis().get_status(v.x1)));
+    ASSERT_TRUE(is<basis_status::nonbasic_free>(b.get_basis().get_status(v.f)));
 }
 namespace {
 // LpBasisTest's ranged rows: r1 is tight at its upper side, r2 at its lower

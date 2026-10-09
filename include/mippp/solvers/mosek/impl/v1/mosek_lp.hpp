@@ -220,20 +220,27 @@ private:
         }
     }
     // MOSEK snaps a side the bounds do not have at the next solve.
-    static MSKstakeye _basis_key(detail::basis_kind kind) noexcept {
-        switch(kind) {
-            case detail::basis_kind::basic:
-                return MSK_SK_BAS;
-            case detail::basis_kind::nonbasic_at_upper_bound:
-                return MSK_SK_UPR;
-            case detail::basis_kind::nonbasic_fixed:
-                return MSK_SK_FIX;
-            case detail::basis_kind::superbasic:
-            case detail::basis_kind::nonbasic_free:
-                return MSK_SK_SUPBAS;
-            default:
-                return MSK_SK_LOW;
-        }
+    template <typename Status>
+    static MSKstakeye _basis_key(const Status & status) noexcept {
+        return std::visit(
+            []<typename Tag>(Tag) -> MSKstakeye {
+                using namespace basis_status;
+                if constexpr(std::same_as<Tag, basic>)
+                    return MSK_SK_BAS;
+                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
+                    return MSK_SK_LOW;
+                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
+                    return MSK_SK_UPR;
+                else if constexpr(std::same_as<Tag, nonbasic_fixed>)
+                    return MSK_SK_FIX;
+                else if constexpr(std::same_as<Tag, superbasic>)
+                    return MSK_SK_SUPBAS;
+                else {
+                    static_assert(std::same_as<Tag, nonbasic>);
+                    return MSK_SK_LOW;
+                }
+            },
+            status);
     }
 
 public:
@@ -268,11 +275,12 @@ public:
         const std::size_t num_row = num_constraints();
         std::vector<MSKstakeye> skx(num_col), skc(num_row);
         for(std::size_t j = 0; j < num_col; ++j)
-            skx[j] = _basis_key(detail::variable_basis_kind(
-                basis, variable(static_cast<int>(j))));
+            skx[j] = _basis_key(detail::basis_status_as<basis_variable_status>(
+                basis.get_status(variable(static_cast<int>(j)))));
         for(std::size_t i = 0; i < num_row; ++i)
-            skc[i] = _basis_key(detail::constraint_basis_kind(
-                basis, constraint(static_cast<int>(i))));
+            skc[i] =
+                _basis_key(detail::basis_status_as<basis_constraint_status>(
+                    basis.get_status(constraint(static_cast<int>(i)))));
         check(MSK->putskx(task, MSK_SOL_BAS, skx.data()));
         check(MSK->putskc(task, MSK_SOL_BAS, skc.data()));
         _starts_from_basis = true;

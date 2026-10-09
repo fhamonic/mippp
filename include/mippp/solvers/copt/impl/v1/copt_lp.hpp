@@ -143,20 +143,27 @@ private:
         }
     }
     // COPT snaps a side the bounds do not have at the next solve.
-    static int _basis_code(detail::basis_kind kind) noexcept {
-        switch(kind) {
-            case detail::basis_kind::basic:
-                return COPT_BASIS_BASIC;
-            case detail::basis_kind::nonbasic_at_upper_bound:
-                return COPT_BASIS_UPPER;
-            case detail::basis_kind::nonbasic_fixed:
-                return COPT_BASIS_FIXED;
-            case detail::basis_kind::superbasic:
-            case detail::basis_kind::nonbasic_free:
-                return COPT_BASIS_SUPERBASIC;
-            default:
-                return COPT_BASIS_LOWER;
-        }
+    template <typename Status>
+    static int _basis_code(const Status & status) noexcept {
+        return std::visit(
+            []<typename Tag>(Tag) -> int {
+                using namespace basis_status;
+                if constexpr(std::same_as<Tag, basic>)
+                    return COPT_BASIS_BASIC;
+                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
+                    return COPT_BASIS_LOWER;
+                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
+                    return COPT_BASIS_UPPER;
+                else if constexpr(std::same_as<Tag, nonbasic_fixed>)
+                    return COPT_BASIS_FIXED;
+                else if constexpr(std::same_as<Tag, superbasic>)
+                    return COPT_BASIS_SUPERBASIC;
+                else {
+                    static_assert(std::same_as<Tag, nonbasic>);
+                    return COPT_BASIS_LOWER;
+                }
+            },
+            status);
     }
 
 public:
@@ -199,11 +206,13 @@ public:
         std::vector<int> col_status(std::max(num_col, std::size_t{1}));
         std::vector<int> row_status(std::max(num_row, std::size_t{1}));
         for(std::size_t j = 0; j < num_col; ++j)
-            col_status[j] = _basis_code(detail::variable_basis_kind(
-                basis, variable(static_cast<int>(j))));
+            col_status[j] =
+                _basis_code(detail::basis_status_as<basis_variable_status>(
+                    basis.get_status(variable(static_cast<int>(j)))));
         for(std::size_t i = 0; i < num_row; ++i)
-            row_status[i] = _basis_code(detail::constraint_basis_kind(
-                basis, constraint(static_cast<int>(i))));
+            row_status[i] =
+                _basis_code(detail::basis_status_as<basis_constraint_status>(
+                    basis.get_status(constraint(static_cast<int>(i)))));
         check(COPT->SetBasis(prob, col_status.data(), row_status.data()));
     }
 };
