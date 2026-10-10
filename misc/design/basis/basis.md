@@ -110,6 +110,10 @@ behind each ruling letter, and the survey of 2026-10-09 in
 - **`clp_lp`'s `set_basis()`** reads live entities only, as every backend
   does: a removed column, which stays in Clp fixed at [0, 0], is written
   fixed without asking the source for its dead handle.
+- **`has_modifiable_lp_basis` requires a default-constructible basis**
+  (B1, B4): a basis of the caller's making starts from a default snapshot,
+  the slack basis; test/basis_snapshot.cpp pins it on a basis whose default
+  constructor is deleted.
 - **`set_basis()` writes what the backend's own snapshot would hold**
   (the maintainer's question of 2026-10-10, removing `detail::basis_kind`).
   A source's status is first converted to the backend's variant as
@@ -136,6 +140,15 @@ behind each ruling letter, and the survey of 2026-10-09 in
   written. `std::visit<R>` pins the return
   type, which the mix of enumerators and `int` template parameters in
   `xpress_lp` needs.
+- **Each code-to-tag decoder returns the tag** (the maintainer's style,
+  from `gurobi_lp`, applied to every backend on 2026-10-10): the tag
+  converts to the status variant at the `return`. Every tag returned is
+  listed, so each lands on its own alternative; an unlisted one would
+  compile and fold to its nearest listed base, where the
+  `Status(std::in_place_type<Tag>)` it replaced did not compile. The
+  decoders are private: only the tests that load the solver library see
+  what they return, and `soplex_lp`, which has no encoder, has no codes
+  test.
 
 ## Open questions
 

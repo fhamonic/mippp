@@ -607,9 +607,11 @@ concept has_remove_variable = requires(T & model, model_variable_t<T> v) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // A backend reports the most specific tag its solver's answer gives: test
-// with is_a. A row's side is the side of its activity a.x, and a fixed
-// entity may read nonbasic_fixed or the side its solver names. superbasic is
-// any nonbasic entity at no bound, free ones included.
+// with is_a. No tag here refines basic, so is<basic> is exact on every
+// backend's status; the row encoders of gurobi_lp and cplex_lp rely on it.
+// A row's side is the side of its activity a.x, and a fixed entity may read
+// nonbasic_fixed or the side its solver names. superbasic is any nonbasic
+// entity at no bound, free ones included.
 namespace basis_status {
 struct basic {};
 struct nonbasic {};

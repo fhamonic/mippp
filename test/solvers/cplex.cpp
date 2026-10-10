@@ -513,8 +513,6 @@ TEST_F(cplex_lp_test, get_basis_before_the_first_solve_throws) {
     ASSERT_THROW(model.get_basis(), solver_error);
 }
 
-// CPXgetbase returns what CPXcopybase stored until the next solve, so a
-// basis written on a fresh model reads back through both translations.
 TEST_F(cplex_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     auto model = new_model();
     lp_basis_cases::build_infeasible(model);
@@ -544,6 +542,8 @@ static_assert(variant_containing_a<model_variable_basis_status_t<cplex_lp>,
                                    basis_status::superbasic>);
 static_assert(!variant_containing_a<model_constraint_basis_status_t<cplex_lp>,
                                     basis_status::superbasic>);
+// CPXgetbase returns what CPXcopybase stored until the next solve, so a
+// basis written on a fresh model reads back through both translations.
 TEST_F(cplex_lp_test, a_written_basis_reads_back_before_a_solve) {
     using namespace operators;
     using namespace cplex::impl::v1;
