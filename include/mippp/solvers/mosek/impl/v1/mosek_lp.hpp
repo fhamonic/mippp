@@ -196,25 +196,20 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
+    // clang-format off
     // SUPBAS also marks a bounded entity strictly inside its bounds, as a stop
     // of the dual simplex or the certificate of an unbounded LP leaves some. A
     // defined slot holds UNK keys after a stop before the first pivot, and INF
     // on crossed bounds.
     template <typename Status>
     static Status _basis_status(MSKstakeye key) {
+        using namespace basis_status;
         switch(key) {
-            case MSK_SK_BAS:
-                return Status(std::in_place_type<basis_status::basic>);
-            case MSK_SK_LOW:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case MSK_SK_UPR:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case MSK_SK_FIX:
-                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
-            case MSK_SK_SUPBAS:
-                return Status(std::in_place_type<basis_status::superbasic>);
+            case MSK_SK_BAS:    return basic{};
+            case MSK_SK_LOW:    return nonbasic_at_lower_bound{};
+            case MSK_SK_UPR:    return nonbasic_at_upper_bound{};
+            case MSK_SK_FIX:    return nonbasic_fixed{};
+            case MSK_SK_SUPBAS: return superbasic{};
             default:
                 throw solver_error(
                     "mippp: get_basis() found no basis, MOSEK's basic "
@@ -223,7 +218,6 @@ private:
     }
 
 protected:
-    // clang-format off
     // MOSEK snaps a side the bounds do not have at the next solve.
     template <typename Status>
     static constexpr MSKstakeye _basis_key(const Status & status) noexcept {

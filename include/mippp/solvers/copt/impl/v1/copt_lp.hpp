@@ -125,28 +125,22 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
+    // clang-format off
     template <typename Status>
     static Status _basis_status(int code) noexcept {
+        using namespace basis_status;
         switch(code) {
-            case COPT_BASIS_BASIC:
-                return Status(std::in_place_type<basis_status::basic>);
-            case COPT_BASIS_LOWER:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case COPT_BASIS_UPPER:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case COPT_BASIS_FIXED:
-                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
-            case COPT_BASIS_SUPERBASIC:
-                return Status(std::in_place_type<basis_status::superbasic>);
+            case COPT_BASIS_BASIC:      return basic{};
+            case COPT_BASIS_LOWER:      return nonbasic_at_lower_bound{};
+            case COPT_BASIS_UPPER:      return nonbasic_at_upper_bound{};
+            case COPT_BASIS_FIXED:      return nonbasic_fixed{};
+            case COPT_BASIS_SUPERBASIC: return superbasic{};
             default:
-                return Status(std::in_place_type<basis_status::nonbasic>);
+                                        return nonbasic{};
         }
     }
 
 protected:
-    // clang-format off
     // COPT snaps a side the bounds do not have at the next solve.
     template <typename Status>
     static constexpr int _basis_code(const Status & status) noexcept {

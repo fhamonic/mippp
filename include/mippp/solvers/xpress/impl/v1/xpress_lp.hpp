@@ -155,21 +155,17 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
+    // clang-format off
     template <typename Status, int AtLower, int AtUpper>
     static Status _basis_status(int code) noexcept {
+        using namespace basis_status;
         switch(code) {
-            case XPRS_BASISSTATUS_BASIC:
-                return Status(std::in_place_type<basis_status::basic>);
-            case AtLower:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case AtUpper:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case XPRS_BASISSTATUS_SUPERBASIC:
-                return Status(std::in_place_type<basis_status::superbasic>);
+            case XPRS_BASISSTATUS_BASIC:      return basic{};
+            case AtLower:                     return nonbasic_at_lower_bound{};
+            case AtUpper:                     return nonbasic_at_upper_bound{};
+            case XPRS_BASISSTATUS_SUPERBASIC: return superbasic{};
             default:
-                return Status(std::in_place_type<basis_status::nonbasic>);
+                                              return nonbasic{};
         }
     }
 
@@ -181,7 +177,6 @@ protected:
     static constexpr int _row_at_lower = XPRS_BASISSTATUS_NONBASIC_UPPER;
     static constexpr int _row_at_upper = XPRS_BASISSTATUS_NONBASIC_LOWER;
 
-    // clang-format off
     // A fixed entity sits at both its sides, and Xpress snaps at the write a
     // side the bounds lack, so the native lower code serves a fixed entity
     // and a bare nonbasic one.

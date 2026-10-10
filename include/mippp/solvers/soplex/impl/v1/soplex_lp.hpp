@@ -587,26 +587,22 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
+    // clang-format off
     // A row's code already names the side of its activity.
     template <typename Status>
     static Status _basis_status(int code) noexcept {
+        using namespace basis_status;
         switch(code) {
-            case SOPLEX_BASIS_BASIC:
-                return Status(std::in_place_type<basis_status::basic>);
-            case SOPLEX_BASIS_ON_LOWER:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case SOPLEX_BASIS_ON_UPPER:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case SOPLEX_BASIS_FIXED:
-                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
-            case SOPLEX_BASIS_ZERO:
-                return Status(std::in_place_type<basis_status::nonbasic_free>);
+            case SOPLEX_BASIS_BASIC:    return basic{};
+            case SOPLEX_BASIS_ON_LOWER: return nonbasic_at_lower_bound{};
+            case SOPLEX_BASIS_ON_UPPER: return nonbasic_at_upper_bound{};
+            case SOPLEX_BASIS_FIXED:    return nonbasic_fixed{};
+            case SOPLEX_BASIS_ZERO:     return nonbasic_free{};
             default:
-                return Status(std::in_place_type<basis_status::nonbasic>);
+                                        return nonbasic{};
         }
     }
+    // clang-format on
 
 public:
     // SoPlex always holds a basis: before the first solve, and after a solve

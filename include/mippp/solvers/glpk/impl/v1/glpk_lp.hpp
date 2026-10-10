@@ -193,28 +193,22 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
+    // clang-format off
     template <typename Status>
     static Status _basis_status(int code) noexcept {
+        using namespace basis_status;
         switch(code) {
-            case GLP_BS:
-                return Status(std::in_place_type<basis_status::basic>);
-            case GLP_NL:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case GLP_NU:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case GLP_NS:
-                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
-            case GLP_NF:
-                return Status(std::in_place_type<basis_status::nonbasic_free>);
+            case GLP_BS: return basic{};
+            case GLP_NL: return nonbasic_at_lower_bound{};
+            case GLP_NU: return nonbasic_at_upper_bound{};
+            case GLP_NS: return nonbasic_fixed{};
+            case GLP_NF: return nonbasic_free{};
             default:
-                return Status(std::in_place_type<basis_status::nonbasic>);
+                         return nonbasic{};
         }
     }
 
 protected:
-    // clang-format off
     // GLPK replaces a nonbasic code the entity's bounds do not allow: NL
     // stands for bare nonbasic, and NF on a bounded entity lands on a bound.
     template <typename Status>

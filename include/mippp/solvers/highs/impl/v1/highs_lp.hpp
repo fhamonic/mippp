@@ -159,26 +159,21 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
+    // clang-format off
     template <typename Status>
     static Status _basis_status(HighsInt code) noexcept {
+        using namespace basis_status;
         switch(code) {
-            case kHighsBasisStatusBasic:
-                return Status(std::in_place_type<basis_status::basic>);
-            case kHighsBasisStatusLower:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case kHighsBasisStatusUpper:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case kHighsBasisStatusZero:
-                return Status(std::in_place_type<basis_status::nonbasic_free>);
+            case kHighsBasisStatusBasic: return basic{};
+            case kHighsBasisStatusLower: return nonbasic_at_lower_bound{};
+            case kHighsBasisStatusUpper: return nonbasic_at_upper_bound{};
+            case kHighsBasisStatusZero:  return nonbasic_free{};
             default:
-                return Status(std::in_place_type<basis_status::nonbasic>);
+                                         return nonbasic{};
         }
     }
 
 protected:
-    // clang-format off
     // A tag this variant lacks, as nonbasic_fixed or superbasic, arrives as
     // bare nonbasic, whose Nonbasic code lets HiGHS pick the side.
     template <typename Status>

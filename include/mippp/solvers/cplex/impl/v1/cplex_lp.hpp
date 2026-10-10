@@ -203,51 +203,39 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
+    // clang-format off
     static basis_variable_status _column_basis_status(int code) noexcept {
+        using namespace basis_status;
         switch(code) {
-            case CPX_BASIC:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::basic>);
-            case CPX_AT_LOWER:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case CPX_AT_UPPER:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case CPX_FREE_SUPER:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::superbasic>);
+            case CPX_BASIC:      return basic{};
+            case CPX_AT_LOWER:   return nonbasic_at_lower_bound{};
+            case CPX_AT_UPPER:   return nonbasic_at_upper_bound{};
+            case CPX_FREE_SUPER: return superbasic{};
             default:
-                return basis_variable_status(
-                    std::in_place_type<basis_status::nonbasic>);
+                                 return nonbasic{};
         }
     }
     // A row code names the side of CPLEX's slack s >= 0, a.x + s = rhs on an
     // 'L' row and a.x - s = rhs on a 'G' or 'R' row: at lower, the activity
     // of an 'L' row is at its upper side.
-    static basis_constraint_status _row_basis_status(int code,
-                                                     char sense) noexcept {
-        if(code == CPX_BASIC)
-            return basis_constraint_status(
-                std::in_place_type<basis_status::basic>);
-        if(code == CPX_AT_LOWER && sense == 'L')
-            return basis_constraint_status(
-                std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-        if(code == CPX_AT_LOWER && sense == 'E')
-            return basis_constraint_status(
-                std::in_place_type<basis_status::nonbasic_fixed>);
-        if(code == CPX_AT_LOWER && (sense == 'G' || sense == 'R'))
-            return basis_constraint_status(
-                std::in_place_type<basis_status::nonbasic_at_lower_bound>);
+    static basis_constraint_status _row_basis_status(
+        int code, char sense) noexcept {
+        using namespace basis_status;
+        if(code == CPX_BASIC)    return basic{};
+        if(code == CPX_AT_LOWER) {
+            switch(sense) {
+                case 'L':        return nonbasic_at_upper_bound{};
+                case 'E':        return nonbasic_fixed{};
+                case 'G':
+                case 'R':        return nonbasic_at_lower_bound{};
+            }
+        }
         if(code == CPX_AT_UPPER && sense == 'R')
-            return basis_constraint_status(
-                std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-        return basis_constraint_status(
-            std::in_place_type<basis_status::nonbasic>);
+                                 return nonbasic_at_upper_bound{};
+        return nonbasic{};
     }
 
 protected:
-    // clang-format off
     // CPLEX snaps a side the bounds do not have at the next solve.
     template <typename Status>
     static constexpr int _column_basis_code(const Status & status) noexcept {

@@ -681,30 +681,23 @@ private:
     static constexpr unsigned char _clp_superbasic = 4;
     static constexpr unsigned char _clp_fixed = 5;
 
+    // clang-format off
     template <typename Status>
     static Status _basis_status(unsigned char byte) noexcept {
+        using namespace basis_status;
         switch(byte & 7) {
-            case _clp_free:
-                return Status(std::in_place_type<basis_status::nonbasic_free>);
-            case _clp_basic:
-                return Status(std::in_place_type<basis_status::basic>);
-            case _clp_at_upper:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_upper_bound>);
-            case _clp_at_lower:
-                return Status(
-                    std::in_place_type<basis_status::nonbasic_at_lower_bound>);
-            case _clp_superbasic:
-                return Status(std::in_place_type<basis_status::superbasic>);
-            case _clp_fixed:
-                return Status(std::in_place_type<basis_status::nonbasic_fixed>);
+            case _clp_free:       return nonbasic_free{};
+            case _clp_basic:      return basic{};
+            case _clp_at_upper:   return nonbasic_at_upper_bound{};
+            case _clp_at_lower:   return nonbasic_at_lower_bound{};
+            case _clp_superbasic: return superbasic{};
+            case _clp_fixed:      return nonbasic_fixed{};
             default:
-                return Status(std::in_place_type<basis_status::nonbasic>);
+                                  return nonbasic{};
         }
     }
 
 protected:
-    // clang-format off
     // Clp snaps a side the bounds do not have at the next solve.
     template <typename Status>
     static constexpr unsigned char _basis_code(const Status & status) noexcept {
