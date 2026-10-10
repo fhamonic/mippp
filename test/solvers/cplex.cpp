@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <concepts>
@@ -8,6 +9,7 @@
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -614,4 +616,46 @@ TEST_F(cplex_lp_test, set_basis_writes_an_empty_dimension) {
     no_columns.set_basis(model_basis_t<cplex_lp>{});
     no_columns.solve();
     EXPECT_TRUE(is<status::optimal>(no_columns.get_status()));
+}
+// The code set_basis writes for each tag the statuses list, pinned without a
+// library: a tag that loses its line in the table writes as its nearest
+// base, which still compiles.
+struct cplex_basis_codes : cplex_lp {
+    using column_status = model_variable_basis_status_t<cplex_lp>;
+    using row_status = model_constraint_basis_status_t<cplex_lp>;
+    template <typename Tag>
+    static constexpr auto column() {
+        return _column_basis_code(column_status(std::in_place_type<Tag>));
+    }
+    template <typename Tag>
+    static constexpr auto row(char sense) {
+        return _row_basis_code(row_status(std::in_place_type<Tag>), sense);
+    }
+};
+TEST(cplex_lp_basis_codes, one_per_listed_tag) {
+    using namespace cplex::impl::v1;
+    using namespace basis_status;
+    using codes = cplex_basis_codes;
+    // clang-format off
+    static_assert(std::variant_size_v<codes::column_status> == 5);
+    static_assert(std::variant_size_v<codes::row_status>    == 5);
+    static_assert(codes::column<basic>()                   == CPX_BASIC);
+    static_assert(codes::column<nonbasic_at_lower_bound>() == CPX_AT_LOWER);
+    static_assert(codes::column<nonbasic_at_upper_bound>() == CPX_AT_UPPER);
+    static_assert(codes::column<superbasic>()              == CPX_FREE_SUPER);
+    static_assert(codes::column<nonbasic>()                == CPX_AT_LOWER);
+    // only the slack of an 'R' row has two distinct bounds
+    static_assert(codes::row<basic>('R')                   == CPX_BASIC);
+    static_assert(codes::row<nonbasic_at_lower_bound>('R') == CPX_AT_LOWER);
+    static_assert(codes::row<nonbasic_at_upper_bound>('R') == CPX_AT_UPPER);
+    static_assert(codes::row<nonbasic_fixed>('R')          == CPX_AT_LOWER);
+    static_assert(codes::row<nonbasic>('R')                == CPX_AT_LOWER);
+    static_assert(std::ranges::all_of(std::string_view("LGE"), [](char sense) {
+        return codes::row<basic>(sense)                   == CPX_BASIC
+            && codes::row<nonbasic_at_lower_bound>(sense) == CPX_AT_LOWER
+            && codes::row<nonbasic_at_upper_bound>(sense) == CPX_AT_LOWER
+            && codes::row<nonbasic_fixed>(sense)          == CPX_AT_LOWER
+            && codes::row<nonbasic>(sense)                == CPX_AT_LOWER;
+    }));
+    // clang-format on
 }

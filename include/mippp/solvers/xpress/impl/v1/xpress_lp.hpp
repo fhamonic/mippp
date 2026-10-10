@@ -11,6 +11,7 @@
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/xpress/impl/v1/xpress_base.hpp"
 
@@ -154,13 +155,6 @@ private:
         basis_snapshot<variable, constraint, basis_variable_status,
                        basis_constraint_status>;
 
-    // A row's code names the side of its slack rhs - a.x, the opposite of the
-    // side of its activity, on every row type.
-    static constexpr int _column_at_lower = XPRS_BASISSTATUS_NONBASIC_LOWER;
-    static constexpr int _column_at_upper = XPRS_BASISSTATUS_NONBASIC_UPPER;
-    static constexpr int _row_at_lower = XPRS_BASISSTATUS_NONBASIC_UPPER;
-    static constexpr int _row_at_upper = XPRS_BASISSTATUS_NONBASIC_LOWER;
-
     template <typename Status, int AtLower, int AtUpper>
     static Status _basis_status(int code) noexcept {
         switch(code) {
@@ -178,29 +172,31 @@ private:
                 return Status(std::in_place_type<basis_status::nonbasic>);
         }
     }
+
+protected:
+    // A row's code names the side of its slack rhs - a.x, the opposite of the
+    // side of its activity, on every row type.
+    static constexpr int _column_at_lower = XPRS_BASISSTATUS_NONBASIC_LOWER;
+    static constexpr int _column_at_upper = XPRS_BASISSTATUS_NONBASIC_UPPER;
+    static constexpr int _row_at_lower = XPRS_BASISSTATUS_NONBASIC_UPPER;
+    static constexpr int _row_at_upper = XPRS_BASISSTATUS_NONBASIC_LOWER;
+
+    // clang-format off
     // A fixed entity sits at both its sides, and Xpress snaps at the write a
     // side the bounds lack, so the native lower code serves a fixed entity
     // and a bare nonbasic one.
     template <int AtLower, int AtUpper, typename Status>
-    static int _basis_code(const Status & status) noexcept {
-        return std::visit(
-            []<typename Tag>(Tag) -> int {
-                using namespace basis_status;
-                if constexpr(std::same_as<Tag, basic>)
-                    return XPRS_BASISSTATUS_BASIC;
-                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
-                    return AtLower;
-                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
-                    return AtUpper;
-                else if constexpr(std::same_as<Tag, superbasic>)
-                    return XPRS_BASISSTATUS_SUPERBASIC;
-                else {
-                    static_assert(std::same_as<Tag, nonbasic>);
-                    return XPRS_BASISSTATUS_NONBASIC_LOWER;
-                }
-            },
+    static constexpr int _basis_code(const Status & status) noexcept {
+        using namespace basis_status;
+        return std::visit<int>(detail::overloaded{
+            [](basic)                   { return XPRS_BASISSTATUS_BASIC; },
+            [](nonbasic_at_lower_bound) { return AtLower; },
+            [](nonbasic_at_upper_bound) { return AtUpper; },
+            [](superbasic)              { return XPRS_BASISSTATUS_SUPERBASIC; },
+            [](nonbasic)                { return XPRS_BASISSTATUS_NONBASIC_LOWER; }},
             status);
     }
+    // clang-format on
 
 public:
     // Xpress answers before any solve with the slack basis, and after a

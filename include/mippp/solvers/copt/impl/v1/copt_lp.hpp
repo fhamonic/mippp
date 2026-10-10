@@ -12,6 +12,7 @@
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/copt/impl/v1/copt_base.hpp"
 
@@ -143,29 +144,23 @@ private:
                 return Status(std::in_place_type<basis_status::nonbasic>);
         }
     }
+
+protected:
+    // clang-format off
     // COPT snaps a side the bounds do not have at the next solve.
     template <typename Status>
-    static int _basis_code(const Status & status) noexcept {
-        return std::visit(
-            []<typename Tag>(Tag) -> int {
-                using namespace basis_status;
-                if constexpr(std::same_as<Tag, basic>)
-                    return COPT_BASIS_BASIC;
-                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
-                    return COPT_BASIS_LOWER;
-                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
-                    return COPT_BASIS_UPPER;
-                else if constexpr(std::same_as<Tag, nonbasic_fixed>)
-                    return COPT_BASIS_FIXED;
-                else if constexpr(std::same_as<Tag, superbasic>)
-                    return COPT_BASIS_SUPERBASIC;
-                else {
-                    static_assert(std::same_as<Tag, nonbasic>);
-                    return COPT_BASIS_LOWER;
-                }
-            },
+    static constexpr int _basis_code(const Status & status) noexcept {
+        using namespace basis_status;
+        return std::visit<int>(detail::overloaded{
+            [](basic)                   { return COPT_BASIS_BASIC; },
+            [](nonbasic_at_lower_bound) { return COPT_BASIS_LOWER; },
+            [](nonbasic_at_upper_bound) { return COPT_BASIS_UPPER; },
+            [](nonbasic_fixed)          { return COPT_BASIS_FIXED; },
+            [](superbasic)              { return COPT_BASIS_SUPERBASIC; },
+            [](nonbasic)                { return COPT_BASIS_LOWER; }},
             status);
     }
+    // clang-format on
 
 public:
     // COPT_Reset, which compute_iis() runs, leaves zeros that COPT_GetBasis

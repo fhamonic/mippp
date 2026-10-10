@@ -15,6 +15,7 @@
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/highs/impl/v1/highs_base.hpp"
 
@@ -175,28 +176,23 @@ private:
                 return Status(std::in_place_type<basis_status::nonbasic>);
         }
     }
+
+protected:
+    // clang-format off
     // A tag this variant lacks, as nonbasic_fixed or superbasic, arrives as
     // bare nonbasic, whose Nonbasic code lets HiGHS pick the side.
     template <typename Status>
-    static HighsInt _basis_code(const Status & status) noexcept {
-        return std::visit(
-            []<typename Tag>(Tag) -> HighsInt {
-                using namespace basis_status;
-                if constexpr(std::same_as<Tag, basic>)
-                    return kHighsBasisStatusBasic;
-                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
-                    return kHighsBasisStatusLower;
-                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
-                    return kHighsBasisStatusUpper;
-                else if constexpr(std::same_as<Tag, nonbasic_free>)
-                    return kHighsBasisStatusZero;
-                else {
-                    static_assert(std::same_as<Tag, nonbasic>);
-                    return kHighsBasisStatusNonbasic;
-                }
-            },
+    static constexpr HighsInt _basis_code(const Status & status) noexcept {
+        using namespace basis_status;
+        return std::visit<HighsInt>(detail::overloaded{
+            [](basic)                   { return kHighsBasisStatusBasic; },
+            [](nonbasic_at_lower_bound) { return kHighsBasisStatusLower; },
+            [](nonbasic_at_upper_bound) { return kHighsBasisStatusUpper; },
+            [](nonbasic_free)           { return kHighsBasisStatusZero; },
+            [](nonbasic)                { return kHighsBasisStatusNonbasic; }},
             status);
     }
+    // clang-format on
 
 public:
     // HiGHS keeps and extends its basis through changes of the model, but

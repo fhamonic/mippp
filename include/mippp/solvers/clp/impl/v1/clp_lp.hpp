@@ -21,6 +21,7 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/clp/impl/v1/clp_api.hpp"
 #include "mippp/solvers/model_base.hpp"
@@ -701,31 +702,24 @@ private:
                 return Status(std::in_place_type<basis_status::nonbasic>);
         }
     }
+
+protected:
+    // clang-format off
     // Clp snaps a side the bounds do not have at the next solve.
     template <typename Status>
-    static unsigned char _basis_code(const Status & status) noexcept {
-        return std::visit(
-            []<typename Tag>(Tag) -> unsigned char {
-                using namespace basis_status;
-                if constexpr(std::same_as<Tag, basic>)
-                    return _clp_basic;
-                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
-                    return _clp_at_lower;
-                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
-                    return _clp_at_upper;
-                else if constexpr(std::same_as<Tag, nonbasic_fixed>)
-                    return _clp_fixed;
-                else if constexpr(std::same_as<Tag, superbasic>)
-                    return _clp_superbasic;
-                else if constexpr(std::same_as<Tag, nonbasic_free>)
-                    return _clp_free;
-                else {
-                    static_assert(std::same_as<Tag, nonbasic>);
-                    return _clp_at_lower;
-                }
-            },
+    static constexpr unsigned char _basis_code(const Status & status) noexcept {
+        using namespace basis_status;
+        return std::visit<unsigned char>(detail::overloaded{
+            [](basic)                   { return _clp_basic; },
+            [](nonbasic_at_lower_bound) { return _clp_at_lower; },
+            [](nonbasic_at_upper_bound) { return _clp_at_upper; },
+            [](nonbasic_fixed)          { return _clp_fixed; },
+            [](superbasic)              { return _clp_superbasic; },
+            [](nonbasic_free)           { return _clp_free; },
+            [](nonbasic)                { return _clp_at_lower; }},
             status);
     }
+    // clang-format on
 
 public:
     // Removed columns stay in Clp until their id is reused, so the tables

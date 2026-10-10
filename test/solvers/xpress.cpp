@@ -9,6 +9,7 @@
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -196,6 +197,43 @@ INSTANTIATE_TEST(Xpress_milp, MipGapTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);
 static_assert(!has_lp_basis<xpress_milp>);
+// The code set_basis writes for each tag the statuses list, pinned without a
+// library: a tag that loses its line in the table writes as its nearest
+// base, which still compiles.
+struct xpress_basis_codes : xpress_lp {
+    using column_status = model_variable_basis_status_t<xpress_lp>;
+    using row_status = model_constraint_basis_status_t<xpress_lp>;
+    template <typename Tag>
+    static constexpr auto column() {
+        return _basis_code<_column_at_lower, _column_at_upper>(
+            column_status(std::in_place_type<Tag>));
+    }
+    template <typename Tag>
+    static constexpr auto row() {
+        return _basis_code<_row_at_lower, _row_at_upper>(
+            row_status(std::in_place_type<Tag>));
+    }
+};
+TEST(xpress_lp_basis_codes, one_per_listed_tag) {
+    using namespace xpress::impl::v1;
+    using namespace basis_status;
+    using codes = xpress_basis_codes;
+    // clang-format off
+    static_assert(std::variant_size_v<codes::column_status> == 5);
+    static_assert(std::variant_size_v<codes::row_status>    == 5);
+    static_assert(codes::column<basic>()                   == XPRS_BASISSTATUS_BASIC);
+    static_assert(codes::column<nonbasic_at_lower_bound>() == XPRS_BASISSTATUS_NONBASIC_LOWER);
+    static_assert(codes::column<nonbasic_at_upper_bound>() == XPRS_BASISSTATUS_NONBASIC_UPPER);
+    static_assert(codes::column<superbasic>()              == XPRS_BASISSTATUS_SUPERBASIC);
+    static_assert(codes::column<nonbasic>()                == XPRS_BASISSTATUS_NONBASIC_LOWER);
+    // a row's code names the side of its slack, opposite its activity's
+    static_assert(codes::row<basic>()                   == XPRS_BASISSTATUS_BASIC);
+    static_assert(codes::row<nonbasic_at_lower_bound>() == XPRS_BASISSTATUS_NONBASIC_UPPER);
+    static_assert(codes::row<nonbasic_at_upper_bound>() == XPRS_BASISSTATUS_NONBASIC_LOWER);
+    static_assert(codes::row<superbasic>()              == XPRS_BASISSTATUS_SUPERBASIC);
+    static_assert(codes::row<nonbasic>()                == XPRS_BASISSTATUS_NONBASIC_LOWER);
+    // clang-format on
+}
 
 // A column whose bounds hold no value makes the model infeasible, beyond the
 // tolerances: FEASTOL for bounds that cross, MIPTOL around an integer.

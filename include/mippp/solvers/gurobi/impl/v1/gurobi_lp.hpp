@@ -12,6 +12,7 @@
 #include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/gurobi/impl/v1/gurobi_base.hpp"
 
@@ -204,31 +205,24 @@ private:
         }
         return nonbasic{};
     }
-    // clang-format on
+
+protected:
     // Gurobi repairs a side the bounds lack at the next solve.
     template <typename Status>
-    static int _basis_variable_code(const Status & status) noexcept {
-        return std::visit(
-            []<typename Tag>(Tag) -> int {
-                using namespace basis_status;
-                if constexpr(std::same_as<Tag, basic>)
-                    return GRB_BASIC;
-                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
-                    return GRB_NONBASIC_LOWER;
-                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
-                    return GRB_NONBASIC_UPPER;
-                else if constexpr(std::same_as<Tag, superbasic>)
-                    return GRB_SUPERBASIC;
-                else {
-                    static_assert(std::same_as<Tag, nonbasic>);
-                    return GRB_NONBASIC_LOWER;
-                }
-            },
+    static constexpr int _basis_variable_code(const Status & status) noexcept {
+        using namespace basis_status;
+        return std::visit<int>(detail::overloaded{
+            [](basic)                   { return GRB_BASIC; },
+            [](nonbasic_at_lower_bound) { return GRB_NONBASIC_LOWER; },
+            [](nonbasic_at_upper_bound) { return GRB_NONBASIC_UPPER; },
+            [](superbasic)              { return GRB_SUPERBASIC; },
+            [](nonbasic)                { return GRB_NONBASIC_LOWER; }},
             status);
     }
+    // clang-format on
     // A row's side is not written: Gurobi holds a nonbasic row at its
     // right-hand side.
-    static int _basis_constraint_code(
+    static constexpr int _basis_constraint_code(
         const basis_constraint_status & status) noexcept {
         return is<basis_status::basic>(status) ? GRB_BASIC : GRB_NONBASIC_LOWER;
     }

@@ -13,6 +13,7 @@
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/mosek/impl/v1/mosek_base.hpp"
 
@@ -220,29 +221,23 @@ private:
                     "solution holds an unknown or infeasible status key");
         }
     }
+
+protected:
+    // clang-format off
     // MOSEK snaps a side the bounds do not have at the next solve.
     template <typename Status>
-    static MSKstakeye _basis_key(const Status & status) noexcept {
-        return std::visit(
-            []<typename Tag>(Tag) -> MSKstakeye {
-                using namespace basis_status;
-                if constexpr(std::same_as<Tag, basic>)
-                    return MSK_SK_BAS;
-                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
-                    return MSK_SK_LOW;
-                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
-                    return MSK_SK_UPR;
-                else if constexpr(std::same_as<Tag, nonbasic_fixed>)
-                    return MSK_SK_FIX;
-                else if constexpr(std::same_as<Tag, superbasic>)
-                    return MSK_SK_SUPBAS;
-                else {
-                    static_assert(std::same_as<Tag, nonbasic>);
-                    return MSK_SK_LOW;
-                }
-            },
+    static constexpr MSKstakeye _basis_key(const Status & status) noexcept {
+        using namespace basis_status;
+        return std::visit<MSKstakeye>(detail::overloaded{
+            [](basic)                   { return MSK_SK_BAS; },
+            [](nonbasic_at_lower_bound) { return MSK_SK_LOW; },
+            [](nonbasic_at_upper_bound) { return MSK_SK_UPR; },
+            [](nonbasic_fixed)          { return MSK_SK_FIX; },
+            [](superbasic)              { return MSK_SK_SUPBAS; },
+            [](nonbasic)                { return MSK_SK_LOW; }},
             status);
     }
+    // clang-format on
 
 public:
     // Reads the basic slot whichever slot solve() picked: the interior one

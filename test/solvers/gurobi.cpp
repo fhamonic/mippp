@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <ranges>
+#include <utility>
 #include <variant>
 
 #include "mippp/solvers/gurobi/all.hpp"
@@ -320,6 +321,40 @@ TEST_F(gurobi_lp_test, basis_of_a_model_without_rows) {
     model.solve();
     ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
     ASSERT_NEAR(model.get_solution_value(), 2.0, TEST_EPSILON);
+}
+// The code set_basis writes for each tag the statuses list, pinned without a
+// library: a tag that loses its line in the table writes as its nearest
+// base, which still compiles.
+struct gurobi_basis_codes : gurobi_lp {
+    using column_status = model_variable_basis_status_t<gurobi_lp>;
+    using row_status = model_constraint_basis_status_t<gurobi_lp>;
+    template <typename Tag>
+    static constexpr auto column() {
+        return _basis_variable_code(column_status(std::in_place_type<Tag>));
+    }
+    template <typename Tag>
+    static constexpr auto row() {
+        return _basis_constraint_code(row_status(std::in_place_type<Tag>));
+    }
+};
+TEST(gurobi_lp_basis_codes, one_per_listed_tag) {
+    using namespace gurobi::impl::v1;
+    using namespace basis_status;
+    using codes = gurobi_basis_codes;
+    // clang-format off
+    static_assert(std::variant_size_v<codes::column_status> == 5);
+    static_assert(std::variant_size_v<codes::row_status>    == 5);
+    static_assert(codes::column<basic>()                   == GRB_BASIC);
+    static_assert(codes::column<nonbasic_at_lower_bound>() == GRB_NONBASIC_LOWER);
+    static_assert(codes::column<nonbasic_at_upper_bound>() == GRB_NONBASIC_UPPER);
+    static_assert(codes::column<superbasic>()              == GRB_SUPERBASIC);
+    static_assert(codes::column<nonbasic>()                == GRB_NONBASIC_LOWER);
+    static_assert(codes::row<basic>()                   == GRB_BASIC);
+    static_assert(codes::row<nonbasic_at_lower_bound>() == GRB_NONBASIC_LOWER);
+    static_assert(codes::row<nonbasic_at_upper_bound>() == GRB_NONBASIC_LOWER);
+    static_assert(codes::row<nonbasic_fixed>()          == GRB_NONBASIC_LOWER);
+    static_assert(codes::row<nonbasic>()                == GRB_NONBASIC_LOWER);
+    // clang-format on
 }
 
 // The forcing attributes are the user's: values set to 0 beforehand, which

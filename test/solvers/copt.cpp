@@ -4,6 +4,7 @@
 #include <random>
 #include <ranges>
 #include <stdexcept>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -241,6 +242,42 @@ INSTANTIATE_TEST(COPT_milp, MipGapTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, VerbosityTest, copt_milp_test);
 
 static_assert(!has_lp_basis<copt_milp>);
+// The code set_basis writes for each tag the statuses list, pinned without a
+// library: a tag that loses its line in the table writes as its nearest
+// base, which still compiles.
+struct copt_basis_codes : copt_lp {
+    using column_status = model_variable_basis_status_t<copt_lp>;
+    using row_status = model_constraint_basis_status_t<copt_lp>;
+    template <typename Tag>
+    static constexpr auto column() {
+        return _basis_code(column_status(std::in_place_type<Tag>));
+    }
+    template <typename Tag>
+    static constexpr auto row() {
+        return _basis_code(row_status(std::in_place_type<Tag>));
+    }
+};
+TEST(copt_lp_basis_codes, one_per_listed_tag) {
+    using namespace copt::impl::v1;
+    using namespace basis_status;
+    using codes = copt_basis_codes;
+    // clang-format off
+    static_assert(std::variant_size_v<codes::column_status> == 6);
+    static_assert(std::variant_size_v<codes::row_status>    == 6);
+    static_assert(codes::column<basic>()                   == COPT_BASIS_BASIC);
+    static_assert(codes::column<nonbasic_at_lower_bound>() == COPT_BASIS_LOWER);
+    static_assert(codes::column<nonbasic_at_upper_bound>() == COPT_BASIS_UPPER);
+    static_assert(codes::column<nonbasic_fixed>()          == COPT_BASIS_FIXED);
+    static_assert(codes::column<superbasic>()              == COPT_BASIS_SUPERBASIC);
+    static_assert(codes::column<nonbasic>()                == COPT_BASIS_LOWER);
+    static_assert(codes::row<basic>()                   == COPT_BASIS_BASIC);
+    static_assert(codes::row<nonbasic_at_lower_bound>() == COPT_BASIS_LOWER);
+    static_assert(codes::row<nonbasic_at_upper_bound>() == COPT_BASIS_UPPER);
+    static_assert(codes::row<nonbasic_fixed>()          == COPT_BASIS_FIXED);
+    static_assert(codes::row<superbasic>()              == COPT_BASIS_SUPERBASIC);
+    static_assert(codes::row<nonbasic>()                == COPT_BASIS_LOWER);
+    // clang-format on
+}
 static_assert(has_iis<copt_lp>);
 static_assert(has_iis<copt_milp>);
 static_assert(std::same_as<

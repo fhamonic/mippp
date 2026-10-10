@@ -1,4 +1,6 @@
 #include <chrono>
+#include <utility>
+#include <variant>
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
@@ -123,6 +125,46 @@ TEST_F(clp_lp_test, set_basis_writes_a_removed_column_fixed) {
     ASSERT_NE(status, nullptr);
     ASSERT_EQ(status[model.native_id(v.x3)] & 7, 5);
     ASSERT_EQ(status[model.native_id(v.x4)] & 7, 1);
+}
+// The code set_basis writes for each tag the statuses list, pinned without a
+// library: a tag that loses its line in the table writes as its nearest
+// base, which still compiles.
+struct clp_basis_codes : clp_lp {
+    using column_status = model_variable_basis_status_t<clp_lp>;
+    using row_status = model_constraint_basis_status_t<clp_lp>;
+    template <typename Tag>
+    static constexpr auto column() {
+        return _basis_code(column_status(std::in_place_type<Tag>));
+    }
+    template <typename Tag>
+    static constexpr auto row() {
+        return _basis_code(row_status(std::in_place_type<Tag>));
+    }
+};
+TEST(clp_lp_basis_codes, one_per_listed_tag) {
+    using namespace clp::impl::v1;
+    using namespace basis_status;
+    using codes = clp_basis_codes;
+    // clang-format off
+    static_assert(std::variant_size_v<codes::column_status> == 7);
+    static_assert(std::variant_size_v<codes::row_status>    == 7);
+    // Clp's codes: 0 free, 1 basic, 2 at upper, 3 at lower, 4 superbasic,
+    // 5 fixed.
+    static_assert(codes::column<basic>()                   == 1);
+    static_assert(codes::column<nonbasic_at_lower_bound>() == 3);
+    static_assert(codes::column<nonbasic_at_upper_bound>() == 2);
+    static_assert(codes::column<nonbasic_fixed>()          == 5);
+    static_assert(codes::column<superbasic>()              == 4);
+    static_assert(codes::column<nonbasic_free>()           == 0);
+    static_assert(codes::column<nonbasic>()                == 3);
+    static_assert(codes::row<basic>()                   == 1);
+    static_assert(codes::row<nonbasic_at_lower_bound>() == 3);
+    static_assert(codes::row<nonbasic_at_upper_bound>() == 2);
+    static_assert(codes::row<nonbasic_fixed>()          == 5);
+    static_assert(codes::row<superbasic>()              == 4);
+    static_assert(codes::row<nonbasic_free>()           == 0);
+    static_assert(codes::row<nonbasic>()                == 3);
+    // clang-format on
 }
 // infeasible, but scaling shrinks the violation at x = 0 below Clp's
 // tolerance, and its primary status says optimal

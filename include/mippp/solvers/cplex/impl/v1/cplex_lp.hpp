@@ -14,6 +14,7 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/cplex/impl/v1/cplex_base.hpp"
 
@@ -244,35 +245,32 @@ private:
         return basis_constraint_status(
             std::in_place_type<basis_status::nonbasic>);
     }
+
+protected:
+    // clang-format off
     // CPLEX snaps a side the bounds do not have at the next solve.
     template <typename Status>
-    static int _column_basis_code(const Status & status) noexcept {
-        return std::visit(
-            []<typename Tag>(Tag) -> int {
-                using namespace basis_status;
-                if constexpr(std::same_as<Tag, basic>)
-                    return CPX_BASIC;
-                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
-                    return CPX_AT_LOWER;
-                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
-                    return CPX_AT_UPPER;
-                else if constexpr(std::same_as<Tag, superbasic>)
-                    return CPX_FREE_SUPER;
-                else {
-                    static_assert(std::same_as<Tag, nonbasic>);
-                    return CPX_AT_LOWER;
-                }
-            },
+    static constexpr int _column_basis_code(const Status & status) noexcept {
+        using namespace basis_status;
+        return std::visit<int>(detail::overloaded{
+            [](basic)                   { return CPX_BASIC; },
+            [](nonbasic_at_lower_bound) { return CPX_AT_LOWER; },
+            [](nonbasic_at_upper_bound) { return CPX_AT_UPPER; },
+            [](superbasic)              { return CPX_FREE_SUPER; },
+            [](nonbasic)                { return CPX_AT_LOWER; }},
             status);
     }
+    // clang-format on
     // only the slack of an 'R' row has two distinct bounds
-    static int _row_basis_code(const basis_constraint_status & status,
-                               char sense) noexcept {
+    static constexpr int _row_basis_code(const basis_constraint_status & status,
+                                         char sense) noexcept {
         if(is<basis_status::basic>(status)) return CPX_BASIC;
         if(is<basis_status::nonbasic_at_upper_bound>(status) && sense == 'R')
             return CPX_AT_UPPER;
         return CPX_AT_LOWER;
     }
+
+private:
     std::vector<char> _row_senses(std::size_t num_row) {
         std::vector<char> senses(num_row);
         if(num_row > 0)

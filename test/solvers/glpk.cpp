@@ -385,6 +385,42 @@ struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
 };
 static_assert(!has_iis<glpk_milp>);
 static_assert(!has_lp_basis<glpk_milp>);
+// The code set_basis writes for each tag the statuses list, pinned without a
+// library: a tag that loses its line in the table writes as its nearest
+// base, which still compiles.
+struct glpk_basis_codes : glpk_lp {
+    using column_status = model_variable_basis_status_t<glpk_lp>;
+    using row_status = model_constraint_basis_status_t<glpk_lp>;
+    template <typename Tag>
+    static constexpr auto column() {
+        return _basis_code(column_status(std::in_place_type<Tag>));
+    }
+    template <typename Tag>
+    static constexpr auto row() {
+        return _basis_code(row_status(std::in_place_type<Tag>));
+    }
+};
+TEST(glpk_lp_basis_codes, one_per_listed_tag) {
+    using namespace glpk::impl::v1;
+    using namespace basis_status;
+    using codes = glpk_basis_codes;
+    // clang-format off
+    static_assert(std::variant_size_v<codes::column_status> == 6);
+    static_assert(std::variant_size_v<codes::row_status>    == 6);
+    static_assert(codes::column<basic>()                   == GLP_BS);
+    static_assert(codes::column<nonbasic_at_lower_bound>() == GLP_NL);
+    static_assert(codes::column<nonbasic_at_upper_bound>() == GLP_NU);
+    static_assert(codes::column<nonbasic_fixed>()          == GLP_NS);
+    static_assert(codes::column<nonbasic_free>()           == GLP_NF);
+    static_assert(codes::column<nonbasic>()                == GLP_NL);
+    static_assert(codes::row<basic>()                   == GLP_BS);
+    static_assert(codes::row<nonbasic_at_lower_bound>() == GLP_NL);
+    static_assert(codes::row<nonbasic_at_upper_bound>() == GLP_NU);
+    static_assert(codes::row<nonbasic_fixed>()          == GLP_NS);
+    static_assert(codes::row<nonbasic_free>()           == GLP_NF);
+    static_assert(codes::row<nonbasic>()                == GLP_NL);
+    // clang-format on
+}
 TEST_F(glpk_milp_test, crossing_variable_bounds_are_infeasible) {
     using namespace operators;
     auto model = new_model();

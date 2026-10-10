@@ -123,6 +123,19 @@ behind each ruling letter, and the survey of 2026-10-09 in
   keeps `Nonbasic` and places the column itself at the solve.
   test/solvers/highs.cpp echoes the code and the warm start; glpk.cpp pins
   what GLPK stores.
+- **Each tag-to-code encoder is a table** (the maintainer's choice of
+  2026-10-10): `std::visit<R>(detail::overloaded{...})`, one line per tag
+  the backend's statuses list. The row codes of `gurobi_lp` and `cplex_lp`
+  stay an `is<>` test, since Gurobi writes no row side and CPLEX's depends
+  on the sense. A table compiles to the same code as an `if constexpr`
+  chain ending in a `static_assert`, but a tag that loses its line still
+  compiles and writes as its nearest base. So each backend test
+  (`*_basis_codes` in test/solvers/) pins the code of every listed tag,
+  rows included, and the size of each status variant; only a line whose
+  code equals its base's can go unseen, and dropping it changes nothing
+  written. `std::visit<R>` pins the return
+  type, which the mix of enumerators and `int` template parameters in
+  `xpress_lp` needs.
 
 ## Open questions
 

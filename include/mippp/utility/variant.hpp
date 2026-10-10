@@ -25,6 +25,15 @@ inline constexpr bool all_alternatives_v<C, T, std::variant<Ts...>> =
 
 template <typename Base, typename D>
 using is_derived_from = std::bool_constant<std::derived_from<D, Base>>;
+
+// The call operators of Fs as one overload set, for std::visit over tags: an
+// alternative without an overload of its own reaches its nearest base's.
+template <typename... Fs>
+struct overloaded : Fs... {
+    using Fs::operator()...;
+};
+template <typename... Fs>
+overloaded(Fs...) -> overloaded<Fs...>;
 }  // namespace detail
 
 template <typename V, typename T>

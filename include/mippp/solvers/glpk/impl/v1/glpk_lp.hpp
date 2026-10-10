@@ -13,6 +13,7 @@
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/glpk/impl/v1/glpk_base.hpp"
 
@@ -211,30 +212,24 @@ private:
                 return Status(std::in_place_type<basis_status::nonbasic>);
         }
     }
+
+protected:
+    // clang-format off
     // GLPK replaces a nonbasic code the entity's bounds do not allow: NL
     // stands for bare nonbasic, and NF on a bounded entity lands on a bound.
     template <typename Status>
-    static int _basis_code(const Status & status) noexcept {
-        return std::visit(
-            []<typename Tag>(Tag) -> int {
-                using namespace basis_status;
-                if constexpr(std::same_as<Tag, basic>)
-                    return GLP_BS;
-                else if constexpr(std::same_as<Tag, nonbasic_at_lower_bound>)
-                    return GLP_NL;
-                else if constexpr(std::same_as<Tag, nonbasic_at_upper_bound>)
-                    return GLP_NU;
-                else if constexpr(std::same_as<Tag, nonbasic_fixed>)
-                    return GLP_NS;
-                else if constexpr(std::same_as<Tag, nonbasic_free>)
-                    return GLP_NF;
-                else {
-                    static_assert(std::same_as<Tag, nonbasic>);
-                    return GLP_NL;
-                }
-            },
+    static constexpr int _basis_code(const Status & status) noexcept {
+        using namespace basis_status;
+        return std::visit<int>(detail::overloaded{
+            [](basic)                   { return GLP_BS; },
+            [](nonbasic_at_lower_bound) { return GLP_NL; },
+            [](nonbasic_at_upper_bound) { return GLP_NU; },
+            [](nonbasic_fixed)          { return GLP_NS; },
+            [](nonbasic_free)           { return GLP_NF; },
+            [](nonbasic)                { return GLP_NL; }},
             status);
     }
+    // clang-format on
 
 public:
     // GLPK always holds a basis, a new model's included.

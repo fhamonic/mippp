@@ -287,6 +287,40 @@ static_assert(has_lp_basis_warm_start<highs_lp>);
 // the QP solver reports no simplex basis and ignores one it is given
 static_assert(!has_lp_basis<highs_qp>);
 static_assert(!has_lp_basis<highs_milp>);
+// The code set_basis writes for each tag the statuses list, pinned without a
+// library: a tag that loses its line in the table writes as its nearest
+// base, which still compiles.
+struct highs_basis_codes : highs_lp {
+    using column_status = model_variable_basis_status_t<highs_lp>;
+    using row_status = model_constraint_basis_status_t<highs_lp>;
+    template <typename Tag>
+    static constexpr auto column() {
+        return _basis_code(column_status(std::in_place_type<Tag>));
+    }
+    template <typename Tag>
+    static constexpr auto row() {
+        return _basis_code(row_status(std::in_place_type<Tag>));
+    }
+};
+TEST(highs_lp_basis_codes, one_per_listed_tag) {
+    using namespace highs::impl::v1;
+    using namespace basis_status;
+    using codes = highs_basis_codes;
+    // clang-format off
+    static_assert(std::variant_size_v<codes::column_status> == 5);
+    static_assert(std::variant_size_v<codes::row_status>    == 5);
+    static_assert(codes::column<basic>()                   == kHighsBasisStatusBasic);
+    static_assert(codes::column<nonbasic_at_lower_bound>() == kHighsBasisStatusLower);
+    static_assert(codes::column<nonbasic_at_upper_bound>() == kHighsBasisStatusUpper);
+    static_assert(codes::column<nonbasic_free>()           == kHighsBasisStatusZero);
+    static_assert(codes::column<nonbasic>()                == kHighsBasisStatusNonbasic);
+    static_assert(codes::row<basic>()                   == kHighsBasisStatusBasic);
+    static_assert(codes::row<nonbasic_at_lower_bound>() == kHighsBasisStatusLower);
+    static_assert(codes::row<nonbasic_at_upper_bound>() == kHighsBasisStatusUpper);
+    static_assert(codes::row<nonbasic_free>()           == kHighsBasisStatusZero);
+    static_assert(codes::row<nonbasic>()                == kHighsBasisStatusNonbasic);
+    // clang-format on
+}
 static_assert(iis_by_deletion_model<highs_lp>);
 static_assert(iis_by_deletion_model<highs_milp>);
 static_assert(iis_by_deletion_model<highs_qp>);

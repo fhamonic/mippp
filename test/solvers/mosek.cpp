@@ -1,5 +1,7 @@
 #include <optional>
 #include <stdexcept>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include "mippp/linear_constraint.hpp"
@@ -369,6 +371,42 @@ struct mosek_milp_test : public model_test<mosek_api, mosek_milp> {
 };
 static_assert(!has_iis<mosek_milp>);
 static_assert(!has_lp_basis<mosek_milp>);
+// The code set_basis writes for each tag the statuses list, pinned without a
+// library: a tag that loses its line in the table writes as its nearest
+// base, which still compiles.
+struct mosek_basis_codes : mosek_lp {
+    using column_status = model_variable_basis_status_t<mosek_lp>;
+    using row_status = model_constraint_basis_status_t<mosek_lp>;
+    template <typename Tag>
+    static constexpr auto column() {
+        return _basis_key(column_status(std::in_place_type<Tag>));
+    }
+    template <typename Tag>
+    static constexpr auto row() {
+        return _basis_key(row_status(std::in_place_type<Tag>));
+    }
+};
+TEST(mosek_lp_basis_codes, one_per_listed_tag) {
+    using namespace mosek::impl::v1;
+    using namespace basis_status;
+    using codes = mosek_basis_codes;
+    // clang-format off
+    static_assert(std::variant_size_v<codes::column_status> == 6);
+    static_assert(std::variant_size_v<codes::row_status>    == 6);
+    static_assert(codes::column<basic>()                   == MSK_SK_BAS);
+    static_assert(codes::column<nonbasic_at_lower_bound>() == MSK_SK_LOW);
+    static_assert(codes::column<nonbasic_at_upper_bound>() == MSK_SK_UPR);
+    static_assert(codes::column<nonbasic_fixed>()          == MSK_SK_FIX);
+    static_assert(codes::column<superbasic>()              == MSK_SK_SUPBAS);
+    static_assert(codes::column<nonbasic>()                == MSK_SK_LOW);
+    static_assert(codes::row<basic>()                   == MSK_SK_BAS);
+    static_assert(codes::row<nonbasic_at_lower_bound>() == MSK_SK_LOW);
+    static_assert(codes::row<nonbasic_at_upper_bound>() == MSK_SK_UPR);
+    static_assert(codes::row<nonbasic_fixed>()          == MSK_SK_FIX);
+    static_assert(codes::row<superbasic>()              == MSK_SK_SUPBAS);
+    static_assert(codes::row<nonbasic>()                == MSK_SK_LOW);
+    // clang-format on
+}
 TEST_F(mosek_milp_test, column_less_model_is_optimal_only_if_its_rows_hold) {
     SkipOnLicenseError([this]() {
         expect_column_less_status_follows_rows(new_model(), new_model(),

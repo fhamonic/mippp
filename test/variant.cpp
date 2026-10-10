@@ -26,6 +26,18 @@ static_assert(
 static_assert(variant_containing_a<SV, polygon>);
 static_assert(!variant_containing_a<SV, unrelated>);
 
+// An alternative without an overload of its own reaches its nearest base's:
+// triangle reaches polygon's, not shape's.
+constexpr int visit_shape(const std::variant<triangle, circle, shape> & v) {
+    return std::visit<int>(
+        detail::overloaded{[](polygon) { return 1; }, [](circle) { return 2; },
+                           [](shape) { return 0; }},
+        v);
+}
+static_assert(visit_shape(triangle{}) == 1);
+static_assert(visit_shape(circle{}) == 2);
+static_assert(visit_shape(shape{}) == 0);
+
 TEST(variant, is_matches_the_exact_alternative) {
     SV v = triangle{};
     ASSERT_TRUE(is<triangle>(v));
