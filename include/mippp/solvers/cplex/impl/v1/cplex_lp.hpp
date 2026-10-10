@@ -221,17 +221,17 @@ private:
     static basis_constraint_status _row_basis_status(
         int code, char sense) noexcept {
         using namespace basis_status;
-        if(code == CPX_BASIC)    return basic{};
+        if(code == CPX_BASIC) return basic{};
         if(code == CPX_AT_LOWER) {
             switch(sense) {
-                case 'L':        return nonbasic_at_upper_bound{};
-                case 'E':        return nonbasic_fixed{};
+                case 'L':     return nonbasic_at_upper_bound{};
+                case 'E':     return nonbasic_fixed{};
                 case 'G':
-                case 'R':        return nonbasic_at_lower_bound{};
+                case 'R':     return nonbasic_at_lower_bound{};
             }
         }
         if(code == CPX_AT_UPPER && sense == 'R')
-                                 return nonbasic_at_upper_bound{};
+                              return nonbasic_at_upper_bound{};
         return nonbasic{};
     }
 
