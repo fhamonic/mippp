@@ -144,16 +144,22 @@ public:
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
+        _invalidate_results();
         objective_sense = -1.0;
         Cbc->setObjSense(model, objective_sense);
     }
     void set_minimization() {
+        _invalidate_results();
         objective_sense = 1.0;
         Cbc->setObjSense(model, objective_sense);
     }
 
-    void set_objective_offset(double offset) { objective_offset = offset; }
+    void set_objective_offset(double offset) {
+        _invalidate_results();
+        objective_offset = offset;
+    }
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         for(auto && v :
             std::views::iota(0, static_cast<int>(_lazy_num_variables))) {
             Cbc->setObjCoeff(model, v, 0.0);
@@ -166,9 +172,11 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         for(auto && [var, coef] : le.linear_terms()) {
             set_objective_coefficient(var,
                                       get_objective_coefficient(var) + coef);
@@ -177,6 +185,7 @@ public:
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
     double get_objective_offset() { return objective_offset; }
@@ -239,34 +248,45 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
     void set_continuous(variable v) noexcept {
+        _invalidate_results();
         Cbc->setContinuous(model, v.id());
     }
-    void set_integer(variable v) noexcept { Cbc->setInteger(model, v.id()); }
+    void set_integer(variable v) noexcept {
+        _invalidate_results();
+        Cbc->setInteger(model, v.id());
+    }
     void set_binary(variable v) noexcept {
+        _invalidate_results();
         set_integer(v);
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);
     }
 
     void set_objective_coefficient(variable v, double c) {
+        _invalidate_results();
         Cbc->setObjCoeff(model, v.id(), c);
     }
     void set_variable_lower_bound(variable v, double lb) {
+        _invalidate_results();
         Cbc->setColLower(model, v.id(), lb);
     }
     void set_variable_upper_bound(variable v, double ub) {
+        _invalidate_results();
         Cbc->setColUpper(model, v.id(), ub);
     }
     void set_variable_name(variable v, std::string name) {
+        _invalidate_results();
         Cbc->setColName(model, v.id(), const_cast<char *>(name.c_str()));
     }
 
@@ -314,6 +334,7 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         _prepare_coalescing(_lazy_num_variables);
         int constr_id = static_cast<int>(_lazy_num_constraints);
         _add_constraint<false>(std::forward<LC>(lc));
@@ -321,6 +342,7 @@ public:
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         int constr_id = static_cast<int>(_lazy_num_constraints);
         _add_constraint<true>(std::forward<LC>(lc));
         return constraint(constr_id);
@@ -371,12 +393,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -399,12 +423,14 @@ private:
 public:
     template <linear_expression LE>
     constraint add_ranged_constraint(LE && le, double lb, double ub) {
+        _invalidate_results();
         _prepare_coalescing(_lazy_num_variables);
         return _add_ranged_constraint<false>(std::forward<LE>(le), lb, ub);
     }
     template <linear_expression LE>
     constraint add_ranged_constraint(distinct_variables_t, LE && le, double lb,
                                      double ub) {
+        _invalidate_results();
         return _add_ranged_constraint<true>(std::forward<LE>(le), lb, ub);
     }
     auto get_constraint_lhs(constraint constr) {
@@ -432,9 +458,11 @@ public:
         return Cbc->getRowUpper(model)[constr.id()];
     }
     void set_constraint_lower_bound(constraint constr, double lb) {
+        _invalidate_results();
         Cbc->setRowLower(model, constr.id(), lb);
     }
     void set_constraint_upper_bound(constraint constr, double ub) {
+        _invalidate_results();
         Cbc->setRowUpper(model, constr.id(), ub);
     }
     double get_constraint_rhs(constraint constr) {
@@ -449,6 +477,7 @@ public:
             get_constraint_sense(constr));
     }
     void set_constraint_name(constraint constr, const std::string & name) {
+        _invalidate_results();
         Cbc->setRowName(model, constr.id(), name.c_str());
     }
     auto get_constraint_name(constraint constr) {
@@ -479,10 +508,12 @@ private:
 public:
     template <std::ranges::range ER>
     void add_mip_start(ER && entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -610,8 +641,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////// Solve ///////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -662,7 +699,10 @@ public:
             mip_copy = nullptr;
         }
         // Cbc_solve crashes on a model without columns
-        if(_lazy_num_variables == 0u) return;
+        if(_lazy_num_variables == 0u) {
+            _mark_results_valid();
+            return;
+        }
         if(copy_mip_solves && Cbc->getNumIntegers(model) > 0)
             _copy_into_mip_copy();
         Cbc->solve(_solved_model());
@@ -671,8 +711,10 @@ public:
                     (is_a<status::optimal>(_status) ||
                      is_a<status::interrupted>(_status) ||
                      is_a<status::limit_reached>(_status));
+        _mark_results_valid();
     }
     double get_solution_value() {
+        _require_valid_results();
         // computed from the solution: Cbc_getObjValue keeps the previous
         // solve's value when a re-solve of a row-less LP takes no iteration
         double value = objective_offset;
@@ -685,6 +727,7 @@ public:
         return value;
     }
     auto get_solution() {
+        _require_valid_results();
         auto solution =
             std::make_unique_for_overwrite<double[]>(_lazy_num_variables);
         if(_lazy_num_variables != 0u) {
@@ -696,10 +739,12 @@ public:
         return variable_mapping(std::move(solution));
     }
     double get_dual_bound() {
+        _require_valid_results();
         if(!_searched) return get_solution_value();
         return objective_offset + Cbc->getBestPossibleObjValue(_solved_model());
     }
     std::size_t get_node_count() {
+        _require_valid_results();
         if(!_searched) return 0u;
         return static_cast<std::size_t>(Cbc->getNodeCount(_solved_model()));
     }

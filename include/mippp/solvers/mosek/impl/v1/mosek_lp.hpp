@@ -110,10 +110,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
     void reset_status() noexcept {
         _status = status::unknown{};
         _solution.reset();
+        _invalidate_results();
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
@@ -149,19 +153,23 @@ public:
         }
         _solution = _pick_continuous_solution();
         _status = _get_status(trm);
+        _mark_results_valid();
     }
     double get_solution_value() {
+        _require_valid_results();
         double val;
         check(MSK->getprimalobj(task, _require_solution(), &val));
         return val;
     }
     auto get_solution() {
+        _require_valid_results();
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
         check(MSK->getxx(task, _require_solution(), solution.get()));
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
+        _require_valid_results();
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
         check(MSK->getsolution(task, _require_solution(), nullptr, nullptr,
@@ -171,6 +179,7 @@ public:
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
+        _require_valid_results();
         const auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
         check(MSK->getreducedcosts(task, _require_solution(), 0,
@@ -238,6 +247,7 @@ public:
     // holds keys that are no basis. MOSEK keeps its keys through changes of
     // the model, and a column appended since reads FIX.
     auto get_basis() {
+        _require_valid_results();
         if(num_variables() == 0u) return basis_type{};
         MSKbooleant defined = 0;
         check(MSK->solutiondef(task, MSK_SOL_BAS, &defined));
@@ -261,6 +271,7 @@ public:
     }
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
+        _invalidate_results();
         const std::size_t num_col = num_variables();
         const std::size_t num_row = num_constraints();
         std::vector<MSKstakeye> skx(num_col), skc(num_row);

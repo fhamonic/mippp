@@ -15,7 +15,7 @@ double f = sol[X(i, j)];         // by your own coordinates
 
 Three properties of the returned object are worth knowing:
 
-- It is a **snapshot**: the values are read from the solver when `get_solution()` is called. A later `solve()` does not refresh it — call `get_solution()` again.
+- It is a **snapshot**: the values are read from the solver when `get_solution()` is called. A later change of the model or `solve()` leaves it as it is, so call `get_solution()` again after each solve. It covers the variables that existed at the solve, those removed since included.
 - It is **move-only and tied to the model**: keep it within the model's lifetime, and pass it by reference to helper functions.
 - One call fetches the whole vector, so call it **once per solve**, not once per lookup.
 
@@ -25,6 +25,22 @@ for(int i : items) if(sol[X(i)] > 0.5) selected.push_back(i);
 ```
 
 Reading a solution is only valid when one exists — see [Status, limits and tolerances](status-and-limits.md#the-solve-status).
+
+## When results can be read
+
+The result getters, `get_solution_value()`, `get_solution()`, `get_dual_solution()`, `get_reduced_costs()`, `get_basis()`, `get_dual_bound()` and `get_node_count()`, read the last `solve()` until the model changes. Any change ends that: adding or removing a variable or a constraint, or setting the objective, the sense, a bound, a side, a type, a name, a basis or a MIP start. From then until the next `solve()`, `get_status()` reports `status::unknown` and these getters throw `mippp::solve_required_error`, as they do before the first `solve()`. Setting a limit, a tolerance, the verbosity or a callback is not a change, and the results stay readable.
+
+Solvers disagree on what they keep after a change: some discard their solution, others return zeros or the values of the model as it was, and SCIP crashes. So fetch what you need right after `solve()`. What the getters returned keeps the values of that solve:
+
+```cpp
+model.solve();
+const double value = model.get_solution_value();
+auto sol = model.get_solution();
+model.add_constraint(cut);   // value and sol still read the solve
+model.get_solution();        // throws mippp::solve_required_error
+```
+
+`solve_required_error` is a `std::logic_error`, not a `solver_error`: it reports a mistake in the calling code, not a failure of the solver.
 
 ### Rounding integers
 

@@ -103,17 +103,21 @@ public:
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
+        _invalidate_results();
         check(Highs->changeObjectiveSense(model, kHighsObjSenseMaximize));
     }
     void set_minimization() {
+        _invalidate_results();
         check(Highs->changeObjectiveSense(model, kHighsObjSenseMinimize));
     }
 
     void set_objective_offset(scalar offset) {
+        _invalidate_results();
         check(Highs->changeObjectiveOffset(model, offset));
     }
     template <linear_expression LE>
     void set_objective(LE && le) {
+        _invalidate_results();
         const auto num_vars = _num_var_native_ids();
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
@@ -126,6 +130,7 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
 
@@ -159,10 +164,12 @@ private:
 public:
     template <linear_expression LE>
     void add_to_objective(LE && le) {
+        _invalidate_results();
         _add_to_objective<false>(std::forward<LE>(le));
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         _add_to_objective<true>(std::forward<LE>(le));
     }
 
@@ -338,20 +345,24 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
     void remove_variable(variable v) {
+        _invalidate_results();
         _var_handles_to_delete.emplace_back(v);
         _lazily_remove_variables();
     }
     template <std::ranges::range VR>
     void remove_variables(VR && variables) {
+        _invalidate_results();
 #if defined(__cpp_lib_containers_ranges)
         _var_handles_to_delete.append_range(variables);
 #else
@@ -368,15 +379,19 @@ protected:
 
 public:
     void set_objective_coefficient(variable v, scalar c) {
+        _invalidate_results();
         check(Highs->changeColCost(model, _native_id(v), c));
     }
     void set_variable_lower_bound(variable v, scalar lb) {
+        _invalidate_results();
         _set_variable_bounds(v, lb, get_variable_upper_bound(v));
     }
     void set_variable_upper_bound(variable v, scalar ub) {
+        _invalidate_results();
         _set_variable_bounds(v, get_variable_lower_bound(v), ub);
     }
     void set_variable_name(variable v, const std::string & name) {
+        _invalidate_results();
         check(Highs->passColName(model, _native_id(v), name.c_str()));
     }
 
@@ -443,10 +458,12 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         return _add_constraint<false>(std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         return _add_constraint<true>(std::forward<LC>(lc));
     }
 
@@ -516,12 +533,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -577,6 +596,7 @@ private:
 
 public:
     void set_constraint_rhs(constraint constr, double rhs) {
+        _invalidate_results();
         auto [lower, upper] = _row_bounds(constr);
         switch(_bounds_to_constraint_sense(lower, upper)) {
             case constraint_sense::equal:
@@ -592,6 +612,7 @@ public:
         check(Highs->changeRowBounds(model, constr.id(), lower, upper));
     }
     void set_constraint_sense(constraint constr, constraint_sense new_sense) {
+        _invalidate_results();
         auto [lower, upper] = _row_bounds(constr);
         constraint_sense old_sense = _bounds_to_constraint_sense(lower, upper);
         if(old_sense == new_sense) return;
@@ -612,14 +633,17 @@ public:
         check(Highs->changeRowBounds(model, constr.id(), lower, upper));
     }
     void set_constraint_lower_bound(constraint constr, scalar lb) {
+        _invalidate_results();
         check(Highs->changeRowBounds(model, constr.id(), lb,
                                      _row_bounds(constr).second));
     }
     void set_constraint_upper_bound(constraint constr, scalar ub) {
+        _invalidate_results();
         check(Highs->changeRowBounds(model, constr.id(),
                                      _row_bounds(constr).first, ub));
     }
     void set_constraint_name(constraint constr, std::string name) {
+        _invalidate_results();
         check(Highs->passRowName(model, constr.id(), name.c_str()));
     }
 

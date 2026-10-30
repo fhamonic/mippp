@@ -111,13 +111,21 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_maximization() { Clp->setObjSense(model, -1); }
-    void set_minimization() { Clp->setObjSense(model, 1); }
+    void set_maximization() {
+        _invalidate_results();
+        Clp->setObjSense(model, -1);
+    }
+    void set_minimization() {
+        _invalidate_results();
+        Clp->setObjSense(model, 1);
+    }
 
     void set_objective_offset(scalar constant) {
+        _invalidate_results();
         Clp->setObjectiveOffset(model, -constant);
     }
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         auto num_vars = num_native_ids_variables();
         scalar * objective = Clp->objective(model);
         std::fill(objective, objective + num_vars, 0.0);
@@ -128,9 +136,11 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         scalar * objective = Clp->objective(model);
         for(auto && [var, coef] : le.linear_terms()) {
             objective[var.id()] += coef;
@@ -139,6 +149,7 @@ public:
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
     scalar get_objective_offset() { return -Clp->objectiveOffset(model); }
@@ -197,6 +208,7 @@ private:
 public:
     variable add_variable(
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         if(!_free_variable_ids.empty()) {
             return _recycle_variable(params);
         }
@@ -266,15 +278,18 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
     void remove_variable(variable v) {
+        _invalidate_results();
         set_objective_coefficient(v, 0);
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 0);
@@ -293,22 +308,28 @@ public:
     }
     template <std::ranges::range VR>
     void remove_variables(VR && variables) {
+        _invalidate_results();
         for(auto && v : variables) remove_variable(v);
     }
 
     void set_objective_coefficient(variable v, scalar c) {
+        _invalidate_results();
         Clp->objective(model)[v.id()] = c;
     }
     void set_variable_lower_bound(variable v, scalar lb) {
+        _invalidate_results();
         Clp->columnLower(model)[v.id()] = lb;
     }
     void set_variable_upper_bound(variable v, scalar ub) {
+        _invalidate_results();
         Clp->columnUpper(model)[v.id()] = ub;
     }
     void set_variable_name(variable v, const char * name) {
+        _invalidate_results();
         Clp->setColumnName(model, v.id(), const_cast<char *>(name));
     }
     void set_variable_name(variable v, std::string name) {
+        _invalidate_results();
         set_variable_name(v, name.c_str());
     }
 
@@ -355,10 +376,12 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         return _add_constraint<false>(std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         return _add_constraint<true>(std::forward<LC>(lc));
     }
 
@@ -424,17 +447,20 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
 
     void set_constraint_rhs(constraint constr, scalar rhs) {
+        _invalidate_results();
         switch(get_constraint_sense(constr)) {
             case constraint_sense::equal:
                 Clp->rowLower(model)[constr.id()] =
@@ -449,6 +475,7 @@ public:
         }
     }
     void set_constraint_sense(constraint constr, constraint_sense r) {
+        _invalidate_results();
         constraint_sense old_r = get_constraint_sense(constr);
         scalar old_rhs = get_constraint_rhs(constr);
         if(old_r == r) return;
@@ -468,9 +495,11 @@ public:
         }
     }
     void set_constraint_lower_bound(constraint constr, scalar lb) {
+        _invalidate_results();
         Clp->rowLower(model)[constr.id()] = lb;
     }
     void set_constraint_upper_bound(constraint constr, scalar ub) {
+        _invalidate_results();
         Clp->rowUpper(model)[constr.id()] = ub;
     }
 
@@ -493,14 +522,17 @@ private:
 public:
     template <linear_expression LE>
     constraint add_ranged_constraint(LE && le, scalar lb, scalar ub) {
+        _invalidate_results();
         return _add_ranged_constraint<false>(std::forward<LE>(le), lb, ub);
     }
     template <linear_expression LE>
     constraint add_ranged_constraint(distinct_variables_t, LE && le, scalar lb,
                                      scalar ub) {
+        _invalidate_results();
         return _add_ranged_constraint<true>(std::forward<LE>(le), lb, ub);
     }
     void set_constraint_name(constraint constr, const std::string & name) {
+        _invalidate_results();
         Clp->setRowName(model, constr.id(), const_cast<char *>(name.c_str()));
     }
 
@@ -601,14 +633,23 @@ protected:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         reset_status();  // a solve that throws reports unknown
-        if(num_variables() == 0u) return;
+        if(num_variables() == 0u) {
+            _mark_results_valid();
+            return;
+        }
         // Clp keeps the scale factors of the previous solve as long as the
         // dimensions match, and an empty column with an infinite bound range
         // gets a factor around 1e22: a finite range set since then scales to
@@ -623,8 +664,12 @@ public:
         _status =
             _simplex_status(Clp->status(model), Clp->secondaryStatus(model),
                             Clp->primalFeasible(model) != 0);
+        _mark_results_valid();
     }
-    scalar get_solution_value() { return Clp->getObjValue(model); }
+    scalar get_solution_value() {
+        _require_valid_results();
+        return Clp->getObjValue(model);
+    }
 
 private:
     // Clp's arrays belong to the solver and are overwritten by the next
@@ -641,15 +686,18 @@ private:
 
 public:
     auto get_solution() {
+        _require_valid_results();
         return _snapshot_variables(Clp->primalColumnSolution(model));
     }
     auto get_dual_solution() {
+        _require_valid_results();
         const auto n = num_constraints();
         auto values = std::make_unique_for_overwrite<double[]>(n);
         if(n != 0u) std::copy_n(Clp->dualRowSolution(model), n, values.get());
         return constraint_mapping(std::move(values));
     }
     auto get_reduced_costs() {
+        _require_valid_results();
         return _snapshot_variables(Clp->dualColumnSolution(model));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -718,6 +766,7 @@ public:
     // Removed columns stay in Clp until their id is reused, so the tables
     // cover every native column.
     auto get_basis() {
+        _require_valid_results();
         if(num_variables() == 0u) return basis_type{};
         const unsigned char * status = Clp->statusArray(model);
         if(status == nullptr)
@@ -739,6 +788,7 @@ public:
     // need an array to exist and overwrite the primal solution.
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
+        _invalidate_results();
         const auto num_col = static_cast<std::size_t>(Clp->getNumCols(model));
         const auto num_row = static_cast<std::size_t>(Clp->getNumRows(model));
         // A removed column stays in Clp, fixed at [0, 0]: it is written

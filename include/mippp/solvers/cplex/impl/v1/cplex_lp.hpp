@@ -109,8 +109,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -118,9 +124,10 @@ public:
         reset_status();  // a solve that throws reports unknown
         check(CPX->primopt(env, lp));
         _status = _get_status();
+        _mark_results_valid();
     }
     void refine_lp_status() {
-        if(!is<status::infeasible_or_unbounded>(_status)) return;
+        if(!is<status::infeasible_or_unbounded>(get_status())) return;
         int advance, reduce;
         check(CPX->getintparam(env, CPXPARAM_Advance, &advance));
         check(CPX->getintparam(env, CPXPARAM_Preprocessing_Reduce, &reduce));
@@ -151,22 +158,26 @@ public:
         return _compute_iis();
     }
     double get_solution_value() {
+        _require_valid_results();
         double val;
         check(CPX->solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,
                             nullptr));
         return val;
     }
     auto get_solution() {
+        _require_valid_results();
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
         check(CPX->solution(env, lp, nullptr, nullptr, solution.get(), nullptr,
                             nullptr, nullptr));
         return variable_mapping(
-            [this, solution = std::move(solution)](const variable & v) {
-                return *(solution.get() + _native_id(v));
+            [native_id = _frozen_native_id(),
+             solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + native_id(v));
             });
     }
     auto get_dual_solution() {
+        _require_valid_results();
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
         check(CPX->solution(env, lp, nullptr, nullptr, nullptr,
@@ -174,14 +185,16 @@ public:
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
+        _require_valid_results();
         auto reduced_costs =
             std::make_unique_for_overwrite<double[]>(num_variables());
         check(CPX->solution(env, lp, nullptr, nullptr, nullptr, nullptr,
                             nullptr, reduced_costs.get()));
-        return variable_mapping([this, reduced_costs = std::move(
-                                           reduced_costs)](const variable & v) {
-            return *(reduced_costs.get() + _native_id(v));
-        });
+        return variable_mapping(
+            [native_id = _frozen_native_id(),
+             reduced_costs = std::move(reduced_costs)](const variable & v) {
+                return *(reduced_costs.get() + native_id(v));
+            });
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Basis //////////////////////////////////
@@ -271,6 +284,7 @@ public:
     // CPLEX keeps and adjusts its basis through changes of the model, and
     // reads a written one back verbatim until the next solve.
     auto get_basis() {
+        _require_valid_results();
         if(num_variables() == 0u) return basis_type{};
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
@@ -290,6 +304,7 @@ public:
     // CPXcopybase refuses a null array, even for an empty dimension.
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
+        _invalidate_results();
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
         const std::vector<char> senses = _row_senses(num_row);

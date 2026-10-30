@@ -109,9 +109,11 @@ TEST_F(copt_lp_test, set_basis_starts_at_the_optimum) {
                 lp_basis_cases::tolerance(a.get_solution_value()));
 }
 
-// Before a solve, COPT returns a written basis as it is; a bare nonbasic
-// entity is written at its lower bound.
-TEST_F(copt_lp_test, get_basis_reads_back_what_set_basis_wrote) {
+// Before a solve, COPT returns a written basis as it is, which checks the
+// codes set_basis() writes without the solve get_basis() needs; a bare
+// nonbasic entity is written at its lower bound.
+TEST_F(copt_lp_test, set_basis_writes_the_codes_before_a_solve) {
+    using namespace copt::impl::v1;
     auto model = new_model();
     const auto v = lp_basis_cases::build_vertex(model);
     model_basis_t<copt_lp> basis;
@@ -126,22 +128,30 @@ TEST_F(copt_lp_test, get_basis_reads_back_what_set_basis_wrote) {
     basis.set_status(v.eq, basis_status::nonbasic_fixed{});
     basis.set_status(v.slack, basis_status::basic{});
     model.set_basis(basis);
-    const auto echo = model.get_basis();
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_upper_bound>(echo.get_status(v.x1)));
-    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(echo.get_status(v.x2)));
-    ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.x3)));
-    ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.x4)));
-    ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.x5)));
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_lower_bound>(echo.get_status(v.w)));
-    ASSERT_TRUE(is<basis_status::superbasic>(echo.get_status(v.f)));
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_upper_bound>(echo.get_status(v.le)));
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_lower_bound>(echo.get_status(v.ge)));
-    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(echo.get_status(v.eq)));
-    ASSERT_TRUE(is<basis_status::basic>(echo.get_status(v.slack)));
+    const auto native_status = [&](auto entity) {
+        std::vector<int> col_status(model.num_variables());
+        std::vector<int> row_status(model.num_constraints());
+        EXPECT_EQ(api->GetBasis(model.native_model().second, col_status.data(),
+                                row_status.data()),
+                  0);
+        if constexpr(std::same_as<decltype(entity), model_variable_t<copt_lp>>)
+            return col_status[static_cast<std::size_t>(
+                model.native_id(entity))];
+        else
+            return row_status[static_cast<std::size_t>(
+                model.native_id(entity))];
+    };
+    EXPECT_EQ(native_status(v.x1), COPT_BASIS_UPPER);
+    EXPECT_EQ(native_status(v.x2), COPT_BASIS_FIXED);
+    EXPECT_EQ(native_status(v.x3), COPT_BASIS_BASIC);
+    EXPECT_EQ(native_status(v.x4), COPT_BASIS_BASIC);
+    EXPECT_EQ(native_status(v.x5), COPT_BASIS_BASIC);
+    EXPECT_EQ(native_status(v.w), COPT_BASIS_LOWER);
+    EXPECT_EQ(native_status(v.f), COPT_BASIS_SUPERBASIC);
+    EXPECT_EQ(native_status(v.le), COPT_BASIS_UPPER);
+    EXPECT_EQ(native_status(v.ge), COPT_BASIS_LOWER);
+    EXPECT_EQ(native_status(v.eq), COPT_BASIS_FIXED);
+    EXPECT_EQ(native_status(v.slack), COPT_BASIS_BASIC);
 }
 
 // an empty vector's data() is null, which COPT_SetBasis rejects
@@ -162,7 +172,8 @@ TEST_F(copt_lp_test, set_basis_accepts_a_model_with_an_empty_dimension) {
 }
 
 // COPT_Reset, which compute_iis() runs, leaves a basis of zeros that
-// COPT_GetBasis returns without an error.
+// COPT_GetBasis returns without an error: compute_iis() resets the status,
+// so get_basis() refuses to read them.
 TEST_F(copt_lp_test, get_basis_after_compute_iis_throws) {
     using namespace operators;
     auto model = new_model();
@@ -175,11 +186,12 @@ TEST_F(copt_lp_test, get_basis_after_compute_iis_throws) {
     int col_status[2] = {-1, -1}, row_status[2] = {-1, -1};
     ASSERT_EQ(
         api->GetBasis(model.native_model().second, col_status, row_status), 0);
-    ASSERT_THROW(model.get_basis(), solver_error);
+    ASSERT_THROW(model.get_basis(), solve_required_error);
 }
 
 // COPT holds no basis for a model without rows until it is solved, and says
-// so by COPT_RETCODE_INVALID rather than by zeros
+// so by COPT_RETCODE_INVALID rather than by zeros: get_basis() needs that
+// solve anyway.
 TEST_F(copt_lp_test, get_basis_on_a_model_without_rows_throws) {
     auto model = new_model();
     model.add_variable();
@@ -188,7 +200,7 @@ TEST_F(copt_lp_test, get_basis_on_a_model_without_rows_throws) {
     ASSERT_EQ(
         api->GetBasis(model.native_model().second, col_status, row_status),
         copt::impl::v1::COPT_RETCODE_INVALID);
-    ASSERT_THROW(model.get_basis(), solver_error);
+    ASSERT_THROW(model.get_basis(), solve_required_error);
 }
 TEST_F(copt_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     auto model = new_model();
@@ -196,24 +208,6 @@ TEST_F(copt_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     model.solve();
     ASSERT_TRUE(is_a<status::infeasible_or_unbounded>(model.get_status()));
     ASSERT_THROW(model.get_basis(), solver_error);
-}
-// COPT_SetBasis drops the solution, whose getters fail until the next solve,
-// but not the objective value, which still reads the last solve's.
-TEST_F(copt_lp_test, set_basis_discards_the_solution) {
-    auto model = new_model();
-    lp_basis_cases::build_dense(model);
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    const double optimum = model.get_solution_value();
-    model.set_basis(model.get_basis());
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    EXPECT_THROW(model.get_solution(), solver_error);
-    EXPECT_THROW(model.get_dual_solution(), solver_error);
-    EXPECT_NEAR(model.get_solution_value(), optimum,
-                lp_basis_cases::tolerance(optimum));
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    ASSERT_NO_THROW(model.get_solution());
 }
 
 struct copt_milp_test : public model_test<copt_api, copt_milp> {

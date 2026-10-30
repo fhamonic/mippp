@@ -155,20 +155,6 @@ void check_time_limit_bounds_each_solve(typename Fixture::model_type model) {
         << "under a limit of " << (spent / 2).count() << " s";
 }
 }  // namespace
-// HiGHS keeps its basis through a change of the model, and its next solve
-// starts from it, but reports it valid only from a solve to the next change:
-// get_basis() trusts that flag alone, since HiGHS pads an absent basis with
-// codes that read as one.
-TEST_F(highs_lp_test, get_basis_throws_once_the_model_changed) {
-    auto model = new_model();
-    const auto v = lp_basis_cases::build_vertex(model);
-    ASSERT_THROW(model.get_basis(), solver_error);
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    ASSERT_NO_THROW(model.get_basis());
-    model.set_variable_upper_bound(v.w, 10.);
-    ASSERT_THROW(model.get_basis(), solver_error);
-}
 TEST_F(highs_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     auto model = new_model();
     lp_basis_cases::build_infeasible(model);

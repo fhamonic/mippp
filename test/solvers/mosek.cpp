@@ -72,8 +72,8 @@ void expect_reset_status_drops_the_solution(Model model) {
     model.solve();
     ASSERT_NEAR(model.get_solution_value(), 3.5, TEST_EPSILON);
     model.reset_status();
-    EXPECT_THROW(model.get_solution_value(), solver_error);
-    EXPECT_THROW(model.get_solution(), solver_error);
+    EXPECT_THROW(model.get_solution_value(), solve_required_error);
+    EXPECT_THROW(model.get_solution(), solve_required_error);
     model.solve();
     ASSERT_NEAR(model.get_solution_value(), 3.5, TEST_EPSILON);
     auto solution = model.get_solution();
@@ -271,10 +271,21 @@ TEST_F(mosek_lp_test, set_basis_keeps_an_optimizer_chosen_natively) {
         ASSERT_EQ(optimizer(*api, b), MSK_OPTIMIZER_INTPNT);
     });
 }
-// MOSEK stores the keys as written: they read back before any solve
-TEST_F(mosek_lp_test, get_basis_reads_back_what_set_basis_wrote) {
+// MOSEK stores the keys as written, which checks the keys set_basis()
+// writes without the solve get_basis() needs
+TEST_F(mosek_lp_test, set_basis_writes_the_keys_before_a_solve) {
+    using namespace mosek::impl::v1;
     SkipOnLicenseError([this]() {
         using namespace operators;
+        const auto basic_keys = [](mosek_lp & m) {
+            std::vector<MSKstakeye> skx(m.num_variables()),
+                skc(m.num_constraints());
+            api->_check(api->getsolution(
+                m.native_model().second, MSK_SOL_BAS, nullptr, nullptr,
+                skc.data(), skx.data(), nullptr, nullptr, nullptr, nullptr,
+                nullptr, nullptr, nullptr, nullptr, nullptr));
+            return std::pair{skx, skc};
+        };
         auto solved = new_model();
         const auto v = lp_basis_cases::build_vertex(solved);
         solved.solve();
@@ -286,23 +297,17 @@ TEST_F(mosek_lp_test, get_basis_reads_back_what_set_basis_wrote) {
         const auto y = model.add_variable();
         const auto c = model.add_constraint(y + v.x3 <= 50);
         model.set_basis(basis);
-        const auto echo = model.get_basis();
-        for(const auto x : {v.x1, v.x2, v.x3, v.x4, v.x5, v.w, v.f})
-            ASSERT_EQ(echo.get_status(x).index(), basis.get_status(x).index());
-        for(const auto r : {v.le, v.ge, v.eq, v.slack})
-            ASSERT_EQ(echo.get_status(r).index(), basis.get_status(r).index());
-        ASSERT_TRUE(
-            is<basis_status::nonbasic_at_lower_bound>(echo.get_status(y)));
-        ASSERT_TRUE(is<basis_status::basic>(echo.get_status(c)));
-    });
-}
-TEST_F(mosek_lp_test, get_basis_before_any_solve_throws) {
-    SkipOnLicenseError([this]() {
-        using namespace operators;
-        auto model = new_model();
-        auto x = model.add_variable();
-        model.add_constraint(x <= 1);
-        ASSERT_THROW(model.get_basis(), solver_error);
+        // both models hold build_vertex's entities first, in the same order
+        const auto [solved_skx, solved_skc] = basic_keys(solved);
+        const auto [skx, skc] = basic_keys(model);
+        for(std::size_t j = 0; j < solved_skx.size(); ++j)
+            EXPECT_EQ(skx[j], solved_skx[j]);
+        for(std::size_t i = 0; i < solved_skc.size(); ++i)
+            EXPECT_EQ(skc[i], solved_skc[i]);
+        EXPECT_EQ(skx[static_cast<std::size_t>(model.native_id(y))],
+                  MSK_SK_LOW);
+        EXPECT_EQ(skc[static_cast<std::size_t>(model.native_id(c))],
+                  MSK_SK_BAS);
     });
 }
 // an empty vector's data() may be null, on the dimension set_basis() writes
@@ -324,7 +329,7 @@ TEST_F(mosek_lp_test, set_basis_accepts_a_model_with_an_empty_dimension) {
         }
     });
 }
-// A put defines MOSEK's basic slot while the keys it left unwritten read UNK
+// Keys written past mippp after a solve, which get_basis() needs
 TEST_F(mosek_lp_test, get_basis_throws_on_an_unknown_or_infeasible_key) {
     using namespace mosek::impl::v1;
     SkipOnLicenseError([this]() {
@@ -333,10 +338,14 @@ TEST_F(mosek_lp_test, get_basis_throws_on_an_unknown_or_infeasible_key) {
         const auto x = model.add_variable();
         const auto y = model.add_variable();
         model.add_constraint(x + y <= 1);
+        model.solve();
+        ASSERT_NO_THROW(model.get_basis());
         const auto task = model.native_model().second;
         const std::vector<MSKstakeye> columns(2, MSK_SK_LOW);
         const std::vector<MSKstakeye> rows(1, MSK_SK_BAS);
+        const std::vector<MSKstakeye> unknown_row(1, MSK_SK_UNK);
         api->_check(api->putskx(task, MSK_SOL_BAS, columns.data()));
+        api->_check(api->putskc(task, MSK_SOL_BAS, unknown_row.data()));
         ASSERT_THROW(model.get_basis(), solver_error);
         const std::vector<MSKstakeye> infeasible{MSK_SK_INF, MSK_SK_LOW};
         api->_check(api->putskx(task, MSK_SOL_BAS, infeasible.data()));

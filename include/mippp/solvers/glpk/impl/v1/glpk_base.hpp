@@ -121,11 +121,21 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_maximization() { glp->set_obj_dir(model, GLP_MAX); }
-    void set_minimization() { glp->set_obj_dir(model, GLP_MIN); }
+    void set_maximization() {
+        _invalidate_results();
+        glp->set_obj_dir(model, GLP_MAX);
+    }
+    void set_minimization() {
+        _invalidate_results();
+        glp->set_obj_dir(model, GLP_MIN);
+    }
 
-    void set_objective_offset(double constant) { objective_offset = constant; }
+    void set_objective_offset(double constant) {
+        _invalidate_results();
+        objective_offset = constant;
+    }
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         auto num_vars = static_cast<int>(num_variables());
         for(int var = 0; var < num_vars; ++var) {
             glp->set_obj_coef(model, var + 1, 0.0);
@@ -138,9 +148,11 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         for(auto && [var, coef] : le.linear_terms()) {
             glp->set_obj_coef(model, var.id() + 1,
                               glp->get_obj_coef(model, var.id() + 1) + coef);
@@ -149,6 +161,7 @@ public:
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
     double get_objective_offset() { return objective_offset; }
@@ -284,24 +297,30 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
     void set_objective_coefficient(variable v, double c) {
+        _invalidate_results();
         glp->set_obj_coef(model, v.id() + 1, c);
     }
     void set_variable_lower_bound(variable v, double lb) {
+        _invalidate_results();
         _set_col_bnds(v.id() + 1, lb, get_variable_upper_bound(v));
     }
     void set_variable_upper_bound(variable v, double ub) {
+        _invalidate_results();
         _set_col_bnds(v.id() + 1, get_variable_lower_bound(v), ub);
     }
     void set_variable_name(variable v, const std::string & name) {
+        _invalidate_results();
         glp->set_col_name(model, v.id() + 1, name.c_str());
     }
 
@@ -344,6 +363,7 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         tmp_entry_index_cache.resize(num_variables());
         int constr_id = static_cast<int>(num_constraints());
         _add_constraint<false>(constr_id, std::forward<LC>(lc));
@@ -351,6 +371,7 @@ public:
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         tmp_entry_index_cache.resize(num_variables());
         int constr_id = static_cast<int>(num_constraints());
         _add_constraint<true>(constr_id, std::forward<LC>(lc));
@@ -404,12 +425,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -424,9 +447,11 @@ public:
     // glp_set_row_bnds sets both sides and the type at once, so the side that
     // stays is read back first
     void set_constraint_lower_bound(constraint constr, double lb) {
+        _invalidate_results();
         _set_row_bnds(constr.id() + 1, lb, get_constraint_upper_bound(constr));
     }
     void set_constraint_upper_bound(constraint constr, double ub) {
+        _invalidate_results();
         _set_row_bnds(constr.id() + 1, get_constraint_lower_bound(constr), ub);
     }
 

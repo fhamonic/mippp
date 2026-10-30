@@ -81,8 +81,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -90,6 +96,7 @@ public:
         reset_status();  // a solve that throws reports unknown
         if(_bounds_hold_no_value()) {
             _status = status::infeasible{};
+            _mark_results_valid();
             return;
         }
         check(XPRS->lpoptimize(prob, nullptr));
@@ -99,6 +106,7 @@ public:
         // rows and nothing can be added. Postsolving an original problem
         // does nothing.
         check(XPRS->postsolve(prob));
+        _mark_results_valid();
     }
     // The routine solves on its own and overwrites the status attributes and
     // the held solution: the reported status is reset before the first native
@@ -109,11 +117,13 @@ public:
             false);
     }
     double get_solution_value() {
+        _require_valid_results();
         double val;
         check(XPRS->getdblattrib(prob, XPRS_LPOBJVAL, &val));
         return objective_offset + val;
     }
     auto get_solution() {
+        _require_valid_results();
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         check(XPRS->getsolution(prob, nullptr, solution.get(), 0,
@@ -121,6 +131,7 @@ public:
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
+        _require_valid_results();
         const auto num_constrs = num_constraints();
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constrs);
@@ -129,6 +140,7 @@ public:
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
+        _require_valid_results();
         const auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
         check(XPRS->getredcosts(prob, nullptr, reduced_costs.get(), 0,
@@ -201,6 +213,7 @@ public:
     // leaves the bit alone: a basis written over a solved model reads back as
     // written, one written before any solve still throws here.
     auto get_basis() {
+        _require_valid_results();
         const std::size_t num_col = num_variables();
         if(num_col == 0u) return basis_type{};
         int presolve_state = 0;
@@ -227,6 +240,7 @@ public:
     // a presolved problem, which solve() never leaves.
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
+        _invalidate_results();
         const std::size_t num_col = num_variables();
         const std::size_t num_row = num_constraints();
         std::vector<int> col_status(num_col), row_status(num_row);

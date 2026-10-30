@@ -23,4 +23,12 @@ public:
         : solver_error(message) {}
 };
 
+// A result getter called with no solve() since the model was created or last
+// changed: a misuse, so not a solver_error a caller may catch as a failure.
+class solve_required_error : public std::logic_error {
+public:
+    solve_required_error(char const * const message)
+        : std::logic_error(message) {}
+};
+
 }  // namespace mippp

@@ -53,16 +53,19 @@ private:
 
 public:
     void set_continuous(variable v) {
+        _invalidate_results();
         int var_id = _native_id(v);
         char type = CPX_CONTINUOUS;
         check(CPX->chgctype(env, lp, 1, &var_id, &type));
     }
     void set_integer(variable v) {
+        _invalidate_results();
         int var_id = _native_id(v);
         char type = CPX_INTEGER;
         check(CPX->chgctype(env, lp, 1, &var_id, &type));
     }
     void set_binary(variable v) {
+        _invalidate_results();
         int var_id = _native_id(v);
         char type = CPX_BINARY;
         check(CPX->chgctype(env, lp, 1, &var_id, &type));
@@ -90,11 +93,13 @@ private:
 public:
     template <linear_constraint LC>
     void add_indicator_constraint(variable x, bool val, LC && lc) {
+        _invalidate_results();
         _add_indicator_constraint<false>(x, val, std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     void add_indicator_constraint(distinct_variables_t, variable x, bool val,
                                   LC && lc) {
+        _invalidate_results();
         _add_indicator_constraint<true>(x, val, std::forward<LC>(lc));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -224,10 +229,12 @@ private:
 public:
     template <std::ranges::range ER>
     void add_mip_start(ER && entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -367,8 +374,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -379,6 +392,7 @@ public:
             case CPXPROB_MILP:
                 check(CPX->mipopt(env, lp));
                 _status = _get_status_milp();
+                _mark_results_valid();
                 return;
             case CPXPROB_LP:
                 if(candidate_solution_callback)
@@ -387,6 +401,7 @@ public:
                         "with candidate_solution_callback");
                 check(CPX->lpopt(env, lp));
                 _status = _get_status_lp();
+                _mark_results_valid();
                 return;
             default:
                 throw std::runtime_error("cplex_milp: unknown problem type " +
@@ -415,22 +430,26 @@ public:
         return iis;
     }
     double get_solution_value() {
+        _require_valid_results();
         double val;
         check(CPX->solution(env, lp, nullptr, &val, nullptr, nullptr, nullptr,
                             nullptr));
         return val;
     }
     auto get_solution() {
+        _require_valid_results();
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids());
         check(CPX->solution(env, lp, nullptr, nullptr, solution.get(), nullptr,
                             nullptr, nullptr));
         return variable_mapping(
-            [this, solution = std::move(solution)](const variable & v) {
-                return *(solution.get() + _native_id(v));
+            [native_id = _frozen_native_id(),
+             solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + native_id(v));
             });
     }
     double get_dual_bound() {
+        _require_valid_results();
         if(CPX->getprobtype(env, lp) != CPXPROB_MILP)
             return get_solution_value();
         double bound;
@@ -438,6 +457,7 @@ public:
         return bound;
     }
     std::size_t get_node_count() {
+        _require_valid_results();
         if(CPX->getprobtype(env, lp) != CPXPROB_MILP) return 0u;
         return static_cast<std::size_t>(CPX->getnodecnt(env, lp));
     }

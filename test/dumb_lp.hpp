@@ -121,35 +121,49 @@ public:
         return count;
     }
 
-    void set_maximization() { _maximize = true; }
-    void set_minimization() { _maximize = false; }
+    void set_maximization() {
+        _invalidate_results();
+        _maximize = true;
+    }
+    void set_minimization() {
+        _invalidate_results();
+        _maximize = false;
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // Objective
     ////////////////////////////////////////////////////////////////////////////
 
-    void set_objective_offset(scalar constant) { _obj_offset = constant; }
+    void set_objective_offset(scalar constant) {
+        _invalidate_results();
+        _obj_offset = constant;
+    }
     scalar get_objective_offset() { return _obj_offset; }
 
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         for(column_data & col : _cols) col.obj_coef = 0.0;
         add_to_objective(le);
         set_objective_offset(le.constant());
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         for(auto && [var, coef] : le.linear_terms())
             _cols[var.uid()].obj_coef += coef;
         set_objective_offset(get_objective_offset() + le.constant());
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
     void set_objective_coefficient(variable v, scalar c) {
+        _invalidate_results();
         _cols[v.uid()].obj_coef = c;
     }
     scalar get_objective_coefficient(variable v) {
@@ -235,15 +249,18 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
     void remove_variable(variable v) {
+        _invalidate_results();
         _cols[v.uid()] = column_data{.obj_coef = 0.0,
                                      .lower_bound = 0.0,
                                      .upper_bound = 0.0,
@@ -254,13 +271,16 @@ public:
     }
     template <std::ranges::range VR>
     void remove_variables(VR && variables) {
+        _invalidate_results();
         for(auto && v : variables) remove_variable(v);
     }
 
     void set_variable_lower_bound(variable v, scalar lb) {
+        _invalidate_results();
         _cols[v.uid()].lower_bound = lb;
     }
     void set_variable_upper_bound(variable v, scalar ub) {
+        _invalidate_results();
         _cols[v.uid()].upper_bound = ub;
     }
     scalar get_variable_lower_bound(variable v) {
@@ -270,6 +290,7 @@ public:
         return _cols[v.uid()].upper_bound;
     }
     void set_variable_name(variable v, const std::string & name) {
+        _invalidate_results();
         _cols[v.uid()].name = name;
     }
     std::string get_variable_name(variable v) { return _cols[v.uid()].name; }
@@ -298,10 +319,12 @@ private:
 
 public:
     constraint add_constraint(linear_constraint auto && lc) {
+        _invalidate_results();
         return _add_constraint<false>(lc);
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         return _add_constraint<true>(std::forward<LC>(lc));
     }
 
@@ -346,12 +369,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -368,9 +393,11 @@ public:
         set_constraint_lhs(c, std::views::all(entries));
     }
     void set_constraint_sense(constraint c, constraint_sense s) {
+        _invalidate_results();
         _rows[c.uid()].sense = s;
     }
     void set_constraint_rhs(constraint c, scalar rhs) {
+        _invalidate_results();
         _rows[c.uid()].rhs = rhs;
     }
     auto get_constraint_lhs(constraint c) {
@@ -403,6 +430,7 @@ public:
             get_constraint_sense(c));
     }
     void set_constraint_name(constraint c, const std::string & name) {
+        _invalidate_results();
         _rows[c.uid()].name = name;
     }
     std::string get_constraint_name(constraint c) {
@@ -436,14 +464,19 @@ private:
     }
 
 public:
-    const status_variant & get_status() const { return _status; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
     void reset_status() noexcept {
         _status = status::unknown{};
+        _invalidate_results();
         _solution_value = 0.0;
         _primal_solution.clear();
         _dual_solution.clear();
     }
     void solve() {
+        _invalidate_results();  // until this solve returns
         const std::size_t num_cols = _cols.size();
         const std::size_t num_rows = _rows.size();
         _primal_solution.assign(num_cols, 0.0);
@@ -458,6 +491,7 @@ public:
                     break;
                 }
             }
+            _mark_results_valid();
             return;
         }
         // column-major matrix
@@ -522,14 +556,20 @@ public:
         for(std::size_t j = 0; j < num_cols; ++j)
             _solution_value += _cols[j].obj_coef * _primal_solution[j];
         Clp.deleteModel(model);
+        _mark_results_valid();
     }
 
-    scalar get_solution_value() { return _solution_value; }
+    scalar get_solution_value() {
+        _require_valid_results();
+        return _solution_value;
+    }
 
     auto get_solution() {
+        _require_valid_results();
         return variable_mapping(std::vector<scalar>(_primal_solution));
     }
     auto get_dual_solution() {
+        _require_valid_results();
         return constraint_mapping(std::vector<scalar>(_dual_solution));
     }
 };

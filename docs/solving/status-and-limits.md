@@ -84,7 +84,7 @@ Solvers whose presolve applies dual reductions can terminate knowing the model i
 Two concepts describe what a model class can tell you:
 
 - `has_lp_status<Model>` — the status variant can report `infeasible` and `unbounded` as distinct tags. Every model class satisfies it, though `glpk_milp` leaves an unbounded MIP undecided, as above.
-- `has_refinable_lp_status<Model>` — the model provides `refine_lp_status()`: if the current status is exactly `infeasible_or_unbounded`, it re-solves with the offending reductions disabled, so that `get_status()` afterwards reports `infeasible` or `unbounded`; on any other status it is a no-op. Currently satisfied by `gurobi_lp` and `cplex_lp`.
+- `has_refinable_lp_status<Model>` — the model provides `refine_lp_status()`: if the current status is exactly `infeasible_or_unbounded`, it re-solves with the offending reductions disabled, so that `get_status()` afterwards reports `infeasible` or `unbounded`; on any other status it is a no-op, as after a change of the model, where `get_status()` reports `unknown`. Currently satisfied by `gurobi_lp` and `cplex_lp`.
 
 Because refining may mean a full re-solve, it never happens behind your back — the cost is only paid where the call is written:
 
@@ -95,7 +95,7 @@ if constexpr(has_refinable_lp_status<Model>) model.refine_lp_status();
 
 ## Resetting the status
 
-`get_status()` keeps reporting the last solve until the next `solve()`, even after the model has changed, or a basis was written with `set_basis()`, which on some backends discards the solution, see [Bases and warm starts](basis.md#the-status-afterwards). `solve()` starts by resetting it, so a solve that throws leaves `unknown`, not the status of the solve before it. Code that changes a model and solves it on its own behalf, as an algorithm probing variants of the caller's model does, leaves behind the status of its own last solve, which says nothing about the model the caller gets back. `reset_status()` makes `get_status()` report `unknown` again, without a solution, as on a model never solved:
+`get_status()` reports the last solve until the model changes: after any change, a basis written with `set_basis()` included, it reports `unknown` until the next `solve()`, and the result getters throw, see [When results can be read](solutions.md#when-results-can-be-read). `solve()` starts by resetting it, so a solve that throws leaves `unknown`, not the status of the solve before it. Code that solves a model on its own behalf, as an algorithm probing variants of the caller's model does, can hand the model back unchanged but holding the solution of its own last solve, which says nothing about the caller's model. `reset_status()` makes `get_status()` report `unknown` again, without a solution, as on a model never solved, and makes the result getters throw until the next `solve()`:
 
 ```cpp
 model.reset_status();

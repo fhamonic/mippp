@@ -129,8 +129,14 @@ protected:
     // clang-format on
 
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -139,16 +145,20 @@ public:
         const int ret = glp->simplex(model, &model_params);
         if(ret == GLP_EBOUND && _has_crossed_bounds()) {
             _status = status::infeasible{};
+            _mark_results_valid();
             return;
         }
-        _status =
-            _simplex_status(ret, glp->get_status(model),
-                            glp->get_prim_stat(model), get_solution_value());
+        _status = _simplex_status(ret, glp->get_status(model),
+                                  glp->get_prim_stat(model),
+                                  objective_offset + glp->get_obj_val(model));
+        _mark_results_valid();
     }
     double get_solution_value() {
+        _require_valid_results();
         return objective_offset + glp->get_obj_val(model);
     }
     auto get_solution() {
+        _require_valid_results();
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         for(std::size_t var = 0u; var < num_vars; ++var) {
@@ -157,6 +167,7 @@ public:
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
+        _require_valid_results();
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
         for(std::size_t constr = 0u; constr < num_constrs; ++constr) {
@@ -166,6 +177,7 @@ public:
         return constraint_mapping(std::move(solution));
     }
     auto get_reduced_costs() {
+        _require_valid_results();
         auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
         for(std::size_t var = 0u; var < num_vars; ++var) {
@@ -228,6 +240,7 @@ protected:
 public:
     // GLPK always holds a basis, a new model's included.
     auto get_basis() {
+        _require_valid_results();
         if(num_variables() == 0u) return basis_type{};
         const std::size_t num_col = num_variables();
         const std::size_t num_row = num_constraints();
@@ -249,6 +262,7 @@ public:
     // solution, and glp_adv_basis prints whatever msg_lev says.
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
+        _invalidate_results();
         const std::size_t num_col = num_variables();
         const std::size_t num_row = num_constraints();
         std::vector<int> col_stat(num_col);

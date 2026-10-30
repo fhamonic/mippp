@@ -224,16 +224,20 @@ public:
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
+        _invalidate_results();
         check(GRB->setintattr(model, GRB_INT_ATTR_MODELSENSE, GRB_MAXIMIZE));
     }
     void set_minimization() {
+        _invalidate_results();
         check(GRB->setintattr(model, GRB_INT_ATTR_MODELSENSE, GRB_MINIMIZE));
     }
 
     void set_objective_offset(double constant) {
+        _invalidate_results();
         check(GRB->setdblattr(model, GRB_DBL_ATTR_OBJCON, constant));
     }
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         tmp_scalars.resize(_num_var_native_ids);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
         for(auto && [var, coef] : le.linear_terms()) {
@@ -246,6 +250,7 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
 
@@ -268,10 +273,12 @@ private:
 public:
     template <linear_expression LE>
     void add_to_objective(LE && le) {
+        _invalidate_results();
         _add_to_objective<false>(std::forward<LE>(le));
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         _add_to_objective<true>(std::forward<LE>(le));
     }
     double get_objective_offset() {
@@ -392,20 +399,24 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(std::forward<ER>(entries), params, GRB_CONTINUOUS);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params, GRB_CONTINUOUS);
     }
 
     void remove_variable(variable v) {
+        _invalidate_results();
         _var_handles_to_delete.emplace_back(v);
         _lazily_remove_variables();
     }
     template <std::ranges::range VR>
     void remove_variables(VR && variables) {
+        _invalidate_results();
 #if defined(__cpp_lib_containers_ranges)
         _var_handles_to_delete.append_range(variables);
 #else
@@ -416,22 +427,27 @@ public:
     }
 
     void set_objective_coefficient(variable v, double c) {
+        _invalidate_results();
         check(
             GRB->setdblattrelement(model, GRB_DBL_ATTR_OBJ, _native_id(v), c));
     }
     void set_variable_lower_bound(variable v, double lb) {
+        _invalidate_results();
         check(
             GRB->setdblattrelement(model, GRB_DBL_ATTR_LB, _native_id(v), lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
+        _invalidate_results();
         check(
             GRB->setdblattrelement(model, GRB_DBL_ATTR_UB, _native_id(v), ub));
     }
     void set_variable_name(variable v, const char * name_ptr) {
+        _invalidate_results();
         check(GRB->setstrattrelement(model, GRB_STR_ATTR_VARNAME, _native_id(v),
                                      name_ptr));
     }
     void set_variable_name(variable v, const std::string & name) {
+        _invalidate_results();
         set_variable_name(v, name.c_str());
     }
 
@@ -483,10 +499,12 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         return _add_constraint<false>(std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         return _add_constraint<true>(std::forward<LC>(lc));
     }
 
@@ -550,21 +568,25 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
 
     void set_constraint_rhs(constraint constr, double rhs) {
+        _invalidate_results();
         check(
             GRB->setdblattrelement(model, GRB_DBL_ATTR_RHS, constr.id(), rhs));
     }
     void set_constraint_sense(constraint constr, constraint_sense r) {
+        _invalidate_results();
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_SENSE, constr.id(),
                                       constraint_sense_to_gurobi_sense(r)));
     }
@@ -618,10 +640,12 @@ public:
     }
 
     void set_constraint_name(constraint constr, const char * name_ptr) {
+        _invalidate_results();
         check(GRB->setstrattrelement(model, GRB_STR_ATTR_CONSTRNAME,
                                      constr.id(), name_ptr));
     }
     void set_constraint_name(constraint constr, const std::string & name) {
+        _invalidate_results();
         set_constraint_name(constr, name.c_str());
     }
     auto get_constraint_name(constraint constr) {

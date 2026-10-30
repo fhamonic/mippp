@@ -131,10 +131,17 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_maximization() { check(COPT->SetObjSense(prob, COPT_MAXIMIZE)); }
-    void set_minimization() { check(COPT->SetObjSense(prob, COPT_MINIMIZE)); }
+    void set_maximization() {
+        _invalidate_results();
+        check(COPT->SetObjSense(prob, COPT_MAXIMIZE));
+    }
+    void set_minimization() {
+        _invalidate_results();
+        check(COPT->SetObjSense(prob, COPT_MINIMIZE));
+    }
 
     void set_objective_offset(scalar constant) {
+        _invalidate_results();
         check(COPT->SetObjConst(prob, constant));
     }
 
@@ -152,13 +159,16 @@ private:
 public:
     template <linear_expression LE>
     void set_objective(LE && le) {
+        _invalidate_results();
         _set_objective<false>(std::forward<LE>(le));
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         _set_objective<true>(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         const auto num_vars = num_variables();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
@@ -175,6 +185,7 @@ public:
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
     scalar get_objective_offset() {
@@ -270,27 +281,33 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params, COPT_CONTINUOUS);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params, COPT_CONTINUOUS);
     }
 
     void set_objective_coefficient(variable v, scalar c) {
+        _invalidate_results();
         const int id = v.id();
         check(COPT->SetColObj(prob, 1, &id, &c));
     }
     void set_variable_lower_bound(variable v, scalar lb) {
+        _invalidate_results();
         const int id = v.id();
         check(COPT->SetColLower(prob, 1, &id, &lb));
     }
     void set_variable_upper_bound(variable v, scalar ub) {
+        _invalidate_results();
         const int id = v.id();
         check(COPT->SetColUpper(prob, 1, &id, &ub));
     }
     void set_variable_name(variable v, const std::string & name) {
+        _invalidate_results();
         const int id = v.id();
         const char * c_str = name.c_str();
         check(COPT->SetColNames(prob, 1, &id, &c_str));
@@ -341,10 +358,12 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         return _add_constraint<false>(std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         return _add_constraint<true>(std::forward<LC>(lc));
     }
 
@@ -407,12 +426,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -432,10 +453,12 @@ public:
     // one-sided or equality row into a ranged one in place, and a side set to
     // infinity() frees it.
     void set_constraint_lower_bound(constraint constr, scalar lb) {
+        _invalidate_results();
         const int id = constr.id();
         check(COPT->SetRowLower(prob, 1, &id, &lb));
     }
     void set_constraint_upper_bound(constraint constr, scalar ub) {
+        _invalidate_results();
         const int id = constr.id();
         check(COPT->SetRowUpper(prob, 1, &id, &ub));
     }

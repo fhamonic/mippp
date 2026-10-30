@@ -250,41 +250,12 @@ TEST_F(gurobi_lp_test, a_throwing_solve_reports_unknown) {
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
-// Gurobi holds no basis before its first solve, and drops it at the update
-// that commits a change of the model, which get_basis() runs itself.
-TEST_F(gurobi_lp_test, get_basis_throws_once_the_model_changed) {
-    auto model = new_model();
-    const auto v = lp_basis_cases::build_vertex(model);
-    ASSERT_THROW(model.get_basis(), solver_error);
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    ASSERT_NO_THROW(model.get_basis());
-    model.set_variable_upper_bound(v.w, 10.);
-    ASSERT_THROW(model.get_basis(), solver_error);
-}
-
 TEST_F(gurobi_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     auto model = new_model();
     lp_basis_cases::build_infeasible(model);
     model.solve();
     ASSERT_TRUE(is_a<status::infeasible_or_unbounded>(model.get_status()));
     ASSERT_THROW(model.get_basis(), solver_error);
-}
-// The GRBreset that set_basis() needs drops the solution, whose getters fail
-// until the next solve while the status still reports the last one.
-TEST_F(gurobi_lp_test, set_basis_discards_the_solution) {
-    auto model = new_model();
-    lp_basis_cases::build_dense(model);
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    model.set_basis(model.get_basis());
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    EXPECT_THROW(model.get_solution(), solver_error);
-    EXPECT_THROW(model.get_dual_solution(), solver_error);
-    EXPECT_THROW(model.get_solution_value(), solver_error);
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    ASSERT_NO_THROW(model.get_solution());
 }
 // A row of Gurobi is never at no bound: is_a<superbasic> compiles on a
 // column status only.

@@ -45,14 +45,17 @@ private:
 
 public:
     void set_continuous(variable v) {
+        _invalidate_results();
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, _native_id(v),
                                       GRB_CONTINUOUS));
     }
     void set_integer(variable v) {
+        _invalidate_results();
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, _native_id(v),
                                       GRB_INTEGER));
     }
     void set_binary(variable v) {
+        _invalidate_results();
         check(GRB->setcharattrelement(model, GRB_CHAR_ATTR_VTYPE, _native_id(v),
                                       GRB_BINARY));
     }
@@ -75,11 +78,13 @@ private:
 public:
     template <linear_constraint LC>
     void add_indicator_constraint(variable x, bool val, LC && lc) {
+        _invalidate_results();
         _add_indicator_constraint<false>(x, val, std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     void add_indicator_constraint(distinct_variables_t, variable x, bool val,
                                   LC && lc) {
+        _invalidate_results();
         _add_indicator_constraint<true>(x, val, std::forward<LC>(lc));
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -206,10 +211,12 @@ private:
 public:
     template <std::ranges::range ER>
     void add_mip_start(ER && entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -296,8 +303,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -305,6 +318,7 @@ public:
         reset_status();  // a solve that throws reports unknown
         check(GRB->optimize(model));
         _status = _get_status();
+        _mark_results_valid();
     }
     // The routine solves when it has no status to trust and overwrites the
     // Status and Runtime attributes, and on a model with indicators the
@@ -315,27 +329,32 @@ public:
         return _compute_iis();
     }
     double get_solution_value() {
+        _require_valid_results();
         double value;
         check(GRB->getdblattr(model, GRB_DBL_ATTR_OBJVAL, &value));
         return value;
     }
     auto get_solution() {
+        _require_valid_results();
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
         check(GRB->getdblattrarray(model, GRB_DBL_ATTR_X, 0,
                                    static_cast<int>(_num_var_native_ids),
                                    solution.get()));
         return variable_mapping(
-            [this, solution = std::move(solution)](const variable & x) {
-                return *(solution.get() + _native_id(x));
+            [native_id = _frozen_native_id(),
+             solution = std::move(solution)](const variable & x) {
+                return *(solution.get() + native_id(x));
             });
     }
     double get_dual_bound() {
+        _require_valid_results();
         double bound;
         check(GRB->getdblattr(model, GRB_DBL_ATTR_OBJBOUND, &bound));
         return bound;
     }
     std::size_t get_node_count() {
+        _require_valid_results();
         double count;
         check(GRB->getdblattr(model, GRB_DBL_ATTR_NODECOUNT, &count));
         return static_cast<std::size_t>(count);

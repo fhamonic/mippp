@@ -47,7 +47,8 @@ All notable changes to MIP++ are recorded in this file. The format follows
   `has_enumerable_variables` and `has_enumerable_constraints`, on every model
   class: a sized snapshot of the live handles, in increasing id order.
 - **Status reset.** `reset_status()`, behind `has_status_reset`, on every
-  model class: `get_status()` then reports `unknown` until the next solve,
+  model class: `get_status()` then reports `unknown` and the result getters
+  throw until the next solve,
   while the model's data and the solver's warm start stay. See
   [Resetting the status](docs/solving/status-and-limits.md#resetting-the-status).
 - **Time limits** on `clp_lp`, `glpk_lp`, `glpk_milp`, `copt_lp` and
@@ -114,6 +115,24 @@ All notable changes to MIP++ are recorded in this file. The format follows
   status no longer compile.
 - **A `solve()` that throws** leaves `get_status()` at `unknown`, where it kept
   the previous solve's status.
+- **Results after a change (breaking).** `get_solution_value()`,
+  `get_solution()`, `get_dual_solution()`, `get_reduced_costs()`,
+  `get_basis()`, `get_dual_bound()` and `get_node_count()` read the last
+  `solve()` until the model changes, and throw the new
+  `mippp::solve_required_error`, a `std::logic_error`, before the first
+  `solve()` and after any change until the next one. A change is any call that
+  writes the model: variables and constraints added or removed, the objective,
+  the sense, bounds, sides, types, names, `set_basis` and `add_mip_start`.
+  Limit, tolerance, verbosity and callback setters are not changes.
+  `get_status()` reports `unknown` over the same span, where it kept the last
+  solve's status, `set_basis` included. `get_basis()` no longer reads back a
+  basis written with `set_basis` before the next solve, as it did on
+  `cplex_lp`, `copt_lp`, `glpk_lp` and `mosek_lp`. What these getters return is
+  unchanged: a snapshot that keeps the values of its solve. The backends
+  disagreed: after a change, Gurobi, CPLEX and COPT threw their own errors,
+  HiGHS, Xpress and MOSEK returned zeros or wrong values, and SCIP crashed.
+  Fetch results right after `solve()`, see
+  [When results can be read](docs/solving/solutions.md#when-results-can-be-read).
 - **Time limits.** `get_time_limit()` never returns a negative value, and
   `+inf` or `duration<double>::max()` lifts a limit, on every backend.
   HiGHS's limit bounds each solve, where it bounded the time of all the
@@ -228,6 +247,9 @@ All notable changes to MIP++ are recorded in this file. The format follows
   changed when it threw.
 - The loader's error told every platform to set `LD_LIBRARY_PATH`. It names
   `PATH` on Windows and `DYLD_LIBRARY_PATH` on macOS.
+- On `cplex_lp`, `cplex_milp`, `gurobi_lp`, `gurobi_milp`, `highs_lp`,
+  `highs_milp` and `highs_qp`, a solution or reduced-cost snapshot taken
+  before `remove_variable` read the values of other variables afterwards.
 
 ## [1.0.0] - 2026-09-23
 

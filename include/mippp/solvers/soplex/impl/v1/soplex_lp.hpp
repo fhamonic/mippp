@@ -126,14 +126,20 @@ public:
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
+        _invalidate_results();
         SoPlex->setIntParam(model, SOPLEX_OBJSENSE, SOPLEX_OBJSENSE_MAXIMIZE);
     }
     void set_minimization() {
+        _invalidate_results();
         SoPlex->setIntParam(model, SOPLEX_OBJSENSE, SOPLEX_OBJSENSE_MINIMIZE);
     }
 
-    void set_objective_offset(double constant) { objective_offset = constant; }
+    void set_objective_offset(double constant) {
+        _invalidate_results();
+        objective_offset = constant;
+    }
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
@@ -146,6 +152,7 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     double get_objective_offset() { return objective_offset; }
@@ -225,11 +232,13 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
@@ -240,12 +249,14 @@ public:
         return _upper_bounds[static_cast<std::size_t>(v.id())];
     }
     void set_variable_lower_bound(variable v, double lb) {
+        _invalidate_results();
         lb = _clamp_side(lb);
         _optional(SoPlex->changeVarLowerReal, "SoPlex_changeVarLowerReal")(
             model, v.id(), lb);
         _lower_bounds[static_cast<std::size_t>(v.id())] = lb;
     }
     void set_variable_upper_bound(variable v, double ub) {
+        _invalidate_results();
         // SoPlex 6.0 has SoPlex_changeVarUpperReal, but there it moves the
         // lower bound, so the setter stands or falls with its lower twin
         if(SoPlex->changeVarLowerReal == nullptr)
@@ -286,6 +297,7 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
         tmp_scalars.resize(num_variables());
         _add_constraint<false>(std::forward<LC>(lc));
@@ -293,6 +305,7 @@ public:
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
         tmp_scalars.resize(num_variables());
         _add_constraint<true>(std::forward<LC>(lc));
@@ -341,12 +354,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -363,10 +378,12 @@ public:
         return _clamp_side(ub);
     }
     void set_constraint_lower_bound(constraint constr, double lb) {
+        _invalidate_results();
         _optional(SoPlex->changeRowLhsReal, "SoPlex_changeRowLhsReal")(
             model, constr.id(), _clamp_side(lb));
     }
     void set_constraint_upper_bound(constraint constr, double ub) {
+        _invalidate_results();
         _optional(SoPlex->changeRowRhsReal, "SoPlex_changeRowRhsReal")(
             model, constr.id(), _clamp_side(ub));
     }
@@ -416,8 +433,14 @@ private:
     status_variant _status = status::unknown{};
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -508,28 +531,32 @@ public:
     void solve() {
         reset_status();  // a solve that throws reports unknown
         using namespace status;
-        if(num_variables() == 0u) return;
+        if(num_variables() == 0u) {
+            _mark_results_valid();
+            return;
+        }
         if(_has_crossed_sides()) {
             _status.emplace<infeasible>();
+            _mark_results_valid();
             return;
         }
         if(_has_nonbasic_free_row()) _reload_without_basis();
         switch(SoPlex->optimize(model)) {
             case OPTIMAL:
                 _status.emplace<optimal>();
-                return;
+                break;
             case OPTIMAL_UNSCALED_VIOLATIONS:
                 _status.emplace<optimal_infeasible_unscaled>();
-                return;
+                break;
             case INForUNBD:
                 _status.emplace<infeasible_or_unbounded>();
-                return;
+                break;
             case INFEASIBLE:
                 _status.emplace<infeasible>();
-                return;
+                break;
             case UNBOUNDED:
                 _status.emplace<unbounded>();
-                return;
+                break;
             case ERROR_:
             case NO_RATIOTESTER:
             case NO_PRICER:
@@ -537,12 +564,12 @@ public:
             case NOT_INIT:
             case ABORT_TIME:
                 _status.emplace<time_limit>();
-                return;
+                break;
             case ABORT_CYCLING:
             case ABORT_ITER:
             case ABORT_VALUE:
                 _status.emplace<failed>();
-                return;
+                break;
             case SINGULAR:
             case NO_PROBLEM:
             case REGULAR:
@@ -551,11 +578,14 @@ public:
             default:
                 _status.emplace<unknown>();
         }
+        _mark_results_valid();
     }
     double get_solution_value() {
+        _require_valid_results();
         return objective_offset + SoPlex->objValueReal(model);
     }
     auto get_solution() {
+        _require_valid_results();
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         SoPlex->getPrimalReal(model, solution.get(),
@@ -563,6 +593,7 @@ public:
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
+        _require_valid_results();
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
         SoPlex->getDualReal(model, solution.get(),
@@ -612,6 +643,7 @@ public:
     // reader expects column j to be named x0x1...xj, on lines of at most 255
     // characters.
     auto get_basis() {
+        _require_valid_results();
         auto & col_status =
             _optional(SoPlex->basisColStatus, "SoPlex_basisColStatus");
         auto & row_status =

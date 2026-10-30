@@ -507,14 +507,6 @@ TEST_F(cplex_milp_test, node_limit_stops_compute_iis_without_an_answer) {
 //////////////////////////////////// Basis ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TEST_F(cplex_lp_test, get_basis_before_the_first_solve_throws) {
-    using namespace operators;
-    auto model = new_model();
-    auto x = model.add_variable();
-    model.add_constraint(x <= 1);
-    ASSERT_THROW(model.get_basis(), solver_error);
-}
-
 TEST_F(cplex_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     auto model = new_model();
     lp_basis_cases::build_infeasible(model);
@@ -522,31 +514,15 @@ TEST_F(cplex_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     ASSERT_TRUE(is_a<status::infeasible_or_unbounded>(model.get_status()));
     ASSERT_THROW(model.get_basis(), solver_error);
 }
-// CPXcopybase drops the solution, whose getters fail until the next solve
-// while the status still reports the last one.
-TEST_F(cplex_lp_test, set_basis_discards_the_solution) {
-    auto model = new_model();
-    lp_basis_cases::build_dense(model);
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    model.set_basis(model.get_basis());
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    EXPECT_THROW(model.get_solution(), solver_error);
-    EXPECT_THROW(model.get_dual_solution(), solver_error);
-    EXPECT_THROW(model.get_solution_value(), solver_error);
-    model.solve();
-    ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
-    ASSERT_NO_THROW(model.get_solution());
-}
 // A row of CPLEX is never at no bound: is_a<superbasic> compiles on a
 // column status only.
 static_assert(variant_containing_a<model_variable_basis_status_t<cplex_lp>,
                                    basis_status::superbasic>);
 static_assert(!variant_containing_a<model_constraint_basis_status_t<cplex_lp>,
                                     basis_status::superbasic>);
-// CPXgetbase returns what CPXcopybase stored until the next solve, so a
-// basis written on a fresh model reads back through both translations.
-TEST_F(cplex_lp_test, a_written_basis_reads_back_before_a_solve) {
+// CPXgetbase returns what CPXcopybase stored until the next solve, which
+// checks the codes set_basis() writes without the solve get_basis() needs.
+TEST_F(cplex_lp_test, a_written_basis_reaches_cplex_before_a_solve) {
     using namespace operators;
     using namespace cplex::impl::v1;
     auto model = new_model();
@@ -576,13 +552,6 @@ TEST_F(cplex_lp_test, a_written_basis_reads_back_before_a_solve) {
     written.set_status(upper, basis_status::nonbasic_at_upper_bound{});
     written.set_status(loose, basis_status::basic{});
     model.set_basis(written);
-
-    const auto read = model.get_basis();
-    for(const auto v : {x, y, z, f})
-        EXPECT_EQ(read.get_status(v).index(), written.get_status(v).index());
-    EXPECT_TRUE(is<basis_status::nonbasic_at_lower_bound>(read.get_status(w)));
-    for(const auto c : {le, ge, eq, lower, upper, loose})
-        EXPECT_EQ(read.get_status(c).index(), written.get_status(c).index());
     const auto & native = model.native_api();
     const auto [env, lp] = model.native_model();
     std::array<int, 5> cstat{};

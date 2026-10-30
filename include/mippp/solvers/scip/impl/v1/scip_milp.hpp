@@ -179,20 +179,24 @@ public:
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
+        _invalidate_results();
         _free_transform();
         check(SCIP->setObjsense(model, SCIP_OBJSENSE_MAXIMIZE));
     }
     void set_minimization() {
+        _invalidate_results();
         _free_transform();
         check(SCIP->setObjsense(model, SCIP_OBJSENSE_MINIMIZE));
     }
 
     void set_objective_offset(double offset) {
+        _invalidate_results();
         _free_transform();
         check(SCIP->addOrigObjoffset(model,
                                      offset - SCIP->getOrigObjoffset(model)));
     }
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         _free_transform();
         for(auto && var : _scip_vars) {
             check(SCIP->chgVarObj(model, var, 0.0));
@@ -205,9 +209,11 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         _free_transform();
         for(auto && [var_, coef] : le.linear_terms()) {
             const auto & var = _scip_vars[var_.uid()];
@@ -217,6 +223,7 @@ public:
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
     double get_objective_offset() { return SCIP->getOrigObjoffset(model); }
@@ -281,18 +288,21 @@ private:
 
 public:
     void set_continuous(variable v) {
+        _invalidate_results();
         _free_transform();
         unsigned int infeas;
         check(SCIP->chgVarType(model, _scip_vars[v.uid()],
                                SCIP_VARTYPE_CONTINUOUS, &infeas));
     }
     void set_integer(variable v) {
+        _invalidate_results();
         _free_transform();
         unsigned int infeas;
         check(SCIP->chgVarType(model, _scip_vars[v.uid()], SCIP_VARTYPE_INTEGER,
                                &infeas));
     }
     void set_binary(variable v) {
+        _invalidate_results();
         _free_transform();
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);
@@ -301,18 +311,22 @@ public:
                                &infeas));
     }
     void set_objective_coefficient(variable v, double c) {
+        _invalidate_results();
         _free_transform();
         check(SCIP->chgVarObj(model, _scip_vars[v.uid()], c));
     }
     void set_variable_lower_bound(variable v, double lb) {
+        _invalidate_results();
         _free_transform();
         check(SCIP->chgVarLb(model, _scip_vars[v.uid()], lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
+        _invalidate_results();
         _free_transform();
         check(SCIP->chgVarUb(model, _scip_vars[v.uid()], ub));
     }
     void set_variable_name(variable v, std::string name) {
+        _invalidate_results();
         _free_transform();
         check(SCIP->chgVarName(model, _scip_vars[v.uid()], name.c_str()));
     }
@@ -358,6 +372,7 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
         _prepare_coalescing(num_variables());
         _scip_conss.emplace_back(_add_constraint<false>(std::forward<LC>(lc)));
@@ -365,6 +380,7 @@ public:
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         constraint_id constr_id = static_cast<constraint_id>(num_constraints());
         _scip_conss.emplace_back(_add_constraint<true>(std::forward<LC>(lc)));
         return constraint(constr_id);
@@ -414,12 +430,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        std::forward<CL>(constraint_lambdas)...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       std::forward<CL>(constraint_lambdas)...);
     }
@@ -436,6 +454,7 @@ public:
     // infinity unclamped, hence the clamp. An assert-enabled SCIP aborts on a
     // side moved from one infinity to the other.
     void set_constraint_lower_bound(constraint c, double lb) {
+        _invalidate_results();
         _free_transform();
         SCIP_CONS * cons = _scip_conss[c.uid()];
         lb = std::clamp(lb, -infinity(), infinity());
@@ -445,6 +464,7 @@ public:
         check(SCIP->chgLhsLinear(model, cons, lb));
     }
     void set_constraint_upper_bound(constraint c, double ub) {
+        _invalidate_results();
         _free_transform();
         SCIP_CONS * cons = _scip_conss[c.uid()];
         ub = std::clamp(ub, -infinity(), infinity());
@@ -580,8 +600,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -592,9 +618,14 @@ public:
         _solved = true;
         check(SCIP->solve(model));
         _status = _get_status();
+        _mark_results_valid();
     }
-    double get_solution_value() { return SCIP->getPrimalbound(model); }
+    double get_solution_value() {
+        _require_valid_results();
+        return SCIP->getPrimalbound(model);
+    }
     auto get_solution() {
+        _require_valid_results();
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         SCIP_SOL * sol = SCIP->getBestSol(model);
@@ -602,9 +633,13 @@ public:
                                _scip_vars.data(), solution.get()));
         return variable_mapping(std::move(solution));
     }
-    double get_dual_bound() { return SCIP->getDualbound(model); }
+    double get_dual_bound() {
+        _require_valid_results();
+        return SCIP->getDualbound(model);
+    }
     // SCIP solves a model without integer variables at a root node it counts
     std::size_t get_node_count() {
+        _require_valid_results();
         if(SCIP->getNOrigBinVars(model) + SCIP->getNOrigIntVars(model) == 0)
             return 0u;
         return static_cast<std::size_t>(SCIP->getNTotalNodes(model));

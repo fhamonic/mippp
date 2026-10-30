@@ -230,9 +230,22 @@ TEST_F(glpk_lp_test, set_basis_starts_at_the_optimum) {
     ASSERT_NEAR(b.get_solution_value(), a.get_solution_value(),
                 lp_basis_cases::tolerance(a.get_solution_value()));
 }
+namespace {
+// GLPK's code for an entity, read past get_basis(), which reads the basis of
+// a solve only: the tests below check what set_basis() wrote.
+int glpk_code(glpk_lp & model, model_variable_t<glpk_lp> v) {
+    return glpk_lp_test::api->get_col_stat(model.native_model(),
+                                           model.native_id(v));
+}
+int glpk_code(glpk_lp & model, model_constraint_t<glpk_lp> c) {
+    return glpk_lp_test::api->get_row_stat(model.native_model(),
+                                           model.native_id(c));
+}
+}  // namespace
 // GLPK rewrites a nonbasic code to the one the entity's type implies, so NL
 // and NU stay apart only on a double-bounded entity, x1 here
-TEST_F(glpk_lp_test, set_basis_reads_back_before_any_solve) {
+TEST_F(glpk_lp_test, set_basis_writes_the_codes_before_any_solve) {
+    using namespace glpk::impl::v1;
     auto a = new_model();
     lp_basis_cases::build_vertex(a);
     a.solve();
@@ -240,31 +253,24 @@ TEST_F(glpk_lp_test, set_basis_reads_back_before_any_solve) {
     auto b = new_model();
     const auto v = lp_basis_cases::build_vertex(b);
     b.set_basis(a.get_basis());
-    const auto basis = b.get_basis();
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_upper_bound>(basis.get_status(v.x1)));
-    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.x2)));
-    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.x3)));
-    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.x4)));
-    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.x5)));
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_lower_bound>(basis.get_status(v.w)));
-    ASSERT_TRUE(is<basis_status::nonbasic_free>(basis.get_status(v.f)));
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_upper_bound>(basis.get_status(v.le)));
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_lower_bound>(basis.get_status(v.ge)));
-    ASSERT_TRUE(is<basis_status::nonbasic_fixed>(basis.get_status(v.eq)));
-    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(v.slack)));
+    EXPECT_EQ(glpk_code(b, v.x1), GLP_NU);
+    EXPECT_EQ(glpk_code(b, v.x2), GLP_NS);
+    EXPECT_EQ(glpk_code(b, v.x3), GLP_BS);
+    EXPECT_EQ(glpk_code(b, v.x4), GLP_BS);
+    EXPECT_EQ(glpk_code(b, v.x5), GLP_BS);
+    EXPECT_EQ(glpk_code(b, v.w), GLP_NL);
+    EXPECT_EQ(glpk_code(b, v.f), GLP_NF);
+    EXPECT_EQ(glpk_code(b, v.le), GLP_NU);
+    EXPECT_EQ(glpk_code(b, v.ge), GLP_NL);
+    EXPECT_EQ(glpk_code(b, v.eq), GLP_NS);
+    EXPECT_EQ(glpk_code(b, v.slack), GLP_BS);
     auto source = a.get_basis();
     source.set_status(v.x1, basis_status::nonbasic_at_lower_bound{});
     b.set_basis(source);
-    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(
-        b.get_basis().get_status(v.x1)));
+    EXPECT_EQ(glpk_code(b, v.x1), GLP_NL);
     source.set_status(v.x1, basis_status::nonbasic{});
     b.set_basis(source);
-    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(
-        b.get_basis().get_status(v.x1)));
+    EXPECT_EQ(glpk_code(b, v.x1), GLP_NL);
     // superbasic, which glpk_lp's snapshot does not list, writes as bare
     // nonbasic: NL, NF on the free f
     basis_snapshot<model_variable_t<glpk_lp>, model_constraint_t<glpk_lp>,
@@ -275,9 +281,8 @@ TEST_F(glpk_lp_test, set_basis_reads_back_before_any_solve) {
     foreign.set_status(v.x1, basis_status::superbasic{});
     foreign.set_status(v.f, basis_status::superbasic{});
     b.set_basis(foreign);
-    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(
-        b.get_basis().get_status(v.x1)));
-    ASSERT_TRUE(is<basis_status::nonbasic_free>(b.get_basis().get_status(v.f)));
+    EXPECT_EQ(glpk_code(b, v.x1), GLP_NL);
+    EXPECT_EQ(glpk_code(b, v.f), GLP_NF);
 }
 namespace {
 // LpBasisTest's ranged rows: r1 is tight at its upper side, r2 at its lower
@@ -294,7 +299,8 @@ auto build_ranged(glpk_lp & model) {
     return std::tuple{x, y, z, r1, r2};
 }
 }  // namespace
-TEST_F(glpk_lp_test, set_basis_reads_back_a_ranged_row_before_any_solve) {
+TEST_F(glpk_lp_test, set_basis_writes_a_ranged_row_before_any_solve) {
+    using namespace glpk::impl::v1;
     auto a = new_model();
     build_ranged(a);
     a.solve();
@@ -302,14 +308,11 @@ TEST_F(glpk_lp_test, set_basis_reads_back_a_ranged_row_before_any_solve) {
     auto b = new_model();
     const auto [x, y, z, r1, r2] = build_ranged(b);
     b.set_basis(a.get_basis());
-    const auto basis = b.get_basis();
-    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(x)));
-    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(basis.get_status(y)));
-    ASSERT_TRUE(is<basis_status::basic>(basis.get_status(z)));
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_upper_bound>(basis.get_status(r1)));
-    ASSERT_TRUE(
-        is<basis_status::nonbasic_at_lower_bound>(basis.get_status(r2)));
+    EXPECT_EQ(glpk_code(b, x), GLP_BS);
+    EXPECT_EQ(glpk_code(b, y), GLP_NL);
+    EXPECT_EQ(glpk_code(b, z), GLP_BS);
+    EXPECT_EQ(glpk_code(b, r1), GLP_NU);
+    EXPECT_EQ(glpk_code(b, r2), GLP_NL);
     b.solve();
     ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
     ASSERT_EQ(api->get_it_cnt(b.native_model()), 0);
@@ -325,7 +328,7 @@ TEST_F(glpk_lp_test, set_basis_never_writes_a_basic_column_in_no_row) {
     basis.set_status(v.f, basis_status::basic{});
     basis.set_status(v.slack, basis_status::nonbasic_at_upper_bound{});
     model.set_basis(basis);
-    ASSERT_FALSE(is<basis_status::basic>(model.get_basis().get_status(v.f)));
+    ASSERT_NE(glpk_code(model, v.f), glpk::impl::v1::GLP_BS);
     model.solve();
     ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
     ASSERT_NEAR(model.get_solution_value(), -8.0, TEST_EPSILON);
@@ -336,11 +339,10 @@ TEST_F(glpk_lp_test, set_basis_replaces_a_basis_glpk_cannot_factorize) {
         const auto v = lp_basis_cases::build_vertex(model);
         model.solve();
         model.set_basis(make_basis(v));
-        const auto basis = model.get_basis();
         for(const auto x : {v.x1, v.x2, v.x3, v.x4, v.x5, v.w, v.f})
-            ASSERT_FALSE(is<basis_status::basic>(basis.get_status(x)));
+            ASSERT_NE(glpk_code(model, x), glpk::impl::v1::GLP_BS);
         for(const auto c : {v.le, v.ge, v.eq, v.slack})
-            ASSERT_TRUE(is<basis_status::basic>(basis.get_status(c)));
+            ASSERT_EQ(glpk_code(model, c), glpk::impl::v1::GLP_BS);
         model.solve();
         ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
         ASSERT_NEAR(model.get_solution_value(), -8.0, TEST_EPSILON);

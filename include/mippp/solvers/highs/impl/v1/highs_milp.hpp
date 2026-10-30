@@ -29,14 +29,17 @@ public:
     using model_base<int, double>::add_binary_variable;
     using model_base<int, double>::add_binary_variables;
     void set_continuous(variable v) {
+        _invalidate_results();
         check(Highs->changeColIntegrality(model, _native_id(v),
                                           kHighsVarTypeContinuous));
     }
     void set_integer(variable v) {
+        _invalidate_results();
         check(Highs->changeColIntegrality(model, _native_id(v),
                                           kHighsVarTypeInteger));
     }
     void set_binary(variable v) {
+        _invalidate_results();
         _set_variable_bounds(v, 0.0, 1.0);
         check(Highs->changeColIntegrality(model, _native_id(v),
                                           kHighsVarTypeInteger));
@@ -68,10 +71,12 @@ private:
 public:
     template <std::ranges::range ER>
     void add_mip_start(ER && entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -152,26 +157,41 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         reset_status();  // a solve that throws reports unknown
-        if(num_variables() == 0u) return;
+        if(num_variables() == 0u) {
+            _mark_results_valid();
+            return;
+        }
         _run();
         _status = _get_status();
+        _mark_results_valid();
     }
-    double get_solution_value() { return Highs->getObjectiveValue(model); }
+    double get_solution_value() {
+        _require_valid_results();
+        return Highs->getObjectiveValue(model);
+    }
     auto get_solution() {
+        _require_valid_results();
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         check(Highs->getSolution(model, solution.get(), nullptr, nullptr,
                                  nullptr));
         return variable_mapping(
-            [this, solution = std::move(solution)](const variable & v) {
-                return *(solution.get() + _native_id(v));
+            [native_id = _frozen_native_id(),
+             solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + native_id(v));
             });
     }
 
@@ -185,12 +205,14 @@ private:
 
 public:
     double get_dual_bound() {
+        _require_valid_results();
         if(_mip_node_count() < 0) return get_solution_value();
         double bound = 0.0;
         check(Highs->getDoubleInfoValue(model, "mip_dual_bound", &bound));
         return bound;
     }
     std::size_t get_node_count() {
+        _require_valid_results();
         const int64_t count = _mip_node_count();
         return count < 0 ? 0u : static_cast<std::size_t>(count);
     }

@@ -172,18 +172,6 @@ TEST_F(soplex_lp_test, freeing_an_active_row_keeps_the_resolve_right) {
         }
     }
 }
-// SoPlex makes up a slack basis for a model it never solved, from the bounds.
-TEST_F(soplex_lp_test, get_basis_before_the_first_solve_reads_the_slack_basis) {
-    auto model = new_model();
-    const auto v = lp_basis_cases::build_vertex(model);
-    const auto basis = model.get_basis();
-    for(const auto x : {v.x1, v.x2, v.x3, v.x4, v.x5, v.w})
-        ASSERT_TRUE(
-            is<basis_status::nonbasic_at_lower_bound>(basis.get_status(x)));
-    ASSERT_TRUE(is<basis_status::nonbasic_free>(basis.get_status(v.f)));
-    for(const auto c : {v.le, v.ge, v.eq, v.slack})
-        ASSERT_TRUE(is<basis_status::basic>(basis.get_status(c)));
-}
 // After a solve SoPlex codes a fixed column and an equality row FIXED, where
 // the shared suite would also accept a side.
 TEST_F(soplex_lp_test, get_basis_reads_fixed_entities_as_nonbasic_fixed) {

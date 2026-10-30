@@ -59,4 +59,10 @@ template <variant_of<any> SV>
 }  // namespace status
 // clang-format on
 
+namespace detail {
+// what get_status() returns, by reference, once the model has changed
+template <typename SV>
+inline constexpr SV unknown_status{status::unknown{}};
+}  // namespace detail
+
 }  // namespace mippp

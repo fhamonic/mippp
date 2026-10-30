@@ -90,8 +90,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -99,9 +105,10 @@ public:
         reset_status();  // a solve that throws reports unknown
         check(GRB->optimize(model));
         _status = _get_status();
+        _mark_results_valid();
     }
     void refine_lp_status() {
-        if(!is<status::infeasible_or_unbounded>(_status)) return;
+        if(!is<status::infeasible_or_unbounded>(get_status())) return;
         int dual_reductions;
         check(GRB->getintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
                                &dual_reductions));
@@ -124,22 +131,26 @@ public:
         return _compute_iis();
     }
     double get_solution_value() {
+        _require_valid_results();
         double value;
         check(GRB->getdblattr(model, GRB_DBL_ATTR_OBJVAL, &value));
         return value;
     }
     auto get_solution() {
+        _require_valid_results();
         auto solution =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
         check(GRB->getdblattrarray(model, GRB_DBL_ATTR_X, 0,
                                    static_cast<int>(_num_var_native_ids),
                                    solution.get()));
         return variable_mapping(
-            [this, solution = std::move(solution)](const variable & v) {
-                return *(solution.get() + _native_id(v));
+            [native_id = _frozen_native_id(),
+             solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + native_id(v));
             });
     }
     auto get_dual_solution() {
+        _require_valid_results();
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
         check(GRB->getdblattrarray(model, GRB_DBL_ATTR_PI, 0,
@@ -148,15 +159,17 @@ public:
         return constraint_mapping(std::move(solution));
     }
     auto get_reduced_costs() {
+        _require_valid_results();
         auto reduced_costs =
             std::make_unique_for_overwrite<double[]>(_num_var_native_ids);
         check(GRB->getdblattrarray(model, GRB_DBL_ATTR_RC, 0,
                                    static_cast<int>(_num_var_native_ids),
                                    reduced_costs.get()));
-        return variable_mapping([this, reduced_costs = std::move(
-                                           reduced_costs)](const variable & v) {
-            return *(reduced_costs.get() + _native_id(v));
-        });
+        return variable_mapping(
+            [native_id = _frozen_native_id(),
+             reduced_costs = std::move(reduced_costs)](const variable & v) {
+                return *(reduced_costs.get() + native_id(v));
+            });
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Basis //////////////////////////////////
@@ -231,6 +244,7 @@ public:
     // Gurobi holds the basis of its last simplex solve until the update that
     // commits a change of the model, which get_basis() runs itself.
     auto get_basis() {
+        _require_valid_results();
         if(num_variables() == 0u) return basis_type{};
         _lazily_remove_variables();
         update_gurobi_model();
@@ -263,6 +277,7 @@ public:
     // the last one.
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
+        _invalidate_results();
         _lazily_remove_variables();
         update_gurobi_model();
         const std::size_t num_col = _num_var_native_ids;

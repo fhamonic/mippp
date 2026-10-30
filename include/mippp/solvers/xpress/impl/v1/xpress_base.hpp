@@ -125,15 +125,21 @@ public:
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
+        _invalidate_results();
         check(XPRS->chgobjsense(prob, XPRS_OBJ_MAXIMIZE));
     }
     void set_minimization() {
+        _invalidate_results();
         check(XPRS->chgobjsense(prob, XPRS_OBJ_MINIMIZE));
     }
 
-    void set_objective_offset(double constant) { objective_offset = constant; }
+    void set_objective_offset(double constant) {
+        _invalidate_results();
+        objective_offset = constant;
+    }
 
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         auto num_vars = num_variables();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
@@ -148,9 +154,11 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         auto num_vars = num_variables();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
@@ -166,6 +174,7 @@ public:
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
 
@@ -270,29 +279,35 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
     void set_objective_coefficient(variable v, double c) {
+        _invalidate_results();
         int var_id = v.id();
         check(XPRS->chgobj(prob, 1, &var_id, &c));
     }
     void set_variable_lower_bound(variable v, double lb) {
+        _invalidate_results();
         int var_id = v.id();
         char bt = 'L';
         check(XPRS->chgbounds(prob, 1, &var_id, &bt, &lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
+        _invalidate_results();
         int var_id = v.id();
         char bt = 'U';
         check(XPRS->chgbounds(prob, 1, &var_id, &bt, &ub));
     }
     void set_variable_name(variable v, const std::string & name) {
+        _invalidate_results();
         check(XPRS->addnames(prob, XPRS_NAMES_COLUMN, name.data(), v.id(),
                              v.id()));
     }
@@ -343,10 +358,12 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         return _add_constraint<false>(std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         return _add_constraint<true>(std::forward<LC>(lc));
     }
 
@@ -409,12 +426,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -484,9 +503,11 @@ public:
         }
     }
     void set_constraint_lower_bound(constraint constr, double lower) {
+        _invalidate_results();
         _set_row_sides(constr, lower, get_constraint_upper_bound(constr));
     }
     void set_constraint_upper_bound(constraint constr, double upper) {
+        _invalidate_results();
         _set_row_sides(constr, get_constraint_lower_bound(constr), upper);
     }
     ///////////////////////////////////////////////////////////////////////////

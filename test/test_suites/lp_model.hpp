@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cstddef>
 #include <forward_list>
 #include <functional>
@@ -15,6 +16,7 @@
 #include "mippp/detail/cartesian_product_view.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 
@@ -781,6 +783,208 @@ TYPED_TEST_P(LpModelTest, reset_status_reports_unknown) {
     });
 }
 
+template <typename M>
+void expect_results_unreadable(M & model) {
+    EXPECT_TRUE(is<status::unknown>(model.get_status()));
+    EXPECT_THROW((void)model.get_solution_value(), solve_required_error);
+    EXPECT_THROW((void)model.get_solution(), solve_required_error);
+    if constexpr(has_dual_solution<M>) {
+        EXPECT_THROW((void)model.get_dual_solution(), solve_required_error);
+    }
+    if constexpr(has_reduced_costs<M>) {
+        EXPECT_THROW((void)model.get_reduced_costs(), solve_required_error);
+    }
+    if constexpr(has_lp_basis<M>) {
+        EXPECT_THROW((void)model.get_basis(), solve_required_error);
+    }
+    if constexpr(has_dual_bound<M>) {
+        EXPECT_THROW((void)model.get_dual_bound(), solve_required_error);
+    }
+    if constexpr(has_node_count<M>) {
+        EXPECT_THROW((void)model.get_node_count(), solve_required_error);
+    }
+}
+
+TYPED_TEST_P(LpModelTest, results_need_a_solve) {
+    this->SkipOnLicenseError([this]() {
+        auto model = this->new_model();
+        model.add_variable({.upper_bound = 1});
+        expect_results_unreadable(model);
+    });
+}
+
+// Whether the solver kept its last solution or not: some drop it on a
+// rename (SCIP) or on a basis or a MIP start (Gurobi, CPLEX, COPT, HiGHS,
+// MOSEK), and the tests of each change must not assume which.
+TYPED_TEST_P(LpModelTest, model_changes_invalidate_results) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        using M = typename TestFixture::model_type;
+        using V = model_variable_t<M>;
+        using C = model_constraint_t<M>;
+        // The changes take V and C rather than auto: MSVC loses the
+        // directive above inside a generic lambda, and this one, generic in
+        // apply, repeats it.
+        auto expect_invalidated_by = [this](const char * change, auto apply) {
+            using namespace operators;
+            SCOPED_TRACE(change);
+            auto model = this->new_model();
+            auto x = model.add_variable({.lower_bound = 0, .upper_bound = 3});
+            auto y = model.add_variable({.lower_bound = 0, .upper_bound = 2});
+            model.set_maximization();
+            model.set_objective(x + y);
+            auto c = model.add_constraint(x + y <= 4);
+            model.solve();
+            ASSERT_NEAR(model.get_solution_value(), 4.0, TEST_EPSILON);
+            apply(model, x, y, c);
+            expect_results_unreadable(model);
+            model.solve();
+            EXPECT_FALSE(is<status::unknown>(model.get_status()));
+            EXPECT_NO_THROW((void)model.get_solution_value());
+        };
+        expect_invalidated_by("add_variable",
+                              [](M & m, V, V, C) { m.add_variable(); });
+        expect_invalidated_by("add_variables",
+                              [](M & m, V, V, C) { m.add_variables(2); });
+        expect_invalidated_by("add_constraint", [](M & m, V x, V, C) {
+            m.add_constraint(x <= 2);
+        });
+        expect_invalidated_by("add_constraints", [](M & m, V x, V, C) {
+            m.add_constraints(std::views::iota(0, 2),
+                              [&](int i) { return x <= 2.0 + i; });
+        });
+        expect_invalidated_by("set_objective",
+                              [](M & m, V x, V, C) { m.set_objective(2 * x); });
+        expect_invalidated_by("set_objective_offset", [](M & m, V, V, C) {
+            m.set_objective_offset(1.0);
+        });
+        expect_invalidated_by("set_minimization",
+                              [](M & m, V, V, C) { m.set_minimization(); });
+        expect_invalidated_by("set_maximization",
+                              [](M & m, V, V, C) { m.set_maximization(); });
+        if constexpr(has_modifiable_objective<M>) {
+            expect_invalidated_by(
+                "set_objective_coefficient",
+                [](M & m, V x, V, C) { m.set_objective_coefficient(x, 2.0); });
+            expect_invalidated_by("add_to_objective", [](M & m, V, V y, C) {
+                m.add_to_objective(y);
+            });
+        }
+        if constexpr(has_modifiable_variable_bounds<M>) {
+            expect_invalidated_by(
+                "set_variable_lower_bound",
+                [](M & m, V x, V, C) { m.set_variable_lower_bound(x, 1.0); });
+            expect_invalidated_by(
+                "set_variable_upper_bound",
+                [](M & m, V x, V, C) { m.set_variable_upper_bound(x, 2.0); });
+        }
+        if constexpr(has_modifiable_constraint_rhs<M>)
+            expect_invalidated_by("set_constraint_rhs", [](M & m, V, V, C c) {
+                m.set_constraint_rhs(c, 3.0);
+            });
+        if constexpr(has_modifiable_constraint_sense<M>)
+            expect_invalidated_by("set_constraint_sense", [](M & m, V, V, C c) {
+                m.set_constraint_sense(c, constraint_sense::greater_equal);
+            });
+        if constexpr(has_modifiable_constraint_bounds<M>) {
+            expect_invalidated_by(
+                "set_constraint_lower_bound",
+                [](M & m, V, V, C c) { m.set_constraint_lower_bound(c, 1.0); });
+            expect_invalidated_by(
+                "set_constraint_upper_bound",
+                [](M & m, V, V, C c) { m.set_constraint_upper_bound(c, 3.0); });
+        }
+        if constexpr(has_ranged_constraints<M>)
+            expect_invalidated_by("add_ranged_constraint",
+                                  [](M & m, V x, V y, C) {
+                                      m.add_ranged_constraint(x + y, 0.0, 3.0);
+                                  });
+        if constexpr(has_column_generation<M>)
+            expect_invalidated_by("add_column", [](M & m, V, V, C c) {
+                m.add_column({{c, 1.0}}, {.obj_coef = 2, .upper_bound = 1});
+            });
+        if constexpr(has_remove_variable<M>)
+            expect_invalidated_by("remove_variable", [](M & m, V, V y, C) {
+                m.remove_variable(y);
+            });
+        if constexpr(has_named_variables<M>)
+            expect_invalidated_by("set_variable_name", [](M & m, V x, V, C) {
+                m.set_variable_name(x, "x");
+            });
+        if constexpr(has_named_constraints<M>)
+            expect_invalidated_by("set_constraint_name", [](M & m, V, V, C c) {
+                m.set_constraint_name(c, "c");
+            });
+        if constexpr(has_lp_basis_warm_start<M>)
+            expect_invalidated_by("set_basis", [](M & m, V, V, C) {
+                m.set_basis(m.get_basis());
+            });
+        if constexpr(has_mip_start<M>)
+            // CPLEX takes a MIP start on a model with integer variables only
+            expect_invalidated_by("add_mip_start", [](M & m, V x, V y, C) {
+                auto i = m.add_integer_variable({.upper_bound = 1});
+                m.solve();
+                ASSERT_NO_THROW((void)m.get_solution_value());
+                m.add_mip_start({{x, 3.0}, {y, 1.0}, {i, 1.0}});
+            });
+        if constexpr(milp_model<M>) {
+            expect_invalidated_by("add_integer_variable", [](M & m, V, V, C) {
+                m.add_integer_variable();
+            });
+            expect_invalidated_by("add_binary_variable", [](M & m, V, V, C) {
+                m.add_binary_variable();
+            });
+        }
+        if constexpr(requires(M & m, model_variable_t<M> v) {
+                         m.set_integer(v);
+                     })
+            expect_invalidated_by("set_integer",
+                                  [](M & m, V x, V, C) { m.set_integer(x); });
+        if constexpr(requires(M & m, model_variable_t<M> v) {
+                         m.set_continuous(v);
+                     })
+            expect_invalidated_by("set_continuous", [](M & m, V x, V, C) {
+                m.set_continuous(x);
+            });
+        if constexpr(has_indicator_constraints<M>)
+            expect_invalidated_by(
+                "add_indicator_constraint", [](M & m, V x, V, C) {
+                    auto b = m.add_binary_variable();
+                    m.solve();
+                    ASSERT_NO_THROW((void)m.get_solution_value());
+                    m.add_indicator_constraint(b, true, x <= 1.0);
+                });
+        if constexpr(qp_model<M>)
+            expect_invalidated_by("set_quadratic_objective",
+                                  [](M & m, V x, V y, C) {
+                                      m.set_quadratic_objective(x + y - x * x);
+                                  });
+    });
+}
+
+TYPED_TEST_P(LpModelTest, parameter_setters_keep_results) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        using M = typename TestFixture::model_type;
+        auto model = this->new_model();
+        auto x = model.add_variable({.upper_bound = 3});
+        auto y = model.add_variable({.upper_bound = 2});
+        model.set_maximization();
+        model.set_objective(x + y);
+        model.add_constraint(x + y <= 4);
+        model.solve();
+        if constexpr(has_time_limit<M>)
+            model.set_time_limit(std::chrono::seconds(1000));
+        if constexpr(has_verbosity<M>) model.set_verbose(false);
+        if constexpr(has_feasibility_tolerance<M>)
+            model.set_feasibility_tolerance(model.get_feasibility_tolerance());
+        if constexpr(has_optimality_tolerance<M>)
+            model.set_optimality_tolerance(model.get_optimality_tolerance());
+        EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+        EXPECT_NEAR(model.get_solution_value(), 4.0, TEST_EPSILON);
+    });
+}
+
 TYPED_TEST_P(LpModelTest, native_ids) {
     this->SkipOnLicenseError([this]() {
         using namespace operators;
@@ -822,6 +1026,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     solve_lp_zero_rows, solve_lp_distinct_variables,
     solve_lp_mixed_distinct_variables, solve_lp_non_standard_form_max,
     solve_lp_non_standard_form_min, move_preserves_status,
-    reset_status_reports_unknown);
+    reset_status_reports_unknown, results_need_a_solve,
+    model_changes_invalidate_results, parameter_setters_keep_results);
 
 }  // namespace mippp

@@ -31,16 +31,19 @@ public:
     using model_base<int, double>::add_binary_variables;
 
     void set_continuous(variable v) {
+        _invalidate_results();
         int var_id = v.id();
         char type = 'C';
         check(XPRS->chgcoltype(prob, 1, &var_id, &type));
     }
     void set_integer(variable v) {
+        _invalidate_results();
         int var_id = v.id();
         char type = 'I';
         check(XPRS->chgcoltype(prob, 1, &var_id, &type));
     }
     void set_binary(variable v) {
+        _invalidate_results();
         int var_id = v.id();
         char type = 'B';
         check(XPRS->chgcoltype(prob, 1, &var_id, &type));
@@ -146,10 +149,12 @@ private:
 public:
     template <std::ranges::range ER>
     void add_mip_start(ER && entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -241,8 +246,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -250,6 +261,7 @@ public:
         reset_status();  // a solve that throws reports unknown
         if(_bounds_hold_no_value()) {
             _status = status::infeasible{};
+            _mark_results_valid();
             return;
         }
         check(XPRS->mipoptimize(prob, nullptr));
@@ -258,6 +270,7 @@ public:
         // the column getters and setters describe the presolved columns.
         // Postsolving keeps the incumbent but drops the search tree.
         check(XPRS->postsolve(prob));
+        _mark_results_valid();
     }
 
     // The routine solves on its own and overwrites the status attributes and
@@ -292,11 +305,13 @@ public:
     }
 
     double get_solution_value() {
+        _require_valid_results();
         double val;
         check(XPRS->getdblattrib(prob, XPRS_MIPOBJVAL, &val));
         return objective_offset + val;
     }
     auto get_solution() {
+        _require_valid_results();
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         check(XPRS->getsolution(prob, nullptr, solution.get(), 0,
@@ -313,12 +328,14 @@ private:
 
 public:
     double get_dual_bound() {
+        _require_valid_results();
         if(!_has_mip_entities()) return get_solution_value();
         double bound;
         check(XPRS->getdblattrib(prob, XPRS_BESTBOUND, &bound));
         return objective_offset + bound;
     }
     std::size_t get_node_count() {
+        _require_valid_results();
         if(!_has_mip_entities()) return 0u;
         int count;
         check(XPRS->getintattrib(prob, XPRS_NODES, &count));

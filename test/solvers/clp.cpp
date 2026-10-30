@@ -67,16 +67,6 @@ struct clp_lp_test : public model_test<clp_api, clp_lp> {
 static_assert(!has_iis<clp_lp>);
 static_assert(has_lp_basis_warm_start<clp_lp>);
 
-// Clp keeps no status array before its first solve, and its own getters
-// would read through a null pointer.
-TEST_F(clp_lp_test, get_basis_before_the_first_solve_throws) {
-    using namespace operators;
-    auto model = new_model();
-    auto x = model.add_variable();
-    model.add_constraint(x <= 1);
-    ASSERT_THROW(model.get_basis(), solver_error);
-}
-
 // clp_lp has no iteration limit: Clp's own count proves the warm start
 TEST_F(clp_lp_test, set_basis_starts_at_the_optimum) {
     auto a = new_model();

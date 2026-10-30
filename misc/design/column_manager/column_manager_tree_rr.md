@@ -16,12 +16,15 @@
 - L11: documented. The example below is off: `update_pool_columns` then
   `update_master_columns` sends each column one event; overlapping broadcasts
   age twice.
+- X1: on every model, not only the column manager. The result getters throw
+  `solve_required_error` from a change of the model to the next `solve()`,
+  where `get_status()` reports `unknown`. Snapshots taken before a removal
+  read the right variables on CPLEX, Gurobi and HiGHS.
 
 Not addressed:
 - L2: deferred by ruling, with no park mode.
 - L7: deferred. `<execution>` needs TBB on libstdc++ and is incomplete on
   libc++, for 0.2% of a run.
-- X1: left to a separate, model-wide plan.
 
 Design note on `mippp::colgen::column_manager`. It records what porting a real
 column generation, gecot's `tree_rr`, onto the column manager showed: what

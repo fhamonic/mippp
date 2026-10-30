@@ -69,12 +69,15 @@ private:
 
 public:
     void set_continuous(variable v) noexcept {
+        _invalidate_results();
         glp->set_col_kind(model, v.id() + 1, GLP_CV);
     }
     void set_integer(variable v) noexcept {
+        _invalidate_results();
         glp->set_col_kind(model, v.id() + 1, GLP_IV);
     }
     void set_binary(variable v) noexcept {
+        _invalidate_results();
         glp->set_col_kind(model, v.id() + 1, GLP_BV);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -155,8 +158,14 @@ protected:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -270,14 +279,18 @@ public:
         if(quiet) glp->term_out(term_out);
         if(crossed) {
             _status = status::infeasible{};
+            _mark_results_valid();
             return;
         }
         _status = _intopt_status(ret, glp->mip_status(model));
+        _mark_results_valid();
     }
     double get_solution_value() {
+        _require_valid_results();
         return objective_offset + glp->mip_obj_val(model);
     }
     auto get_solution() {
+        _require_valid_results();
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         for(std::size_t var = 0u; var < num_vars; ++var) {

@@ -42,16 +42,19 @@ private:
 
 public:
     void set_continuous(variable v) {
+        _invalidate_results();
         int var_id = v.id();
         char type = COPT_CONTINUOUS;
         check(COPT->SetColType(prob, 1, &var_id, &type));
     }
     void set_integer(variable v) {
+        _invalidate_results();
         int var_id = v.id();
         char type = COPT_INTEGER;
         check(COPT->SetColType(prob, 1, &var_id, &type));
     }
     void set_binary(variable v) {
+        _invalidate_results();
         int var_id = v.id();
         char type = COPT_BINARY;
         check(COPT->SetColType(prob, 1, &var_id, &type));
@@ -152,10 +155,12 @@ private:
 public:
     template <std::ranges::range ER>
     void add_mip_start(ER && entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -236,8 +241,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -251,6 +262,7 @@ public:
             check(COPT->SolveLp(prob));
             _status = _get_status_lp();
         }
+        _mark_results_valid();
     }
 
     // On a MIP the wrapper solves the model first, up to its first incumbent
@@ -277,6 +289,7 @@ public:
     }
 
     double get_solution_value() {
+        _require_valid_results();
         double val;
         if(_is_mip)
             check(COPT->GetDblAttr(prob, COPT_DBLATTR_BESTOBJ, &val));
@@ -285,6 +298,7 @@ public:
         return val;
     }
     auto get_solution() {
+        _require_valid_results();
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
         if(_is_mip)
@@ -295,12 +309,14 @@ public:
         return variable_mapping(std::move(solution));
     }
     double get_dual_bound() {
+        _require_valid_results();
         if(!_is_mip) return get_solution_value();
         double bound;
         check(COPT->GetDblAttr(prob, COPT_DBLATTR_BESTBND, &bound));
         return bound;
     }
     std::size_t get_node_count() {
+        _require_valid_results();
         if(!_is_mip) return 0u;
         int count;
         check(COPT->GetIntAttr(prob, COPT_INTATTR_NODECNT, &count));

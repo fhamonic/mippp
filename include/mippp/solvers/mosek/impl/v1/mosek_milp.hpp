@@ -30,12 +30,15 @@ public:
     using model_base<int, double>::add_binary_variables;
 
     void set_continuous(variable v) {
+        _invalidate_results();
         check(MSK->putvartype(task, v.id(), MSK_VAR_TYPE_CONT));
     }
     void set_integer(variable v) {
+        _invalidate_results();
         check(MSK->putvartype(task, v.id(), MSK_VAR_TYPE_INT));
     }
     void set_binary(variable v) {
+        _invalidate_results();
         set_integer(v);
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);
@@ -57,10 +60,12 @@ private:
 public:
     template <std::ranges::range ER>
     void add_mip_start(ER && entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     void add_mip_start(
         std::initializer_list<std::pair<variable, scalar>> entries) {
+        _invalidate_results();
         _add_mip_start(entries);
     }
     ///////////////////////////////////////////////////////////////////////////
@@ -165,10 +170,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
     void reset_status() noexcept {
         _status = status::unknown{};
         _solution.reset();
+        _invalidate_results();
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
@@ -181,14 +190,17 @@ public:
         check(MSK->optimizetrm(task, &trm));
         _solution = _pick_solution();
         _status = _get_status(trm);
+        _mark_results_valid();
     }
     double get_solution_value() {
+        _require_valid_results();
         double val = 0.0;
         if(num_variables() > 0)
             check(MSK->getprimalobj(task, _require_solution(), &val));
         return val;
     }
     auto get_solution() {
+        _require_valid_results();
         const auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         if(num_vars > 0)
@@ -207,12 +219,14 @@ public:
     // Information items are read by name: MOSEK numbers them alphabetically,
     // so a release that adds one shifts the codes of those after it.
     double get_dual_bound() {
+        _require_valid_results();
         if(!_has_integer_variables()) return get_solution_value();
         double bound;
         check(MSK->getnadouinf(task, "MSK_DINF_MIO_OBJ_BOUND", &bound));
         return bound;
     }
     std::size_t get_node_count() {
+        _require_valid_results();
         if(!_has_integer_variables()) return 0u;
         MSKint32t count;
         check(MSK->getnaintinf(task, "MSK_IINF_MIO_NUM_SOLVED_NODES", &count));

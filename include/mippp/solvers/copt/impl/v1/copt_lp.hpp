@@ -62,8 +62,14 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -71,6 +77,7 @@ public:
         reset_status();  // a solve that throws reports unknown
         check(COPT->SolveLp(prob));
         _status = _get_status();
+        _mark_results_valid();
     }
     // A generic code from the routine is confirmed by one LP solve of the
     // wrapper: the reported status is reset before the first native call,
@@ -81,11 +88,13 @@ public:
             false);
     }
     double get_solution_value() {
+        _require_valid_results();
         double val;
         check(COPT->GetDblAttr(prob, COPT_DBLATTR_LPOBJVAL, &val));
         return val;
     }
     auto get_solution() {
+        _require_valid_results();
         auto solution =
             std::make_unique_for_overwrite<double[]>(num_variables());
         check(COPT->GetLpSolution(prob, solution.get(), nullptr, nullptr,
@@ -93,6 +102,7 @@ public:
         return variable_mapping(std::move(solution));
     }
     auto get_dual_solution() {
+        _require_valid_results();
         auto dual_solution =
             std::make_unique_for_overwrite<double[]>(num_constraints());
         check(COPT->GetLpSolution(prob, nullptr, nullptr, dual_solution.get(),
@@ -100,6 +110,7 @@ public:
         return constraint_mapping(std::move(dual_solution));
     }
     auto get_reduced_costs() {
+        _require_valid_results();
         auto reduced_costs =
             std::make_unique_for_overwrite<double[]>(num_variables());
         check(COPT->GetLpSolution(prob, nullptr, nullptr, nullptr,
@@ -161,6 +172,7 @@ public:
     // returns as a basis, every entity at lower and none basic: a count of
     // basic entries other than the rows is no basis.
     auto get_basis() {
+        _require_valid_results();
         const std::size_t num_col = num_variables();
         if(num_col == 0u) return basis_type{};
         const std::size_t num_row = num_constraints();
@@ -191,6 +203,7 @@ public:
     // until the next solve, while get_status() reports the last one.
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
+        _invalidate_results();
         const std::size_t num_col = num_variables();
         const std::size_t num_row = num_constraints();
         std::vector<int> col_status(std::max(num_col, std::size_t{1}));

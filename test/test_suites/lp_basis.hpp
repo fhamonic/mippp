@@ -15,6 +15,7 @@
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/status.hpp"
 #include "mippp/utility/variant.hpp"
 
@@ -316,6 +317,7 @@ TYPED_TEST_P(LpBasisTest, model_without_columns_reads_every_row_basic) {
         constexpr auto & no_terms =
             empty_linear_expression<model_variable_t<decltype(model)>, double>;
         const auto c = model.add_constraint(no_terms <= 1.0);
+        model.solve();
         const auto basis = model.get_basis();
         ASSERT_TRUE(is<basis_status::basic>(basis.get_status(c)));
     });
@@ -443,14 +445,21 @@ TYPED_TEST_P(LpBasisWarmStartTest, accepts_a_basis_of_the_callers_making) {
 }
 
 // get_status() reports the last solve, as after any other change
-TYPED_TEST_P(LpBasisWarmStartTest, leaves_the_status_alone) {
+// set_basis() counts as a change of the model: Gurobi, CPLEX and COPT drop
+// their solution when a basis is written
+TYPED_TEST_P(LpBasisWarmStartTest, set_basis_resets_the_status) {
     this->SkipOnLicenseError([this]() {
         auto model = this->new_model();
         lp_basis_cases::build_dense(model);
         model.solve();
         ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
         model.set_basis(model.get_basis());
+        EXPECT_TRUE(is<status::unknown>(model.get_status()));
+        EXPECT_THROW((void)model.get_solution(), solve_required_error);
+        EXPECT_THROW((void)model.get_basis(), solve_required_error);
+        model.solve();
         ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+        EXPECT_NO_THROW((void)model.get_basis());
     });
 }
 
@@ -599,7 +608,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     LpBasisWarmStartTest, starts_an_identical_model_at_the_optimum,
     extends_a_basis_to_entities_added_later,
     accepts_a_default_basis_on_a_model_never_solved,
-    accepts_a_basis_of_the_callers_making, leaves_the_status_alone,
+    accepts_a_basis_of_the_callers_making, set_basis_resets_the_status,
     an_invalid_basis_still_solves, replaces_the_basis_of_a_solved_model,
     survives_the_removal_of_a_nonbasic_column, follows_handles_across_a_removal,
     never_reads_a_removed_variable);

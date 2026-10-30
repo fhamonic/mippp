@@ -10,6 +10,8 @@ This page collects the modification operations and the guarantees around handles
 - **Limits, tolerances and the sense** set on the model.
 - **Solution objects are snapshots** and are *not* refreshed — fetch them again after each solve ([Solutions](solutions.md)).
 
+What does not stay valid is reading results from the model: after any change, `get_status()` reports `unknown` and the result getters throw `mippp::solve_required_error` until the next `solve()`. Fetch the solution, the duals and the basis right after `solve()`, before changing the model ([When results can be read](solutions.md#when-results-can-be-read)).
+
 ## Bounds
 
 ```cpp

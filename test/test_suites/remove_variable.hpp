@@ -516,6 +516,39 @@ TYPED_TEST_P(RemoveVariableTest,
     });
 }
 
+// The first removal turns on the handle remapping of the backends that
+// recycle handles, so each snapshot is checked across a removal taken
+// before it and one taken after.
+TYPED_TEST_P(RemoveVariableTest, snapshots_survive_later_removals) {
+    this->SkipOnLicenseError([this]() {
+        using M = typename TestFixture::model_type;
+        auto model = this->new_model();
+        auto x = model.add_variable({.obj_coef = 1, .upper_bound = 1});
+        auto y = model.add_variable({.obj_coef = 2, .upper_bound = 2});
+        auto z = model.add_variable({.obj_coef = 3, .upper_bound = 3});
+        auto w = model.add_variable({.obj_coef = 4, .upper_bound = 4});
+        model.set_maximization();
+        model.solve();
+        const auto before_any = model.get_solution();
+        model.remove_variable(x);
+        EXPECT_NEAR(before_any[y], 2.0, TEST_EPSILON);
+        EXPECT_NEAR(before_any[z], 3.0, TEST_EPSILON);
+        EXPECT_NEAR(before_any[w], 4.0, TEST_EPSILON);
+        model.solve();
+        const auto remapped = model.get_solution();
+        if constexpr(has_reduced_costs<M>) {
+            const auto reduced_costs = model.get_reduced_costs();
+            model.remove_variable(y);
+            EXPECT_NEAR(reduced_costs[z], 3.0, TEST_EPSILON);
+            EXPECT_NEAR(reduced_costs[w], 4.0, TEST_EPSILON);
+        } else {
+            model.remove_variable(y);
+        }
+        EXPECT_NEAR(remapped[z], 3.0, TEST_EPSILON);
+        EXPECT_NEAR(remapped[w], 4.0, TEST_EPSILON);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(
     RemoveVariableTest, remove_solve, solve_remove_solve, remove_addvar_solve,
     solve_remove_addvar_solve, remove_addcol_solve, solve_remove_addcol_solve,
@@ -526,6 +559,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     enumeration_skips_removed_variables,
     enumeration_lists_recycled_ids_in_order,
     solution_reads_every_enumerated_variable,
-    removing_every_enumerated_variable_empties_the_model);
+    removing_every_enumerated_variable_empties_the_model,
+    snapshots_survive_later_removals);
 
 }  // namespace mippp

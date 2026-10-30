@@ -98,23 +98,25 @@ At any other time its result is unspecified: between a change of the model and t
 
 ## The status afterwards
 
-`set_basis()` leaves `get_status()` as it was: the status describes the last solve, as after any other change of the model, and only the next `solve()` replaces it. Gurobi, CPLEX and COPT discard their solution when a basis is written, so on `gurobi_lp`, `cplex_lp` and `copt_lp` the getters of the solution and the duals, `get_solution()` and `get_dual_solution()` among them, throw until the next `solve()`, and so does `get_solution_value()` but on `copt_lp`, whose objective value still reads the last solve's, while `get_status()` still reports the solve before.
+`set_basis()` is a change of the model like any other: until the next `solve()`, `get_status()` reports `unknown` and the result getters throw `mippp::solve_required_error`, see [When results can be read](solutions.md#when-results-can-be-read). Gurobi, CPLEX and COPT discard their solution when a basis is written, so read what you need of the last solve before writing one.
 
 ## Support by model
 
 `has_lp_basis<M>` holds where `get_basis()` exists, and `has_lp_basis_warm_start<M>` where `set_basis()` does. Both are LP features: no `*_milp` model has them, and neither has `highs_qp`, whose quadratic solver neither reports a simplex basis nor starts from one.
 
-| Model | `get_basis()` | `set_basis()` | Fixed entities read | No basis reported |
+Before the first solve and after any change of the model, `get_basis()` throws `mippp::solve_required_error` on every model, see [When results can be read](solutions.md#when-results-can-be-read). The last column tells when a solved model has no basis to report, where `get_basis()` throws `mippp::solver_error`.
+
+| Model | `get_basis()` | `set_basis()` | Fixed entities read | No basis after a solve |
 | :--- | :---: | :---: | :--- | :--- |
-| `clp_lp` | ✓ | ✓ | `nonbasic_fixed` | before the first solve |
-| `copt_lp` | ✓ | ✓ | `nonbasic_fixed` | when COPT holds none, as before the first solve of a model without constraints, or one with the wrong number of basic entries, as after `compute_iis()` on an infeasible model |
-| `cplex_lp` | ✓ | ✓ | a side, `==` rows `nonbasic_fixed` | when CPLEX holds none |
+| `clp_lp` | ✓ | ✓ | `nonbasic_fixed` | never |
+| `copt_lp` | ✓ | ✓ | `nonbasic_fixed` | when COPT holds none, as after its presolve proved the LP infeasible or unbounded |
+| `cplex_lp` | ✓ | ✓ | a side, `==` rows `nonbasic_fixed` | when CPLEX holds none, as after its presolve proved the LP infeasible or unbounded |
 | `glpk_lp` | ✓ | ✓ | `nonbasic_fixed` | never: GLPK always holds a basis |
-| `gurobi_lp` | ✓ | ✓ | a side, `==` rows `nonbasic_fixed` | when Gurobi holds none, and after any change of the model |
-| `highs_lp` | ✓ | ✓ | a side | when HiGHS holds none, and after any change of the model |
+| `gurobi_lp` | ✓ | ✓ | a side, `==` rows `nonbasic_fixed` | when Gurobi holds none, as after its presolve proved the LP infeasible or unbounded |
+| `highs_lp` | ✓ | ✓ | a side | when HiGHS holds none, as after its presolve proved the LP infeasible or unbounded |
 | `mosek_lp` | ✓ | ✓ | `nonbasic_fixed` | when MOSEK's basic solution is undefined or incomplete |
-| `soplex_lp` | ✓ | | `nonbasic_fixed`, at lower in the slack basis SoPlex makes up | never: before the first solve, and after its presolve proved the LP infeasible or unbounded, SoPlex answers a slack basis built from the bounds |
-| `xpress_lp` | ✓ | ✓ | a side | when Xpress holds no basis from its last solve, and after any change of the model |
+| `soplex_lp` | ✓ | | `nonbasic_fixed`, at lower in the slack basis SoPlex makes up | never: after its presolve proved the LP infeasible or unbounded, SoPlex answers a slack basis built from the bounds |
+| `xpress_lp` | ✓ | ✓ | a side | when Xpress holds no basis from its last solve, as after its presolve proved the LP infeasible or unbounded |
 
 The backends differ in a few more ways, see [LP bases](../solvers/index.md#limitation-lp-basis):
 

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <concepts>
@@ -42,16 +43,6 @@ INSTANTIATE_TEST(Xpress_lp, LpBasisTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, LpBasisWarmStartTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, VerbosityTest, xpress_lp_test);
 static_assert(has_lp_basis_warm_start<xpress_lp>);
-
-// XPRSgetbasis answers before any solve too, with a slack basis no solve
-// produced.
-TEST_F(xpress_lp_test, get_basis_before_the_first_solve_throws) {
-    using namespace operators;
-    auto model = new_model();
-    auto x = model.add_variable();
-    model.add_constraint(x <= 1);
-    ASSERT_THROW(model.get_basis(), solver_error);
-}
 
 // xpress_lp has no iteration limit: Xpress's own count proves the warm start
 static int simplex_iterations(const xpress_lp & model) {
@@ -106,12 +97,13 @@ TEST_F(xpress_lp_test, set_basis_writes_the_side_of_boxed_entities) {
               xpress::impl::v1::XPRS_BASISSTATUS_NONBASIC_UPPER);
 }
 
-// get_basis() keys on PRESOLVESTATE bit 7, which a solve sets, any change of
-// the model clears, and a bare XPRSloadbasis leaves alone: set_basis() on a
-// model never solved reads no basis, and over a solved one reads the basis
-// just written, although Xpress keeps its basis through a change.
-TEST_F(xpress_lp_test, get_basis_follows_the_valid_solution_bit) {
+// Xpress returns a basis loaded over a solved model as it was written, which
+// checks the codes set_basis() writes without the solve get_basis() needs.
+// Xpress codes a row by its slack, so a row at the upper side of its
+// activity reads NONBASIC_LOWER.
+TEST_F(xpress_lp_test, set_basis_writes_the_codes_over_a_solved_model) {
     using namespace operators;
+    using namespace xpress::impl::v1;
     auto model = new_model();
     const auto x = model.add_variable({.lower_bound = 0.0, .upper_bound = 4.0});
     const auto y = model.add_variable();
@@ -126,23 +118,20 @@ TEST_F(xpress_lp_test, get_basis_follows_the_valid_solution_bit) {
     basis.set_status(z, basis_status::basic{});
     basis.set_status(r1, basis_status::nonbasic_at_upper_bound{});
     basis.set_status(r2, basis_status::nonbasic_at_lower_bound{});
-    model.set_basis(basis);
-    ASSERT_THROW(model.get_basis(), solver_error);
-
     model.solve();
     ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
     model.set_basis(basis);
-    const auto read = model.get_basis();
-    ASSERT_TRUE(is<basis_status::nonbasic_at_upper_bound>(read.get_status(x)));
-    ASSERT_TRUE(is<basis_status::basic>(read.get_status(y)));
-    ASSERT_TRUE(is<basis_status::basic>(read.get_status(z)));
-    ASSERT_TRUE(is<basis_status::nonbasic_at_upper_bound>(read.get_status(r1)));
-    ASSERT_TRUE(is<basis_status::nonbasic_at_lower_bound>(read.get_status(r2)));
-
-    model.solve();
-    ASSERT_NO_THROW(model.get_basis());
-    model.set_variable_upper_bound(x, 3.5);
-    ASSERT_THROW(model.get_basis(), solver_error);
+    std::array<int, 3> cstat{-1, -1, -1};
+    std::array<int, 2> rstat{-1, -1};
+    model.native_api()._check(
+        model.native_model(),
+        model.native_api().getbasis(model.native_model(), rstat.data(),
+                                    cstat.data()));
+    EXPECT_EQ(cstat, (std::array<int, 3>{XPRS_BASISSTATUS_NONBASIC_UPPER,
+                                         XPRS_BASISSTATUS_BASIC,
+                                         XPRS_BASISSTATUS_BASIC}));
+    EXPECT_EQ(rstat, (std::array<int, 2>{XPRS_BASISSTATUS_NONBASIC_LOWER,
+                                         XPRS_BASISSTATUS_NONBASIC_UPPER}));
 }
 // Presolve proves the infeasibility without a simplex run, and Xpress would
 // hand back the slack basis, or after an optimal solve that basis, stale.

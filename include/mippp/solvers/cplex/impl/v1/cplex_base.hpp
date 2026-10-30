@@ -133,13 +133,21 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
-    void set_maximization() { check(CPX->chgobjsen(env, lp, CPX_MAX)); }
-    void set_minimization() { check(CPX->chgobjsen(env, lp, CPX_MIN)); }
+    void set_maximization() {
+        _invalidate_results();
+        check(CPX->chgobjsen(env, lp, CPX_MAX));
+    }
+    void set_minimization() {
+        _invalidate_results();
+        check(CPX->chgobjsen(env, lp, CPX_MIN));
+    }
 
     void set_objective_offset(double constant) {
+        _invalidate_results();
         check(CPX->chgobjoffset(env, lp, constant));
     }
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         const std::size_t num_vars = _num_var_native_ids();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
@@ -154,9 +162,11 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         const std::size_t num_vars = _num_var_native_ids();
         tmp_indices.resize(num_vars);
         std::iota(tmp_indices.begin(), tmp_indices.end(), 0);
@@ -172,6 +182,7 @@ public:
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
     double get_objective_offset() {
@@ -338,20 +349,24 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
     void remove_variable(variable v) {
+        _invalidate_results();
         _var_handles_to_delete.emplace_back(v);
         _lazily_remove_variables();
     }
     template <std::ranges::range VR>
     void remove_variables(VR && variables) {
+        _invalidate_results();
 #if defined(__cpp_lib_containers_ranges)
         _var_handles_to_delete.append_range(variables);
 #else
@@ -362,20 +377,24 @@ public:
     }
 
     void set_objective_coefficient(variable v, double c) {
+        _invalidate_results();
         int var_id = _native_id(v);
         check(CPX->chgobj(env, lp, 1, &var_id, &c));
     }
     void set_variable_lower_bound(variable v, double lb) {
+        _invalidate_results();
         int var_id = _native_id(v);
         char lu = 'L';
         check(CPX->chgbds(env, lp, 1, &var_id, &lu, &lb));
     }
     void set_variable_upper_bound(variable v, double ub) {
+        _invalidate_results();
         int var_id = _native_id(v);
         char lu = 'U';
         check(CPX->chgbds(env, lp, 1, &var_id, &lu, &ub));
     }
     void set_variable_name(variable v, const std::string & name) {
+        _invalidate_results();
         int var_id = _native_id(v);
         char * col_name = const_cast<char *>(name.c_str());
         check(CPX->chgcolname(env, lp, 1, &var_id, &col_name));
@@ -448,10 +467,12 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         return _add_constraint<false>(std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         return _add_constraint<true>(std::forward<LC>(lc));
     }
 
@@ -515,12 +536,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -582,20 +605,24 @@ public:
     // the rhs and the sense of a ranged row do not exist: the sense getter
     // throws for them, and the row reads back through its two sides
     void set_constraint_rhs(constraint constr, double rhs) {
+        _invalidate_results();
         int constr_id = constr.id();
         (void)get_constraint_sense(constr);
         check(CPX->chgrhs(env, lp, 1, &constr_id, &rhs));
     }
     void set_constraint_sense(constraint constr, constraint_sense r) {
+        _invalidate_results();
         int constr_id = constr.id();
         (void)get_constraint_sense(constr);
         char sense = constraint_sense_to_cplex_sense(r);
         check(CPX->chgsense(env, lp, 1, &constr_id, &sense));
     }
     void set_constraint_lower_bound(constraint constr, double lb) {
+        _invalidate_results();
         _set_row_sides(constr.id(), lb, _row_sides(constr.id()).second);
     }
     void set_constraint_upper_bound(constraint constr, double ub) {
+        _invalidate_results();
         _set_row_sides(constr.id(), _row_sides(constr.id()).first, ub);
     }
 

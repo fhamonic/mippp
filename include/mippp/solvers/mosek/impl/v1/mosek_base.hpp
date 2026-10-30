@@ -186,16 +186,20 @@ public:
     //////////////////////////////// Objective ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_maximization() {
+        _invalidate_results();
         check(MSK->putobjsense(task, MSK_OBJECTIVE_SENSE_MAXIMIZE));
     }
     void set_minimization() {
+        _invalidate_results();
         check(MSK->putobjsense(task, MSK_OBJECTIVE_SENSE_MINIMIZE));
     }
 
     void set_objective_offset(scalar constant) {
+        _invalidate_results();
         check(MSK->putcfix(task, constant));
     }
     void set_objective(linear_expression auto && le) {
+        _invalidate_results();
         auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
         std::fill(tmp_scalars.begin(), tmp_scalars.end(), 0.0);
@@ -208,9 +212,11 @@ public:
     }
     template <linear_expression LE>
     void set_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         set_objective(std::forward<LE>(le));
     }
     void add_to_objective(linear_expression auto && le) {
+        _invalidate_results();
         auto num_vars = num_variables();
         tmp_scalars.resize(num_vars);
         check(MSK->getc(task, tmp_scalars.data()));
@@ -223,6 +229,7 @@ public:
     }
     template <linear_expression LE>
     void add_to_objective(distinct_variables_t, LE && le) {
+        _invalidate_results();
         add_to_objective(std::forward<LE>(le));
     }
 
@@ -337,25 +344,31 @@ public:
     template <std::ranges::range ER>
     variable add_column(
         ER && entries, const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
     variable add_column(
         std::initializer_list<std::pair<constraint, scalar>> entries,
         const variable_params params = default_variable_params) {
+        _invalidate_results();
         return _add_column(entries, params);
     }
 
     void set_objective_coefficient(variable v, scalar c) {
+        _invalidate_results();
         check(MSK->putcj(task, v.id(), c));
     }
     // finite = 0 for the same reason as in the row setters.
     void set_variable_lower_bound(variable v, scalar lb) {
+        _invalidate_results();
         check(MSK->chgvarbound(task, v.id(), 1, lb > -infinity(), lb));
     }
     void set_variable_upper_bound(variable v, scalar ub) {
+        _invalidate_results();
         check(MSK->chgvarbound(task, v.id(), 0, ub < infinity(), ub));
     }
     void set_variable_name(variable v, const std::string & name) {
+        _invalidate_results();
         check(MSK->putvarname(task, v.id(), name.c_str()));
     }
 
@@ -408,10 +421,12 @@ private:
 public:
     template <linear_constraint LC>
     constraint add_constraint(LC && lc) {
+        _invalidate_results();
         return _add_constraint<false>(std::forward<LC>(lc));
     }
     template <linear_constraint LC>
     constraint add_constraint(distinct_variables_t, LC && lc) {
+        _invalidate_results();
         return _add_constraint<true>(std::forward<LC>(lc));
     }
 
@@ -478,12 +493,14 @@ private:
 public:
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(IR && keys, CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<false>(std::forward<IR>(keys),
                                        constraint_lambdas...);
     }
     template <std::ranges::range IR, typename... CL>
     auto add_constraints(distinct_variables_t, IR && keys,
                          CL &&... constraint_lambdas) {
+        _invalidate_results();
         return _add_constraints<true>(std::forward<IR>(keys),
                                       constraint_lambdas...);
     }
@@ -506,9 +523,11 @@ public:
     // tolerance, as it does by default. infinity() on the opposite side stays a
     // real, if unsatisfiable, bound; MOSEK rejects an IEEE infinity there.
     void set_constraint_lower_bound(constraint constr, scalar lb) {
+        _invalidate_results();
         check(MSK->chgconbound(task, constr.id(), 1, lb > -infinity(), lb));
     }
     void set_constraint_upper_bound(constraint constr, scalar ub) {
+        _invalidate_results();
         check(MSK->chgconbound(task, constr.id(), 0, ub < infinity(), ub));
     }
 

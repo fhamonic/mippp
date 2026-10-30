@@ -45,6 +45,17 @@ protected:
         if(!_remap_ids) return variable(native_id);
         return variable(_handle_ids_map[static_cast<std::size_t>(native_id)]);
     }
+    // _native_id as it is now, for the result snapshots to resolve their
+    // handles with: a removal moves native ids, so a snapshot resolving
+    // through _native_id after one reads another variable's value.
+    auto _frozen_native_id() const {
+        std::optional<std::vector<Index>> map;
+        if(_remap_ids) map = _native_ids_map;
+        return [map = std::move(map)](const variable v) -> Index {
+            if(!map) return v.id();
+            return (*map)[static_cast<std::size_t>(v.id())];
+        };
+    }
 
     void _extend_handle_ids_map(const std::size_t count) {
         _handle_ids_map.resize(_handle_ids_map.size() + count);

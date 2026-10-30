@@ -107,7 +107,7 @@ Each round prices a pattern into the pool, refreshes every column's reduced cost
 
 (`price` returns the pattern of best knapsack value at these duals, if it beats the cost of a roll.)
 
-- **Read the master right after `solve()`.** Take the solution, the duals, the reduced costs and the basis before `activate_columns` or `evict_columns` modifies the master. What these getters return after a modification is unspecified, and backends differ: some throw, others return the previous values or zeros.
+- **Read the master right after `solve()`.** Take the solution, the duals, the reduced costs and the basis before `activate_columns` or `evict_columns` modifies the master: after a modification they throw `mippp::solve_required_error` until the next `solve()`, while what they returned keeps the values of the last solve ([When results can be read](../solving/solutions.md#when-results-can-be-read)).
 - **Activate, then evict.** At convergence nothing is activated, so the loop leaves the master as it was solved last, and the solution read after the loop is the optimum. Evicting first would modify the master after its last solve.
 - `emplace_pool_column` reports a seed already known; `emplace_pool_columns(range)` counts the seeds it inserted, those already in the pool, and those already in the master, which betrays stale duals or a cycling process.
 - Eviction removes the variables, so `evict_columns(model, predicate)` needs `has_remove_variable`, which, among the LP models, `gurobi_lp`, `cplex_lp`, `highs_lp` and `clp_lp` model. A third argument replaces that default: `remove(model, entries)` receives the entries of the evicted columns. An evicted column goes back to the pool, and a later round reactivates it without pricing it again.

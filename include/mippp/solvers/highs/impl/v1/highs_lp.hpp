@@ -95,16 +95,26 @@ private:
     }
     // clang-format on
 public:
-    const status_variant & get_status() const { return _status; }
-    void reset_status() noexcept { _status = status::unknown{}; }
+    const status_variant & get_status() const {
+        return _results_valid ? _status
+                              : detail::unknown_status<status_variant>;
+    }
+    void reset_status() noexcept {
+        _status = status::unknown{};
+        _invalidate_results();
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         reset_status();  // a solve that throws reports unknown
-        if(num_variables() == 0u) return;
+        if(num_variables() == 0u) {
+            _mark_results_valid();
+            return;
+        }
         _run();
         _status = _get_status();
+        _mark_results_valid();
     }
     // The routine re-solves and overwrites the model status: the reported
     // status is reset before the first native call, throw or return.
@@ -112,18 +122,24 @@ public:
         reset_status();
         return _compute_iis();
     }
-    double get_solution_value() { return Highs->getObjectiveValue(model); }
+    double get_solution_value() {
+        _require_valid_results();
+        return Highs->getObjectiveValue(model);
+    }
     auto get_solution() {
+        _require_valid_results();
         auto num_vars = num_variables();
         auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
         check(Highs->getSolution(model, solution.get(), nullptr, nullptr,
                                  nullptr));
         return variable_mapping(
-            [this, solution = std::move(solution)](const variable & v) {
-                return *(solution.get() + _native_id(v));
+            [native_id = _frozen_native_id(),
+             solution = std::move(solution)](const variable & v) {
+                return *(solution.get() + native_id(v));
             });
     }
     auto get_dual_solution() {
+        _require_valid_results();
         auto num_constrs = num_constraints();
         auto solution = std::make_unique_for_overwrite<double[]>(num_constrs);
         check(Highs->getSolution(model, nullptr, nullptr, nullptr,
@@ -131,14 +147,16 @@ public:
         return constraint_mapping(std::move(solution));
     }
     auto get_reduced_costs() {
+        _require_valid_results();
         auto num_vars = num_variables();
         auto reduced_costs = std::make_unique_for_overwrite<double[]>(num_vars);
         check(Highs->getSolution(model, nullptr, reduced_costs.get(), nullptr,
                                  nullptr));
-        return variable_mapping([this, reduced_costs = std::move(
-                                           reduced_costs)](const variable & v) {
-            return *(reduced_costs.get() + _native_id(v));
-        });
+        return variable_mapping(
+            [native_id = _frozen_native_id(),
+             reduced_costs = std::move(reduced_costs)](const variable & v) {
+                return *(reduced_costs.get() + native_id(v));
+            });
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Basis //////////////////////////////////
@@ -193,6 +211,7 @@ public:
     // HiGHS keeps and extends its basis through changes of the model, but
     // reports it valid only until the first one.
     auto get_basis() {
+        _require_valid_results();
         if(num_variables() == 0u) return basis_type{};
         HighsInt validity = 0;  // left unwritten when HiGHS holds no info
         check(Highs->getIntInfoValue(model, "basis_validity", &validity));
@@ -216,6 +235,7 @@ public:
     }
     template <detail::lp_basis_over<variable, constraint> B>
     void set_basis(const B & basis) {
+        _invalidate_results();
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
         std::vector<HighsInt> col_status(num_col), row_status(num_row);

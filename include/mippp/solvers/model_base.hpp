@@ -14,6 +14,7 @@
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
 
@@ -83,6 +84,24 @@ protected:
     std::vector<Scalar> tmp_scalars;
     unsigned int register_count;
 
+    // Whether the solver still holds the results of a solve() of the model
+    // as it is. A public mutator that does not clear it lets the result
+    // getters read a solver that dropped its solution: SCIP then crashes,
+    // HiGHS, Xpress and MOSEK return stale or zero values, and the others
+    // throw their own errors. Parameter, verbosity and callback setters keep
+    // the results and leave it alone.
+    bool _results_valid = false;
+
+    void _invalidate_results() noexcept { _results_valid = false; }
+    void _mark_results_valid() noexcept { _results_valid = true; }
+    void _require_valid_results() const {
+        if(!_results_valid)
+            throw solve_required_error(
+                "mippp: no solve() since the model was created or last "
+                "changed; read the solution, duals, reduced costs and basis "
+                "right after solve()");
+    }
+
     [[nodiscard]] explicit model_base() : register_count(0) {}
 
     constexpr model_base(const model_base &) = default;
@@ -133,11 +152,13 @@ protected:
     template <variable_kind Kind, typename KeyIndex = detail::positional_index>
     auto _add(this auto & self, std::size_t count,
               const variable_params & params, KeyIndex idx = {}) {
+        self._invalidate_results();
         return self._variables_range(self._new_variables(count, params, Kind),
                                      count, std::move(idx));
     }
     template <variable_kind Kind>
     variable _add_one(this auto & self, const variable_params & params) {
+        self._invalidate_results();
         if constexpr(requires { self._new_variable(params, Kind); })
             return self._new_variable(params, Kind);
         else

@@ -176,7 +176,7 @@ On `clp_lp` and `soplex_lp` the forwarded limit counts the CPU time of the whole
 
 ### The status afterwards
 
-After any run that solved, the solver holds the solution of a trial rather than of your model, so `get_status()` reports `unknown`, after an exception too. Call `solve()` again before reading a solution. A run that solved nothing leaves the status as it was: one decided without variables, or stopped before its first trial. The reset is `reset_status()`, described in [Resetting the status](../solving/status-and-limits.md#resetting-the-status), which algorithms of your own can use the same way.
+After any run that solved, the solver holds the solution of a trial rather than of your model, so `get_status()` reports `unknown`, after an exception too, and the result getters throw `mippp::solve_required_error`. Call `solve()` again before reading a solution. A run that started no trial leaves the model untouched and the status as it was: one decided without variables, or stopped before its first trial. The reset is `reset_status()`, described in [Resetting the status](../solving/status-and-limits.md#resetting-the-status), which algorithms of your own can use the same way.
 
 ### Callbacks
 
