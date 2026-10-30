@@ -105,7 +105,8 @@ public:
         , time_limit(other.time_limit)
         , _lazy_num_variables(other._lazy_num_variables)
         , _lazy_num_constraints(other._lazy_num_constraints)
-        , _status(other._status) {
+        , _status(other._status)
+        , _searched(other._searched) {
         other.model = nullptr;
         other.mip_copy = nullptr;
     }
@@ -570,6 +571,10 @@ private:
             status::interrupted>;
 
     status_variant _status = status::unknown{};
+    // Cbc's master branch aborts the process on a node count query after a
+    // solve that ran no branch and bound, which a root LP ending infeasible,
+    // unbounded or abandoned also skips
+    bool _searched = false;
 
     // On Cbc's master branch, Cbc_solve returns as for an LP when the
     // relaxation of a MIP is infeasible, unbounded or abandoned, and
@@ -651,6 +656,7 @@ private:
 public:
     void solve() {
         reset_status();  // a solve that throws reports unknown
+        _searched = false;
         if(mip_copy) {
             Cbc->deleteModel(mip_copy);
             mip_copy = nullptr;
@@ -661,6 +667,10 @@ public:
             _copy_into_mip_copy();
         Cbc->solve(_solved_model());
         _status = _get_status(_solved_model());
+        _searched = Cbc->getNumIntegers(_solved_model()) > 0 &&
+                    (is_a<status::optimal>(_status) ||
+                     is_a<status::interrupted>(_status) ||
+                     is_a<status::limit_reached>(_status));
     }
     double get_solution_value() {
         // computed from the solution: Cbc_getObjValue keeps the previous
@@ -684,6 +694,14 @@ public:
             std::copy_n(sol, _lazy_num_variables, solution.get());
         }
         return variable_mapping(std::move(solution));
+    }
+    double get_dual_bound() {
+        if(!_searched) return get_solution_value();
+        return objective_offset + Cbc->getBestPossibleObjValue(_solved_model());
+    }
+    std::size_t get_node_count() {
+        if(!_searched) return 0u;
+        return static_cast<std::size_t>(Cbc->getNodeCount(_solved_model()));
     }
 };
 

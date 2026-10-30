@@ -189,5 +189,7 @@ INSTANTIATE_TEST(Cbc, TimeLimitTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, TimeLimitIncumbentTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, OptimalityToleranceTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, MipGapTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, DualBoundTest, cbc_milp_test);
+INSTANTIATE_TEST(Cbc, NodeCountTest, cbc_milp_test);
 // INSTANTIATE_TEST(Cbc, IntegralityToleranceTest, cbc_milp_test);
 INSTANTIATE_TEST(Cbc, VerbosityTest, cbc_milp_test);

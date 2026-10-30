@@ -154,6 +154,8 @@ constexpr const char * GRB_DBL_ATTR_X = "X";            // solution
 constexpr const char * GRB_DBL_ATTR_PI = "Pi";          // dual solution
 constexpr const char * GRB_DBL_ATTR_RC = "RC";          // Reduced costs
 constexpr const char * GRB_DBL_ATTR_START = "Start";    // MIP start
+constexpr const char * GRB_DBL_ATTR_OBJBOUND = "ObjBound";
+constexpr const char * GRB_DBL_ATTR_NODECOUNT = "NodeCount";
 int GRBsetdblattr(GRBmodel * model, const char * attrname, double newvalue);
 int GRBgetdblattr(GRBmodel * model, const char * attrname, double * valueP);
 int GRBsetdblattrelement(GRBmodel * model, const char * attrname, int element,

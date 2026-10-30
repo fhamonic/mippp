@@ -330,6 +330,16 @@ public:
                 return *(solution.get() + _native_id(x));
             });
     }
+    double get_dual_bound() {
+        double bound;
+        check(GRB->getdblattr(model, GRB_DBL_ATTR_OBJBOUND, &bound));
+        return bound;
+    }
+    std::size_t get_node_count() {
+        double count;
+        check(GRB->getdblattr(model, GRB_DBL_ATTR_NODECOUNT, &count));
+        return static_cast<std::size_t>(count);
+    }
 };
 
 }  // namespace gurobi::impl::v1

@@ -201,6 +201,10 @@ SCIP_STATUS SCIPgetStatus(SCIP * scip);
 SCIP_RETCODE SCIPsolve(SCIP * scip);
 SCIP_RETCODE SCIPfreeTransform(SCIP * scip);
 SCIP_Real SCIPgetPrimalbound(SCIP * scip);
+SCIP_Real SCIPgetDualbound(SCIP * scip);
+SCIP_Longint SCIPgetNTotalNodes(SCIP * scip);
+int SCIPgetNOrigBinVars(SCIP * scip);
+int SCIPgetNOrigIntVars(SCIP * scip);
 SCIP_SOL * SCIPgetBestSol(SCIP * scip);
 SCIP_Real SCIPgetSolVal(SCIP * scip, SCIP_SOL * sol, SCIP_VAR * var);
 SCIP_RETCODE SCIPgetSolVals(SCIP * scip, SCIP_SOL * sol, int nvars,
@@ -353,6 +357,10 @@ namespace scip::impl::v1 {
     F(SCIPsolve, solve)                                 \
     F(SCIPfreeTransform, freeTransform)                 \
     F(SCIPgetPrimalbound, getPrimalbound)               \
+    F(SCIPgetDualbound, getDualbound)                   \
+    F(SCIPgetNTotalNodes, getNTotalNodes)               \
+    F(SCIPgetNOrigBinVars, getNOrigBinVars)             \
+    F(SCIPgetNOrigIntVars, getNOrigIntVars)             \
     F(SCIPgetBestSol, getBestSol)                       \
     F(SCIPgetSolVal, getSolVal)                         \
     F(SCIPgetSolVals, getSolVals)                       \

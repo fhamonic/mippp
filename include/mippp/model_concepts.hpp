@@ -297,6 +297,20 @@ concept has_reduced_costs = requires(T & model) {
     { model.get_reduced_costs() }
             -> input_mapping_of<model_variable_t<M>, model_scalar_t<M>>;
 };
+
+// The bound the last solve proved on the optimum, in the objective's sense:
+// a lower bound when minimizing, an upper bound when maximizing.
+template <typename T>
+concept has_dual_bound = requires(T & model) {
+    { model.get_dual_bound() } -> std::same_as<model_scalar_t<T>>;
+};
+
+// As the solver counts them: a search closed at the root reports 0 on some
+// solvers and 1 on others.
+template <typename T>
+concept has_node_count = requires(T & model) {
+    { model.get_node_count() } -> std::same_as<std::size_t>;
+};
 // clang-format on
 ///////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Limits ////////////////////////////////////

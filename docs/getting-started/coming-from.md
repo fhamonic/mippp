@@ -75,6 +75,7 @@ If you already write models in Python or Julia, almost everything transfers: MIP
 | a value | `x.X` | `value(x)` | `x.varValue` | `sol[x]` after `auto sol = model.get_solution();` |
 | dual | `constr.Pi` | `dual(c)` | `c.pi` | `duals[c]` after `get_dual_solution()` |
 | reduced cost | `x.RC` | `reduced_cost(x)` | `x.dj` | `rc[x]` after `get_reduced_costs()` |
+| best bound, nodes | `model.ObjBound`, `model.NodeCount` | `objective_bound(m)`, `node_count(m)` | — | `get_dual_bound()`, `get_node_count()` |
 | time limit | `setParam("TimeLimit", 60)` | `set_time_limit_sec` | `PULP_CBC_CMD(timeLimit=)` | `set_time_limit(60s)` |
 | solver log | on; `setParam("OutputFlag", 0)` | on; `set_silent(m)` | on; `PULP_CBC_CMD(msg=False)` | off; `set_verbose(true)` |
 | MIP start | `x.Start = v` | `set_start_value` | `x.setInitialValue` | `add_mip_start(entries)` |

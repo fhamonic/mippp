@@ -46,6 +46,24 @@ double transport_cost = evaluate(
 
 It works with any map indexable by variable handles, not just solutions — including a heuristic's own assignment: wrap raw storage in an `entity_mapping`, or a lambda with `maps::mapping_all` (see [Mappings](../reference/mappings.md)).
 
+## Dual bound and node count
+
+The MILP models but `glpk_milp` satisfy `has_dual_bound` and `has_node_count`: `get_dual_bound()` returns the bound the solve proved on the optimal objective, and `get_node_count()` the number of branch-and-bound nodes it explored:
+
+```cpp
+model.solve();
+double incumbent  = model.get_solution_value();
+double bound      = model.get_dual_bound();   // <= the optimum when minimizing
+double gap        = std::abs(incumbent - bound) / std::abs(incumbent);
+std::size_t nodes = model.get_node_count();
+```
+
+- The bound is in the objective's own sense, a lower bound when minimizing and an upper bound when maximizing, and includes the objective offset.
+- After `optimal`, it lies within the [optimality tolerance](status-and-limits.md#tolerances) of the incumbent. After a stop, a limit or an interruption, it is the bound the search had reached, unspecified if the stop came before the root relaxation was solved.
+- On a model without integer variables the solve is an LP: the bound is the LP optimum and the node count 0.
+- Each solver counts nodes its own way: a search closed at the root reports 0 on some solvers and 1 on others.
+- Both are defined after a solve that reports `optimal` or a stop, until the model is modified, and unspecified at other times, as `get_solution_value()` is.
+
 ## Dual values
 
 On backends satisfying `has_dual_solution`, duals are indexed by **constraint handles**:

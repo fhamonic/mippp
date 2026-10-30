@@ -93,6 +93,8 @@ INSTANTIATE_TEST(HiGHS_milp, TimeLimitTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, TimeLimitIncumbentTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, OptimalityToleranceTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, MipGapTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, DualBoundTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, NodeCountTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, IntegralityToleranceTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, VerbosityTest, highs_milp_test);
 

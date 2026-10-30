@@ -77,6 +77,8 @@ formated_test_names = [
     ("IterationLimitTest", "Iteration limit"),
     ("OptimalityToleranceTest", "Optimality tolerance"),
     ("MipGapTest", "MIP gap"),
+    ("DualBoundTest", "Dual bound"),
+    ("NodeCountTest", "Node count"),
     ("IntegralityToleranceTest", "Integrality tolerance"),
     ("VerbosityTest", "Verbosity control"),
     ("MipStartTest", "MIP start"),

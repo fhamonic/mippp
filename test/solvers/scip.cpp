@@ -188,4 +188,6 @@ INSTANTIATE_TEST(SCIP, TimeLimitTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, TimeLimitIncumbentTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, OptimalityToleranceTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, MipGapTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, DualBoundTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, NodeCountTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, VerbosityTest, scip_milp_test);

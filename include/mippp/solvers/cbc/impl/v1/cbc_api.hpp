@@ -89,6 +89,7 @@ int Cbc_isProvenOptimal(Cbc_Model * model);
 int Cbc_isProvenInfeasible(Cbc_Model * model);
 int Cbc_isContinuousUnbounded(Cbc_Model * model);
 int Cbc_numberSavedSolutions(Cbc_Model * model);
+int Cbc_getNodeCount(Cbc_Model * model);
 
 double Cbc_getObjValue(Cbc_Model * model);
 double Cbc_getBestPossibleObjValue(Cbc_Model * model);
@@ -169,7 +170,9 @@ namespace cbc::impl::v1 {
     F(Cbc_isProvenInfeasible, isProvenInfeasible)           \
     F(Cbc_isContinuousUnbounded, isContinuousUnbounded)     \
     F(Cbc_numberSavedSolutions, numberSavedSolutions)       \
+    F(Cbc_getNodeCount, getNodeCount)                       \
     F(Cbc_getObjValue, getObjValue)                         \
+    F(Cbc_getBestPossibleObjValue, getBestPossibleObjValue) \
     F(Cbc_getColSolution, getColSolution)                   \
     F(Cbc_bestSolution, bestSolution)
 

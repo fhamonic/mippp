@@ -602,6 +602,13 @@ public:
                                _scip_vars.data(), solution.get()));
         return variable_mapping(std::move(solution));
     }
+    double get_dual_bound() { return SCIP->getDualbound(model); }
+    // SCIP solves a model without integer variables at a root node it counts
+    std::size_t get_node_count() {
+        if(SCIP->getNOrigBinVars(model) + SCIP->getNOrigIntVars(model) == 0)
+            return 0u;
+        return static_cast<std::size_t>(SCIP->getNTotalNodes(model));
+    }
 };
 
 }  // namespace scip::impl::v1

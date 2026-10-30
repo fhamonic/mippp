@@ -385,6 +385,8 @@ struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
 };
 static_assert(!has_iis<glpk_milp>);
 static_assert(!has_lp_basis<glpk_milp>);
+static_assert(!has_dual_bound<glpk_milp>);
+static_assert(!has_node_count<glpk_milp>);
 // The code set_basis writes for each tag the statuses list, pinned without a
 // library: a tag that loses its line in the table writes as its nearest
 // base, which still compiles.
@@ -590,6 +592,9 @@ INSTANTIATE_TEST(GLPK_milp, ModifiableConstraintBoundsTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, IisByDeletionTest, glpk_milp_test);
 // INSTANTIATE_TEST(GLPK_milp, OptimalityToleranceTest, glpk_milp_test);
 // INSTANTIATE_TEST(GLPK_milp, MipGapTest, glpk_milp_test);
+// GLPK reports neither after glp_intopt, only to its callbacks
+// INSTANTIATE_TEST(GLPK_milp, DualBoundTest, glpk_milp_test);
+// INSTANTIATE_TEST(GLPK_milp, NodeCountTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, IntegralityToleranceTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, VerbosityTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, TimeLimitTest, glpk_milp_test);

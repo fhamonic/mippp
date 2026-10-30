@@ -303,6 +303,27 @@ public:
                                 static_cast<int>(num_vars) - 1));
         return variable_mapping(std::move(solution));
     }
+
+private:
+    bool _has_mip_entities() {
+        int mip_entities;
+        check(XPRS->getintattrib(prob, XPRS_ORIGINALMIPENTS, &mip_entities));
+        return mip_entities > 0;
+    }
+
+public:
+    double get_dual_bound() {
+        if(!_has_mip_entities()) return get_solution_value();
+        double bound;
+        check(XPRS->getdblattrib(prob, XPRS_BESTBOUND, &bound));
+        return objective_offset + bound;
+    }
+    std::size_t get_node_count() {
+        if(!_has_mip_entities()) return 0u;
+        int count;
+        check(XPRS->getintattrib(prob, XPRS_NODES, &count));
+        return static_cast<std::size_t>(count);
+    }
 };
 
 }  // namespace xpress::impl::v1

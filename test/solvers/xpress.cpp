@@ -194,6 +194,8 @@ INSTANTIATE_TEST(Xpress_milp, TimeLimitIncumbentTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, MipStartTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, OptimalityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, MipGapTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, DualBoundTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, NodeCountTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);
 static_assert(!has_lp_basis<xpress_milp>);

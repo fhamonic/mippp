@@ -219,6 +219,7 @@ int CPXsolninfo(CPXCENVptr env, CPXCLPptr lp, int * solnmethod_p,
 
 int CPXgetobjval(CPXCENVptr env, CPXCLPptr lp, double * objval_p);
 int CPXgetbestobjval(CPXCENVptr env, CPXCLPptr lp, double * objval_p);
+int CPXgetnodecnt(CPXCENVptr env, CPXCLPptr lp);
 int CPXgetx(CPXCENVptr env, CPXCLPptr lp, double * x, int begin, int end);
 int CPXgetpi(CPXCENVptr env, CPXCLPptr lp, double * pi, int begin, int end);
 int CPXsolution(CPXCENVptr env, CPXCLPptr lp, int * lpstat_p, double * objval_p,
@@ -358,6 +359,7 @@ namespace cplex::impl::v1 {
     F(CPXsolninfo, solninfo)                                         \
     F(CPXgetobjval, getobjval)                                       \
     F(CPXgetbestobjval, getbestobjval)                               \
+    F(CPXgetnodecnt, getnodecnt)                                     \
     F(CPXgetx, getx)                                                 \
     F(CPXgetpi, getpi)                                               \
     F(CPXsolution, solution)                                         \

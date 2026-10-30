@@ -154,7 +154,7 @@ On `glpk_milp` the limit does not bound the whole solve. GLPK's MIP presolver ru
 | `has_optimality_tolerance` | `get`/`set_optimality_tolerance` (the MIP gap, where applicable) | Cbc, COPT, CPLEX, Gurobi, HiGHS, SCIP, Xpress |
 | `has_integrality_tolerance` | `get`/`set_integrality_tolerance` | GLPK, HiGHS, Xpress *(MILP only)* |
 
-On a MILP model the optimality tolerance is the relative gap between the incumbent and the best bound, and a solve that stops there reports `optimal` on every backend. So `optimal` means optimal within that gap, 1e-4 by default on every backend but SCIP, where it is 0: set it to 0 where the exact optimum matters. On `cplex_lp` it is the simplex's reduced-cost tolerance instead.
+On a MILP model the optimality tolerance is the relative gap between the incumbent and the best bound, which [`get_dual_bound()`](solutions.md#dual-bound-and-node-count) returns, and a solve that stops there reports `optimal` on every backend. So `optimal` means optimal within that gap, 1e-4 by default on every backend but SCIP, where it is 0: set it to 0 where the exact optimum matters. On `cplex_lp` it is the simplex's reduced-cost tolerance instead.
 
 HiGHS has no integrality tolerance of its own: `set_integrality_tolerance` sets its `mip_feasibility_tolerance`, which also bounds the row and bound violations its MIP solver accepts.
 

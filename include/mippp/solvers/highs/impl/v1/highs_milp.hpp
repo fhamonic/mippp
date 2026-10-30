@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <ranges>
 #include <string>
@@ -172,6 +173,26 @@ public:
             [this, solution = std::move(solution)](const variable & v) {
                 return *(solution.get() + _native_id(v));
             });
+    }
+
+private:
+    // the MIP info keeps its reset value, -1, when HiGHS solved an LP
+    int64_t _mip_node_count() {
+        int64_t count = -1;
+        check(Highs->getInt64InfoValue(model, "mip_node_count", &count));
+        return count;
+    }
+
+public:
+    double get_dual_bound() {
+        if(_mip_node_count() < 0) return get_solution_value();
+        double bound = 0.0;
+        check(Highs->getDoubleInfoValue(model, "mip_dual_bound", &bound));
+        return bound;
+    }
+    std::size_t get_node_count() {
+        const int64_t count = _mip_node_count();
+        return count < 0 ? 0u : static_cast<std::size_t>(count);
     }
 };
 

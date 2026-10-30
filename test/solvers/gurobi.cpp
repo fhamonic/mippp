@@ -121,6 +121,8 @@ INSTANTIATE_TEST(Gurobi_milp, TimeLimitIncumbentTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, MipStartTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, OptimalityToleranceTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, MipGapTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, DualBoundTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, NodeCountTest, gurobi_milp_test);
 // INSTANTIATE_TEST(Gurobi_milp, IntegralityToleranceTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, VerbosityTest, gurobi_milp_test);
 

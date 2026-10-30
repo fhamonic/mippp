@@ -138,6 +138,8 @@ INSTANTIATE_TEST(CPLEX_milp, TimeLimitIncumbentTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, MipStartTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, OptimalityToleranceTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, MipGapTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, DualBoundTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, NodeCountTest, cplex_milp_test);
 // INSTANTIATE_TEST(CPLEX_milp, IntegralityToleranceTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, VerbosityTest, cplex_milp_test);
 

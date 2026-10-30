@@ -136,6 +136,7 @@ MSKrescodee MSK_getaij(MSKtask_t task, MSKint32t i, MSKint32t j,
 
 MSKrescodee MSK_getnumvar(MSKtask_t task, MSKint32t * numvar);
 MSKrescodee MSK_getnumcon(MSKtask_t task, MSKint32t * numcon);
+MSKrescodee MSK_getnumintvar(MSKtask_t task, MSKint32t * numintvar);
 MSKrescodee MSK_getnumanz(MSKtask_t task, MSKint32t * numanz);
 
 enum MSKiparame : int { MSK_IPAR_LOG = 34, MSK_IPAR_OPTIMIZER = 110 };
@@ -256,6 +257,10 @@ enum MSKiinfiteme : int {
 };
 MSKrescodee MSK_getintinf(MSKtask_t task, MSKiinfiteme whichiinf,
                           MSKint32t * ivalue);
+MSKrescodee MSK_getnadouinf(MSKtask_t task, const char * infitemname,
+                            MSKrealt * dvalue);
+MSKrescodee MSK_getnaintinf(MSKtask_t task, const char * infitemname,
+                            MSKint32t * ivalue);
 
 enum MSKcallbackcodee : int {
     MSK_CALLBACK_BEGIN_BI = 0,
@@ -433,6 +438,7 @@ namespace mosek::impl::v1 {
     F(MSK_getaij, getaij)                                     \
     F(MSK_getnumvar, getnumvar)                               \
     F(MSK_getnumcon, getnumcon)                               \
+    F(MSK_getnumintvar, getnumintvar)                         \
     F(MSK_getnumanz, getnumanz)                               \
     F(MSK_putintparam, putintparam)                           \
     F(MSK_getintparam, getintparam)                           \
@@ -452,7 +458,9 @@ namespace mosek::impl::v1 {
     F(MSK_putskx, putskx)                                     \
     F(MSK_deletesolution, deletesolution)                     \
     F(MSK_getreducedcosts, getreducedcosts)                   \
-    F(MSK_getintinf, getintinf)
+    F(MSK_getintinf, getintinf)                               \
+    F(MSK_getnadouinf, getnadouinf)                           \
+    F(MSK_getnaintinf, getnaintinf)
 
 #define DECLARE_MOSEK_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);    \

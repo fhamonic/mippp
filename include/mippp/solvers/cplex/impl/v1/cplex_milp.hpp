@@ -430,6 +430,17 @@ public:
                 return *(solution.get() + _native_id(v));
             });
     }
+    double get_dual_bound() {
+        if(CPX->getprobtype(env, lp) != CPXPROB_MILP)
+            return get_solution_value();
+        double bound;
+        check(CPX->getbestobjval(env, lp, &bound));
+        return bound;
+    }
+    std::size_t get_node_count() {
+        if(CPX->getprobtype(env, lp) != CPXPROB_MILP) return 0u;
+        return static_cast<std::size_t>(CPX->getnodecnt(env, lp));
+    }
 };
 
 }  // namespace cplex::impl::v1

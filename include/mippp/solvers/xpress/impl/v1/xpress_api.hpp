@@ -68,6 +68,7 @@ enum IntegerAttribute : int {
     XPRS_SETS = 1004,
     XPRS_ELEMS = 1006,
     XPRS_SIMPLEXITER = 1009,
+    XPRS_NODES = 1013,
     XPRS_LPSTATUS = 1010,
     XPRS_MIPSTATUS = 1011,
     XPRS_PRESOLVESTATE = 1026,
@@ -118,7 +119,11 @@ enum STOPStatus : int {
 enum PresolveState : int { XPRS_PRESOLVESTATE_SOLUTIONVALID = 1 << 7 };
 int XPRSgetintattrib(XPRSprob prob, int attrib, int * p_value);
 int XPRSgetstrattrib(XPRSprob prob, int attrib, char * value);
-enum DoubleAttribute : int { XPRS_LPOBJVAL = 2001, XPRS_MIPOBJVAL = 2003 };
+enum DoubleAttribute : int {
+    XPRS_LPOBJVAL = 2001,
+    XPRS_MIPOBJVAL = 2003,
+    XPRS_BESTBOUND = 2004
+};
 int XPRSgetdblattrib(XPRSprob prob, int attrib, double * p_value);
 
 enum NameType : int { XPRS_NAMES_ROW = 1, XPRS_NAMES_COLUMN = 2 };

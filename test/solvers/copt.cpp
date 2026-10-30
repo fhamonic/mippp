@@ -238,6 +238,8 @@ INSTANTIATE_TEST(COPT_milp, TimeLimitIncumbentTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, MipStartTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, OptimalityToleranceTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, MipGapTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, DualBoundTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, NodeCountTest, copt_milp_test);
 // INSTANTIATE_TEST(COPT_milp, IntegralityToleranceTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, VerbosityTest, copt_milp_test);
 

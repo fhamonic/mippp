@@ -294,6 +294,18 @@ public:
                                       nullptr));
         return variable_mapping(std::move(solution));
     }
+    double get_dual_bound() {
+        if(!_is_mip) return get_solution_value();
+        double bound;
+        check(COPT->GetDblAttr(prob, COPT_DBLATTR_BESTBND, &bound));
+        return bound;
+    }
+    std::size_t get_node_count() {
+        if(!_is_mip) return 0u;
+        int count;
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_NODECNT, &count));
+        return static_cast<std::size_t>(count);
+    }
 };
 
 }  // namespace copt::impl::v1

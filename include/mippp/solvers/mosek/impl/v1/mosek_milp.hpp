@@ -195,6 +195,29 @@ public:
             check(MSK->getxx(task, _require_solution(), solution.get()));
         return variable_mapping(std::move(solution));
     }
+
+private:
+    bool _has_integer_variables() {
+        MSKint32t num_int_vars;
+        check(MSK->getnumintvar(task, &num_int_vars));
+        return num_int_vars > 0;
+    }
+
+public:
+    // Information items are read by name: MOSEK numbers them alphabetically,
+    // so a release that adds one shifts the codes of those after it.
+    double get_dual_bound() {
+        if(!_has_integer_variables()) return get_solution_value();
+        double bound;
+        check(MSK->getnadouinf(task, "MSK_DINF_MIO_OBJ_BOUND", &bound));
+        return bound;
+    }
+    std::size_t get_node_count() {
+        if(!_has_integer_variables()) return 0u;
+        MSKint32t count;
+        check(MSK->getnaintinf(task, "MSK_IINF_MIO_NUM_SOLVED_NODES", &count));
+        return static_cast<std::size_t>(count);
+    }
 };
 
 }  // namespace mosek::impl::v1
