@@ -606,10 +606,13 @@ row in the compatibility table.
 
 1. Fork the repository and create a topic branch off `main`.
 2. Make your change, keeping commits focused and messages descriptive.
-3. Ensure `clang-format` is applied and the tests pass for at least one backend.
-4. Open a pull request against `main`, describing what changed and why. Link any
+3. If users can see the change, add an entry to [CHANGELOG.md](CHANGELOG.md),
+   under *Added*, *Changed* or *Fixed* in the *Unreleased* section at its top.
+   A change to tests, CI or internals alone needs none.
+4. Ensure `clang-format` is applied and the tests pass for at least one backend.
+5. Open a pull request against `main`, describing what changed and why. Link any
    related issue.
-5. The CI must pass before a review can be merged.
+6. The CI must pass before a review can be merged.
 
 ## License
 
