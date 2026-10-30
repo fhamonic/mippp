@@ -74,13 +74,105 @@ Note how the column's entries are themselves a lazy range pipeline — filter th
 
 ## Large-scale pricing: the column manager
 
-When the pricing problem generates many candidate columns — more than the master should hold at once — the bookkeeping (which columns exist, which are active in the master, which to evict) becomes its own subsystem. The `mippp::colgen::column_manager` (in `mippp/utility/column_manager.hpp`) implements it on top of any model satisfying the concepts above:
+When the pricing problem generates many candidate columns, more than the master should hold at once, the bookkeeping (which columns exist, which are in the master, which to evict) becomes its own subsystem. `mippp::colgen::column_manager`, in `mippp/utility/column_manager.hpp`, implements it on top of any model satisfying the concepts above:
 
-- columns are identified by a user-chosen **seed** type (e.g. the pattern), deduplicated in a pool;
-- compile-time **column properties** (reduced-cost windows, age, …) are attached to pooled and in-master columns via `property_list`;
-- pluggable **activation and eviction strategies** decide which columns move between the pool and the master at each round, and the manager reports diagnostics such as columns regenerated while already in the master — a telltale sign of stale duals or cycling.
+- a column is identified by a **seed** of your choice (here, the pattern), and the manager deduplicates seeds;
+- a column is either in the **pool**, priced but not in the master, or in the **master**, with its variable;
+- compile-time **column properties** (reduced cost, age, …) live in each column's state, listed per state in a `property_list`, and react to the events you broadcast;
+- a **predicate** chooses which columns to activate or evict at each round, and an optional **selector** narrows that choice down.
 
-The `column_manager` test suite ([`test/test_suites/column_manager.hpp`](https://github.com/fhamonic/mippp/blob/main/test/test_suites/column_manager.hpp)) shows complete usage until a dedicated guide lands here.
+### A round
+
+```cpp
+--8<-- "test/doc_snippets/column_generation.cpp:includes"
+```
+
+The manager is declared with its two property lists, one for each state:
+
+```cpp
+--8<-- "test/doc_snippets/column_generation.cpp:manager"
+```
+
+The rows exist before any column, so the initial columns go through the same add callback as every later one. The callback receives the column's [entry](#entries) and returns the new variable:
+
+```cpp
+--8<-- "test/doc_snippets/column_generation.cpp:rows"
+```
+
+Each round prices a pattern into the pool, refreshes every column's reduced cost, activates the improving columns and evicts the unattractive ones:
+
+```cpp
+--8<-- "test/doc_snippets/column_generation.cpp:round"
+```
+
+(`price` returns the pattern of best knapsack value at these duals, if it beats the cost of a roll.)
+
+- **Read the master right after `solve()`.** Take the solution, the duals, the reduced costs and the basis before `activate_columns` or `evict_columns` modifies the master. What these getters return after a modification is unspecified, and backends differ: some throw, others return the previous values or zeros.
+- **Activate, then evict.** At convergence nothing is activated, so the loop leaves the master as it was solved last, and the solution read after the loop is the optimum. Evicting first would modify the master after its last solve.
+- `emplace_pool_column` reports a seed already known; `emplace_pool_columns(range)` counts the seeds it inserted, those already in the pool, and those already in the master, which betrays stale duals or a cycling process.
+- Eviction removes the variables, so `evict_columns(model, predicate)` needs `has_remove_variable`, which, among the LP models, `gurobi_lp`, `cplex_lp`, `highs_lp` and `clp_lp` model. A third argument replaces that default: `remove(model, entries)` receives the entries of the evicted columns. An evicted column goes back to the pool, and a later round reactivates it without pricing it again.
+
+### Entries
+
+Every callback receives a column's entry: predicates, selector comparators, the add callback, the remove callback (a range of them), and the event makers of `update_pool_columns`, `update_master_columns` and `update_columns`. An entry refers to the column's `seed`, its `data` if the manager [has one](#per-column-data), and its `state`, where `state.var` is the variable of a master column and `state.template get<P>()` reads the property `P`. It destructures as `auto && [seed, state] = entry`, or as `auto && [seed, data, state] = entry`.
+
+### Predicates and selectors
+
+A predicate is any function object callable with an entry and returning a `bool`. The shipped ones read a property: `below<P>{v}` and `above<P>{v}`, `negative<P>{tol}` and `positive<P>{tol}` (below `-tol` and above `tol`), `window_above<K>{v}` and `window_below<K>{v}` on the last `K` reduced costs of `reduced_cost_window<K>`, and `age_above_with_backoff` (see [Eviction](#eviction-age-and-thrashing)). `conjunction` and `disjunction` combine predicates.
+
+None of them assumes an optimization sense. The sign is yours to state:
+
+| Master | Activation | Eviction |
+|---|---|---|
+| minimizing | `negative<reduced_cost>{tol}` | `positive<reduced_cost>{tol}`, `window_above<K>{tol}` |
+| maximizing | `positive<reduced_cost>{tol}` | `negative<reduced_cost>{tol}`, `window_below<K>{-tol}` |
+
+A lambda is a predicate too, which covers tolerances relative to the duals. Build it in each round, capturing that round's duals:
+
+```cpp
+auto improving = [&](const auto & entry) {   // a maximizing master
+    return entry.state.template get<colgen::reduced_cost>()
+           > 1e-7 * duals[target_row(entry.seed)] + 1e-6;
+};
+columns.activate_columns(model, improving, add_column);
+```
+
+Keep the reduced cost the events carry exact. Folding a tolerance into it, as in `priced{rc - 1e-7 * dual}`, also shifts the zero reduced cost of the master's basic columns, which the eviction predicate then reads as unattractive.
+
+The selector comes last and defaults to `all_candidates`. `at_most_k{n}` keeps the first `n` candidates, `at_most_k_random{n, gen}` draws `n` of them, and `at_most_k_best{n, cmp}` keeps the `n` best according to `cmp`, which compares entries, lesser being better.
+
+### Per-column data
+
+Data known when a column is priced, which is no part of its identity, goes in the fifth template parameter, `Data`. The manager stores it beside the column's state, keeps it across activations and evictions, and passes it in every entry. For instance, with a column whose contribution enters its reduced cost:
+
+```cpp
+struct contribution { double value; };
+colgen::column_manager<Model, tree, colgen::property_list<colgen::reduced_cost>,
+                       colgen::property_list<colgen::reduced_cost>, contribution>
+    columns;
+
+columns.emplace_pool_column(std::move(t), c);      // constructs the Data from c
+columns.update_columns([&](const auto & entry) {
+    return colgen::priced{reduced_cost(entry.seed, entry.data.value)};
+});
+```
+
+- An emplacement constructs the `Data` from its extra arguments only when it inserts: a seed already known keeps the data it was first given.
+- With a `Data`, `emplace_pool_columns(range)` takes `(seed, data)` pairs or tuples.
+- Seeds that are ranges or `std::pair`/`std::tuple` hash by default through `colgen::seed_hash`, which keeps `std::hash` for the seeds that have one. A seed of your own type needs a `std::hash` specialization, or a `Hash` as the sixth template parameter.
+
+### Order and reproducibility
+
+The manager presents the candidates in the order their seeds were first emplaced: a column keeps its place when it moves between the pool and the master, and `purge_pool` keeps the order of the columns it spares. `all_candidates` and `at_most_k` keep that order, so it is the order in which the columns enter the master, which steers the solver's path. When parallel pricing collects the columns, sorting them before `emplace_pool_columns` makes runs repeatable.
+
+### Eviction, age and thrashing
+
+- `age` counts the events carrying a reduced cost that a column received since it entered its current state. That is one per round only if each round sends the column one such event: `update_columns(price)` followed by `update_master_columns` with a `master_refreshed` ages master columns twice per round.
+- `conjunction<above<age>, positive<reduced_cost>>{k, tol}` spares the columns that entered the master less than `k` rounds ago.
+- Evicted columns often come back a few rounds later. `age_above_with_backoff{base, step}` holds when `age > base + step * times_activated`, so a column stays longer in the master each time it comes back; `below<times_activated>{n}` stops evicting a column once it has entered the master `n` times. `times_activated` must then be listed in both property lists, or it restarts at every activation.
+- `purge_pool(predicate)` erases pool columns, which bounds the pool's memory.
+
+The `column_manager` test suite ([`test/test_suites/column_manager.hpp`](https://github.com/fhamonic/mippp/blob/main/test/test_suites/column_manager.hpp)) runs this loop on every backend with removal.
 
 ## Performance notes
 
@@ -93,8 +185,8 @@ The `column_manager` test suite ([`test/test_suites/column_manager.hpp`](https:/
 A master grown in place usually re-solves from the basis the solver kept, and the columns added since enter it nonbasic. On the LP models, `get_basis()` also tells which master columns are basic, through `model_variable_basis_status_t<M>` and the `variable_status` property that `master_refreshed` updates, and `set_basis(b)`, on every LP model but `soplex_lp`, starts a solve from a basis of your choice, see [Bases and warm starts](../solving/basis.md):
 
 - A master column reads its status from the last `master_refreshed`; until then it holds bare `basis_status::nonbasic`, the status of a column the basis does not cover, so a predicate that classifies fresh columns tests `!is<basis_status::basic>(s)`.
-- When `manage_columns` evicts columns, take the basis after `solve()` and before `manage_columns`, and write it with `set_basis` after it: a column activated in the same call may reuse the id of a column just evicted, and then reads that column's entry, nonbasic if that column was. The shipped eviction strategies test the reduced costs your events carry, never a basis status, and evict only a column whose reduced cost exceeds a threshold. At an optimum, `get_reduced_costs()` reads zero on a basic column, so with those reduced costs and a threshold of 0 or more they evict nonbasic columns only; reduced costs recomputed from the duals carry rounding errors of either sign, and then only a threshold above those errors keeps basic columns.
-- On Gurobi, removing a column that was basic discards the basis Gurobi keeps, and the next solve starts cold. A basis taken before that removal is one basic entity short, and Gurobi discards it too; under the conditions of the previous point, the shipped eviction strategies remove nonbasic columns only, at an optimum.
+- Take the basis right after `solve()`, and write it with `set_basis` after `activate_columns` and `evict_columns`, in that order. Handles are recycled, so an activated column may take the handle of a column evicted in an earlier round; the basis, taken after that eviction, reads that handle nonbasic, as a new column should be. Evicting before activating in the same round would let a new column read the entry of the column whose handle it takes, basic if that column was. The basis keeps as many basic entities as rows only if no evicted column was basic. At an optimum, `get_reduced_costs()` reads zero on a basic column, so with those reduced costs, `positive<reduced_cost>{tol}` on a minimizing master and `negative<reduced_cost>{tol}` on a maximizing one evict nonbasic columns only; reduced costs recomputed from the duals carry rounding errors of either sign, and then only a tolerance above those errors keeps basic columns.
+- On Gurobi, removing a column that was basic discards the basis Gurobi keeps, and the next solve starts cold. A basis taken before that removal is one basic entity short, and Gurobi discards it too; an eviction predicate that selects nonbasic columns only, as in the previous point, avoids both.
 
 Variable reduced costs (`get_reduced_costs`, concept `has_reduced_costs`) are available on every LP backend but `soplex_lp`, for pricing schemes that reason on the master's variables.
 

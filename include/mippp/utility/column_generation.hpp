@@ -17,9 +17,10 @@
 
 namespace mippp {
 
-// Pricing vocabulary lives in its own namespace: names this generic (`all`,
-// `none`, `event`, `age`, `below`) would collide with user code and with
-// `std::views::all` in the `using namespace mippp;` that every example opens.
+// Pricing vocabulary lives in its own namespace: names this generic (`event`,
+// `age`, `below`, `conjunction`) would collide with user code, and
+// `conjunction` with `std::conjunction` beside a `using namespace std;`, in
+// the `using namespace mippp;` that every example opens.
 namespace colgen {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -202,7 +203,10 @@ struct variable_status : property<Status> {
     }
 };
 
-// number of pricing rounds spent in the current state (pool or master)
+// number of events carrying a reduced cost received since the column entered
+// its current state (pool or master), which is a number of rounds only if
+// each round sends the column one such event: update_columns(priced) then
+// update_master_columns(master_refreshed) ages master columns twice per round
 struct age : property<std::size_t> {
     static constexpr void on(std::size_t & value,
                              const carries<reduced_cost> auto &) noexcept {
@@ -282,26 +286,43 @@ struct in_master_state_from_property_list<Variable, property_list<Ps...>> {
 }  // namespace detail
 
 ///////////////////////////////////////////////////////////////////////////////
-////////////////////////////////// Strategies /////////////////////////////////
+/////////////////////////////////// Entries ///////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// The activation/eviction candidates are presented to the strategies as
-// entries, i.e. std::pair<const ColumnSeed &, const State &> (see the
-// in_pool_entry/in_master_entry aliases of column_manager). A strategy is a
-// type providing:
+// the Data of a column_manager whose columns carry nothing but their seed
+struct no_data {};
+
+// What the column manager hands to every callback: predicates, selector
+// projections, add and remove callbacks, event makers. It refers to the
+// column's seed, data and current state, and destructures as
+// `auto && [seed, state] = entry`, or as `auto && [seed, data, state] = entry`
+// when the manager has a Data.
+template <typename Seed, typename State, typename Data = no_data>
+struct column_entry {
+    const Seed & seed;
+    const Data & data;
+    const State & state;
+};
+template <typename Seed, typename State>
+struct column_entry<Seed, State, no_data> {
+    const Seed & seed;
+    const State & state;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// Predicates /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// A predicate is any function object callable with an entry, returning
+// whether the column is a candidate for activation (given pool entries) or
+// for eviction (given master entries). A predicate reading a property P
+// requires P to be listed in the property_list of that state (enforced at
+// compile time by properties_base::get<P>).
 //
-//     Pred predicate;
-//         a member function object callable with an entry, returning whether
-//         the column is a candidate for activation/eviction
-//     auto select(candidates, proj) const;
-//         restricts the candidates (given as a range of node handles) to the
-//         ones to actually activate/evict; proj maps a node handle to its
-//         entry so that comparators/samplers can inspect seeds and states
-//
-// Predicates are plain function objects : a predicate reading a property P
-// simply requires P to be listed in the property_list given to the
-// column_manager for the corresponding state (enforced at compile time by
-// properties_base::get<P>).
+// No predicate assumes an optimization sense: negative<reduced_cost> finds
+// the improving columns of a minimizing master and positive<reduced_cost>
+// those of a maximizing one, and eviction tests the opposite sign, as do
+// window_above and window_below.
 
 namespace detail {
 template <typename S, typename Entry>
@@ -310,14 +331,11 @@ concept column_predicate = requires(const S & s, const Entry & entry) {
 };
 }  // namespace detail
 
-//////////////////////////////// entry predicates /////////////////////////////
-
 template <typename P>
 struct below {
     P::value_type rhs;
     constexpr bool operator()(const auto & entry) const {
-        const auto & state = std::get<1>(entry);
-        return state.template get<P>() < rhs;
+        return entry.state.template get<P>() < rhs;
     }
 };
 
@@ -325,8 +343,7 @@ template <typename P>
 struct above {
     P::value_type rhs;
     constexpr bool operator()(const auto & entry) const {
-        const auto & state = std::get<1>(entry);
-        return state.template get<P>() > rhs;
+        return entry.state.template get<P>() > rhs;
     }
 };
 
@@ -347,9 +364,34 @@ template <std::size_t K>
 struct window_above {
     double threshold = 0.0;
     constexpr bool operator()(const auto & entry) const {
-        const auto & state = std::get<1>(entry);
-        return std::ranges::all_of(state.template get<reduced_cost_window<K>>(),
-                                   [&](double rc) { return rc > threshold; });
+        return std::ranges::all_of(
+            entry.state.template get<reduced_cost_window<K>>(),
+            [&](double rc) { return rc > threshold; });
+    }
+};
+
+// the K last reduced costs of the column all stayed below 'threshold'
+template <std::size_t K>
+struct window_below {
+    double threshold = 0.0;
+    constexpr bool operator()(const auto & entry) const {
+        return std::ranges::all_of(
+            entry.state.template get<reduced_cost_window<K>>(),
+            [&](double rc) { return rc < threshold; });
+    }
+};
+
+// age > base + step * times_activated: a column that keeps coming back to
+// the master stays there longer each time, which damps eviction thrashing.
+// times_activated must be listed in both states, or each activation restarts
+// it at 1.
+struct age_above_with_backoff {
+    std::size_t base = 0;
+    std::size_t step = 0;
+    constexpr bool operator()(const auto & entry) const {
+        const auto & state = entry.state;
+        return state.template get<age>() >
+               base + step * state.template get<times_activated>();
     }
 };
 
@@ -383,59 +425,39 @@ struct disjunction {
 template <typename... Pr>
 disjunction(Pr...) -> disjunction<Pr...>;
 
-///////////////////////////// selection strategies ////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// Selectors //////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-struct none {
-    struct {
-        constexpr bool operator()(const auto &) const { return false; }
-    } predicate;
-    template <std::ranges::range R, typename Proj = std::identity>
-    constexpr auto select(R &&, Proj = {}) const {
-        return std::views::empty<std::ranges::range_value_t<R>>;
-    }
-};
-template <typename Pred = conjunction<>>
-struct all {
-    Pred predicate;
-    template <typename... T>
-        requires std::constructible_from<Pred, T &&...>
-    all(T &&... args) : predicate(std::forward<T>(args)...) {}
+// A selector narrows the candidates that matched the predicate down to the
+// ones to activate or evict: select(candidates, proj) returns a forward range
+// of candidates, where proj maps a candidate (a node handle) to its entry so
+// that comparators and samplers can read seeds, data and states. The manager
+// presents the candidates in the order their seeds were first emplaced.
+
+// every candidate, in the manager's order
+struct all_candidates {
     template <std::ranges::range R, typename Proj = std::identity>
     constexpr auto select(R && candidates, Proj = {}) const {
         return std::views::all(std::forward<R>(candidates));
     }
 };
-template <typename Pred>
-all(Pred) -> all<Pred>;
 
-// the first 'count' candidates, in unspecified order
-template <typename Pred>
-struct at_most_k : all<Pred> {
-    std::size_t count;
-    template <typename... T>
-        requires std::constructible_from<Pred, T &&...>
-    at_most_k(const std::size_t & count_, T &&... args)
-        : all<Pred>(std::forward<T>(args)...), count(count_) {}
+// the first 'count' candidates, in the manager's order
+struct at_most_k {
+    std::size_t count = 0;
     template <std::ranges::range R, typename Proj = std::identity>
     constexpr auto select(R && candidates, Proj = {}) const {
         return std::views::take(std::forward<R>(candidates),
                                 static_cast<std::ptrdiff_t>(count));
     }
 };
-template <typename Pred>
-at_most_k(std::size_t, Pred) -> at_most_k<Pred>;
 
 // 'count' candidates drawn uniformly at random
-template <typename Pred, typename Gen>
-struct at_most_k_random : at_most_k<Pred> {
-    using at_most_k<Pred>::count;
+template <typename Gen>
+struct at_most_k_random {
+    std::size_t count = 0;
     mutable Gen gen;
-    template <typename G, typename... T>
-        requires std::constructible_from<Gen, G &&> &&
-                     std::constructible_from<Pred, T &&...>
-    at_most_k_random(const std::size_t & count_, G && gen_, T &&... args)
-        : at_most_k<Pred>(count_, std::forward<T>(args)...)
-        , gen(std::forward<G>(gen_)) {}
     template <std::ranges::range R, typename Proj = std::identity>
     auto select(R && candidates, Proj = {}) const {
         std::vector<std::ranges::range_value_t<R>> selected;
@@ -445,21 +467,15 @@ struct at_most_k_random : at_most_k<Pred> {
         return selected;
     }
 };
-template <typename G, typename Pred>
-at_most_k_random(std::size_t, G, Pred) -> at_most_k_random<Pred, G>;
+template <typename Gen>
+at_most_k_random(std::size_t, Gen) -> at_most_k_random<Gen>;
 
-// the 'count' best candidates according to 'cmp' (applied to entries, lesser
-// is better)
-template <typename Pred, typename Comp>
-struct at_most_k_best : at_most_k<Pred> {
-    using at_most_k<Pred>::count;
+// the 'count' best candidates according to 'cmp', which compares entries
+// (lesser is better), in no particular order
+template <typename Comp>
+struct at_most_k_best {
+    std::size_t count = 0;
     [[no_unique_address]] Comp cmp;
-    template <typename C, typename... T>
-        requires std::constructible_from<Comp, C &&> &&
-                     std::constructible_from<Pred, T &&...>
-    at_most_k_best(const std::size_t & count_, C && cmp_, T &&... args)
-        : at_most_k<Pred>(count_, std::forward<T>(args)...)
-        , cmp(std::forward<C>(cmp_)) {}
     template <std::ranges::range R, typename Proj = std::identity>
     auto select(R && candidates, Proj proj = {}) const {
         auto selected = std::ranges::to<std::vector>(candidates);
@@ -472,20 +488,85 @@ struct at_most_k_best : at_most_k<Pred> {
         return selected;
     }
 };
-template <typename C, typename Pred>
-at_most_k_best(std::size_t, C, Pred) -> at_most_k_best<Pred, C>;
+template <typename Comp>
+at_most_k_best(std::size_t, Comp) -> at_most_k_best<Comp>;
 
-using evict_never = none;
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// Seed hashing /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-// evicts columns whose reduced cost stayed above 'threshold' for their K last
-// pricing rounds in the master
-template <std::size_t K>
-using evict_window_above = all<window_above<K>>;
+// Mixes 'value' into 'seed' as boost::hash_combine does since Boost 1.81.
+// Not the older seed ^ (value + 0x9e3779b9 + (seed << 6) + (seed >> 2)): with
+// the identity std::hash<int> of libstdc++, it hashes the tuples (1, {2}) and
+// (2, {1}) alike.
+constexpr std::size_t hash_combine(std::size_t seed,
+                                   std::size_t value) noexcept {
+    std::size_t x = seed + 0x9e3779b9u + value;
+    if constexpr(sizeof(std::size_t) >= 8) {
+        constexpr auto m = static_cast<std::size_t>(0xe9846af9b1a615dULL);
+        x ^= x >> 32;
+        x *= m;
+        x ^= x >> 32;
+        x *= m;
+        x ^= x >> 28;
+    } else {
+        x ^= x >> 16;
+        x *= 0x21f0aaadu;
+        x ^= x >> 15;
+        x *= 0x735a2d97u;
+        x ^= x >> 15;
+    }
+    return x;
+}
 
-// evicts columns that are currently unattractive and entered the master at
-// least a given number of pricing rounds ago (protects freshly added columns)
-using evict_unattractive_aged =
-    all<conjunction<above<age>, above<reduced_cost>>>;
+namespace detail {
+template <typename T>
+concept std_hashable = requires(const T & t) {
+    { std::hash<T>{}(t) } -> std::convertible_to<std::size_t>;
+};
+template <typename T>
+concept tuple_like_seed = requires { std::tuple_size<T>::value; };
+}  // namespace detail
+
+// The default Hash of column_manager: std::hash<T> where it is enabled, so
+// such a seed hashes as it always did, otherwise the combination of the
+// elements of a range or of a std::pair / std::tuple, each hashed by
+// seed_hash in turn.
+template <typename T>
+struct seed_hash {
+    constexpr std::size_t operator()(const T & seed) const {
+        if constexpr(detail::std_hashable<T>) {
+            return std::hash<T>{}(seed);
+        } else if constexpr(std::ranges::input_range<const T>) {
+            using element = std::ranges::range_value_t<const T>;
+            std::size_t h = 0;
+            std::size_t n = 0;
+            for(const auto & e : seed) {
+                h = hash_combine(h, seed_hash<element>{}(e));
+                ++n;
+            }
+            return hash_combine(h, n);
+        } else if constexpr(detail::tuple_like_seed<T>) {
+            return std::apply(
+                [](const auto &... elements) {
+                    std::size_t h = 0;
+                    ((h = hash_combine(
+                          h,
+                          seed_hash<std::remove_cvref_t<decltype(elements)>>{}(
+                              elements))),
+                     ...);
+                    return h;
+                },
+                seed);
+        } else {
+            static_assert(false,
+                          "MIP++: column_manager cannot hash this seed type; "
+                          "give it a std::hash specialization, make it a "
+                          "range or a std::pair / std::tuple, or pass a Hash "
+                          "to column_manager.");
+        }
+    }
+};
 
 }  // namespace colgen
 

@@ -57,6 +57,7 @@ add_executable(
     variant.cpp
     dynamic_library.cpp
     doc_snippets/basis.cpp
+    doc_snippets/column_generation.cpp
     doc_snippets/deletion_filter.cpp
     doc_snippets/infeasibility.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}

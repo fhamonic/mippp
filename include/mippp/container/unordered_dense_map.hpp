@@ -25,7 +25,8 @@
 //     and invalidates the iterator/index of the last element. The
 //     erase(iterator) overloads therefore return an iterator to the slot that
 //     was erased (now holding the swapped-in element), following flat-map
-//     convention, not the "next in order" element.
+//     convention, not the "next in order" element. erase_if inherits that
+//     reordering; stable_erase_if keeps the order at O(size()).
 //
 //  Heterogeneous lookup (find/contains/count/at/equal_range/erase taking a
 //  non-Key argument) is only enabled when both Hash and KeyEqual are
@@ -340,6 +341,36 @@ public:
     }
 
     const Store & values() const { return *store_; }
+
+    // Unlike erase_if, keeps the survivors in their order: compacts the store
+    // and rebuilds the whole index, O(size()). pred runs on every element
+    // before anything moves, so a throwing pred leaves the map untouched.
+    template <typename Pred>
+    friend size_type stable_erase_if(unordered_dense_map & map, Pred pred) {
+        Store & store = *map.store_;
+        std::vector<bool> erased(store.size());
+        size_type first = store.size();
+        for(size_type i = 0; i < store.size(); ++i) {
+            erased[i] = static_cast<bool>(pred(store[i]));
+            if(erased[i] && first == store.size()) first = i;
+        }
+        if(first == store.size()) return 0;
+        size_type kept = first;
+        try {
+            for(size_type i = first + 1; i < store.size(); ++i)
+                if(!erased[i]) store[kept++] = std::move(store[i]);
+            store.erase(store.begin() + static_cast<difference_type>(kept),
+                        store.end());
+            map.index_.clear();
+            for(size_type i = 0; i < kept; ++i) map.index_.insert(Index{i});
+        } catch(...) {
+            // the store and the index no longer agree: lookups would read
+            // the wrong slots, so only an empty map is left consistent
+            map.clear();
+            throw;
+        }
+        return erased.size() - kept;
+    }
 
 private:
     template <typename K2, typename... Args>

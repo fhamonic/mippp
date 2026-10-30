@@ -66,6 +66,20 @@ All notable changes to MIP++ are recorded in this file. The format follows
   `<solver>_api::support_of(api.library_version())` returns
   `release_support::validated`, `partial` or `untested`. Only HiGHS declares
   one, see Changed.
+- **Column manager.** See Changed for the redesign, and the
+  [column manager guide](docs/algorithms/column-generation.md#large-scale-pricing-the-column-manager).
+  - `activate_columns(model, predicate, add, selector)` and
+    `evict_columns(model, predicate, remove, selector)`, which return how many
+    columns they moved and replace `manage_columns`;
+  - a `Data` template parameter: data stored with each column, given at
+    emplacement and passed in every entry;
+  - `colgen::seed_hash`, the default `Hash`, which hashes ranges,
+    `std::pair` and `std::tuple` seeds, and `colgen::hash_combine`;
+  - `window_below<K>`, the mirror of `window_above<K>`, and
+    `age_above_with_backoff{base, step}`, which damps eviction thrashing;
+  - `emplace_master_column(model, seed, add)`, which adds an initial column
+    through the add callback;
+  - `stable_erase_if` on `unordered_dense_map`.
 
 ### Changed
 
@@ -140,6 +154,35 @@ All notable changes to MIP++ are recorded in this file. The format follows
   features. Those of SoPlex, and `Highs_getIis` and `Highs_setSparseSolution`,
   are optional. The others are required, so a solver library that lacks one no
   longer loads.
+- **Column manager (breaking).** The redesign fixes `manage_columns`, which
+  evicted before activating and so, at convergence, modified the master after
+  its last solve: reading the solution then threw on Gurobi and CPLEX and
+  returned 0 on HiGHS.
+  - Every callback receives an entry, `{seed, state}` or, with a `Data`,
+    `{seed, data, state}`, instead of a `std::pair<const Seed &, const State &>`
+    (predicates, remove callback), a seed (add callback, `update_pool_columns`)
+    or a seed and a variable (`update_master_columns`).
+  - Predicates and selectors are separate arguments. `none`, `evict_never`,
+    `all<P>`, and the `at_most_k*` strategies that bundled a predicate are
+    gone; `at_most_k`, `at_most_k_random` and `at_most_k_best` are selectors.
+  - `evict_window_above<K>` and `evict_unattractive_aged`, which assumed a
+    minimizing master, are gone.
+  - The template parameters are `<Model, Seed, PoolProperties,
+    MasterProperties, Data, Hash, KeyEqual>`: `Hash` moved from fifth to sixth.
+  - `purge_pool` keeps the order of the columns it spares.
+
+  | 1.0 | 1.1 |
+  |---|---|
+  | `manage_columns(m, all<P>{...}, add)` | `activate_columns(m, P{...}, add)` |
+  | `manage_columns(m, A, E, add, rm)` | `activate_columns(m, a, add)`, then `evict_columns(m, e, rm)` |
+  | `at_most_k_best{k, cmp, P{}}` | `activate_columns(m, P{}, add, at_most_k_best{k, cmp})` |
+  | `evict_window_above<K>{t}` | `window_above<K>{t}` |
+  | `evict_unattractive_aged{k, t}` | `conjunction<above<age>, above<reduced_cost>>{k, t}` |
+  | `add(m, seed)` | `add(m, entry)`, with `entry.seed` |
+  | `update_pool_columns([](seed) {...})` | `update_pool_columns([](auto && entry) {...})` |
+  | `update_master_columns([](seed, var) {...})` | `update_master_columns([](auto && entry) {...})`, with `entry.state.var` |
+  | `entry.first`, `entry.second`, `std::get<1>(entry)` | `entry.seed`, `entry.state` |
+  | `column_manager<M, S, PP, MP, Hash>` | `column_manager<M, S, PP, MP, no_data, Hash>` |
 
 ### Fixed
 

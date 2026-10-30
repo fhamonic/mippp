@@ -338,8 +338,8 @@ GTEST_TEST(unordered_dense_map, erase_all_via_iterator_idiom) {
 }
 
 GTEST_TEST(unordered_dense_map, erase_if_reports_num_erased) {
-    // the erase_if free function applies the idiom above (column_manager's
-    // purge_pool relies on it: std::erase_if has no overload for this map)
+    // the erase_if free function applies the idiom above (std::erase_if has
+    // no overload for this map)
     map_t m;
     for(int i = 0; i < 20; ++i) m[i] = i;
     auto erased = erase_if(m, [](const auto & e) { return e.first % 3 == 0; });
@@ -347,6 +347,44 @@ GTEST_TEST(unordered_dense_map, erase_if_reports_num_erased) {
     ASSERT_EQ(m.size(), 13u);
     for(int i = 0; i < 20; ++i)
         ASSERT_EQ(m.contains(i), (i % 3 != 0)) << "key " << i;
+}
+
+GTEST_TEST(unordered_dense_map, stable_erase_if_keeps_order) {
+    // column_manager's purge_pool relies on it: the order of its columns is
+    // the order it activates them in
+    map_t m;
+    for(int i : {5, 0, 9, 3, 6, 1, 4}) m[i] = 10 * i;
+    auto erased =
+        stable_erase_if(m, [](const auto & e) { return e.first % 3 == 0; });
+    ASSERT_EQ(erased, 4u);
+    std::vector<int> keys;
+    for(auto && [k, v] : m) keys.push_back(k);
+    ASSERT_EQ(keys, (std::vector<int>{5, 1, 4}));
+    // the index follows the moved elements
+    for(int i : {5, 1, 4}) {
+        ASSERT_TRUE(m.contains(i)) << "key " << i;
+        ASSERT_EQ(m.at(i), 10 * i);
+    }
+    for(int i : {0, 9, 3, 6}) ASSERT_FALSE(m.contains(i)) << "key " << i;
+    m[7] = 70;
+    ASSERT_EQ(m.size(), 4u);
+    ASSERT_EQ(std::prev(m.end())->first, 7);
+
+    ASSERT_EQ(stable_erase_if(m, [](const auto &) { return false; }), 0u);
+    ASSERT_EQ(m.size(), 4u);
+}
+
+GTEST_TEST(unordered_dense_map, stable_erase_if_throwing_pred_changes_nothing) {
+    map_t m{{1, 10}, {2, 20}, {3, 30}};
+    ASSERT_THROW(stable_erase_if(m,
+                                 [](const auto & e) -> bool {
+                                     if(e.first == 3)
+                                         throw std::runtime_error("pred");
+                                     return true;
+                                 }),
+                 std::runtime_error);
+    ASSERT_EQ(m.size(), 3u);
+    for(int i : {1, 2, 3}) ASSERT_EQ(m.at(i), 10 * i);
 }
 
 GTEST_TEST(unordered_dense_map, erase_const_iterator) {

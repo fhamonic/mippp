@@ -1,5 +1,28 @@
 # Column manager: feedback from porting gecot's tree_rr
 
+**Status (2026-10-30).** Addressed on `feat/lp-basis` by a breaking redesign
+(see the CHANGELOG, 1.1.0, "Column manager"):
+- L1: `activate_columns` and `evict_columns` replace `manage_columns`.
+- L3: no shipped predicate assumes a sense. `negative`/`positive` already
+  covered both, the minimization-only aliases are gone, and `window_below`
+  was added.
+- L4: a `Data` template parameter, passed in every entry.
+- L5: `seed_hash`, the default `Hash`.
+- L6: predicates are plain arguments, so a capturing lambda passes straight
+  through.
+- L8: `age_above_with_backoff`.
+- L9: `emplace_master_column(model, seed, add)`.
+- L10: `stable_erase_if` keeps the order in `purge_pool`.
+- L11: documented. The example below is off: `update_pool_columns` then
+  `update_master_columns` sends each column one event; overlapping broadcasts
+  age twice.
+
+Not addressed:
+- L2: deferred by ruling, with no park mode.
+- L7: deferred. `<execution>` needs TBB on libstdc++ and is incomplete on
+  libc++, for 0.2% of a run.
+- X1: left to a separate, model-wide plan.
+
 Design note on `mippp::colgen::column_manager`. It records what porting a real
 column generation, gecot's `tree_rr`, onto the column manager showed: what
 worked, and what limits the helper's genericity or its use there, ranked by
