@@ -63,7 +63,7 @@ protected:
                 const int id = entity.id();
                 _check_distinct(id);
                 tmp_vars.emplace_back(*(_scip_vars.data() + id));
-                tmp_reals.emplace_back(coef);
+                tmp_reals.emplace_back(static_cast<scalar>(coef));
             }
         } else {
             ++register_count;
@@ -74,9 +74,10 @@ protected:
                     tmp_reals[p.second] += static_cast<scalar>(coef);
                     continue;
                 }
-                p = std::make_pair(register_count, tmp_vars.size());
+                p = {register_count,
+                     static_cast<unsigned int>(tmp_vars.size())};
                 tmp_vars.emplace_back(*(_scip_vars.data() + id));
-                tmp_reals.emplace_back(coef);
+                tmp_reals.emplace_back(static_cast<scalar>(coef));
             }
         }
     }

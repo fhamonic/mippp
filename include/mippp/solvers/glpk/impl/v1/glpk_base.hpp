@@ -49,7 +49,7 @@ protected:
         for(auto && [entity, coef] : entries) {
             _check_distinct(entity.id());
             tmp_indices.emplace_back(entity.id() + 1);
-            tmp_scalars.emplace_back(coef);
+            tmp_scalars.emplace_back(static_cast<scalar>(coef));
         }
     }
     template <std::ranges::range Entries>
@@ -62,9 +62,9 @@ protected:
                 tmp_scalars[p.second] += static_cast<scalar>(coef);
                 continue;
             }
-            p = std::make_pair(register_count, tmp_indices.size());
+            p = {register_count, static_cast<unsigned int>(tmp_indices.size())};
             tmp_indices.emplace_back(id + 1);
-            tmp_scalars.emplace_back(coef);
+            tmp_scalars.emplace_back(static_cast<scalar>(coef));
         }
     }
 

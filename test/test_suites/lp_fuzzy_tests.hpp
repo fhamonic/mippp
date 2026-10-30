@@ -1021,8 +1021,9 @@ TYPED_TEST_P(LpFuzzyTest, random_operations) {
 
         try {
             machine.run(num_rounds);
-        } catch(const std::exception & e) {
+        } catch(const std::exception &) {
             machine.print_trace();
+            throw;
         }
     });
 }

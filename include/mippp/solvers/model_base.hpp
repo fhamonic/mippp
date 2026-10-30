@@ -314,7 +314,7 @@ protected:
             const Index entity_id = proj(entity);
             _check_distinct(entity_id);
             tmp_indices.emplace_back(entity_id);
-            tmp_scalars.emplace_back(coef);
+            tmp_scalars.emplace_back(static_cast<Scalar>(coef));
         }
     }
     template <std::ranges::range Entries, typename IdProj = EntityId>
@@ -332,9 +332,9 @@ protected:
                 tmp_scalars[p.second] += static_cast<Scalar>(coef);
                 continue;
             }
-            p = std::make_pair(register_count, tmp_indices.size());
+            p = {register_count, static_cast<unsigned int>(tmp_indices.size())};
             tmp_indices.emplace_back(entity_id);
-            tmp_scalars.emplace_back(coef);
+            tmp_scalars.emplace_back(static_cast<Scalar>(coef));
         }
     }
 
