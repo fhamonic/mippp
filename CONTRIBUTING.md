@@ -306,8 +306,8 @@ push and pull request to `main` and on every `v*` tag:
   `cartesian_product` views even where the standard library has them, so the
   fallbacks that C++23 and libc++ users get are sanitized too.
 - `linux-gcc15-build`, `linux-gcc14-build`, `linux-clang18-build`,
-  `windows-mingw15-build` and `windows-msvc1711-build` build the tests of one or
-  two backends each (`TEST_SOURCE`) and require them (`MIPPP_REQUIRED_SOLVERS`),
+  `windows-mingw15-build`, `windows-msvc1711-build` and `windows-msvc1811-build`
+  build the tests of one or two backends each (`TEST_SOURCE`) and require them (`MIPPP_REQUIRED_SOLVERS`),
   which keeps every compiler of the matrix under a few minutes; every backend
   is still compiled there through the per-header check.
 - `linux-cmake-install`, `linux-cmake-submodule` and `linux-conan-create` build

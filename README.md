@@ -154,7 +154,7 @@ MIP++ has a deliberate niche. It is worth being honest about where it fits and w
 **Constraint programming or scheduling.** Use OR-Tools CP-SAT or a dedicated CP solver.
 
 > [!IMPORTANT]
-> MIP++ requires a C++23 compiler — CI builds and tests it with **GCC 14 and 15, Clang 18, AppleClang 21, MinGW GCC 15 and MSVC 17.11** (GCC 15 / C++26 remains the primary target) — and assumes comfort with modern C++ — ranges, concepts, and template diagnostics. It is a young, single-maintainer project; contributions are welcome, but pin a version if you build long-lived research code on it.
+> MIP++ requires a C++23 compiler — CI builds and tests it with **GCC 14 and 15, Clang 18, AppleClang 21, MinGW GCC 15, MSVC 17.11 and MSVC 18.11** (GCC 15 / C++26 remains the primary target) — and assumes comfort with modern C++ — ranges, concepts, and template diagnostics. It is a young, single-maintainer project; contributions are welcome, but pin a version if you build long-lived research code on it.
 
 
 ## Installation
