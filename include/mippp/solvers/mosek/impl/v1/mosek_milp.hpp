@@ -2,12 +2,16 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <string_view>
 #include <utility>
 #include <variant>
 
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 
@@ -42,6 +46,128 @@ public:
         set_integer(v);
         set_variable_lower_bound(v, 0);
         set_variable_upper_bound(v, 1);
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Callbacks ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // By name, at each solve: MOSEK numbers callback codes and information
+    // items alphabetically, so a release that adds one shifts those after it.
+    struct progress_codes {
+        MSKcallbackcodee intermediate;
+        MSKcallbackcodee new_incumbent;
+        MSKint32t incumbent;
+        MSKint32t num_incumbents;
+        MSKint32t bound;
+        MSKint32t bound_defined;
+        MSKint32t solved_nodes;
+        bool minimizing;
+    };
+
+public:
+    // MOSEK has no value for "none yet": both read 0 until the flags are set.
+    class progress_callback_handle {
+    private:
+        friend mosek_milp;
+        const progress_codes & codes;
+        const MSKrealt * douinf;
+        const MSKint32t * intinf;
+        bool interrupt_requested = false;
+
+        progress_callback_handle(const progress_codes & codes_,
+                                 const MSKrealt * douinf_,
+                                 const MSKint32t * intinf_)
+            : codes(codes_), douinf(douinf_), intinf(intinf_) {}
+
+        double _infinity(const bool positive) const {
+            const double infinity = std::numeric_limits<double>::infinity();
+            return positive ? infinity : -infinity;
+        }
+
+    public:
+        double get_solution_value() {
+            if(intinf[codes.num_incumbents] == 0)
+                return _infinity(codes.minimizing);
+            return douinf[codes.incumbent];
+        }
+        double get_dual_bound() {
+            if(intinf[codes.bound_defined] == 0)
+                return _infinity(!codes.minimizing);
+            return douinf[codes.bound];
+        }
+        std::size_t get_node_count() {
+            return static_cast<std::size_t>(intinf[codes.solved_nodes]);
+        }
+        void interrupt() { interrupt_requested = true; }
+    };
+
+private:
+    std::function<void(progress_callback_handle &)> progress_callback;
+    progress_codes _progress_codes{};
+
+    static MSKint32t progress_callback_func(MSKtask_t, MSKuserhandle_t usrptr,
+                                            MSKcallbackcodee caller,
+                                            const MSKrealt * douinf,
+                                            const MSKint32t * intinf,
+                                            const MSKint64t *) {
+        auto * model = static_cast<mosek_milp *>(usrptr);
+        const progress_codes & codes = model->_progress_codes;
+        if(caller != codes.intermediate && caller != codes.new_incumbent)
+            return 0;
+        progress_callback_handle handle(codes, douinf, intinf);
+        model->progress_callback(handle);
+        return handle.interrupt_requested ? 1 : 0;
+    }
+    MSKcallbackcodee _callback_code(const std::string_view name) const {
+        char code_name[MSK_MAX_STR_LEN];
+        // past the last code it succeeds with "[UNDEFINED CODE]", and no name
+        // matches
+        for(int code = 0; code < 256; ++code) {
+            const auto candidate = static_cast<MSKcallbackcodee>(code);
+            if(MSK->callbackcodetostr(candidate, code_name) == MSK_RES_OK &&
+               name == code_name)
+                return candidate;
+        }
+        throw solver_error(
+            "MOSEK lacks a callback code of the progress callback");
+    }
+    void _read_progress_codes() {
+        progress_codes & codes = _progress_codes;
+        codes.intermediate = _callback_code("MSK_CALLBACK_IM_MIO");
+        codes.new_incumbent = _callback_code("MSK_CALLBACK_NEW_INT_MIO");
+        const auto item = [this](MSKinftypee type, const char * name,
+                                 MSKint32t & item_index) {
+            check(MSK->getinfindex(task, type, name, &item_index));
+        };
+        item(MSK_INF_DOU_TYPE, "MSK_DINF_MIO_OBJ_INT", codes.incumbent);
+        item(MSK_INF_INT_TYPE, "MSK_IINF_MIO_NUM_INT_SOLUTIONS",
+             codes.num_incumbents);
+        item(MSK_INF_DOU_TYPE, "MSK_DINF_MIO_OBJ_BOUND", codes.bound);
+        item(MSK_INF_INT_TYPE, "MSK_IINF_MIO_OBJ_BOUND_DEFINED",
+             codes.bound_defined);
+        item(MSK_INF_INT_TYPE, "MSK_IINF_MIO_NUM_SOLVED_NODES",
+             codes.solved_nodes);
+        MSKobjsensee sense;
+        check(MSK->getobjsense(task, &sense));
+        codes.minimizing = sense == MSK_OBJECTIVE_SENSE_MINIMIZE;
+    }
+    // For the duration of a solve only. The user data is this: registered by a
+    // setter, it dangles once the model moves and the next solve crashes.
+    [[nodiscard]] auto _attached_callbacks() {
+        const bool attach = static_cast<bool>(progress_callback);
+        if(attach) {
+            _read_progress_codes();
+            check(MSK->putcallbackfunc(task, progress_callback_func, this));
+        }
+        return detail::restore_guard([this, attach] {
+            if(attach) check(MSK->putcallbackfunc(task, nullptr, nullptr));
+        });
+    }
+
+public:
+    template <typename F>
+    void set_progress_callback(F && f) {
+        progress_callback = std::forward<F>(f);
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -187,6 +313,7 @@ public:
         // MSK_optimize reports a limit as an error code; MSK_optimizetrm
         // returns it as the termination code, and is the solve itself
         MSKrescodee trm = MSK_RES_OK;
+        const auto detach = _attached_callbacks();
         check(MSK->optimizetrm(task, &trm));
         _solution = _pick_solution();
         _status = _get_status(trm);

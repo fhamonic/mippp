@@ -16,7 +16,7 @@ MIP++ is header-only and has no library dependency: there is nothing to build, a
     conan create . -u -b=missing -pr=<your_conan_profile>
     ```
 
-    then add `mippp/1.0.0` to the requirements of your `conanfile`.
+    then add `mippp/1.1.0` to the requirements of your `conanfile`.
 
 === "CMake subdirectory"
 

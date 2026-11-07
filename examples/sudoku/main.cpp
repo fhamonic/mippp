@@ -4,8 +4,9 @@
 // j) holds value v -- and constraint families composed over cartesian-product
 // ranges.
 //
-// Swap the two aliases to use another MILP backend.
+// Swap the alias to use another MILP backend.
 
+#include <cstddef>
 #include <print>
 #include <ranges>
 #include <vector>

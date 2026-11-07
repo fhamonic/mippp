@@ -191,3 +191,7 @@ INSTANTIATE_TEST(SCIP, MipGapTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, DualBoundTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, NodeCountTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, VerbosityTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, ProgressCallbackTest, scip_milp_test);
+INSTANTIATE_TEST(SCIP, ProgressCallbackNodeCountTest, scip_milp_test);
+// no candidate solution callback
+// INSTANTIATE_TEST(SCIP, ProgressCallbackSharingTest, scip_milp_test);

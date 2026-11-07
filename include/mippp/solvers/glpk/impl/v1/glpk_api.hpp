@@ -200,6 +200,14 @@ void glp_init_iocp(glp_iocp * parm);
 int glp_intopt(glp_prob * P, const glp_iocp * parm);
 int glp_intfeas1(glp_prob * P, int use_bound, int obj_bound);
 int glp_mip_status(glp_prob * P);
+constexpr int GLP_IBINGO = 0x02;   // better integer solution found
+constexpr int GLP_ISELECT = 0x06;  // request for subproblem selection
+int glp_ios_reason(glp_tree * T);
+glp_prob * glp_ios_get_prob(glp_tree * T);
+void glp_ios_tree_size(glp_tree * T, int * a_cnt, int * n_cnt, int * t_cnt);
+int glp_ios_best_node(glp_tree * T);
+double glp_ios_node_bound(glp_tree * T, int p);
+void glp_ios_terminate(glp_tree * T);
 double glp_mip_obj_val(glp_prob * P);
 double glp_mip_col_val(glp_prob * P, int j);
 
@@ -214,59 +222,65 @@ double glp_mip_col_val(glp_prob * P, int j);
 namespace mippp {
 namespace glpk::impl::v1 {
 
-#define GLPK_FUNCTIONS(F)               \
-    F(glp_version, version)             \
-    F(glp_term_out, term_out)           \
-    F(glp_create_prob, create_prob)     \
-    F(glp_delete_prob, delete_prob)     \
-    F(glp_set_obj_dir, set_obj_dir)     \
-    F(glp_get_obj_dir, get_obj_dir)     \
-    F(glp_add_cols, add_cols)           \
-    F(glp_set_obj_coef, set_obj_coef)   \
-    F(glp_get_obj_coef, get_obj_coef)   \
-    F(glp_set_col_bnds, set_col_bnds)   \
-    F(glp_get_col_lb, get_col_lb)       \
-    F(glp_get_col_ub, get_col_ub)       \
-    F(glp_get_col_type, get_col_type)   \
-    F(glp_set_col_kind, set_col_kind)   \
-    F(glp_get_col_kind, get_col_kind)   \
-    F(glp_set_col_name, set_col_name)   \
-    F(glp_get_col_name, get_col_name)   \
-    F(glp_add_rows, add_rows)           \
-    F(glp_set_mat_row, set_mat_row)     \
-    F(glp_set_mat_col, set_mat_col)     \
-    F(glp_get_mat_row, get_mat_row)     \
-    F(glp_get_mat_col, get_mat_col)     \
-    F(glp_set_row_bnds, set_row_bnds)   \
-    F(glp_get_row_lb, get_row_lb)       \
-    F(glp_get_row_ub, get_row_ub)       \
-    F(glp_set_row_name, set_row_name)   \
-    F(glp_get_row_name, get_row_name)   \
-    F(glp_get_row_type, get_row_type)   \
-    F(glp_get_num_cols, get_num_cols)   \
-    F(glp_get_num_rows, get_num_rows)   \
-    F(glp_get_num_nz, get_num_nz)       \
-    F(glp_set_row_stat, set_row_stat)   \
-    F(glp_get_row_stat, get_row_stat)   \
-    F(glp_set_col_stat, set_col_stat)   \
-    F(glp_get_col_stat, get_col_stat)   \
-    F(glp_std_basis, std_basis)         \
-    F(glp_factorize, factorize)         \
-    F(glp_init_smcp, init_smcp)         \
-    F(glp_simplex, simplex)             \
-    F(glp_get_status, get_status)       \
-    F(glp_get_it_cnt, get_it_cnt)       \
-    F(glp_get_prim_stat, get_prim_stat) \
-    F(glp_get_dual_stat, get_dual_stat) \
-    F(glp_get_obj_val, get_obj_val)     \
-    F(glp_get_col_prim, get_col_prim)   \
-    F(glp_get_row_dual, get_row_dual)   \
-    F(glp_get_col_dual, get_col_dual)   \
-    F(glp_init_iocp, init_iocp)         \
-    F(glp_intopt, intopt)               \
-    F(glp_intfeas1, intfeas1)           \
-    F(glp_mip_status, mip_status)       \
-    F(glp_mip_obj_val, mip_obj_val)     \
+#define GLPK_FUNCTIONS(F)                 \
+    F(glp_version, version)               \
+    F(glp_term_out, term_out)             \
+    F(glp_create_prob, create_prob)       \
+    F(glp_delete_prob, delete_prob)       \
+    F(glp_set_obj_dir, set_obj_dir)       \
+    F(glp_get_obj_dir, get_obj_dir)       \
+    F(glp_add_cols, add_cols)             \
+    F(glp_set_obj_coef, set_obj_coef)     \
+    F(glp_get_obj_coef, get_obj_coef)     \
+    F(glp_set_col_bnds, set_col_bnds)     \
+    F(glp_get_col_lb, get_col_lb)         \
+    F(glp_get_col_ub, get_col_ub)         \
+    F(glp_get_col_type, get_col_type)     \
+    F(glp_set_col_kind, set_col_kind)     \
+    F(glp_get_col_kind, get_col_kind)     \
+    F(glp_set_col_name, set_col_name)     \
+    F(glp_get_col_name, get_col_name)     \
+    F(glp_add_rows, add_rows)             \
+    F(glp_set_mat_row, set_mat_row)       \
+    F(glp_set_mat_col, set_mat_col)       \
+    F(glp_get_mat_row, get_mat_row)       \
+    F(glp_get_mat_col, get_mat_col)       \
+    F(glp_set_row_bnds, set_row_bnds)     \
+    F(glp_get_row_lb, get_row_lb)         \
+    F(glp_get_row_ub, get_row_ub)         \
+    F(glp_set_row_name, set_row_name)     \
+    F(glp_get_row_name, get_row_name)     \
+    F(glp_get_row_type, get_row_type)     \
+    F(glp_get_num_cols, get_num_cols)     \
+    F(glp_get_num_rows, get_num_rows)     \
+    F(glp_get_num_nz, get_num_nz)         \
+    F(glp_set_row_stat, set_row_stat)     \
+    F(glp_get_row_stat, get_row_stat)     \
+    F(glp_set_col_stat, set_col_stat)     \
+    F(glp_get_col_stat, get_col_stat)     \
+    F(glp_std_basis, std_basis)           \
+    F(glp_factorize, factorize)           \
+    F(glp_init_smcp, init_smcp)           \
+    F(glp_simplex, simplex)               \
+    F(glp_get_status, get_status)         \
+    F(glp_get_it_cnt, get_it_cnt)         \
+    F(glp_get_prim_stat, get_prim_stat)   \
+    F(glp_get_dual_stat, get_dual_stat)   \
+    F(glp_get_obj_val, get_obj_val)       \
+    F(glp_get_col_prim, get_col_prim)     \
+    F(glp_get_row_dual, get_row_dual)     \
+    F(glp_get_col_dual, get_col_dual)     \
+    F(glp_init_iocp, init_iocp)           \
+    F(glp_intopt, intopt)                 \
+    F(glp_intfeas1, intfeas1)             \
+    F(glp_mip_status, mip_status)         \
+    F(glp_ios_reason, ios_reason)         \
+    F(glp_ios_get_prob, ios_get_prob)     \
+    F(glp_ios_tree_size, ios_tree_size)   \
+    F(glp_ios_best_node, ios_best_node)   \
+    F(glp_ios_node_bound, ios_node_bound) \
+    F(glp_ios_terminate, ios_terminate)   \
+    F(glp_mip_obj_val, mip_obj_val)       \
     F(glp_mip_col_val, mip_col_val)
 
 #define DECLARE_GLPK_FUNCTIONS(FULL, SHORT) \

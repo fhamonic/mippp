@@ -166,6 +166,7 @@ int XPRSgetdblcontrol(XPRSprob prob, int control, double * p_value);
 enum IntCtrlPar : int {
     XPRS_LPITERLIMIT = 8007,
     XPRS_OUTPUTLOG = 8035,
+    XPRS_THREADS = 8278,
     XPRS_IISOPS = 8472
 };
 int XPRSsetintcontrol(XPRSprob prob, int control, int value);
@@ -209,6 +210,19 @@ int XPRSremovecbpreintsol(XPRSprob prob,
                                             int soltype, int * p_reject,
                                             double * p_cutoff),
                           void * data);
+int XPRSaddcbmiplog(XPRSprob prob,
+                    int (*miplog)(XPRSprob cbprob, void * cbdata), void * data,
+                    int priority);
+int XPRSremovecbmiplog(XPRSprob prob,
+                       int (*miplog)(XPRSprob cbprob, void * cbdata),
+                       void * data);
+int XPRSaddcbintsol(XPRSprob prob,
+                    void (*intsol)(XPRSprob cbprob, void * cbdata), void * data,
+                    int priority);
+int XPRSremovecbintsol(XPRSprob prob,
+                       void (*intsol)(XPRSprob cbprob, void * cbdata),
+                       void * data);
+int XPRSinterrupt(XPRSprob prob, int reason);
 int XPRSaddcboptnode(XPRSprob prob,
                      void (*optnode)(XPRSprob cbprob, void * cbdata,
                                      int * p_infeasible),
@@ -282,6 +296,11 @@ namespace xpress::impl::v1 {
     F(XPRSaddmipsol, addmipsol)                     \
     F(XPRSaddcbpreintsol, addcbpreintsol)           \
     F(XPRSremovecbpreintsol, removecbpreintsol)     \
+    F(XPRSaddcbmiplog, addcbmiplog)                 \
+    F(XPRSremovecbmiplog, removecbmiplog)           \
+    F(XPRSaddcbintsol, addcbintsol)                 \
+    F(XPRSremovecbintsol, removecbintsol)           \
+    F(XPRSinterrupt, interrupt)                     \
     F(XPRSaddcboptnode, addcboptnode)               \
     F(XPRSremovecboptnode, removecboptnode)         \
     F(XPRSaddcuts, addcuts)                         \

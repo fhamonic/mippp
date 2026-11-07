@@ -1,0 +1,2 @@
+== LS0 LP one piece: status=optimal{sol=true} solve=0.71s value=80937.4 dual=n/a nodes=n/a
+== LS1 LP in 0.5s slices: 30 slices, 15.04s, first statuses: time_limit{sol=false} time_limit{sol=false} time_limit{sol=false} last status=time_limit{sol=false} value=1e+30

@@ -1,0 +1,62 @@
+library ~/Softwares/solvers/coinbrew/dist/lib/libCbc.so version devel
+== A small, no hook: status=optimal{sol=true} solve=0.68s value=-25138 dual=-25138 nodes=20434
+   msg 1000004: dvec=[] ivec=[30 100 100 100 3000 ] nchar=0
+   msg 1003009: dvec=[0.000144 0.497512 ] ivec=[] nchar=1
+   msg 1000015: dvec=[] ivec=[0 0 ] nchar=0
+== D message callback quiet, large min 10s: status=time_limit{sol=true} solve=10.02s value=-41115 dual=-41421.6 nodes=149188
+   events: msg1000004=1 msg1000015=1 msg1003009=1
+   samples: 0
+   msg 1000004: dvec=[] ivec=[30 100 100 100 3000 ] nchar=0
+   msg 1003009: dvec=[0.000255 0.497512 ] ivec=[] nchar=1
+   msg 1000015: dvec=[] ivec=[0 0 ] nchar=0
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+== F message callback VERBOSE, large min 10s: status=time_limit{sol=true} solve=10.02s value=-41115 dual=-41421.6 nodes=149049
+   events: msg1000004=1 msg1000015=1 msg1003009=1 msg38=5
+   samples: 0
+   msg 1000004: dvec=[] ivec=[30 100 100 100 3000 ] nchar=0
+   msg 1003009: dvec=[0.000274 0.497512 ] ivec=[] nchar=1
+   msg 1000015: dvec=[] ivec=[0 0 ] nchar=0
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+== E message callback VERBOSE, large max+offset 10s: status=time_limit{sol=true} solve=10.02s value=41315 dual=41621.6 nodes=149292
+   events: msg1000004=1 msg1000015=1 msg1003009=1 msg38=5
+   samples: 0
+   msg 1000004: dvec=[] ivec=[30 100 100 100 3000 ] nchar=0
+   msg 1003009: dvec=[0 0.497512 ] ivec=[] nchar=1
+   msg 1000015: dvec=[] ivec=[0 0 ] nchar=0
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+   msg 38: dvec=[] ivec=[] nchar=1
+== H stop by Cbc_setMaximumSeconds(0) from the hook, VERBOSE: status=time_limit{sol=true} solve=10.03s value=-41115 dual=-41421.6 nodes=149335
+   events: msg1000004=1 msg1000015=1 msg1003009=1 msg38=5
+   samples: 0
+== C2 small, cut callback reading the outer model: status=optimal{sol=true} solve=0.35s value=-25138 dual=-25138 nodes=25504
+   events: NONE
+   samples: 0
+   nodes 25504 vs baseline 20434
+== I integer-free, VERBOSE: status=optimal{sol=true} solve=0.04s value=10841.5 dual=10841.5 nodes=0
+   events: NONE
+   samples: 0
+== P Cbc_addProgrCallback, quiet, large 10s: status=time_limit{sol=true} solve=10.02s value=-41115 dual=-41421.6 nodes=149283
+   events: pre-proc=1 root lp relax=1 sol=4
+   samples: 6 (0.6/s over 10.02s), first@0.007s last@9.880s maxgap=9.445s threads=1 overlaps=0
+   primal: first=1.797693e+308 last=-41215 worse-moves=0 sentinel-samples=2 | dual: first=-41769.2 last=-41521.62 worse-moves=0 | nodes: first=0 last=41685
+   last sample vs final: primal DIFFER dual DIFFER (final -41115 / -41421.61)
+== S0 one piece 8s: status=time_limit{sol=true} solve=8.02s value=-41114 dual=-41425.5 nodes=114254
+== S1 slice 1s (cumulated 1.01s): status=time_limit{sol=true} solve=1.01s value=-41114 dual=-41641.1 nodes=20252
+== S2 slice 1s (cumulated 2.01s): status=time_limit{sol=true} solve=1.00s value=-41114 dual=-41641.1 nodes=20723
+== S3 slice 1s (cumulated 3.02s): status=time_limit{sol=true} solve=1.00s value=-41114 dual=-41641.1 nodes=20734
+== S4 slice 1s (cumulated 4.02s): status=time_limit{sol=true} solve=1.00s value=-41114 dual=-41641.1 nodes=20745
+== S5 slice 1s (cumulated 5.02s): status=time_limit{sol=true} solve=1.00s value=-41114 dual=-41641.1 nodes=20737
+== S6 slice 1s (cumulated 6.02s): status=time_limit{sol=true} solve=1.00s value=-41114 dual=-41641.1 nodes=20745
+== S7 slice 1s (cumulated 7.03s): status=time_limit{sol=true} solve=1.00s value=-41114 dual=-41641.1 nodes=20745
+== S8 slice 1s (cumulated 8.03s): status=time_limit{sol=true} solve=1.00s value=-41114 dual=-41641.1 nodes=20730

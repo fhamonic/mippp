@@ -547,6 +547,22 @@ public:
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Threads /////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    void set_thread_limit(std::size_t n) {
+        check(MSK->putintparam(
+            task, MSK_IPAR_NUM_THREADS,
+            static_cast<MSKint32t>(
+                std::min(n, static_cast<std::size_t>(
+                                std::numeric_limits<MSKint32t>::max())))));
+    }
+    std::size_t get_thread_limit() {
+        MSKint32t n;
+        check(MSK->getintparam(task, MSK_IPAR_NUM_THREADS, &n));
+        return static_cast<std::size_t>(n);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     // The stream stays unlinked while quiet: MSK_IPAR_LOG = 0 does not stop

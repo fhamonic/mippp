@@ -42,6 +42,7 @@ INSTANTIATE_TEST(Xpress_lp, TimeLimitTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, LpBasisTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, LpBasisWarmStartTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, VerbosityTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_lp, ThreadLimitTest, xpress_lp_test);
 static_assert(has_lp_basis_warm_start<xpress_lp>);
 
 // xpress_lp has no iteration limit: Xpress's own count proves the warm start
@@ -187,6 +188,10 @@ INSTANTIATE_TEST(Xpress_milp, DualBoundTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, NodeCountTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, IntegralityToleranceTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, VerbosityTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, ThreadLimitTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, ProgressCallbackTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, ProgressCallbackNodeCountTest, xpress_milp_test);
+INSTANTIATE_TEST(Xpress_milp, ProgressCallbackSharingTest, xpress_milp_test);
 static_assert(!has_lp_basis<xpress_milp>);
 // The code set_basis writes for each tag the statuses list, pinned without a
 // library: a tag that loses its line in the table writes as its nearest

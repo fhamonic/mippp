@@ -1,0 +1,16 @@
+library ~/Softwares/solvers/scipoptsuite-9.2.1/build/lib/libscip.so.9.2.1.0 SCIP 9
+== D large min default threads quiet, hook: status=time_limit{sol=true} solve=3.00s value=-41062 dual=-41589.6 nodes=1371
+   events: BESTSOLFOUND=12 NODESOLVED=1370
+   samples: 1382 (460.7/s over 3.00s), first@0.008s last@2.992s maxgap=0.172s threads=1 overlaps=0
+   primal: first=100 last=-41062 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-41589.57 worse-moves=0 | nodes: first=1 last=1370
+   last sample vs final: primal match dual match (final -41062 / -41589.57)
+== H large, stop asked at the 3rd sample: status=interrupted{sol=true} solve=0.01s value=-34662 dual=-41669.2 nodes=1
+   events: BESTSOLFOUND=3
+   samples: 3 (568.0/s over 0.01s), first@0.004s last@0.005s maxgap=0.004s threads=1 overlaps=0
+   primal: first=100 last=-33517 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-41669.2 worse-moves=0 | nodes: first=1 last=1
+   stop asked after 0.005s, solve returned 0.000s later
+== H2 resolve after the stop, 2s: status=time_limit{sol=true} solve=1.99s value=-41116 dual=-41566 nodes=1286
+== I integer-free model on the MILP type, hook: status=optimal{sol=true} solve=0.11s value=10841.5 dual=10841.5 nodes=0
+   events: BESTSOLFOUND=2 NODESOLVED=1
+   samples: 3 (26.4/s over 0.11s), first@0.006s last@0.114s maxgap=0.108s threads=1 overlaps=0
+   primal: first=24.22185 last=10841.52 worse-moves=0 sentinel-samples=0 | dual: first=27904.42 last=10841.52 worse-moves=0 | nodes: first=1 last=1

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -114,9 +115,42 @@ public:
         }
     };
 
+    // XPRS_MIPOBJVAL and XPRS_BESTBOUND leave out the wrapper's offset.
+    class progress_callback_handle {
+    private:
+        friend xpress_milp;
+        const xpress_api * XPRS;
+        XPRSprob prob;
+        const double objective_offset;
+
+        progress_callback_handle(const xpress_api * api, XPRSprob prob_,
+                                 const double obj_offset)
+            : XPRS(api), prob(prob_), objective_offset(obj_offset) {}
+
+        double _read(const int attribute) {
+            double value;
+            XPRS->_check(prob, XPRS->getdblattrib(prob, attribute, &value));
+            return objective_offset +
+                   detail::as_infinity(value, XPRS_PLUSINFINITY);
+        }
+
+    public:
+        double get_solution_value() { return _read(XPRS_MIPOBJVAL); }
+        double get_dual_bound() { return _read(XPRS_BESTBOUND); }
+        std::size_t get_node_count() {
+            int count;
+            XPRS->_check(prob, XPRS->getintattrib(prob, XPRS_NODES, &count));
+            return static_cast<std::size_t>(count);
+        }
+        void interrupt() {
+            XPRS->_check(prob, XPRS->interrupt(prob, XPRS_STOP_USER));
+        }
+    };
+
 private:
     std::function<void(candidate_solution_callback_handle &)>
         candidate_solution_callback;
+    std::function<void(progress_callback_handle &)> progress_callback;
 
     static void candidate_solution_callback_fun(
         XPRSprob cbprob, void * cbdata, [[maybe_unused]] int soltype,
@@ -126,13 +160,60 @@ private:
             model->XPRS, cbprob, model->objective_offset, p_reject);
         model->candidate_solution_callback(handle);
     }
+    // MUTEXCALLBACKS does not list miplog, which runs on the worker threads:
+    // without this mutex nothing promises that two calls do not overlap.
+    // Lives for one solve, as a member it would cost the model its moves.
+    struct progress_context {
+        xpress_milp * model;
+        std::mutex mutex;
+    };
+    static void report_progress(XPRSprob cbprob, void * cbdata) {
+        auto & context = *static_cast<progress_context *>(cbdata);
+        const std::scoped_lock lock(context.mutex);
+        progress_callback_handle handle(context.model->XPRS, cbprob,
+                                        context.model->objective_offset);
+        context.model->progress_callback(handle);
+    }
+    static int progress_miplog_fun(XPRSprob cbprob, void * cbdata) {
+        report_progress(cbprob, cbdata);
+        return 0;
+    }
+    // For the duration of a solve only. Each addcb adds one more call, so a
+    // setter registering would run the callback once per registration. The
+    // user data is this: registered by a setter, it dangles once the model
+    // moves and the next solve crashes. And the MIP solves of compute_iis()
+    // would run the candidate callback, whose rejection makes a feasible
+    // subsystem read infeasible and the answer name the whole model.
+    [[nodiscard]] auto _attached_callbacks(progress_context & context) {
+        const bool candidate = static_cast<bool>(candidate_solution_callback);
+        const bool progress = static_cast<bool>(progress_callback);
+        if(candidate)
+            check(XPRS->addcbpreintsol(prob, candidate_solution_callback_fun,
+                                       this, 1));
+        if(progress) {
+            check(XPRS->addcbmiplog(prob, progress_miplog_fun, &context, 0));
+            check(XPRS->addcbintsol(prob, report_progress, &context, 0));
+        }
+        return detail::restore_guard([this, candidate, progress, &context] {
+            if(candidate)
+                check(XPRS->removecbpreintsol(
+                    prob, candidate_solution_callback_fun, this));
+            if(progress) {
+                check(
+                    XPRS->removecbmiplog(prob, progress_miplog_fun, &context));
+                check(XPRS->removecbintsol(prob, report_progress, &context));
+            }
+        });
+    }
 
 public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
         candidate_solution_callback = std::forward<F>(f);
-        check(XPRS->addcbpreintsol(prob, candidate_solution_callback_fun, this,
-                                   1));
+    }
+    template <typename F>
+    void set_progress_callback(F && f) {
+        progress_callback = std::forward<F>(f);
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -264,6 +345,8 @@ public:
             _mark_results_valid();
             return;
         }
+        progress_context context{this, {}};
+        const auto detach = _attached_callbacks(context);
         check(XPRS->mipoptimize(prob, nullptr));
         _status = _get_status();
         // A stopped search leaves the problem presolved, where XPRS_COLS and
@@ -282,26 +365,9 @@ public:
         reset_status();
         int mip_entities;
         check(XPRS->getintattrib(prob, XPRS_ORIGINALMIPENTS, &mip_entities));
-        // The MIP solves of the routine run a registered callback on their
-        // candidates, whose rejection makes a feasible subsystem read
-        // infeasible and the answer name the whole model: the callback is
-        // detached for the call. The guard comes only after a removal that
-        // succeeded: each addcbpreintsol adds one more call, so re-adding a
-        // callback still registered would run it twice.
-        const bool attached = static_cast<bool>(candidate_solution_callback);
-        if(attached)
-            check(XPRS->removecbpreintsol(prob, candidate_solution_callback_fun,
-                                          this));
-        detail::restore_guard reattach([&] {
-            if(attached)
-                check(XPRS->addcbpreintsol(
-                    prob, candidate_solution_callback_fun, this, 1));
-        });
-        auto iis =
-            _compute_iis<detail::iis_sided_status,
-                         detail::iis_whole_or_sided_status>(mip_entities > 0);
-        reattach.restore();
-        return iis;
+        return _compute_iis<detail::iis_sided_status,
+                            detail::iis_whole_or_sided_status>(mip_entities >
+                                                               0);
     }
 
     double get_solution_value() {

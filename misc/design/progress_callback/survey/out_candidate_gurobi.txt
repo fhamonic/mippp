@@ -1,0 +1,4 @@
+== market split m=5 no callback: status=time_limit{sol=true} solve=40.00s value=2 dual=0 nodes=1120097
+== market split m=5 no-op candidate, calls=27: status=time_limit{sol=true} solve=40.00s value=2 dual=0 nodes=1113187
+== tight CFL 15x30 no callback: status=optimal{sol=true} solve=0.00s value=13246.7 dual=13246.7 nodes=1
+== tight CFL 15x30 no-op candidate, calls=4: status=optimal{sol=true} solve=0.00s value=13246.7 dual=13246.7 nodes=1

@@ -68,7 +68,8 @@ class MipppConan(ConanFile):
         # binaries that build() would never use.
         if not self._skip_test:
             self.test_requires("gtest/[>=1.10.0 <cci]")
-        # MELON also drives the travelling_salesman_dfj example.
+        # MELON also drives the cutting_stock, travelling_salesman_dfj and
+        # travelling_salesman_colgen examples.
         if not self._skip_test or self._build_examples:
             self.test_requires("melon/1.0.0")
 

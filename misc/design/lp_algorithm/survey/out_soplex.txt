@@ -1,0 +1,57 @@
+library: /home/plaiseek/Softwares/solvers/scipoptsuite-9.2.1/build/lib/libsoplexshared.so.7.1.3.0
+=== default (ALGORITHM 1 dual)
+  feasible : solve ok status=optimal 4ms [iterations=116 ALGORITHM=1 REPRESENTATION=0]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=THROWS(n/a)
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=171 ALGORITHM=1 REPRESENTATION=0]
+  unbounded: solve ok status=unbounded [iterations=47 ALGORITHM=1 REPRESENTATION=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== ALGORITHM 0 primal
+  feasible : solve ok status=optimal 3ms [iterations=116 ALGORITHM=0 REPRESENTATION=0]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=THROWS(n/a)
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=171 ALGORITHM=0 REPRESENTATION=0]
+  unbounded: solve ok status=unbounded [iterations=47 ALGORITHM=0 REPRESENTATION=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== ALGORITHM 1 dual
+  feasible : solve ok status=optimal 3ms [iterations=116 ALGORITHM=1 REPRESENTATION=0]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=THROWS(n/a)
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=171 ALGORITHM=1 REPRESENTATION=0]
+  unbounded: solve ok status=unbounded [iterations=47 ALGORITHM=1 REPRESENTATION=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== REPRESENTATION column, ALGORITHM 0
+  feasible : solve ok status=optimal 3ms [iterations=116 ALGORITHM=0 REPRESENTATION=1]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=THROWS(n/a)
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=171 ALGORITHM=0 REPRESENTATION=1]
+  unbounded: solve ok status=unbounded [iterations=47 ALGORITHM=0 REPRESENTATION=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== REPRESENTATION column, ALGORITHM 1
+  feasible : solve ok status=optimal 2ms [iterations=116 ALGORITHM=1 REPRESENTATION=1]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=THROWS(n/a)
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=171 ALGORITHM=1 REPRESENTATION=1]
+  unbounded: solve ok status=unbounded [iterations=47 ALGORITHM=1 REPRESENTATION=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== REPRESENTATION row, ALGORITHM 0
+  feasible : solve ok status=optimal 4ms [iterations=227 ALGORITHM=0 REPRESENTATION=2]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=THROWS(n/a)
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=232 ALGORITHM=0 REPRESENTATION=2]
+  unbounded: solve ok status=unbounded [iterations=47 ALGORITHM=0 REPRESENTATION=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== REPRESENTATION row, ALGORITHM 1
+  feasible : solve ok status=optimal 4ms [iterations=227 ALGORITHM=1 REPRESENTATION=2]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=THROWS(n/a)
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=232 ALGORITHM=1 REPRESENTATION=2]
+  unbounded: solve ok status=unbounded [iterations=47 ALGORITHM=1 REPRESENTATION=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass

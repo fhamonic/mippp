@@ -1,0 +1,28 @@
+library: /lib/x86_64-linux-gnu/libglpk.so
+=== today: GLP_PRIMAL
+  feasible : solve ok status=optimal 1ms [iterations=112 status=5 prim=2 dual=2]
+    obj=529.3089013110323 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=81 status=4 prim=4 dual=3]
+  unbounded: solve ok status=unbounded [iterations=30 status=6 prim=2 dual=4]
+  warm from optimal basis: solve ok status=optimal [iterations=112 status=5 prim=2 dual=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== GLP_DUALP
+  feasible : solve ok status=optimal 13ms [iterations=1143 status=5 prim=2 dual=2]
+    obj=529.3089013110357 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=1158 status=4 prim=4 dual=2]
+  unbounded: solve ok status=unknown [iterations=418 status=3 prim=3 dual=4]
+  warm from optimal basis: solve ok status=optimal [iterations=112 status=5 prim=2 dual=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== GLP_DUAL
+  feasible : solve ok status=optimal 13ms [iterations=1143 status=5 prim=2 dual=2]
+    obj=529.3089013110357 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=1158 status=4 prim=4 dual=2]
+  unbounded: solve ok status=unknown [iterations=418 status=3 prim=3 dual=4]
+  warm from optimal basis: solve ok status=optimal [iterations=112 status=5 prim=2 dual=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass

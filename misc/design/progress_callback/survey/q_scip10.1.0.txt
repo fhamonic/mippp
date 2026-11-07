@@ -1,0 +1,16 @@
+library <fetched>/scip/scip-10.1.0-ha99405a_0.conda/lib/libscip.so SCIP 10
+== D large min default threads quiet, hook: status=time_limit{sol=true} solve=3.00s value=-41182 dual=-41551.6 nodes=2175
+   events: BESTSOLFOUND=13 NODESOLVED=2174
+   samples: 2187 (729.0/s over 3.00s), first@0.008s last@3.000s maxgap=0.123s threads=1 overlaps=0
+   primal: first=100 last=-41182 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-41551.63 worse-moves=0 | nodes: first=1 last=2174
+   last sample vs final: primal match dual match (final -41182 / -41551.63)
+== H large, stop asked at the 3rd sample: status=interrupted{sol=true} solve=0.01s value=-34662 dual=-41669.2 nodes=1
+   events: BESTSOLFOUND=3
+   samples: 3 (562.1/s over 0.01s), first@0.004s last@0.005s maxgap=0.004s threads=1 overlaps=0
+   primal: first=100 last=-33517 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-41669.2 worse-moves=0 | nodes: first=1 last=1
+   stop asked after 0.005s, solve returned 0.000s later
+== H2 resolve after the stop, 2s: status=time_limit{sol=true} solve=1.99s value=-41109 dual=-41562.9 nodes=1240
+== I integer-free model on the MILP type, hook: status=optimal{sol=true} solve=0.08s value=10841.5 dual=10841.5 nodes=0
+   events: BESTSOLFOUND=2 NODESOLVED=1
+   samples: 3 (36.1/s over 0.08s), first@0.005s last@0.083s maxgap=0.078s threads=1 overlaps=0
+   primal: first=24.22185 last=10841.52 worse-moves=0 sentinel-samples=0 | dual: first=27766.04 last=10841.52 worse-moves=0 | nodes: first=1 last=1

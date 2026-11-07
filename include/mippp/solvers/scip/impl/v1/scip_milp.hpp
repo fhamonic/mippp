@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "mippp/detail/invoke_key.hpp"
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -90,9 +91,15 @@ public:
         check(
             SCIP->setIntParam(model, "display/verblevel", SCIP_VERBLEVEL_NONE));
         SCIP->createProbBasic(model, "MILP");
+        // SCIP takes a plugin only before a solve, and a callback setter must
+        // keep the results of one: no plugin here means freeing them later.
+        check(SCIP->includeEventhdlrBasic(
+            model, &_progress_handler, "mippp_progress",
+            "runs the progress callback", progress_event_exec, nullptr));
     }
     ~scip_milp() {
         if(!model) return;
+        if(_progress_subscribed) static_cast<void>(_drop_progress_callback());
         for(auto & var : _scip_vars) {
             SCIP->releaseVar(model, &var);
         }
@@ -110,6 +117,9 @@ public:
         , _scip_vars(std::move(other._scip_vars))
         , _scip_conss(std::move(other._scip_conss))
         , _solved(other._solved)
+        , _progress_handler(other._progress_handler)
+        , _progress_subscribed(other._progress_subscribed)
+        , _progress_plugin(std::move(other._progress_plugin))
         , _status(other._status) {
         other.model = nullptr;
     }
@@ -171,6 +181,7 @@ private:
     // mutator; a solve followed by another solve resumes the search instead.
     void _free_transform() {
         if(!_solved) return;
+        if(_progress_subscribed) check(_drop_progress_callback());
         check(SCIP->freeTransform(model));
         _solved = false;
     }
@@ -522,8 +533,90 @@ public:
         return level != SCIP_VERBLEVEL_NONE;
     }
     ///////////////////////////////////////////////////////////////////////////
-    ////////////////////////////// Solve status ///////////////////////////////
+    //////////////////////////////// Callbacks ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+    class progress_callback_handle {
+    private:
+        friend scip_milp;
+        const scip_api * SCIP;
+        struct Scip * scip;
+
+        progress_callback_handle(const scip_api * api, struct Scip * scip_)
+            : SCIP(api), scip(scip_) {}
+
+    public:
+        double get_solution_value() {
+            return detail::as_infinity(SCIP->getPrimalbound(scip),
+                                       SCIP->infinity(scip));
+        }
+        double get_dual_bound() {
+            return detail::as_infinity(SCIP->getDualbound(scip),
+                                       SCIP->infinity(scip));
+        }
+        // not SCIPgetNNodes, which starts over at each restart
+        std::size_t get_node_count() {
+            return static_cast<std::size_t>(SCIP->getNTotalNodes(scip));
+        }
+        void interrupt() { check(SCIP->interruptSolve(scip)); }
+    };
+
+private:
+private:
+    // The callback sits on the heap, where SCIP's pointer to it survives a move
+    // of the model.
+    struct progress_plugin {
+        const scip_api * api;
+        std::function<void(progress_callback_handle &)> callback;
+    };
+    SCIP_EVENTHDLR * _progress_handler = nullptr;
+    bool _progress_subscribed = false;
+    std::unique_ptr<progress_plugin> _progress_plugin;
+
+    static SCIP_RETCODE progress_event_exec(struct Scip * scip,
+                                            SCIP_EVENTHDLR *, SCIP_EVENT *,
+                                            SCIP_EVENTDATA * eventdata) {
+        auto & plugin = *reinterpret_cast<progress_plugin *>(eventdata);
+        progress_callback_handle handle(plugin.api, scip);
+        plugin.callback(handle);
+        return SCIP_OKAY;
+    }
+    // NODEFEASIBLE, NODEINFEASIBLE, NODEBRANCHED and BESTSOLFOUND. SCIP 10
+    // renumbered the event types: a mask of SCIP 8 and 9 still compiles there
+    // and subscribes to others, their BESTSOLFOUND being its LPSOLVED.
+    SCIP_EVENTTYPE _progress_events() const {
+        return SCIP->majorVersion() < 10
+                   ? SCIP_EVENTTYPE{0x80000 | 0x100000 | 0x200000 | 0x4000000}
+                   : SCIP_EVENTTYPE{0x100000 | 0x200000 | 0x400000 |
+                                    0x10000000};
+    }
+    // In solve(), on the transformed problem, whose event filter ends with it.
+    // A restart keeps the filter: an EVENTINITSOL catching again, as SCIP's
+    // examples do, would need an EVENTEXITSOL drop or every event runs the
+    // callback twice after a restart.
+    void _subscribe_progress_callback() {
+        if(!_progress_plugin || _progress_subscribed) return;
+        check(SCIP->transformProb(model));
+        check(SCIP->catchEvent(
+            model, _progress_events(), _progress_handler,
+            reinterpret_cast<SCIP_EVENTDATA *>(_progress_plugin.get()),
+            nullptr));
+        _progress_subscribed = true;
+    }
+    SCIP_RETCODE _drop_progress_callback() {
+        _progress_subscribed = false;
+        return SCIP->dropEvent(
+            model, _progress_events(), _progress_handler,
+            reinterpret_cast<SCIP_EVENTDATA *>(_progress_plugin.get()), -1);
+    }
+
+public:
+    template <typename F>
+    void set_progress_callback(F && f) {
+        if(!_progress_plugin)
+            _progress_plugin = std::make_unique<progress_plugin>();
+        _progress_plugin->api = SCIP;
+        _progress_plugin->callback = std::forward<F>(f);
+    }
     // clang-format off
 protected:
     // SCIP 10 renumbered SCIP_STATUS, and scip_api declares the numbering of
@@ -612,11 +705,30 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+private:
+    // limits/time bounds a clock that runs for the whole life of the
+    // transformed problem, which a solve() after a solve() resumes. Left as
+    // set, that second solve stops at once once the first has spent the limit.
+    [[nodiscard]] auto _whole_time_limit_for_this_solve() {
+        double limit;
+        check(SCIP->getRealParam(model, "limits/time", &limit));
+        if(_solved)
+            check(SCIP->setRealParam(
+                model, "limits/time",
+                std::min(limit + SCIP->getSolvingTime(model), 1e20)));
+        return detail::restore_guard([this, limit] {
+            check(SCIP->setRealParam(model, "limits/time", limit));
+        });
+    }
+
+public:
     void solve() {
         reset_status();  // a solve that throws reports unknown
+        const auto restore_limit = _whole_time_limit_for_this_solve();
         // a solve failing past the transformation leaves it alive, and the
         // mutators must still free it
         _solved = true;
+        _subscribe_progress_callback();
         check(SCIP->solve(model));
         _status = _get_status();
         _mark_results_valid();

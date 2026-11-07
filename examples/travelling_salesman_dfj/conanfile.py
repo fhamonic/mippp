@@ -13,7 +13,7 @@ class TravellingSalesmanDfjExample(ConanFile):
         #   conan create <path/to/mippp> -pr=<profile> -b=missing -c tools.build:skip_test=true
         # then build with:
         #   conan build . -of=build -pr=<profile> -b=missing
-        self.requires("mippp/1.0.0")
+        self.requires("mippp/1.1.0")
         self.requires("melon/1.0.0")
 
     def build(self):

@@ -1,0 +1,72 @@
+diff -ru /home/plaiseek/Projects/mippp/include/mippp/solvers/clp/impl/v1/clp_lp.hpp ./mippp/solvers/clp/impl/v1/clp_lp.hpp
+--- /home/plaiseek/Projects/mippp/include/mippp/solvers/clp/impl/v1/clp_lp.hpp	2026-10-30 14:47:18.151899371 +0100
++++ ./mippp/solvers/clp/impl/v1/clp_lp.hpp	2026-11-02 00:17:18.485182624 +0100
+@@ -30,6 +30,7 @@
+ namespace mippp {
+ namespace clp::impl::v1 {
+ 
++inline int (*probe_hook)(Clp_Simplex *) = nullptr;
+ class clp_lp : protected model_base<int, double> {
+ private:
+     const clp_api * Clp;
+@@ -660,7 +661,7 @@
+         Clp->scaling(model, scaling_mode);
+         Clp->setMaximumSeconds(model,
+                                _time_limit < COIN_DBL_MAX ? _time_limit : -1.0);
+-        Clp->primal(model, 0);
++        if(probe_hook) probe_hook(model); else Clp->primal(model, 0);
+         _status =
+             _simplex_status(Clp->status(model), Clp->secondaryStatus(model),
+                             Clp->primalFeasible(model) != 0);
+diff -ru /home/plaiseek/Projects/mippp/include/mippp/solvers/cplex/impl/v1/cplex_lp.hpp ./mippp/solvers/cplex/impl/v1/cplex_lp.hpp
+--- /home/plaiseek/Projects/mippp/include/mippp/solvers/cplex/impl/v1/cplex_lp.hpp	2026-10-30 14:52:11.453812325 +0100
++++ ./mippp/solvers/cplex/impl/v1/cplex_lp.hpp	2026-11-02 00:17:18.490182743 +0100
+@@ -21,6 +21,7 @@
+ namespace mippp {
+ namespace cplex::impl::v1 {
+ 
++inline int (*probe_hook)(CPXCENVptr, CPXLPptr) = nullptr;
+ class cplex_lp : public cplex_base {
+ public:
+     [[nodiscard]] cplex_lp() : cplex_lp(cplex_api::load()) {}
+@@ -122,7 +123,7 @@
+     ///////////////////////////////////////////////////////////////////////////
+     void solve() {
+         reset_status();  // a solve that throws reports unknown
+-        check(CPX->primopt(env, lp));
++        check(probe_hook ? probe_hook(env, lp) : CPX->primopt(env, lp));
+         _status = _get_status();
+         _mark_results_valid();
+     }
+diff -ru /home/plaiseek/Projects/mippp/include/mippp/solvers/glpk/impl/v1/glpk_lp.hpp ./mippp/solvers/glpk/impl/v1/glpk_lp.hpp
+--- /home/plaiseek/Projects/mippp/include/mippp/solvers/glpk/impl/v1/glpk_lp.hpp	2026-10-30 14:47:26.189116151 +0100
++++ ./mippp/solvers/glpk/impl/v1/glpk_lp.hpp	2026-11-02 00:17:18.493182815 +0100
+@@ -22,7 +22,7 @@
+ 
+ class glpk_lp : public glpk_base {
+ private:
+-    glp_smcp model_params;
++public: glp_smcp model_params; private:
+     std::chrono::duration<double> _time_limit{
+         std::numeric_limits<double>::infinity()};
+ 
+diff -ru /home/plaiseek/Projects/mippp/include/mippp/solvers/xpress/impl/v1/xpress_lp.hpp ./mippp/solvers/xpress/impl/v1/xpress_lp.hpp
+--- /home/plaiseek/Projects/mippp/include/mippp/solvers/xpress/impl/v1/xpress_lp.hpp	2026-10-30 14:47:18.160899614 +0100
++++ ./mippp/solvers/xpress/impl/v1/xpress_lp.hpp	2026-11-02 00:17:18.492182791 +0100
+@@ -18,6 +18,7 @@
+ namespace mippp {
+ namespace xpress::impl::v1 {
+ 
++inline const char * probe_flags = nullptr;
+ class xpress_lp : public xpress_base {
+ public:
+     [[nodiscard]] xpress_lp() : xpress_lp(xpress_api::load()) {}
+@@ -99,7 +100,7 @@
+             _mark_results_valid();
+             return;
+         }
+-        check(XPRS->lpoptimize(prob, nullptr));
++        check(XPRS->lpoptimize(prob, probe_flags));
+         _status = _get_status();
+         // A stopped solve can leave the problem LP-presolved (45.01 does),
+         // where XPRS_ROWS, the row getters and setters describe the presolved

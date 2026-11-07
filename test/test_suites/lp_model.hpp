@@ -976,6 +976,7 @@ TYPED_TEST_P(LpModelTest, parameter_setters_keep_results) {
         if constexpr(has_time_limit<M>)
             model.set_time_limit(std::chrono::seconds(1000));
         if constexpr(has_verbosity<M>) model.set_verbose(false);
+        if constexpr(has_thread_limit<M>) model.set_thread_limit(1);
         if constexpr(has_feasibility_tolerance<M>)
             model.set_feasibility_tolerance(model.get_feasibility_tolerance());
         if constexpr(has_optimality_tolerance<M>)

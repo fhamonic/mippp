@@ -224,32 +224,14 @@ HighsInt Highs_getIis(void * highs, HighsInt * iis_num_col,
                       HighsInt * row_bound, HighsInt * col_status,
                       HighsInt * row_status);
 
-struct HighsCallbackDataOut {
-    int log_type;  // cast of HighsLogType
-    double running_time;
-    HighsInt simplex_iteration_count;
-    HighsInt ipm_iteration_count;
-    HighsInt pdlp_iteration_count;
-    double objective_function_value;
-    int64_t mip_node_count;
-    int64_t mip_total_lp_iterations;
-    double mip_primal_bound;
-    double mip_dual_bound;
-    double mip_gap;
-    double * mip_solution;
-    HighsInt cutpool_num_col;
-    HighsInt cutpool_num_cut;
-    HighsInt cutpool_num_nz;
-    HighsInt * cutpool_start;
-    HighsInt * cutpool_index;
-    double * cutpool_value;
-    double * cutpool_lower;
-    double * cutpool_upper;
-    HighsInt user_solution_callback_origin;
-};
+constexpr HighsInt kHighsCallbackMipInterrupt = 6;
+// Opaque: its fields move between releases, by a leading pointer from 1.11 on.
+// Highs_getCallbackDataOutItem reads them by name in every release.
+struct HighsCallbackDataOut;
+// The one field used, the first in every release: HiGHS documents that external
+// packages rely on it.
 struct HighsCallbackDataIn {
     int user_interrupt;
-    double * user_solution;
 };
 using HighsCCallbackType = void(int, const char *, const HighsCallbackDataOut *,
                                 HighsCallbackDataIn *, void *);
@@ -257,6 +239,9 @@ using HighsCCallbackType = void(int, const char *, const HighsCallbackDataOut *,
 HighsInt Highs_setCallback(void * highs, HighsCCallbackType user_callback,
                            void * user_callback_data);
 HighsInt Highs_startCallback(void * highs, const int callback_type);
+HighsInt Highs_stopCallback(void * highs, const int callback_type);
+const void * Highs_getCallbackDataOutItem(const HighsCallbackDataOut * data_out,
+                                          const char * item_name);
 
 }  // namespace highs::impl::v1
 }  // namespace mippp
@@ -327,6 +312,10 @@ namespace highs::impl::v1 {
     F(Highs_getDoubleInfoValue, getDoubleInfoValue)                     \
     F(Highs_zeroAllClocks, zeroAllClocks)                               \
     F(Highs_run, run)                                                   \
+    F(Highs_setCallback, setCallback)                                   \
+    F(Highs_startCallback, startCallback)                               \
+    F(Highs_stopCallback, stopCallback)                                 \
+    F(Highs_getCallbackDataOutItem, getCallbackDataOutItem)             \
     F(Highs_getModelStatus, getModelStatus)                             \
     F(Highs_getObjectiveValue, getObjectiveValue)                       \
     F(Highs_getSolution, getSolution)                                   \

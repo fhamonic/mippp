@@ -132,6 +132,7 @@ int CPXsetdblparam(CPXENVptr env, int whichparam, double newvalue);
 constexpr int CPXPARAM_Advance = 1001;
 constexpr int CPXPARAM_ScreenOutput = 1035;
 constexpr int CPXPARAM_Preprocessing_Reduce = 1057;
+constexpr int CPXPARAM_Threads = 1067;
 constexpr int CPXPARAM_Conflict_Algorithm = 1073;
 constexpr int CPXPARAM_Conflict_Display = 1074;
 enum PrereduceType : int {
@@ -142,6 +143,8 @@ enum PrereduceType : int {
 };
 int CPXgetintparam(CPXCENVptr env, int whichparam, int * value_p);
 int CPXsetintparam(CPXENVptr env, int whichparam, int newvalue);
+int CPXinfointparam(CPXCENVptr env, int whichparam, int * defvalue_p,
+                    int * minvalue_p, int * maxvalue_p);
 
 int CPXprimopt(CPXCENVptr env, CPXLPptr lp);
 int CPXdualopt(CPXCENVptr env, CPXLPptr lp);
@@ -291,6 +294,18 @@ int CPXcallbackaddusercuts(CPXCALLBACKCONTEXTptr context, int rcnt, int nzcnt,
 
 void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
 
+enum CPXCALLBACKINFO {
+    CPXCALLBACKINFO_THREADID,
+    CPXCALLBACKINFO_NODECOUNT,
+    CPXCALLBACKINFO_ITCOUNT,
+    CPXCALLBACKINFO_BEST_SOL,
+    CPXCALLBACKINFO_BEST_BND
+};
+int CPXcallbackgetinfodbl(CPXCALLBACKCONTEXTptr context, CPXCALLBACKINFO what,
+                          double * data_p);
+int CPXcallbackgetinfolong(CPXCALLBACKCONTEXTptr context, CPXCALLBACKINFO what,
+                           CPXLONG * data_p);
+
 }  // namespace cplex::impl::v1
 }  // namespace mippp
 #endif
@@ -349,6 +364,7 @@ namespace cplex::impl::v1 {
     F(CPXsetdblparam, setdblparam)                                   \
     F(CPXgetintparam, getintparam)                                   \
     F(CPXsetintparam, setintparam)                                   \
+    F(CPXinfointparam, infointparam)                                 \
     F(CPXprimopt, primopt)                                           \
     F(CPXdualopt, dualopt)                                           \
     F(CPXlpopt, lpopt)                                               \
@@ -372,7 +388,9 @@ namespace cplex::impl::v1 {
     F(CPXcallbackrejectcandidate, callbackrejectcandidate)           \
     F(CPXcallbackrejectcandidatelocal, callbackrejectcandidatelocal) \
     F(CPXcallbackaddusercuts, callbackaddusercuts)                   \
-    F(CPXcallbackabort, callbackabort)
+    F(CPXcallbackabort, callbackabort)                               \
+    F(CPXcallbackgetinfodbl, callbackgetinfodbl)                     \
+    F(CPXcallbackgetinfolong, callbackgetinfolong)
 
 #define DECLARE_CPLEX_FUNCTIONS(FULL, SHORT) \
     using SHORT##_fun_t = decltype(FULL);    \

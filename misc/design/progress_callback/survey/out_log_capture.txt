@@ -1,0 +1,5 @@
+== XPRESS exit=0 stdout lines=0: remove=0 add=0 hook lines=509 status=time_limit{sol=true} in 2.03s 
+== MOSEK exit=0 stdout lines=0: link=0 hook lines=417 status=time_limit{sol=true} in 2.01s 
+== SCIP exit=0 stdout lines=0: create=1 set=1 hook lines=1760 status=time_limit{sol=true} in 2.00s 
+== COPT exit=0 stdout lines=1: LogToConsole=0 set=0 hook lines=85 status=time_limit{sol=true} in 2.01s 
+== GLPK exit=0 stdout lines=0: hook lines=46 status=time_limit{sol=true} in 2.00s 

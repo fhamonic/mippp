@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <random>
@@ -129,7 +130,62 @@ TYPED_TEST_P(DualBoundTest, integer_free_model_reports_its_lp_optimum) {
     });
 }
 
+// Market split with a planted point: feasible, which proves the bound must not
+// pass that point's value, yet out of reach of heuristics. COPT drops the bound
+// of a search stopped without an incumbent and reads +1e30 in either sense.
+TYPED_TEST_P(DualBoundTest, a_stop_without_an_incumbent_keeps_a_valid_bound) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        for(const bool maximize : {false, true}) {
+            const std::size_t rows = 7, cols = 60;
+            std::mt19937 rng(42);
+            std::uniform_int_distribution<int> coef(0, 99), coin(0, 1);
+            std::vector<int> planted(cols);
+            int planted_size = 0;
+            for(int & p : planted) planted_size += (p = coin(rng));
+            auto model = this->new_model();
+            auto x = model.add_binary_variables(cols);
+            const auto col_ids = std::views::iota(std::size_t{0}, cols);
+            if(maximize)
+                model.set_maximization();
+            else
+                model.set_minimization();
+            model.set_objective(
+                xsum(col_ids, [&](auto j) { return 1.0 * x(j); }) + 1000);
+            std::vector<int> row(cols);
+            for(std::size_t i = 0; i < rows; ++i) {
+                int rhs = 0;
+                for(std::size_t j = 0; j < cols; ++j) {
+                    row[j] = coef(rng);
+                    rhs += row[j] * planted[j];
+                }
+                model.add_constraint(xsum(col_ids, [&](auto j) {
+                                         return row[j] * x(j);
+                                     }) == rhs);
+            }
+            model.set_time_limit(std::chrono::seconds(1));
+            model.solve();
+            const auto status = model.get_status();
+            if(!is_a<status::stopped>(status) ||
+               status::solution_available(status))
+                GTEST_SKIP() << "found the planted point or closed the search";
+            const double value_at_planted = 1000 + planted_size;
+            const double bound = model.get_dual_bound();
+            // Past the root any bound lies within the objective's range, which
+            // tells a bound the search reached from a mere "no bound" infinity.
+            if(maximize) {
+                EXPECT_GE(bound, value_at_planted - TEST_EPSILON);
+                EXPECT_LE(bound, 1000 + cols + TEST_EPSILON);
+            } else {
+                EXPECT_LE(bound, value_at_planted + TEST_EPSILON);
+                EXPECT_GE(bound, 1000 - TEST_EPSILON);
+            }
+        }
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(DualBoundTest, bounds_a_minimization_from_below,
+                            a_stop_without_an_incumbent_keeps_a_valid_bound,
                             bounds_a_maximization_from_above,
                             loose_gap_keeps_the_bound_on_its_side,
                             integer_free_model_reports_its_lp_optimum);

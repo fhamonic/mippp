@@ -8,6 +8,7 @@
 #include <utility>
 #include <variant>
 
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
@@ -170,9 +171,36 @@ public:
         }
     };
 
+    class progress_callback_handle : private callback_handle_base {
+    private:
+        friend gurobi_milp;
+        using callback_handle_base::callback_handle_base;
+
+        double _read(const int what) const {
+            double value;
+            this->check(this->parent.GRB->cbget(this->cbdata, GRB_CB_MIP, what,
+                                                &value));
+            return value;
+        }
+
+    public:
+        double get_solution_value() {
+            return detail::as_infinity(_read(GRB_CB_MIP_OBJBST), GRB_INFINITY);
+        }
+        double get_dual_bound() {
+            return detail::as_infinity(_read(GRB_CB_MIP_OBJBND), GRB_INFINITY);
+        }
+        std::size_t get_node_count() {
+            return static_cast<std::size_t>(_read(GRB_CB_MIP_NODCNT));
+        }
+        // Not a non-zero return from the callback: GRBoptimize fails on that.
+        void interrupt() { this->parent.GRB->terminate(this->master_model); }
+    };
+
 private:
     std::function<void(candidate_solution_callback_handle &)>
         candidate_solution_callback;
+    std::function<void(progress_callback_handle &)> progress_callback;
 
     static int main_callback(GRBmodel * master_model, void * cbdata, int where,
                              void * usrdata) {
@@ -181,19 +209,33 @@ private:
             candidate_solution_callback_handle handle(parent, master_model,
                                                       cbdata);
             parent.candidate_solution_callback(handle);
+        } else if((where == GRB_CB_MIP) && parent.progress_callback) {
+            progress_callback_handle handle(parent, master_model, cbdata);
+            parent.progress_callback(handle);
         }
         return 0;
     }
-    void _enable_callbacks() {
-        check(GRB->setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
-        check(GRB->setcallbackfunc(model, main_callback, this));
+    // For the duration of a solve only. The user data is this: registered by a
+    // setter, it dangles once the model moves and the next solve crashes.
+    [[nodiscard]] auto _attached_callbacks() {
+        const bool attach = candidate_solution_callback || progress_callback;
+        if(attach) check(GRB->setcallbackfunc(model, main_callback, this));
+        return detail::restore_guard([this, attach] {
+            if(attach) check(GRB->setcallbackfunc(model, nullptr, nullptr));
+        });
     }
 
 public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
-        _enable_callbacks();
+        check(GRB->setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
         candidate_solution_callback = std::forward<F>(f);
+    }
+    // Not through the candidate callback's setter: LazyConstraints turns off
+    // presolve reductions, and watching a search must not change it.
+    template <typename F>
+    void set_progress_callback(F && f) {
+        progress_callback = std::forward<F>(f);
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -316,6 +358,7 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         reset_status();  // a solve that throws reports unknown
+        const auto detach = _attached_callbacks();
         check(GRB->optimize(model));
         _status = _get_status();
         _mark_results_valid();

@@ -1,0 +1,9 @@
+terminate called after throwing an instance of 'mippp::license_error'
+  what():  2026-11-02 00:29:24 [INFO] checks license for COPT v7.2.5 20250321
+2026-11-02 00:29:24 [WARN] no license files in current working folder: /tmp/claude-1000/-home-plaiseek-Projects-mippp/f1325762-f5cf-40e5-a297-798929dc8673/scratchpad/lpalg
+2026-11-02 00:29:24 [WARN] no license files in binary folder: /tmp/claude-1000/-home-plaiseek-Projects-mippp/f1325762-f5cf-40e5-a297-798929dc8673/scratchpad/lpalg
+2026-11-02 00:29:24 [WARN] no license files in HOME folder: /home/plaiseek/copt
+2026-11-02 00:29:24 [INFO] uses license in environment variable: /home/plaiseek/Softwares/solvers/.licences/copt
+2026-11-02 00:29:24 [ERROR] Invalid signature in public key file
+
+timeout: the monitored command dumped core

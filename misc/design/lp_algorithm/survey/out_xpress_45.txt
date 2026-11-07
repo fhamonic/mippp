@@ -1,0 +1,105 @@
+library: /home/plaiseek/Softwares/solvers/xpressmp_old/lib/libxprs.so.45.01.01
+=== today: flags nullptr
+  feasible : solve ok status=optimal 3ms [alg=2 simplex=79 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=2 simplex=80 barrier=0 crossover=0 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=2 simplex=33 barrier=0 crossover=0 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=2 simplex=0 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== flags "p"
+  feasible : solve ok status=optimal 3ms [alg=3 simplex=72 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=3 simplex=85 barrier=0 crossover=0 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=3 simplex=41 barrier=0 crossover=0 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=3 simplex=0 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== flags "d"
+  feasible : solve ok status=optimal 3ms [alg=2 simplex=79 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=2 simplex=80 barrier=0 crossover=0 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=2 simplex=33 barrier=0 crossover=0 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=2 simplex=0 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== flags "b"
+  feasible : solve ok status=optimal 7ms [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=4 simplex=112 barrier=7 crossover=28 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=4 simplex=0 barrier=5 crossover=65 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== flags "b", CROSSOVER 0
+  feasible : solve ok status=optimal 5ms [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089012794073 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(?429 Error: No basis is available)
+  infeasible: solve ok status=failed [alg=4 simplex=0 barrier=7 crossover=0 LPSTATUS=7 SOLSTATUS=0 STOPSTATUS=0 SOLVESTATUS=2]
+  unbounded: solve ok status=failed [alg=4 simplex=0 barrier=5 crossover=0 LPSTATUS=7 SOLSTATUS=0 STOPSTATUS=0 SOLVESTATUS=2]
+  warm from optimal basis: solve ok status=optimal [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== flags "n"
+  feasible : solve ok status=optimal 3ms [alg=2 simplex=79 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=2 simplex=80 barrier=0 crossover=0 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=2 simplex=33 barrier=0 crossover=0 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=2 simplex=0 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== LPFLAGS 1 dual
+  feasible : solve ok status=optimal 3ms [alg=2 simplex=79 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=2 simplex=80 barrier=0 crossover=0 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=2 simplex=33 barrier=0 crossover=0 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=2 simplex=0 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== LPFLAGS 2 primal
+  feasible : solve ok status=optimal 3ms [alg=3 simplex=72 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=3 simplex=85 barrier=0 crossover=0 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=3 simplex=41 barrier=0 crossover=0 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=3 simplex=0 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== LPFLAGS 4 barrier
+  feasible : solve ok status=optimal 6ms [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=4 simplex=112 barrier=7 crossover=28 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=4 simplex=0 barrier=5 crossover=65 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== LPFLAGS 4 barrier, CROSSOVER 0
+  feasible : solve ok status=optimal 5ms [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089012794073 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(?429 Error: No basis is available)
+  infeasible: solve ok status=failed [alg=4 simplex=0 barrier=7 crossover=0 LPSTATUS=7 SOLSTATUS=0 STOPSTATUS=0 SOLVESTATUS=2]
+  unbounded: solve ok status=failed [alg=4 simplex=0 barrier=5 crossover=0 LPSTATUS=7 SOLSTATUS=0 STOPSTATUS=0 SOLVESTATUS=2]
+  warm from optimal basis: solve ok status=optimal [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== DEFAULTALG 3 primal
+  feasible : solve ok status=optimal 3ms [alg=3 simplex=72 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=3 simplex=85 barrier=0 crossover=0 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=3 simplex=41 barrier=0 crossover=0 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=3 simplex=0 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== DEFAULTALG 4 barrier
+  feasible : solve ok status=optimal 5ms [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=4 simplex=112 barrier=7 crossover=28 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=4 simplex=0 barrier=5 crossover=65 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=4 simplex=0 barrier=10 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok
+=== flags "" + DEFAULTALG 3
+  feasible : solve ok status=optimal 3ms [alg=3 simplex=72 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [alg=3 simplex=85 barrier=0 crossover=0 LPSTATUS=2 SOLSTATUS=3 STOPSTATUS=0 SOLVESTATUS=3]
+  unbounded: solve ok status=unbounded [alg=3 simplex=41 barrier=0 crossover=0 LPSTATUS=5 SOLSTATUS=4 STOPSTATUS=0 SOLVESTATUS=3]
+  warm from optimal basis: solve ok status=optimal [alg=3 simplex=0 barrier=0 crossover=0 LPSTATUS=1 SOLSTATUS=1 STOPSTATUS=0 SOLVESTATUS=3]
+  results after setting it post-solve: sol=ok

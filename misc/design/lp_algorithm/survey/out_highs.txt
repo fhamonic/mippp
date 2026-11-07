@@ -1,0 +1,103 @@
+library: /home/plaiseek/Softwares/solvers/HiGHS/build/lib/libhighs.so
+=== default (solver=choose)
+  feasible : solve ok status=optimal 2ms [simplex=109 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089013110347 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=105 ipm=0 crossover=0 pdlp=0 model_status=8 primal_sol=1 dual_sol=2]
+  unbounded: solve ok status=unbounded [simplex=251 ipm=0 crossover=0 pdlp=0 model_status=10 primal_sol=2 dual_sol=1]
+  iterlim=1: solve ok status=iteration_limit [simplex=1 ipm=0 crossover=0 pdlp=0 model_status=14 primal_sol=1 dual_sol=2]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== simplex
+  feasible : solve ok status=optimal 2ms [simplex=109 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089013110347 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=105 ipm=0 crossover=0 pdlp=0 model_status=8 primal_sol=1 dual_sol=2]
+  unbounded: solve ok status=unbounded [simplex=251 ipm=0 crossover=0 pdlp=0 model_status=10 primal_sol=2 dual_sol=1]
+  iterlim=1: solve ok status=iteration_limit [simplex=1 ipm=0 crossover=0 pdlp=0 model_status=14 primal_sol=1 dual_sol=2]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== simplex, strategy 1 dual
+  feasible : solve ok status=optimal 2ms [simplex=109 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089013110347 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=105 ipm=0 crossover=0 pdlp=0 model_status=8 primal_sol=1 dual_sol=2]
+  unbounded: solve ok status=unbounded [simplex=251 ipm=0 crossover=0 pdlp=0 model_status=10 primal_sol=2 dual_sol=1]
+  iterlim=1: solve ok status=iteration_limit [simplex=1 ipm=0 crossover=0 pdlp=0 model_status=14 primal_sol=1 dual_sol=2]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== simplex, strategy 4 primal
+  feasible : solve ok status=optimal 2ms [simplex=92 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089013110341 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=72 ipm=0 crossover=0 pdlp=0 model_status=8 primal_sol=1 dual_sol=2]
+  unbounded: solve ok status=unbounded [simplex=106 ipm=0 crossover=0 pdlp=0 model_status=10 primal_sol=2 dual_sol=1]
+  iterlim=1: solve ok status=iteration_limit [simplex=1 ipm=0 crossover=0 pdlp=0 model_status=14 primal_sol=2 dual_sol=1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== choose, strategy 4 primal
+  feasible : solve ok status=optimal 2ms [simplex=92 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089013110341 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=72 ipm=0 crossover=0 pdlp=0 model_status=8 primal_sol=1 dual_sol=2]
+  unbounded: solve ok status=unbounded [simplex=106 ipm=0 crossover=0 pdlp=0 model_status=10 primal_sol=2 dual_sol=1]
+  iterlim=1: solve ok status=iteration_limit [simplex=1 ipm=0 crossover=0 pdlp=0 model_status=14 primal_sol=2 dual_sol=1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== ipm
+  feasible : solve ok status=optimal 4ms [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089013110354 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=0 ipm=14 crossover=0 pdlp=0 model_status=8 primal_sol=1 dual_sol=1]
+  unbounded: solve ok status=unbounded [simplex=251 ipm=10 crossover=0 pdlp=0 model_status=10 primal_sol=2 dual_sol=1]
+  iterlim=1: solve ok status=optimal [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== ipm, run_crossover off
+  feasible : solve ok status=optimal 4ms [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089013109853 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(mippp: get_basis() found no basis, HiGHS holds none from its last solv...)
+  infeasible: solve ok status=infeasible [simplex=0 ipm=14 crossover=0 pdlp=0 model_status=8 primal_sol=1 dual_sol=1]
+  unbounded: solve THROWS(HiGHS kHighsStatusError) status=unknown [simplex=0 ipm=10 crossover=0 pdlp=0 model_status=9 primal_sol=1 dual_sol=1]
+  iterlim=1: solve ok status=optimal [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: FAIL(unknown ok) pass pass pass pass
+=== ipx, run_crossover off
+  feasible : solve ok status=optimal 4ms [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089013109853 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(mippp: get_basis() found no basis, HiGHS holds none from its last solv...)
+  infeasible: solve ok status=infeasible [simplex=0 ipm=14 crossover=0 pdlp=0 model_status=8 primal_sol=1 dual_sol=1]
+  unbounded: solve THROWS(HiGHS kHighsStatusError) status=unknown [simplex=0 ipm=10 crossover=0 pdlp=0 model_status=9 primal_sol=1 dual_sol=1]
+  iterlim=1: solve ok status=optimal [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=12 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: FAIL(unknown ok) pass pass pass pass
+=== hipo
+  apply: THROWS(rejected solver=hipo)
+=== pdlp
+  feasible : solve ok status=optimal 19ms [simplex=0 ipm=0 crossover=0 pdlp=3800 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089091494787 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(mippp: get_basis() found no basis, HiGHS holds none from its last solv...)
+  infeasible: solve ok status=infeasible_or_unbounded [simplex=0 ipm=0 crossover=0 pdlp=2920 model_status=9 primal_sol=1 dual_sol=1]
+  unbounded: solve ok status=unbounded [simplex=0 ipm=0 crossover=0 pdlp=480 model_status=10 primal_sol=2 dual_sol=1]
+  iterlim=1: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=3800 model_status=7 primal_sol=2 dual_sol=2]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: FAIL(unknown ok) pass pass pass pass
+=== pdlp, run_crossover on
+  feasible : solve ok status=optimal 18ms [simplex=0 ipm=0 crossover=0 pdlp=3800 model_status=7 primal_sol=2 dual_sol=2]
+    obj=529.3089091494787 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(mippp: get_basis() found no basis, HiGHS holds none from its last solv...)
+  infeasible: solve ok status=infeasible_or_unbounded [simplex=0 ipm=0 crossover=0 pdlp=2920 model_status=9 primal_sol=1 dual_sol=1]
+  unbounded: solve ok status=unbounded [simplex=0 ipm=0 crossover=0 pdlp=480 model_status=10 primal_sol=2 dual_sol=1]
+  iterlim=1: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=3800 model_status=7 primal_sol=2 dual_sol=2]
+  warm from optimal basis: solve ok status=optimal [simplex=0 ipm=0 crossover=0 pdlp=0 model_status=7 primal_sol=2 dual_sol=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: FAIL(unknown ok) pass pass pass pass

@@ -1,0 +1,79 @@
+library ~/Softwares/solvers/HiGHS/build/lib/libhighs.so 
+== A small min 1 thread, no hook (baseline): status=optimal{sol=true} solve=4.96s value=-25138 dual=-25140 nodes=12169
+== B small min 1 thread, hook: status=optimal{sol=true} solve=4.74s value=-25138 dual=-25140 nodes=12169
+   events: MipImprovingSolution=7 MipInterrupt=26057
+   note: struct in highs_api.hpp reads dual=-25130 primal=5.09629e-320 nodes=-4550735141097439218 where the items say dual=-25472.6 primal=-25130 nodes=1001
+   samples: 26064 (5497.3/s over 4.74s), first@0.001s last@4.740s maxgap=0.215s threads=1 overlaps=0
+   primal: first=inf last=-25138 worse-moves=0 sentinel-samples=2 | dual: first=-inf last=-25140.67 worse-moves=0 | nodes: first=0 last=12169
+   last sample vs final: primal match dual DIFFER (final -25138 / -25140)
+   search path: nodes 12169 vs baseline 12169 (same)
+== D large min default threads quiet, hook: status=time_limit{sol=true} solve=10.01s value=-41106 dual=-41585 nodes=1423
+   events: MipImprovingSolution=7 MipInterrupt=4401
+   note: struct in highs_api.hpp reads dual=-41106 primal=1.89721e-319 nodes=-4547489657650151424 where the items say dual=-41597.5 primal=-41106 nodes=1002
+   samples: 4408 (440.6/s over 10.01s), first@0.008s last@10.005s maxgap=0.440s threads=1 overlaps=0
+   primal: first=inf last=-41106 worse-moves=0 sentinel-samples=2 | dual: first=-inf last=-41585.39 worse-moves=0 | nodes: first=0 last=1423
+   last sample vs final: primal match dual DIFFER (final -41106 / -41585)
+== E large max+offset default threads quiet, hook: status=time_limit{sol=true} solve=10.00s value=41306 dual=41785 nodes=1352
+   events: MipImprovingSolution=7 MipInterrupt=4252
+   note: struct in highs_api.hpp reads dual=41306 primal=1.89721e-319 nodes=4675909866995318784 where the items say dual=41797.5 primal=41306 nodes=1002
+   samples: 4259 (425.8/s over 10.00s), first@0.004s last@10.003s maxgap=0.401s threads=1 overlaps=0
+   primal: first=-inf last=41306 worse-moves=0 sentinel-samples=2 | dual: first=inf last=41785.39 worse-moves=0 | nodes: first=0 last=1352
+   last sample vs final: primal match dual DIFFER (final 41306 / 41785)
+== F large min default threads VERBOSE, hook: status=time_limit{sol=true} solve=10.00s value=-41106 dual=-41585 nodes=1437
+   events: MipImprovingSolution=7 MipInterrupt=4430
+   note: struct in highs_api.hpp reads dual=-41106 primal=1.89721e-319 nodes=-4547489657650151424 where the items say dual=-41597.5 primal=-41106 nodes=1002
+   samples: 4437 (443.6/s over 10.00s), first@0.004s last@10.001s maxgap=0.422s threads=1 overlaps=0
+   primal: first=inf last=-41106 worse-moves=0 sentinel-samples=2 | dual: first=-inf last=-41585.39 worse-moves=0 | nodes: first=0 last=1437
+   last sample vs final: primal match dual DIFFER (final -41106 / -41585)
+== G no incumbent, 5s, hook: status=time_limit{sol=false} solve=5.00s value=inf dual=26 nodes=7303
+   events: MipInterrupt=16096
+   note: struct in highs_api.hpp reads dual=inf primal=7.32996e-320 nodes=9218868437227405312 where the items say dual=25.543 primal=inf nodes=1001
+   samples: 16096 (3218.9/s over 5.00s), first@0.001s last@5.000s maxgap=0.215s threads=1 overlaps=0
+   primal: first=inf last=inf worse-moves=0 sentinel-samples=16096 | dual: first=-inf last=25.55163 worse-moves=0 | nodes: first=0 last=7303
+   last sample vs final: primal DIFFER dual DIFFER (final inf / 26)
+== H large, stop asked at the 3rd sample: status=interrupted{sol=true} solve=0.01s value=-35632 dual=-41669 nodes=0
+   events: MipImprovingSolution=4 MipInterrupt=3
+   samples: 7 (671.2/s over 0.01s), first@0.004s last@0.010s maxgap=0.005s threads=1 overlaps=0
+   primal: first=inf last=-35632 worse-moves=0 sentinel-samples=2 | dual: first=-inf last=-41669.2 worse-moves=0 | nodes: first=0 last=0
+   stop asked after 0.004s, solve returned 0.007s later
+== H2 resolve after the stop, 2s: status=interrupted{sol=true} solve=0.00s value=-35632 dual=-inf nodes=0
+== I integer-free model on the MILP type, hook: status=optimal{sol=true} solve=0.01s value=10841.5 dual=10841.5 nodes=0
+   events: NONE
+   samples: 0
+== X1 MipLogging, quiet: status=time_limit{sol=true} solve=5.00s value=-41106 dual=-41597 nodes=835
+   events: NONE
+   samples: 0
+== X2 MipLogging, verbose: status=time_limit{sol=true} solve=5.00s value=-41106 dual=-41612 nodes=772
+   events: MipLogging=8
+   samples: 8 (1.6/s over 5.00s), first@0.005s last@5.001s maxgap=3.922s threads=1 overlaps=0
+   primal: first=100 last=-41106 worse-moves=0 sentinel-samples=0 | dual: first=-inf last=-41612.32 worse-moves=0 | nodes: first=0 last=772
+== X3 MipLogging, output_flag on + log_to_console off: status=time_limit{sol=true} solve=5.00s value=-41106 dual=-41612 nodes=791
+   events: MipLogging=8
+   samples: 8 (1.6/s over 5.00s), first@0.005s last@5.001s maxgap=3.841s threads=1 overlaps=0
+   primal: first=100 last=-41106 worse-moves=0 sentinel-samples=0 | dual: first=-inf last=-41612.32 worse-moves=0 | nodes: first=0 last=791
+== X4 Logging, quiet: status=time_limit{sol=true} solve=5.00s value=-41106 dual=-41612 nodes=820
+   events: NONE
+   samples: 0
+== X5 Logging, verbose: status=time_limit{sol=true} solve=5.00s value=-41106 dual=-41612 nodes=772
+   events: Logging=44
+   samples: 0
+== X6 Logging, output_flag on + log_to_console off: status=time_limit{sol=true} solve=5.00s value=-41106 dual=-41612 nodes=772
+   events: Logging=44
+   samples: 0
+== X7 MipInterrupt, verbose (the struct read in the note): status=time_limit{sol=true} solve=5.01s value=-41106 dual=-41597 nodes=906
+   events: MipInterrupt=3210
+   samples: 3210 (640.8/s over 5.01s), first@0.005s last@5.001s maxgap=0.311s threads=1 overlaps=0
+   primal: first=inf last=-41106 worse-moves=0 sentinel-samples=2 | dual: first=-inf last=-41597.54 worse-moves=0 | nodes: first=0 last=906
+== L LP on highs_lp, Simplex+Ipm interrupt types: status=time_limit{sol=false} solve=40.00s value=-320904 dual=n/a nodes=n/a
+   events: SimplexInterrupt=48516
+   samples: 48516 (1212.8/s over 40.00s), first@0.052s last@39.999s maxgap=0.070s threads=1 overlaps=0
+   primal: first=-inf last=-inf worse-moves=0 sentinel-samples=48516 | dual: first=nan last=nan worse-moves=0 | nodes: first=0 last=48341
+== S0 one piece 8s: status=time_limit{sol=true} solve=8.00s value=-41106 dual=-41593 nodes=1218
+== S1 slice 1s (cumulated 1.01s): status=time_limit{sol=true} solve=1.01s value=-41080 dual=-41635 nodes=203
+== S2 slice 1s (cumulated 2.01s): status=time_limit{sol=true} solve=1.00s value=-41080 dual=-41635 nodes=116
+== S3 slice 1s (cumulated 3.01s): status=time_limit{sol=true} solve=1.00s value=-41080 dual=-41635 nodes=94
+== S4 slice 1s (cumulated 4.01s): status=time_limit{sol=true} solve=1.00s value=-41080 dual=-41635 nodes=94
+== S5 slice 1s (cumulated 5.01s): status=time_limit{sol=true} solve=1.00s value=-41080 dual=-41635 nodes=94
+== S6 slice 1s (cumulated 6.01s): status=time_limit{sol=true} solve=1.00s value=-41080 dual=-41635 nodes=94
+== S7 slice 1s (cumulated 7.01s): status=time_limit{sol=true} solve=1.00s value=-41080 dual=-41635 nodes=94
+== S8 slice 1s (cumulated 8.01s): status=time_limit{sol=true} solve=1.00s value=-41080 dual=-41635 nodes=94

@@ -1,0 +1,64 @@
+library: /home/plaiseek/Softwares/solvers/coinbrew/dist/lib/libClp.so
+=== today: Clp_primal
+  feasible : solve ok status=optimal 1ms [iterations=61 status=0 secondary=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=45 status=1 secondary=0]
+  unbounded: solve ok status=unbounded [iterations=86 status=2 secondary=0]
+  warm from optimal basis: solve ok status=optimal [iterations=0 status=0 secondary=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== Clp_dual
+  feasible : solve ok status=optimal 1ms [iterations=79 status=0 secondary=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=104 status=1 secondary=0]
+  unbounded: solve ok status=unbounded [iterations=86 status=2 secondary=0]
+  warm from optimal basis: solve ok status=optimal [iterations=0 status=0 secondary=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== Clp_initialSolve
+  feasible : solve ok status=optimal 2ms [iterations=79 status=0 secondary=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=104 status=1 secondary=0]
+  unbounded: solve ok status=unbounded [iterations=78 status=2 secondary=0]
+  warm from optimal basis: solve ok status=optimal [iterations=0 status=0 secondary=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== Clp_initialPrimalSolve
+  feasible : solve ok status=optimal 1ms [iterations=61 status=0 secondary=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=45 status=1 secondary=0]
+  unbounded: solve ok status=unbounded [iterations=86 status=2 secondary=0]
+  warm from optimal basis: solve ok status=optimal [iterations=61 status=0 secondary=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass FAIL(optimal ok) FAIL(optimal ok) pass
+=== Clp_initialDualSolve
+  feasible : solve ok status=optimal 2ms [iterations=79 status=0 secondary=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=104 status=1 secondary=0]
+  unbounded: solve ok status=unbounded [iterations=86 status=2 secondary=0]
+  warm from optimal basis: solve ok status=optimal [iterations=0 status=0 secondary=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== Clp_initialBarrierSolve
+  feasible : solve ok status=optimal 6ms [iterations=12 status=0 secondary=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=190 status=1 secondary=0]
+  unbounded: solve ok status=unbounded [iterations=130 status=2 secondary=0]
+  warm from optimal basis: solve ok status=optimal [iterations=12 status=0 secondary=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass FAIL(optimal ok) FAIL(optimal ok) pass
+=== Clp_initialBarrierNoCrossSolve
+  feasible : solve ok status=optimal 4ms [iterations=24 status=0 secondary=0]
+    obj=529.3089007446025 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [iterations=87 status=1 secondary=0]
+  unbounded: solve ok status=unbounded [iterations=130 status=2 secondary=0]
+  warm from optimal basis: solve ok status=optimal [iterations=24 status=0 secondary=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass FAIL(optimal ok) FAIL(optimal ok) pass

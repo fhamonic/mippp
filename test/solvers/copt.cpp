@@ -78,6 +78,7 @@ INSTANTIATE_TEST(COPT_lp, TimeLimitTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, LpBasisTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, LpBasisWarmStartTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, VerbosityTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_lp, ThreadLimitTest, copt_lp_test);
 static_assert(has_lp_basis_warm_start<copt_lp>);
 
 namespace {
@@ -236,6 +237,11 @@ INSTANTIATE_TEST(COPT_milp, DualBoundTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, NodeCountTest, copt_milp_test);
 // INSTANTIATE_TEST(COPT_milp, IntegralityToleranceTest, copt_milp_test);
 INSTANTIATE_TEST(COPT_milp, VerbosityTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, ThreadLimitTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, ProgressCallbackTest, copt_milp_test);
+// NodeCnt reads 0 inside a callback
+// INSTANTIATE_TEST(COPT_milp, ProgressCallbackNodeCountTest, copt_milp_test);
+INSTANTIATE_TEST(COPT_milp, ProgressCallbackSharingTest, copt_milp_test);
 
 static_assert(!has_lp_basis<copt_milp>);
 // The code set_basis writes for each tag the statuses list, pinned without a

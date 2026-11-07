@@ -1,0 +1,3 @@
+terminate called after throwing an instance of 'mippp::license_error'
+  what():  Xpress licensing error 10: Your license expired on 30-apr-2026. Please contact support@fico.com to renew it.
+timeout: the monitored command dumped core

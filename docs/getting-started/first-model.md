@@ -45,7 +45,7 @@ int main() {
 
 Each backend ships a single convenience header, `mippp/solvers/<solver>/all.hpp`, that pulls in its api and model classes. `using namespace mippp` brings in the types; `using namespace mippp::operators` is a deliberate **opt-in** for the overloaded operators (`+`, `*`, `<=`, `==`, …) and `xsum` — the algebraic syntax never  eaks into your code unless you ask for it.
 
-Writing the backend choice as an alias at the top of the file (`lp_type`) is a convention used throughout the examples: it is the only line to touch to re-run the program on another solver.
+Writing the backend choice as an alias at the top of the file (`lp_type`) is a convention used throughout the examples: it and the include are the only lines to touch to re-run the program on another solver.
 
 ## Where the solver comes from
 

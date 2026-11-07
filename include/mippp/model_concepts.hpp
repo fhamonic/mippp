@@ -832,6 +832,28 @@ concept has_node_relaxation_callback = requires(T & model) {
     { model.set_node_relaxation_callback(
             [](node_relaxation_callback_handle_t<T> &) {}) };
 };
+
+template <typename T>
+using progress_callback_handle_t = typename T::progress_callback_handle;
+
+// Called during solve(), possibly on a solver's worker thread, never twice at
+// once. How often is the solver's: it differs by orders of magnitude between
+// solvers, and on a model without integer variables it may be never. An
+// exception leaving the callback is undefined behavior.
+//
+// The handle reads the best incumbent and the best proven bound so far. Until
+// the solver has one, the incumbent reads as +inf when minimizing and -inf when
+// maximizing, and the bound as the opposite infinity. interrupt() ends the solve
+// as status::interrupted and leaves the next solve() unaffected.
+template <typename T>
+concept has_progress_callback =
+    requires(T & model, progress_callback_handle_t<T> & handle) {
+        { model.set_progress_callback(
+                [](progress_callback_handle_t<T> &) {}) };
+        { handle.get_solution_value() } -> std::same_as<model_scalar_t<T>>;
+        { handle.get_dual_bound() } -> std::same_as<model_scalar_t<T>>;
+        { handle.interrupt() };
+    };
 // clang-format on
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////// Tolerance parameters /////////////////////////////
@@ -853,6 +875,19 @@ template <typename T>
 concept has_integrality_tolerance = requires(T & model, model_scalar_t<T> s) {
     { model.set_integrality_tolerance(s) };
     { model.get_integrality_tolerance() } -> std::same_as<model_scalar_t<T>>;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////// Threads ///////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// A thread limit of 0 restores the solver's default, sized to the machine; it
+// does not mean serial, as a native 0 does on Xpress and COPT. Not a limit
+// concept: reaching it stops nothing, so no status tag goes with it.
+template <typename T>
+concept has_thread_limit = requires(T & model, std::size_t n) {
+    { model.set_thread_limit(n) };
+    { model.get_thread_limit() } -> std::same_as<std::size_t>;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

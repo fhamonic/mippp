@@ -180,7 +180,7 @@ After any run that solved, the solver holds the solution of a trial rather than 
 
 ### Callbacks
 
-A trial is a `solve()`, so a candidate-solution callback registered on `gurobi_milp`, `cplex_milp`, `xpress_milp` or `copt_milp` runs in every trial. Its lazy constraints and rejections are background: the filter explains the model as the callback defines it. The native routines explain the model without the callback: `cplex_milp`, `xpress_milp` and `copt_milp` detach it for `compute_iis()`, and Gurobi's routine never runs it (measured on Gurobi 11.0.3, 12.0.1 and 13.0.2). Of the two paths, only the filter honours lazy constraints.
+A trial is a `solve()`, so a candidate-solution callback registered on `gurobi_milp`, `cplex_milp`, `xpress_milp` or `copt_milp` runs in every trial. Its lazy constraints and rejections are background: the filter explains the model as the callback defines it. The native routines explain the model without the callback, which is attached for the duration of a `solve()` only. Of the two paths, only the filter honours lazy constraints.
 
 The filter's answer is proven only when the callback's decision to accept or reject a candidate depends on that point alone, which keeps the trials [monotone](#monotonicity). A callback with memory, one that rejects a point for what it saw in earlier candidates or trials, can break monotonicity, and an `irreducible` answer is then unproven.
 
@@ -195,7 +195,7 @@ A callback that only reads its candidates changes no answer: with one that count
 
 The cost on CPLEX and COPT comes from the relaxed integer bounds. A trial without a bound of `x` or `y` searches an unbounded domain, and the callback rejects every point the search finds, so the trial runs until a limit stops it. Bound the run through `iis_limits` when a registered callback can reject.
 
-`cplex_milp` refuses to solve a model whose columns are all continuous while a callback is registered, and throws `std::runtime_error`. On such a model the filter's first trial throws it, after the model is restored. `compute_iis()`, which detaches the callback, answers there.
+`cplex_milp` refuses to solve a model whose columns are all continuous while a candidate-solution callback is registered, and throws `std::runtime_error`. On such a model the filter's first trial throws it, after the model is restored. `compute_iis()`, which does not run the callback, answers there.
 
 ### The cost of a trial
 

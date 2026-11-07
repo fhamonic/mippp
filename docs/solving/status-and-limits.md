@@ -32,6 +32,8 @@ any
                         node_limit, solution_limit, memory_limit
 ```
 
+`interrupted` is a stop someone asked for: a [progress callback](progress.md#stopping-a-solve) asks for one with `handle.interrupt()`.
+
 Two query functions mirror the two questions you can ask of a hierarchy:
 
 - `is_a<S>(r)` — is the status in the branch rooted at `S`? This is what experiment drivers usually want.
@@ -72,7 +74,7 @@ if(status::solution_available(r)) {
 
 Reading a solution when no solution is available is a solver-level error — always gate on `is_a<status::optimal>(r)` or `status::solution_available(r)` in code that runs under limits.
 
-Which tags a backend can return is part of its type (`model_status_t<M>`, a `std::variant`), and a limit setter only exists on a backend whose `get_status()` can actually report that limit — the concepts require it.
+Which tags a backend can return is part of its type (`model_status_t<M>`, a `std::variant`), and the setter of a limit that stops a solve, one of those under [Limits](#limits), only exists on a backend whose `get_status()` can actually report that limit — the concepts require it.
 
 !!! note "A backend's tag list may grow in a minor release"
     As a solver outcome that MIP++ used to fold into a coarser tag gets its own, the tag is added to that backend's variant in a minor release. It derives from the coarser tag, so `is_a` and `solution_available` answer as before, but the exact `is` on the coarser tag turns false on those solves. An exhaustive `std::visit` is a compile-time check against the pinned version only: give the visitor a catch-all `auto` overload, or expect to add a case when you upgrade. Removing or renaming a tag stays a major-version change.
@@ -163,6 +165,32 @@ Two habits worth adopting in experimental code:
 - **Read the tolerance instead of hard-coding `1e-9`.** Post-processing that rounds a binary (`sol[x] > 0.5`) or tests a reduced cost should be expressed against the solver's own tolerance where one is available, so the same code stays correct when you change backend or tighten the setting.
 - **Report the tolerances with the results.** An optimality tolerance is part of what "optimal" meant in a table of results; the getters make dumping them into the run log a one-liner.
 
+## Threads
+
+| Concept | Provides | Backends |
+| :--- | :--- | :--- |
+| `has_thread_limit` | `set_thread_limit(n)`, `get_thread_limit()` | COPT, CPLEX, Gurobi, MOSEK, Xpress |
+
+By default these five solvers size their parallel algorithms to the machine, for each model. In our measurements on 16 hardware threads, a MILP kept 5 to 15 cores busy on each of them, and a dense LP 2 to 4 cores on Gurobi, COPT and MOSEK. `cplex_lp` is the exception: it solves with CPLEX's primal simplex, which runs on one thread whatever the limit. A program that solves several models at once, one per worker thread for instance, should cap each one, or its solves compete for the same cores:
+
+```cpp
+if constexpr(has_thread_limit<Model>) model.set_thread_limit(1);
+```
+
+The limit is a property of the model, like the time limit: set before a solve, the first or a later one, it applies to that solve, whether it lowers the limit or raises it. Unlike the [limits](#limits) above, it stops nothing, so no status tag goes with it. `0` restores the solver's default; it does not mean one thread. A limit above the solver's maximum is stored as that maximum, which `get_thread_limit()` reads back: 1024 on Gurobi, 128 on COPT.
+
+It caps the threads of the solver's algorithms, through one control per solver: Gurobi `Threads`, CPLEX `CPXPARAM_Threads`, Xpress `THREADS`, COPT `Threads` and MOSEK `MSK_IPAR_NUM_THREADS`. A capped solve can still have more threads than the limit:
+
+- Xpress and COPT also have a control per algorithm, such as Xpress's `MIPTHREADS`, `BARTHREADS` and `DUALTHREADS`, and COPT's `BarThreads`, `SimplexThreads` and `CrossoverThreads`. At their default, -1, they defer to the limit; a positive value set through `native_api()` overrides it for that algorithm.
+- At a limit of 1, `copt_milp` and both MOSEK models still run a second thread, but the solve uses one core in total. Xpress and MOSEK also keep alive the threads that an earlier solve at a higher limit started, and a solve at 1 still uses one core.
+
+The other backends do not satisfy the concept:
+
+- GLPK, Clp, SoPlex and SCIP run their algorithms on the calling thread. SCIP's `parallel/maxnthreads` applies only to its concurrent solve, which `scip_milp` does not run.
+- Cbc runs its branch-and-bound serially. Its `threads` parameter, on a Cbc built with thread support, asks for a parallel branch-and-bound rather than capping one. Below Cbc 3.0, which covers every validated release, a parameter set through `native_api()` does not reach MIP solves, see [The backends](../solvers/index.md#the-backends).
+- A Clp, Cbc or SCIP library linked to a multithreaded BLAS, such as OpenBLAS, also runs that library's pool, for the whole process and sized by the library's own setting, such as `OPENBLAS_NUM_THREADS`. In our measurements, the Cbc and SCIP libraries of one machine, both linked to OpenBLAS, started 15 threads when they loaded, and used 1.44 and 1.17 cores while solving serially; with `OPENBLAS_NUM_THREADS=1`, one thread and one core.
+- HiGHS keeps one thread pool per calling thread rather than per model. A solve on a thread without a pool creates one, of the model's `threads` option, or of half the hardware threads when it is 0, the default. While that pool exists, a model left at 0 runs on it, and a model whose nonzero `threads` differs from the pool's size fails: it throws `HiGHS kHighsStatusError`. From HiGHS 1.12, destroying a HiGHS model discards the pool of the thread that destroys it; below 1.12, destroying a model leaves the pool in place. So a model left at 0 and solved first fixes the pool at half the hardware threads, and a model whose `threads` is set to 1 through `native_api()` then fails on that thread for as long as the pool lives.
+
 ## Solver output
 
 Models are quiet: building one, setting its parameters and solving it print nothing, on every backend. The solver's own log is one call away:
@@ -206,6 +234,8 @@ run_record run(Model & model, std::chrono::seconds budget) {
 ```
 
 The `if constexpr` guards are the general pattern for optional capabilities; [Writing solver-generic code](../solvers/generic-code.md) develops it.
+
+Fix the [thread limit](#threads) too where the backend has one. The default follows the machine's core count, and the solver's search path follows the thread count, so the same model can end on another machine with a different solution, or a different bound under a time limit.
 
 ## Next
 

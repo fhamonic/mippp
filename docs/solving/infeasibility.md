@@ -295,7 +295,7 @@ The status is another matter. After any run of the filter that solved, the solve
 - CPLEX replaces its status with the conflict's. It keeps a completed answer until the model's data change, so a second `compute_iis()` on an unchanged model returns at once. An iteration-limit stop is kept the same way, see [Limits](#limits).
 - COPT resets the solver, dropping its held solution, then solves the model as [Limits](#limits) describes.
 - CPLEX replaces the [MIP starts](updates.md#giving-the-solver-a-starting-point) of `cplex_milp`: measured with one start of yours, a call on a feasible model leaves a point of the routine as the only start, and a call on an infeasible model leaves none, as `solve()` does there. Gurobi's `Start` attribute survives the call, as it survives the filter.
-- `cplex_milp`, `xpress_milp` and `copt_milp` detach a registered candidate-solution callback for the call and reattach it afterwards, see [Native IIS on CPLEX](../solvers/index.md#limitation-cplex-iis), [on Xpress](../solvers/index.md#limitation-xpress-iis) and [on COPT](../solvers/index.md#limitation-copt-iis). Gurobi's routine never runs it. No native routine honours the callback's lazy constraints, while the filter's trials run it, see [Callbacks](../algorithms/deletion-filter.md#callbacks).
+- No native routine runs a registered candidate-solution callback, which is attached for the duration of a `solve()` only, so none honours its lazy constraints, while the filter's trials run it, see [Callbacks](../algorithms/deletion-filter.md#callbacks).
 
 Call `solve()` again before reading a solution, as the workshop's remedy does.
 

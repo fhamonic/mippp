@@ -1,0 +1,34 @@
+library <fetched>/clp/coin-or-clp-1.17.11-hc03379b_1.conda/lib/libClp.so
+== L clp_lp message callback verbose=false: status=optimal{sol=true} solve=0.89s value=80937.4 dual=n/a nodes=n/a
+   events: NONE
+   samples: 0
+   msg 6: dvec=[0 0 1.18853e+08 ] ivec=[0 0 4500 4500 ]
+   msg 6: dvec=[28343.9 0 20155.3 ] ivec=[400 0 3645 3645 ]
+   msg 6: dvec=[42808.5 0 15676.8 ] ivec=[667 0 2932 2932 ]
+   msg 6: dvec=[52706.8 0 13873.5 ] ivec=[903 0 2462 2462 ]
+   msg 6: dvec=[59774.1 0 15844.6 ] ivec=[1121 0 2109 2109 ]
+   msg 6: dvec=[61685.3 0 96470.3 ] ivec=[1265 0 2124 2124 ]
+   msg 6: dvec=[62758.2 0 2.9685e+06 ] ivec=[1360 0 2214 2214 ]
+   msg 6: dvec=[63646.6 0 283113 ] ivec=[1458 0 2048 2048 ]
+   msg 6: dvec=[65506.5 0 132150 ] ivec=[1571 0 1983 1983 ]
+   msg 6: dvec=[66237.8 0 1.19942e+06 ] ivec=[1660 0 2105 2105 ]
+== L clp_lp message callback verbose=true: status=optimal{sol=true} solve=0.88s value=80937.4 dual=n/a nodes=n/a
+   events: msg0=1 msg6=62
+   samples: 62 (70.8/s over 0.88s), first@0.001s last@0.876s maxgap=0.021s threads=1 overlaps=0
+   primal: first=0 last=80937.43 worse-moves=0 sentinel-samples=0 | dual: first=nan last=nan worse-moves=0 | nodes: first=0 last=6370
+   msg 6: dvec=[0 0 3.35734e+08 ] ivec=[0 0 18000 18000 ]
+   msg 6: dvec=[29282.7 0 106509 ] ivec=[400 0 17506 17506 ]
+   msg 6: dvec=[59443.1 0 97806.5 ] ivec=[800 0 16597 16597 ]
+   msg 6: dvec=[87158 0 87904.3 ] ivec=[1200 0 15479 15479 ]
+   msg 6: dvec=[110359 0 80371.5 ] ivec=[1550 0 14482 14482 ]
+   msg 6: dvec=[127955 0 75299.3 ] ivec=[1847 0 13684 13684 ]
+   msg 6: dvec=[141552 0 70272.5 ] ivec=[2094 0 12961 12961 ]
+   msg 6: dvec=[154238 0 66161.9 ] ivec=[2339 0 12326 12326 ]
+   msg 6: dvec=[167119 0 61417 ] ivec=[2590 0 11668 11668 ]
+   msg 6: dvec=[178329 0 58162 ] ivec=[2832 0 11066 11066 ]
+== L2 clp_lp big LP, message callback verbose: status=time_limit{sol=true} solve=11.50s value=311933 dual=n/a nodes=n/a
+   events: msg3=1 msg6=128
+   samples: 128 (11.1/s over 11.50s), first@0.004s last@11.489s maxgap=0.183s threads=1 overlaps=0
+   primal: first=0 last=311923.8 worse-moves=0 sentinel-samples=0 | dual: first=nan last=nan worse-moves=0 | nodes: first=0 last=21003
+== LS0 LP one piece: status=optimal{sol=true} solve=0.88s value=80937.4 dual=n/a nodes=n/a
+== LS1 LP in 0.5s slices: 2 slices, 0.88s, first statuses: time_limit{sol=true} optimal{sol=true} last status=optimal{sol=true} value=80937.43

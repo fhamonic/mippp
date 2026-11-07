@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -476,6 +477,27 @@ public:
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Threads /////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // COPT's default is -1: a native 0 runs serial (measured on 8.0), so
+    // passing 0 through would turn the default into one thread. COPT caps a
+    // larger value at its maximum, 128 in 8.0, by itself.
+    void set_thread_limit(std::size_t n) {
+        check(COPT->SetIntParam(
+            prob, COPT_INTPARAM_THREADS,
+            n == 0 ? -1
+                   : static_cast<int>(
+                         std::min(n, static_cast<std::size_t>(
+                                         std::numeric_limits<int>::max())))));
+    }
+    std::size_t get_thread_limit() {
+        int n;
+        check(COPT->GetIntParam(prob, COPT_INTPARAM_THREADS, &n));
+        return n < 0 ? 0
+                     : std::max(static_cast<std::size_t>(n), std::size_t{1});
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_verbose(bool verbose) {
@@ -583,7 +605,7 @@ protected:
 
         // COPT's MIP path takes the model it is given for infeasible and
         // flags the whole model as its answer: only a solve tells a feasible
-        // MIP apart. The user's callback is detached by the caller, so the
+        // MIP apart. The user's callbacks are attached by solve() alone, so the
         // slot is free for the interrupt.
         if(mip) {
             check(COPT->SetCallback(prob, _iis_interrupt_callback,

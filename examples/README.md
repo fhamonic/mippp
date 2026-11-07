@@ -1,9 +1,9 @@
 # MIP++ examples
 
 Small, self-contained programs demonstrating the MIP++ modeling interface. They
-depend only on `mippp` (no GoogleTest; only the TSP example also uses the
-[MELON](https://github.com/fhamonic/melon) graph library) and are adapted from the
-library's test suites and the
+depend only on `mippp`, without GoogleTest, except `cutting_stock` and the two
+TSP examples, which also use the [MELON](https://github.com/fhamonic/melon)
+graph library. Several are adapted from the library's test suites and the
 [mippp_nqueens](https://github.com/fhamonic/mippp_nqueens) benchmark.
 
 | Example | Demonstrates | Default backend |
@@ -13,6 +13,8 @@ library's test suites and the
 | [`sudoku/`](sudoku) | Multi-dimensional lambda indexing, cartesian-product constraints | HiGHS |
 | [`travelling_salesman_dfj/`](travelling_salesman_dfj) | Branch-and-cut via the candidate-solution callback (lazy DFJ subtour elimination) | Gurobi |
 | [`cutting_stock/`](cutting_stock) | Column generation with dual values and `add_column` | HiGHS |
+| [`travelling_salesman_colgen/`](travelling_salesman_colgen) | Column generation with the column manager: the Held-Karp bound over 1-trees, with eviction | HiGHS |
+| [`vehicle_routing_colgen/`](vehicle_routing_colgen) | Column generation with the column manager: routes priced by a labeling algorithm, several per round, then price-and-branch | HiGHS |
 | [`infeasible_transportation/`](infeasible_transportation) | Diagnosing an infeasible model: an IIS from the deletion filter, printed by name | HiGHS |
 
 Each example is an independent project folder:
@@ -21,7 +23,7 @@ Each example is an independent project folder:
 nqueens/
 ├── main.cpp        # the program
 ├── CMakeLists.txt  # find_package(mippp) + one executable
-├── conanfile.py    # requires mippp/1.0.0, builds with CMake
+├── conanfile.py    # requires mippp/1.1.0, builds with CMake
 └── .gitignore
 ```
 
@@ -35,8 +37,12 @@ using milp_type = highs_milp;
 Change it to target another solver (`gurobi_milp`, `scip_milp`, `cplex_lp`,
 ...). Note that `travelling_salesman_dfj` needs lazy constraints in the
 candidate-solution callback, which **Gurobi, CPLEX and COPT** provide: Xpress
-runs the callback but has no lazy constraints. `infeasible_transportation` runs
-on every backend.
+runs the callback but has no lazy constraints. `travelling_salesman_colgen`
+evicts columns from its master, so it needs an LP model with `remove_variable`:
+`highs_lp`, `clp_lp`, `gurobi_lp` or `cplex_lp`. `vehicle_routing_colgen` has
+two aliases, `lp_type` and `milp_type`: it needs an LP model with dual values,
+and a MILP model with `add_column`, which every one but `scip_milp` has.
+`infeasible_transportation` runs on every backend.
 
 ## Using an example as a template
 
@@ -70,8 +76,10 @@ conan build . -of=build -b=missing -pr=<your_profile>
 
 The profile must select C++23 or later (`compiler.cppstd=23`); the ones under
 [`.github/conan-profiles/`](../.github/conan-profiles) are working starting
-points. `travelling_salesman_dfj` additionally requires `melon/1.0.0`, exported
-the same way from a clone of [MELON](https://github.com/fhamonic/melon).
+points. `cutting_stock`, `travelling_salesman_dfj` and
+`travelling_salesman_colgen` additionally require `melon/1.0.0`, from Conan
+Center or exported the same way from a clone of
+[MELON](https://github.com/fhamonic/melon).
 
 ### Standalone, with plain CMake
 
@@ -92,8 +100,8 @@ ENABLE_EXAMPLES=ON conan build . -of=build -b=missing -pr=<your_profile> -c tool
 ```
 
 (`make examples` runs this with the profile set in the `Makefile`.) The
-executables are named after their folder (`simple_lp`, `nqueens`, ...); the TSP
-example is skipped when MELON is not found.
+executables are named after their folder (`simple_lp`, `nqueens`, ...); the
+three examples that use MELON are skipped when it is not found.
 
 ## Running
 

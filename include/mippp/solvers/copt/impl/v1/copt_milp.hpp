@@ -121,24 +121,84 @@ public:
         }
     };
 
+    // No get_node_count(): NodeCnt reads 0 inside a callback, with no error.
+    class progress_callback_handle {
+    private:
+        friend copt_milp;
+        const copt_api * COPT;
+        copt_prob * prob;
+        void * cbdata;
+
+        progress_callback_handle(const copt_api * api, copt_prob * prob_,
+                                 void * cbdata_)
+            : COPT(api), prob(prob_), cbdata(cbdata_) {}
+
+        double _read(const char * info) {
+            double value;
+            COPT->_check(nullptr, COPT->GetCallbackInfo(cbdata, info, &value));
+            return detail::as_infinity(value, COPT_INFINITY);
+        }
+
+    public:
+        double get_solution_value() { return _read(COPT_CBINFO_BESTOBJ); }
+        double get_dual_bound() { return _read(COPT_CBINFO_BESTBND); }
+        void interrupt() { COPT->_check(nullptr, COPT->Interrupt(prob)); }
+    };
+
 private:
     std::function<void(candidate_solution_callback_handle &)> solution_callback;
+    std::function<void(progress_callback_handle &)> progress_callback;
+    // COPT drops the bound of a search stopped without an incumbent: BestBnd
+    // and ObjBound then read +1e30 in either sense, which when minimizing
+    // claims a bound no search proved. Only a callback sees it while the search
+    // runs.
+    double _search_bound = 0.0;
 
-    static int candidate_solution_callback_func(copt_prob * prob, void * cbdata,
-                                                int cbctx, void * userdata) {
-        if(cbctx != COPT_CBCONTEXT_MIPSOL) return 0;
+    static int callback_func(copt_prob * prob, void * cbdata, int cbctx,
+                             void * userdata) {
         auto * model = static_cast<copt_milp *>(userdata);
-        candidate_solution_callback_handle handle(model->COPT, prob, cbdata);
-        model->solution_callback(handle);
+        if(cbctx == COPT_CBCONTEXT_MIPSOL) {
+            candidate_solution_callback_handle handle(model->COPT, prob,
+                                                      cbdata);
+            model->solution_callback(handle);
+            return 0;
+        }
+        model->check(model->COPT->GetCallbackInfo(cbdata, COPT_CBINFO_BESTBND,
+                                                  &model->_search_bound));
+        if(model->progress_callback) {
+            progress_callback_handle handle(model->COPT, prob, cbdata);
+            model->progress_callback(handle);
+        }
         return 0;
+    }
+    // For the duration of a solve only. The user data is this: registered by a
+    // setter, it dangles once the model moves and the next solve crashes. And
+    // the first solve of compute_iis() would run the candidate callback, whose
+    // lazy constraints can make a feasible model infeasible, and the routine
+    // then flags the whole model.
+    // Progress stays off MIPSOL: that context alone acts as LazyConstraints=1,
+    // which turns presolve reductions off and changes the search. MIPNODE,
+    // which keeps _search_bound, leaves it alone and costs nothing measurable.
+    [[nodiscard]] auto _attached_callbacks() {
+        int sense;
+        check(COPT->GetIntAttr(prob, COPT_INTATTR_OBJSENSE, &sense));
+        _search_bound = sense == COPT_MINIMIZE ? -COPT_INFINITY : COPT_INFINITY;
+        const int contexts = COPT_CBCONTEXT_MIPNODE |
+                             (solution_callback ? COPT_CBCONTEXT_MIPSOL : 0) |
+                             (progress_callback ? COPT_CBCONTEXT_INCUMBENT : 0);
+        check(COPT->SetCallback(prob, callback_func, contexts, this));
+        return detail::restore_guard(
+            [this] { check(COPT->SetCallback(prob, nullptr, 0, nullptr)); });
     }
 
 public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
         solution_callback = std::forward<F>(f);
-        check(COPT->SetCallback(prob, candidate_solution_callback_func,
-                                COPT_CBCONTEXT_MIPSOL, this));
+    }
+    template <typename F>
+    void set_progress_callback(F && f) {
+        progress_callback = std::forward<F>(f);
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -256,6 +316,7 @@ public:
         reset_status();  // a solve that throws reports unknown
         check(COPT->GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
         if(_is_mip) {
+            const auto detach = _attached_callbacks();
             check(COPT->Solve(prob));
             _status = _get_status_milp();
         } else {
@@ -268,24 +329,12 @@ public:
     // On a MIP the wrapper solves the model first, up to its first incumbent
     // (see copt_base): the reported status is reset before the first native
     // call, throw or return, and the solution readable afterwards is that
-    // solve's. That solve would run a registered callback, whose lazy
-    // constraints can make a feasible model infeasible and the routine then
-    // flags the whole model: the callback is detached for the call.
+    // solve's.
     auto compute_iis() {
         reset_status();
         check(COPT->GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
-        const bool attached = static_cast<bool>(solution_callback);
-        if(attached) check(COPT->SetCallback(prob, nullptr, 0, nullptr));
-        detail::restore_guard reattach([&] {
-            if(attached)
-                check(COPT->SetCallback(prob, candidate_solution_callback_func,
-                                        COPT_CBCONTEXT_MIPSOL, this));
-        });
-        auto iis =
-            _compute_iis<detail::iis_whole_or_sided_status,
-                         detail::iis_whole_or_sided_status>(_is_mip != 0);
-        reattach.restore();
-        return iis;
+        return _compute_iis<detail::iis_whole_or_sided_status,
+                            detail::iis_whole_or_sided_status>(_is_mip != 0);
     }
 
     double get_solution_value() {
@@ -311,6 +360,9 @@ public:
     double get_dual_bound() {
         _require_valid_results();
         if(!_is_mip) return get_solution_value();
+        if(is_a<status::stopped>(_status) &&
+           !status::solution_available(_status))
+            return _search_bound;
         double bound;
         check(COPT->GetDblAttr(prob, COPT_DBLATTR_BESTBND, &bound));
         return bound;

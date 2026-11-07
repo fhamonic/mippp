@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -563,6 +564,25 @@ public:
         double t;
         check(XPRS->getdblcontrol(prob, XPRS_TIMELIMIT, &t));
         return std::chrono::duration<double>(t);
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Threads /////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // Xpress's default is -1: a native 0 runs serial (measured on 47.01), so
+    // passing 0 through would turn the default into one thread.
+    void set_thread_limit(std::size_t n) {
+        check(XPRS->setintcontrol(
+            prob, XPRS_THREADS,
+            n == 0 ? -1
+                   : static_cast<int>(
+                         std::min(n, static_cast<std::size_t>(
+                                         std::numeric_limits<int>::max())))));
+    }
+    std::size_t get_thread_limit() {
+        int n;
+        check(XPRS->getintcontrol(prob, XPRS_THREADS, &n));
+        return n < 0 ? 0
+                     : std::max(static_cast<std::size_t>(n), std::size_t{1});
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////

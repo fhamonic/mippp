@@ -250,12 +250,47 @@ TYPED_TEST_P(TimeLimitTest, interrupts_long_solve) {
     });
 }
 
-REGISTER_TYPED_TEST_SUITE_P(TimeLimitTest, set_get_time_limit,
-                            fresh_time_limit_is_unlimited,
-                            unlimited_time_limit_round_trips,
-                            lifted_time_limit_takes_effect,
-                            negative_time_limit_is_never_read_back,
-                            forwarded_time_limit_restores_exactly,
-                            interrupts_long_solve);
+// The limit bounds each solve. A clock that runs on across the solves of one
+// problem, as SCIP's does and as HiGHS's would without its reset, reads as
+// spent and stops the second solve before it starts.
+TYPED_TEST_P(TimeLimitTest, a_second_solve_gets_the_whole_limit) {
+    using model_type = typename TestFixture::model_type;
+    this->SkipOnLicenseError([this]() {
+        using seconds = std::chrono::duration<double>;
+        constexpr seconds limit{milp_model<model_type> ? 0.5 : 0.2};
+        auto model = this->new_model();
+        if constexpr(milp_model<model_type>)
+            TestFixture::build_market_split(model, 7);
+        else
+            TestFixture::build_dense_lp(model, 900);
+        model.set_time_limit(limit);
+        const auto timed_solve = [&model] {
+            const auto start = std::chrono::steady_clock::now();
+            model.solve();
+            return seconds(std::chrono::steady_clock::now() - start);
+        };
+        const seconds first = timed_solve();
+        if(!is_a<status::time_limit>(model.get_status()))
+            GTEST_SKIP() << "closed within the limit";
+
+        const seconds second = timed_solve();
+        // A clock already spent returns within microseconds. The floor stays
+        // far below the limit: on the whole process's CPU time, a BLAS spinning
+        // under Clp stopped a second solve after 0.04 s of 0.2 s, and only on
+        // some runs.
+        if(is_a<status::time_limit>(model.get_status())) {
+            EXPECT_GE(second.count(), first.count() / 50);
+        }
+        // whatever a solve does to the native limit, the model's stays
+        EXPECT_NEAR(seconds(model.get_time_limit()).count(), limit.count(),
+                    TEST_EPSILON);
+    });
+}
+
+REGISTER_TYPED_TEST_SUITE_P(
+    TimeLimitTest, set_get_time_limit, a_second_solve_gets_the_whole_limit,
+    fresh_time_limit_is_unlimited, unlimited_time_limit_round_trips,
+    lifted_time_limit_takes_effect, negative_time_limit_is_never_read_back,
+    forwarded_time_limit_restores_exactly, interrupts_long_solve);
 
 }  // namespace mippp

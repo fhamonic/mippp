@@ -1,0 +1,76 @@
+LpMethod: default -1 range [-1, 6]
+Crossover: default 1 range [-1, 1]
+DualPrice: default -1 range [-1, 1]
+library: /home/plaiseek/Softwares/solvers/copt80/lib/libcopt.so
+=== default
+  feasible : solve ok status=optimal 2ms [simplex=70 barrier=0 pdlp=0 LpStatus=1]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=278 barrier=11 pdlp=0 LpStatus=2]
+  unbounded: solve ok status=unbounded [simplex=184 barrier=0 pdlp=0 LpStatus=3]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 pdlp=0 LpStatus=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== LpMethod 1 dual simplex
+  feasible : solve ok status=optimal 2ms [simplex=70 barrier=0 pdlp=0 LpStatus=1]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=278 barrier=11 pdlp=0 LpStatus=2]
+  unbounded: solve ok status=unbounded [simplex=184 barrier=0 pdlp=0 LpStatus=3]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 pdlp=0 LpStatus=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== LpMethod 2 barrier
+  feasible : solve ok status=optimal 3ms [simplex=0 barrier=12 pdlp=0 LpStatus=1]
+    obj=529.3089013110348 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=0 barrier=11 pdlp=0 LpStatus=2]
+  unbounded: solve ok status=unbounded [simplex=0 barrier=6 pdlp=0 LpStatus=3]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=12 pdlp=0 LpStatus=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== LpMethod 2 barrier, Crossover 0
+  feasible : solve ok status=optimal 3ms [simplex=0 barrier=12 pdlp=0 LpStatus=1]
+    obj=529.3089013109516 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(mippp: get_basis() found no basis, COPT holds none from its last solve)
+  infeasible: solve ok status=infeasible [simplex=0 barrier=11 pdlp=0 LpStatus=2]
+  unbounded: solve ok status=unbounded [simplex=0 barrier=6 pdlp=0 LpStatus=3]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=12 pdlp=0 LpStatus=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass FAIL(numerical_failure ok)
+=== LpMethod 3 crossover
+  feasible : solve THROWS(API call failed: internal error) status=unknown 0ms [simplex=0 barrier=0 pdlp=0 LpStatus=0]
+    obj=0 (THROWS(mippp: no solve() since the model was created or last changed; read th...)) sol=THROWS(mippp: no solve() since the model was created or last changed; read th...) dual=THROWS(mippp: no solve() since the model was created or last changed; read th...) rc=THROWS(mippp: no solve() since the model was created or last changed; read th...)
+    basis=THROWS(mippp: no solve() since the model was created or last changed; read th...)
+  infeasible: solve THROWS(API call failed: internal error) status=unknown [simplex=0 barrier=0 pdlp=0 LpStatus=0]
+  unbounded: solve THROWS(API call failed: internal error) status=unknown [simplex=0 barrier=0 pdlp=0 LpStatus=0]
+  warm from optimal basis: solve THROWS(API call failed: internal error) status=unknown [simplex=70 barrier=0 pdlp=0 LpStatus=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: FAIL(unknown THROWS(API call failed: internal error)) FAIL(unknown THROWS(API call failed: internal error)) FAIL(unknown THROWS(API call failed: internal error)) FAIL(unknown THROWS(API call failed: internal error)) FAIL(unknown THROWS(API call failed: internal error))
+=== LpMethod 4 concurrent
+  feasible : solve ok status=optimal 3ms [simplex=70 barrier=0 pdlp=0 LpStatus=1]
+    obj=529.3089013110356 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=0 barrier=11 pdlp=0 LpStatus=2]
+  unbounded: solve ok status=unbounded [simplex=0 barrier=6 pdlp=0 LpStatus=3]
+  warm from optimal basis: solve ok status=optimal [simplex=70 barrier=0 pdlp=0 LpStatus=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== LpMethod 5 heuristic
+  feasible : solve ok status=optimal 3ms [simplex=0 barrier=12 pdlp=0 LpStatus=1]
+    obj=529.3089013110348 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=0 barrier=11 pdlp=0 LpStatus=2]
+  unbounded: solve ok status=unbounded [simplex=0 barrier=6 pdlp=0 LpStatus=3]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 pdlp=0 LpStatus=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== LpMethod 6 PDLP
+  feasible : solve ok status=optimal 14ms [simplex=0 barrier=0 pdlp=2760 LpStatus=1]
+    obj=529.3089013110348 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=0 barrier=0 pdlp=1880 LpStatus=2]
+  unbounded: solve ok status=unbounded [simplex=0 barrier=0 pdlp=720 LpStatus=3]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 pdlp=2760 LpStatus=1]
+  results after setting it post-solve: sol=ok
+timeout: the monitored command dumped core

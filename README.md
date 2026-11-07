@@ -44,7 +44,7 @@ int main() {
 }
 ```
 
-The [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/) walks through this model, the expression system, and solver selection. Runnable examples — N-Queens, sudoku, TSP with lazy subtour elimination, cutting stock via column generation, an infeasible transportation plan diagnosed through its IIS — live in [`examples/`](examples/).
+The [Getting Started guide](https://fhamonic.github.io/mippp/getting-started/) walks through this model, the expression system, and solver selection. Runnable examples — N-Queens, sudoku, TSP with lazy subtour elimination, cutting stock via column generation, a TSP bound and vehicle routing with time windows through the column manager, an infeasible transportation plan diagnosed through its IIS — live in [`examples/`](examples/).
 
 
 ## Why MIP++
@@ -69,6 +69,7 @@ The library exposes the algorithmic hooks that decomposition and cutting-plane m
 
 - [**Branch-and-cut callbacks**](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) with lazy constraints — the TSP example in `examples/travelling_salesman_dfj/` adds subtour elimination cuts through a typed callback handle using the same `xsum` syntax as the main model.
 - [**Column generation**](https://fhamonic.github.io/mippp/algorithms/column-generation/) via `add_column`, dual values (`get_dual_solution`), and reduced costs (`get_reduced_costs`). A full `column_manager` framework tracks columns across pool and master states, propagates pricing events to per-column properties (reduced cost, primal value, age) through compile-time event dispatch, and activates and evicts columns through plain predicates and selectors — all at zero runtime overhead for unused properties.
+- [**Progress callbacks**](https://fhamonic.github.io/mippp/solving/progress/) that read the incumbent and the bound during a search and can end it, on eight MILP backends.
 - **MIP starts**, **indicator constraints**, and [**in-place model updates**](https://fhamonic.github.io/mippp/solving/updates/) (bound changes, coefficient changes, variable removal). When columns are evicted, solvers compact their internal arrays, invalidating external indices. MIP++ keeps user-facing variable handles stable through a bidirectional handle/native-ID map — but the map is only allocated on the first deletion; models that never remove variables pay nothing beyond a branch prediction.
 
 
@@ -185,7 +186,7 @@ Planned, roughly by priority:
 | 🟡 | **QCP/SOCP constraints** | Quadratically constrained programs |
 | 🟡 | **Model file I/O** | Read/write LP and MPS files |
 | 🟡 | **MILP fuzzy tests** | Differential fuzzing of the MILP interface against a reference implementation, as `lp_fuzzy_tests` does for LPs; the hand-written suites left gaps in the backends |
-| ⚪ | Solution pools, multi-objective, semi-continuous variables, progress getters | |
+| ⚪ | Solution pools, multi-objective, semi-continuous variables | |
 
 > [!NOTE]
 > Since a MIP++ model *is* the solver's native model, re-solves after in-place modifications (adding rows, changing bounds) almost always warm-start from the last basis implicitly. [LP bases](https://fhamonic.github.io/mippp/solving/basis/) can also be read and written explicitly, to transfer a basis between models or store one for later.

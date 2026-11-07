@@ -1,0 +1,1354 @@
+[
+ {
+  "backend": "Gurobi (gurobi_milp)",
+  "releases_run": "12.0.1 (default, everything). 11.0.3 and 13.0.2: conformance, G1, G2 (dcg), G3, G4, G5, G6, G8, Q2, dup crash, D groups rewrite, dualfix, mir, objective. G7, G9, Q1, Q3 and the other D groups ran on 12.0.1 only. Pinned with MIPPP_GUROBI_LIBRARY and that lib dir first on LD_LIBRARY_PATH; each vout file's first line prints library and version.",
+  "claims": [
+   {
+    "id": "G1",
+    "verdict": "CONFIRMED",
+    "evidence": "12.0.1 'S1 subtree-only cut flip=false: value=106.4 ... known opt 107.4 => LOST', 'sibling viol/checks=0/8 -> HELD IN THE SIBLING'. Own instance (c'x<=z_alt, added at nodcnt>0, before the optimum is an incumbent): 'own/scope: LOST=12 KEPT=0 NO_POWER=0 sibling viol/checks 0/3844' (12.0.1), 0/2218 (11.0.3), 0/3844 (13.0.2). nm -D on all three: only GRBcbcut, GRBcblazy; gurobi_c.h:273 has no scope argument.",
+    "exact_truth": "Global only. At default presolve the same test has less power: 12.0.1 LOST=3 KEPT=1 NO_POWER=8; 11.0.3 LOST=5 NO_POWER=7; 13.0.2 LOST=4 NO_POWER=8. The one KEPT (seed 10, 599 against cut c'x<=591, sibling 0/10, subtree 0/0) is not evidence of local scope; whether the cut was filtered or the incumbent unvetted was not separated."
+   },
+   {
+    "id": "G2",
+    "verdict": "REFINED",
+    "evidence": "Truly valid cut on merged parallel integers: 'dcg seed=1 objective c'x<=z* PreCrush=0 Cuts=-1 | OPTIMAL 1331 nodes=69 cols=20 | calls=61 cuts_passed=61 first cut later viol/checks=60/60', against 'PreCrush=1 ... nodes=1 cols=40'. Also 166/166 and 57/57; 11.0.3 44/44, 13.0.2 47/47, native_err=0 everywhere.",
+    "exact_truth": "Return code 0 and the cut never enforced, on parallel GENERAL INTEGERS that presolve merges. No drop on parallel binaries in =1 rows (ATSP a+b: PreCrush 0 and 1 identical path, 899 columns) or parallel continuous (facility location: sum, one-column and unequal-coefficient cuts give the same counts at PreCrush 0 and 1, 252 columns both). Survey's 'parallel continuous are ignored too' not reproduced here; its cut was invalid and on a bounded column, which I did not rerun. Dropped versus held unused in the pool cannot be told apart from the hook."
+   },
+   {
+    "id": "G3",
+    "verdict": "CONFIRMED",
+    "evidence": "'dfj default atsp n=44 seed=9: nodes=463 / fires=492 root_calls=30 tree_calls=268 tree_nodcnt_with_repeats=0 max_calls_at_tree_nodcnt=1 tree_cuts=119 after_cut(same/next)=13/41 tree_same_after_cut=0'. 14 runs incl. CutPasses=5, Cuts=3, Cuts=0, MIPFocus=3, 8 and default threads, on all three releases: tree_same_after_cut=0, max 1. 'gadgets default settings ... fires=0', 'two binaries ... fires=0'.",
+    "exact_truth": "One call per tree node, cut or no cut; repeats only at nodcnt 0, with or without cuts. Non-optimal statuses are part of the fires (tree_fires_distinct_nodcnt=462 of 463 nodes). The hook may never fire."
+   },
+   {
+    "id": "G4",
+    "verdict": "CONFIRMED",
+    "evidence": "Control: 'seed=1 bobj=45 cap=1500 k=4 baseline 17487 | hard b1<=1 control: OPTIMAL 17487 keeps optimum=true'. 'PreCrush=1 default Heuristics=-1: WRONG OPTIMAL 17351 ... viol_at_add=2 b1_final=3 nodes=1 fires=1', 'Heuristics= 0: WRONG INFEASIBLE'. Totals with cuts added: 'PreCrush=1 default wrong 20/20, PreCrush=1 DualReductions=0 or Lazy wrong 0/36, PreCrush=0 default wrong 0/19' (12.0.1); 10/10, 0/14, 0/9 (11.0.3); 10/10, 0/16, 0/8 (13.0.2).",
+    "exact_truth": "True where the parallel pair is profitable enough for presolve to fix b1=3 under PreCrush=1. My first gadget (b in all rows, k=3) stayed RIGHT 24/24, so not every dominance cut fails. PreCrush=0 stays right only by ignoring the cut: later viol 375/379. Valid cuts on the same model are safe: dualfix 48/48."
+   },
+   {
+    "id": "G5",
+    "verdict": "CONFIRMED",
+    "evidence": "'spin threads=16 ... fires=11624 ... hook_threads=1 off_optimize_thread=0 overlaps=0 max_inflight=1', same with cuts and with ConcurrentMIP=2,4; 9 of 9 lines on each of 12.0.1, 11.0.3, 13.0.2. Vendor: c_logging.txt:237-239 'only ever called from a single thread'.",
+    "exact_truth": "One hook thread, the optimize() thread, no overlap. Cuts under ConcurrentMIP were barely exercised (cuts=1). There the hook saw only part of the tree: fires=2630 of nodes=19379."
+   },
+   {
+    "id": "G6",
+    "verdict": "REFINED",
+    "evidence": "Gadgets, NodeLimit=30, then resume: 'flip=true keep_hook ... optimum LOST | later viol/checks=0/610', same for detach_reattach, no_hook, param_precrush0, lazy, dualred, threads, cuts, update_noop; 'reset ... optimum KEPT 656/666'; control_no_cut 631/637. 'obj_same_value ... optimum KEPT 656/665', 'rhs_change_other (+1e-9) ... KEPT 656/665'. keep_hook, detach_reattach, no_hook, reset repeated on 11.0.3 and 13.0.2.",
+    "exact_truth": "The cut survives detach/re-attach, any parameter change and a bare GRBupdatemodel. GRBreset clears it, and so does any attribute write, even Obj set to its own value. Harmless for valid cuts on an unchanged model."
+   },
+   {
+    "id": "G7",
+    "verdict": "CONFIRMED",
+    "evidence": "'atsp26s1 threads=1 none nodes=25245 iters=284389 work=18.952166', identical for 'noop hook' and 'hook reads status+REL'; 'PreCrush=1 none nodes=21073 iters=213790 work=13.343837'. Same identity on 5 instances at threads 1 and 8.",
+    "exact_truth": "The hook leaves the path bit-identical (nodes, iters, Work), even reading REL at every node. PreCrush=1 alone can change it: atsp26s1 and atsp20s2 at 1 thread; on mkp5x60 nodes and iters stay equal and Work differs in the 5th digit."
+   },
+   {
+    "id": "G8",
+    "verdict": "REFINED",
+    "evidence": "'Presolve=0 (0.25,0.75)<=2 sum z<=2.0000 last z<=2.6667 first z<=8.0000 | max later REL z=2.6667 final z=2.6667'; (0.75,0.25) gives 8; (0.25,0.5,0.75) gives 2.6667; (0.5,-0.25,0.4) gives 2.5; adjacent and non-adjacent; 12.0.1, 11.0.3, 13.0.2. Crash: GRBcbcut backtrace 'malloc_printerr realloc(): invalid next size ... PRIVATE ... GRBcbcut ... dup_hook'. Valgrind: 'Invalid write of size 8 ... by GRBcbcut ... 0 bytes after a block', 12 invalid writes with one column repeated cols+5 times, 0 at cols and cols+1.",
+    "exact_truth": "Last coefficient wins while cutlen stays within about NumVars. Beyond that (first seen at cols+5 of 60 columns; cols+1 clean) GRBcbcut overflows the heap with return code 0: rc=134 on 8/8 seeds with each term 4 times, once rc=139, on all three releases. GRBcblazy from MIPNODE also aborts; from MIPSOL it does not (valgrind 0 errors at x10). Presolve=-1 rows in my G8 output report INFEASIBLE: that is an invalid cut on a dual-fixed column, G4's class, not a duplicate effect."
+   },
+   {
+    "id": "G9",
+    "verdict": "REFINED",
+    "evidence": "'padded spare=60000 nnz=10000 ... APPLIED', 'nnz=12000 ... NOT APPLIED', also at spare=20000 and for coefficients 1, 1e-4, 1e-9; 100% dense n=10000 later viol 0/1423, n=15000 2822/2822. 'range K=2000 ... APPLIED', 'K=3000 ... NOT APPLIED'; 'K=30000 objective-level cut violation=48.700 efficacy=1.62e-03 APPLIED', 'K=100000 efficacy=4.87e-04 NOT APPLIED'; 'natural big-M M=1e+07 ... viol/checks=2/263 APPLIED (mostly)'; scaled x1e-5 to x1e9 applied, x1e-7 and x1e13 not.",
+    "exact_truth": "Not 'dense' or 'huge' as such. An absolute nonzero cap between 10001 and 12000, independent of density and model size. A range filter that tracks efficacy, violation/norm around 1e-3: a natural big-M cut with M=1e7 is applied. Uniform scale limits between 1e9 and 1e13 above, and violation near 1e-6 below. Thresholds measured on 12.0.1, on these instances only."
+   },
+   {
+    "id": "T1 status filter",
+    "verdict": "REFINED",
+    "evidence": "'no filter atsp n=44 seed=9: REL garbage by status{ 3:51 6:143 } clean by status{ 2:298 } rel_err=194 sample value x[0]=1e+101'. In C8's resumed solve: 'odd MIPNODE status 1 at nodcnt 0: REL returns 10005, x[0]=1e+101'.",
+    "exact_truth": "The filter must be status == GRB_OPTIMAL. Status 1 (LOADED) also fires, on a resume, not only 3 and 6."
+   },
+   {
+    "id": "T2 column space",
+    "verdict": "CONFIRMED",
+    "evidence": "'relcheck rd seed=1 PreCrush=0 ... points violating a user row=0 a user bound=0 worst=3.13e-13', 12 rd lines and 4 atsp26 lines, worst 3.82e-12. Manual cbcodes2.txt:477 says 'not necessarily feasible for the user model'.",
+    "exact_truth": "REL is in the original space and stayed feasible for the user model on every point checked, including columns presolve removes. The vendor caveat was not exercised here."
+   },
+   {
+    "id": "T3 where",
+    "verdict": "CONFIRMED",
+    "evidence": "'cbcut from MIPSOL: ... calls=3 errors=3 code=10011'.",
+    "exact_truth": "GRBcbcut outside MIPNODE returns 10011 and the search continues."
+   }
+  ],
+  "recipe_result": "verify_conf_gurobi.cpp, sizes atsp 26,30,44; seeds 9,10,3; stop_size 44; first_limit 0.3; fuzz 40; limit 60; plus X1 split-term covers. 12.0.1: 72/72 PASS, hook totals status{1:1 2:13156 3:1041 6:6005}, root_calls=2204, tree_calls=10952, native_err=0. 11.0.3 and 13.0.2: 71 PASS, 1 FAIL each, both 'C1 atsp n=44 seed=9: NO BASELINE' (no-hook solve exceeds 60 s). Diagnosis: harness, not recipe. Run at atsp 44,30, seeds 9,1: 3 FAIL NO BASELINE on seed 1, same diagnosis. POWER: real tree only in C1 n=44 seed 9 (463 nodes, 298 calls), C5 (186 to 2069 calls), C10 (40 seeds, 8449 calls, 1685 cuts), C8 at first=0.3 s ('first time_limit nodes=1, then optimal nodes=257'). At n=26 C2, C3, C6, C7 are root-only; at n=44 they get trees (C2, C3 463 nodes; C6 6; C7 18). C4 has no power: seeds 10,3 calls=0 at n=26, nodes=1 at n=44 (random distances solve the AP); a euclidean version gives calls=26 at n=30. C9 at default threads: nodes=1 at n=44 seed 10; G3's default-thread DFJ run (886 nodes) carries it instead. Harness notes: the C8 label says 0.02 s whatever first_limit is; stats.cuts counts a sanitize no-op as a cut, so read my hook totals; cf::compare's 1e-6 tolerance sits under the 1e-4 default MIPGap and is safe only because objectives are small integers (my 11.0.3 D run: 17665 vs 17666, bound 17666, is gap, not loss).",
+  "recipe_change": "Keep GRB_CB_MIPNODE, status == GRB_OPTIMAL (status 1 fires too), MIPNODE_REL, GRBcbcut. Changes: (1) Fold duplicates is mandatory, not hygiene: past NumVars entries GRBcbcut corrupts the heap with return 0. The future add_user_cut(distinct_variables, ...) would reach that overflow under NDEBUG, where _check_distinct compiles out: maintainer's call whether to add a size check there. (2) Strip zeros, skip empty and drop satisfied have no effect on Gurobi, keep them only for backend uniformity. (3) Set PreCrush=1 only while a node callback is set, and document its cost (see measurements); the maintainer rules on restore. (4) Size the REL buffer from NumVars without calling update, and read Obj once per solve: value is exact, the read is O(n). (5) Contract text verbatim: 'valid for every integer feasible point'; dominance cuts give wrong status under PreCrush=1.",
+  "controls": [
+   {
+    "removed": "status filter",
+    "failing_case": "No conformance case fails: 72/72, value diffs 0, 25 of 71 paths identical. Targeted: rel_err=7663, garbage_points=7663, x=1e+101 reaching the separator; tree_cuts 109408 against 9832, since covers on garbage are still valid.",
+    "power": "no power on value. Power only with a point check, which cf::compare does not pass; the suite needs point_ok."
+   },
+   {
+    "removed": "where=MIPNODE, cut from MIPSOL",
+    "failing_case": "'cbcut from MIPSOL: errors=3 code=10011'.",
+    "power": "has power, through the native error count, targeted case only"
+   },
+   {
+    "removed": "sanitize: fold duplicates",
+    "failing_case": "'FAIL X1 split-term covers seed=9: baseline value 1834 ... value=1817 nodes=1', then 'realloc(): invalid next size', rc=134 on the next case. C7 still PASS at n=26 and n=44.",
+    "power": "has power: X1 is the suite case, on value and on crash. C7 has no power on Gurobi."
+   },
+   {
+    "removed": "sanitize: strip zeros",
+    "failing_case": "None: 72/72, 71/71 paths identical.",
+    "power": "not a trap: Gurobi drops zeros itself"
+   },
+   {
+    "removed": "sanitize: skip empty",
+    "failing_case": "None: 72/72, 71/71 paths identical, native_err=0 with cutlen 0.",
+    "power": "not a trap for rhs >= 0; 0 <= -1 is outside the contract"
+   },
+   {
+    "removed": "sanitize: drop satisfied",
+    "failing_case": "None: 72/72, 71/71 identical. Targeted preload on 3 seeds: 'cuts_passed=325' and 'cuts_passed=7' give the same nodes, iters and work.",
+    "power": "not a trap on Gurobi: it ignores satisfied cuts itself"
+   },
+   {
+    "removed": "PreCrush=1",
+    "failing_case": "None in conformance: 72/72, 69/71 paths identical. Targeted (verify_gurobi_g2 dcgb): objective cut on merged integers 60/60 later violated, nodes=69 against nodes=1.",
+    "power": "no power on value, as the contract allows a dropped cut. Power only through enforcement counters, Gurobi-specific."
+   }
+  ],
+  "safe_direction": "No valid cut broke it: 12.0.1 single-thread 2042 trials, fail 0, gapdiff 0, every offered cut checked against the baseline optimum (invalid_offers=0). Tried, as pass (no-power): big coefficients K*cover, L and G, K from 1e-30 to 1e300: 114 (24); K f - K d y <= 0 with rhs 0, up to 1e300: 57 (9), no loss at K>=1e100; rhs-0 pairs 57 (57, solved in presolve); range cover + K x_k: 70 (30); tiny terms 60; non power-of-two scales 88. Removed columns: rewriter with fixed, dual-fixed, complement, doubleton, slack and free singletons, parallel, dominated, lambda to 1e6: 90; dual-fix model where b1=3: 48; one-term and equality on removed columns: 24, by integrality 8 (8); all-fixed float 0.6+1e-16: 8. Tight at optimum: objective cut 47; objective+covers 12; near-duplicates 12. Near-duplicates: 200 per cover by rhs, 50 by coefficient, same cut every call: 30; flood 20000 at one call: 6. Also lifted MTZ on continuous u with hard-row control 5, arcs equality 5, re-offered rows 8, indicators with K to 1e9: 16, MIP start 6, spanning components 24 (8), symmetric bin packing 18 (14), market-split infeasible with vacuous cuts 18 (6 hook-only controls), MIR with fractional coefficients 100, CG fuzz 120 (2). Default threads: rewriter 90, objective 59. 11.0.3 and 13.0.2: rewrite, dualfix, mir and objective on 11.0.3 no fail, with one GAPDIFF on dualfix (17665 vs 17666, within default gap, harness); on 13.0.2 rewrite 90 and dualfix 48 no fail, mir and objective were still queued and not confirmed. Node about to be pruned: 0 hits on 20 cg45 seeds at 2 widths, because cut-off nodes arrive at non-optimal status and the recipe skips them; atsp30 had 5 to 6 hits, pass. So this case is nearly unreachable through the recipe, weak evidence only. Outside the contract, no loss: rhs below tight by up to 1e-5 (objective minus eps 96, tight rows 36 (15)); mechanism not investigated. What did crash or lose value: duplicate terms with fold removed (see G8, control), and dominance cuts (G4). Both are excluded by sanitize and by the contract.",
+  "measurements": "Q1 PreCrush=1 cost, no hook, 1 thread, Gurobi seeds 0/1/2, limit 20 s. Without parallel columns, within seed spread, same presolved size: atsp30 nodes 6247/6255/4276 vs 9606/5413/4248; atsp26 all time out, 19288/15303/15303 vs 17125/19998/15786; mkp5x100 9681/5243/5186 vs 8870/5231/5218; fixedcharge30x60 1 node both. With parallel columns, 100 to 300 times more: parint20x8 nodes 239/239/229, work 0.02, 20 columns vs 52308/46352/58927, work 1.4 to 2.2, 40 columns; parint30x6 283/359/312 vs 86852/81040/95111, one timeout; doubled mkp5x50 6736/7636/6608, optimal under 1 s, vs 277272/90380/265715, all three time out with bound 44978 to 45040 against 44931. Same final value where finished. The manual says the impact is 'usually small'; for this class it is not. Q2 yes: Obj'x+ObjCon read on the user model at every call, read_errs=0 on 3 releases, sense +1 and -1, offsets 0, 100, -12345.5, with removed costed columns and 8 threads: '|Obj'x+ObjCon-MIPSOL_OBJ|max=0 mismatches=0'; first value 795.74702 matches log 'Root relaxation: objective 7.957470e+02'. OBJBND is not a substitute: 795 at that call, objective integrality rounds it. Read cost about 0.8 us per call at 60 columns. Q3 no: drop of satisfied cuts never changed the outcome. 71/71 identical nodes, calls, cuts, 0 value diffs; preload of 325 cuts with 318 satisfied gives the same 16166 nodes, 152971 iters, work 9.2567 with or without the drop; Gurobi ignores them itself.",
+  "shipped_code_findings": [
+   "include/mippp/solvers/gurobi/impl/v1/gurobi_milp.hpp:230 set_candidate_solution_callback neither resets the model nor invalidates results, so a callback set after a finished solve is never called by the next solve(), which returns the old answer as optimal. Reproduction: verify_gurobi_shipped lazyafter, degree-only TSP n=30: 'after_finish: first optimal 345 | then optimal value=345 callback calls=0 lazy added=0 cycles in the returned point=13 NOT A TOUR'; seed 2 also 397, 11 cycles. Controls: 'before' gives 476, a tour; 'after_change' (an Obj write) gives 476, a tour. After a solution-limit stop the resumed search does call it and returned a tour on both seeds. Docs do not warn; I did not check other backends. Maintainer decides between GRBreset on attach after a solve and a doc note.",
+   "Not a defect, checked: add_lazy_constraint(distinct_variables, ...) with a repeated variable aborts on the debug assert in model_base.hpp:314, and under -DNDEBUG GRBcblazy from MIPSOL is clean (valgrind 0 errors at x10). The heap overflow is GRBcbcut and cblazy at MIPNODE, so it concerns the future handle, not shipped code."
+  ],
+  "recommendation": "Ship the recipe, with the changes in recipe_change. G1 stands: there is no local cut on Gurobi, so 'valid for every integer feasible point' is the only sound contract, and I could not break it with a valid cut. Three things must reach the maintainer: fold is safety, not hygiene; PreCrush=1 costs 100 to 300 times the nodes on models with parallel integer or binary columns, so set it only with a node callback and document it; a callback set after a finished solve is silently never called. Suite cases with power: X1 (fold), C5 and C10 (tree), C1 n=44 seed 9, C8 at stop 44 and first 0.3 s, G1's own subtree-cut instance. C4 needs euclidean distances to have any power; a point_ok check is needed for the filter; PreCrush can only be tested by enforcement counters.",
+  "not_verified": [
+   "Gurobi 10.x and GRBsetcallbackfuncadv.",
+   "G7, G9 thresholds, Q1, Q3 and most D groups on 11.0.3 and 13.0.2.",
+   "13.0.2 D groups mir and objective: queued in verify_gurobi_rel.sh, result not read before reporting.",
+   "Whether a dropped cut is purged or merely unused in the pool: indistinguishable from the hook.",
+   "The mechanism of the efficacy filter, inferred from thresholds on two cut families; forum text only says numerics and density.",
+   "The G4 mechanism: first REL shows b1=3, but the reduction itself is inferred.",
+   "Parallel continuous on a bounded column, the survey's instance.",
+   "Whether a cut at a non-optimal node is used: accepted with native_err=0 (NO_FILTER), effect not isolated.",
+   "Cuts under ConcurrentMIP: cuts=1 only, no power.",
+   "Why rhs below tight by 1e-5 loses nothing.",
+   "Heap overflow threshold beyond 60 columns; only cols, cols+1, cols+5 under valgrind.",
+   "Restart inside one solve; root LP drop-back.",
+   "Candidate-callback-after-solve on other backends.",
+   "Timings under load from six other agents: read wall times as orders of magnitude; Work and nodes are the data."
+  ],
+  "probe_paths": [
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_conf_gurobi.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_common.hpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_g2.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_safe.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_dup.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_q1.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_shipped.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_ctl.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_safe.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_safe2.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_gurobi_rel.sh"
+  ]
+ },
+ {
+  "backend": "CPLEX (cplex_milp), generic callback, CPX_CALLBACKCONTEXT_RELAXATION",
+  "releases_run": "22.1.2.0 (Community, default): everything. 22.1.1.0 (CPLEX_Studio2211), 22.1.0.0, 22.2.0.1 (reports 22.2.0.0): full conformance (64 cases each) plus scope, c5, c6b, c7, c8, samenode, filter2, repeat, spinthr3. Thread probes C2/C3/C11, fuzz, targeted D attacks and E measurements ran on 22.1.2 only. Community limit holds: atsp n<=31, C3/C4 n<=22.",
+  "claims": [
+   {
+    "id": "C1",
+    "verdict": "CONFIRMED",
+    "evidence": "Mine, classified by local bounds over ALL columns. Line 'S2 cfg=traditional local-purge flip=false ... descendants 0/528 cousins 494/494 other-y0 486/486'; 'global-purge ... descendants 0/528 cousins 0/534 other-y0 0/510'. S1: 'global-purge ... value=106.4 dual=106.4 ... => LOST', 'local-purge ... value=107.4 => KEPT'. Repeats: 200/200 LOST at 1 thread, local KEPT 100/100 in each of 7 thread configs. Same at search 0/1/2, presolve on with REDUCE=0, and all 4 releases (22.2.0: cousins 582/582). Files vout_cplex_scope*.txt, vout_cplex_c11b.txt.",
+    "exact_truth": "Global at 4 threads deterministic shows cousins 2/518, other-y0 1/509: late visibility (C11), not scope. Harness note: my first run counted cousins as descendants because g.y omits the yb binaries; fixed by testing every column."
+   },
+   {
+    "id": "C2",
+    "verdict": "REFINED",
+    "evidence": "'mkp30x100 R only, default threads, no spin: rel=26282 rel_overlap=13 max_rel=2'; '200us: rel=10963 rel_overlap=10762 max_rel=13'; 4 threads det 200us 53580/57769 max 4. Real DFJ with no mutex (X9a): overlaps 59-103 of 239 calls, max 5. Cross-context: 'C|R, 4 threads opp, 200us/200us: rel_saw_cand=19 cand_saw_rel=9'; default threads 200us 4/4; no spin 0/0 on 13-34 candidates.",
+    "exact_truth": "Overlap is real at every thread count >=2, but its rate follows hook duration: 0.05% with a no-op hook, 98% with 200 us. CANDIDATE and RELAXATION overlap only rarely, because candidates are rare (7-34 per run)."
+   },
+   {
+    "id": "C3",
+    "verdict": "CONFIRMED",
+    "evidence": "Vendor, /opt/ibm/ILOG/CPLEX_Studio2211/doc/html/en-US/refcallablelibrary/cpxapi/callbacksetfunc.html: 'Code in a generic callback function can invoke only routines that take a context pointer ( CPXCALLBACKCONTEXTptr ) as an argument. Calling other CPLEX routines (especially those taking a pointer to the environment ( CPXENVptr ) or a pointer to an LP problem ( CPXLPptr ) as an argument results in undefined behavior.' Source: cplex_milp.hpp:131 direct, :147 and :182 via _num_var_native_ids, cplex_base.hpp:215. callback_fun:232-244 has no lock. Shipped API: 'threads=0 spin=3000us ... calls=40 overlaps=10 max=5 bad_numvars=0'; no spin overlaps=0/40.",
+    "exact_truth": "Could not be made to misbehave: 'C3 hammer mkp10x200 ... getnumcols reads=197935800 wrong=0', 'mkp30x100 reads=116906400 wrong=0' at 16 threads in both contexts. Disassembly of the entry stub is a table read and a tail jump; the target was not read. Documented UB, not observed."
+   },
+   {
+    "id": "C4",
+    "verdict": "CONFIRMED",
+    "evidence": "'C4 atsp26s5 defaults: ... depth0_calls=30 first_depth=0'; 'all-families-off: depth0_calls=0 first_depth=1'; 'CUTPASS=-1: depth0_calls=0 first_depth=1'; 'CUTPASS=1: depth0_calls=1'; 'families-off+CUTPASS=5: depth0_calls=0'. Same on atsp31s5, mkp5x60, mkp30x100. Doc CutPass.html only says '-1 None'.",
+    "exact_truth": "Which family unlocks the root depends on the instance: only-Disj gives 4 root calls on atsp26s5, 2 on mkp5x60; the survey's list comes from the gadget. GUB, LocalImplied, BQP, RLT alone gave 0 everywhere. gadgets10 at defaults has calls=0: no power there."
+   },
+   {
+    "id": "C5",
+    "verdict": "REFINED",
+    "evidence": "'PURGE sanitize=false: time_limit solve=5.00s value=829 nodes=0 | calls=21140 depth0=21140'; FORCE calls=98634 nodes=0; 'FILTER sanitize=false: optimal solve=2.91s value=549 nodes=9090'; 'PURGE sanitize=true: optimal value=549 nodes=2196 added=0' (same path as no hook). Tree-only: no spin. CUTPASS=5: optimal 1.42s. All 4 releases. Counterexample to the last clause: 'A atsp26s5 frozen, constant cut, v/|a|2=1.00e-07 nz=88: nodes=0 added=18956 SPIN'; 'B atsp26s5 defaults, fresh tiny-violation cut per point, v/|a|2=1.00e-08: time_limit value=727 nodes=0 added=11962 SPIN'.",
+    "exact_truth": "Spin under PURGE and FORCE confirmed; FILTER does not spin but costs nodes (9090 vs 2196). cf::sanitize removes the spin only for cuts satisfied within 1e-9. A valid cut with 1e-9 < violation <= EpRHS*max|a| still spins. At >=4 threads the satisfied-cut spin ended on atsp26s5 ('threads=4 ... optimal 1.80s nodes=0'); it is a 1-2 thread stall on that instance."
+   },
+   {
+    "id": "C6",
+    "verdict": "REFINED",
+    "evidence": "'dupint25x6s2 Reform=3 swallow 1121: optimal 0.09s nodes=905 added=0 err1121=42'; 'Reform=2: nodes=113453 time_limit err1121=0'; 'Reform=1' same as 2. C6b log: 'Reduced MIP has 6 rows, 25 columns' at 3, 50 at 2, 1, 0. 'bin1121 binary duplicates Reform=3: err1121=3'; CFL continuous duplicates err1121=37. Shared C4 model: err1121=0 at every Reformulations value, same path, calls 0-2. All 4 releases. Doc Reformulations.html: '1 allow reformulations that interfere with crushing forms; 2 ... uncrushing forms; 3 allow all'.",
+    "exact_truth": "Any cut touching a merged column returns 1121, even with equal coefficients on both duplicates. Binary, integer and continuous duplicates all merge in knapsack rows. Any value below 3 stops it: 2, 1, 0 and PRELINEAR=0 behave alike, against the doc's wording for 1. mask C|R also stops it. Cuts on unmerged columns crush normally. The shared C4 model is not merged here, so it has no 1121 power."
+   },
+   {
+    "id": "C7",
+    "verdict": "CONFIRMED",
+    "evidence": "DATACHECK 0 and 2, all 4 releases: '-0.5,1.0 <=1 ... max later za1=1.0000 ... value=107.37' against known 107.4, status optimal; '0.2,0.8' gives za1 max 1.25; '-1,1 <=1 (written nothing)' za1 max 1.0000, value=107.37. Conformance X7 with folding removed: 'optimal value=1718' vs 1733, 'value=1781' vs 1791, err 0.",
+    "exact_truth": ""
+   },
+   {
+    "id": "C8",
+    "verdict": "REFINED",
+    "evidence": "No cut, 1 thread: 'atsp26s5 ... calls=3546 after_cutloop=1739 same_LP_as_prev=1734 differ=5 ... dist: 2calls:1695'; bit-identical 1667 of the 1695. mkp5x60 1150/1150, mkp30x100 35612/35612 within 1e-12. Nodes with only a post-loop call: 0 in every run. With a cut added at a tree node: 'threads=1 ... tree 0/1361 ... in-loop ok 1361'; 'threads=2 ... tree 2729/2729 ... post-loop: viol 2729'; thousands of nodes per run, both parallel modes, PURGE and FORCE, 2-16 threads, all 4 releases.",
+    "exact_truth": "True at 1 thread without cuts, with 5/1739 post-loop points differing. New: at >=2 threads in the tree, an in-loop add does not change that node's LP before the post-loop call, which sees the same point with the cut violated 100% of the time. Root is unaffected (0/1). A stateless separator then re-adds: 27-36% of all adds on covers at 4 threads."
+   },
+   {
+    "id": "C9",
+    "verdict": "CONFIRMED",
+    "evidence": "Source cplex_milp.hpp:236-241. Scratch copy verify_cplex_hdr with RELAXATION in the mask and the exception caught before the C frames: 'C9 ... else branch with an empty progress_callback: 2310 std::bad_function_call, contextid 0x40'.",
+    "exact_truth": "Latent: _attached_callbacks (cplex_milp.hpp:250-254) never sets RELAXATION today, so the repo as shipped cannot reach it. The exception was not allowed to cross, so what it would do in the C frames was not observed."
+   },
+   {
+    "id": "C10",
+    "verdict": "REFINED",
+    "evidence": "Frozen root: 'floor mkp30x100s7 NOT-ADDED ... later root viol/checks 5/5', 'FILTER ... 5/5 numcuts_user=0', 'PURGE ... 0/4 numcuts_user=1', 'FORCE ... 0/4 numcuts_user=1'; same on 5/5 instances, all 4 releases. Rotated floor to cos 0.86: FILTER numcuts_user=0 on 20/20, PURGE 1. Doc callbackaddusercuts.html: 'can possibly not even add the cut ... if the cut is too dense'. RepeatPresolve: 'RepeatPresolve=1 atsp26s5 FORCE: later root 50/59 tree 995/2642 ... numcuts_user=0' vs '-1: 0/19, 0/2495 numcuts_user=1'; 22.2.0 32/41, numcuts 0.",
+    "exact_truth": "Both true. FILTER accepted covers with nz 54/100 and 31/60 at the root ('cover mkp5x100s3 FILTER 0/6 numcuts_user=1'), so it is not a blanket refusal; density and low efficacy were not separated. Without freezing the root the test has no power: CPLEX's own cuts satisfy the floor cut (0/11). In the tree FILTER matched PURGE."
+   },
+   {
+    "id": "C11",
+    "verdict": "REFINED",
+    "evidence": "S1 repeated: 4 threads opp PURGE 0/1500, FORCE KEPT 1/1500; 8 opp 0/1600; 16 opp PURGE 'LOST=389 KEPT=11', FORCE 'LOST=393 KEPT=7'; 4 det 0/1000; 16 det 0/400; 1 thread 0/400. Age: 'atsp31s11 threads=8 parallel=-1 FORCE: ... same-thread 127/2265 other-thread 156/12708 | ... other by age <1ms:12 <10ms:46 <100ms:98 <1s:0 >=1s:0'. mkp FORCE at 4 and 8 threads: other-thread 0 violations in every age bucket, about 10^8 checks.",
+    "exact_truth": "KEPT occurs only in opportunistic mode and grows with threads, never in deterministic runs. Late means under 100 ms under FORCE here. The survey's asymmetry does not hold: the adding thread sees more violations (123/3455 vs 19/11271 on atsp31s11), because of the same-node behaviour in C8 and because its other nodes also lag (106/937 same thread, other node, under 1 ms). PURGE violations past 100 ms are purges, not lateness."
+   }
+  ],
+  "recipe_result": "64 cases, 0 failed, on all 4 releases (vout_cplex_conf_22.1.2/22.1.1/22.1.0/22.2.0.txt): 49 shared plus 15 X cases. Set: atsp_sizes {22,24,31}, stop_size 31, first_limit 0.02, fuzz_seeds 20, limit 60. Failures seen on the way, all harness: 'C1 atsp n=26 seed=2: NO BASELINE' and n=28 seed=2 (no-hook solve over 60 s, value=475 dual=460); 40 s control runs also lost n=25 seed=2 and, under load, n=22/31 seed=2; T5 atsp31s11 baseline over 10 s. Power of the shared set here: C1 8/9 nodes=0, C2/C3 2/3 nodes=0, C4 3/3 nodes=0 with calls 0-2 and no 1121, C6 and C7 close at the root, C9 seed=10 gives nodes=0 threads=1 at every n scanned 20-31. C5 (2282 nodes), C10 (869 nodes) and C8 ('first status=time_limit value=1930', then 522) have power. Hence X cases: X4, X6a, X6b, X7, X9a (atsp31 seed=11, 16 threads, 211 nodes), X9b. Harness notes: C7's title says equality but no equality is added; watched() counts a sanitized no-op as a cut, so cuts= overstates (X6a cuts=1111171).",
+  "recipe_change": "1) Add a same-point guard in the hook: per thread, skip the separator when node uid and point are bit-identical to that thread's previous call. It removes every same-LP spin without a tolerance: T1 40/40 (recipe alone 22/40), AGG all ok, conformance 64/64 on 22.1.2 and 22.2.0, fuzz 120 cases 0 fails. A max|a| tolerance is not enough: threshold is exactly EpRHS*max|a| on the CRUSHED cut ('AGG inf_tol=1.1e-06 v=1e-05 ... SPIN' with x=1000y). Assumption: the separator is a function of the point. 2) Keep Reformulations at 3 and swallow 1121, counted so the user can see it; do not clear the bit. Other nonzero errors abort. 3) Explicit three-way context dispatch; capture column count before mipopt. 4) Consider setting CUTPASS when the user left it at 0: a slowly moving root loop is not caught by the guard (atsp26s5, fresh cut violated by 1e-5: 60 s, nodes=0; CUTPASS=50: optimal 0.12 s). CUTPASS=50 or 200 cost nothing on 5 instances. Otherwise document it. Rest of the recipe unchanged: RELAXATION, fold, drop satisfied, PURGE, local=0, mutex.",
+  "controls": [
+   {
+    "removed": "drop_satisfied",
+    "failing_case": "X6a seeds 1,2 'time_limit solve=20.00s nodes=0 calls=488249'; X6b 'time_limit value=679 nodes=0 calls=132562'. C6 and C7 still pass (5 and 4 calls, root closes).",
+    "power": "has power: X6a, X6b. C6, C7 no power on CPLEX"
+   },
+   {
+    "removed": "folding of duplicate columns",
+    "failing_case": "X7 seeds 1,2: 'optimal value=1718' vs 1733, 'value=1781' vs 1791, silent wrong optimum; seed 3 passes. C7 still passes. Raw 'x - x' at every call: last wins -x<=1, 'time_limit value=829 nodes=0'.",
+    "power": "has power: X7. C7 no power"
+   },
+   {
+    "removed": "skip of empty cuts",
+    "failing_case": "Raw no-terms cut and one-zero-coefficient cut at every call: 'optimal value=549 nodes=2196', same path as no hook.",
+    "power": "not a trap"
+   },
+   {
+    "removed": "err 1121 as a dropped cut (abort instead, as shipped cbcheck does)",
+    "failing_case": "X4 seeds 1,2 'interrupted value=2111 nodes=0 calls=1 add_errors=1(last 1121)'; seed 3 has no 1121. C4 still passes, err1121=0.",
+    "power": "has power: X4 seeds 1,2. C4 no power"
+   },
+   {
+    "removed": "mutex around the user lambda",
+    "failing_case": "Conformance: 0 new failures, X9 overlaps 24-133 max 5, separators stateless or self-locked. Targeted verify_cplex_racy.cpp, a plain std::set and vector in the lambda: 'double free or corruption', exit 134 at 4, 8, 16 threads; with mutex lost_updates=0 over 323910 and 569844 calls.",
+    "power": "no power in conformance; has power in the racy case. It protects user state, not CPLEX"
+   },
+   {
+    "removed": "PURGE, replaced by FORCE",
+    "failing_case": "No failure in 48 cases",
+    "power": "not a trap: performance only"
+   },
+   {
+    "removed": "PURGE, replaced by FILTER",
+    "failing_case": "No failure in 48 cases. Targeted: floor cut refused, numcuts_user=0, later root 5/5.",
+    "power": "not a correctness trap; a silently unused cut, targeted case only"
+   },
+   {
+    "removed": "local=0, replaced by local=1",
+    "failing_case": "No failure in 48 cases; C5 seed=2 nodes 3012 vs 2282. S2 shows the difference (cousins 494/494 vs 0/534).",
+    "power": "not a trap for valid cuts; scope power lives in S1 and S2"
+   },
+   {
+    "removed": "Reformulations default, replaced by 2",
+    "failing_case": "No failure in 48 cases; cost only, see measurements.",
+    "power": "not a trap"
+   },
+   {
+    "removed": "post-loop calls (skipped)",
+    "failing_case": "No failure in 48 cases; 1 thread identical nodes.",
+    "power": "not a trap"
+   },
+   {
+    "removed": "captured column count (CPXgetnumcols in the hook)",
+    "failing_case": "314842200 reads, 0 wrong at 16 threads.",
+    "power": "no power: documented UB, not observed"
+   },
+   {
+    "removed": "explicit context dispatch",
+    "failing_case": "Scratch header copy: 2310 std::bad_function_call at contextid 0x40, caught before the C frames.",
+    "power": "has power with the patched header only"
+   },
+   {
+    "removed": "nothing: the recipe as given, attacked",
+    "failing_case": "T1 frozen root: 18/40 FAIL 'time_limit value=25953 nodes=0 calls=179918'. Same cases with the guard 40/40. B fresh tiny cut at defaults: SPIN at v<=EpRHS*max|a|, ok with the guard.",
+    "power": "has power: T1 frozen, B"
+   }
+  ],
+  "safe_direction": "No valid cut lost an optimum, gave a false status or crashed: every failing valid-cut run ended in time_limit or passed. But 'any such cut is safe' fails on termination, at default settings. A valid cut (DFJ relaxed, so weaker than DFJ) violated by at most EpRHS*max|a| at each point stalls the root: 'B atsp26s5 defaults ... time_limit solve=3.00s value=727 nodes=0 added=11962' vs baseline optimal 549 in 2 s. CPLEX returns 0, leaves the LP unchanged and fires again. Threshold exact: 9.5e-7 spins, 1.05e-6 ok, for nz 72-234, a_inf 1 to 1e6, all 4 releases; it tracks EPRHS (1e-5: 9.5e-6 SPIN, 1.05e-5 ok; 1e-9: 1e-9 SPIN, 1e-8 ok). The time limit always fired; with none this would not return (inferred, not run). Above the threshold a moving loop can also hold the root: fresh violation 1e-5, 60 s, nodes=0, value=598 on 22.1.2; 1e-4, value=624 on 22.2.0; CUTPASS=50 optimal 0.12 s. Tried with 0 failures: T2 cut tight at the optimum, including rhs opt+1e-9, and T3 same plus DFJ at nodes about to be pruned (15 cases, added>=1, up to 5140 nodes). T4 one-term and equality cuts implied only by parity, scales 1e-8 to 1e9 (90 cases; w family added=1 only with presolve off, z>=1 and all default-presolve cases no power). T5 DFJ scaled 1e-9 to 1e12, fresh and re-offered (60), T5b 1e-30 to 1e25, with and without the absolute drop (40). T6 near-duplicates e=1e-14 to 1e-6, K to 200, identical cut 10000 times in a call, 90000 adds (17). T7 cuts through fixed columns, aggregated complements, a dual-fixable column, MTZ potentials (12). T8 integer-infeasible models, emptying cut at the first call or after 3/10/50 calls: 400/400 and 600/600 infeasible. T9 20000 distinct violated cuts in one call, 12.8 s, correct. Enumeration fuzz, rhs the true maximum over the feasible set, on fixed, complement and parallel columns: 614 cases, 358 with a tree, 37133 cuts, 0 fails, solver baseline equal to enumeration in all; threads 1, 4, 16, PURGE/FORCE/FILTER. Cuts dropped by 1121 were harmless.",
+  "measurements": "Timings under load 9-19 from other agents: ratios only. MUTEX, mkp30x100s7, 6 s, 2 reps, covers separator, det/opp, ratio nodes/s mutex over no mutex. Covers alone: 4 threads 0.99/1.015, 8: 0.995/0.972, 16: 0.977/0.902. Covers +200 us: 0.566/0.539, 0.426/0.365, 0.31/0.28. +1 ms: 0.33/0.283, 0.199/0.155, 0.133/0.098. With the mutex calls/s saturate near 4480 at 200 us and 960 at 1 ms at any thread count. REFORM, 1 thread, Reform=3 swallow vs 2: dupint25x6s1 54 nodes 0.01 s (err1121=7, added=0) vs 10611 nodes 1.19 s. dupint25x6s2 905 nodes 0.09 s (err1121=42) vs time_limit 15 s, 113453 nodes; 170131 nodes, 18 s with a 20 s limit. cfl10x20dup 7 nodes (err1121=37) vs 4 nodes, added=30, both 0.01 s. atsp26s5, atsp31s11, atsp22 complements, covers 5x60, 5x100: identical nodes and adds; Reform=1 equals 2. Answer: swallow. PURGE/FORCE/FILTER, 1 thread, nodes: atsp31s11 87/43/87, atsp22c 19/0/19, atsp26s5 0/0/0. Covers 5x60 3656 0.93 s / 3151 1.30 s / 1904 0.68 s; 5x100 9793 12.0 s / 9164 12.95 s / 7270 5.14 s; 30x100 15 s value 41187/41224/41187. No winner; keep PURGE: FORCE helps DFJ, slows covers, and is still dropped by RepeatPresolve=1. POST-LOOP: 1 thread, skip vs keep identical nodes and adds on 8 instances, added_in_post=0, 36-46% of calls are post-loop. 4 threads adds down 14-33% (22830 to 16575, 61514 to 41192), nodes equal on finished runs, +12-17% nodes on the 10 s run. Answer: do not run the separator on it, but via the same-point guard: same result (skips 47 of 48 post-loop calls on atsp31s11, nodes 87 both; +20% nodes on the 10 s run) and it keeps the 5/1739 differing points. CUTPASS 50 or 200 vs 0: atsp31s11 87 to 74, atsp22c 19 to 0, covers 3656 to 2397 and 9793 to 9000 (9.5 to 7.5 s), atsp26s5 same.",
+  "shipped_code_findings": [
+   "include/mippp/solvers/cplex/impl/v1/cplex_milp.hpp:236-241: callback_fun treats every non-CANDIDATE context as progress. Latent, since no RELAXATION is registered today. Repro: verify_cplex_c9.cpp with -Iverify_cplex_hdr: 2310 std::bad_function_call at contextid 0x40.",
+   "cplex_milp.hpp:131, :147, :182 (:147 and :182 through cplex_base.hpp:215) call CPXgetnumcols(env, lp) inside a callback, documented undefined in callbacksetfunc.html. Not observed: 314842200 reads, 0 wrong. Repro: verify_cplex_threads c3.",
+   "cplex_milp.hpp:115-118: cbcheck aborts on any nonzero. Harmless on candidates, but copying it to a user-cut handle aborts the search on 1121. Repro: NC_ABORT_1121=1 ./verify_conf_cplex, X4 'interrupted'.",
+   "docs/algorithms/branch-and-cut.md:69 says the callback may run 'from a solver-managed thread' but not concurrently. The shipped candidate callback overlaps on CPLEX: 'spin=3000us: calls=40 overlaps=10 max=5'; callback_fun holds no lock. Repro: verify_cplex_threads c3. A lambda with plain shared state corrupted the heap in the RELAXATION analogue (verify_cplex_racy.cpp, no mutex)."
+  ],
+  "recommendation": "Ship, with changes. RELAXATION hook; point read over the column count captured before mipopt; fold, strip zeros, skip empties, drop satisfied; same-point guard; purgeable=CPX_USECUT_PURGE, local=0; mutex by default with the cost table documented and an opt-out for thread-safe lambdas (cheap separator under 10% loss, 1 ms separator 3-10x loss at 8-16 threads); 1121 counted and swallowed, other errors abort; explicit dispatch on three contexts; no Reformulations change; FILTER only as an opt-in. Contract wording: keep 'valid for every integer feasible point; the solver may apply it anywhere or nowhere', and add that the next call need not satisfy the cut (at >=2 threads it usually will not at the same tree node), that separators should offer only meaningfully violated cuts, because weak cuts can hold the root (CUTPASS caps it), and that the lambda runs concurrently unless serialized. For the shared suite take: S1, S2, X4, X6a, X6b, X7, T1 frozen, C5, C8, C10, plus the racy case for the mutex. On CPLEX, C4, C6, C7, C9 as written have no power.",
+  "not_verified": [
+   "Whether a same-LP spin runs forever without a time limit: every solve had a limit, so this is inferred",
+   "Same-point guard: not measured with a heavy separator at 16 threads; a separator that needs a second call on an identical point loses that call",
+   "FILTER's actual criterion: density vs efficacy not separated; it never differed from PURGE in the tree on these instances",
+   "Whether speculative tasks discard cuts, as against slow propagation; what decides opportunistic KEPT runs",
+   "Why the crushed cut's max|a| sets the threshold: shown on one aggregation model (x=1000y) only",
+   "Why a tree cut does not act on its own node at >=2 threads: observed, no vendor text found; whether a re-add from the post-loop call then acts on that node",
+   "CUTPASS cap: cost on 5 instances only; the slow-loop cure measured at CUTPASS=50, not 200",
+   "C2, C3, C11, fuzz, targeted D attacks and measurements on 22.1.0, 22.1.1, 22.2.0; X-only guard runs on 22.1.1 and 22.1.0",
+   "Releases before 22.1, wheels 22.1.0.1, 22.1.1.1, 22.1.1.2, 22.1.2.1, 22.2.0.0, Windows, macOS, models above the Community limit",
+   "Disassembly beyond the CPXgetnumcols entry stub",
+   "Survey claims not re-run: solve() overwriting a native registration, lazy plus user-cut runs (C|R ran only for 1121 and overlap), restart survival of tree-added local cuts"
+  ],
+  "probe_paths": [
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_common.hpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_conf_cplex.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_scope.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_firing.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_cuts.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_threads.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_c9.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_hdr",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_filter.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_late.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_samenode.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_samenode2.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_scan.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_safe.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_spinthr.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_spinthr2.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_spinthr3.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_fix.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_guard.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_extra.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_racy.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_measure.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_nc.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_fuzzrun.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cplex_releases.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_cplex_conf_22.1.2.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_cplex_conf_22.2.0.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_cplex_conf_guard.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_cplex_guard.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_cplex_spinthr3.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_cplex_samenode.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_cplex_e_mutex.txt"
+  ]
+ },
+ {
+  "backend": "Xpress (xpress_milp, key XPRESS)",
+  "releases_run": "47.01.01 for everything. Also 45.01.01 (xpressmp_old) and, from xpresslibs wheels fetched by me with sha256 checked, 45.01.03, 45.01.04, 46.01.03, 47.01.02, 48.01.01. X3 ran on all seven. X5 public API ran on 45.01.01, 45.01.04, 46.01.03, 47.01.01, 48.01.01. X7 ran on 45.01.01, 45.01.04, 46.01.03, 47.01.01, 47.01.02, 48.01.01. X8 and X9 ran on 45.01.01, 45.01.04, 46.01.03, 47.01.01, 48.01.01. Full conformance ran on 47.01.01 only; other releases ran a reduced set. 45.01.02 was not run.",
+  "claims": [
+   {
+    "id": "X1",
+    "verdict": "CONFIRMED",
+    "evidence": "`open S1 R2 flip=false optimal v=107.4 KEPT | sub 0/3 sib 512/512`. `X1 columns first shifted by 40, truth 549, R2,no_presolverow: status=time_limit value=614 ... add_errors=17133(last 405)`; R2 and R1,add2 on the same model: optimal 549. Conformance control `C2 fixed columns first seed=2: status=time_limit value=595 ... add_errors=0` (truth 499).",
+    "exact_truth": "Sharper than the survey, which left this open: mis-indexed XPRSaddcuts can end optimal and wrong. `WRONG n=12 seed=7 shift=7: optimal{sol=true} value 299 truth 297 native=16`, cutround + XPRSaddcuts without presolverow."
+   },
+   {
+    "id": "X2",
+    "verdict": "CONFIRMED",
+    "evidence": "Gadgets, presolve on: `open S1 R1,add2 v=107.4 KEPT sib 512/512` (no round at the sibling, not loaded). `open S1 R1,first2 v=106.4 LOST sib 1/27` (round forced, global in force). `PRESOLVE=0 S1 R1,first2 KEPT 1023/1023`, `MIPRESTART=0 S1 R1,first2 KEPT 1023/1023`. True defaults, DFJ at depth>=2 only, cuts with globalvalid 1 vs 0: R1 41 vs 62, R1,add2 42 vs 56. PRESOLVE=0: 31 vs 31. MIPRESTART=0: 54 vs 54.",
+    "exact_truth": ""
+   },
+   {
+    "id": "X3",
+    "verdict": "CONFIRMED",
+    "evidence": "45.01.01: `X3 ATSP n=26 R1: status=time_limit value=557 nodes=14679 | cuts=92508 errs=0 | rows_first=652 rows_max=652 CUTS_max=0`. 45.01.03: `cuts=93233 errs=0 ... rows_max=652 CUTS_max=0`. 45.01.04: `R1: status=optimal value=549 nodes=1 ... rows 652->871 CUTS_max=219`. 46.01.03, 47.01.01, 47.01.02, 48.01.01 behave like 45.01.04.",
+    "exact_truth": "Bracket measured at .01, .03, .04; .02 not run. Plain R1 on 45.01.01 is inert but safe. R1 with p_action=2 on add loops at the root there: 117002 firings in 15 s, time_limit, no solution."
+   },
+   {
+    "id": "X4",
+    "verdict": "REFINED",
+    "evidence": "Same cut at every call, scope settings, sanitize off: `R1,keep_satisfied: status=optimal nodes=1537 | calls=1537`. `R1,keep_satisfied,add2: status=time_limit{sol=false} nodes=0 | calls=696633`. `R2,keep_satisfied: time_limit | calls=10309`. `R2cr,keep_satisfied: time_limit | calls=7565`. Sanitize on: 770 calls, optimal, in all four. Re-offering DFJ at defaults (T1): R1,keep_satisfied finishes with native=159; R2,keep_satisfied time_limit with rows 698->29078.",
+    "exact_truth": "Endless only with p_action=2 (R1) or XPRSaddcuts (R2, R2cr). Plain R1 never loops, so drop_satisfied has no termination power there; it only trims native calls (22 vs 159). Sanitize does not remove every loop: R2 still loops on status=1 rows, on big coefficients and on the tolerance zone, and R1,add2 still loops at a violation the solver will not load (viol=1.85e-4)."
+   },
+   {
+    "id": "X5",
+    "verdict": "CONFIRMED",
+    "evidence": "Public API only, identical on 5 releases apart from candidate counts. `M2 same with row 2x<=10: status=infeasible candidates=1 rejected=1 (4 expected)`. `M4 max x+y, integers in [0,5], x+y<=8, rejects value 8: status=infeasible` vs `M4 control, rule as a row x+y<=7: status=optimal value=7`. Stronger, a false optimal: `M1 max x, integer x in [0,5], rejects x=5: status=optimal value=1 (4 expected)`, one column, no row. `D scan 12-col knapsacks: total=60 no_rejection=27 right=19 false_infeasible=0 false_optimal=14 | first: seed 2 status=optimal value 0 truth 184`. Docs concepts.md:190: 'reject_solution() discards the candidate without adding a constraint'. Vendor xp_opt.txt:12062: 'When soltype is zero and the solution is rejected by setting p_reject, the node itself will be dropped without further branching'.",
+    "exact_truth": "Tests miss it. iis.hpp:104 expects infeasible after reject-all, so it pins the behaviour. progress_callback.hpp:445 checks only that the returned point obeys the rule. On that model every rejection is soltype 1: `soltype0=0 soltype1=10 rejected0=0 rejected1=8`, value 8416 equal to the hard-row value."
+   },
+   {
+    "id": "X6",
+    "verdict": "REFINED",
+    "evidence": "preintsol + presolverow + addcuts, DFJ per cycle, degree-only: n=14 419, n=26 549, n=40 603, all RIGHT against MTZ truth at MIPDUALREDUCTIONS 0, 1, 2 and default. Reject only: `n=26 ... status=infeasible WRONG (truth 549)`. Optnode only: `n=26 value=418 WRONG`, `n=40 value=510 WRONG`, hook fired 0 times. Tiny model truth 7: `preintsol lazy dualreductions=1: status=infeasible`, `dualreductions=0: status=optimal value=7`.",
+    "exact_truth": "Reachable as claimed. MIPDUALREDUCTIONS=0 is shown necessary by the tiny integer model, not by ATSP: my seed 5 has no power there, and the survey's 609-vs-605 instance is not reproduced. A probe of mine cutting one cycle per candidate did not finish n=26 in 120 s; that was my probe, not the solver."
+   },
+   {
+    "id": "X7",
+    "verdict": "REFINED",
+    "evidence": "`CRASH X7 VALID E t - s == 0 (fam 1, t + s == 2 y) [R1,no_split_eq] dualred=1: signal 11`, same under R2, same for `t - y == 0`. gdb: #0 memset, #1-5 libxprs, #6 XPRSaddmanagedcuts; on R2 #4 XPRSpresolverow. Alive with the row itself (equal coefficients), at MIPDUALREDUCTIONS=0, and split into L+G. 45.01.01 and 45.01.04: presolverow returns `status=-4`, no crash. Crash on 46.01.03, 47.01.01, 47.01.02, 48.01.01.",
+    "exact_truth": "Needs unequal coefficients on columns presolve merged, and hits truly valid cuts, on both paths. L and G versions give status=1 and are safe. The same crash site is reached by a repeated column index in XPRSpresolverow on 46.01.03, 47.01.01, 48.01.01, with buffers 10xCOLS+1000, so it is not a harness buffer; 45.x returns error 423. XPRSaddmanagedcuts returns 423 for a repeated index, no crash."
+   },
+   {
+    "id": "X8",
+    "verdict": "CONFIRMED",
+    "evidence": "47.01.01: `X8 shifted+complement ATSP n=26: calls=1638 getlpsol==getcallbacksolution on 1638 (max diff 0) point_ok: callback 1638 getlpsol 1638 presolved 0`. Same with max diff 0 on 45.01.01, 45.01.04, 46.01.03, 48.01.01.",
+    "exact_truth": ""
+   },
+   {
+    "id": "X9",
+    "verdict": "CONFIRMED",
+    "evidence": "`X9 CUTSTRATEGY=0 R1: value=549 nodes=19525 | calls=0 cuts=0`, identical to `no hook: nodes=19525`. `R2: nodes=7 | calls=15 cuts=30`. Same pattern on 45.01.01, 45.01.04, 46.01.03, 48.01.01.",
+    "exact_truth": "Any cutround hook dies silently, so the fallback in the same hook dies too (R2cr: calls=0)."
+   },
+   {
+    "id": "X10",
+    "verdict": "CONFIRMED",
+    "evidence": "Default threads, 200 us spin, 30 OS threads: `MUTEXCALLBACKS=1 hooks=cutround: calls=26288 overlaps=0`, `optnode: calls=31074 overlaps=0`, `both: calls=42294 overlaps=0 peak=1`. `MUTEXCALLBACKS=0 hooks=both: calls=119738 overlaps=118935 peak=16`.",
+    "exact_truth": "Measured, including one mutex across both hook kinds, but not promised for cutround: the MUTEXCALLBACKS entry (xp_opt.txt:29247) lists optnode, infnode, intsol, nodecutoff, prenode only."
+   }
+  ],
+  "recipe_result": "R1 here means p_action left untouched, cf::sanitize, 'E' split into L+G. R2 means optnode, sanitize, split, presolverow with COLS read per call, status<0 dropped.\n\n47.01.01 clean run (sizes 16 24 32, seeds 1 3 4, limit 60, stop_size 30, first_limit 0.02, fuzz 20): R1 49/49, R2 49/49.\n\n47.01.01 power run (sizes 32 20 32, seeds 1 2 5, limit 60, stop_size 40, first_limit 1 for R1 and 3 for R2): R1 45/49, R2 46/49. All failures are NO BASELINE at n=32 seed=1, where the baseline hit 60 s under load. Harness.\n\nReduced set (sizes 20 16 20, seeds 1 5 6, stop_size 26, first_limit 0.5, fuzz 10): R1 39/39 on 45.01.04, 46.01.03, 47.01.02, 48.01.01 (limit 60); R2 and R2cr 39/39 on 45.01.01 and 45.01.03 (limit 120).\n\nHarness failures, sizes 32 20: every NO BASELINE on 45.x. `old R2 C8 baseline 575 ... value=569`: C8 never checks that its baseline reached optimal, and 575 is a 30 s incumbent.\n\nRecipe failures: R2 passes the set but fails outside it. The set does not catch status=1 rows: T8 Euclid parallel n=24 with a + 2b cuts, status=time_limit after 31467 cuts, against 39 nodes with no hook. CG and cover fuzz on reduced models: R2 15/40 and R2cr 10/40 stopped by the limit, R1 40/40. Solver failure: the equality crash (X7).\n\nPower on Xpress: C1 at n=32 fires 3-12 calls but closes at the root. C2 has power for presolverow; C3 does not (cuts on later columns just get error 405). C4 has none: 0 calls on R2, 1 on R1, the LP is integral on uniform costs. C5 and C10 have real trees (47-777 nodes). C6 has power for R1+add2 only, 0 calls on R2. C7 has power for R2 folding. C8 has power for R1 at first_limit 1; on R2 no power at 3 s (first solve finished in 2.33 s), T9 shows it at 2.5 s, native=102. C9 has none: closes at the root on the main prob, main/worker 10/0.\n\nOther harness points: stats.cuts counts sanitize drops as added, so read native counters; my first D sweep was NO POWER for that reason and I reran it with keep_satisfied. compare() has no point_ok. The set has no 'E' cut, although the C7 comment names one.\n\nShip R1. It finished every case, with only a limit stop under load (fuzz 60x10: 26/30 at 10 s, all 30 optimal within 30 s when rerun). R2 needs extra guards, and its loops appear on valid cuts.",
+  "recipe_change": "R1: never write p_action, in particular never 2 on add. Always split 'E' into L+G, because the unsplit equality segfaults on 46+. Fold repeated columns before the native call. Read the point with XPRSgetcallbacksolution on cbprob, sized by XPRS_INPUTCOLS. Keep drop-satisfied as a cheap filter only. Gate on XPRSgetversion >= 45.01.04, since managed cuts are a silent no-op below it. Document that CUTSTRATEGY=0 silently kills the hook, and that the cut must be globally valid because the solver may load it at any node (S1 LOST with a forced round). Keep a scoped mutex as report_progress does, because serialization of cutround is measured, not promised.\n\nFallback below 45.01.04, or any R2 use: folding is mandatory, since a repeated column segfaults presolverow on 46+ and on 45 returns 423 and then the solve throws. Read COLS per call. Drop status<0. Drop status=1 rows: T8 mode 1 ends, optimal, at baseline nodes (1719, native=0). Make the sanitize tolerance relative: tol ~1e-9 x max|coef| ended all 12 objective-cut cases at x1e2..x1e8 for R2cr, and reltol 1e-9/1e-8/1e-7 did the same for R2; absolute 1e-9 loops at x1e4.\n\nHarness: C8 should require an optimal baseline. C4 should use Euclidean costs. Add an 'E' case and a time-limit case at 60x5.",
+  "controls": [
+   {
+    "removed": "R2: presolverow",
+    "failing_case": "C2 seeds 2 and 5, C8 (time_limit, add_errors=0 on C2). C1 and C3 still pass. Wrong optimum with cutround + XPRSaddcuts: n=12 seed=7, 299 vs 297.",
+    "power": "has power (C2, C8); C1 and C3 no power"
+   },
+   {
+    "removed": "R2: drop_satisfied",
+    "failing_case": "T1 re-offer DFJ n=26 seeds 5 and 1: time_limit, rows 698->29078. C6 passes because optnode fires 0 times at n=32 seed 7.",
+    "power": "has power in T1 only; C6 no power"
+   },
+   {
+    "removed": "R1: drop_satisfied",
+    "failing_case": "None: T1 finishes (native 159 vs 22), conformance has only the NO BASELINE failure.",
+    "power": "not a trap under R1 with p_action untouched"
+   },
+   {
+    "removed": "R1+add2: drop_satisfied",
+    "failing_case": "C6: time_limit at 29.99 s, calls=42007. T1: time_limit{sol=false}.",
+    "power": "has power (C6)"
+   },
+   {
+    "removed": "R1: leaving p_action alone (2 on add, sanitize still on)",
+    "failing_case": "Overruns TIMELIMIT, killed by process alarm. 47.01.01 at limit 10 s: 6/30 on 40x5, 19/30 on 60x5, 26/30 on 60x10. At limit 5 s: 46.01.03 2/12, 47.01.02 4/12, 48.01.01 3/12 and 6/12, 45.01.04 3/12, 45.01.01 1/12. Trace on 60x5 seed=1: same point, last_viol=0.000185, fired 106384 to 450659 from t=5 s to 20 s, limit 5 s. Also T8 modes 1 and 2: root loop.",
+    "power": "has power in covers 60x5 seed=1; conformance C5 and C10 no power"
+   },
+   {
+    "removed": "R2: folding",
+    "failing_case": "C7 rc=139 on 47.01.01. T6 signal 11 for all three repeated-column forms; gdb top frames memset, libxprs, XPRSpresolverow. 45.x: e=423, then `solve() threw`.",
+    "power": "has power (C7)"
+   },
+   {
+    "removed": "R1: folding",
+    "failing_case": "C7 passes with add_errors=700, nodes 311 vs 1. T6: error 423 on every cut, nodes=1015 vs 0, value right.",
+    "power": "counter power only, no pass/fail power"
+   },
+   {
+    "removed": "Empty-row drop (no_folding)",
+    "failing_case": "T7 `0 <= -1`: R1 status=infeasible, R2 value=614 vs truth 549. That row is invalid, but it shows the solver takes it.",
+    "power": "has power, on an invalid cut only"
+   },
+   {
+    "removed": "E split",
+    "failing_case": "Valid `t - s == 0` given t + s == 2y: segfault on 46.01.03, 47.01.01, 47.01.02, 48.01.01, both recipes. No conformance case has an 'E'.",
+    "power": "has power in that new case; conformance no power"
+   },
+   {
+    "removed": "R1: cutround as the hook (managed cuts in optnode)",
+    "failing_case": "19 of 28 conformance cases fail. T4: `status=interrupted value=614 errors{902:5}`.",
+    "power": "has power (C1 and others)"
+   },
+   {
+    "removed": "R1: version gate",
+    "failing_case": "45.01.01 C6 and C8 time_limit, the rest pass with rows_max=rows_first, cuts=92508, errs=0. With p_action=2, root loop.",
+    "power": "has power (C6, C8); counters elsewhere"
+   },
+   {
+    "removed": "R2 status=1 handling (not in the given recipe)",
+    "failing_case": "T8 modes 1 and 2: R2 time_limit, 31467 cuts, status{1:...}. CG and cover fuzz on reduced models: R2 15/40 and R2cr 10/40 limit stops, 234537 cuts. R1 unaffected.",
+    "power": "has power in T8 and the fuzz; recipe R2 fails it"
+   },
+   {
+    "removed": "INPUTCOLS (read COLS instead)",
+    "failing_case": "T2: bad_points=1541 of 1541, native=0, nodes 2277 vs 1, value right.",
+    "power": "counter power only"
+   },
+   {
+    "removed": "getcallbacksolution (read the presolved point instead)",
+    "failing_case": "T2: error 407 on every call, no cut, nodes 2277, value right.",
+    "power": "counter power only"
+   },
+   {
+    "removed": "cbprob (use the model's prob)",
+    "failing_case": "T3 covers 80x10, default threads: calls=24 vs 125232, native=0, value right, no crash. C9 closes at the root on the main prob.",
+    "power": "counter power in T3; C9 no power"
+   },
+   {
+    "removed": "presolverow status<0 drop",
+    "failing_case": "45.x: status=-4 with n=-1 is accepted by addcuts, value right. 46+ crashes before returning a status.",
+    "power": "no power"
+   },
+   {
+    "removed": "XPRS_LPSTATUS check",
+    "failing_case": "not_optimal=0 in every output.",
+    "power": "no power"
+   },
+   {
+    "removed": "Hook-level mutex at default MUTEXCALLBACKS",
+    "failing_case": "T3: overlaps=0 peak=1 with and without it.",
+    "power": "not a trap at default"
+   }
+  ],
+  "safe_direction": "No truly valid cut lost an optimum or gave a wrong status under R1.\n\nTried, all correct under R1:\n- Implied rows on fixed, dual-fixed, duplicate, singleton and substituted columns, reaching native: 70/70 across recipes.\n- DFJ plus pieces on those columns where native>0: 12/12 R1, 11/11 R1,add2, and all R2 and R2cr cases with native>0.\n- CG and covers on reduced models: 40/40.\n- Near-duplicates at eps 1e-12, 1e-9, 1e-7: 24/24.\n- Objective cut tight at the optimum, x1/3 and x1e2 to x1e8: all OK.\n- Re-offered cuts at user scale 1e-9 to 1e10.\n- One-term cuts and CG one-term `k <= 4`.\n- `x_big <= 0` on an item that never fits.\n- Parity prune `y <= 0`.\n- Tiny coefficient with rhs above FEASTOL (1e-8 to 1e-12 x, rhs up to 0.02): 60/60, no false infeasible.\n- Huge coefficients 1e12 and rhs 1e40.\n- Tolerance zone, violation 2e-9 to 1e-4: 14/14.\n- Market split: 96/98 agree, 9 instances infeasible; the other 2 hit the limit under load.\n- Stop and re-solve, no cuts persisting after a model change.\n\nWhat broke:\n1. Crash: valid `t - s == 0` unsplit on 46+, both recipes.\n2. Non-termination, bounded by TIMELIMIT, under R2 and R2cr only, no wrong value: x1e4 objective cut (R2 seed 2, R2cr seeds 1 and 2), status=1 rows, tolerance zone at every violation tried.\n3. R1 with p_action=2 overruns TIMELIMIT on valid cuts.\n\nNO POWER cases: `integer-infeasible, y == 1 row` (presolve closes it, calls=0); weak DFJ pieces (satisfied at the point, native=0). BAD lines on seed=1 there are a 20 s limit below the baseline's time, harness.",
+  "measurements": "R1 vs R2, 47.01.01, one thread, load from other agents. Format: time / nodes / native cuts.\n\nATSP n=40 seeds 5, 1, 2:\n- No hook: 10 s/1841, time_limit 100 s/15085, time_limit 100 s/28579.\n- R1: 0.92/1/37, 0.70/1/43, 0.74/1/23.\n- R2: 4.17/7/30, 3.60/1/33, 3.01/1/14.\n- R2cr: 1.17/1/17, 1.10/1/29, 0.86/1/18.\n\nATSP n=60 MTZ cannot run: `?120 Problem has too many rows and columns. The maximum is 5000` (Community). n=50 is the largest:\n- R1: 1.18/1/42, 4.26/83/313, 4.12/51/254.\n- R2: 4.41/1/27, 7.03/73/111, 6.75/113/183.\n- R2cr: 1.07/1/29, 5.01/17/88, 3.25/7/62.\n\nDegree-only n=60 with lazy DFJ in preintsol, seeds 5, 1, 2, time/nodes:\n- Lazy only: 1.21/225, 1.69/413, 3.48/1071.\n- +R1: 1.29/65, 1.49/71, 2.88/95.\n- +R2: 0.85/17, 1.62/35, 1.99/11.\n\nCovers, nodes:\n- 40x5: no hook 147, 683, 61; R1 129, 777, 63; R2 129, 403, 53.\n- 60x5: no hook 515, 203, 409; R1 815, 193, 571; R2 673, 191, 381.\n- 80x10, time/nodes/cuts: no hook 43.5 s/78713, 26.3 s/25447, 11.3 s/27155. R1 45.3 s/76042/58979, 36.9 s/23995/16203, 32.4 s/38486/31679. R2 49.4 s/79516/44235, 20.5 s/27502/13330, 30.1 s/31927/36627.\n- 60x10, 30 seeds, total time: no hook 45.9 s, R1 68.9, R1,first2 56.7, R2 54.1. Covers barely help this family.\n\nR1 is 3-5x faster on ATSP at the root, because optnode runs only after Optimizer cuts and heuristics. It is even on covers.\n\np_action=2 on first firing is not needed: right answers without it, and node effect mixed. R1 to R1,first2: n=50 83 to 41, 51 to 82; 40x5 129 to 153, 777 to 993, 63 to 59; 60x5 815 to 527, 193 to 193, 571 to 447; 80x10 76042 to 71472, 23995 to 24423, 38486 to 36575; market 3x24 seed 2 1219 to 7913. It is what lets a global cut reach a node with no round (S2 1547 vs 2057 nodes; invalid S1 LOST). Alone it never overran: 0/90 covers, T8, zone 14/14, objective cuts 12/12, CG 40/40. Default off. p_action=2 on add: never.\n\nFallback below 45.01.04 is sound on answers: R2 and R2cr 39/39 on 45.01.01 and 45.01.03; R2cr n=26 gives 549, 1 node, 0.08 s, where R1 is at time_limit with 14679 nodes. It inherits the R2 loops, so it needs drop_relaxed and a relative tolerance. Per the two-tier ruling, feature_unavailable_error is the simpler choice; the fallback is acceptable if the maintainer wants the feature there.",
+  "shipped_code_findings": [
+   "include/mippp/solvers/xpress/impl/v1/xpress_milp.hpp:100 `void reject_solution() { *_reject = 1; }` drops the whole node at soltype 0. Reproduction, public API: integer x in [0,5], no row, max x, reject x=5 gives status=optimal value=1 (x=4 is feasible). Add row 2x<=10: status=infeasible. Two integers, x+y<=8, reject value 8: status=infeasible, while the rule written as a row gives 7. Scan of 60 knapsacks: 14 of the 33 runs that rejected end status=optimal with a worse value, e.g. seed 2 value 0, truth 184.",
+   "docs/reference/concepts.md:190 'discards the candidate without adding a constraint', docs/algorithms/branch-and-cut.md:35 'discards the candidate without stating why', and :38 '**Xpress** offers `reject_solution()` instead' all contradict xp_opt.txt:12025 and :12062. Section 38 invites the use that gives wrong answers.",
+   "docs/algorithms/deletion-filter.md:185 says the filter's answer is proven when the decision 'depends on that point alone'. On xpress_milp this does not hold: integers x,y in [0,5], x+y<=8, rule rejects value 8 only, (5,2) accepted. compute_iis_by_deletion answers `outcome irreducible members vars=1 rows=1 | x member_lower row member_upper`, a false proof on a model with accepted points. The table at :187 covers reject-all only.",
+   "Test gap: test/test_suites/iis.hpp:104 asserts infeasible after a reject-all, pinning the behaviour. test/test_suites/progress_callback.hpp:445-472 checks only that the returned point obeys the rule; on build_small all rejections are soltype 1 (`rejected0=0 rejected1=8`) and the value equals the hard-row 8416, so a value check would not catch it either.",
+   "Remedy exists, measured: preintsol, soltype==0 presolverow + addcuts without p_reject, soltype!=0 p_reject=1, MIPDUALREDUCTIONS=0. Tiny model gives 7, degree-only ATSP n=14, 26, 40 right. `add_lazy_constraint` on Xpress is reachable with it.",
+   "Read, not executed: xpress_milp.hpp:62-68 `check()` throws from inside candidate_solution_callback_fun through the handle, across the C frames."
+  ],
+  "recommendation": "Ship R1: XPRSaddcbcutround + XPRSgetcallbacksolution on cbprob + sanitize + XPRSaddmanagedcuts(cbprob, 1, ...), never writing p_action, splitting 'E', gated at 45.01.04. It is the only recipe that finished every sweep: no loop, no TIMELIMIT overrun, no wrong value. It takes original columns and is 3-5x faster on ATSP. Accept and document its two silent modes: CUTSTRATEGY=0 kills the hook, and below 45.01.04 cuts are inert. Do not ship R2: its loops appear on valid cuts until a limit stops them, and it needs folding, a relative tolerance and status=1 handling to be safe. Separately and more urgently, fix or re-document reject_solution(), which gives false results in shipped code today.",
+  "not_verified": [
+   "45.01.02: not run; the 45.01.04 bracket rests on .01, .03, .04.",
+   "Full 49-case conformance outside 47.01.01; other releases ran 39 cases.",
+   "R2 on 45.01.04, 46.01.03, 47.01.02, 48.01.01 in conformance: killed before those runs.",
+   "Why TIMELIMIT is honoured in a root loop but not in a hook-driven loop at a tree node: measured only.",
+   "Why a cut violated by 1.85e-4 is not loaded: inferred from rows staying at 36 at the same point.",
+   "The survey's 609-vs-605 dual-reduction instance: not reproduced, my seed 5 has no power.",
+   "XPRSpresolverow statuses -2, -3, -5: never seen. -4 seen on 45.x only.",
+   "Exception paths: exceptions=0 in every run, the catch was never exercised.",
+   "Recipes under MUTEXCALLBACKS=0, CALLBACKFROMMAINTHREAD=1, and across XPRStriggerrestart.",
+   "ATSP n=60 MTZ: over the Community limit, so n=50 and degree-only n=60 stand in."
+  ],
+  "probe_paths": [
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_conf_xpress.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_hook.hpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_x5.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_x5b.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_x5c.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_x6.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_x37.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_claims.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_ctl.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_safe.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_safe2.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_fuzz.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_measure.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_pfail.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_foldcrash.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_p.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_run.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_xpress_fetch.py"
+  ]
+ },
+ {
+  "backend": "COPT (copt_milp, key COPT)",
+  "releases_run": "8.0.5 only (~/Softwares/solvers/copt80). 7.2.5 not attempted: its licence is refused per the task.",
+  "claims": [
+   {
+    "id": "O1",
+    "verdict": "CONFIRMED",
+    "evidence": "Guide: grep over the callback chapter finds no local, global or subtree wording on cuts; copt_ug.txt:11259 only 'Cutting planes that do not violate the current LP relaxation solution are discarded by COPT.' Gadgets, Presolve=0, heuristics off: 'S1 noroot flip=false ... value=106.4 known opt 107.4 => LOST', 'S1 noroot TreeCutLevel=1 flip=false ... value=107.4 => KEPT', 'S1 RootCutRounds=1 flip=false ... => KEPT', 'flip=true ... value=106.4 => LOST'. TRUE DEFAULTS, knapsack, c'x <= floor(L) at a tree node (valid in that subtree only): 21 LOST, 3 KEPT of 24, rc=0, 20 of the LOST with status=optimal, 1 time_limit. Same instance: 'seed=3 gate=0 value=2167 ... KEPT', 'seed=3 gate=50 value=2117 ... rhs=2117 rc=0 => LOST'. vout_copt_o1.txt, vout_copt_o1d.txt.",
+    "exact_truth": "As claimed, and stronger than the survey: losing the optimum is the usual outcome at true defaults (21/24), not a settings artefact. One correction: the survey's S1b was KEPT under TreeCutLevel=1; my own non-parallel cut was LOST there ('value=106.52 ... => LOST'), so that setting does not protect."
+   },
+   {
+    "id": "O2",
+    "verdict": "CONFIRMED",
+    "evidence": "vout_copt_o2.txt, relax/nodes with a no-op RN hook: 'atsp26 default ... nodes=1872 relax=1954', 'CutLevel=0 ... nodes=7823 relax=0', 'Root=0,Tree=0 ... relax=0', 'RootRounds=0,NodeRounds=0 ... relax=0', 'TreeCutLevel=0 nodes=3554 relax=35', 'RootCutLevel=0 nodes=5847 relax=6713'. Own instances: nd CutLevel=0 30000 nodes relax=0; mkp CutLevel=0 15148 nodes relax=0. Guide copt_ug.txt:11090 'Invokes the callback when an LP-relaxation was solved', :7142 'when a new LP-relaxation solution is found'.",
+    "exact_truth": "As claimed, on three instance families. With CutLevel=0 Presolve=0 I read 13270 nodes against the survey's 58691, also relax=0; the count differs, the conclusion does not."
+   },
+   {
+    "id": "O3",
+    "verdict": "REFINED",
+    "evidence": "Own instance (multicommodity network design, not the survey's CFL), vout_copt_zeromech_1.txt: 'L plain OK value=550', 'L +0.0 WRONG status=optimal value=566 dual=566 relax=1', 'G -0.0 WRONG value=566', 'L -0.0 OK value=550', 'G +0.0 OK value=550'; heuristics off: 'L +0.0 WRONG status=infeasible'. Tiny values all OK: 1e-300, 5e-324, 1e-20, 1e-17. In the tree: 'zero_L_tree neg after=30 WRONG value=2135 nodes=17', after=100 value=2132 (vout_copt_ctrl.txt).",
+    "exact_truth": "Reproduced, with a sharper rule. Only an exact zero whose sign is wrong for the sense hurts: +0.0 in L, -0.0 in G, either sign in E (lazy equality, O4). L -0.0 and G +0.0 are harmless. Column type does not matter: binary spares fail as continuous ones do (566), against the survey's 'harmless on binary'. The search dies at once: relax=1, then the node closes, so the reported optimum is whatever incumbent exists, and infeasible when none exists. This explains why ATSP DFJ (G form, +0.0) showed nothing. A signed-division bound-propagation cause fits but is inferred. Guide lines 19397-19401 say the arrays hold 'non-zero elements', so a zero is outside the documented input."
+   },
+   {
+    "id": "O4",
+    "verdict": "CONFIRMED",
+    "evidence": "SHIPPED API, standalone, task's exact build line, no access-control flag, no hook of mine (verify_copt_lazyzero_min.cpp, vout_copt_lazyzero_min.txt): 'compact seed=1 value=550', 'plain seed=1 value=550 nodes=33 lazies=33', 'coal_bin seed=1 optimal=true value=1261.99 dual=1261.99 nodes=3 ... recomputed obj=1262 worst link violation=0', 'coal seed=1 optimal=false status_index=3 NO SOLUTION' (3 = infeasible). Rate (vout_copt_lazyzero_b.txt): x-x or 0.0*x in L form, each of 8 forms: 'runs=20 right=0 wrong_optimal=20' at 1.5x to 4.7x the optimum; many_zeros 12 false infeasible + 8 wrong; G with +0.0 20/20 right; plain 20/20 right. Textbook DFJ from a coefficient table (vout_copt_tsp_table.txt): 'filter n=25 seed=1 value=460', 'table n=25 seed=1 status_index=3 (3 = infeasible)', 5/5 seeds, and ge_table with -coef 5/5. Equality: 'eq_coal seed=1 value=3016' against 855 (vout_copt_lazyzero_eq.txt).",
+    "exact_truth": "The shipped add_lazy_constraint reaches the fault through public API on continuous and binary columns, in MIPSOL, at root and in the tree. The survey's 'did not reproduce' was NO POWER (a lazy that was barely needed). The returned point is feasible and suboptimal (coal_bin: worst link violation 0), reported optimal with a matching dual, or a false infeasible on a feasible model. Spellings that reach it: x - x, 0.0 * x, distinct_variables with a 0 coefficient, and any xsum over a coefficient table holding zeros. add_constraint is unaffected: 'compact_coal' 550, 872, 989 equal compact, 3/3."
+   },
+   {
+    "id": "O5",
+    "verdict": "CONFIRMED",
+    "evidence": "vout_copt_dup.txt, valid cut with a repeated column, one process per case: 'EXIT=139 gadgets dup_cont after=0', 'free(): invalid next size (normal) EXIT=134 nd dup_bin after=0', 'EXIT=124 nd dup_cont after=0' (15 s limit, killed at 40 s), 'EXIT=139 atsp dup_cont after=3', 'gadgets dup_bin after=0: status=optimal value=87.05' against 107.4. Controls without duplicate: nd 2107, gadgets 107.4, atsp 549. Conformance: NEG=no_fold DELAY=20 'free(): invalid next size (fast)' at C7, exit=134.",
+    "exact_truth": "As claimed, plus a fourth outcome: a wrong optimum at status=optimal (87.05 against 107.4). The survey's 'correct on the ATSP' holds at the root only: the ATSP crashes in the tree (139, 4/4 forms). Shipped lazy path with distinct_variables under -DNDEBUG: exit 124 and 134; debug builds stop on the model_base.hpp:314 assert."
+   },
+   {
+    "id": "O6",
+    "verdict": "REFINED",
+    "evidence": "One term in the tree, valid z0 <= 15 presolve cannot derive, Presolve=0 RootCutLevel=0: 'none nodes=1227 calls=868', 'one after=0 nodes=1227 calls=868 ... later calls=867 violated=853', 'one_all adds=5933 nodes=1227', against two terms 'two nodes=593 later calls=312 violated=31'. True defaults, nd: add_node=1, 5, 201, 407 nodes=445 = baseline with later violations; add_node=50 'nodes=407 later=315 later_violated=0' (took effect). Root: 'nd one add_node=0 nodes=629 later=612 later_violated=0', 'gadgets one value=102.678 base 107.4'; but 'one14 pre=0 rootcut=-1 adds=1 value=246.941' (unchanged). Rowless, vout_copt_rowless.txt: 'd>=1 ... value=2135 nodes=1 rc=-1' (baseline 2107), also d==1, b>=1, o>=1, r>=1, and TWO terms d+d2>=1; heuristics off 'd>=1 status=infeasible rc=-1'. Valid: 'd<=1', 'd>=0', 'b<=1', 'o>=0', 'f1+f2<=2', 'f1+f2==2', '.1f1+.2f2<=.3', 'f1+d>=1', 'r<=1' all rc=0 value=2107 nodes=445.",
+    "exact_truth": "Dropped in the tree usually, not always: 9 of 10 gates in my tests, one took effect. Honoured at the root usually, not always: 2 of 3 constructions, one closed the root after a single call without using it. rc=-1 is not about one term: it is any cut that presolve reduces to an infeasible constant, on rowless, dual-fixed or redundant-row columns, two terms included. Every cut that triggered it is NOT valid under the contract; 12 valid cuts on the same columns gave rc=0 and an identical path. Result of rc=-1: heuristic incumbent reported optimal (2135) or false infeasible when there is none."
+   },
+   {
+    "id": "O7",
+    "verdict": "CONFIRMED",
+    "evidence": "vout_copt_o7.txt, nodes/simplex: 'atsp26 default empty 1872/47627, shipped(N) 1872/47627, N 1872/47627, R 1872/47627, RN 1872/47627'; 'atsp26 RootCutLevel=0 empty 7823/91086, N 7823/91086, R 5847/129504, RN 5847/129504'; 'nd RootCutLevel=0 empty 8000/35801 (node limit), R 7/1127'; 'mkp default 8000/38578 in all five'. N equals empty and R equals RN in all 20 setting rows. Conformance RN against R: 0 of 48 cases differ in nodes, calls or cuts.",
+    "exact_truth": "As claimed. The exception is not universal: mkp under RootCutLevel=0 stays 8000/38578 with 7996 hook calls. 'Switches tree cuts on' is inferred from relax calls and node counts."
+   },
+   {
+    "id": "O8",
+    "verdict": "CONFIRMED",
+    "evidence": "vout_copt_o8.txt: 'RN default thr 200us ... calls=3804 overlaps=0 max_inflight=1 os_threads=27 cbdata=1 probs=1'; 'RNSI default thr 200us calls=23431 R=11134 N=11229 S=1052 I=16 overlaps=0'; 'RNSI thr16 tasks8 2ms overlaps=0 os_threads=10'; sleeping hook 'o8b sleep 1 ms, 16 threads, 8 tasks, all contexts: calls=7980 overlaps=0 max_inflight=1 os_threads=10'. Guide copt_ug.txt:5717: 'COPT does not guarrantee thread safe'.",
+    "exact_truth": "As claimed, observed only. Five spin configurations and one sleep. No vendor promise."
+   },
+   {
+    "id": "O9",
+    "verdict": "REFINED",
+    "evidence": "vout_copt_o9.txt, cut x_a + x_b <= 1 on two arcs of the optimal tour, accepted rc=0: 'n=30 seed=5 delay=0 value=571 ... final value 571 vs opt 571; final point violates the cut by 0.9999999999999998'. The other 8 accepted: 'delay=0 value=551 vs opt 549 ... violates the cut by 0', 'value=576 vs 571', 'value=471 vs 458', cut held.",
+    "exact_truth": "A final solution can violate an accepted cut (1 of 9 here), but the usual outcome is the opposite: the cut binds and the optimum is lost (8 of 9). 'Not bound' overstates it: use of a cut is neither promised nor excluded."
+   },
+   {
+    "id": "O10",
+    "verdict": "REFINED",
+    "evidence": "vout_copt_o10.txt: 'threads=1 ... MIPNODE events=15150 rc!=0:0 exact=15150 off=0 last=15150 | MIPRELAX calls=14146 rc!=0:0 | wrote beyond int:0 | GetIntAttr NodeCnt nonzero 0/29296'; default threads 'exact=16375 off=0'. vout_copt_o10b.txt, all contexts on: 'R diff[0,0] | N diff[0,0] | S diff[0,0] | I reads=7 diff[-512,0] back=1'; 'atsp26 default I diff[-1075,1] back=3'; 'atsp40 default I diff[-543,1]'.",
+    "exact_truth": "Works in MIPRELAX, MIPNODE and MIPSOL, exact at one and default threads, writes an int only. In INCUMBENT it lags and goes backwards (-512, -543, -1075). That is the survey's 'unexplained' 1024 and 543. Undocumented: the guide lists NodeCnt as an attribute only (lines 7400, 10058)."
+   }
+  ],
+  "recipe_result": "Sizes: atsp_sizes 12,16,20 (bigger fails NO BASELINE at 30 s and DFJ still closes at 1-22 nodes), limit 60, stop_size 26, first_limit 0.02, fuzz_seeds 20. Recipe with cf::sanitize, shipped callback_func for other contexts, in verify_conf_copt.cpp. DELAY=0: 49/49 PASS, 28902 native adds, 0 native errors. DELAY=20 (separator sleeps 20 calls, to reach the tree): 49/49 PASS. Add -DNORMALIZE logic: 49/49 both ways. 0 failures, so no diagnosis needed. Power by case: C1-C3 and C6 at DELAY=0 are root only (nodes=1); DELAY=20 gives 2-31 nodes on C1. C4 seed=2: calls=0 at DELAY=0, NO POWER. C5 and C10 real trees (up to 3578 and 591 nodes). C8 has power: first 'status=time_limit value=1565 dual=0', then 'optimal value=501'. C9 NO POWER: 'nodes=1 calls=1-4'; targeted replacement, default threads, 9/9 OK with os_threads up to 18 (vout_copt_threads.txt). 48 of 49 baselines equal Gurobi's in out_conf_gurobi.txt; the 49th is C8 where stop_size differs (26 here, 20 there), so a different instance.",
+  "recipe_change": "Two additions to mask MIPRELAX|MIPNODE, RELAXSOLUTION, sanitize, AddCallbackUserCut. (1) Normalize by max|coef| after sanitize. Valid cut times 1e10 or more loses the optimum: 'scale:1e10 seed=1 WRONG value=2135' against 2107, 5/5 scales 1e10-1e14 on seed 1, seeds 2 and 3 right; scale 1e9 with one extra small term WRONG 4 of 16. With normalization all 8 failing cases OK and conformance 49/49 at DELAY 0 and 20. (2) Dispatch MIPRELAX before the shipped BESTBND path (shipped code has no branch for it). Keep: fold, zero strip after folding, empty skip, hook returns 0. Do not rely on check() for rc: a throw crosses COPT frames. Same zero strip must go into the shipped lazy path (see shipped_code_findings).",
+  "controls": [
+   {
+    "removed": "zero strip",
+    "failing_case": "Targeted mcnd (N=14 extra=30 K=16 seed=1 CAPF=0.2), L-form link cut + s - s: 'zero_L recipe OK value=2107', 'zero_L neg WRONG value=2135 nodes=1'; 'zero_L_tree neg after=30 WRONG 2135', 'after=100 WRONG 2132', 'after=300 OK' (3 adds only). Conformance: DELAY=0 49/49 pass; DELAY=20 'FAIL C10 seed=7 value=407' against 408 (floored CG cuts carry zeros).",
+    "power": "has power: mcnd zero_L and C10 with DELAY=20. C7 and zero_G: no power, G form with +0.0 is harmless."
+   },
+   {
+    "removed": "folding of duplicate columns",
+    "failing_case": "Targeted 'dup neg': EXIT=124 past the 20 s limit, recipe OK 2107. Conformance NEG=no_fold: DELAY=0 49/49 pass, DELAY=20 aborts in C7 'free(): invalid next size (fast)' exit=134.",
+    "power": "has power: mcnd dup and C7 with DELAY=20. C7 at DELAY=0: no power, root only."
+   },
+   {
+    "removed": "skip of an empty cut",
+    "failing_case": "'empty neg': native_err=506 (last 3), value 2107 unchanged. C7 'add_errors=6(last 3)' still PASS.",
+    "power": "has power on the rc count only, no effect on results. Real only because a wrapper's check() would throw rc=3 through the solver frames. Redundant with the filter unless rhs < 0."
+   },
+   {
+    "removed": "violation filter",
+    "failing_case": "None fails. 'filter recipe native_adds=3935 nodes=406 calls=434', 'filter neg native_adds=196934 nodes=406 calls=434', 2.17 s against 1.77 s. Conformance 49/49 at DELAY 0 and 20. Valid satisfied cuts on rowless or fixed columns rc=0, path identical.",
+    "power": "not a trap on COPT: performance only, confirms guide line 11259."
+   },
+   {
+    "removed": "MIPNODE bit in the mask",
+    "failing_case": "None fails. 0 of 48 conformance cases differ; R = RN in all 20 O7 rows.",
+    "power": "not a trap for cuts. Keep it for the shipped _search_bound."
+   },
+   {
+    "removed": "hook returning 0",
+    "failing_case": "'hook1 recipe OK 2107', 'hook1 neg WRONG interrupted{sol=true} value=2135 dual=1554.8 nodes=1', native rc=0.",
+    "power": "has power: targeted hook1."
+   },
+   {
+    "removed": "dispatch of MIPRELAX before the shipped BESTBND path",
+    "failing_case": "Progress callback set: 'dispatch recipe progress_calls=515', 'dispatch neg progress_calls=1021', value 2107 in both.",
+    "power": "has power on the call count only, no effect on results."
+   },
+   {
+    "removed": "normalization (my proposed addition)",
+    "failing_case": "'scale:1e10 seed=1 form=L WRONG value=2135' against 2107; G form also; with NORMALIZE=1 'scale:1e10 OK nodes=365'.",
+    "power": "has power: scale:1e10 on seed 1 only (seeds 2, 3 pass)."
+   }
+  ],
+  "safe_direction": "BROKE IT, one real way: a valid cut scaled by 1e10 or more loses the optimum at default settings ('scale:1e12 seed=1 form=L WRONG status=optimal value=2135 dual=2135' against 2107, G too; 1e9 alone OK but 4 of 16 'tiny:1e9:*' WRONG 2112-2115). Normalizing fixes all 8. Coefficient size on one term alone did not hurt: x - M y with M up to 1e12 and hidden lazies, 16/16 OK.\nSOLVER FAULT, NOT THE RECIPE, must be read: COPT 8.0.5 proves false optima on plain 5x30 knapsacks with NO HOOK AND AN EMPTY SLOT. Threads=1: 5/25 and 6/25 with noisy objective; default threads 4/25. 'mkp seed=15 COPT value=11997 dual=11997 | GUROBI value=12135'. Outside MIP++: 'copt_cmd set threads 1' on vout_copt_falseopt_mkp_15.mps 'Best solution : 11996.999999906 ... Best gap : 0.0000%', copt_cmd default threads 12134.999999623, gurobi_cl 12135. Presolve=0 0/25, ConflictAnalysis=0 1/25, HeurLevel=0 3/25, CutLevel=0 5/25. Consequence: oracle fuzz on mkp at default gave 9 WRONG of 50, 6 where hook-free was right; hook-free perturbation reaches the same false values on the same instance ('seed=2 TreeCutLevel=0 value=12478', cuts gave 12478, truth 12486), cuts also repaired others (seeds 8, 15, 22), and with Presolve=0 cuts are 80/80 right, 39380 adds. So cuts move the path into or out of a COPT bug; they are not the cause. First-version fuzz WRONG on mkp were a false oracle ('a at the baseline optimum=12229.2' against claimed max 12142.36): harness trusted COPT, replaced with Gurobi truth and Gurobi rhs. No hook-free false optimum in cg (20), gi (20), nd (16).\nTRIED AND SAFE, value right against baseline: columns presolve removes, L and G, 13 forms x 2 = 26 runs 'OK' (zslack, zcont, zbin, zboth internal cancellation, fixed1, fixedneg, fixedall, dualfix, dualfix_tight, rowless, rowless_tight, everything); zslack, zcont, zbin, fixed and tight forms give nodes=504 calls=506 identical to plain. Near-duplicates 6482 adds, rhs +1e-12, +1e-9, +1e-7, times 2, 1e-10 coefficient drift, reversed. Tight at the optimum: c'x >= opt exact (792 nodes) and opt-1e-7 (368 nodes). Fold residue 5.55e-17. Relative tiny: 48/48 OK at scale 1, 1e3, 1e6. Scale 1e-9 to 1e9. One-term: dropped or honoured, never harmful. Lazy plus user cuts in one slot: 16/16 OK. Oracle fuzz with Gurobi truth at default settings: cg 74/74 (47238 adds), gi 60/60 (7412), nd 32/32 (1963). Native rc 0 on all valid cuts. Comparator note: 2 gi cases fell only in the default gap (1922.33 against 1922.5, dual 1922.5), a harness false FAIL against cf::same's 1e-6.",
+  "measurements": "Q1, is sanitize's zero strip sufficient? For the zero fault yes, on the user-cut path, if done after folding. Culprit is exact +-0.0 only: 1e-300, 5e-324, 1e-20, 1e-17, residue 5.55e-17 all OK; relative tiny down to 1e-12 and beyond OK at scale up to 1e6; COPT's own cancellation after substitution does not trip it (26 runs). -0.0 is stripped too (v != 0.0 is false). It is not sufficient for safety overall: scale >= 1e10 is a separate fault needing normalization, and the shipped lazy path has no strip at all. Q2, is the violation filter needed? Not for correctness: 49/49 without it at DELAY 0 and 20, identical nodes 406 and calls 434 with 196934 against 3935 native adds. Keep it in a shared handle for other backends; on COPT it saves calls only. Shared-suite cases with power on COPT: mcnd zero_L, C10 DELAY=20 seed 7, mcnd dup and C7 DELAY=20, hook1, scale:1e10 mcnd seed 1, S1 gadgets, knapsack subtree cut at default, table lazy TSP. No power on COPT: C1-C4 and C6 at root, C7 at DELAY=0, C9. Suite design: anchor baselines to a second solver or known optimum on knapsacks, and compare at the solver's gap or set it to 0.",
+  "shipped_code_findings": [
+   "CONFIRMED BUG, wrong results through public API. include/mippp/solvers/copt/impl/v1/copt_milp.hpp:95-97 (_add_lazy_constraint) passes zeros to AddCallbackLazyConstr; include/mippp/solvers/model_base.hpp:340-352 (_register_coalescing_entries) keeps x - x as +0.0, raw path keeps 0.0 * x. Repro: /tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_lazyzero_min.cpp and verify_copt_tsp_table.cpp, task's exact build line. h.add_lazy_constraint(xsum(all, [&](a){ return coef[a] * x(a); }) <= size - 1) with zeros in coef: false infeasible on a feasible TSP, 5/5 seeds, while the same row over only the inside arcs gives 460, 444, 489, 471, 542. Link rows with x - x: value 1.5x-4.7x the optimum at status=optimal, 20/20 per form. Fix: strip exact zeros in _add_lazy_constraint on both paths. model rows through add_constraint are unaffected (compact_coal right 3/3).",
+   "Related: a lazy folding to one zero term rejects every candidate. 'only_empty ... status=time_limit nodes=728253 lazies=6649041' to the 20 s limit, per guide line 11220 'rejected, no matter whether'. Same fix, skip if empty after the strip.",
+   "copt_milp.hpp:95 and any check() in a handle throw through COPT frames on rc != 0. NaN coefficient: 'solve threw API call failed: invalid data', caught at the solve() caller on 8.0.5, not terminate. Matches the exceptions-UB ruling; it is why add_user_cut must skip empties rather than pass rc=3 to check().",
+   "Stale comment, include/mippp/solvers/model_base.hpp:299-301: 'COPT keeps the last' holds for rows, not callbacks: shipped add_lazy_constraint(distinct_variables, ...) with a repeated column under -DNDEBUG gives exit 124 and exit 134 (vout_copt_tsp_ndebug.txt).",
+   "Comment scope, copt_milp.hpp:124 'NodeCnt reads 0 inside a callback' is true of GetIntAttr (0/29296 nonzero), not of GetCallbackInfo(cb, \"NodeCnt\", int*), exact in R, N, S. Undocumented, so a design note for the node-count ruling; INCUMBENT lags."
+  ],
+  "recommendation": "SHIP user cuts on COPT, contract global validity, as recipe: mask MIPRELAX|MIPNODE, dispatch MIPRELAX first, RELAXSOLUTION, fold, strip exact zeros, skip empty, drop satisfied (cross-backend, harmless here), normalize by max|coef|, AddCallbackUserCut, return 0. Document UB for subtree-only cuts (21/24 LOST at defaults), that hook firing depends on cut settings (CutLevel=0 means 0 calls), that use of a cut is not promised, one-term cuts mostly dropped in the tree, and that calls are serialized without a vendor promise. FIX FIRST, independent of this feature: zeros in the shipped add_lazy_constraint, a live wrong-optimum bug on COPT. Tell the maintainer separately about the hook-free false optima on knapsacks; report to the vendor with vout_copt_falseopt_mkp_15.mps.",
+  "not_verified": [
+   "COPT 7.2.5: licence refused, nothing run.",
+   "Root cause of the signed-zero fault: the sign and sense pattern fits a bound computation dividing by the zero, inferred, no source.",
+   "Root cause of the hook-free false optima: presolve-linked by settings only (Presolve=0 0/25), which reduction is unknown. Seen on the 5x30 A<=1000 family; other families showed none.",
+   "Root cause of the scale >= 1e10 failure, and why seed 1 only of 3; a tolerance effect is a guess.",
+   "Cuts at a node about to be pruned: pool cuts were added at every call with no gate, but I did not count how many such nodes got one, so low confidence in that specific item.",
+   "A cut making a node's LP infeasible while valid: not constructed deliberately.",
+   "Oracle fuzz added 0 one-term cuts (none violated); one-term evidence is from the targeted probes only.",
+   "Fuzz runs were cut by process timeouts: cg 37 seeds, gi 30, mkp default 25 of 40.",
+   "Equalities on the user-cut path with zeros: tested on lazy only (both signs wrong); no valid violated user-cut equality found.",
+   "Hook firing inside sub-MIP heuristics, compute-cluster service, and whether MIPRELAX points are always LP optimal."
+  ],
+  "probe_paths": [
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_common.hpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_conf_copt.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_lazyzero_min.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_tsp_table.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_lazyzero.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_zero.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_zeromech.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_ctrl.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_safe.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_fuzz2.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_falseopt.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_falseopt_sweep.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_falseopt_perturb.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_fire.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_scope.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_o1d.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_dup.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_oneterm.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_oneterm2.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_oneterm3.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_copt_lazycut.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_copt_falseopt_mkp_15.mps"
+  ]
+ },
+ {
+  "backend": "SCIP (scip_milp, key SCIP)",
+  "releases_run": "8.0.4 (/usr/local/lib/libscip.so.8.0.4.0), 9.2.1 (~/Softwares/solvers/scipoptsuite-9.2.1/build/lib/libscip.so.9.2.1.0), 10.1.0 (fetched_scip conda package). S1-S11, B, D and E ran on all three, except where not_verified says 9.2.1 only. Source citations are 9.2.1.",
+  "claims": [
+   {
+    "id": "S1",
+    "verdict": "REFINED",
+    "evidence": "30 local=true runs over 10 node selections (default, breadthfirst, bfsnoplunge, dfs, dfsup, dfsdown, estimate, hybridestim, restartdfs, uct) and a relaxed scope: 0 LOST on all 3 releases. 'sel=breadthfirst local=true flip=false k=10: value=107.4 KEPT sib viol/checks=511/511 sib_inLP=0'. Plain dfs has NO POWER when the row is added last (sub 0/0 sib 0/0), so dfsup and dfsdown were added. Root: 'S1root v9.2.1 sel=default flip=false: value=106.4 opt=107.4 LOST nodes=1 row_is_local_after_SCIPaddRow=false', same on all 3; sepastore.c:460.",
+    "exact_truth": "True at depth >= 1. At depth 0 SCIP rewrites the row to global inside SCIPaddRow, so a row flagged local and added at the root binds everywhere."
+   },
+   {
+    "id": "S2",
+    "verdict": "REFINED",
+    "evidence": "Mechanism confirmed on all 3 releases over 126 sibling jumps: 'S2 table: age=0&inLP=62 age=0&absent=0 age>0&inLP=0 age>0&absent=64', 'S2 outcome: inLP KEPT=0 LOST=62; absent KEPT=64 LOST=0'. Per row in one LP: 'S2ab sel=breadthfirst: A(age_at_jump=1 inLP=false) B(age_at_jump=0 inLP=true)'. Selection is not the cause: 'table sel=default k=11 flip=false age_at_jump=0 inLP_first_sib=true LOST value=111.6 nodes=85', and k=12 LOST 116.92, while k=6..10 KEPT. hybridestim and uct also LOST at k=10. solve.c:1333.",
+    "exact_truth": "local=FALSE is a validity claim and age at the jump decides, per row. 'KEPT under default selection' holds only for k <= 10 of this family; default selection LOSES at k=11 and 12. An invalid global row is unsafe under every selection."
+   },
+   {
+    "id": "S3",
+    "verdict": "CONFIRMED",
+    "evidence": "Identical on all 3: 'gadgets10 recipe: nodes=1281 hook_calls=647 distinct_nodes=642', 'eb=default: hook_calls=24 by_depth 0:6 1:2 4:16', 'mbd=0: hook_calls=14', 'freq=0: 6', 'freq=3: 335'. ATSP16 on 9.2.1: 8119, 712 (depths 0,1,4,16), 74. sepa.c:197, 425-430.",
+    "exact_truth": "Also true of the recipe itself: the hook reaches 642 of 1281 nodes on gadgets and 5269 of 9219 on atsp16."
+   },
+   {
+    "id": "S4",
+    "verdict": "REFINED",
+    "evidence": "9.2.1, k=12: no hook 5119 nodes. 'add_at=root poolfreq=-1 cut=hull: nodes=3071 first_depth_in_LP=0'. 'add_at=depth poolfreq=-1 cut=hull: nodes=3087 first_depth_in_LP=10 d1:1/0/1 d2:4/0/4 d3:8/3/5 ... d9:512/508/4' (calls/inLP/violated). Pool-only invalid at depth: 'value=116.92 opt=117.92' on 9.2.1 and 10.1.0, KEPT on 8.0.4. ONCE default selection: k=10 pool 1281 vs row 768; k=11 1557 vs 1535; k=12 3087 vs 3071. Breadth-first: pool equals no cut. Gate: solve.c:2338.",
+    "exact_truth": "The gate is depth % poolfreq == 0, which includes depth 0. A pool-only cut added at the root enters at once. One added at depth >= 1 waits for the first node at a multiple of 10, then is carried by age to other depths, shallower ones included. Inert only while the search does not reach such a node, as in the survey's k=10 tree."
+   },
+   {
+    "id": "S5",
+    "verdict": "CONFIRMED",
+    "evidence": "All 3: 'S5 sel=default local=false flip=false: value=107.31 opt=107.4 LOST nodes=642 global_ub before=3.27 next_call=1 sibling holds 256/256'; 'local=true: value=107.4 KEPT nodes=1154 global_ub 3.27 sibling holds 0/512'. Same under breadth-first. sepastore.c:1002.",
+    "exact_truth": "Exception: a one-term row infeasible for the local bounds sets the flag and the node is cut off without the global change (S1c: infeasible_flag=1, y1_ub_global=1, value KEPT)."
+   },
+   {
+    "id": "S6",
+    "verdict": "REFINED",
+    "evidence": "All 3: 'invalid depth row+pool: value=106.4 LOST runs=2 conss 29->30'; 'invalid depth row: KEPT conss 29->29 first_run2_violation=49.7'; 'hull root row+pool: nodes=769 conss 55->56 violation=0'; 'hull root row: nodes=1282 conss 55->55 violation=4.36'. Pool-only out of the LP at restart: 29->29. 'S6age: value=106.9 opt=107.4 A(inLP=true row_age=1 pool_age=0) conss 29->30'. 'S6P re-solve after raising gadget 3 by 50: value=207.4 want=207.4 cut did NOT persist'. scip_copy.c:103,109,217; cutpool.c:391.",
+    "exact_truth": "The filter is row in LP and POOL age 0 (SCIPcutGetAge), not the LP row age: a slack row with row_age=1 is still converted. 'Permanent' means until SCIPfreeTransform, so a wrapper mutator ends it. Flags are enforce=FALSE, check=FALSE, propagate=TRUE, removable=TRUE (scip_copy.c:217), so it is not a model constraint. num_constraints() stays at 55."
+   },
+   {
+    "id": "S7",
+    "verdict": "CONFIRMED",
+    "evidence": "All 3: 'S7 include at stage 10: retcode 1 late=0x... then SCIPfreeTransform retcode -8', '[sepa.c:332] ERROR: separator <late> not initialized', 'S7 mutator after: threw scip_milp: method cannot be called at this time in solution process'. Include at stage 1 is fine, including after a free (S7b retcodes 1).",
+    "exact_truth": ""
+   },
+   {
+    "id": "S8",
+    "verdict": "REFINED",
+    "evidence": "All 3: 'offset max=true offset=100 presolve=false: first(LPObjval=-556.5 SolOrigObj=656.5 own=656.5) max|orig-own|=1.14e-13'. 'offset+scale scale=0.25: first(LPObjval=-556.5 SolOrigObj=239.125 own=239.125) max|(-lp+offset)-own|=417'. 'base max=false offset=0 presolve=true: max|lp-own|=142' (9.2.1; 92 on 8.0.4, 94 on 10.1.0).",
+    "exact_truth": "LPObjval is the transformed objective in full: sign, offset, objective scale and constants presolve moved out. Flipping the sign and adding the offset does not repair it, and it is wrong after presolve even for a minimize with no offset. SCIPgetSolOrigObj(scip,nullptr) was within 1.14e-13 in every run."
+   },
+   {
+    "id": "S9",
+    "verdict": "REFINED",
+    "evidence": "All 3: 'dominance scope=true terms=1 defaults: status=infeasible global_bounds_of_dummy_at_hook=[0,-0] infeasible_flag=1'; 'misc/allowstrongdualreds: optimal 107.4 [0,1]'; 'misc/allowweakdualreds: infeasible'; 'defaults no-dualfix: optimal 107.4 [0,1]'. Default settings, gadgets: NO POWER (entries=0). 'S9b atsp14 at default settings, dummy>=1=true defaults: status=optimal value=754 nodes=1 infeas=1' against 365 without the cut.",
+    "exact_truth": "status=infeasible only when no incumbent exists. With a heuristic incumbent the result is status=optimal with a wrong value (754 vs 365) at default settings. Disabling propagating/dualfix alone cures it, which names the propagator. dummy>=1 cuts off feasible points, so this is outside the proposed contract: a documentation item, not a recipe defect."
+   },
+   {
+    "id": "S10",
+    "verdict": "CONFIRMED",
+    "evidence": "Nodes, lpiter and runs identical across no plugin (twice), dormant and no-op hook at freq=1, on all 3 releases. 9.2.1: 'atsp16s2 dormant: value=372 nodes=9219 lpiter=90834 runs=2', noop entries=8119; mkp40x5s2 995/4790; mkp40x5s3 71/765/runs=3; cg35x15s1 125/1215/runs=2; mkp60x5s1 1104/5997/runs=2. gadgets8 at default settings closes at the root, entries=0: NO POWER.",
+    "exact_truth": "Stronger than claimed: a live no-op hook also leaves the path identical, on 5 instances with power."
+   },
+   {
+    "id": "S11",
+    "verdict": "CONFIRMED",
+    "evidence": "All 3: 's11 plain: exit 139', 's11 copy: exit 0 destroyed cleanly', 's11 nosolve: exit 0'. Analogue for this recipe: 'SEPAEXITSOL at stage 11: _scip_vars[0]=0x0', no crash because only read. scip_milp.hpp:100-110. A first 10.1.0 abort was my own wrong callback signatures, fixed before these runs.",
+    "exact_truth": "It needs a plugin reading _scip_vars during SCIP->free. The recipe's separator has no exit or lock callback, so it is exposed only if one is added. An own pointer copy is a sufficient cure on all 3."
+   }
+  ],
+  "recipe_result": "verify_conf_scip: 49/49 PASS on 8.0.4, 9.2.1, 10.1.0 with atsp_sizes={12,16,18}, seeds 1-3, limit=60, stop_size=20, first_limit=0.02, fuzz_seeds=20. Deep mode CF_DEEP=1 (no cut at the root), sizes {12,14,16}, limit=90: 49/49 on all three. No recipe or solver failure.\nPower, 9.2.1 plain mode: C1-C4, C6, C7, C9 all close at the root (nodes=1, 0 deep rows), low power. C5 2245 deep rows, 2 cases restart with cuts. C10 1045 deep rows, 19 cases restart with cuts. C8 first solve time_limit on all three (stage 5 under load), then optimal 444.\nDeep mode gives C1 66, C2 17, C3 12, C7 9 deep rows; C4, C6, C8, C9 add 0 rows there. C9 has no power: SCIPsolve is single threaded.\nHarness failures, all diagnosed: (1) FAIL 'C1 n=18 seed=2 NO BASELINE' at limit=30 in the controls and at limit=60 under load 23-33 in the hardened runs: machine, the hook never ran. (2) Segfault in C8 in the first control runs: my own line() called SCIPgetNPoolCuts after a stop in presolve (stage < 9, pool null), fixed. Stress of 80 stop points with and without hook: 0 crashes. (3) S11 callback signatures wrong in my probe, fixed.",
+  "recipe_change": "Replace sanitize's `v != 0.0` on SCIP with a hardening step before SCIPaddRow: fold duplicates; scale so max|a| = 1; move every term with |a| <= 1e-9 to the side at its worst global bound; skip the cut if that bound is infinite or the cut is an equality; then test violation on the scaled row. Reason: var.c:14312 drops such terms without moving the side, and rows with max|a| >= 1e9 lose the optimum because cuts bypass presolve's scaling. Executed as VERIFY_DROP=harden: conformance 49/49 on 8.0.4, 48/49 on 9.2.1 and 10.1.0 (the one failure is NO BASELINE); 0 FAILS on 2 variants x 130 fuzz models per release; S=1e10 and 1e12 same as baseline on all 3; TINY2 106 kept on 9.2.1 and 10.1.0; fuzz seed 61 159 -> 158 on 9.2.1.\nEverything else in the recipe stands. Optional: the >1-term pool guard can go (cutpool.c:946 already turns a one-term pool row into a bound change and deletes it).",
+  "controls": [
+   {
+    "removed": "expbackoff=1 (default 4)",
+    "failing_case": "Conformance 48/49, only NO BASELINE. S3 firing table: 24 vs 647 on gadgets, 712 vs 8119 on atsp16, no calls at depth 2.",
+    "power": "no power in conformance; has power in S3 firing table"
+   },
+   {
+    "removed": "maxbounddist=1 (0)",
+    "failing_case": "Conformance 48/49. S3: 14 vs 647, 74 vs 8119.",
+    "power": "no power in conformance; has power in S3 firing table"
+   },
+   {
+    "removed": "freq=1 (0)",
+    "failing_case": "Conformance 48/49. S3: 6 vs 647, root only.",
+    "power": "no power in conformance; has power in S3 firing table"
+   },
+   {
+    "removed": "priority 1000000 (-1000000)",
+    "failing_case": "None: 647=647, 8119=8119, conformance calls 7389 vs 7390. The skip at solve.c:1655-1672 needs enough cuts found and was never reached.",
+    "power": "no power, not a trap in anything run"
+   },
+   {
+    "removed": "SCIP_LPSOLSTAT_OPTIMAL filter",
+    "failing_case": "None: not_optimal=0 in every run; LP-ray models give entries=0 with and without the filter (solve.c:2625 requires !unbounded).",
+    "power": "no power, trap unobserved; keep as the sepa_gomory idiom"
+   },
+   {
+    "removed": "sanitize, whole",
+    "failing_case": "Conformance 48/49, rows 3630 vs 3607, no loop.",
+    "power": "not a trap on SCIP: merge, zero skip and empties are handled"
+   },
+   {
+    "removed": "drop satisfied cuts",
+    "failing_case": "Conformance 48/49, rows 3622 vs 3607.",
+    "power": "not a trap on SCIP"
+   },
+   {
+    "removed": "SCIPaddPoolCut (row alone)",
+    "failing_case": "Conformance 48/49, AUTO FAILS=0. S6 forced restart: nodes 1282 vs 769, first_run2_violation 4.36 vs 0, conss 55->55 vs 55->56.",
+    "power": "no power in conformance; has power in S6 forced restart"
+   },
+   {
+    "removed": "SCIPaddRow (pool alone)",
+    "failing_case": "Conformance 48/49, applied 204 vs 1636. MEASURE gadgets12 4611 vs 33 nodes, atsp16 140 vs 12; ONCE k=10 1281 vs 768.",
+    "power": "no power in conformance; has power in node counts"
+   },
+   {
+    "removed": "one-term pool guard",
+    "failing_case": "Conformance 48/49; fuzz no-oneterm-guard FAILS=0 with 19 one-term rows on 9.2.1, and also 0 on 8.0.4 and 10.1.0. cutpool.c:946.",
+    "power": "not a trap"
+   },
+   {
+    "removed": "local=FALSE (local=TRUE, still pooled)",
+    "failing_case": "Conformance 48/49 because the row entered before the pool refused, but add_errors=3129 and 9387 ERROR lines despite verblevel 0 (cutpool.c:752). Root adds succeed: SCIP has already made them global.",
+    "power": "has power only on add_errors and stderr"
+   },
+   {
+    "removed": "local=FALSE (local=TRUE, no pool)",
+    "failing_case": "Conformance 48/49. S5: sibling holds 0/512 vs 256/256, nodes 1154 vs 642; S6: conss 29->29.",
+    "power": "no power in conformance; has power in scope tracker"
+   },
+   {
+    "removed": "force=FALSE (TRUE)",
+    "failing_case": "Conformance 48/49, applied 4006 vs 1636, nodes 5437 vs 5023; fuzz force FAILS=0.",
+    "power": "not a trap"
+   },
+   {
+    "removed": "removable=TRUE (FALSE)",
+    "failing_case": "Conformance 48/49, nodes 4947 vs 5023.",
+    "power": "not a trap"
+   },
+   {
+    "removed": "modifiable=FALSE (TRUE)",
+    "failing_case": "Conformance 48/49, add_errors=3480, 10440 ERROR lines (cutpool.c:747).",
+    "power": "has power only on add_errors and stderr"
+   },
+   {
+    "removed": "infeasible -> SCIP_CUTOFF (returns SEPARATED)",
+    "failing_case": "None: 'q <= 0 at q=1 cutoff_result=false: value=6 KEPT nodes=3 infeas=1'. Conformance 48/49. The sepastore adds infeasible rows anyway, comment after sepastore.c:471.",
+    "power": "not a trap; the flag path was exercised"
+   },
+   {
+    "removed": "valid *result (leaves 0)",
+    "failing_case": "47 real FAILs, e.g. 'C1 n=12 seed=1: status=unknown value=throws'. sepa.c:500 SCIP_INVALIDRESULT.",
+    "power": "has power in nearly every conformance case"
+   },
+   {
+    "removed": "SCIPreleaseRow",
+    "failing_case": "Conformance 48/49, no retcode, no stderr. Leak size not measured.",
+    "power": "no power in anything run; keep, leak only"
+   },
+   {
+    "removed": "dormant include in the constructor (include in attach)",
+    "failing_case": "Conformance 48/49: C8's first attach precedes the first solve. LATE: 'include in attach: late include at stage 10 retcode 1 ... mutator threw=true', recipe 'mutator threw=false, hook_calls=6, value=97.36'. S7 too.",
+    "power": "no power in conformance; has power in LATE, a new case: solve, attach, mutate, solve"
+   },
+   {
+    "removed": "original pointers on write (SCIPgetVars by position)",
+    "failing_case": "FAIL C3 seed=1: value=354 vs 343, nodes 21909 vs 5023 across the set.",
+    "power": "has power in C3 seed=1; only 1 of 49 cases catches it"
+   },
+   {
+    "removed": "original pointers on read (SCIPgetVars by position)",
+    "failing_case": "Conformance 48/49 only because these separators emit cuts valid at any point. POINT with 10 fixed columns first: bad_points=19, rows 51 vs 1507, recipe bad_points=0.",
+    "power": "no power in conformance; has power in point check"
+   },
+   {
+    "removed": "freq written in solve()",
+    "failing_case": "After SCIPsetSeparating(OFF): SETSEP entries=0 vs 168.",
+    "power": "has power in SETSEP"
+   },
+   {
+    "removed": "thread_local scoped restore",
+    "failing_case": "TLCONTROL: nested solve inside the hook, child killed by signal 11. Recipe: 'tl restored ok=6 bad=0 tl_cur_now=0x0', both optima right, on a worker thread, all 3 releases.",
+    "power": "has power in nested solve"
+   }
+  ],
+  "safe_direction": "The contract does NOT hold as stated: three valid-cut breaks, all numerics. All are cured by the hardening step.\nBROKE:\n(1) Big coefficients, default settings. Valid covers x S: BIGSWEEP S=1e9 lost 10/40 (8.0.4), 12/40 (9.2.1), 13/40 (10.1.0); S<=1e8 lost 0/40 at 1e6, 1e7, 1e8 on every release. 'seed=2 S=1e+10 plain: status=optimal value=1884 base=1891'; 'S=1e+18 status=time_limit'. Row, row+pool, force and removable=F all lost. Turning off conflict analysis, restarts, redcost, propagation, separators or presolve did not cure it on seed=2; heuristics off cured only S=1e12. Scope trace 9.2.1: 'x* in the box of a pruned node: LP solstat=4 ... cutoffbound=-1744.9999 x*(trans)=-1791', 'rows x* violates: 0', so the LP's objective limit is false. BIGMODEL: the same rows as model constraints survive with presolve (1891) and lose without it (1721), so cuts lose presolve's rescaling. Normalizing to max|a|=1: same as baseline at S=1e10 and 1e12.\n(2) Tiny term, default settings. x1+..+x5 - e w <= 2 is valid; for e<=1e-9 var.c:14312 drops the term and keeps the side: 'TINY2 v9.2.1 e=1e-09 hook=true: status=optimal value=103' vs 106 without the hook, same on 10.1.0; e=2e-9 kept. 8.0.4: baseline itself 103 at U>=1.5e9, no power.\n(3) All terms tiny: 'TINYINF v9.2.1 e=1e-10 hook=true presolve=false: status=infeasible' on a feasible model, optimal at e>=2e-9 or hardened. With presolve on: offers=0, no power.\n(4) One fuzz failure: 'off,p=.3,scaled1e-7..1e9 seed=61 status=optimal value=159 brute=158' on 9.2.1 only, 8.0.4 and 10.1.0 give 158; hardened 158.\nDID NOT BREAK:\nBrute-force fuzz: every cut sided on the enumerated feasible set, so exactly tight. 13 variants on 9.2.1 seeds 9..130, 8.0.4 and 10.1.0 seeds 1..60; FAILS=0 apart from (4), base_mismatch=0. Includes 5624 rows on presolve-removed columns in one variant, 155-552 objective cuts tight at every optimum, near duplicates, one-term rows, deep-only, infeas_flags up to 12.\nOne-term (52 KEPT per release: y<=3, 1e12 y<=3e12, on aggregated and complement columns, q<=0 at q=1 with infeasible_flag=1, valid both ways of returning). Near duplicates (81 runs per release, delta 0 to 1e-4, 3 forms: 0 different). Fixed columns only (20 per release, sanitize on and off, rows of length 0: all optimal). Loose columns (6 per release). Valid equalities (18, 9.2.1). Dynamic range 1e-3..1e-12 inside one row (36, 9.2.1). Stop and resume (160 runs, 0 crashes, 9.2.1). Exception path: solve threw 'unspecified error', stage=9, re-solve optimal, mutator fine, all 3.",
+  "measurements": "Totals over randomseedshift 0,1,2, nodes/time. All runs optimal with the baseline value. 9.2.1:\natsp16 deep DFJ: none 27085/34.8s, row 12/1.55, row+pool 12/1.57, row F 12/1.54, r+p F 12/1.54, pool 140/2.05.\nmkp40x5s2: none 2309/2.86, row 2391/3.59, row+pool 2407/4.06, row F 2407/3.24, r+p F 2577/3.40, pool 2339/3.35.\nmkp40x5s3 (runs up to 3): none 225, row 241, row+pool 241, row F 174, r+p F 174, pool 225 (applied 0).\ngadgets12 hull: none 15357, row 33, row+pool 33, F 33, pool 4611.\nmkp60x5s1 (runs up to 2): none 2846/2.64, row 2279/2.44, row+pool 2373/2.44, row F 2464/2.21, r+p F 2404/2.56, pool 2993/2.70.\ncg35x15s1: rows=0, NO POWER. 8.0.4 and 10.1.0 show the same picture.\nRow vs row+pool: no consistent node or time difference, final correctness equal. Pool earns its place only across a restart: S6 forced restart 769 vs 1282 nodes; a separator re-offering its cuts hides even that. Keep row+pool: no measured cost.\nforce F vs T: forced applies every row (1404 -> 4490 on mkp40x5s2), nodes move both ways with no consistent sign (mkp40s3 174 vs 241 better; mkp40s2 and mkp60s1 mostly worse), no correctness effect, and it does not cure big coefficients. Keep force=FALSE.\nReal automatic restarts: sound in everything run. AUTO 9.2.1 row+pool: mkp40x5 32/40 restart, 18048 hook calls and 22087 rows after restart; cg35x15 37/40, 7860 calls, 4 rows; FAILS=0, bad_points=0; row alone also FAILS=0. AUTO2 natural: 18/48 restart, 0-2 user cuts converted, FAILS=0. Restart thresholds lowered (labelled induced, still SCIP's decision): 23 restarts, converted 214 in 16 models (8.0.4), 299 in 14 (9.2.1), 298 in 15 (10.1.0), FAILS=0, bad_points=0. Natural restarts almost never convert user cuts here.",
+  "shipped_code_findings": [
+   "No user-cut code ships yet: docs/reference/concepts.md:191 and docs/algorithms/branch-and-cut.md:108 say no backend implements it, which is true.",
+   "include/mippp/solvers/scip/impl/v1/scip_milp.hpp:100-110 (latent): ~scip_milp nulls _scip_vars through releaseVar before SCIP->free, so a plugin callback fired during the free reads null. Repro: /tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_scip s11 plain, a lock callback reading the vector, exit 139 on 8.0.4, 9.2.1 and 10.1.0. No shipped plugin reads it. Must be handled before a lazy-constraint handler lands.",
+   "Coexistence ruling fails for SCIP 8.0.4 + 9.2.1 in one process, independent of user cuts: verify_scip_safe2 coexist <9.2.1> <8.0.4>, plain solves with no hook, child killed by signal 11 in both orders; a nested variant printed '[lp.c:9366] ERROR: The infinity value of the LP solver has to be at least as large as the one of SCIP' first. 9.2.1 + 10.1.0 sequential: both solve, 87.8. Not root-caused; related to the known SoPlex same-process conflict is a guess."
+  ],
+  "recommendation": "SHIP with the amendment. Recipe: dormant separator in the constructor; freq, expbackoff=1, maxbounddist=1 and priority set as specified, with freq rewritten in solve(); thread_local with scoped restore; original pointers for read and write; local=FALSE, modifiable=FALSE, removable=TRUE, force=FALSE; SCIPaddRow then SCIPaddPoolCut; SCIPreleaseRow; a valid *result on every path; try/catch returning SCIP_ERROR. Add the hardening step.\nContract: 'valid for every integer feasible point' is the right wording, and the wrapper must normalize or else document a coefficient limit. Document that dominance cuts are outside it (S9 gives a wrong optimum with status=optimal), and that an invalid global cut can bind anywhere under any node selection.\nShared-suite cases with power: scaled valid covers S=1e9 (lost 10-13 of 40 unhardened); tiny-term TINY2; result control; C3 with write-by-position; firing by depth (S3); POINT bad_points; LATE (solve, attach, mutate, solve); nested solve; C8 with a real stop; forced restart with first_run2_violation; brute-force fuzz. Add a deep-only variant of C1-C7, since DFJ closes at the root on SCIP.",
+  "not_verified": [
+   "Conflict leak from a local row: S1c had infeasible_flag=1 but conflicts_found=0 in every variant, so conflict analysis produced nothing: NO POWER. Source only: scip_cut.c:331 passes SCIPgetDepth as valid depth.",
+   "SCIP_LPSOLSTAT_UNBOUNDEDRAY at hook entry: never reached, entries=0 on LP-ray models.",
+   "Why the LP reports a false objective limit on big rows: traced to LP solstat=4 under scope on 9.2.1 only, not inside SoPlex. At default settings pruned_with_x*=0, so that path is not traced.",
+   "9.2.1 only: TINYINF, EQCUT, RANGE, ONCE, LATE, POINT, SETSEP, TLCONTROL, BIGTRACE, stop stress, the 23 conformance controls, AUTO. AUTO2, measures, fuzz and the rest ran on all 3.",
+   "TINY2 on 8.0.4: its baseline is itself wrong at U>=1.5e9, so no power there.",
+   "Presolve-on variants of TINYINF: offers=0, no power; wrong status shown with presolve off only.",
+   "Leak size without SCIPreleaseRow.",
+   "Valid cuts combined with symmetry handling beyond default usesymmetry in the fuzz; sub-SCIP copies of pool cuts not traced.",
+   "An assert-enabled SCIP build, SCIPsolveConcurrent, sources for 8.0.4 and 10.1.0.",
+   "Natural restarts converted at most 2 user cuts; the large conversion counts come from lowered restart thresholds.",
+   "No exception crossed a C frame in any run; crossing itself was never tried, by rule."
+  ],
+  "probe_paths": [
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_scip_native.hpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_conf_scip.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_scip.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_scip_safe.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_scip_libs.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_scip_conf_9.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_scip_status.txt"
+  ]
+ },
+ {
+  "backend": "GLPK (glpk_milp)",
+  "releases_run": "System 5.0 for everything. Conda 4.59, 4.60, 4.61, 4.62, 4.63, 4.65 and 5.0, pinned with MIPPP_GLPK_LIBRARY: recipe conformance, pinned tests on the recipe path, L3, L6, L9. Recipe with all guards: 5.0, 4.65, 4.63, 4.59. Scale sweep: 5.0 plus 8 seeds on 4.59, 4.63, 4.65. L1, L2, L7, L8, L10 repeated on 4.59, 4.63, 4.65. The npp route exists only on 4.65 and 5.0 (nm: 0 glp_npp symbols on 4.63, 7 on 4.65) and was measured on 5.0 only.",
+  "claims": [
+   {
+    "id": "L1",
+    "verdict": "CONFIRMED",
+    "evidence": "Oracle-backed binary models, cut c'x <= best value in the node's box, seeds 1-6: 111 globally invalid cuts offered, optimum KEPT 6/6, off-path rows 0. Quote: 'L1 seed=5 gens=false heur=false root_cut=false optimal{sol=true} value=687 opt=687 KEPT ... globally invalid among them=30 | named rows seen on the adder's path=275 (own node 26, descendants 249) off the path=0'. Root: 'root cut seen at 67/67 deeper events'; 4.59 and 4.63 'off the path=0 | root cut seen at 71/71'. glpk05.tex:374-377: 'Since these constraints are added to the current subproblem, they may be globally as well as locally valid.' glpk05.tex:1038-1039: 'Globally valid constraints could be saved and then re-used for other subproblems, but currently such feature is not implemented.'",
+    "exact_truth": ""
+   },
+   {
+    "id": "L2",
+    "verdict": "REFINED",
+    "evidence": "Abort: control C2 '[glpk says] glp_set_mat_row: i = 1; ind[10] = 147; column index out of range', exit 134. Silent loss at DEFAULT settings with an ordinary cover separator: 'L2 seed=1 k=3 presolve=on heur=true gens=true restricted=true: optimal{sol=true} value=686 opt=704 => LOST', 6/10 seeds LOST; heuristics and generators off 7/10; same model with presolve off 10/10 KEPT. The survey's own cut: 'L2g cut=survey gens=false flip=false heur=false presolve=on: value=99.39999999999999 opt=107.39999999999999 => LOST', but 'L2g cut=survey gens=true flip=false heur=true presolve=on: value=107.4 ... KEPT'.",
+    "exact_truth": "True, and worse than stated. The quoted 99.4 needs heuristics off and that one cut survives default settings, but a normal cover separator loses the optimum at default settings with status optimal in 6 of 10 seeds."
+   },
+   {
+    "id": "L3",
+    "verdict": "REFINED",
+    "evidence": "Single generator on, direct row at the root, 5.0: gmi 'glp_gmi_gen: basis factorization does not exist' exit 134; mir and cov each 'glp_transform_row: basis factorization does not exist' exit 134; 'L3 gmi=0 mir=0 cov=0 clq=1 minlevel=0 survived: optimal{sol=true} value=658 opt=658'. All generators default: abort on all 7 releases. Direct rows only at level 1: first row survives ('added a direct row at level 1 after 9 fires'), the abort comes when generate_cuts runs next ('after 10 fires').",
+    "exact_truth": "Aborts with gmi, mir or cov on, clq alone is safe. It fires only when generate_cuts runs (glpios03.c: !root_done || pred_p == 0), so always at the root and on the next backtrack below it."
+   },
+   {
+    "id": "L4",
+    "verdict": "REFINED",
+    "evidence": "'L4 count offered=200 (pool size 200) at level 0: landed=90', level 1, 2, 3 'landed=10' (same 90/10 on 4.59, 4.63, 4.65); offered 80 at root landed 80, offered 8 at level 1 landed 8. Threshold: 'raw violation 0.0173 ... normalized 0.00999 landed=0', 'raw violation 0.0174 ... normalized 0.01005 landed=1'. Objective x1000: 'raw violation 1e-04 ... normalized 0.00006 landed=1'. Coefficient x100: normalized 0.00577 landed=0, 0.01005 landed=1. Parallelism: 'cosine=0.9045: landed 1 of 2', 'cosine=0.8893: landed 2 of 2'. Rule at glpios11.c: 'if (info[k].deg < 0.01 && info[k].eff < 0.01) continue;'.",
+    "exact_truth": "90/10 and cosine 0.90 hold. A cut drops only when normalized residual AND objective degradation are both below 0.01, so the threshold depends on the objective scale. The survey's '0.01 kept' is instance-specific: on my cycle 0.01 is dropped."
+   },
+   {
+    "id": "L5",
+    "verdict": "REFINED",
+    "evidence": "56 instances, 10 s, 7 families (24 synthetic, 32 MIPLIB). ATSP, MKP and GAP: both-closed node ratio 1.00 (identical iterations). UFL: factor 1 1.0x, factor 10 15x and 23x, factor 100 189x (9 to 1704). Fixed-charge network: 1 to 957 nodes, and 'fcnd:15:1:5 on optimal 37 nodes 0.13s 962 | off time_limit 2765 nodes 10s 1062'. Lot sizing: 1.7x to 3.1x, one not closed. Real, 26 both closed: nodes gm 1.06, it gm 1.04, secs gm 1.08; p0548 x24.7, egout x8.3, qnet1 x3.5; fixnet6 'on optimal 154 nodes 2.72s 3983 | off time_limit 10s 9541'. Off is better on p0201 x0.32, p0282 x0.41, gesa2 x0.37, dcmulti x0.44, vpm1 x0.2. No optimal values disagree beyond the gap.",
+    "exact_truth": "'Costs nothing on ATSP and knapsacks' holds, also on GAP. The penalty range is 1x to 957x and beyond on big-M models, and it is not limited to them: real models show both tails."
+   },
+   {
+    "id": "L6",
+    "verdict": "CONFIRMED",
+    "evidence": "One process per case, 7 releases, exit 134 each: duplicate column, index out of range, index 0, negative length, equality in the pool, also GLP_DB and GLP_FR in the pool; direct duplicate and out of range. 4.59 'glp_analyze_row: type = 5; invalid parameter', 5.0 'Assertion failed: cut != cut'. 'L6_hook: glp_free_env returns 0' and it frees every problem object, so the model pointer dangles; glpk06.tex:324-327 'the application program must call the routine glp_free_env'. Extra: infinite coefficient aborts on all 7 ('Assertion failed: teta >= 0.0'), NaN rhs survives.",
+    "exact_truth": ""
+   },
+   {
+    "id": "L7",
+    "verdict": "CONFIRMED",
+    "evidence": "'L7 infeasible after: native ret=0xa stopped_at_root=true glp_mip_status=5 status=infeasible{sol=false}'. The path the survey left unverified, root LP at its time limit after an earlier solve, without the fix: 'L7 time after: native ret=0x9 stopped_at_root=true glp_mip_status=5 status=time_limit{sol=true} get_solution_value()=505', same on 4.59, 4.63, 4.65; with the fix 'status=time_limit{sol=false}'. get_solution_value still reads 505 after the fix, so has_sol is the only protection.",
+    "exact_truth": ""
+   },
+   {
+    "id": "L8",
+    "verdict": "CONFIRMED",
+    "evidence": "'L8 seed=1 presolve_off=true: optimal{sol=true} nodes=127 fires=101 distinct ids=64 id seen with another level or parent 27 times; node 50 first level 11 parent 48, later level 3 parent 5', identical with presolve on and on 4.59, 4.63, 4.65. Cause: free-slot list at glpios01.c:578-600. Manual glpk05.tex:256: 'assigned a distinct positive integer'.",
+    "exact_truth": ""
+   },
+   {
+    "id": "L9",
+    "verdict": "CONFIRMED",
+    "evidence": "4.59 to 4.63: 'glp_transform_row: val[2] = 0; zero coefficient not allowed', exit 134. 4.65 and 5.0: exit 0, 'zero_coef_only_pool survived: value=505 opt=505'. The zero_coef_pool value 499 on those releases is my test cut being invalid, not GLPK.",
+    "exact_truth": ""
+   },
+   {
+    "id": "L10",
+    "verdict": "CONFIRMED",
+    "evidence": "24 comparisons on 5.0 (4 families, 3 seeds, presolve on and off) and 6 on 4.59, plus mkp on 4.63 and 4.65, no cb_func against no-op against reader: all 'IDENTICAL', e.g. 'L10 atsp seed=2 presolve_off=false: none [it=88396 closed=6997] noop [it=88396 closed=6997] reader [it=88396 closed=6997]'. Fingerprint is iterations, closed nodes, status and value. My mirror M equals the real glpk_milp: 9 of 9 'SAME'. Trap found in my own reader: glp_ios_pool_size outside ICUTGEN aborts ('operation not allowed').",
+    "exact_truth": ""
+   },
+   {
+    "id": "X1 survey: pool has 'no endless node'",
+    "verdict": "REFUTED",
+    "evidence": "Valid cut scaled by 1e-6: 'R tiny_viol seed=4 p=1e-06: time_limit{sol=true} value=569 opt=589 => WRONG-STATUS | fired=1484 offered=1448 passed=1448 maxrows=1460 nodes=1'; 7/15 seeds. Objective x1e6, unit cuts: 'R obj_viol seed=4 p=1e-07: time_limit ... passed=1542 maxrows=1551 nodes=0'; 5/10 seeds.",
+    "exact_truth": "The pool spins until the time limit when a cut is accepted through degradation while its raw violation sits under the LP tolerance, or when a separator keeps finding tiny new cuts. GLPK has no round limit on user cuts."
+   },
+   {
+    "id": "X2 survey: 0 columns aborts on 4.65 and 5.0",
+    "verdict": "CONFIRMED",
+    "evidence": "Empty shortcut removed: 4.65 and 5.0 exit 134 'glp_add_cols: ncs = 0; invalid number of columns'; 4.59 and 4.63 exit 0 with 175 passed. Tests that hit it: LpModelTest.solve_empty_*.",
+    "exact_truth": ""
+   },
+   {
+    "id": "X3 survey: C3/E3 passes with presolve on by accident",
+    "verdict": "CONFIRMED",
+    "evidence": "Presolve control, forked per case: 3 C2 and 2 C4 abort, C3 passes 3/3, C4 seed 2 has calls=0.",
+    "exact_truth": ""
+   },
+   {
+    "id": "X4 survey: npp route as a way to keep the reductions",
+    "verdict": "REFINED",
+    "evidence": "npp over off: gm nodes 1.08, UFL 1.00, fcnd 1.00, fixnet6 still not closed. Source: npp5.c:729 npp_process_prob is all glp_npp_preprocess1 has (api/npp.c:60); npp_binarize_prob:734, npp_hidden_packing:755, npp_hidden_covering:781, npp_reduce_ineq_coef:795 are unreachable. hard=1: 'fcnd:15:1:5 time_limit', 'ufl:20:40:3:100 nodes=1704', same as off; only p0548 helps (67, off 371, on 15).",
+    "exact_truth": "The route runs but does not recover the big-M benefit, which is the only reason to want it. See measurements for lost cuts and missing column values."
+   }
+  ],
+  "recipe_result": "Recipe as given: 49/49 on all 7 releases. Sizes: atsp_sizes 12,14,16; stop_size 26; first_limit 0.02; fuzz_seeds 20; limit 60; one_thread a no-op (no thread field). Same sizes with the extra guards on 5.0, 4.65, 4.63, 4.59 (limit 120, first_limit 0.03): 49/49, and on 5.0 identical work with and without guards: 10014 nodes, 3784 cuts; the call count differs by 1 (13325 vs 13324). Power: C5 and C10 are the real tree tests (C10 at fuzz 40: 13912 nodes, 18789 calls, 1917 cuts). C1 to C4 and C6 to C9 mostly close near the root (C1 at sizes 14,16,18: 20 nodes in 9 cases). C4 seed 2 has calls=0. Larger run, atsp 14,16,18, stop 40, first 0.06, fuzz 40: 67/69. Both failures diagnosed harness or instance, not recipe or solver: (1) C1 n=18 seed=2 'NO BASELINE: time_limit solve=120.02s', instance too hard without cuts. (2) C8 'baseline 2243 ... then status=optimal value=569': the baseline hit its time limit and C8 never checks the baseline's status, unlike compare(). Other harness defects: C7's name promises an equality but holds no 'E' cut; C8 at n=26/0.02 s cannot show that the first stop came after a cut, so a targeted case replaces it: stopped after 4 calls, 20 cuts offered, 111 extra rows, 'interrupted{sol=false} ret=0xd', rows back to 872, re-solve SAME value, nodes 263, it 1643 as a fresh solve. C9 has no power on GLPK.",
+  "recipe_change": "Keep the recipe and add, in order: (1) reject non-finite coefficients and rhs (infinity aborts on all 7). (2) Fold duplicates, strip zeros, split equalities, as proposed. (3) NEW: divide the cut by max |a| BEFORE any violation test. Without it valid cuts abort or lose the optimum from coefficients near 1e6 (see safe_direction). (4) NEW: drop a normalized violation <= 1e-6. Cost, stated: conditional big-M cuts with K >= 1e8 are silently dropped (bigm_cut p>=1e8 passed=0), allowed by 'may apply nowhere'. (5) NEW: stall guard: offer nothing after k rounds at one node with LP objective change < 1e-4(1+|obj|); k=3, 5 and 10 all gave 40/40 where k=0 hits the limit in 17/40; I would use k=5. (6) Wrapper path: n == 0 keeps presolve on; root LP status mapped as in preprocess_and_solve_mip; a failed root reports has_sol=false whatever glp_mip_status says; subtract root time from tm_lim; restore presolve and tm_lim. Add to glpk_api: glp_ios_add_row, glp_scale_prob, glp_adv_basis, reason constants. Also worth a bounds check on the column id: a foreign variable is an unrecoverable abort, which meets the 'severe' exception to misuse-is-UB. Pool at ICUTGEN stays the right mode.",
+  "controls": [
+   {
+    "removed": "presolve off",
+    "failing_case": "C2 3/3 and C4 2/3 abort 'column index out of range' on 5.0, 4.59, 4.63. Silent: shifted cover family LOST 6/10 at default. C1 and C3 pass.",
+    "power": "has power: C2, C4, shifted covers. C1 and C3 have none."
+   },
+   {
+    "removed": "root LP",
+    "failing_case": "All 49 'failed{sol=false}', 'glp_intopt: optimal basis to initial LP relaxation not provided'",
+    "power": "has power: every case"
+   },
+   {
+    "removed": "pool, direct rows at ICUTGEN instead",
+    "failing_case": "48 of 49 abort 'glp_gmi_gen: basis factorization does not exist' on 5.0, 4.59, 4.63; only C4 seed 2 passes, it never fires",
+    "power": "has power: any case with a cut"
+   },
+   {
+    "removed": "pool, direct rows at IROWGEN instead",
+    "failing_case": "None, 49/49 on 5.0",
+    "power": "no power: a viable alternative, not a trap"
+   },
+   {
+    "removed": "fold duplicates",
+    "failing_case": "C7 aborts 'duplicate column indices not allowed' on 5.0, 4.59, 4.63",
+    "power": "has power: C7 only"
+   },
+   {
+    "removed": "strip zeros",
+    "failing_case": "C7 and C10 abort 'zero coefficient not allowed' on 4.59 and 4.63; 49/49 on 4.65 and 5.0",
+    "power": "has power on 4.59 to 4.63 only (4.60 to 4.62 by the L9 matrix)"
+   },
+   {
+    "removed": "split equalities",
+    "failing_case": "cf::run 49/49. Targeted hidden_eq_nosplit (2p+2q<=3, >=1, p+q==1) aborts on all 7; with the split 10 of 10 correct (seed 6 reports infeasible, which the oracle confirms)",
+    "power": "no power in cf::run, C7 has no 'E' cut; hidden_eq has power"
+   },
+   {
+    "removed": "skip empty",
+    "failing_case": "None, 49/49; empty_pool survives on all 7",
+    "power": "not a trap"
+   },
+   {
+    "removed": "drop satisfied at tol 1e-9",
+    "failing_case": "None, 49/49",
+    "power": "not a trap in pool mode, the pool drops them; needed for direct rows only"
+   },
+   {
+    "removed": "glp_scale_prob",
+    "failing_case": "49/49. Performance only: p0548 371 to 907 nodes, modglob closes to time limit, fixnet6 incumbent 9541 to 26501",
+    "power": "no correctness power; a performance piece"
+   },
+   {
+    "removed": "glp_adv_basis",
+    "failing_case": "49/49; mixed node changes, no pattern (gesa2 82 to 240, misc03 1663 to 1073)",
+    "power": "not a trap"
+   },
+   {
+    "removed": "stale-status fix",
+    "failing_case": "Pinned tests 175/175, cf::run no case. L7 time: 'status=time_limit{sol=true} get_solution_value()=505' after the model changed",
+    "power": "has power only in the L7 time case; add it to the suite"
+   },
+   {
+    "removed": "root time subtraction",
+    "failing_case": "Pinned tests 175/175. atsp n=60: 1.67 x limit without, 1.11 x with. At n=90 no difference because the root itself hit the limit",
+    "power": "has power in a targeted timing case only; load-sensitive"
+   },
+   {
+    "removed": "empty-model shortcut",
+    "failing_case": "LpModelTest.solve_empty_* abort on 4.65, 5.0; pass on 4.59, 4.63",
+    "power": "has power on 4.65+, already in the pinned suite"
+   },
+   {
+    "removed": "normalization (new piece)",
+    "failing_case": "scale p=1e4: 2/15 abort 'teta_lim >= 0.0'; p=1e6: 3 kept, 4 lost, 3 wrong, 5 abort; p=1e9: 11/15 LOST",
+    "power": "no power in cf::run; scale sweep has power"
+   },
+   {
+    "removed": "normalized violation threshold (new piece)",
+    "failing_case": "Normalized with raw tol 1e-9: bigm_cut K=1e12 12/15 spin to time limit (maxrows 2387), K=1e8 1 lost, 1 wrong. With the threshold 15/15 at every K up to 1e15",
+    "power": "has power: bigm_cut K>=1e8"
+   },
+   {
+    "removed": "stall guard (new piece)",
+    "failing_case": "obj_viol k=0: 17 of 40 time_limit, nodes near 0, up to 1747 rows. k=3, 5, 10: 40/40",
+    "power": "has power: obj_viol"
+   },
+   {
+    "removed": "thread setting (C9)",
+    "failing_case": "None possible, glp_iocp has no thread field",
+    "power": "no power by construction"
+   }
+  ],
+  "safe_direction": "BROKEN at default settings under the recipe as given: a truly valid cut can abort the process or lose the optimum with status optimal. Every cut below is valid by an oracle that enumerates all integer points. 'scale' multiplies tight valid cuts by p; max coefficient is about 200p. No normalization, 15 seeds each: p=1e3 14 kept, 1 time limit; 1e4 13 kept, 2 abort; 1e5 7 kept, 1 wrong, 7 abort; 1e6 3 kept, 4 lost, 3 wrong, 5 abort; 1e7 2 kept, 8 lost, 5 wrong; 1e9 4 kept, 11 lost; 1e12 2 kept, 13 lost; 1e-7 11 kept, 1 lost, 3 wrong; 1e-8 4 kept, 8 lost, 3 wrong; 1e-9 0 kept, 15 spin (1605 rows). Quotes: 'R scale seed=1 p=1e+09: optimal{sol=true} value=616 opt=622 => LOST ... invalid_offers=0'; abort '[glpk says] Assertion failed: teta_lim >= 0.0, simplex/spxprim.c at line 663' (the 4.65 and 5.0 builds report it from the same assert); 'ios_driver: unable to solve current LP relaxation; glp_simplex returned 5' gives failed. Mechanism, from the DBG trace: 'Local bound 622, 676, 622' then 'LP relaxation has no feasible solution', 'Node 1 fathomed', 'INTEGER OPTIMAL SOLUTION FOUND', a false infeasibility on an unscaled cut row (new rows have rii=1). Control: the same kind of rows as model rows, scaled by the solver: 60/60 kept up to 1e12, presolve on and off. Older releases fail the same way (4.63 p=1e9 8/8 lost, 4.59 p=1e6 1 kept). With normalization plus threshold: 315 scale runs, 0 lost, 0 abort. Their 1-3 time limits per level are my oracle under load 26-33, not stalls: nodes about 150, it about 3000; 'seed=14 p=1e+09' closes at a 60 s limit: value=591 opt=591 in 10.74 s. invalid_offers>0 at the extremes is my strict compare on rounded floats. Normalized on 4.59, 4.63, 4.65: 8/8 at p=1e4, 1e6, 1e9. Survived without normalization, with cuts landed: tight at the optimum (obj_tight, tight_x, tight_sign 60/60, 7285 cuts); reoffer 20/20 once the oracle was cached (the first 15/20 time limits were my oracle); many 300 per call 10/10; near-duplicates at delta 1e-14 to 0.1, 80/80; removed columns (fixed by row, by bounds, implied 0, empty, complements, free and empty rows) 15/15, 1921 cuts; mixed big-M 30/30; mixed_u 15/15 to 1e7, at 1e8 one time limit with 967530 iterations, 15/15 normalized; colscale 90/90 (weak, few nodes); min_cover 15/15; general_int 15/15; prune (c'x<=opt below the root) 12/12, 24 cuts; parity one-term x_j<=0 12/12, 37 cuts; DFJ below the root only 6/6 SAME (nodes 3 to 9, baseline 3 to 12939); infeasible model kinds 1, 2 status infeasible 12/12. NO POWER, said plainly: one_term family passed=0 (root bound tightening fixes the column first); nogood only its c'x cut; range about 1 cut per run; infeasible_model kind 3 passed=0; parity_late 1 cut at a fixed node in 12 seeds, KEPT. Unnormalized bigm_cut K up to 1e12 is 15/15 only because the row tolerance scales with the huge rhs, so the cut is inert. Spin as a separate failure: see X1; both forms hit the limit with no node closed. On 56 real and synthetic instances with family separators and generic covers, unnormalized: 0 aborts, 0 value disagreements, coefficients small.",
+  "measurements": "PRESOLVE OFF, 56 instances at 10 s, load 26-33 so read secs as orders of magnitude; on = wrapper default, off = recipe without cuts, off+cuts = with cuts (DFJ, covers, x<=y, (l,S)). Both-closed node gm, off/on: atsp 1.00, mkp 1.00, gap 1.00, ufl 9.18 (1 to 189), lot 2.19, fcnd 30.9 (2 pairs), miplib 1.06, all 1.60 over 46 pairs; it gm 1.30, secs gm 1.29. Lost closure with off: lot:4:12:3:100, fcnd:15:1:5, fcnd:20:3:100, fixnet6. Gained: none. off+cuts/on: atsp 0.01 (14:2 6997 to 1, 16:2 not closed to 1 node 0.01 s), mkp 0.57, gap 0.69 (mixed, 0.09 to 2.6), ufl 0.23, lot 1.27 with closure regained (lot:4:12:3:100 3028 nodes 2.62 s, on 3752 nodes 3.41 s), fcnd 50.5 and still not closed, miplib 1.04 (generic covers rarely bite), all 0.65 over 47 pairs. Tight-link user cuts do not replace coefficient reduction on fcnd. PINNED TESTS: unedited test/solvers/glpk.cpp with glpk_milp replaced by a class forcing the recipe, filter *GLPK_milp*:glpk_milp_test*: 175 passed, 4 skipped on all 7 releases, same as the wrapper path. Tally on 5.0: 'solves=560 recipe_path=556 root_fail=274 empty_shortcut=4 icutgen_fires=384558'. So the root-LP path changes no pinned status, once the empty shortcut exists. No existing test catches the stale status or the time subtraction. AFTERMATH: presolve-on solve after a recipe solve on the same model: 'SAME PATH' 3/3, so scale factors and basis left on P do not change a later solve; stop and re-solve equals a fresh solve. NPP ROUTE, NOT VIABLE: 4.65+ only; npp/off gm nodes 1.08; requires naming every column of P. Terms on eliminated columns make cuts unusable: lot:3:10:1:1 landed 0, unusable 7099 (off+cuts 313), lot:4:12:3:100 landed 0, unusable 793967 (off+cuts 11123), p0201 landed 0, unusable 733 (199). Eliminated columns have no value in the hook, so the point is incomplete: vpm2 67, qnet1 124, fiber 68, egout 35, p0548 16. MEMORY: mkp 30x100, 30 s: maxrss 32036 kB without cuts, 35296 kB with 18670 cuts. CUTS LOCAL, cost of it: below-root-only DFJ 3 to 9 nodes against 1 at the root; a stateless separator re-finds them.",
+  "shipped_code_findings": [
+   "include/mippp/solvers/glpk/impl/v1/glpk_milp.hpp:103-110 and :348: set_time_limit can be exceeded about 2x on the default path, independent of cuts. glp_intopt gives the root LP the full tm_lim (glpapi09.c:383 'smcp.tm_lim = parm->tm_lim') and the tree restarts its clock (glpios01.c:156 'tree->tm_beg = xtime();'). Reproduction, the real glpk_milp, ATSP-MTZ: 'glpk_milp atsp n=150 rows 22352 limit 8s: time_limit{sol=false} total 16.928s = 2.12 x limit GLPK 5.0'; 'n=90 ... limit 0.5s ... total 0.946s = 1.89 x limit'. The comment promises 'at or after the deadline', literally true, but a deadline forwarded as a limit can double. Not caught by tests. No fix inside glp_intopt's presolve path; the recipe path can subtract."
+  ],
+  "recommendation": "SHIP, with the extended recipe (normalize, 1e-6 threshold, stall guard, non-finite rejection, plus the wrapper path). Reasons: cut support needs presolve off, and that cost is paid only when a callback is set; the no-callback path is untouched (L10 IDENTICAL, mirror SAME, 175/175 on 7 releases). Benefit is large where users want cuts: ATSP 6997 nodes to 1, a 10 s time limit to 0.01 s; lot sizing regains closure. With the guards no valid cut lost an optimum or aborted in the sweep (315 scale runs 0 lost, 0 abort, others in safe_direction). Document three things: presolve off costs up to 957x and more on loose big-M and lost closure on 4 of 56 here (real set gm 1.06 but p0548 x25, fixnet6 lost); cuts are local and may be dropped; a malformed cut is an unrecoverable process abort. Do not ship the recipe as first proposed: it loses optima from coefficients near 1e6 and can stall a node. If the maintainer will not carry the three guards in the hook, leave GLPK out rather than ship without them. Do not use the npp route. The future shared suite should take: C2, C4, C5, C7, C10, plus new cases: scale sweep, stalling separator, hidden equality, shifted covers (presolve), stop inside the tree then re-solve, root time limit after a previous solve, empty model.",
+  "not_verified": [
+   "k and eps of the stall guard: k=3, 5, 10 at eps 1e-4 on obj_viol and conformance only; effect on a long cut loop on hard real instances not measured",
+   "Recipe with all guards on 4.60, 4.61, 4.62; scale sweep on those too",
+   "npp route on 4.65: measured on 5.0 only",
+   "GLPK 4.64 (no build), 5.1 (only an exclusive bound), Windows and macOS",
+   "Normalization on the 56-instance cost set: that run was unnormalized; guards were run on conformance and oracle families",
+   "Valid cuts with extreme dynamic range that stay violated at normalized 1e-6, beyond bigm_cut and mixed_u",
+   "A cut applied at a box-infeasible node: parity_late fired once, low power",
+   "Hook with progress callback together: only through the pinned ProgressCallback suites with a no-op separator",
+   "Re-entrance: a separator solving another GLPK model in the hook",
+   "Timings: load average 26-33 on 16 cores, so no fine time comparison; time-limit overshoot is measured but not precise"
+  ],
+  "probe_paths": [
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_model.hpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_inst.hpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_conf_glpk.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_claims.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_safe.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_cost.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_more.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_tests.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_tl.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_mirror.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_ctl.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_safe2.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_glpk_safe3.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_L1.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_L2.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_L3.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_L4.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_L6.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_L7_10.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_L10.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_conf_final.err",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_conf3_5.0.err",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_ctl_old.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_safe.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_safe2.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_safe3.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_stall.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_dbg_scale.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_cost.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_more.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_tl.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_deep.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_noscale.txt",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/vout_glpk_eq.txt"
+  ]
+ },
+ {
+  "backend": "Cbc (cbc_milp, key CBC), experimental by the maintainer's ruling",
+  "releases_run": "2.10.13 conda (unthreaded), 2.10.9 conda (threaded: 14 pthread symbols, a threaded 2.10 the survey did not run), devel = master 64bb08ab 2025-04-28 (coinbrew dist, reports 'devel', library_version_parsed=false, solves in place). master2025 (~/Softwares/cbc/dist) ran conformance only. casadi 2.10.11 ran B7 only.",
+  "claims": [
+   {
+    "id": "B1",
+    "verdict": "REFINED",
+    "evidence": "Invalid cut Sum_{supp x*} x <= LP activity - 0.01, added once. 'ROOT seed 1: optimal value 1344 vs opt 1347 => LOST; later calls 2783 violating 180'. 'BELOW seed 1: value 1347 vs opt 1347 => KEPT; x* seen before adding=false calls before=14 fixed at add=2; subtree viol/calls 78/1916; elsewhere viol/calls 67/256; returned point violation 2.235'. ROOT LOST and BELOW KEPT on 6/6 seeds on 2.10.13, 3/3 on 2.10.9, 3/3 on devel. Source: CbcModel.cpp 2.10.12:10259 'if (thisCut->globallyValid() || !numberNodes_)'.",
+    "exact_truth": "The scope is right as a statement of what a cut may remove, but it is not enforcement. Later LPs violated a root cut at 18-311 calls per run (1.5-10.7%), so the survey's 'later LPs obey it 0/511' does not generalize. The own subtree violated a below-root cut at up to 21% of calls (145/681). Moot under the contract, where every cut is valid everywhere."
+   },
+   {
+    "id": "B2",
+    "verdict": "REFINED",
+    "evidence": "'FAIL B2 30 fixed columns first, n=26 seed=5: baseline value 549 ... status=optimal value=657 dual=657' on 2.10.13 and 2.10.9. n=22: 2.10.13 495 vs 457, 524 vs 445; devel 552 vs 457, 492 vs 445, 630 vs 461. With the guard on and preprocess on: 'PASS ... nodes=9385 | calls=0 cuts=0'.",
+    "exact_truth": "657 against 549 reproduces exactly, but only with the guard also removed. With the guard, preprocess on is safe and the hook goes silent on any model where preprocess removes a column. So preprocess off is a firing piece under the guard, not a safety piece."
+   },
+   {
+    "id": "B3",
+    "verdict": "CONFIRMED",
+    "evidence": "Default heuristics, own budgeted ATSP n=24 seed 9: log 'Cbc0044I Reduced cost fixing - 555 rows, 235 columns - restarting search', hook 'mismatch=133 min_cols=235' of 576 columns. After 3 user cuts: 2.10.13 seeds 31, 35 'model rows 555 full-model cuts 3 first sub-model rows 554'; devel seeds 18, 20 first sub-model rows 555 and 554. Frequency 1/10 no-op, 2/40 with cuts on each release. Source CbcModel.cpp 2.10.12:4783 'back to solver without cuts?'.",
+    "exact_truth": "Holds on 2.10.x and devel, serially, heuristics on. The survey's heuristics-off condition is not needed."
+   },
+   {
+    "id": "B4",
+    "verdict": "REFINED",
+    "evidence": "Default cap: 'B4 gadgets k=10: nodes 4094 calls 63 | by level: 0:3 1:4 2:8 3:16 4:32', same 63 at k=8 and 12. passTreeCuts=1 with cuts off: 1535 calls down to the bottom. But recipe at default settings: 'atsp n=18 seed 2 no-op: nodes=11564 calls=150 distinct_boxes=51 missed 99.6% levels 0:102 1:4 2:8 3:14 4:22'; n=12, 14, 20 same. Same instance cuts=off: calls=17990; extra1=-7777: calls=4258. n=26 seed 5 does fire deep (3450 calls). Source master CbcModel.cpp:10500 'maximumCutPasses_ = std::max(maximumCutPasses_, 2)', :8694-8703 zero tries at depth >= 6 when tries > 1.",
+    "exact_truth": "The cap is real on master: nothing at depth >= 6 by default. The survey's 'passTreeCuts=1 restores all depths' is false in general. At default settings the cap stays on several ATSP models, 99.6% of nodes unseen. Attributing that to line 10500 is my reading, supported by cuts=off and extra1=-7777 lifting it."
+   },
+   {
+    "id": "B5",
+    "verdict": "CONFIRMED",
+    "evidence": "'B5 seed 1: base 688 | optimal value 688 z=50 cut z<=49.5 returned violation 0.5', 5/5 seeds on 2.10.13, 3/3 printed on devel. Integer columns, BELOW arm: returned violation 0.58-3.03. Source CbcModel.cpp 2.10.12:12586-12588 'solver_ = continuousSolver_'.",
+    "exact_truth": "Only observable with an invalid cut. A valid cut holds at every integer feasible point, so this matters for docs, not for safety."
+   },
+   {
+    "id": "B6",
+    "verdict": "CONFIRMED",
+    "evidence": "'[OsiCuts_addRowCut threw CoinError]'. 'B6 duplicate column: optimal value 461 nodes 2087: tries 6684 add ok 0 add threw 6684' on 2.10.13; 593/593 on 2.10.9; 550/550 on devel. Same value 461.",
+    "exact_truth": "Never let it cross the frames, per the task rule, so uncaught is read only: 2.10 Cbc_solve catches CoinError and prints (Cbc_C_Interface.cpp:873); master aborts (Cbc_C_Interface.cpp:2470-2474)."
+   },
+   {
+    "id": "B7",
+    "verdict": "CONFIRMED",
+    "evidence": "threads=4, no-op, 20 us spin: conda 2.10.9 'threads=5 overlaps=203 max_inflight=3', casadi 2.10.11 'overlaps=179 max_inflight=3', devel 'threads=5 overlaps=0 max_inflight=1' distinct osi 5, conda 2.10.13 'No match for 4' threads=1. Source master Cbc_C_Interface.cpp:391 lock under #ifdef CBC_THREAD.",
+    "exact_truth": "True, and a stock conda 2.10.9 overlaps too. Real-cut arms closed in 2 s with overlaps=0: NO POWER. cbc_milp cannot reach threads today (no has_thread_limit), so conformance C9 has no thread power."
+   },
+   {
+    "id": "B8",
+    "verdict": "REFINED",
+    "evidence": "Headers: stable/2.10 line 615 3-arg, master h:179 and h:1147. Banner 'version devel library_version_parsed=false abi=master(5-arg)'. nm: OsiCuts_addGlobalRowCut absent on 2.10.9 and 2.10.13, present on both masters. git: symbol at 088bfbeb 2019-12-11, howOften/atSolution add at f58e58b0 2020-04-04, 5-arg callback at 81948c59 2020-06-18. No releases/3.x tag exists.",
+    "exact_truth": "Two ABIs in releases, three in master's history. Symbol presence misclassifies master snapshots from 2019-12 to 2020-06, no tag among them, so harmless in practice. library_version() < 3, already the switch at cbc_milp.hpp:74, gives the same answer on all five libraries."
+   },
+   {
+    "id": "B9",
+    "verdict": "CONFIRMED",
+    "evidence": "Equal parameters, two repeats each. 2.10.13 mkp5x100 nodes none/no-op: 17970/15111, 26478/27230, 16236/14244. devel: 7786/7205, 49371/51177, 21454/23977. 'atsp22 seed 8' on 2.10.13: 252 vs 52. Same values. Unchanged on mkp5x35 and on atsp22 seeds 7, 9. cuts=off: 4532=4532 and 6590=6590.",
+    "exact_truth": "Wider than the claim: the survey's 'ATSP path unchanged' is refuted by atsp22 seed 8. The change disappears with Cbc's own cuts off on the two instances tried, so it goes through the cut loop. Mechanism not traced."
+   },
+   {
+    "id": "B10",
+    "verdict": "CONFIRMED",
+    "evidence": "Degree rows only. 'B10 n=26 seed=6: optimal value 167 nodes 0 cycles in the point 5 | hook calls=0'; n=20 and 26, 2 seeds each, on 2.10.13 and devel: calls=0 and 2-5 cycles.",
+    "exact_truth": "Harmless under the contract, which requires a complete model."
+   },
+   {
+    "id": "S-guard",
+    "verdict": "REFUTED",
+    "evidence": "Survey: 'unguarded cuts did not change the result on those 12'. Mine: guard off, x(i,j)+x(i,k)<=1 implied by a degree row, range check on: 2.10.13 seed 31 'value 515 ... base 508 DIFFERS', seed 35 612 vs 610; devel seed 18 552 vs 536, seed 20 539 vs 532; guard on all correct. No range check, DFJ cuts: 2.10.13 seeds 31, 35 exit 139 SIGSEGV.",
+    "exact_truth": "An unguarded hook gives a silent wrong optimum with status=optimal, or a crash. The survey's instances had no cut on low indices that was violated in the reduced space."
+   },
+   {
+    "id": "S-howOften",
+    "verdict": "REFINED",
+    "evidence": "devel, mkp 5x35 padded, no-op, nodes=1044: howOften 1 calls=653, 5 calls=143, -1 calls=15, -99 calls=14, 0 calls=0.",
+    "exact_truth": "Negative howOften stops the hook after the root rounds, not after one empty call."
+   }
+  ],
+  "recipe_result": "cf::run passes on every release: '== 58 cases, 0 failed' on 2.10.13, 2.10.9, devel and master2025. That is 49 cf cases plus 9 extras: X1 DFJ only after 25 calls, X2 budgeted ATSP that restarts. Settings: atsp_sizes {18,22,24}, seeds 1-3, stop_size 26, first_limit 0.02, fuzz_seeds 20, limit 240. A first run with {18,22,26}, limit 180 had 1 (2.10.13) and 2 (devel) 'NO BASELINE' at n=26: harness, the no-hook baseline did not finish. Same with limit 60 in the controls. Devel then crashed in C8: wrapper read of a null solution, reproduced with no hook; see findings. Harness shim: M::get_solution_value throws there, so devel prints 'first ... value=throws'. POWER is thin: C2, C3, C4, C6, C7, C8, C9 had nodes=0 in every case; C1 had nodes in 1/9. These prove column mapping at the root only. Below the root: C5 3/3, C10 20/20, X1 2/6 (devel 1/6), X2 3/3. C9 has no thread power. C8 interrupts: 'first status=time_limit{sol=false}'. C5+C10 calls: 2.10.13 8236, devel 3043.",
+  "recipe_change": "1. Add: when a coefficient leaves [1e-6, 1e6], divide the cut by sqrt(max*min). Fails of 80 runs on the grid: raw 1e9 10 and 1e-8 8; geometric 0 in all 22 rows on both releases (1760 runs each). Dividing by max is worse: devel range 1e5 5/80. Conformance with it at small sizes: 58 cases, only 1 NO BASELINE. 2. Keep the column guard, first line, as specified. A range check is then unnecessary. 3. passTreeCuts=1 alone does not deliver deep firing. If it matters, master also needs extra1=-7777 (an undocumented switch) and depthMiniBab=-999, and 2.10 needs depthMiniBab=-999. Cost, one ATSP in 12 s: 16662 nodes down to 3804. Otherwise drop the promise and document root-mostly. 4. Master: restore or use the copy path after a hooked solve: required. 5. ABI switch: library_version()<3 instead of a new symbol probe. 6. drop_satisfied is unnecessary on Cbc: Cbc erases non-violated cuts itself (CbcCutGenerator.cpp:824).",
+  "controls": [
+   {
+    "removed": "preprocess off, guard also off",
+    "failing_case": "C2 3/3 FAIL on both: 2.10.13 425 vs 389, 408 vs 365, 359 vs 352; devel 425, 383, 430 vs 389, 365, 352. C3 still passes.",
+    "power": "has power: C2"
+   },
+   {
+    "removed": "preprocess off, guard kept",
+    "failing_case": "none: 44 cases, no real failure; 2.10.13 mismatch 25192 of 28853 calls",
+    "power": "no power: guard masks it, so assert calls>0"
+   },
+   {
+    "removed": "column guard, range check kept",
+    "failing_case": "cf set none (X2 stops after 3 adds). Targeted q24: 515 vs 508, 612 vs 610 on 2.10.x; 552 vs 536, 539 vs 532 on devel; status=optimal",
+    "power": "has power: targeted case q24, restart seed differs by release"
+   },
+   {
+    "removed": "column guard and range check",
+    "failing_case": "b24 seeds 31, 35 SIGSEGV exit 139 on 2.10.13; conformance X1 n=22 seed=1 SIGSEGV exit 134 on devel",
+    "power": "has power"
+   },
+   {
+    "removed": "duplicate folding in sanitize (catch kept)",
+    "failing_case": "C7 PASS with add_errors=1166 on 2.10.13, caught=471 on devel; the cut is lost, the optimum is not",
+    "power": "power only on the caught counter; assert no exception crosses"
+   },
+   {
+    "removed": "catch around the add",
+    "failing_case": "not run, forbidden by the task; source only",
+    "power": "not run"
+   },
+   {
+    "removed": "drop_satisfied",
+    "failing_case": "none on either release",
+    "power": "not a trap on Cbc"
+   },
+   {
+    "removed": "passTreeCuts 1",
+    "failing_case": "none. Total calls 2730 to 2272; gadgets 1535 to 63",
+    "power": "no power on optima; firing only"
+   },
+   {
+    "removed": "howOften 1 (set -1)",
+    "failing_case": "none; hook stops after the root rounds",
+    "power": "no power on optima; firing only"
+   },
+   {
+    "removed": "atSolution 0 (set 1)",
+    "failing_case": "none in this set, calls 9628 vs 2730",
+    "power": "no power here"
+   },
+   {
+    "removed": "function type per ABI (forced 3-arg on master, 5-arg on 2.10)",
+    "failing_case": "none; UB: master calls=0 in one run and 2780 in another, 2.10 calls=637",
+    "power": "no power: UB that happens to pass"
+   },
+   {
+    "removed": "registration on the solved model (native model on 2.10)",
+    "failing_case": "none, calls=0 in all 44 cases",
+    "power": "no power on optima; assert calls>0"
+   },
+   {
+    "removed": "restore after an in-place master solve",
+    "failing_case": "targeted: plain solve 'nodes 0 calls during it 5' against 'nodes 10 calls during it 0'",
+    "power": "has power: hooked solve then plain solve"
+   },
+   {
+    "removed": "coefficient scaling (my addition)",
+    "failing_case": "enumerated scale grid: wrong optimum or infeasible, see safe_direction",
+    "power": "has power: for the shared suite"
+   }
+  ],
+  "safe_direction": "BROKEN at extreme coefficients, not at sane ones. Models with <=20 integer columns were enumerated, so validity and the optimum are exact. BROKEN: uniformly scaled tight valid cuts, fails of 80: 2.10.13 1e7 1, 1e8 7, 1e9 10, 1e-8 8; devel 1e8 3, 1e9 9. Range 1e8: 3/80 on both. Clean: scale 1e-7..1e6, range <=1e6, raw. Examples: market padded seed 3, 1e9: 'value 45 opt 56 status optimal', 40 cuts, 'max over integer points minus rhs: 0'. Seed 9: infeasible vs opt 40. Not hook-specific: the same cuts as rows with no hook gave infeasible at 1e-8 seed 3 and 25 vs 28 at 1e9 binary seed 12; but 3 other diagnosed runs were right as rows. HELD, 4365 runs (1455 in each of 3 arms: 2.10.13 default, 2.10.13 cuts/heuristics off with root skipped, devel default), 0 failures: tight cuts, near-duplicates at 1e-12 and exact repeats, cuts on rowless/fixed/complement/slack columns (+120 more seeds on 2.10.13), one-term cuts, equality cuts, objective cut tight at the optimum, random cuts tight at an optimum, no-good cuts killing an integer-empty node (135, 384, 175 added), 200 random cuts per call. HELD on covers and DFJ, 3 and 2 seeds: all scales 1e-8..1e12, flipped, huge relaxing term, tiny term; rhs beyond 1e10 is erased harmlessly as dodgy (CbcModel.cpp 2.10.12:10250). Edge: contradictory cuts on an integer-empty model gave infeasible; no rows and general integers fine, both calls=0. NO POWER: one-term cuts on binary and box variants (added=0, tightening fixes them), 'one-term scaled 1e9' (added=0), default-arm trees are small (5607 nodes over 1455 runs; cuts-off arm 33272).",
+  "measurements": "cf::run: passes on 2.10.13, 2.10.9, devel, master2025 (58/58). Nodes missed, no-op hook, rows+cols<500, % of Cbc's node count (fast nodes included) with no distinct bound box seen. Leaves with an integral LP are never called, so about 9-24% is the floor seen over 500 on 2.10. 2.10.13 recipe: short searches 0% (mkp 5x35, gap, ATSP under 400 nodes); long searches mkp 5x100 96.3/95.9/87.8, atsp n=12 81.9, n=14 86.9, n=16 93.8. With depthMiniBab=-999: mkp 26.4/33.3/22.0, atsp 0, about 2x slower (n=16 seed 2 then hits the 15 s limit). Over 500: 19.8-23.5, n=18 8.9. devel recipe: mkp 5x35 93.7/64.5/34.5, mkp 5x100 94.6/93.2/82.6, atsp n=12 97.8/99.6, n=14 13.1/99.7, n=16 67.1/78.8; over 500 padded mkp 38.7/28.0/31.0, n=18 99.7. Root works: n=18 seed 2 baseline 70150 nodes, with DFJ 0 nodes (0.24 s).",
+  "shipped_code_findings": [
+   "include/mippp/solvers/cbc/impl/v1/cbc_milp.hpp:726 (also :737 by reading): null read on master after a stop with no incumbent. Cbc_bestSolution returns NULL and Cbc_getColSolution returns model->x, also NULL. Repro with the plain wrapper, no hook: cp::build_atsp(m,26,false,9); m.set_time_limit(0.02s); m.solve(); m.get_solution_value() prints 'version devel status time_limit{sol=false}', then 'Signal SIGSEGV caught', exit 134, addr2line cbc_milp.hpp:726. 2.10.13 stopped with a solution and read it fine in the same repro. Repro file: /tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cbc_nullsol.cpp. It may count as documented misuse under the UB ruling, the maintainer's call.",
+   "include/mippp/solvers/cbc/impl/v1/cbc_api.hpp:99-105: declares the cut callback in the 3-arg 2.10 form only, and CBC_FUNCTIONS loads none of it. Dead declarations, wrong on master.",
+   "docs/solving/progress.md:60: 'the C API of Cbc 2.10 reaches no callback from its search' is false as written: Cbc_addCutCallback fires during the search on 2.10.x (calls=637 on mkp 5x35 padded). It should say no progress callback."
+  ],
+  "recommendation": "LEAVE OUT: no has_user_cuts on cbc_milp; document it, in line with the experimental ruling. The contract does hold at sane scale (58/58 on four releases, 0 failures in 4365 attack runs), and root cuts work very well (70150 to 0 nodes). But: (1) the recipe as given is not safe: truly valid cuts lost the optimum silently at coefficients >=1e7 or 1e-8, up to 10/80, so it needs a scaling step on top. (2) Every safety piece fails silently: no guard 515 vs 508, no preprocess-off and no guard 657 vs 549, and a dead hook passes every case, so tests must assert calls>0. (3) Below the root it delivers little: 82-96% of nodes unseen on 2.10 under 500 rows+cols on long searches, 99.6% on master ATSP even with the recipe, and a restart drops all cuts. (4) Most conformance cases close at the root, so a pass is weak evidence below it. (5) Cost: two ABIs, in-place restore and solve-time parameters, in a backend ruled 'document, do not fix'. If overruled, ship: solved model; preprocess off; guard first; library_version switch; catch; fold duplicates; geometric scaling; master restore; docs saying 'mostly root, may never run, dropped on restart'.",
+  "not_verified": [
+   "The advisor review before finishing timed out; these results had no second reader.",
+   "Why later LPs violate a root cut: I assume slack purge plus the pool scan every third node; not traced.",
+   "Why scaled cuts fail inside Cbc/Clp, and why 1e-8 fails on 2.10.13 but not on devel.",
+   "That CbcModel.cpp:10500 is what keeps the depth cap; inferred from cuts=off and extra1=-7777.",
+   "The mechanism of B9 beyond Cbc's own cuts being involved.",
+   "Uncaught CoinError: source only, by rule.",
+   "Attacks and firing measures on 2.10.9 and master2025: conformance only there (B1, B2, B3, B6, B7 also on 2.10.9). Its case totals match 2.10.13 except X1.",
+   "Master snapshots in the 2019-2020 ABI window: read from git, not built.",
+   "Preprocess-off slowdown: the survey's figure, not re-measured.",
+   "Models with more than 20 integer columns under exact validity; larger ones only with covers and DFJ, 2-3 seeds.",
+   "Releases 2.10.10, 2.10.12, 2.10.14."
+  ],
+  "probe_paths": [
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cbc_recipe.hpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_conf_cbc.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cbc_claims.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cbc_attacks.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cbc_nullsol.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cbc_c8.cpp",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cbc_controls.sh",
+   "/tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/verify_cbc_env.sh"
+  ]
+ }
+]

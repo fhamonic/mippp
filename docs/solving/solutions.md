@@ -101,7 +101,7 @@ for(int o : orders) price[o] = duals[demand(o)];
 That pattern is the core of [Column generation](../algorithms/column-generation.md).
 
 !!! note "Duals of a MILP"
-    A `*_milp` model with integer variables has no meaningful dual solution. To price on the relaxation, either build the LP model class, or relax the variables with `set_continuous(v)`, solve, read duals, and restore with `set_integer(v)`.
+    A `*_milp` model has no `get_dual_solution`, even with every variable continuous: the LP model classes and `highs_qp` have it. To price on the relaxation, build the LP model class; [column generation](../algorithms/column-generation.md#an-integer-solution-at-the-end) hands the generated columns to a MILP model at the end.
 
 ## Reduced costs
 

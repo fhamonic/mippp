@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -115,6 +116,72 @@ public:
         model_params.msg_lev = verbose ? GLP_MSG_ALL : GLP_MSG_OFF;
     }
     bool is_verbose() { return model_params.msg_lev != GLP_MSG_OFF; }
+    ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Callbacks ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // Reads GLPK's presolved problem, which leaves out the wrapper's offset.
+    // The bound and the node count are the search tree's, which glp_intopt
+    // frees before it returns: that is why glpk_milp itself has neither.
+    class progress_callback_handle {
+    private:
+        friend glpk_milp;
+        const glpk_api * glp;
+        glp_tree * tree;
+        const double objective_offset;
+        const bool minimizing;
+
+        progress_callback_handle(const glpk_api * api, glp_tree * tree_,
+                                 const double obj_offset,
+                                 const bool minimizing_)
+            : glp(api)
+            , tree(tree_)
+            , objective_offset(obj_offset)
+            , minimizing(minimizing_) {}
+
+        static constexpr double infinity =
+            std::numeric_limits<double>::infinity();
+
+    public:
+        double get_solution_value() {
+            glp_prob * presolved = glp->ios_get_prob(tree);
+            if(glp->mip_status(presolved) == GLP_UNDEF)
+                return minimizing ? infinity : -infinity;
+            return objective_offset + glp->mip_obj_val(presolved);
+        }
+        double get_dual_bound() {
+            const int best_node = glp->ios_best_node(tree);
+            if(best_node == 0) return minimizing ? -infinity : infinity;
+            return objective_offset +
+                   detail::as_infinity(glp->ios_node_bound(tree, best_node),
+                                       std::numeric_limits<double>::max());
+        }
+        // Not t_cnt, which also counts the subproblems still waiting.
+        std::size_t get_node_count() {
+            int active, current_level, total;
+            glp->ios_tree_size(tree, &active, &current_level, &total);
+            return static_cast<std::size_t>(total - active);
+        }
+        void interrupt() { glp->ios_terminate(tree); }
+    };
+
+private:
+    std::function<void(progress_callback_handle &)> progress_callback;
+
+    static void progress_callback_func(glp_tree * tree, void * info) {
+        auto * model = static_cast<glpk_milp *>(info);
+        const int reason = model->glp->ios_reason(tree);
+        if(reason != GLP_ISELECT && reason != GLP_IBINGO) return;
+        progress_callback_handle handle(
+            model->glp, tree, model->objective_offset,
+            model->glp->get_obj_dir(model->model) == GLP_MIN);
+        model->progress_callback(handle);
+    }
+
+public:
+    template <typename F>
+    void set_progress_callback(F && f) {
+        progress_callback = std::forward<F>(f);
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -273,6 +340,11 @@ public:
         // whole process's, on a GLPK built without thread-local storage).
         const bool quiet = !is_verbose();
         const int term_out = quiet ? glp->term_out(GLP_OFF) : GLP_ON;
+        // Here and not in a setter: cb_info is this, which a move of the model
+        // changes, leaving the next solve to crash.
+        model_params.cb_func =
+            progress_callback ? progress_callback_func : nullptr;
+        model_params.cb_info = this;
         const int ret = glp->intopt(model, &model_params);
         const bool crossed = (ret == GLP_EBOUND) && _has_crossed_bounds();
         _restore_sides(saved);

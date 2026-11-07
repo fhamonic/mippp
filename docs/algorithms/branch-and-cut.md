@@ -101,6 +101,10 @@ See [Writing solver-generic code](../solvers/generic-code.md).
 
 ## What's next
 
+## Watching a search is another callback
+
+To follow a search rather than steer it, use a [progress callback](../solving/progress.md). A candidate-solution callback runs on candidates only, so it says nothing while only the bound moves, and setting one can change the search even when it does nothing. COPT treats it as a request for lazy constraints and turns presolve reductions off: on one knapsack that took it from 28860 nodes to 4806, and on one market split instance from an optimum proved in 17 s to no proof in 40 s. On CPLEX a no-op one also moved the search, and on Gurobi `set_candidate_solution_callback` sets `LazyConstraints`.
+
 A node-relaxation callback (for *user cuts*, i.e. cutting fractional relaxation solutions) and heuristic-solution injection are on the [roadmap](https://github.com/fhamonic/mippp#roadmap); the concept `has_node_relaxation_callback` is already specified in [`model_concepts.hpp`](https://github.com/fhamonic/mippp/blob/main/include/mippp/model_concepts.hpp), with no backend implementing it yet.
 
 Until then, cuts that must be separated on fractional solutions can be added between solves in a **cutting-plane loop** — solve, separate, `add_constraint`, solve again — which needs no callback support at all (see [Re-solving and model updates](../solving/updates.md#adding-and-removing-entities)).

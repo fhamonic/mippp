@@ -203,6 +203,29 @@ SCIP_RETCODE SCIPfreeTransform(SCIP * scip);
 SCIP_Real SCIPgetPrimalbound(SCIP * scip);
 SCIP_Real SCIPgetDualbound(SCIP * scip);
 SCIP_Longint SCIPgetNTotalNodes(SCIP * scip);
+SCIP_RETCODE SCIPinterruptSolve(SCIP * scip);
+SCIP_Real SCIPgetSolvingTime(SCIP * scip);
+
+using SCIP_EVENTHDLR = struct SCIP_Eventhdlr;
+using SCIP_EVENTHDLRDATA = struct SCIP_EventhdlrData;
+using SCIP_EVENT = struct SCIP_Event;
+using SCIP_EVENTDATA = struct SCIP_EventData;
+using SCIP_EVENTTYPE = unsigned long long;
+using SCIP_EVENTEXEC = SCIP_RETCODE(SCIP * scip, SCIP_EVENTHDLR * eventhdlr,
+                                    SCIP_EVENT * event,
+                                    SCIP_EVENTDATA * eventdata);
+SCIP_RETCODE SCIPincludeEventhdlrBasic(SCIP * scip,
+                                       SCIP_EVENTHDLR ** eventhdlrptr,
+                                       const char * name, const char * desc,
+                                       SCIP_EVENTEXEC * eventexec,
+                                       SCIP_EVENTHDLRDATA * eventhdlrdata);
+SCIP_RETCODE SCIPtransformProb(SCIP * scip);
+SCIP_RETCODE SCIPcatchEvent(SCIP * scip, SCIP_EVENTTYPE eventtype,
+                            SCIP_EVENTHDLR * eventhdlr,
+                            SCIP_EVENTDATA * eventdata, int * filterpos);
+SCIP_RETCODE SCIPdropEvent(SCIP * scip, SCIP_EVENTTYPE eventtype,
+                           SCIP_EVENTHDLR * eventhdlr,
+                           SCIP_EVENTDATA * eventdata, int filterpos);
 int SCIPgetNOrigBinVars(SCIP * scip);
 int SCIPgetNOrigIntVars(SCIP * scip);
 SCIP_SOL * SCIPgetBestSol(SCIP * scip);
@@ -359,6 +382,12 @@ namespace scip::impl::v1 {
     F(SCIPgetPrimalbound, getPrimalbound)               \
     F(SCIPgetDualbound, getDualbound)                   \
     F(SCIPgetNTotalNodes, getNTotalNodes)               \
+    F(SCIPinterruptSolve, interruptSolve)               \
+    F(SCIPgetSolvingTime, getSolvingTime)               \
+    F(SCIPincludeEventhdlrBasic, includeEventhdlrBasic) \
+    F(SCIPtransformProb, transformProb)                 \
+    F(SCIPcatchEvent, catchEvent)                       \
+    F(SCIPdropEvent, dropEvent)                         \
     F(SCIPgetNOrigBinVars, getNOrigBinVars)             \
     F(SCIPgetNOrigIntVars, getNOrigIntVars)             \
     F(SCIPgetBestSol, getBestSol)                       \

@@ -60,6 +60,7 @@ add_executable(
     doc_snippets/column_generation.cpp
     doc_snippets/deletion_filter.cpp
     doc_snippets/infeasibility.cpp
+    doc_snippets/progress.cpp
     ${MIPPP_TEST_SOLVER_SOURCES}
     )
 target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
@@ -132,13 +133,15 @@ endif()
 #
 # The interruption tests time their solves against the wall clock: run next to
 # the rest by a parallel ctest, a loaded machine stretches a solve past the
-# limit plus its overshoot, or stops it before its first incumbent. The HiGHS
+# limit plus its overshoot, or stops it before its first incumbent or before the
+# root relaxation a dual bound comes from. The HiGHS
 # time_limit_bounds_each_solve tests derive their limit from measured solves,
 # and the GLPK endless integer row bounds a deletion filter run by its budget.
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mippp_suite_tests.cmake)
 set(MIPPP_SERIAL_TESTS
     "*/TimeLimitTest/*.interrupts_long_solve"
     "*/TimeLimitIncumbentTest/*"
+    "*/DualBoundTest/*.a_stop_without_an_incumbent_keeps_a_valid_bound"
     "highs_*_test.time_limit_bounds_each_solve"
     "glpk_milp_test.deletion_filter_returns_on_an_endless_integer_row")
 list(JOIN MIPPP_SERIAL_TESTS ":" MIPPP_SERIAL_TESTS)

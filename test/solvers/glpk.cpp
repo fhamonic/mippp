@@ -599,5 +599,9 @@ INSTANTIATE_TEST(GLPK_milp, IisByDeletionTest, glpk_milp_test);
 // INSTANTIATE_TEST(GLPK_milp, NodeCountTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, IntegralityToleranceTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, VerbosityTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, ProgressCallbackTest, glpk_milp_test);
+INSTANTIATE_TEST(GLPK_milp, ProgressCallbackNodeCountTest, glpk_milp_test);
+// no candidate solution callback
+// INSTANTIATE_TEST(GLPK_milp, ProgressCallbackSharingTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, TimeLimitTest, glpk_milp_test);
 INSTANTIATE_TEST(GLPK_milp, TimeLimitIncumbentTest, glpk_milp_test);

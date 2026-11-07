@@ -1,0 +1,15 @@
+library <fetched>/highs/highs-1.14.0-h171cf75_0.conda/lib/libhighs.so 
+== D large min default threads quiet, hook: status=time_limit{sol=true} solve=3.00s value=-41062 dual=-41631 nodes=616
+   events: MipImprovingSolution=9 MipInterrupt=2645
+   samples: 2654 (884.4/s over 3.00s), first@0.004s last@3.001s maxgap=0.227s threads=1 overlaps=0
+   primal: first=inf last=-41062 worse-moves=0 sentinel-samples=2 | dual: first=-inf last=-41631.6 worse-moves=0 | nodes: first=0 last=616
+   last sample vs final: primal match dual DIFFER (final -41062 / -41631)
+== H large, stop asked at the 3rd sample: status=interrupted{sol=true} solve=0.01s value=-35632 dual=-41669 nodes=0
+   events: MipImprovingSolution=4 MipInterrupt=3
+   samples: 7 (776.7/s over 0.01s), first@0.003s last@0.009s maxgap=0.004s threads=1 overlaps=0
+   primal: first=inf last=-35632 worse-moves=0 sentinel-samples=2 | dual: first=-inf last=-41669.2 worse-moves=0 | nodes: first=0 last=0
+   stop asked after 0.003s, solve returned 0.006s later
+== H2 resolve after the stop, 2s: status=interrupted{sol=true} solve=0.00s value=-35632 dual=-inf nodes=0
+== I integer-free model on the MILP type, hook: status=optimal{sol=true} solve=0.01s value=10841.5 dual=10841.5 nodes=0
+   events: NONE
+   samples: 0

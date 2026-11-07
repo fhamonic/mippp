@@ -58,6 +58,14 @@ All notable changes to MIP++ are recorded in this file. The format follows
   `xpress_milp`. HiGHS has no integrality tolerance of its own, so the latter
   sets `mip_feasibility_tolerance`, which also bounds the row and bound
   violations its MIP solver accepts.
+- **Thread limit.** `set_thread_limit(n)` and `get_thread_limit()`, behind
+  `has_thread_limit`, on the LP and MILP models of Gurobi, CPLEX, Xpress,
+  COPT and MOSEK, whose parallel algorithms otherwise size themselves to the
+  machine for each model: several models solved at once then share the cores
+  instead of oversubscribing them. `0` restores the solver's default. HiGHS,
+  whose thread pool belongs to the calling thread rather than to the model,
+  and the serial solvers do not satisfy it. See
+  [Threads](docs/solving/status-and-limits.md#threads).
 - **SoPlex.** `soplex_lp` reads and modifies variable bounds, and reads its
   objective.
 - **Partial support of solver releases.** A backend may declare
@@ -81,6 +89,19 @@ All notable changes to MIP++ are recorded in this file. The format follows
   - `emplace_master_column(model, seed, add)`, which adds an initial column
     through the add callback;
   - `stable_erase_if` on `unordered_dense_map`.
+- **Column generation example.** `examples/travelling_salesman_colgen`
+  computes the Held-Karp bound of a travelling salesman instance by column
+  generation over 1-trees, with the column manager.
+- **Vehicle routing example.** `examples/vehicle_routing_colgen` generates the
+  routes of a vehicle routing problem with time windows, on Solomon's R101,
+  with the column manager and a labeling pricer that returns several routes
+  per round, then solves a MILP over the generated routes.
+- **Progress callback.** `set_progress_callback(f)`, behind
+  `has_progress_callback`, on the MILP models of Gurobi, CPLEX, Xpress, COPT,
+  MOSEK, HiGHS, SCIP and GLPK. The handle reads the best incumbent and bound
+  during the search, infinite until the solver has one, and `interrupt()` ends
+  the solve as `status::interrupted`. All but `copt_milp`'s also have
+  `get_node_count()`. See [Watching a solve](docs/solving/progress.md).
 
 ### Changed
 
@@ -205,6 +226,17 @@ All notable changes to MIP++ are recorded in this file. The format follows
 
 ### Fixed
 
+- A candidate-solution callback crashed the next `solve()` of a model moved
+  after setting it, on Gurobi, CPLEX, Xpress and COPT: the solver held a pointer
+  to the moved-from model. Callbacks are now attached for the duration of a solve.
+- A second `set_candidate_solution_callback` on `xpress_milp` left the first
+  registered natively, so each candidate ran the new callback twice.
+- A second `solve()` of `scip_milp` under a time limit its first had spent
+  stopped at once: the limit now bounds each solve, as on the other backends.
+- `copt_milp::get_dual_bound()` read `1e30` after a search stopped without an
+  incumbent, a false claim when minimizing. It now reads the bound the search had
+  reached. `solve()` holds COPT's one callback slot during a MIP solve for this,
+  so a callback set through `native_model()` no longer runs in one.
 - `scip_milp` misread every status of SCIP 10, which renumbered `SCIP_STATUS`:
   an optimum read `interrupted`, an infeasible model `node_limit`.
 - `xpress_milp::set_optimality_tolerance` set Xpress's integrality tolerance

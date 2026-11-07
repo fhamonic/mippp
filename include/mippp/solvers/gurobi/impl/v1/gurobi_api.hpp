@@ -75,8 +75,11 @@ constexpr int GRB_ERROR_IIS_NOT_INFEASIBLE = 10015;
 constexpr const char * GRB_INT_PAR_DUALREDUCTIONS = "DualReductions";
 constexpr const char * GRB_INT_PAR_LAZYCONSTRAINTS = "LazyConstraints";
 constexpr const char * GRB_INT_PAR_OUTPUTFLAG = "OutputFlag";
+constexpr const char * GRB_INT_PAR_THREADS = "Threads";
 int GRBsetintparam(GRBenv * env, const char * paramname, int value);
 int GRBgetintparam(GRBenv * env, const char * paramname, int * valueP);
+int GRBgetintparaminfo(GRBenv * env, const char * paramname, int * valueP,
+                       int * minP, int * maxP, int * defP);
 constexpr const char * GRB_DBL_PAR_TIMELIMIT = "TimeLimit";
 constexpr const char * GRB_DBL_PAR_ITERATIONLIMIT = "IterationLimit";
 constexpr const char * GRB_DBL_PAR_NODELIMIT = "NodeLimit";
@@ -213,7 +216,11 @@ int GRBsetcallbackfunc(GRBmodel * model, callback_func_t * cb, void * usrdata);
 int GRBcbproceed(void * cbdata);
 constexpr int GRB_CB_MIPSOL_SOL = 4001;
 constexpr int GRB_CB_MIPSOL_OBJ = 4002;
+constexpr int GRB_CB_MIP_OBJBST = 3000;
+constexpr int GRB_CB_MIP_OBJBND = 3001;
+constexpr int GRB_CB_MIP_NODCNT = 3002;
 int GRBcbget(void * cbdata, int where, int what, void * resultP);
+void GRBterminate(GRBmodel * model);
 int GRBcbsetintparam(void * cbdata, const char * paramname, int newvalue);
 int GRBcbsetdblparam(void * cbdata, const char * paramname, double newvalue);
 int GRBcbsetstrparam(void * cbdata, const char * paramname,
@@ -265,6 +272,7 @@ namespace gurobi::impl::v1 {
     F(GRBreset, reset)                                 \
     F(GRBsetintparam, setintparam)                     \
     F(GRBgetintparam, getintparam)                     \
+    F(GRBgetintparaminfo, getintparaminfo)             \
     F(GRBsetdblparam, setdblparam)                     \
     F(GRBgetdblparam, getdblparam)                     \
     F(GRBsetintattr, setintattr)                       \
@@ -289,6 +297,7 @@ namespace gurobi::impl::v1 {
     F(GRBsetcallbackfunc, setcallbackfunc)             \
     F(GRBcbproceed, cbproceed)                         \
     F(GRBcbget, cbget)                                 \
+    F(GRBterminate, terminate)                         \
     F(GRBcbsetparam, cbsetparam)                       \
     F(GRBcbsolution, cbsolution)                       \
     F(GRBcbcut, cbcut)                                 \

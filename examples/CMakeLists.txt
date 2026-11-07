@@ -7,15 +7,20 @@
 # Every example loads its solver's shared library at runtime (see the README for
 # how to make solver libraries discoverable).
 
-foreach(_example simple_lp nqueens sudoku cutting_stock
-                 infeasible_transportation)
+foreach(_example simple_lp nqueens sudoku infeasible_transportation
+                 vehicle_routing_colgen)
   add_subdirectory(${_example})
 endforeach()
 
-# The TSP example also needs the MELON graph library.
+# These examples also need the MELON graph library.
 find_package(melon QUIET)
 if(TARGET melon::melon)
-  add_subdirectory(travelling_salesman_dfj)
+  foreach(_example cutting_stock travelling_salesman_dfj
+                   travelling_salesman_colgen)
+    add_subdirectory(${_example})
+  endforeach()
 else()
-  message(STATUS "melon not found: skipping the travelling_salesman_dfj example")
+  message(STATUS "melon not found: skipping the cutting_stock, "
+                 "travelling_salesman_dfj and travelling_salesman_colgen "
+                 "examples")
 endif()

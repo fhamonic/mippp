@@ -5,7 +5,7 @@
 // with xsum. This is the same model used in the mippp_nqueens benchmark
 // (https://github.com/fhamonic/mippp_nqueens).
 //
-// Swap the two aliases to use another MILP backend.
+// Swap the alias to use another MILP backend.
 
 #include <cstdlib>
 #include <print>

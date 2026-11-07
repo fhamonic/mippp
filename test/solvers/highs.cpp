@@ -97,6 +97,10 @@ INSTANTIATE_TEST(HiGHS_milp, DualBoundTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, NodeCountTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, IntegralityToleranceTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, VerbosityTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, ProgressCallbackTest, highs_milp_test);
+INSTANTIATE_TEST(HiGHS_milp, ProgressCallbackNodeCountTest, highs_milp_test);
+// no candidate solution callback
+// INSTANTIATE_TEST(HiGHS_milp, ProgressCallbackSharingTest, highs_milp_test);
 
 struct highs_qp_test : public model_test<highs_api, highs_qp> {
     static void SetUpTestSuite() { construct_api("HIGHS"); }

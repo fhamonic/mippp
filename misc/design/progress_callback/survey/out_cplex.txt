@@ -1,0 +1,65 @@
+== A small min 1 thread, no hook (baseline): status=optimal{sol=true} solve=1.20s value=-25138 dual=-25140.5 nodes=16133
+== B small min 1 thread, hook: status=optimal{sol=true} solve=1.18s value=-25138 dual=-25140.5 nodes=16133
+   events: GLOBAL=10
+   samples: 10 (8.4/s over 1.18s), first@0.000s last@1.185s maxgap=0.467s threads=1 overlaps=0
+   primal: first=100 last=-25138 worse-moves=0 sentinel-samples=0 | dual: first=-44396 last=-25140.47 worse-moves=0 | nodes: first=0 last=16133
+   last sample vs final: primal match dual match (final -25138 / -25140.47)
+   search path: nodes 16133 vs baseline 16133 (same)
+== C small min 1 thread, no-op candidate callback: status=optimal{sol=true} solve=1.23s value=-25138 dual=-25140.5 nodes=17120
+   candidate calls=7, nodes 17120 vs baseline 16133 (DIFFERENT)
+== D large min default threads quiet, hook: status=time_limit{sol=true} solve=10.01s value=-41182 dual=-41342.8 nodes=690546
+   events: GLOBAL=1999
+   samples: 1999 (199.7/s over 10.01s), first@0.001s last@10.008s maxgap=0.122s threads=16 overlaps=0
+   primal: first=100 last=-41182 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-41342.81 worse-moves=0 | nodes: first=0 last=690546
+   last sample vs final: primal match dual match (final -41182 / -41342.81)
+== E large max+offset default threads quiet, hook: status=time_limit{sol=true} solve=10.01s value=41382 dual=41545.8 nodes=708488
+   events: GLOBAL=1983
+   samples: 1983 (198.0/s over 10.01s), first@0.000s last@10.014s maxgap=0.146s threads=16 overlaps=0
+   primal: first=100 last=41382 worse-moves=0 sentinel-samples=0 | dual: first=74834 last=41545.76 worse-moves=0 | nodes: first=0 last=708488
+   last sample vs final: primal match dual match (final 41382 / 41545.76)
+== F large min default threads VERBOSE, hook: status=time_limit{sol=true} solve=10.01s value=-41182 dual=-41340.3 nodes=711507
+   events: GLOBAL=2024
+   samples: 2024 (202.2/s over 10.01s), first@0.001s last@10.007s maxgap=0.131s threads=16 overlaps=0
+   primal: first=100 last=-41182 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-41340.31 worse-moves=0 | nodes: first=0 last=711507
+   last sample vs final: primal match dual match (final -41182 / -41340.31)
+== G no incumbent, 5s, hook: status=time_limit{sol=false} solve=5.02s value=throws dual=25.8985 nodes=751256
+   events: GLOBAL=1297
+   samples: 1297 (258.1/s over 5.02s), first@0.000s last@5.024s maxgap=0.030s threads=16 overlaps=0
+   primal: first=1e+75 last=1e+75 worse-moves=0 sentinel-samples=1297 | dual: first=0 last=25.89852 worse-moves=0 | nodes: first=0 last=751256
+   last sample vs final: primal DIFFER dual match (final nan / 25.89852)
+== H large, stop asked at the 3rd sample: status=interrupted{sol=true} solve=0.01s value=100 dual=-74634 nodes=0
+   events: GLOBAL=4
+   samples: 4 (784.7/s over 0.01s), first@0.001s last@0.005s maxgap=0.004s threads=2 overlaps=0
+   primal: first=100 last=100 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-74634 worse-moves=0 | nodes: first=0 last=0
+   stop asked after 0.004s, solve returned 0.001s later
+== H2 resolve after the stop, 2s: status=time_limit{sol=true} solve=2.00s value=-41182 dual=-41455.5 nodes=153858
+== I integer-free on the MILP type: solve() threw: CPLEX Error  1811: Attempt to invoke unsupported operation.
+
+== X1 GLOBAL|LOCAL 5s: status=time_limit{sol=true} solve=5.00s value=-41182 dual=-41387.4 nodes=368892
+   events: GLOBAL=1618 LOCAL=373342
+   samples: 1618 (323.3/s over 5.00s), first@0.000s last@5.003s maxgap=0.169s threads=16 overlaps=0
+   primal: first=100 last=-41182 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-41387.39 worse-moves=0 | nodes: first=0 last=368892
+   read errors 0
+== X2 GLOBAL|CANDIDATE 5s: status=time_limit{sol=true} solve=5.00s value=-41182 dual=-41389.7 nodes=365025
+   events: CANDIDATE=25 GLOBAL=1620
+   samples: 1620 (323.7/s over 5.00s), first@0.000s last@5.003s maxgap=0.177s threads=16 overlaps=0
+   primal: first=100 last=-41182 worse-moves=0 sentinel-samples=0 | dual: first=-74634 last=-41389.75 worse-moves=0 | nodes: first=0 last=365025
+== X3 compute_iis with a progress hook attached: threw CPLEX Error  1811: Attempt to invoke unsupported operation.
+
+== X4 log channel verbose=false: addfuncdest=0 lines=84 in 3.00s
+== X4 log channel verbose=true: addfuncdest=0 lines=84 in 3.01s
+== X5 legacy + generic: threw CPLEX Error  1060: Inconsistent callback configuration.
+
+== L LP on cplex_lp, legacy cb (set=0): status=optimal{sol=true} solve=0.05s value=15880.2 dual=n/a nodes=n/a
+   events: LPCB_where1=1974 LPCB_where7=8
+   samples: 1982 (36878.2/s over 0.05s), first@0.000s last@0.053s maxgap=0.000s threads=1 overlaps=0
+   primal: first=nan last=15880.17 worse-moves=0 sentinel-samples=0 | dual: first=nan last=nan worse-moves=0 | nodes: first=-1 last=1974
+== S0 one piece 8s: status=time_limit{sol=true} solve=8.00s value=-41182 dual=-41354.7 nodes=571280
+== S1 slice 1s (cumulated 1.00s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41466.2 nodes=74699
+== S2 slice 1s (cumulated 2.01s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41455.5 nodes=161221
+== S3 slice 1s (cumulated 3.01s): status=time_limit{sol=true} solve=1.01s value=-41182 dual=-41430.7 nodes=231640
+== S4 slice 1s (cumulated 4.02s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41406.9 nodes=304056
+== S5 slice 1s (cumulated 5.02s): status=time_limit{sol=true} solve=1.01s value=-41182 dual=-41390.5 nodes=378988
+== S6 slice 1s (cumulated 6.03s): status=time_limit{sol=true} solve=1.01s value=-41182 dual=-41379.2 nodes=445997
+== S7 slice 1s (cumulated 7.03s): status=time_limit{sol=true} solve=1.01s value=-41182 dual=-41368.5 nodes=516765
+== S8 slice 1s (cumulated 8.04s): status=time_limit{sol=true} solve=1.01s value=-41182 dual=-41360.2 nodes=580948

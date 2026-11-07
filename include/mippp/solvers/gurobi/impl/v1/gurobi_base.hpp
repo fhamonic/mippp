@@ -684,6 +684,27 @@ public:
         return memory_size<double, std::giga>(gb);
     }
 
+    ///////////////////////////////// Threads /////////////////////////////////
+    // Gurobi rejects a value above its maximum, 1024 in 11 to 13, rather than
+    // capping it.
+    void set_thread_limit(std::size_t n) {
+        int value, min, max, def;
+        check(GRB->getintparaminfo(env, GRB_INT_PAR_THREADS, &value, &min, &max,
+                                   &def));
+        check(GRB->setintparam(
+            env, GRB_INT_PAR_THREADS,
+            static_cast<int>(std::min(n, static_cast<std::size_t>(max)))));
+    }
+    // Gurobi 13 admits a native -1, every virtual processor past the soft cap
+    // of 32 that its default applies; cast as is, it would read back as
+    // SIZE_MAX. It reads back as 0 instead, so writing the value read back
+    // sets the capped default, not -1.
+    std::size_t get_thread_limit() {
+        int n;
+        check(GRB->getintparam(env, GRB_INT_PAR_THREADS, &n));
+        return static_cast<std::size_t>(std::max(n, 0));
+    }
+
     //////////////////////////////// Verbosity ////////////////////////////////
     void set_verbose(bool verbose) {
         check(GRB->setintparam(env, GRB_INT_PAR_OUTPUTFLAG, verbose));

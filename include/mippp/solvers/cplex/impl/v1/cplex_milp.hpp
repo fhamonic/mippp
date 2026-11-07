@@ -191,25 +191,82 @@ public:
         }
     };
 
+    // Only CPX_CALLBACKCONTEXT_GLOBAL_PROGRESS reads global values, and CPLEX
+    // holds a lock across it. Any other context reads what one thread knows,
+    // which may regress from one call to the next and run concurrently.
+    class progress_callback_handle {
+    private:
+        friend cplex_milp;
+        const cplex_api * CPX;
+        CPXCALLBACKCONTEXTptr context;
+
+        progress_callback_handle(const cplex_api * api,
+                                 CPXCALLBACKCONTEXTptr context_)
+            : CPX(api), context(context_) {}
+
+        double _read(const CPXCALLBACKINFO what) {
+            double value = 0;
+            if(CPX->callbackgetinfodbl(context, what, &value) != 0)
+                CPX->callbackabort(context);
+            return detail::as_infinity(value, CPX_INFBOUND);
+        }
+
+    public:
+        double get_solution_value() { return _read(CPXCALLBACKINFO_BEST_SOL); }
+        double get_dual_bound() { return _read(CPXCALLBACKINFO_BEST_BND); }
+        std::size_t get_node_count() {
+            CPXLONG count = 0;
+            if(CPX->callbackgetinfolong(context, CPXCALLBACKINFO_NODECOUNT,
+                                        &count) != 0)
+                CPX->callbackabort(context);
+            return static_cast<std::size_t>(count);
+        }
+        void interrupt() { CPX->callbackabort(context); }
+    };
+
 private:
     std::function<void(candidate_solution_callback_handle &)>
         candidate_solution_callback;
+    std::function<void(progress_callback_handle &)> progress_callback;
 
-    static int candidate_solution_callback_fun(
-        CPXCALLBACKCONTEXTptr context, [[maybe_unused]] CPXLONG contextid,
-        void * userhandle) {
+    static int callback_fun(CPXCALLBACKCONTEXTptr context, CPXLONG contextid,
+                            void * userhandle) {
         auto * model = static_cast<cplex_milp *>(userhandle);
-        candidate_solution_callback_handle handle(model->CPX, context, model);
-        model->candidate_solution_callback(handle);
+        if(contextid == CPX_CALLBACKCONTEXT_CANDIDATE) {
+            candidate_solution_callback_handle handle(model->CPX, context,
+                                                      model);
+            model->candidate_solution_callback(handle);
+        } else {
+            progress_callback_handle handle(model->CPX, context);
+            model->progress_callback(handle);
+        }
         return 0;
+    }
+    // For the duration of a branch-and-cut only. CPXlpopt and the conflict
+    // refiner fail while a generic callback is registered, whatever it does
+    // (CPXERR_UNSUPPORTED_OPERATION, measured on 22.1.1 and 22.1.2), and the
+    // user data is this: registered by a setter, it dangles once the model
+    // moves and the next solve crashes.
+    [[nodiscard]] auto _attached_callbacks() {
+        const CPXLONG contexts =
+            (candidate_solution_callback ? CPX_CALLBACKCONTEXT_CANDIDATE : 0) |
+            (progress_callback ? CPX_CALLBACKCONTEXT_GLOBAL_PROGRESS : 0);
+        if(contexts != 0)
+            check(CPX->callbacksetfunc(env, lp, contexts, callback_fun, this));
+        return detail::restore_guard([this, contexts] {
+            if(contexts != 0)
+                check(CPX->callbacksetfunc(env, lp, 0, nullptr, nullptr));
+        });
     }
 
 public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
         candidate_solution_callback = std::forward<F>(f);
-        check(CPX->callbacksetfunc(env, lp, CPX_CALLBACKCONTEXT_CANDIDATE,
-                                   candidate_solution_callback_fun, this));
+    }
+    template <typename F>
+    void set_progress_callback(F && f) {
+        progress_callback = std::forward<F>(f);
     }
     ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// MIP start ////////////////////////////////
@@ -389,11 +446,13 @@ public:
         reset_status();  // a solve that throws reports unknown
         int probtype = CPX->getprobtype(env, lp);
         switch(probtype) {
-            case CPXPROB_MILP:
+            case CPXPROB_MILP: {
+                const auto detach = _attached_callbacks();
                 check(CPX->mipopt(env, lp));
                 _status = _get_status_milp();
                 _mark_results_valid();
                 return;
+            }
             case CPXPROB_LP:
                 if(candidate_solution_callback)
                     throw std::runtime_error(
@@ -409,25 +468,12 @@ public:
         }
     }
 
-    // The refiner refuses to run while a generic callback is registered
-    // (CPXERR_UNSUPPORTED_OPERATION, measured on 22.1.1 and 22.1.2), whatever
-    // the callback does: it is detached for the call. The refiner also
-    // replaces CPXgetstat with its own statuses, which do not describe the
-    // held solution: the reported status is reset before the native call,
-    // throw or return.
+    // The refiner replaces CPXgetstat with its own statuses, which do not
+    // describe the held solution: the reported status is reset before the
+    // native call, throw or return.
     auto compute_iis() {
         reset_status();
-        const bool attached = static_cast<bool>(candidate_solution_callback);
-        if(attached) check(CPX->callbacksetfunc(env, lp, 0, nullptr, nullptr));
-        detail::restore_guard reattach([&] {
-            if(attached)
-                check(CPX->callbacksetfunc(
-                    env, lp, CPX_CALLBACKCONTEXT_CANDIDATE,
-                    candidate_solution_callback_fun, this));
-        });
-        auto iis = _compute_iis();
-        reattach.restore();
-        return iis;
+        return _compute_iis();
     }
     double get_solution_value() {
         _require_valid_results();

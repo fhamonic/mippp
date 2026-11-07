@@ -1,0 +1,82 @@
+library: /home/plaiseek/Softwares/solvers/mosek/11.0/tools/platform/linux64x86/bin/libmosek64.so
+=== default (FREE 2)
+  feasible : solve ok status=optimal 9ms [intpnt=8 primal_simplex=0 dual_simplex=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [intpnt=8 primal_simplex=0 dual_simplex=0]
+  unbounded: solve ok status=unbounded [intpnt=4 primal_simplex=0 dual_simplex=0]
+  warm from optimal basis: solve ok status=optimal [intpnt=0 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== FREE_SIMPLEX 3
+  feasible : solve ok status=optimal 6ms [intpnt=0 primal_simplex=0 dual_simplex=83]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [intpnt=0 primal_simplex=0 dual_simplex=104]
+  unbounded: solve ok status=unbounded [intpnt=0 primal_simplex=68 dual_simplex=0]
+  warm from optimal basis: solve ok status=optimal [intpnt=0 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== PRIMAL_SIMPLEX 8
+  feasible : solve ok status=optimal 8ms [intpnt=0 primal_simplex=106 dual_simplex=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [intpnt=0 primal_simplex=58 dual_simplex=0]
+  unbounded: solve ok status=unbounded [intpnt=0 primal_simplex=68 dual_simplex=0]
+  warm from optimal basis: solve ok status=optimal [intpnt=0 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== DUAL_SIMPLEX 1
+  feasible : solve ok status=optimal 7ms [intpnt=0 primal_simplex=0 dual_simplex=83]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [intpnt=0 primal_simplex=0 dual_simplex=104]
+  unbounded: solve ok status=unbounded [intpnt=0 primal_simplex=0 dual_simplex=79]
+  warm from optimal basis: solve ok status=optimal [intpnt=0 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== NEW_PRIMAL_SIMPLEX 7
+  feasible : solve ok status=optimal 8ms [intpnt=0 primal_simplex=139 dual_simplex=0]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [intpnt=0 primal_simplex=101 dual_simplex=0]
+  unbounded: solve ok status=unbounded [intpnt=0 primal_simplex=61 dual_simplex=0]
+  warm from optimal basis: solve ok status=optimal [intpnt=0 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== NEW_DUAL_SIMPLEX 6
+  feasible : solve ok status=optimal 8ms [intpnt=0 primal_simplex=0 dual_simplex=98]
+    obj=529.3089013110373 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [intpnt=0 primal_simplex=0 dual_simplex=70]
+  unbounded: solve ok status=unbounded [intpnt=0 primal_simplex=0 dual_simplex=97]
+  warm from optimal basis: solve ok status=optimal [intpnt=0 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== INTPNT 4
+  feasible : solve ok status=optimal 8ms [intpnt=8 primal_simplex=0 dual_simplex=0]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [intpnt=8 primal_simplex=0 dual_simplex=0]
+  unbounded: solve ok status=unbounded [intpnt=4 primal_simplex=0 dual_simplex=0]
+  warm from optimal basis: solve ok status=optimal [intpnt=8 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== INTPNT 4, INTPNT_BASIS NEVER
+  feasible : solve ok status=optimal 7ms [intpnt=8 primal_simplex=0 dual_simplex=0]
+    obj=529.3089013106057 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(mippp: get_basis() found no basis, MOSEK holds no basic solution)
+  infeasible: solve ok status=infeasible [intpnt=8 primal_simplex=0 dual_simplex=0]
+  unbounded: solve ok status=unbounded [intpnt=4 primal_simplex=0 dual_simplex=0]
+  warm from optimal basis: solve ok status=optimal [intpnt=8 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== FREE 2, INTPNT_BASIS NEVER
+  feasible : solve ok status=optimal 6ms [intpnt=8 primal_simplex=0 dual_simplex=0]
+    obj=529.3089013106057 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(mippp: get_basis() found no basis, MOSEK holds no basic solution)
+  infeasible: solve ok status=infeasible [intpnt=8 primal_simplex=0 dual_simplex=0]
+  unbounded: solve ok status=unbounded [intpnt=4 primal_simplex=0 dual_simplex=0]
+  warm from optimal basis: solve ok status=optimal [intpnt=0 primal_simplex=0 dual_simplex=0]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass

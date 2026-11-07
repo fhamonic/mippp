@@ -1,0 +1,740 @@
+[
+ {
+  "reviewer": "unified",
+  "verdict": "The plan's shared preparation works as one step on all six backends that ship, as long as the three backend-only steps stay (SCIP tiny terms, CPLEX same point, GLPK stall). I wrote it as one function, fp::prepare in /tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/final_prepare.hpp, and used it in place of each recipe's sanitize. The conformance set passes at the skeptics' sizes: Gurobi 12.0.1 72/72, CPLEX 22.1.2 64/64, Xpress 47.01.01 R1 49/49, COPT 8.0.5 49/49 at DELAY 0 and 49/49 at DELAY 20, SCIP 9.2.1 49/49 plain and 49/49 deep, GLPK 5.0 49/49. These match verify_results.json case for case. The scale sweep is right in 360 of 360 runs against Gurobi's MIPGap-0 optimum. The no-scaling control has power: 19 wrong, failed or aborted runs (COPT 5, SCIP 1, GLPK 13) and none on Gurobi, CPLEX or Xpress. Scaling does not hurt the three backends that did not need it. CPLEX, Xpress and COPT explore exactly the same number of nodes with and without it. Gurobi is never worse, and is much better with 1e12 cuts, which it otherwise ignores. Two changes to the plan's order: split == before the drop, and reject non-finite input first. The SCIP tiny-term step is more than a refinement: the shared scaling itself creates the SCIP fault (12/12 wrong without the step, 12/12 right unscaled), and the step's cost is that cuts whose coefficients span 1e9 or more become useless on SCIP. Natural separators never produced a cut violated by between 1e-9 and 1e-6, and conformance passes at 1e-9 everywhere. The 1e-6 drop matters only on GLPK, in one case: the GLPK skeptic's conditional big-M cut (cover \u2212 K x_b). The drop removes that family from K = 1e6 on every backend, not only GLPK. On GLPK both alternatives fail: unscaled K = 1e10 gives a value above the true maximum, reported optimal; the 1e-9 drop stalls to the time limit. No scaling choice fixes COPT 8.0.5 with presolve off: valid cuts with a 1e9\u20131e10 coefficient range give false optima (7/10 with the plan's scaling), while all runs at COPT's default presolve were right. D4 also reproduces on CPLEX, where the callback never runs. It does not reproduce on COPT. On Xpress the callback does run, but D1 makes every arm report infeasible, so the value tells nothing.",
+  "findings": [
+   {
+    "severity": "wrong in the plan",
+    "where": "Preparing a cut, 'SCIP, tiny terms' (plan lines 146-149): 'scaling makes this more likely'",
+    "what": "The shared scaling step creates the SCIP fault from a correct cut, so the tiny-term step is mandatory and must come after scaling. Its cost: a valid cut whose coefficients span 1e9 or more is made useless on SCIP. On TINY2 written large (M\u00b7sum x_cycle \u2212 w \u2264 2M, w = 3M z), the plan's scaling without the step is wrong 12/12 at M = 1e10 and 1e12 (3 seeds \u00d7 presolve on/off). The same cut unscaled is right 12/12. With the step all are right, but the cut is no longer violated after the move (tiny_unviolated=1). Geometric scaling (sqrt(max\u00b7min)) kept this cut intact and right in 18/18 runs, but was wrong once on the big-M S flavor (1e10, presolve on). It is a lead, not a fix.",
+    "evidence": "final_out_scip_tiny_notiny.txt:12 'TINY scip seed=1 M=1e+10 presolve=on cfg=PIPE: vs_oracle=WRONG vs_base=WRONG | status=optimal{sol=true} value=103' and :13 'cfg=NOSCALE: vs_oracle=OK ... value=106'. Wrong values for the other seeds: 99.1 for 102 and 90.1 for 93. final_out_scip_tiny.txt:12 'cfg=PIPE: vs_oracle=OK ... value=106 ... tiny_moved=2 tiny_unviolated=2'. final_out_scip_tiny3.txt: GEOM arm tiny_moved=0, all OK. final_out_scip_bigm_more.txt: GEOM 1e10 presolve=on 1 WRONG/WRONG.",
+    "replacement": "SCIP, tiny terms. var.c:14312 drops a term with |a| <= 1e-9 without moving the side. The shared scaling produces such terms from correct cuts: unstepped, TINY2 at M >= 1e10 gives 103 for 106 in 12 of 12 runs, unscaled 0 of 12. So after scaling, move each such term to the side at its worst global bound, and skip the cut if that bound is infinite or the cut is an equality. A cut whose coefficients span 1e9 or more then becomes useless on SCIP, though still valid."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Defects table, D4 (plan line 305): 'A candidate callback set after a finished solve does not reach the next solve() ... Other backends: unverified'",
+    "what": "Measured through the public API with own_gurobi_late2's model: lazy row y1 + y2 <= 1 (reject_solution on Xpress), truth 4. CPLEX reproduces: no change gives 5, calls=0 and point (0,1,1), which violates the row. A set_time_limit write alone does not count as a change. The control with an objective write gives 4 (calls=8). On Gurobi the callback is reached: calls=1, acted=1, yet the second solve still returns 5 at (0,1,1), so 'does not reach' is imprecise. COPT does not reproduce: calls=7, value 4 in every arm. On Xpress the callback runs in the late arm (calls=1, the same as control and reference), but every arm reports infeasible: that is D1, not D4. I infer the CPLEX cause: cplex_milp.hpp:445-454 attaches the callback and calls CPXmipopt, which returns at once on an unchanged, solved MIP. Another process left final_late_attach_*.txt at 16:32 with the same numbers; it corroborates, but I did not produce it.",
+    "evidence": "final_out_d4_cplex.txt: 'set after a finished solve, no change: first=5 second=5 optimal=true infeasible=false calls=0 acted=0 point=(0,1,1)'; 'set after a finished solve, then set_time_limit(100 s) only: ... second=5 ... calls=0'; 'control: ... second=4 ... calls=8 acted=6'. final_out_d4_gurobi.txt: 'set after a finished solve, no change: first=5 second=5 ... calls=1 acted=1 point=(0,1,1)'. final_out_d4_copt.txt: '... no change: first=5 second=4 optimal=true ... calls=7 acted=2'. final_out_d4_xpress.txt: all four arms 'optimal=false infeasible=true calls=1 acted=1'.",
+    "replacement": "D4 | gurobi_milp.hpp:230, cplex_milp.hpp:445-454 | A candidate callback set after a finished solve has no effect on the next solve() of an unchanged model. A parameter write is not a change. | Lazy row forbidding the optimum: second solve still 5 at a point violating it. Gurobi calls the callback once and ignores the row; CPLEX never calls it (calls=0). After an objective write both give 4. COPT: not affected (value 4). Xpress: the callback runs, but D1 masks the value."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Decision 5 (plan lines 358-360): 'It silently drops big-M cuts with M >= 1e8 on GLPK'",
+    "what": "The drop is in the shared preparation, so it applies on every backend. For the GLPK skeptic's conditional form (cover \u2212 K x_b <= |C|\u22121, x_b = 0 at the point), the threshold is K \u2248 violation/1e-6, i.e. from K = 1e6 with cover violations of 0.1 to 1. With the pipeline, passed=0 at K >= 1e6 on all six, and nodes fall back to the no-cut baseline. All 120 pipeline runs were right. The cuts would have helped some solvers: GLPK cov40x5s2 1331 nodes unscaled against 2319 dropped; CPLEX s2 2421 against 3085. On GLPK neither alternative is safe: unscaled at K = 1e10 returns 1971 for a true maximum of 1833, at status optimal; scaled with a 1e-9 drop stalls to the 60 s limit at K = 1e6. For the task's literal x \u2212 M y <= 0 with x continuous, the drop never cost an answer. With x up to 30 and presolve on, no cut was violated on any backend. With presolve off and M >= 1e6, the model's own link (10M) already trickles, so the no-hook baseline is wrong against the exact optimum on all six (Gurobi 896 for 1801) and the hook gets no fractional point. With x up to M, the cuts were kept and right at every M on Gurobi, Xpress and SCIP; CPLEX (1e9\u20131e10) and GLPK (from 1e6) are already wrong without the hook.",
+    "evidence": "final_out_*_bigm_cond.txt (summarized by final_cond_table.py): every backend 'K=1e+06 PIPE ... passed=[0,0,0,0,0]'. final_out_glpk_bigm_cond.txt:21-23 'cov40x5s2 K=1e+06 cfg=PIPE ... nodes=2319 ... passed=0', 'cfg=NOSCALE ... nodes=1331', 'cfg=DROP9 ... nodes=1439'. 'COND glpk cov40x5s1 K=1e+10 cfg=NOSCALE: vs_oracle=WRONG | status=optimal{sol=true} value=1971' (oracle 1833). 'COND glpk cov40x5s1 K=1e+06 cfg=DROP9: vs_oracle=NOTOPT | status=time_limit{sol=true} value=1818 ... nodes=14 t=60.00s ... stall_stops=3'. final_out_gurobi_bigm.txt: 'BIGMBASE gurobi W seed=1 Mcut=1e+06 presolve=off: oracle=1801 vs_oracle=WRONG | ... value=896.0019577 ... calls=0'.",
+    "replacement": "5. Preparing a cut. Shared preparation with scaling and a 1e-6 drop? On every backend the drop removes a conditional big-M cut (w'x \u2212 K x_b <= r with x_b = 0 at the point) once K exceeds its violation times 1e6: from K = 1e6 for covers. 'May apply nowhere' allows that, and on GLPK both alternatives are unsafe: unscaled K = 1e10 gives a value above the true optimum at status optimal, and a 1e-9 drop stalls to the time limit. Gurobi, CPLEX and Xpress did not need the scaling for correctness, and it costs them nothing measured."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Preparing a cut, table rows 'Drop if violated by at most 1e-6 after scaling' and 'Split == into <= and >=' (plan lines 141-142), and 'in this order' (line 133)",
+    "what": "In the table the split comes after the violation test. If the drop tests the whole equality (|a\u00b7x \u2212 rhs|), the half that the point satisfies is still passed on. That happens on Xpress and GLPK, the two solvers that need the split and the ones that spin on satisfied cuts offered again. The skeptic's Xpress recipe does exactly that: verify_xpress_hook.hpp add_cut runs cf::sanitize on the whole raw cut, then splits 'E' into L and G. fp::prepare splits first, then tests each half. Conformance cannot tell the two orders apart: C7 has no == cut, which every skeptic noted.",
+    "evidence": "verify_xpress_hook.hpp add_cut: 'r = cf::sanitize(raw, x, c.r.drop_satisfied, t); ... if(r->sense == 'E' && c.r.split_equality) { ... e = native_add(c, cb, a); if(!e) e = native_add(c, cb, b); }'. final_prepare.hpp: the split is step 6, before the erase_if drop of step 7.",
+    "replacement": "Order: reject non-finite, fold duplicate columns, strip exact zeros, skip what is left empty, scale to max|a| = 1, split == into <= and >= where the solver needs it, then drop each resulting cut the point violates by at most 1e-6."
+   },
+   {
+    "severity": "should be added",
+    "where": "Preparing a cut, table (plan lines 135-142)",
+    "what": "Reject a non-finite coefficient or side before anything else, and drop a cut whose scaled side overflows. The GLPK skeptic listed this as its recipe change (1) ('reject non-finite coefficients and rhs (infinity aborts on all 7)'), but the plan's table leaves it out. fp::prepare does it in shared code. No run exercised it.",
+    "evidence": "verify_results.json, GLPK recipe_change: '(1) reject non-finite coefficients and rhs (infinity aborts on all 7)'. final_prepare.hpp steps 1 and 5 (isfinite checks).",
+    "replacement": "| Reject a non-finite coefficient or side | GLPK: process abort on all seven releases (skeptic). After scaling, also drop a cut whose side overflowed. |"
+   },
+   {
+    "severity": "should be added",
+    "where": "Preparing a cut, row 'Scale to max|a| = 1' (plan line 140: 'Optimum lost: COPT from 1e10 ...')",
+    "what": "Scaling protects COPT from cuts that are uniformly huge, not from cuts whose own coefficients span a wide range. On the S flavor (FCTP with x up to Mcut, valid cut x \u2212 Mcut y <= 0) with presolve off, COPT 8.0.5 gives false optima at status optimal with dual equal to primal. At Mcut = 1e10: PIPE 7/10, no scaling 6/10, geometric 2/10, no hook 1/10. At 1e9: 3/10, 6/10 and 4/10, no hook 3/10. At default presolve, all 60 hooked runs were right. On the TINY2 model with presolve off, COPT is wrong without any hook at M >= 1e10, so those failures are not the cuts'.",
+    "evidence": "final_out_copt_bigm.txt: 'BIGM copt S seed=1 Mcut=1e+10 presolve=off cfg=PIPE: vs_oracle=WRONG vs_base=WRONG | status=optimal{sol=true} value=6.89e+11 dual=6.89e+11 nodes=1 ... calls=1' against 'BIGMBASE ... value=6.003333333e+11'. Counts from final_out_copt_bigm_more.txt (1e10, presolve off): PIPE WRONG/WRONG 7, NOSCALE 6, GEOM 2. final_out_copt_tiny.txt: 'TINYBASE copt seed=1 M=1e+10 presolve=off: oracle=106 vs_oracle=WRONG ... value=103 ... calls=0'.",
+    "replacement": "Add to COPT under 'Must also' or to the upstream list: 'With presolve off, valid cuts whose coefficients span 1e9 or more give false optima at status optimal whatever the scaling (7 of 10 at 1e10 with the shared scaling). Default presolve: 0 of 60.'"
+   },
+   {
+    "severity": "minor",
+    "where": "Preparing a cut, row 'Scale to max|a| = 1': 'Gurobi, CPLEX and Xpress held across the whole sweep'",
+    "what": "Their answers held (60/60 unscaled), but scaling is a gain on Gurobi, not just harmless. Unscaled 1e12 cuts are nearly ignored by Gurobi 12.0.1: on atsp16s2 it explores 5510 nodes, against 1 with scaling. Covers scaled by 1e9 or 1e12 take 656/1819/258 nodes against 479/1192/217. With scaling, Gurobi and Xpress explore exactly the same nodes at every factor from 1e-8 to 1e12. CPLEX, COPT, SCIP and GLPK differ by at most a few percent across factors (CPLEX cov40x5s1 840 against 921; COPT s4 1677 against 1903), which I attribute to 1-ulp rounding of (s\u00b7rhs)/s. CPLEX and Xpress explore the same nodes with or without scaling.",
+    "evidence": "final_out_gurobi_sweep_ns.txt: 'SWEEP gurobi atsp16s2 s=1e+12 cfg=NOSCALE: ... nodes=5510 t=1.54s calls=3785' against 'cfg=PIPE: ... nodes=1 t=0.01s calls=2'. Per-scale node lists, PIPE rows, from final_summarize.py over final_out_*_sweep_ns.txt.",
+    "replacement": "Gurobi, CPLEX and Xpress kept the optimum without it. Gurobi without it ignores 1e12 cuts (5510 nodes against 1 on ATSP n=16), and with it every backend's search is nearly independent of the cut's scale."
+   },
+   {
+    "severity": "minor",
+    "where": "Preparing a cut, row 'Drop if violated by at most 1e-6 after scaling' (plan line 141)",
+    "what": "With the recipes' own guards, the drop is not load-bearing on CPLEX, Xpress R1 or COPT. Conformance at a 1e-9 drop passes CPLEX 64/64 (with the same-point guard), Xpress 49/49, GLPK 49/49 (with the stall guard) and COPT 49/49, and CPLEX X6a/X6b explore the same nodes in the same calls. On natural separators (plain, and re-offer-everything) the 1e-6 and 1e-9 drops removed exactly the same cuts on all six backends (no cut fell in (1e-9, 1e-6]), with identical nodes. An adversarial separator that offers only weakened valid cuts, violated by 5e-7\u00b7max|a|, loses all of them to the 1e-6 drop. Gurobi used them (geometric-mean nodes 1.28\u00d7, worst 2.8\u00d7: cov40x5s10 1167 against 615); CPLEX was faster with the drop (time \u00d70.66); SCIP, Xpress and GLPK were mixed or neutral. The measured reason to keep 1e-6 is GLPK on conditional big-M (a stall at 1e-9). The plan's CPLEX reason is now carried by the same-point guard (the skeptic: 'A max|a| tolerance is not enough'). XPRSaddcuts is not the recipe.",
+    "evidence": "final_out_cplex_conf_drop9.txt '== 64 cases, 0 failed'; final_out_xpress_conf_drop9.txt, final_out_glpk_conf_drop9.txt, final_out_copt_conf_drop9.txt '== 49 cases, 0 failed'. final_harm_table.py over final_out_*_harm.txt: 'gm plain PIPE/DROP9: nodes 1.000' and 'gm eager PIPE/DROP9: nodes 1.000' on every backend; gurobi 'gm nearsat PIPE/DROP9: nodes 1.282 ... (max 2.80)'; cplex 'gm nearsat PIPE/DROP9: nodes 0.909 time 0.655'.",
+    "replacement": "| Drop if violated by at most 1e-6 after scaling | GLPK: a conditional big-M cut kept at 1e-9 stalls to the time limit even with the stall guard. Harmless elsewhere: no natural separator offered a cut violated by between 1e-9 and 1e-6. The CPLEX spin is handled by the same-point guard. |"
+   },
+   {
+    "severity": "minor",
+    "where": "Preparing a cut, row 'Scale' (plan line 140: 'GLPK from 1e6, with aborts from 1e4')",
+    "what": "Not reproduced on covers and DFJ. GLPK 5.0 without scaling was right at 1e4 and 1e6 (20/20). Its failures start at 1e9: 3 WRONG, 3 failed status and 1 SIGABRT (simplex/spxprim.c:663, 'teta_lim >= 0.0') at 1e9, and 6 more wrong or failed at 1e12. COPT without scaling failed only at 1e12 (5/5 covers), not at 1e9 or 1e10. SCIP failed 1/5 at 1e12. The skeptics' families differ (GLPK 'scale' tight directions, COPT mcnd), so this narrows the claim rather than refuting it.",
+    "evidence": "final_summarize.py over final_out_glpk_sweep_ns.txt: 'cov40x5 s=10000 NOSCALE {OK: 5}', 's=1e+06 NOSCALE {OK: 5}', 's=1e+09 NOSCALE {WRONG: 1, NOTOPT: 3, OK: 1}'. final_out_glpk_sweep_ns.txt:54 '[glpk says] Assertion failed: teta_lim >= 0.0'. final_out_copt_sweep_ns.txt:26 'SWEEP copt cov40x5s2 s=1e+12 cfg=NOSCALE: vs_oracle=WRONG ... value=1879'.",
+    "replacement": "Optimum lost without it: COPT at 1e12 on covers (5 of 5), and at 1e10 on its skeptic's mcnd; SCIP from 1e9 (10 to 13 of 40) and 1 of 5 covers at 1e12; GLPK from 1e9 on covers and DFJ (13 of 20, with a SIGABRT), and from 1e6 on its skeptic's families."
+   },
+   {
+    "severity": "minor",
+    "where": "'Unverified: the order above was assembled from per-backend runs' (plan lines 156-157), Not verified 'The unified preparation as one step on all backends' (line 370), RECORD.md 'Status of the pipeline run'",
+    "what": "The single preparation has now run as one function in all six recipes, at the skeptics' sizes, with no recipe failure. Recipe pieces set to the plan's values that the skeptics' files had off by default: CPLEX same_point_guard=true, GLPK stall_k=5, SCIP harden=true (the tiny-term step; its scaling is a no-op after prepare). It ran as probes against native hooks, not as library code.",
+    "evidence": "final_out_gurobi_conf.txt '== 72 cases, 0 failed', hook totals 'root_calls=2197 tree_calls=11004 ... native_err=0' (the skeptic had 2204/10952). final_out_cplex_conf.txt '64 cases, 0 failed'; final_out_xpress_conf.txt, final_out_copt_conf_d0.txt, final_out_copt_conf_d20.txt, final_out_scip_conf_plain.txt, final_out_scip_conf_deep.txt, final_out_glpk_conf.txt '49 cases, 0 failed'.",
+    "replacement": "Verified as one step (fp::prepare in final_prepare.hpp) on Gurobi 12.0.1, CPLEX 22.1.2, Xpress 47.01.01, COPT 8.0.5, SCIP 9.2.1 and GLPK 5.0, with no recipe failure. Other releases: unverified."
+   },
+   {
+    "severity": "should be added",
+    "where": "Tests (plan lines 335-339): 'Cases with power ...'",
+    "what": "Three cases with power that the list lacks: TINY2 written large (M\u00b7cycle \u2212 w <= 2M) on SCIP, which fails 12/12 without the tiny step; the conditional big-M cover on GLPK, which shows the drop is load-bearing; and a scale sweep checked against a second solver's MIPGap-0 optimum. Also a power note: covers have unit coefficients, so the scaling step is the identity on C5 and on almost all accepted C10 cuts (rescaled = 0 to 5 per run). Any harm test of scaling needs non-unit cuts: MCND links or general-integer CG cuts.",
+    "evidence": "final_harm_table.py: cov40x5 rows 'r0' in every configuration and backend; mcnd12 rows r40..r158; final_out_scip_tiny_notiny.txt; final_out_glpk_bigm_cond.txt.",
+    "replacement": "Add: 'a valid cut whose scaled form has a tiny term (SCIP), a conditional big-M cover (GLPK), and a scale sweep checked against another solver's MIPGap-0 optimum. Covers have unit coefficients and cannot test the scaling.'"
+   },
+   {
+    "severity": "minor",
+    "where": "Preparing a cut, order 'Strip exact zeros' before 'Scale'",
+    "what": "Pedantic: zeros are stripped before scaling. A cut whose coefficients span more than about 1e308 would underflow a coefficient to exact zero after the division, and that zero would reach COPT, which mishandles zeros. A second zero strip after scaling costs nothing. Not exercised.",
+    "evidence": "final_prepare.hpp: the v != 0.0 strip runs before 'for(double & v : cut.val) v /= big'.",
+    "replacement": "After scaling, strip any coefficient that became exactly zero."
+   }
+  ],
+  "executed": "Everything ran from /tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts against include/ of the repo (feat/lp-basis). Nothing under the repo changed; git status is the same as at the start. Each binary was compiled one at a time with /opt/gcc-15/bin/g++ -std=c++26 -O1 -I<repo>/include -I. x.cpp -o x -ldl; COPT and GLPK also needed -fno-access-control, as RECORD.md says. Every run went under timeout -k 5, every solve had a finite limit (60 s; 300 s for the oracle), and a final pgrep found no survivors.\n\nFiles written, all prefixed final_:\n- final_prepare.hpp (fp::prepare): reject non-finite, fold, strip \u00b10, skip empty, scale to max|a|=1, split == (flag), then drop each cut violated by \u2264 1e-6. Env FP_NO_SCALE and FP_DROP set the controls. It also carries an experiment-only 'geometric' option, off by default.\n- final_tests.hpp: the experiments, plus FT_FORK=1 to run each solve in a child, needed because the GLPK no-scaling control aborts the process.\n- final_conf_{gurobi,cplex,xpress,copt,scip,glpk}.cpp, plus final_cplex_common.hpp, final_xpress_hook.hpp, final_scip_native.hpp and final_glpk_model.hpp. Each copies the skeptic's file with its sanitize replaced by fp::prepare and its other pieces kept. CPLEX: same-point guard on. Xpress: R1, split_eq=true. SCIP: tiny-term step on (env FINAL_NO_TINY is the control). GLPK: stall_k=5, split_eq=true.\n- final_d4.hpp and final_d4_{cplex,xpress,copt,gurobi}.cpp: public API only.\n- final_oracle.txt: 57 Gurobi 12.0.1 optima at MIPGap 0, without a hook.\n- final_run.sh and the summarizers final_summarize.py, final_harm_table.py, final_cond_table.py.\n- Outputs in final_out_<backend>_<mode>.txt.\n\nRuns:\n(1) Conformance at the skeptics' sizes. Gurobi atsp 26,30,44, seeds 9,10,3, stop 44, first 0.3, fuzz 40: 72/72. CPLEX {22,24,31}, stop 31, fuzz 20, plus the X cases: 64/64. Xpress SIZES '16 24 32', SEEDS '1 3 4', stop 30, fuzz 20: 49/49. COPT 12,16,20, stop 26: 49/49 at DELAY 0 and at DELAY 20. SCIP 9.2.1 at 12,16,18, stop 20: 49/49; deep mode at 12,14,16, limit 90: 49/49. GLPK 5.0 at 12,14,16, stop 26: 49/49. Repeated at a 1e-9 drop: CPLEX 64/64, Xpress, GLPK and COPT 49/49 each.\n(2) Scale sweep: covers 40x5 and ATSP n=16, 5 seeds each, factors 1e-8, 1e-4, 1e4, 1e6, 1e9, 1e12, with the pipeline and with a no-scaling control, on all six. Pipeline: 60/60 right per backend against the Gurobi oracle; every no-hook baseline agreed with the oracle. Control: Gurobi, CPLEX and Xpress 0 wrong; COPT 5; SCIP 1; GLPK 13, one of them a SIGABRT.\n(3) Big-M. FCTP 4x8 with x continuous, the model's link at 10\u00b7Mcut and cut x \u2212 Mcut y \u2264 0, Mcut \u2208 {1e3, 1e6, 1e8, 1e10}, two flavors (x up to 30 and x up to Mcut), 3 seeds, presolve on and off, with and without scaling. The x-up-to-Mcut flavor was rerun with 10 seeds, Mcut \u2208 {1e8, 1e9, 1e10} and a geometric arm. TINY2 written large, M up to 1e12, presolve on and off, three arms. The GLPK skeptic's conditional cover \u2212 K x_b, K \u2208 {1e3, 1e6, 1e8, 1e10}, 5 seeds, arms pipeline, no scaling and 1e-9 drop, on all six.\n(4) and (5) Harm, 1 thread, on 9 instances: cov40x5 seeds 9 and 10, C10 seeds 7, 23 and 33, MCND 12-node seeds 1-3, general-integer CG 25x6 seed 1. Configurations: pipeline, no scaling, scaling with a 1e-9 drop, and no scaling with a 1e-9 drop. Separators: plain, re-offer-everything, and nearsat (weakened cuts violated by 5e-7).\nD4 on CPLEX, Xpress, COPT, and Gurobi for reference, with four arms: no change, objective write, set_time_limit only, and set before the first solve.",
+  "not_checked": [
+   "Releases other than Gurobi 12.0.1, CPLEX 22.1.2 (Community), Xpress 47.01.01 (Community), COPT 8.0.5, SCIP 9.2.1 and GLPK 5.0. The skeptics' other releases, and SCIP 8.0.4 and 10.1.0, did not run the single pipeline.",
+   "Cbc, HiGHS and MOSEK: out of scope.",
+   "== cuts: C7 has no equality, so the split-before-drop order and the Xpress and GLPK split were not exercised.",
+   "The distinct_variables overload (no folding).",
+   "The non-finite rejection: no run offered an infinity or a NaN.",
+   "Default integrality tolerances. I believe Gurobi IntFeasTol and CPLEX EpInt are 1e-5, Xpress MIPTOL 5e-6, COPT IntTol and SCIP feastol 1e-6, and GLPK tol_int 1e-5. I did not read them from headers or manuals this session.",
+   "Harm power. Covers are unit-coefficient, so scaling is the identity there. The MCND trees had 1 to 27 nodes. TINY2 is offered once at the root, so a solver that silently ignores the cut and one that keeps its tiny term look the same. Gurobi never called the hook on TINY2 with presolve on.",
+   "Timings ran with 2 to 4 backends in parallel. Read them as orders of magnitude; the node counts are deterministic at 1 thread.",
+   "The cause of the CPLEX D4 behaviour (inferred from calls=0), and of the COPT false optima with presolve off.",
+   "Geometric scaling beyond the TINY2 and big-M arms. It was not run through conformance, the sweep or the harm tests.",
+   "C9 default-thread cases were not re-examined for power beyond what the skeptics reported; they passed.",
+   "The upper big-M form with x up to 30 has no instance where the cut is both valid and violated while the no-hook model is still right at M >= 1e6, so 'is the answer right' there can only be judged against the trickled baseline."
+  ]
+ },
+ {
+  "reviewer": "facts",
+  "verdict": "Most of the plan matches its evidence. Nearly every number I traced matches survey_results.json, verify_results.json or a raw output: 106.4 of 107.4, 1718 for 1733, 10 to 13 of 40, 314842200 reads, 16.9 s for 8 s, 1.60 over 46 pairs, 6997 to 1, 58 of 58 and 4365 runs, 40 of 40 against 22 of 40, and 14 of 33. All cited repo lines say what the plan says: model_concepts.hpp:826-834, model_base.hpp:299-301, 314 and 340-354, copt_milp.hpp:95-98 and 124, xpress_milp.hpp:100, gurobi_milp.hpp:230-233, cplex_milp.hpp:115-118, 131, 147, 182 and 232-244, glpk_milp.hpp:103-110 and 345-348, cbc_milp.hpp:726 and 736, cbc_api.hpp:99-105, scip_milp.hpp:100-110, and the docs lines. Every vendor quote I pulled is verbatim: Xpress 'might be used on any node' and preintsol note 4, the MUTEXCALLBACKS routine list, CPLEX 'the rest of the model', the SCIP FAQ, var.c:14312, sepastore.c:459, the MOSEK prohibition, and COPT 11090/11259/5719. Rerunning own_xpress_reject reproduced D1 exactly. copt_cmd at Threads=1 reproduced the COPT false optimum (11996.999999906 at 0.0000% gap; 12135 at default threads, with Presolve=0, and on Gurobi). The problems are of four kinds. Some statements are wrong: Gurobi also needs LazyConstraints=1 for a lazy row from MIPNODE; SCIP maxrounds=0 leaves 6 root calls; the Xpress equality crash is inside XPRSaddmanagedcuts on the recommended path; GLPK's 'presolve-solved' silent case has no source; 'every fault below is silent' contradicts the aborts in the same table; COPT's guide does promise a call on every solved LP; and D4 is described by a mechanism my rerun did not show (calls=1, lazy_added=1, answer still 5). Some refined claims are repeated in their unrefined form: incumbents 'not bound', Gurobi 'one call per node', COPT 'lost except where absent', Cbc 'local'. Some one-instance numbers are stated as rules: Cbc 99.6%, CPLEX 200x, PreCrush 100 to 300x, COPT 58691. Finally, omissions bear on Decisions 4 and 5: COPT's serialization is no more promised than Xpress's, and a shared 1e-6 drop after scaling would drop big-M cuts on every backend, not only on GLPK (that last point is my inference).",
+  "findings": [
+   {
+    "severity": "changes a decision",
+    "where": "Threads: \"Gurobi runs the hook on one thread, COPT and Xpress serialize it (Xpress through `MUTEXCALLBACKS`, measured on `cutround`, not promised)\" and Decision 4: \"A mutex on CPLEX and Xpress, so \"never twice at once\" holds everywhere?\"",
+    "what": "The 'measured, not promised' qualifier is applied to Xpress only. COPT's serialization is equally only observed, and its guide disclaims thread safety. Yet the plan adds a mutex on Xpress for exactly that reason and none on COPT, so 'never twice at once' would rest on an observation on COPT. The Decision 4 sentence implies it is guaranteed everywhere.",
+    "evidence": "verify COPT O8: 'As claimed, observed only. Five spin configurations and one sleep. No vendor promise.'; copt_ug.txt:5719 'COPT does not guarrantee thread safe and modelling APIs are not reentrant in general.'; survey COPT threads: 'Serialization is observed, not promised.'; COPT recommendation: 'calls are serialized without a vendor promise'.",
+    "replacement": "Gurobi runs the hook on one thread (promised, c_logging.txt:237-239). COPT and Xpress serialize it, measured and not promised (COPT's guide: 'COPT does not guarrantee thread safe'; Xpress's MUTEXCALLBACKS entry does not list cutround). SCIP and GLPK have one search thread. Decision 4: \"A mutex on CPLEX and Xpress, and on COPT too if 'never twice at once' must not rest on an observation?\""
+   },
+   {
+    "severity": "changes a decision",
+    "where": "Decision 5: \"It silently drops big-M cuts with `M >= 1e8` on GLPK, which \"may apply nowhere\" allows.\"",
+    "what": "The drop step runs in shared code before every native call, so it would drop the same cuts on every backend, not only on GLPK. The measurement is GLPK-only. The cost stated in the decision is therefore narrower than the design implies. This is my inference from the arithmetic: a cut x - M y <= 0 scaled by 1/M has a violation of at most about 1/M at a point with x <= 1. It was not measured on other backends.",
+    "evidence": "Plan 'Preparing a cut': '`add_user_cut` prepares every cut in shared code, in this order, before the native call' with the row 'Drop if violated by at most 1e-6 after scaling'. verify GLPK recipe_change (4): 'conditional big-M cuts with K >= 1e8 are silently dropped (bigm_cut p>=1e8 passed=0)'. Gurobi G9: 'a natural big-M cut with M=1e7 is applied', so Gurobi applies such cuts today.",
+    "replacement": "It silently drops big-M cuts with `M >= 1e8` (measured on GLPK; as shared code it would drop them on every backend, including Gurobi, which applies an M=1e7 cut today), which \"may apply nowhere\" allows."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "\"Only Gurobi takes one from a relaxation without further ado: CPLEX refuses with 1811, COPT needs the `MIPSOL` bit and so loses presolve reductions, and Xpress managed cuts from the wrong hook stop the solve with error 902.\"",
+    "what": "Gurobi does not take a lazy row from MIPNODE without further ado. It needs LazyConstraints=1, without which every call returns 10011. That parameter costs presolve reductions, which is the same cost the sentence charges to COPT. The Xpress reason is also not the measured one. A row from a relaxation hook does not bind heuristic incumbents (optnode-only lazy gave wrong answers). Error 902 is for managed cuts from a hook other than cutround.",
+    "evidence": "survey Gurobi odd_cuts: 'cblazy without LazyConstraints: err 10011 every call (3782 in E3)'; side_effects: 'DualReductions=0 and LazyConstraints=1 keep 42 columns where default has 41'; gurobi parameters.txt:1765-1768 'must set this parameter to value 1 ... avoid certain reductions'; gurobi_milp.hpp:234-235 'LazyConstraints turns off presolve reductions'; survey Xpress lazy_interplay: 'Optnode-only lazy: wrong, 418 and 510, heuristics bypass it.'",
+    "replacement": "No backend takes one from a relaxation without further ado: Gurobi needs `LazyConstraints=1` (10011 without it), which costs presolve reductions as COPT's `MIPSOL` bit does; CPLEX refuses with 1811; and on Xpress a row added from a relaxation hook does not bind heuristic incumbents (optnode-only lazy: 418 and 510, both wrong)."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "D4 row: \"A candidate callback set after a finished solve does not reach the next `solve()`.\"",
+    "what": "The defect is real, but the stated mechanism holds on one model only. I reran the plan's own reproduction with a 10 s limit added before the first solve. The callback did run once and did add the lazy row, and the second solve still returned 5 with a point violating that row. The skeptic's 'calls=0' came from a different model, a degree-only TSP. Caveat: the 10 s limit is a parameter write, which G6 says does not restart a search; the limit-free original was not rerun because the rules forbid an unlimited solve.",
+    "evidence": "final_own_gurobi_late2 output: 'set after a finished solve: first=5 second=5 calls=1 lazy_added=1 point=(0,1,1)' and 'control: ... first=5 second=4 calls=4 lazy_added=2 point=(1,-0,1)'. verify Gurobi shipped_code_findings: 'then optimal value=345 callback calls=0 lazy added=0 cycles in the returned point=13 NOT A TOUR'.",
+    "replacement": "A candidate callback set after a finished solve is not honoured by the next `solve()`: it returns the old answer with a point violating the lazy rows (degree-only TSP n=30: 0 calls, 13 cycles; own_gurobi_late2: called once, its row ignored, point (0,1,1)), against 4 after any model change."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "\"Xpress: an equality on columns presolve merged segfaults inside `XPRSpresolverow` on 46, 47, 48.\"",
+    "what": "On the recommended path (R1, managed cuts) the crash is inside XPRSaddmanagedcuts. XPRSpresolverow is the frame on the path the plan rejects. The skeptic also narrowed the trigger to unequal coefficients on the merged columns.",
+    "evidence": "verify Xpress X7: 'gdb: #0 memset, #1-5 libxprs, #6 XPRSaddmanagedcuts; on R2 #4 XPRSpresolverow ... Crash on 46.01.03, 47.01.01, 47.01.02, 48.01.01'; exact_truth: 'Needs unequal coefficients on columns presolve merged, and hits truly valid cuts, on both paths.'",
+    "replacement": "Xpress: a valid equality with unequal coefficients on columns presolve merged segfaults inside `XPRSaddmanagedcuts` (and inside `XPRSpresolverow` on the `XPRSaddcuts` path) on 46.01.03, 47.01.01, 47.01.02 and 48.01.01; 45.x returns status -4."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "When it runs, SCIP 'Silent if' cell: \"`separating/maxrounds=0`, `SCIPsetSeparating(OFF)` if `freq` is not rewritten\"",
+    "what": "separating/maxrounds=0 does not silence the hook: it still makes 6 calls at the root. The settings that give 0 calls are maxcuts=0 with maxcutsroot=0, maxruns=0, freq=-1, and SCIPsetSeparating(OFF).",
+    "evidence": "out_scip_firing.txt: '[+ separating/maxrounds=0] run=1 hook_runs=6 ... root_calls=6'; '[+ separating/maxcuts=0 maxcutsroot=0] run=1 hook_runs=0'; '[+ separating/maxruns=0] run=1 hook_runs=0'; '[+ SCIPsetSeparating(OFF) after the include] run=1 hook_runs=0'. Survey firing: 'separating/maxrounds=0: 6 (root only)'.",
+    "replacement": "`separating/maxcuts=0` with `maxcutsroot=0`, `separating/maxruns=0`, or `SCIPsetSeparating(OFF)` if `freq` is not rewritten; `separating/maxrounds=0` leaves the root calls only"
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "When it runs, GLPK 'Silent if' cell: \"presolve-solved models keep the wrapper's own path\"",
+    "what": "No source anywhere. With a callback set the recipe turns presolve off, so no model is solved in presolve on that path. The exceptions the skeptic actually gives are the empty model, which keeps presolve on, and a root LP that fails and is mapped to a status before glp_intopt runs. The hook also never fires on an integral LP at ICUTGEN.",
+    "evidence": "verify GLPK recipe_change (6): 'Wrapper path: n == 0 keeps presolve on; root LP status mapped as in preprocess_and_solve_mip; a failed root reports has_sol=false'; survey GLPK firing: 'Integral relaxations: ICUTGEN never'.",
+    "replacement": "an empty model (it keeps the presolve path), a root LP that fails, or an integral LP"
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "\"The first recipe, from the survey, passed everything on valid cuts of ordinary scale. The skeptics then broke it with truly valid cuts, checked against enumerated optima. Every fault below is silent and every piece is one a control run proved necessary.\"",
+    "what": "Three problems. (1) The first recipe also failed at ordinary scale: it had no equality split, so a valid t - s == 0 segfaults Xpress 46+, and CPLEX's root spins on valid unit-scale cuts with a tiny violation (T1, 18 of 40). (2) Not every check was against enumerated optima: CPLEX, Gurobi and Xpress compared against baseline solves, and COPT against Gurobi. (3) 'Every fault below is silent' contradicts the table itself, which lists process aborts, SIGSEGV, a CoinError and rc=3.",
+    "evidence": "cut_conformance.hpp:15-23 (fold, strip v != 0.0, skip empty, drop at 1e-9; no split); verify Xpress X7 crash on valid 't - s == 0'; verify CPLEX controls [12] 'T1 frozen root: 18/40 FAIL'; plan table cells 'GLPK: process abort', 'COPT: SIGSEGV', 'Cbc: `CoinError`', 'COPT returns 3'.",
+    "replacement": "The first recipe, from the survey, passed the shared conformance set. The skeptics then broke it with truly valid cuts, checked against enumeration, a baseline solve or a second solver: at large or tiny coefficients, and also at ordinary scale (a valid equality on merged columns segfaults Xpress 46+; a valid cut violated by at most EpRHS * max|a| spins CPLEX's root, 18 of 40). Each fault below is silent or kills the process, and every piece is one a control run proved necessary."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "\"The decisive experiment, identical on all backends: a tree that splits on one binary, with the optimum on one side.\"",
+    "what": "It was not identical everywhere. Cbc ran an adapted instance, S1i: a cut on integer columns with optimum 109.4, because the harness S1 had no power there. COPT added S1b and ran with RootCutLevel=0, because CutLevel=0 silenced the hook. SCIP needed breadth-first selection to give local=FALSE any power. Xpress ran two front modes. HiGHS and MOSEK did not run it.",
+    "evidence": "survey Cbc harness_issues: 'The harness S1 and S2 are NO POWER on Cbc ... Adapted: v1+v2<=1 on integer columns'; survey COPT harness_issues: 'S1 and S2 were NO POWER (calls=0)'; survey SCIP harness_issues: 'S1 has no power on local=FALSE under default node selection. Adapted with nodeselection/breadthfirst'; survey HiGHS/MOSEK: 'S1 not run: no hook'.",
+    "replacement": "The decisive experiment, the same design on every backend with a hook (adapted where the harness instance had no power: Cbc's S1i, COPT's S1b, SCIP under breadth-first selection, Xpress with two front modes; not run on HiGHS or MOSEK): a tree that splits on one binary, with the optimum on one side."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "\"\"At every node\" is promised nowhere, so the concept's comment refuses to say it.\"",
+    "what": "COPT's guide does promise a call whenever an LP relaxation is solved. The plan's own COPT row in the same table says the behaviour is 'against its guide'. The accurate statement is that every-node calls hold nowhere.",
+    "evidence": "copt_ug.txt:11090 'CBCONTEXT_MIPRELAX : Invokes the callback when an LP-relaxation was solved.'; :7142 'when a new LP-relaxation solution is found'; plan COPT row: 'from COPT's own cut loop, not every LP, against its guide'.",
+    "replacement": "\"At every node\" holds nowhere (COPT's guide promises a call on every solved LP, and measurement contradicts it), so the concept's comment refuses to say it."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "\"**A user cut does not bind incumbents.** On CPLEX, Gurobi, COPT and Cbc the returned point can violate an accepted cut, with `status::optimal`.\"",
+    "what": "The heading repeats the survey's claim in the form the skeptic refined. On COPT the usual outcome was the opposite: the cut bound in 8 of 9 runs. 'Not bound' overstates it; the cut is simply not guaranteed to bind. The second sentence is correct.",
+    "evidence": "verify COPT O9 REFINED: 'A final solution can violate an accepted cut (1 of 9 here), but the usual outcome is the opposite: the cut binds and the optimum is lost (8 of 9). 'Not bound' overstates it: use of a cut is neither promised nor excluded.'",
+    "replacement": "**A user cut is not guaranteed to bind incumbents.** On CPLEX, Gurobi, COPT and Cbc the returned point can violate an accepted cut, with `status::optimal` (on COPT in 1 of 9 runs; in the other 8 the cut bound)."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "When it runs, Gurobi row: \"one call per explored node\"",
+    "what": "The hook fires once per explored node, but the recipe calls the separator only when the node's status is GRB_OPTIMAL, so the separator sees fewer nodes. The skeptic refined this: non-optimal statuses are part of the fires, and in the conformance run 13156 of 20203 fires had status 2.",
+    "evidence": "verify Gurobi G3 exact_truth: 'Non-optimal statuses are part of the fires (tree_fires_distinct_nodcnt=462 of 463 nodes)'; recipe_result: 'hook totals status{1:1 2:13156 3:1041 6:6005}'; survey firing: 'only status 2 carries a point (39287)' of 46353 fires.",
+    "replacement": "at most one call per explored node, and only where its LP is optimal (13156 of 20203 hook fires in the conformance run)"
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Cbc paragraph: \"But below the root the hook misses 82 to 96% of nodes on 2.10 on long searches and 99.6% on master\"",
+    "what": "99.6% is a single instance (ATSP n=18, seed 2). On master the missed share ranges from 13 to 99.7% across instances. The 2.10 range comes from models under 500 rows plus columns, where Cbc uses fast nodes; above 500 it was 9 to 24%.",
+    "evidence": "vout_cbc_e_devel_pt1.txt: 'E atsp n=18 seed 2 ... missed 99.6% of nodes', 'E atsp n=26 seed 5 ... missed 28.8%', 'E mkp 5x35 seed 1 padded ... missed 38.7%'; verify Cbc measurements: 'devel recipe: mkp 5x35 93.7/64.5/34.5 ... n=14 13.1/99.7 ... Over 500: 19.8-23.5, n=18 8.9'; recommendation: '82-96% of nodes unseen on 2.10 under 500 rows+cols on long searches'.",
+    "replacement": "But below the root the hook misses 82 to 96% of nodes on 2.10 on long searches of models under 500 rows plus columns (9 to 24% above that), and 13 to 99.7% on master depending on the instance (99.6% on ATSP n=18)"
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Side effects: \"and 100 to 300 times the nodes with them, where the manual says \"usually small\".\"",
+    "what": "Two problems. (1) '100 to 300' covers only the parallel-integer models. The doubled knapsack, which has parallel binaries, gave 12 to 41 times, and those were lower bounds because all three runs timed out. (2) The manual's 'usually small' is about the size of the presolved problem, not the node count.",
+    "evidence": "verify Gurobi measurements Q1: 'parint20x8 nodes 239/239/229 ... vs 52308/46352/58927 ... parint30x6 283/359/312 vs 86852/81040/95111 ... doubled mkp5x50 6736/7636/6608 ... vs 277272/90380/265715, all three time out'; gurobi parameters.txt:2934-2935 'The impact on the size of the presolved problem is usually small.'",
+    "replacement": "and 100 to 300 times the nodes on parallel general integers (at least 12 to 41 times on a doubled knapsack, all three runs timed out), where the manual calls its impact on the size of the presolved problem \"usually small\" (here 40 presolved columns against 20)."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "\"The first three give wrong answers and do not depend on this feature.\"",
+    "what": "D4 also gives a wrong answer: the next solve returns the old optimum as optimal, with a point violating the lazy rows. The plan's own Decision 7 already groups D4 with D1 and D3.",
+    "evidence": "verify Gurobi shipped_code_findings: 'then optimal value=345 ... cycles in the returned point=13 NOT A TOUR'; final_own_gurobi_late2: 'second=5 ... point=(0,1,1)' against the lazy row y1 + y2 <= 1.",
+    "replacement": "D1 to D4 give wrong answers and do not depend on this feature."
+   },
+   {
+    "severity": "should be added",
+    "where": "Preparing a cut, row 'Fold duplicate columns': \"COPT: SIGSEGV, or a hang past the time limit.\"",
+    "what": "The skeptic found two more outcomes: a heap-corruption abort and, the silent one, a wrong optimum at status::optimal.",
+    "evidence": "verify COPT O5: 'EXIT=139 ... free(): invalid next size (normal) EXIT=134 ... EXIT=124 ... gadgets dup_bin after=0: status=optimal value=87.05 against 107.4'; exact_truth: 'plus a fourth outcome: a wrong optimum at status=optimal (87.05 against 107.4)'.",
+    "replacement": "COPT: SIGSEGV, a heap-corruption abort, a hang past the time limit, or a wrong optimum at `status::optimal` (87.05 for 107.4)."
+   },
+   {
+    "severity": "should be added",
+    "where": "Upstream: \"5 of 25 on that 5x30 family, 0 of 25 with `Presolve=0`.\"",
+    "what": "5 of 25 is the Threads=1 rate. Default threads also gave false optima, 4 of 25, on the same family. The preceding clause, 'default threads and Gurobi give 12135', is true of that one instance only, so the sentence can be read as saying default threads are safe.",
+    "evidence": "verify COPT safe_direction: 'Threads=1: 5/25 and 6/25 with noisy objective; default threads 4/25.' My copt_cmd runs on copt_false_optimum_mkp_15.mps: Threads=1 'Best solution : 11996.999999906 ... Best gap : 0.0000%'; default threads '12134.999999623'; Threads=1 Presolve=0 '12135.000000000'; gurobi_cl 'Best objective 1.213500000000e+04'.",
+    "replacement": "5 of 25 at `Threads=1` and 4 of 25 at default threads on that 5x30 family, 0 of 25 with `Presolve=0`."
+   },
+   {
+    "severity": "should be added",
+    "where": "Recipe per backend, threads table intro: \"Nodes per second with the mutex against without, on a knapsack with covers:\"",
+    "what": "The table is CPLEX only (mkp30x100s7) and gives the deterministic-mode ratios only. Opportunistic mode loses more, and the table sits under a recommendation that also covers Xpress. The timings were taken under load from other agents.",
+    "evidence": "verify CPLEX measurements: 'MUTEX, mkp30x100s7 ... det/opp ... Covers alone: 4 threads 0.99/1.015, 8: 0.995/0.972, 16: 0.977/0.902. Covers +200 us: 0.566/0.539, 0.426/0.365, 0.31/0.28. +1 ms: 0.33/0.283, 0.199/0.155, 0.133/0.098'; 'Timings under load 9-19 from other agents: ratios only.'",
+    "replacement": "On CPLEX (mkp30x100s7, covers), nodes per second with the mutex against without, deterministic mode; opportunistic is lower (16 threads: 0.90, 0.28, 0.098):"
+   },
+   {
+    "severity": "should be added",
+    "where": "\"**CPLEX, same point.** ... Skip the separator when a thread sees the same node and an identical point as its last call: 40 of 40 where the plain recipe got 22 of 40.\"",
+    "what": "Three things are left out. (1) The guard assumes the separator is a function of the point, so a separator that needs a second call on the same point loses it. (2) The guard does not catch a slowly moving root loop of fresh, weakly violated cuts: violation 1e-5 held the root for 60 s. The skeptic proposed setting CUTPASS or documenting it. (3) The satisfied-cut spin ended at 4 or more threads on atsp26s5.",
+    "evidence": "verify CPLEX recipe_change 1: 'Assumption: the separator is a function of the point.'; 4: 'a slowly moving root loop is not caught by the guard (atsp26s5, fresh cut violated by 1e-5: 60 s, nodes=0; CUTPASS=50: optimal 0.12 s) ... Otherwise document it'; C5: 'At >=4 threads the satisfied-cut spin ended on atsp26s5 ... a 1-2 thread stall on that instance'.",
+    "replacement": "Append: \"It assumes the separator is a function of the point. It does not stop a slowly moving loop of fresh weak cuts (violation 1e-5: 60 s at the root, against 0.12 s with CUTPASS=50), so either set CUTPASS when the user left it at 0 or document it.\""
+   },
+   {
+    "severity": "should be added",
+    "where": "Recipe per backend, GLPK 'Must also': \"presolve off, with the root LP run by the wrapper; stall guard (see below)\" (and the 'Preparing a cut' table)",
+    "what": "The GLPK skeptic's first added step, rejecting non-finite coefficients and right-hand sides, is missing from both the shared preparation and the GLPK row. An infinite coefficient aborts the process on all 7 releases. The skeptic also asked for a column-id bounds check, because a foreign variable is an unrecoverable abort.",
+    "evidence": "verify GLPK recipe_change (1): 'reject non-finite coefficients and rhs (infinity aborts on all 7)'; L6: 'infinite coefficient aborts on all 7 ('Assertion failed: teta >= 0.0')'; '...a bounds check on the column id: a foreign variable is an unrecoverable abort, which meets the 'severe' exception to misuse-is-UB'.",
+    "replacement": "presolve off, with the root LP run by the wrapper; reject non-finite coefficients and right-hand sides (an infinite coefficient aborts on all 7 releases); stall guard (see below)"
+   },
+   {
+    "severity": "should be added",
+    "where": "\"Move such a term to the side at its worst global bound; skip the cut if that bound is infinite.\"",
+    "what": "The skeptic's hardening step also skips the cut when it is an equality, since a term cannot be moved to both sides. That condition is missing.",
+    "evidence": "verify SCIP recipe_change: 'move every term with |a| <= 1e-9 to the side at its worst global bound; skip the cut if that bound is infinite or the cut is an equality'.",
+    "replacement": "Move such a term to the side at its worst global bound; skip the cut if that bound is infinite or the cut is an equality."
+   },
+   {
+    "severity": "should be added",
+    "where": "\"On ATSP n=26, HiGHS needs 7 rounds and 0.008 s for the loop against 9 to 17 s for the MIP alone, and MOSEK needs 0.021 s against 40 s once told to use dual simplex.\"",
+    "what": "The comparison sets the LP loop alone against a full MIP. The fallback also has to solve the MIP with the rows in, which takes 0.28 to 0.52 s on HiGHS and 0.14 s on MOSEK at n=26. The survey adds that at n=60 the MIP stage dominates.",
+    "evidence": "survey HiGHS/MOSEK wrapper_sketch: 'n=26: 9.1 to 16.8 s, 1346 nodes / 7 rounds, 26 cuts, 0.008 s, bound 544 / 0.28 to 0.52 s, 1 node'; MOSEK 'n=26: 40.3 s, 47921 nodes / 7 rounds, 25 cuts, 0.021 s / 0.14 s, 7 nodes'; 'At n=60 the MIP stage dominates: 2.6 to 8.5 s against 0.1 to 0.4 s for the LP loop.'",
+    "replacement": "On ATSP n=26, HiGHS needs 7 LP rounds (0.008 s) and then 0.28 to 0.52 s for the MIP with the rows, against 9 to 17 s for the MIP alone; MOSEK, once told to use dual simplex, needs 0.021 s and then 0.14 s, against 40 s. At n=60 the MIP stage dominates (7.9 s, 52 nodes on HiGHS)."
+   },
+   {
+    "severity": "should be added",
+    "where": "\"Skipped by the `distinct_variables` overload, so a repeat there is undefined behavior, as for lazy constraints.\"",
+    "what": "Under NDEBUG the UB here is a heap overflow that returns 0 on Gurobi, and heap corruption or a hang on COPT. The Gurobi skeptic asked for a ruling on a size check for exactly this reason. Under the 'misuse is UB unless the consequence is severe' ruling, that is the case it names. On Gurobi the lazy path from MIPSOL does not overflow, so 'as for lazy constraints' understates the difference.",
+    "evidence": "verify Gurobi recipe_change (1): 'The future add_user_cut(distinct_variables, ...) would reach that overflow under NDEBUG, where _check_distinct compiles out: maintainer's call whether to add a size check there.'; shipped_code_findings: 'under -DNDEBUG GRBcblazy from MIPSOL is clean (valgrind 0 errors at x10)'.",
+    "replacement": "Skipped by the `distinct_variables` overload, so a repeat there is undefined behavior, as for lazy constraints; under NDEBUG it overflows the heap on Gurobi with return code 0 (the lazy path from MIPSOL does not), which the Gurobi skeptic left to the maintainer as a possible size check."
+   },
+   {
+    "severity": "should be added",
+    "where": "\"Cuts more than repay it where users want them: ATSP from 6997 nodes to 1.\"",
+    "what": "The ATSP figure is the best case. On fixed-charge network models the cuts did not repay presolve off: still 50.5 times the nodes, and not closed. Across all 47 pairs the geometric mean was 0.65.",
+    "evidence": "verify GLPK measurements: 'off+cuts/on: atsp 0.01 ... mkp 0.57, gap 0.69 ... ufl 0.23, lot 1.27 with closure regained ... fcnd 50.5 and still not closed, miplib 1.04 ... all 0.65 over 47 pairs. Tight-link user cuts do not replace coefficient reduction on fcnd.'",
+    "replacement": "Cuts usually repay it (0.65 times the presolve-on nodes in geometric mean over 47 pairs; ATSP from 6997 nodes to 1), but not on fixed-charge networks (50.5 times, still not closed)."
+   },
+   {
+    "severity": "minor",
+    "where": "Short answer: \"A cut valid only in a subtree, given to Gurobi or COPT, silently loses the optimum at `status::optimal`.\"",
+    "what": "Stated as a certainty. On Gurobi at default presolve the test lost the optimum in 3 of the 4 runs that had power, and on COPT at true defaults in 21 of 24.",
+    "evidence": "verify Gurobi G1: 'At default presolve ... 12.0.1 LOST=3 KEPT=1 NO_POWER=8'; verify COPT O1: '21 LOST, 3 KEPT of 24'.",
+    "replacement": "A cut valid only in a subtree, given to Gurobi or COPT, can silently lose the optimum at `status::optimal` (COPT: 21 of 24 at true defaults)."
+   },
+   {
+    "severity": "minor",
+    "where": "Table, COPT row S1 cell: \"lost, except where the cut is mostly absent\"",
+    "what": "This follows the survey. The skeptic found the optimum lost at true defaults in 21 of 24 runs, and found that the one setting under which the survey's cut was KEPT (TreeCutLevel=1) still lost the optimum on a second cut.",
+    "evidence": "verify COPT O1: 'losing the optimum is the usual outcome at true defaults (21/24) ... my own non-parallel cut was LOST there ('value=106.52 ... => LOST'), so that setting does not protect.'",
+    "replacement": "lost (21 of 24 at true defaults); no setting protects it"
+   },
+   {
+    "severity": "minor",
+    "where": "Table, Cbc row: \"local to the subtree; at the root that is everything\"",
+    "what": "The skeptic refined this. Local describes what the cut may remove, not where it is enforced: the cut's own subtree violated it in up to 21% of calls, and later LPs violated root cuts in 1.5 to 10.7% of calls.",
+    "evidence": "verify Cbc B1 REFINED: 'The scope is right as a statement of what a cut may remove, but it is not enforcement. Later LPs violated a root cut at 18-311 calls per run (1.5-10.7%) ... The own subtree violated a below-root cut at up to 21% of calls (145/681).'",
+    "replacement": "may cut only in the subtree, not enforced there (violated at up to 21% of its subtree's calls); at the root that is everything"
+   },
+   {
+    "severity": "minor",
+    "where": "\"On Gurobi with `PreCrush=1`, and on SCIP, a cut that removes feasible points but keeps an optimum gave a wrong optimum or a false infeasible (20 of 20 on Gurobi 12.0.1).\"",
+    "what": "The 20 of 20 comes from one gadget, on which presolve fixes b1=3. A first gadget stayed right in 24 of 24 runs, and the survey also found dominance cuts that kept the value. As written, it reads as if every such cut fails.",
+    "evidence": "verify Gurobi G4 exact_truth: 'True where the parallel pair is profitable enough for presolve to fix b1=3 under PreCrush=1. My first gadget (b in all rows, k=3) stayed RIGHT 24/24, so not every dominance cut fails.'; survey: 'Not every dominance cut fails: b1<=b2 kept the value on all seeds run'.",
+    "replacement": "On Gurobi with `PreCrush=1`, and on SCIP, such a cut gave a wrong optimum or a false infeasible on gadgets where presolve fixes the dominated column (20 of 20 on Gurobi 12.0.1; another gadget stayed right 24 of 24)."
+   },
+   {
+    "severity": "minor",
+    "where": "\"Clearing a `Reformulations` bit instead of swallowing 1121 cost 200 times the nodes on duplicate-column models.\"",
+    "what": "The 200 times rests on two dupint models (196 times, and at least 125 times at a 15 s time limit). The third duplicate-column model, cfl10x20dup, was cheaper with the bit cleared (4 nodes against 7).",
+    "evidence": "verify CPLEX measurements: 'dupint25x6s1 54 nodes ... vs 10611 nodes ... dupint25x6s2 905 nodes ... vs time_limit 15 s, 113453 nodes; 170131 nodes, 18 s with a 20 s limit. cfl10x20dup 7 nodes (err1121=37) vs 4 nodes'.",
+    "replacement": "Clearing a `Reformulations` bit instead of swallowing 1121 cost about 200 times the nodes on two duplicate-integer knapsacks (54 against 10611; 905 against more than 113453), none on a duplicate-column facility model (7 against 4)."
+   },
+   {
+    "severity": "minor",
+    "where": "When it runs, COPT row: \"`CutLevel=0` gives 0 calls in 58691 nodes\"",
+    "what": "The 58691-node count comes from a run with presolve off and the survey's scope settings. With CutLevel=0 alone the count was 7823, and the skeptic got 13270 with Presolve=0. The conclusion of 0 calls stands.",
+    "evidence": "out_copt_params.txt: 'atsp26 presolve-off CutLevel=0 ... nodes=58691 | relax=0'; vout_copt_o2: 'atsp26 CutLevel=0 RN noop ... nodes=7823 ... relax=0', 'CutLevel=0,Presolve=0 ... nodes=13270 ... relax=0'.",
+    "replacement": "`CutLevel=0` gives 0 calls (7823 nodes on ATSP n=26)"
+   },
+   {
+    "severity": "minor",
+    "where": "Side effects: \"**COPT, root cuts off.** A no-op hook switches tree cuts on (7823 nodes to 5847).\"",
+    "what": "'Switches tree cuts on' is the skeptic's inference from relaxation call counts and node counts, not an observation, and it does not happen on every instance: mkp was unchanged.",
+    "evidence": "verify COPT O7 exact_truth: 'The exception is not universal: mkp under RootCutLevel=0 stays 8000/38578 with 7996 hook calls. 'Switches tree cuts on' is inferred from relax calls and node counts.'",
+    "replacement": "**COPT, root cuts off.** A no-op hook changes the search (ATSP 7823 nodes to 5847; mkp unchanged), apparently by switching tree cuts on (inferred)."
+   },
+   {
+    "severity": "minor",
+    "where": "Preparing a cut: \"Optimum lost: COPT from 1e10, SCIP from 1e9 (10 to 13 of 40), GLPK from 1e6, with aborts from 1e4.\"",
+    "what": "(1) The COPT 1e10 failure appeared on seed 1 of 3, though at 1e9 a cut with one extra small term failed 4 of 16. (2) GLPK also fails on the small side: losses from 1e-7 and a spin on every seed at 1e-9. Normalizing fixes both, so the omission hides part of the reason for the step. (3) GLPK's p is a multiplier on cuts whose largest coefficient is about 200, so p=1e4 means coefficients near 2e6.",
+    "evidence": "verify COPT recipe_change (1): '5/5 scales 1e10-1e14 on seed 1, seeds 2 and 3 right; scale 1e9 with one extra small term WRONG 4 of 16'; verify GLPK safe_direction: 'max coefficient is about 200p ... 1e-7 11 kept, 1 lost, 3 wrong; 1e-8 4 kept, 8 lost, 3 wrong; 1e-9 0 kept, 15 spin'.",
+    "replacement": "Optimum lost: COPT from a scale of 1e10 (seed 1 of 3; 4 of 16 at 1e9 with one small term), SCIP from 1e9 (10 to 13 of 40), GLPK from 1e6 with aborts from 1e4 (coefficients near 2e6), and on GLPK also below 1e-7, with a spin on every seed at 1e-9."
+   },
+   {
+    "severity": "minor",
+    "where": "Preparing a cut: \"COPT: wrong optimum or false infeasible (`+0.0` in `<=`, `-0.0` in `>=`, either in `==`). GLPK below 4.65: abort.\"",
+    "what": "(1) The equality case was measured on lazy rows only; no valid violated user-cut equality was tested. (2) The GLPK abort was seen on 4.59 to 4.63; 4.64 was not run.",
+    "evidence": "verify COPT O3: 'either sign in E (lazy equality, O4)'; not_verified: 'Equalities on the user-cut path with zeros: tested on lazy only'; verify GLPK L9: '4.59 to 4.63: ... zero coefficient not allowed, exit 134'; not_verified: 'GLPK 4.64 (no build)'.",
+    "replacement": "COPT: wrong optimum or false infeasible (`+0.0` in `<=`, `-0.0` in `>=`; either sign in `==`, measured on lazy rows). GLPK 4.59 to 4.63: abort (4.64 not run)."
+   },
+   {
+    "severity": "minor",
+    "where": "\"Each ran the shared conformance set `cut_conformance.hpp` (49 cases and more) with 0 recipe failures.\"",
+    "what": "On Xpress the full 49 cases ran on 47.01.01 only. The other releases ran a reduced set of 39.",
+    "evidence": "verify Xpress not_verified: 'Full 49-case conformance outside 47.01.01; other releases ran 39 cases.'",
+    "replacement": "Each ran the shared conformance set `cut_conformance.hpp` (49 cases and more; 39 on Xpress releases other than 47.01.01) with 0 recipe failures."
+   },
+   {
+    "severity": "minor",
+    "where": "\"This instance is `cut_common.hpp`; a first version let Gurobi close the tree by probing and reported a false pass, which the harness flagged as `NO POWER`.\"",
+    "what": "Nothing in RECORD or the results says the first version reported a pass. The sentence also contradicts itself, since a NO POWER flag is not a pass. RECORD says only that the hook never ran.",
+    "evidence": "RECORD.md: 'A first version with one tent per binary closed at the root on Gurobi, by probing, and the hook never ran.'; cut_common.hpp:277 'NO POWER: cut never added'.",
+    "replacement": "This instance is `cut_common.hpp`; a first version let Gurobi close the tree at the root by probing, so the hook never ran."
+   },
+   {
+    "severity": "minor",
+    "where": "\"On Gurobi, COPT and CPLEX it is a pool entry the solver may use, purge or filter.\"",
+    "what": "On COPT the pool reading is the survey's inference, from traces plus one library string.",
+    "evidence": "survey COPT scope_default_meaning: 'The pool reading is inferred from traces plus the library string \"main cut pool contains %d cuts\".'; not_verified: 'The pool mechanism itself ... is inferred'.",
+    "replacement": "On Gurobi and CPLEX it is a pool entry the solver may use, purge or filter, and COPT behaves alike (its pool is inferred from traces)."
+   },
+   {
+    "severity": "minor",
+    "where": "\"The pool alone does little until a depth multiple of 10.\"",
+    "what": "This holds for a cut added at depth 1 or deeper. A pool-only cut added at the root enters at once.",
+    "evidence": "verify SCIP S4 exact_truth: 'The gate is depth % poolfreq == 0, which includes depth 0. A pool-only cut added at the root enters at once. One added at depth >= 1 waits for the first node at a multiple of 10'.",
+    "replacement": "The pool alone, for a cut added below the root, does little until a depth multiple of 10."
+   },
+   {
+    "severity": "minor",
+    "where": "When it runs, SCIP row: \"711 of 982 ATSP nodes at `expbackoff=1`; 24 calls instead of 647 at the default of 4\"",
+    "what": "The two figures come from different instances: 711 of 982 is ATSP, while 24 against 647 is the 1281-node gadget tree. On ATSP the default gave 80 calls on 35 nodes, against 1315 calls on 711 nodes.",
+    "evidence": "out_scip_firing.txt: '[freq=1 expbackoff=default(4) maxbounddist=1] ... hook_runs=24 nodes_called=19' (gadgets, nodes=1281); '[atsp expbackoff=default] ... hook_runs=80 nodes_called=35'; '[atsp expbackoff=1] ... hook_runs=1315 nodes_called=711'.",
+    "replacement": "711 of 982 ATSP nodes at `expbackoff=1`, 35 at the default of 4 (gadgets: 642 against 19 of 1281)"
+   },
+   {
+    "severity": "minor",
+    "where": "GLPK section: \"`glp_npp_*` keeps presolve in principle, but only on 4.65+\"",
+    "what": "The skeptic refined this. Only part of presolve is reachable through glp_npp_*, and the route recovers none of the benefit presolve brings on big-M models, which is the only reason to want it.",
+    "evidence": "verify GLPK X4 REFINED: 'npp over off: gm nodes 1.08, UFL 1.00, fcnd 1.00 ... npp_binarize_prob ... npp_reduce_ineq_coef:795 are unreachable ... The route runs but does not recover the big-M benefit, which is the only reason to want it.'",
+    "replacement": "`glp_npp_*` runs only part of presolve, only on 4.65+, and recovers none of the big-M benefit (1.08 times the presolve-off nodes)"
+   },
+   {
+    "severity": "minor",
+    "where": "\"Without a callback, nothing changes: same path, and 175 of 175 pinned tests on seven releases through the recipe path.\"",
+    "what": "The pinned run had 4 skipped tests as well.",
+    "evidence": "verify GLPK measurements: '175 passed, 4 skipped on all 7 releases, same as the wrapper path'.",
+    "replacement": "Without a callback, nothing changes: same path, and 175 pinned tests pass (4 skipped) on seven releases through the recipe path."
+   },
+   {
+    "severity": "minor",
+    "where": "\"The fallback is the loop the docs already describe: LP re-solves, then the MIP with the rows in.\"",
+    "what": "The docs describe a generic loop: solve, separate, add_constraint, solve again. The LP-then-MIP form is the survey's own, which it offered as suggested docs wording.",
+    "evidence": "docs/algorithms/branch-and-cut.md:110 'a cutting-plane loop \u2014 solve, separate, `add_constraint`, solve again'; survey HiGHS/MOSEK: 'Suggested docs wording: ... Solve the relaxation, separate, add rows with add_constraint, re-solve, and then solve the MIP with the rows in.'",
+    "replacement": "The fallback is the docs' cutting-plane loop (branch-and-cut.md:110), done as LP re-solves and then the MIP with the rows in."
+   },
+   {
+    "severity": "minor",
+    "where": "\"**Only CPLEX calls it concurrently, by design**, with up to 15 in flight at 16 threads.\"",
+    "what": "True among the proposed backends only. Threaded Cbc 2.10 builds overlap too, with 3 to 4 calls in flight.",
+    "evidence": "verify Cbc B7: 'conda 2.10.9 'threads=5 overlaps=203 max_inflight=3', casadi 2.10.11 'overlaps=179 max_inflight=3''; survey Cbc threads: 'threads=4: ... overlaps=46994 max_inflight=4'. CPLEX raw: 'overlaps=288507 max_inflight=15'.",
+    "replacement": "**Among the proposed backends, only CPLEX calls it concurrently, by design**, with up to 15 in flight at 16 threads (threaded Cbc 2.10 builds overlap too)."
+   },
+   {
+    "severity": "minor",
+    "where": "\"The concept and the names already exist in `model_concepts.hpp:826-835`, with no backend behind them.\"",
+    "what": "Only has_node_relaxation_callback and node_relaxation_callback_handle_t exist (lines 826-834), and the concept currently requires set_node_relaxation_callback alone. has_user_cuts and add_user_cut appear nowhere in include/, docs/ or test/.",
+    "evidence": "model_concepts.hpp:826-834 (alias and concept); grep for 'user_cut|has_user_cuts' in include, docs and test: no match outside docs/reference/concepts.md:191 and branch-and-cut.md:108, which name only has_node_relaxation_callback.",
+    "replacement": "`has_node_relaxation_callback` and its handle alias already exist in `model_concepts.hpp:826-834`, with no backend behind them; `has_user_cuts` and `add_user_cut` are new."
+   },
+   {
+    "severity": "minor",
+    "where": "D10: \"while an undocumented `GetCallbackInfo(cb, \"NodeCnt\", int*)` works.\"",
+    "what": "The skeptic found it exact in the MIPRELAX, MIPNODE and MIPSOL contexts, but in INCUMBENT it lags and can go backwards.",
+    "evidence": "verify COPT O10: 'Works in MIPRELAX, MIPNODE and MIPSOL, exact at one and default threads ... In INCUMBENT it lags and goes backwards (-512, -543, -1075).'",
+    "replacement": "while an undocumented `GetCallbackInfo(cb, \"NodeCnt\", int*)` is exact in MIPRELAX, MIPNODE and MIPSOL and lags in INCUMBENT."
+   },
+   {
+    "severity": "minor",
+    "where": "Upstream, for the vendors: \"**SCIP 8.0.4 and 9.2.1 in one process crash** on plain solves, in both orders, against the \"two versions may coexist\" ruling. 9.2.1 with 10.1.0 works.\"",
+    "what": "The crash was not root-caused, so listing it as a vendor issue is unsupported: the cause could equally be in how MIP++ loads the libraries. The skeptic's link to the known SoPlex same-process conflict is a guess. The 9.2.1 plus 10.1.0 run that worked was sequential.",
+    "evidence": "verify SCIP shipped_code_findings: 'child killed by signal 11 in both orders ... 9.2.1 + 10.1.0 sequential: both solve, 87.8. Not root-caused; related to the known SoPlex same-process conflict is a guess.'",
+    "replacement": "**SCIP 8.0.4 and 9.2.1 in one process crash** on plain solves, in both orders, against the \"two versions may coexist\" ruling; not root-caused, so it may be ours rather than the vendor's. 9.2.1 then 10.1.0 in sequence works."
+   },
+   {
+    "severity": "minor",
+    "where": "\"any cut valid in a subtree can be written globally with an indicator, or left to branching.\"",
+    "what": "No source in the results or raw outputs. It is a modelling argument that was not tested, and the global form needs big-M terms on the branching variables.",
+    "evidence": "No matching claim in survey_results.json or verify_results.json.",
+    "replacement": "any cut valid in a subtree defined by bounds on integer variables can in principle be written globally with big-M terms on those variables (not tested here), or left to branching."
+   },
+   {
+    "severity": "minor",
+    "where": "Recipe per backend, SCIP 'Must also': \"scoped `thread_local` plugin, as the callback has no user data\"",
+    "what": "Imprecise. The separator does have user data (SCIPsepaGetData). What it lacks is a user-data argument, and SCIPsepaGetData is itself a function of the runtime-loaded API, which the coexistence ruling forbids keeping in a static.",
+    "evidence": "survey SCIP hook: 'NO user-data argument: ... the only way in is SCIPsepaGetData(sepa), itself a function of the runtime-loaded library.'; traps: 'The ruling that two library versions may coexist rules out a static API pointer.'",
+    "replacement": "scoped `thread_local` plugin, as the callback has no user-data argument and `SCIPsepaGetData` needs the runtime-loaded API"
+   }
+  ],
+  "executed": "1) python3 -I dumped survey_results.json and verify_results.json to text (scratchpad user_cuts/final_survey_dump.txt, final_verify_dump.txt), and I read both in full. 2) Printed the cited repo lines with awk: model_concepts.hpp:824-836, model_base.hpp:296-354, copt_milp.hpp:88-128, xpress_milp.hpp:94-102, gurobi_milp.hpp:222-236, cplex_milp.hpp:112-256, glpk_milp.hpp:100-112 and 340-352, cbc_milp.hpp:720-740, cbc_api.hpp:96-106, scip_milp.hpp:96-112, and the docs lines concepts.md:188-192, branch-and-cut.md:33-40, 66-71 and 100-112, deletion-filter.md:180-190, progress.md:56-62. All match the plan's citations. A grep for user_cut/has_user_cuts found nothing in include/. 3) Vendor sources: xp_opt.txt:12018-12070 (note 4 matches) and 12426-12435 ('might be used on any node' matches) and 29247-29259 (MUTEXCALLBACKS affects optnode/infnode/intsol/nodecutoff/prenode only); copt_ug.txt:11086-11091, 7138-7145, 5719, 11255-11262; mosek_capi.txt:7507-7511; gurobi_docs_dl callback.txt:322-330 and 353-357, parameters.txt:1759-1775 (LazyConstraints) and 2922-2936 (PreCrush 'usually small' refers to presolved size), c_logging.txt:233-240; CPLEX 04_diffs.html stripped with python ('rest of the model' and the optimality-based-cuts passages); SCIP faqtext.txt:855-861, var.c:14300-14320 (SCIPsetIsZero drop at 14312), sepastore.c:452-464; HiGHS grep for kCallbackMipDefineLazyConstraints (HConst.h:242, HighsCallback.cpp:90, highs_c_api.h:107). 4) Raw outputs: out_scip_firing.txt (maxrounds=0 gives hook_runs=6; maxcuts=0 with maxcutsroot=0, and maxruns=0, give 0; atsp expbackoff=1 nodes_called=711, default 35); out_copt_params.txt (58691 is a presolve-off run) and vout_copt_o2 (7823 at CutLevel=0, 13270 with Presolve=0); out_cplex (max_inflight=15 at 16 threads); vout_cbc_e_devel_pt1.txt and vout_cbc_e3_devel.txt (master missed 13.1 to 99.7%); vout_glpk_safe* (p=1e5 outcomes are failed and WRONG-STATUS; totals 757 KEPT, 198 LOST, 114 WRONG-STATUS). 5) Built final_own_gurobi_late2.cpp, which is survey/own_gurobi_late2.cpp with set_time_limit(10 s) added before the first solve. It ran under timeout -k 5 60 and printed 'set after a finished solve: first=5 second=5 calls=1 lazy_added=1 point=(0,1,1)' and 'control: ... first=5 second=4 calls=4 lazy_added=2 point=(1,-0,1)'. 6) Built final_own_xpress_reject.cpp, which is own_xpress_reject.cpp with a 10 s limit added. It printed 'no rows: optimal=true infeasible=false value=1', 'row 2x<=10: optimal=false infeasible=true value=-1', 'row 2x<=9 ...: optimal=true ... value=4'. 7) copt_cmd fed a command file on stdin (final_copt_t1.in, final_copt_def.in) never exited, and timeout -k 5 90 killed both runs (exit 143). I then used copt_cmd -c on survey/copt_false_optimum_mkp_15.mps. Threads=1 with timelimit 30 gave 'Best solution : 11996.999999906', 'Best gap : 0.0000%'. Default threads gave 'Best solution : 12134.999999623'. Threads=1 with Presolve=0 gave 12135.000000000. gurobi_cl Threads=1 TimeLimit=30 gave 'Best objective 1.213500000000e+04 ... gap 0.0000%'. The MPS is byte-identical to vout_copt_falseopt_mkp_15.mps (cmp). 8) Final sweep: pgrep -u $(id -u) -a 'copt_cmd|gurobi_cl|final_own|probe_|verify_' found no process. Nothing under /home/plaiseek/Projects/mippp was modified. The files I created are final_survey_dump.txt, final_verify_dump.txt, final_own_gurobi_late2(.cpp), final_own_xpress_reject(.cpp), final_copt_t1.in and final_copt_def.in.",
+  "not_checked": [
+   "Most table numbers were checked against the survey and skeptic JSON records, not their raw out_*/vout_* files; I opened raw outputs only for the SCIP firing, COPT CutLevel, CPLEX inflight, Cbc missed-node and GLPK scale items listed in executed",
+   "CPLEX vendor pages other than usr_cut_lazy_constr/04_diffs.html (callbacksetfunc.html, callbackaddusercuts.html, CutPass, Reformulations, multiThreadingCallbacks); the scratchpad cplexdoc directory was not opened",
+   "GLPK glpk05.tex/glpk02.tex and the glpios/glpapi source lines; SCIP solve.c, sepa.c, cutpool.c and scip_copy.c lines; Cbc source lines (CbcModel.cpp, Cbc_C_Interface.cpp)",
+   "Gurobi forum texts and cbcodes2.txt; COPT guide lines 11193-11259 beyond those quoted; MOSEK lines other than 7509-7511",
+   "HiGHS sources beyond the identifier grep; the HiGHS/MOSEK fallback timings were checked only against the survey JSON",
+   "No rerun of: SCIP 8.0.4 plus 9.2.1 coexistence crash, Gurobi dominance 20/20, CPLEX mutex table, CPLEX same-point guard 40/40, GLPK presolve cost and stall guard, Cbc measurements, COPT zero and duplicate faults, Xpress equality crash, HiGHS setCallbackSolution",
+   "D4 was rerun only with a 10 s limit added before the first solve; the limit-free original was not run, per the finite-limit rule, so calls=1 against the skeptic's calls=0 could still depend on the model or on that parameter write",
+   "D2, D3 and D5 to D10 reproductions were not rerun",
+   "Line ranges and wording of the plan's 'Size' estimates and the Tests section's power claims beyond the RECORD and skeptic summaries",
+   "Other workflow agents' final_* outputs in the scratchpad (late_attach, satlazy, conf runs) were not read, since they are not the plan's cited evidence"
+  ]
+ },
+ {
+  "reviewer": "design",
+  "verdict": "The concept shape holds up. I compiled real generic user code against a mock built on gurobi_milp with the plan's concepts, at -fsyntax-only: a DFJ branch-and-cut with lazy and user cuts sharing one separator, a Benders cut, a cover separator with shared state, requires-clauses and the `has_user_cuts<Model> auto &` shorthand. All of it compiles, the negatives hold, and two expected-failure variants fail as they should. Keeping `has_node_relaxation_callback<Model>` for the reads and `has_user_cuts<Handle, Model>` on the handle is right. So is `void` from add_user_cut, and so is rejecting both a single callback object and a scope tag. Five things around the API are wrong or missing, and each has a concrete failure:\n- **Deletion filter.** It runs a separator in every trial. A cut valid for the model, which on an infeasible model is any cut, made `compute_iis_by_deletion` return `irreducible` for a feasible set, on every seed I ran. The path was identical each time.\n- **Mutex scope.** Decision 4 does not say the mutex covers every callback of the model. The plan's own data shows candidate and relaxation calls overlapping on CPLEX. One mutex shared by three CPLEX contexts did not deadlock in my runs.\n- **Xpress floor.** Decision 3's 45.01.04 floor sits inside Xpress's validated range, so under the two-tier ruling the shared suite would fail on 45.01.00 to 45.01.03.\n- **D4.** It is not Gurobi-only: CPLEX 22.1.2 reproduces it. For user cuts alone a late setter is harmless, so the fix belongs in solve() and should be keyed on the candidate callback.\n- **Point lifetime.** On Gurobi the mapping from the candidate handle's get_solution() dies with the call (ASan); CPLEX has the same capture by reading. A separator that keeps its last point reads a dead stack frame. The new handle must not copy that pattern.\n\nThe contract wording needs these exact fixes:\n- define \"lazy constraints included\" by what solve() may return;\n- name the false infeasible;\n- tell users to offer a cut again whenever it is violated rather than remember which cuts they added;\n- make non-finite input droppable by the way the drop test is written;\n- state that a refused cut is dropped, never thrown.\n\nOf the maintainer decisions: 1 and 2 are correctly posed and their recommendations are right. 3 and 4 are posed wrong (Xpress floor, mutex scope). 5 and 6 each bundle two questions. 7 needs CPLEX added to D4. The plan poses no decision on the deletion filter, or on where Gurobi's PreCrush is set and restored.",
+  "findings": [
+   {
+    "severity": "changes a decision",
+    "where": "Decisions for the maintainer (none covers it); Proposed interface comment 'c must hold at every integer feasible point of the model'",
+    "what": "The deletion filter's trials go through solve(), so a relaxation callback attached per solve runs a separator in every trial. A trial relaxes rows and bounds. A cut valid for the full model, for example a cover cut derived from row R, cuts off feasible points of a trial that relaxed R. That trial then reads infeasible, the filter drops R, and it reports `irreducible` for a set that is feasible. The contract cannot protect the trials: the filter runs only on infeasible models, where 'valid at every integer feasible point' is vacuous and every cut qualifies. Lazy constraints can be background because they define the model (deletion-filter.md:183). User cuts by design never carry feasibility (plan:64-66), so they cannot be.",
+    "evidence": "final_iis_usercuts.cpp, Gurobi 12.0.1. A native MIPNODE callback stands in for the proposed one: it stays registered because gurobi_milp::_attached_callbacks attaches nothing when no MIP++ callback is set (gurobi_milp.hpp:220-226). Model: x in {0,1}^6, y in [0.5,2], M: 2 sum x + y == 6.5, R: 2 sum x <= 5. The cut is sum x <= 2, offered when violated. final_iis_usercuts.txt: 'seed  0 control  : irreducible M=true R=true y<=2:true y>=0.5:false x-bounds=0' against 'seed  0 separator: irreducible M=true R=false y<=2:true y>=0.5:true x-bounds=6 | separator calls=3 cuts=3 | trials I*I*I*FFFFFFFFFFFFFFF'. Seeds 0 to 19 gave the identical path, so this is one deterministic reproduction, not 20 independent trials. The returned set (M, both y sides, x bounds, no R) is feasible by arithmetic: sum x = 3 with y = 0.5. docs/algorithms/deletion-filter.md:103: 'A trial is a solve(), so a registered candidate-solution callback runs in every trial, and its lazy constraints and rejections are background too'.",
+    "replacement": "Add a decision 8. 'Deletion filter. (a) Recommended: compute_iis_by_deletion runs its trials without the node-relaxation callback, through a detail-level suspension the engine takes when has_node_relaxation_callback<M>. Cost: one internal hook per backend, since the engine is generic and has no public way to suspend and restore one callback. (b) Cheaper fallback: document, as deletion-filter.md:185 does for callbacks with memory, that with a node-relaxation callback set an irreducible answer is unproven, and tell users to clear it first.' Add a test: the deletion filter's answer is unchanged by a cover separator, using the instance above."
+   },
+   {
+    "severity": "changes a decision",
+    "where": "Decision 4 'A mutex on CPLEX and Xpress, so \"never twice at once\" holds everywhere?'; Threads section; concept comment 'never twice at once'",
+    "what": "The mutex has to be one per solve, held around every user callback of the model: candidate, relaxation and progress. One per lambda is not enough. A DFJ or cover separator shared by the lazy and user-cut lambdas (the natural design, final_api_mock.cpp solve_atsp and cover_separator) races across callback kinds even with a relaxation-only mutex. Today the candidate path takes no lock on CPLEX (D5) or Xpress, while Xpress progress does. One shared mutex also fixes D5. It must live in the per-solve context, as progress_context does, never as a static, so that a nested solve inside a separator (Benders) cannot deadlock on it.",
+    "evidence": "verify_results.json:169: \"Cross-context: 'C|R, 4 threads opp, 200us/200us: rel_saw_cand=19 cand_saw_rel=9'\". cplex_milp.hpp:232-241: callback_fun takes no lock. xpress_milp.hpp:155-161: candidate_solution_callback_fun takes no lock, against :166-172 progress_context and its scoped_lock. My run final_cplex_shared_mutex.cpp: one std::mutex held across the CPLEX calls in RELAXATION, CANDIDATE and GLOBAL_PROGRESS, on 'CPXversion 22.1.2.0 library .../libcplex2212.so' at default threads. 18 runs of 15 s with spins of 0/0, 200/200 and 1000/50 us. Every run ended at 'status=time_limit{sol=true} solve=15.0xs'; per run rel=59327-124361, prog=1551-2367, cand=17-39, add_errors=0. No deadlock was observed, which is not a proof. COPT measured no overlap across all four contexts (verify_results.json:605: 'RNSI default thr 200us calls=23431 ... overlaps=0'), but its guide says 'COPT does not guarrantee thread safe'.",
+    "replacement": "Decision 4: 'One mutex per solve, held around every user callback of the model (candidate, node-relaxation, progress) on CPLEX and Xpress. It lives in the solve's callback context, never in a static. This also closes D5.' Concept comment: 'never at the same time as another call of any callback of this model'. Add a test: a racy shared separator used by both the candidate and the relaxation callback."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Decision 3 'Xpress (45.01.04+)'; Recipe table, Xpress row 'feature_unavailable_error below 45.01.04'",
+    "what": "The floor sits inside the validated range. Under the two-tier ruling, a feature_unavailable_error from a validated release fails the shared suite instead of skipping it, so UserCutsTest would fail on Xpress 45.01.00 to 45.01.03. 45.01.01 is installed here as xpressmp_old. The plan also does not say which member throws.",
+    "evidence": "xpress_api.hpp:326-327: 'validated_versions = { solver_version_range{{45, 1}, {47, 2}}}'. Two-tier ruling (memory two-tier-version-support.md): 'the shared SkipOnLicenseError wrapper catches feature_unavailable_error and skips ... It FAILS on a validated release.' verify_results.json:372: '45.01.03: `cuts=93233 errs=0 ... rows_max=652 CUTS_max=0`. 45.01.04: `R1: status=optimal value=549 nodes=1 ... rows 652->871 CUTS_max=219`'.",
+    "replacement": "Decision 3, Xpress part: 'Managed cuts do nothing below 45.01.04, inside the validated range [45.1, 47.2). Choose one: (a) raise Xpress's validated floor to 45.1.4 for every suite; (b) use the optnode, XPRSaddcuts and XPRSpresolverow fallback below 45.01.04 (verify_results.json:419); (c) leave Xpress out of user cuts until the floor moves. Whichever is chosen, set_node_relaxation_callback throws feature_unavailable_error from the setter, never from solve() or the hook.'"
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Defects table, D4 'Other backends: *unverified*'; Decision 7",
+    "what": "D4 also reproduces on CPLEX. COPT and Xpress search again. On Gurobi the late callback ran once in my run and refused the point, and Gurobi still returned that point at optimal: a stronger result than the skeptic's calls=0. A parameter write (a time limit) does not start a new search on either backend. For user cuts alone, a late setter is harmless: under the contract the old optimum stays optimal, and 'it may never run' covers the silent non-call. So set_node_relaxation_callback keeps results, as the other setters do (progress plan:33-34, test progress_callback.hpp:303-306). The late-attach test must be solve, attach, mutate, solve (plan:338 has this); without the mutate it would wrongly fail on Gurobi and CPLEX. D4's fix belongs in solve(), keyed on the candidate callback having changed since the last finished solve. Keying it on progress or relaxation callbacks would cost the resumption that Gurobi, CPLEX and SCIP give.",
+    "evidence": "final_late_attach.cpp, public API only. final_late_attach_cplex.txt: 'cplex set after a finished solve: status=optimal first=5 second=5 calls=0 refusals=0 point=(0,1,1) VIOLATES THE CALLBACK'S RULE'; the same line for 'set after, then a time limit write'; the control with an objective write gives 'second=4 calls=8 ... ok'. final_late_attach_gurobi.txt: 'gurobi set after a finished solve: status=optimal first=5 second=5 calls=1 refusals=1 point=(0,1,1) VIOLATES THE CALLBACK'S RULE'. COPT: 'second=4 calls=7 refusals=2 ... ok'. Xpress: 'calls=1 refusals=1' with status infeasible in every variant including the control, which is D1, not D4. A parallel agent's final_out_d4_cplex.txt agrees ('calls=0 acted=0 point=(0,1,1)').",
+    "replacement": "D4 row: 'gurobi_milp.hpp:229-233, and cplex_milp.hpp:264-266 too ... Other backends: CPLEX 22.1.2 also (calls=0, second solve 5 at optimal, point (0,1,1)); COPT 8.0 and Xpress search again.' Decision 7: 'D4 before this feature, on Gurobi and CPLEX, fixed in solve() when the candidate callback changed since the last finished solve (Gurobi: GRBreset; CPLEX mechanism to find). The node-relaxation setter keeps results like the others.'"
+   },
+   {
+    "severity": "should be added",
+    "where": "Proposed interface: handle.get_solution(); Defects table",
+    "what": "Separators with memory keep the last point: for tailing-off, for the plan's own same-point guard, for re-offering cuts. The shipped candidate handles on Gurobi and CPLEX return a mapping that captures the handle's `this`, which lives in the C callback's stack frame, so reading the point after the call is use-after-scope. Provenance: Gurobi confirmed by ASan, CPLEX by reading the code, COPT and Xpress safe (they own the buffer and capture no handle). It is two backends of four, not universal. The new handle should own its data, as model.get_solution() does, rather than inherit the pattern.",
+    "evidence": "final_stored_point.cpp, built with -fsanitize=address and ASAN_OPTIONS=detect_stack_use_after_return=1. final_stored_point.txt: 'ERROR: AddressSanitizer: stack-use-after-return ... SUMMARY: ... gurobi_milp.hpp:169 in ...candidate_solution_callback_handle::get_solution()::{lambda...}'. Code: gurobi_milp.hpp:168-169 '[this, solution = std::move(solution)](const variable & x) { return *(solution.get() + parent._native_id(x));'. cplex_milp.hpp:188-189 '[this, ...] ... model->_native_id(v)'. copt_milp.hpp:120 and xpress_milp.hpp:114 'return variable_mapping(std::move(solution));'. The model getter freezes its id map instead: gurobi_milp.hpp:387-391 '_frozen_native_id()'. The docs promise the same indexing as the model: branch-and-cut.md:27 'indexed by variable handles exactly like model.get_solution()'.",
+    "replacement": "Add a defect D11: 'gurobi_milp.hpp:168 and cplex_milp.hpp:188: the candidate point captures the handle and dies with the call (ASan stack-use-after-return at gurobi_milp.hpp:169). Capture the model, or a frozen id map, instead.' Recipe: the node-relaxation handle's get_solution() returns a mapping that owns its values and stays readable after the call, until the next model change."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Proposed interface, has_user_cuts comment (plan:94-97)",
+    "what": "Three phrasings are inexact. (1) 'lazy constraints included' is ambiguous: the lazy constraints added so far, or all that would ever be added? On Xpress the candidate callback rejects instead of adding. Define validity by what solve() may return. (2) Invalid cuts also produce false infeasibility, which the plan measured (plan:124-125) but the comment omits. (3) 'the next call need not satisfy it' should tell users what to do: solvers purge cuts (CPLEX PURGE, Gurobi pool, SCIP removable rows, COPT discarding non-violating cuts), so a separator that remembers which cuts it added is wrong.",
+    "evidence": "Plan:124-125: 'gave a wrong optimum or a false infeasible (20 of 20 on Gurobi 12.0.1)'. Plan:58-61: \"On Gurobi, COPT and CPLEX it is a pool entry the solver may use, purge or filter.\" survey_results.json:632 quotes COPT: 'Cutting planes that do not violate the current LP relaxation solution are discarded by COPT.'",
+    "replacement": "// c must hold at every point solve() may return as feasible: integer, within the\n// model's rows and bounds, and accepted by the candidate-solution callback (no\n// lazy constraint added, no rejection). The solver may apply it anywhere or\n// nowhere, and may drop it later: a later point, at this node or another, can\n// violate it, so offer a cut whenever it is violated rather than remembering\n// which cuts were added. A cut that removes such a point is undefined behavior,\n// even one that keeps an optimum: it can give a wrong optimum at status::optimal,\n// or status::infeasible on a feasible model."
+   },
+   {
+    "severity": "should be added",
+    "where": "Preparing a cut, row 'Drop if violated by at most 1e-6 after scaling'; contract comment",
+    "what": "A NaN or infinite coefficient or rhs is misuse and should be documented UB. But the way the pipeline is written decides whether it reaches the solver. If a NaN comes first, std::max returns NaN for max|a| (if later, it is skipped), so scaling yields NaN; the violation is then NaN, and 'violation <= 1e-6' is false, so the cut is kept and handed to GLPK (which aborts on malformed cuts) or COPT. Writing the drop test as !(violation > tol) drops every non-finite cut, which 'may apply nowhere' allows. This is reasoned from the pipeline order; I ran no NaN through a solver.",
+    "evidence": "Plan:137-142, the order fold, strip zeros, skip empty, scale, drop. Plan:204: 'A malformed cut is an unrecoverable process abort, with no error code.' Misuse ruling (misuse-is-documented-ub.md): document obviously wrong use as UB; guard only when the consequence is severe.",
+    "replacement": "Drop row: 'Drop unless violated by more than 1e-6 after scaling, written !(violation > 1e-6), so that a non-finite cut is dropped too.' Contract: 'A coefficient or right-hand side that is NaN or infinite is undefined behavior.'"
+   },
+   {
+    "severity": "should be added",
+    "where": "Proposed interface, has_user_cuts comment; Recipe table (CPLEX '1121 is a dropped cut', COPT return 3)",
+    "what": "The callback comment makes an exception leaving the lambda UB, yet the handle's own error path throws inside the callback today: the Gurobi handle's check() throws through the C frames. The plan swallows the known refusals (CPLEX 1121, COPT's empty cut) but never promises it. Users cannot avoid a native refusal, so the contract should say add_user_cut does not throw. A refused cut is dropped, and any other native error ends the solve the way CPLEX's cbcheck does, by abort rather than by throwing.",
+    "evidence": "gurobi_milp.hpp:101-103: 'void check(const int error) const { parent.GRB->_check(parent.env, error); }', used by the handle's members. cplex_milp.hpp:115-118: 'cbcheck(int error) { if(error == 0) return; CPX->callbackabort(context); }'. Plan:139: 'COPT returns 3, and check() would throw through its frames.'",
+    "replacement": "Contract addition: 'add_user_cut does not throw. A cut the solver refuses is dropped; any other native error stops the solve, which then reports a failed status.'"
+   },
+   {
+    "severity": "should be added",
+    "where": "Recipe table, Gurobi row 'GRBcbcut, PreCrush=1'; Side effects 'Gurobi, PreCrush=1'",
+    "what": "The plan does not say where PreCrush is set. The skeptic left 'the maintainer rules on restore', and no decision poses it. If it is set in the setter, as LazyConstraints is in set_candidate_solution_callback, it outlives the callback, and every later solve on a model with parallel columns pays 100 to 300 times the nodes. The same holds for GLPK's presolve-off and COPT's context bits. Set them inside solve() for its duration, as the callbacks themselves are attached. My D4 runs show a parameter write does not reset the search on Gurobi or CPLEX, so restoring after optimize should keep a resumable search. That is inferred: I did not run it with PreCrush.",
+    "evidence": "gurobi_milp.hpp:231: 'check(GRB->setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));' in the setter. Plan:282-284: '100 to 300 times the nodes with them'. verify_results.json:80: '(3) Set PreCrush=1 only while a node callback is set ... the maintainer rules on restore.' final_late_attach_gurobi.txt: 'set after, then a time limit write: status=optimal first=5 second=5'.",
+    "replacement": "Recipe, Gurobi 'Must also' column: 'PreCrush=1 written by solve() while a node-relaxation callback is attached, restored afterwards; never by the setter.' Same wording for GLPK's presolve and COPT's contexts."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Proposed interface, example snippet (plan:106-113)",
+    "what": "The only example adds DFJ user cuts with no lazy constraints. Copied onto the DFJ example's degree-only model, it returns subtours at status::optimal: the plan measured this itself.",
+    "evidence": "Plan:253-254: 'a degree-only TSP with user cuts alone returned 418 with 11 cycles for 549. Hence: lazy constraints for feasibility.' The example's model, examples/travelling_salesman_dfj/main.cpp, has degree rows only.",
+    "replacement": "auto separate = [&](auto & handle) {\n    auto x = handle.get_solution();\n    for(const auto & S : violated_subtours(x)) {\n        auto cut = xsum(leaving(S), arc_var) >= 1;\n        if constexpr(has_user_cuts<std::remove_cvref_t<decltype(handle)>, Model>)\n            handle.add_user_cut(cut);\n        else\n            handle.add_lazy_constraint(cut);\n    }\n};\nmodel.set_candidate_solution_callback(separate);  // feasibility\nmodel.set_node_relaxation_callback(separate);     // strength\nmodel.solve();\n(This compiles in final_api_mock.cpp, solve_atsp.)"
+   },
+   {
+    "severity": "minor",
+    "where": "Decision 5 'Shared preparation with scaling and a 1e-6 drop?'",
+    "what": "The decision bundles two questions. (a) The structural steps (fold, strip zeros, skip empty, split ==) prevent crashes and are uncontroversial. (b) Scaling to max|a| = 1 plus a relative drop, applied everywhere, versus only where measured, loses big-M cuts. Some of the evidence also points at the wrong recipe: the drop row cites 'Xpress XPRSaddcuts: endless root', but the recommended Xpress recipe uses managed cuts, where the skeptic says drop-satisfied is 'a cheap filter only'.",
+    "evidence": "Plan:140-141, 359-360: 'Gurobi, CPLEX and Xpress did not need the scaling; COPT, SCIP and GLPK did.' verify_results.json:419: 'Keep drop-satisfied as a cheap filter only.'",
+    "replacement": "Split into 5a 'structural preparation in shared code' (recommended) and 5b 'scaling and the relative drop: everywhere for one behaviour, accepting dropped big-M cuts, or only on COPT, SCIP and GLPK for scaling and CPLEX and GLPK for the drop'. For 5b, either recommend one option explicitly or state that the evidence is per backend."
+   },
+   {
+    "severity": "minor",
+    "where": "Decision 6 (D1)",
+    "what": "The decision bundles a docs correction, which needs no ruling and is already known wrong, with a new feature: add_lazy_constraint on Xpress with MIPDUALREDUCTIONS=0. Ruling on one should not wait for the other.",
+    "evidence": "Plan:361-363.",
+    "replacement": "6a 'Correct concepts.md:190 and branch-and-cut.md:35,38 now'; 6b 'Wire add_lazy_constraint on Xpress as its own proposal.'"
+   },
+   {
+    "severity": "minor",
+    "where": "Tests: 'Use a separator that waits for depth'",
+    "what": "The suite is to use 'only the concepts', but the proposed handle has no depth, node or root read. A shared test cannot wait for depth, and a call count does not prove the call is off the root, since CPLEX repeats root calls without limit. A node count on the handle, optional through has_node_count as on the progress handle, would not give a portable root test either, because root counting is left to each solver (0 or 1).",
+    "evidence": "Plan:330, 'a separator that waits for depth'. Memory bnb-results-integer-free-normalization.md: 'Root counting (0 vs 1) is left to each solver.'",
+    "replacement": "'Force a tree with families that bite in the tree (covers, C5, C10); a depth read is a later, optional concept.'"
+   },
+   {
+    "severity": "minor",
+    "where": "Proposed interface: get_solution_value() on the relaxation handle",
+    "what": "Keep it, but define it so that Gurobi's computed value is exact by definition. On the candidate and relaxation handles, define it as the objective at the point get_solution() returns, offset included; that already holds for the candidate handle. Uses: a generic helper over both handles, and a user's own tailing-off test. The plan's 'Obj'x + ObjCon' does not say where Obj is read on Gurobi: inside the callback, or a snapshot after GRBupdatemodel. num_variables() already reads an attribute inside a callback.",
+    "evidence": "gurobi_c.h:647-655 has MIPNODE_STATUS, REL, OBJBST, OBJBND, NODCNT, SOLCNT, BRVAR, OPENSCENARIOS, PHASE, and no node objective (OBJBST and OBJBND are the incumbent and the global bound). gurobi_milp.hpp:110-115 calls getintattr(master_model, NUMVARS) in callbacks. final_api_mock.cpp objective_gap_of_point compiles on the relaxation handle.",
+    "replacement": "Concept comment: 'get_solution_value() is the objective at get_solution()'s point, offset included.'"
+   },
+   {
+    "severity": "minor",
+    "where": "Preparing a cut, fold row 'a repeat there is undefined behavior, as for lazy constraints'",
+    "what": "This is consistent with the misuse ruling and with existing raw-entry paths: a debug assert, no release guard. But the note should name Gurobi's consequence, as model_base.hpp already does for CPLEX. The skeptic's question of whether to add a size check is left unposed; I recommend no guard, for consistency.",
+    "evidence": "model_base.hpp:298-302: 'CPLEX keeps the first coefficient and corrupts its heap in solve()'; :314 assert. verify_results.json:52: 'Beyond that ... GRBcbcut overflows the heap with return code 0'.",
+    "replacement": "'... a repeat there is undefined behavior, caught by the debug assert of model_base.hpp:314, and in release builds a heap overflow on Gurobi past about NumVars entries.'"
+   },
+   {
+    "severity": "minor",
+    "where": "Proposed interface (shape), alternatives",
+    "what": "I confirmed the shape: no change. It compiles; the negatives hold (no add_user_cut on the candidate handle, none on the model, none on a handle missing the distinct_variables overload; the handle exposes no enumerable variables or constraints); the shorthand works; and a real backend is rejected by the requires-clause. Two alternatives were each rejected with a concrete failure. (1) One callback object for candidate and relaxation events would impose the lazy machinery on user-cut-only users: LazyConstraints=1 on Gurobi, and the MIPSOL bit's lost presolve reductions on COPT. (2) A scope tag now has no portable meaning on Gurobi or COPT, and add_local_user_cut stays additive. Explicit three-context dispatch on CPLEX is required, as the plan says.",
+    "evidence": "final_api_mock.cpp: rc=0 at -fsyntax-only; -DEXPECT_FAIL_REAL_BACKEND gives 'no matching function for call to solve_atsp(mippp::gurobi_milp&...)', 'constraints not satisfied'. gurobi_milp.hpp:231. Progress plan:285-287: '28860 \u2192 4806' nodes. verify_results.json:287: '2310 std::bad_function_call at contextid 0x40'.",
+    "replacement": "None. Add to the suite: a_moved_model_keeps_its_callback, a_second_callback_replaces_the_first, and compute_iis_runs_no_relaxation_callback, mirroring progress_callback.hpp and candidate_solution_callback.hpp."
+   }
+  ],
+  "executed": "All runs were under timeout -k 5, with finite solver time limits and one compiler at a time (/opt/gcc-15/bin/g++ -std=c++26 -O1). Files are in /tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/.\n- final_api_mock.cpp: the proposed concepts in namespace proposed, a mock built on gurobi_milp, and user code (DFJ with lazy and user cuts sharing one separator, Benders, a cover separator with a std::set and a mutex, generic requires-clauses, the shorthand). -fsyntax-only gives rc=0 with every static_assert true; the two expected-failure variants fail as expected.\n- final_late_attach.cpp, public API on Gurobi 12.0.1, CPLEX 22.1.2, COPT 8.0 and Xpress. D4 reproduces on Gurobi (calls=1 refusals=1, still 5 at optimal with the refused point) and on CPLEX (calls=0, 5 at optimal); COPT searches again; Xpress searches again, with D1 giving infeasible. A time-limit write starts no new search on Gurobi or CPLEX.\n- final_iis_usercuts.cpp: a native Gurobi MIPNODE separator standing in for the proposed callback, under compute_iis_by_deletion. The control answers irreducible {M, R, y<=2}; with the separator, irreducible without R on seeds 0-19, along an identical deterministic path.\n- final_cplex_shared_mutex.cpp: one mutex across the RELAXATION, CANDIDATE and GLOBAL_PROGRESS contexts on CPLEX 22.1.2 at default threads, 18 runs of 15 s with three spin settings. Every run ended at the time limit; no deadlock was observed. Other agents' probes were loading the machine at the same time, which affects throughput, not the deadlock result.\n- final_stored_point.cpp, built with ASan: stack-use-after-return at gurobi_milp.hpp:169.\n- Reads: the plan, RECORD.md, the survey and verify JSON, the headers and docs listed in the task, the progress plan, the named memory notes, xpress_api.hpp:326-327, model_base.hpp:298-330, deletion-filter.md:103 and 181-198, and gurobi_c.h:647-655.\n- Process sweep before returning: none of my processes survive. final_run.sh and final_conf_scip belong to another agent and were left alone.",
+  "not_checked": [
+   "A NaN or infinite cut through any real solver: the pipeline trace is reasoning only",
+   "Whether Gurobi allows reading the Obj attribute inside a callback, against a snapshot after GRBupdatemodel",
+   "A late-set node-relaxation callback on Gurobi or CPLEX: inferred from the candidate-callback probe, since no relaxation callback exists",
+   "Xpress preintsol against cutround and miplog overlap, and a cross-kind shared mutex on Xpress",
+   "The deletion-filter failure on any backend but Gurobi, and through the real proposed hook rather than a native stand-in",
+   "The mechanism for a D4 fix on CPLEX (what forces a new search on an unchanged optimal MIP)",
+   "Releases other than Gurobi 12.0.1 and CPLEX 22.1.2 for my probes; the Xpress release was not printed",
+   "Whether cuts persist across add_column or remove_variable: plan:291 rests on the P block, which RECORD.md:43-44 says was skipped on several backends",
+   "Lock-order safety of the shared mutex under ordering other than the one probed, and on other CPLEX releases",
+   "The cost of a single shared mutex on a candidate-heavy workload"
+  ]
+ },
+ {
+  "reviewer": "gaps",
+  "verdict": "I took the plan's facts as given. It still leaves out things that would change five of its seven decisions. (1) The probe I ran found a shipped wrong-answer defect the defect table does not list. On CPLEX 22.1.2 and COPT 8.0.5, `add_lazy_constraint` rejects the candidate even when the candidate satisfies the constraint, so the optimum is lost at `status::optimal` (6 for 7). Gurobi 12.0.1 accepts the same candidate. D3's empty-lazy case on COPT is one instance of this. The plan's own drop-satisfied step is the fix, so it has to serve the lazy path too. (2) The Xpress gate at 45.01.04 cannot be written under the current version rules. Xpress validated starts at 45.1, the shared wrapper FAILs `feature_unavailable_error` on a validated release, and the skill requires any floor to sit at or below every validated bound. (3) The mutex is per lambda. CPLEX runs CANDIDATE and RELAXATION at the same time, so a separator shared between lazy constraints and user cuts still races. COPT is serialized with no vendor promise, the same as Xpress, yet the plan gives it no mutex. (4) `compute_iis_by_deletion` runs every registered callback in each trial. A cut that is valid for the full model can be invalid in a trial where a row or bound was relaxed, which can corrupt the IIS. (5) Two of the five first-wave backends, SCIP and Xpress, have no correct lazy path today. The plan's own rule, lazy constraints for feasibility, and its DFJ example therefore cannot be followed there. On local cuts, \"not now\" stands, but its reason is wrong where it matters. An indicator is a model-level constraint and cannot be added from a hook. The big-M rewrite works only for subtrees defined by binary fixings, and it needs the node's bounds, which Gurobi and COPT, the two solvers without a local flag, cannot read. The plan also never says what a user with local cuts can do on each backend. The cut-preparation table is missing a non-finite check, which GLPK aborts on. The GLPK section is missing the empty-model case, which aborts the process. CPLEX's moving root loop at a violation of 1e-5 is not covered by either guard. Decision 5 applies max-scaling on Gurobi, CPLEX and Xpress, where I found no run that sent scaled cuts. Cuts derived from an incumbent or a cutoff, integer-free models, error handling inside the handle, tests and docs are not addressed.",
+  "findings": [
+   {
+    "severity": "changes a decision",
+    "where": "Defects found in shipped code (table D1-D10) and Decision 7 'D1, D3 and D4 before this feature'",
+    "what": "Shipped wrong answer, missing from the table. On CPLEX and COPT, a lazy constraint that the candidate already satisfies still rejects it. A satisfied lazy constraint added at the optimal candidate loses the optimum at status::optimal. Gurobi accepts the candidate. D3's 'only_empty' case (a lazy constraint that folds to an always-true row) is one instance of this, so D3's fix ('strip zeros') is not enough. The same drop-satisfied piece the plan builds for user cuts (violation at most a tolerance) fixes the lazy path and makes CPLEX and COPT behave like Gurobi. It decides whether the shared preparation is shared with the lazy path.",
+    "evidence": "final_satlazy.cpp, public API only, 1 thread, 5 s limit. Model: max x+y, x and y integer in [0,5], x+y<=7; truth 7. CPLEX: 'A every candidate gets a satisfied lazy | infeasible{sol=false}' and 'B only the optimum gets a satisfied lazy | optimal{sol=true} | value=6 truth=7 calls=40 lazy_adds=38'. COPT: 'A ... infeasible{sol=false}', 'B ... optimal{sol=true} | value=6 truth=7'. Chu-Beasley knapsack, 5 rows x 30 columns, seeds 1-3, adding sum x<=30 at every candidate: CPLEX and COPT 'time_limit{sol=false}' after 182257-195483 and 43254-66308 calls. Gurobi: A and B 'optimal value=7', and the knapsack runs 'optimal' in 0.06 s at the true values 13029, 12486 and 12189. verify COPT: 'per guide line 11220 'rejected, no matter whether''. cplex_milp.hpp:159 uses CPXcallbackrejectcandidate. Docs, branch-and-cut.md:28: 'injects a violated constraint ... If no lazy constraint is added, the candidate is accepted'; this does not warn about the satisfied case.",
+    "replacement": "Add row D11: '`cplex_milp.hpp:159`, `copt_milp.hpp:95-97` | `add_lazy_constraint` rejects the candidate even when the candidate satisfies the constraint; Gurobi accepts it. | x,y integer in [0,5], max x+y, x+y<=7, lazy x+y<=100 added at the value-7 candidate only: status::optimal, value 6, on CPLEX 22.1.2 and COPT 8.0.5; status::infeasible when added at every candidate. [final_satlazy.cpp] Fix: in shared code, drop a lazy constraint the candidate satisfies within the feasibility tolerance. This also covers D3's empty case.' Decision 7: 'The shared preparation lands first. D3 and D11 reuse it. D1, D3, D4, D5 and D11 come before this feature, each in its own commit.'"
+   },
+   {
+    "severity": "changes a decision",
+    "where": "Recipe per backend, Xpress row 'feature_unavailable_error below 45.01.04', and Decision 3 'Xpress (45.01.04+)'",
+    "what": "The gate conflicts with the two-tier version mechanism. Xpress validated starts at 45.1. A shared suite that throws feature_unavailable_error on a validated release FAILs, and the skill requires a floor at or below every validated bound. As written, UserCutsTest fails on 45.01.01 to 45.01.03, or the static_assert fires. The plan does not surface this choice. The same applies, more weakly, to two untested releases inside validated ranges: COPT 7.2.x and Gurobi 10.x would get a validated claim nobody ran.",
+    "evidence": "xpress_api.hpp:326-327 'validated_versions = { solver_version_range{{45, 1}, {47, 2}}}'. test/test_suites/all.hpp:167-169 'if(Api::support_of(api->library_version()) == mippp::release_support::validated) FAIL() << \"a validated release lacks a member: \"'. SKILL.md: 'a public constexpr solver_version floor of the api that a static_assert keeps at or below every validated_versions bound'. Survey Xpress trap: 'gate on XPRSgetversion, then feature_unavailable_error or fall back to presolverow + addcuts in the same hook (45.01.01: E3 549, 1 node)'. copt_api.hpp:340-341 '{{7, 2}, {8, 1}}' with 'COPT 7.2.5 (licence refused)'. gurobi_api.hpp:336-337 '{{10}, {14}}' with 'Gurobi 10.x (not installed)'.",
+    "replacement": "Decision 3 gets a sub-choice on Xpress: (a) move validated_versions to {{45,1,4},{47,2}} and declare supported_versions {{45,1},{47,2}} after a compat-matrix run, which demotes 45.01.01-.03 to the partial tier for every feature; (b) presolverow + XPRSaddcuts below 45.01.04, which the plan rejects elsewhere as R2; or (c) Xpress in a later wave. Also add: 'UserCutsTest is instantiated for COPT and Gurobi only after a run on 7.2.x and 10.x, or those validated claims narrow.'"
+   },
+   {
+    "severity": "changes a decision",
+    "where": "Threads: 'a mutex around the lambda on CPLEX and Xpress'; Decision 4; D5",
+    "what": "The mutex scope is too narrow, and the rule for choosing backends is inconsistent. On CPLEX, the CANDIDATE and RELAXATION contexts overlap each other. A per-lambda mutex leaves state shared between a lazy separator and a cut separator unprotected, for example one DFJ cache serving both, which is the plan's own example pattern. COPT serializes calls without a vendor promise, which is the plan's stated reason for giving Xpress a mutex, yet COPT gets none. D5 is the same missing lock on the shipped candidate path, so it belongs to the same commit.",
+    "evidence": "CPLEX survey trap: 'Concurrent calls, up to 15 in flight at 16 threads, no lock from CPLEX or callback_fun; CANDIDATE and RELAXATION overlap each other'. D5: '10 overlaps in 40 calls with a 3 ms hook'. Plan: 'COPT and Xpress serialize it (Xpress through MUTEXCALLBACKS, measured on cutround, not promised)'. COPT verify: 'calls are serialized without a vendor promise'. xpress_milp.hpp:164-172: 'MUTEXCALLBACKS does not list miplog ... std::mutex mutex'. cplex_milp.hpp:194-195: 'CPLEX holds a lock across it [GLOBAL_PROGRESS]'.",
+    "replacement": "Decision 4: 'One mutex per solve, held around every MIP++ callback lambda that solve attaches (candidate and node relaxation, and on Xpress the existing progress_context mutex), on CPLEX, Xpress and COPT. D5 is fixed in the same commit, before this feature. Whether CPLEX's progress lambda joins it waits on a measurement: CPLEX already holds a global lock across GLOBAL_PROGRESS, and a shared mutex could deadlock (reasoned, not run).'"
+   },
+   {
+    "severity": "changes a decision",
+    "where": "Proposed interface (contract comment, lines 94-97) and When it runs; the deletion filter is not mentioned anywhere in the plan",
+    "what": "Seam with the deletion filter. The plan attaches the hook in solve(), and each deletion-filter trial is a solve(), so user cuts run in every trial. A cut valid for the user's model, such as a cover from a knapsack row or a DFJ cut that relies on degree rows, is not valid in a trial that relaxed that row or bound. The trial can then read infeasible, the filter drops a candidate it needed, and the answer is a false 'irreducible'. Lazy constraints are part of the model (the docs call them background); user cuts by contract are not, so detaching them during trials changes no answer and costs only speed. The same reasoning applies to a separator that re-offers a cached pool across model changes. This is reasoning; I did not run it.",
+    "evidence": "docs/algorithms/deletion-filter.md:183: 'A trial is a solve(), so a candidate-solution callback registered ... runs in every trial. Its lazy constraints and rejections are background'. docs/solvers/index.md:119: 'A registered candidate-solution callback runs in every trial'. Plan line 94: 'c must hold at every integer feasible point of the model'.",
+    "replacement": "Add: 'compute_iis_by_deletion detaches the node-relaxation callback for its trials, and native compute_iis() sees no callback (ruling).' Contract: 'c must hold at every integer feasible point of the model being solved; a cut kept from an earlier solve must still hold after the model changed.' Add a deletion-filter case to the suite."
+   },
+   {
+    "severity": "changes a decision",
+    "where": "Local cuts: not now, lines 235-236: 'any cut valid in a subtree can be written globally with an indicator, or left to branching'",
+    "what": "This is reasoning, not evidence, and it is false where it matters. Indicator constraints exist only at model level, and no hook can add one. A hook can add only the big-M form a'x <= b + sum over x_j fixed to 1 of M_j(1-x_j) + sum over x_j fixed to 0 of M_j x_j. That form works only when the subtree is defined by binary fixings: a general-integer branching bound has no linear global form without a new variable. It needs a finite M_j for every variable in the cut. It needs the node's bounds, which Gurobi and COPT cannot read, and those are exactly the two solvers without a local flag. It also grows by one term per fixing, is nearly redundant outside the subtree, and its big M runs into the plan's own scaling and 1e-6 drop. Where it can be written it is safe: Gurobi held big-M cuts. The plan also never says what a user with genuinely local cuts can do on each backend. The native route is closed on three backends, because solve() takes or clears the slot.",
+    "evidence": "concepts.md:174 (Special constraints table): 'has_indicator_constraints ... Satisfied by gurobi_milp and cplex_milp' (model-level). Plan table, column 'Node's bounds readable': Gurobi 'no', COPT 'no'. Decision 5: 'It silently drops big-M cuts with M >= 1e8 on GLPK'. Gurobi verify: 'indicators with K to 1e9: 16', 'K f - K d y <= 0 with rhs 0, up to 1e300: 57 (9), no loss'. cplex_milp.hpp:250-260: solve() sets callbacksetfunc whenever a MIP++ callback exists and clears it afterwards. solvers/index.md:125: copt_milp::solve() 'holds' the single slot. glpk_milp.hpp:345-346: 'model_params.cb_func = progress_callback ? progress_callback_func : nullptr'. SCIP survey trap: 'SCIPincludeSepaBasic at stage SOLVED returns OKAY ... then SCIPfreeTransform returns -8'. xpress_milp.hpp:203: 'Each addcb adds one more call'.",
+    "replacement": "Replace the sentence with: 'Not now: no consumer asks, and Gurobi and COPT could not offer it. A subtree-valid cut has a global form only when the subtree is a set of binary fixings: a'x <= b + sum M_j(1-x_j) + sum M_j x_j, with finite M_j. It needs the node's bounds, which Gurobi and COPT do not expose, and its big M meets the scaling and the 1e-6 drop. A user with local cuts today has: Gurobi and COPT, no path; CPLEX, a native generic callback, only if no MIP++ callback is set; Xpress, a native cutround with XPRSaddmanagedcuts(g=0) beside MIP++'s; SCIP, a native separator included before the first solve; GLPK, none.' Add a Decision 2 alternative: a native-context accessor on the handle, so local cuts are reachable on CPLEX, Xpress, SCIP and GLPK without has_local_user_cuts."
+   },
+   {
+    "severity": "changes a decision",
+    "where": "When it runs, line 254 'Hence: lazy constraints for feasibility'; Decision 3 order; Decision 7",
+    "what": "Two of the five first-wave backends have no correct lazy path. SCIP has no candidate callback at all, and Xpress has only reject_solution, which is D1. The plan's rule (feasibility through lazy constraints) and its DFJ example therefore cannot be written correctly on scip_milp or xpress_milp, and user cuts alone give 418 with 11 cycles. The order of work should follow from this.",
+    "evidence": "branch-and-cut.md:38: 'lazy constraints on the first three. **Xpress** offers `reject_solution()` instead. SCIP has no callback yet.' test/solvers/scip.cpp:185: '// INSTANTIATE_TEST(SCIP, CandidateSolutionCallbackTest, scip_milp_test);'. Plan line 253-254: 'a degree-only TSP with user cuts alone returned 418 with 11 cycles for 549'. D9: 'Matters for lazy constraints on SCIP.'",
+    "replacement": "Decision 7: 'Wave 1 is Gurobi, CPLEX and COPT, which have a lazy path. Xpress user cuts come after Decision 6. SCIP user cuts come after a SCIP lazy-constraint handler, which needs D9 first, or ship documented as strengthening a complete formulation only.'"
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Preparing a cut, table lines 135-142",
+    "what": "Two of the skeptics' steps are missing from the table. One rejects non-finite coefficients and sides: GLPK aborts the process, COPT throws through its C frames, Gurobi drops the cut silently. The other is a column-id range check on GLPK, where a foreign variable is an unrecoverable abort, which meets the 'severe' exception to the misuse-is-UB ruling.",
+    "evidence": "GLPK verify recipe_change: '(1) reject non-finite coefficients and rhs (infinity aborts on all 7)' and 'a bounds check on the column id: a foreign variable is an unrecoverable abort, which meets the 'severe' exception to misuse-is-UB'. GLPK recommendation: 'normalize, 1e-6 threshold, stall guard, non-finite rejection'. COPT verify: 'NaN coefficient: 'solve threw API call failed: invalid data''. Gurobi survey trap: 'NaN and huge values return 0 and are dropped'.",
+    "replacement": "New first row: 'Skip a cut with a non-finite coefficient or side | GLPK: process abort on all 7 releases. COPT: rc != 0, and check() throws through COPT frames. Gurobi: dropped with return code 0.' GLPK row in the recipe table: 'column ids checked against the column count; a foreign variable aborts the process.'"
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "GLPK and Cbc: the honest cost, line 193: 'So a set callback turns presolve off'",
+    "what": "Empty model. With presolve off, a model with 0 columns aborts the process on GLPK 4.65 and 5.0. The skeptic's wrapper path keeps presolve on when n == 0; the plan drops that exception, and the Tests section drops the 'empty model' case the GLPK skeptic asked for.",
+    "evidence": "GLPK verify claim 'X2 survey: 0 columns aborts on 4.65 and 5.0 | CONFIRMED'. recipe_change: '(6) Wrapper path: n == 0 keeps presolve on'. GLPK survey trap: '0 columns with presolve off aborts the process on 4.65 and 5.0: keep the presolve path or short-circuit for an empty model'.",
+    "replacement": "'So a set callback turns presolve off, except on a model without columns, which keeps the presolve path: with presolve off it aborts the process on 4.65 and 5.0.' Add 'empty model' to the Tests cases."
+   },
+   {
+    "severity": "wrong in the plan",
+    "where": "Preparing a cut, row 'Drop if violated by at most 1e-6 ... Covers the common re-offer everything separator', and the CPLEX same-point step",
+    "what": "Root termination on CPLEX is not covered. A separator that offers a fresh valid cut each round, violated by 1e-5 to 1e-4, holds the root until the time limit. Neither the 1e-6 drop nor the same-point guard catches it. The skeptic proposed CUTPASS; the plan has GLPK's stall guard only for GLPK.",
+    "evidence": "CPLEX verify safe_direction: 'Above the threshold a moving loop can also hold the root: fresh violation 1e-5, 60 s, nodes=0, value=598 on 22.1.2; 1e-4, value=624 on 22.2.0; CUTPASS=50 optimal 0.12 s.' recipe_change: '4) Consider setting CUTPASS when the user left it at 0: a slowly moving root loop is not caught by the guard'.",
+    "replacement": "Add a row: 'Bound the rounds at one node | CPLEX: fresh valid cuts violated by 1e-5 hold the root 60 s at nodes=0; CUTPASS=50 gives optimal in 0.12 s.' Decision 5 then picks one of: CUTPASS=50 on CPLEX while a node callback is attached and the user left the default; GLPK's stall guard in shared code on every backend; or a doc note."
+   },
+   {
+    "severity": "changes a decision",
+    "where": "Decision 5: 'Gurobi, CPLEX and Xpress did not need the scaling; COPT, SCIP and GLPK did.'",
+    "what": "The proposal applies max-scaling everywhere, but I found no run that sent scaled cuts to Gurobi, CPLEX or Xpress; their sweeps were unscaled. The one backend where scaling choices were compared shows that max-scaling can break cuts that were clean raw. Only the drop test needs the scaled violation, since CPLEX's spin threshold is EpRHS*max|a|.",
+    "evidence": "Cbc verify recipe_change: 'geometric 0 in all 22 rows on both releases (1760 runs each). Dividing by max is worse: devel range 1e5 5/80'. grep 'normaliz' over the verify results finds only COPT, SCIP and GLPK runs. CPLEX verify: 'threshold is exactly EpRHS*max|a| on the CRUSHED cut'.",
+    "replacement": "Decision 5: 'Test the drop on the violation divided by max|a| on every backend. Send scaled coefficients on COPT, SCIP and GLPK only, where scaling was needed and measured. On Gurobi, CPLEX and Xpress send them as written, unless the scale sweep is re-run there with scaling.'"
+   },
+   {
+    "severity": "should be added",
+    "where": "Proposed interface, bullet 'Dominance cuts are outside the contract on purpose'",
+    "what": "The plan does not name cuts derived from an incumbent or an objective cutoff: an objective cutoff c'x <= z_inc - delta, reduced-cost or Lagrangian fixing valid only for improving solutions, no-good cuts on the incumbent, local branching. These are the common forms of 'removes feasible points but keeps an optimum'. The contract makes them undefined behavior, but the plan never names them or says what to do instead. The handle cannot read an incumbent, MIP++ has no cutoff setter, and an external incumbent cannot be injected mid-solve. Reasoning, not run: a cut valid for every point strictly better than the solver's own incumbent survives optimality-preserving reductions, unlike general dominance cuts. That would make a later, narrower contract possible.",
+    "evidence": "Plan lines 96-97: 'A cut that removes an integer feasible point is undefined behavior, even one that keeps an optimum'. The proposed handle reads only get_solution_value() and get_solution() (lines 89-91). README.md:183: 'Heuristic-solution injection' is on the roadmap. grep 'cutoff' in include/ finds only Xpress's unused p_cutoff (xpress_milp.hpp:157). Gurobi verify: 'Outside the contract, no loss: rhs below tight by up to 1e-5 (objective minus eps 96...)'. That is the only cutoff-like evidence, and only within 1e-5.",
+    "replacement": "Add a bullet: 'Cuts valid only for solutions better than an incumbent (objective cutoff, reduced-cost or Lagrangian fixing, no-goods, local branching) remove integer feasible points, so they are undefined behavior too. Use the solver's cutoff through native_api() before the solve, or a lazy constraint. Whether a narrower contract for them is safe is unmeasured.'"
+   },
+   {
+    "severity": "should be added",
+    "where": "Proposed interface (concept comment, lines 80-83); Tests",
+    "what": "Integer-free *_milp models. On CPLEX and COPT these take the LP path, and on Gurobi the model is an LP, so the hook never runs there. The shipped CPLEX candidate path throws on such a model. The CPLEX survey said to 'pick one behaviour', and the progress callback already picked: no throw. The plan does not cover *_lp (out by ruling) or *_qp; only highs_qp exists, and HiGHS has no call.",
+    "evidence": "cplex_milp.hpp:455-459: 'throw std::runtime_error(\"cplex_milp: can't solve lp (no integer variables) with candidate_solution_callback\")'. copt_milp.hpp:317-323: COPT_INTATTR_ISMIP, then SolveLp. CPLEX survey trap: 'Model with no integers takes lpopt: the callback never runs; the candidate path throws there, pick one behaviour'. progress.md:31: 'It may never run on a model without integer variables. Solving such a model with the callback set is fine, on every backend.'",
+    "replacement": "Add to the concept comment: 'On a model without integer variables it may never run; solving such a model with the callback set is fine, on every backend.' The CPLEX implementation does not copy the candidate path's throw. Add an integer-free case that asserts status::optimal and nothing about the call count. Add 'Out of scope: *_lp (ruling) and *_qp (only highs_qp exists).'"
+   },
+   {
+    "severity": "should be added",
+    "where": "Recipe per backend ('1121 is a dropped cut'; 'Skip what is left empty ... check() would throw')",
+    "what": "The plan has no rule for native errors inside the handle. It covers user exceptions (undefined behavior) and two error codes, COPT rc=3 and CPLEX 1121. The wrapper's own error handling either aborts the search on any nonzero (CPLEX) or throws across C frames (Xpress, COPT, Gurobi). Other nonzero returns were seen, for example COPT rc=-1. The concept also gives no way to see dropped cuts.",
+    "evidence": "cplex_milp.hpp:115-118: 'if(error == 0) return; CPX->callbackabort(context);'. CPLEX verify: 'copying it to a user-cut handle aborts the search on 1121'; its recommendation: '1121 counted and swallowed, other errors abort'. xpress_milp.hpp:62-67: check() throws std::runtime_error. COPT survey: 'One term on a column with no rows: rc=-1 and false infeasible'. Gurobi survey trap: 'check() inside a handle throws across C frames, existing style'.",
+    "replacement": "Add a Decision: 'add_user_cut never throws. A nonzero native return drops that cut; alternatively it ends the solve as status::failed. One rule for every backend; CPLEX 1121 is a dropped cut either way.'"
+   },
+   {
+    "severity": "should be added",
+    "where": "Tests (lines 323-339)",
+    "what": "Cases missing from the plan's list: (1) node-relaxation, candidate and progress callbacks together in one solve, which also exercises COPT's single-slot dispatch and GLPK's cb_func; (2) a moved model keeps its callback, needed because the hook attaches in solve(); (3) an integer-free model; (4) an empty model; (5) a MIP start with cuts beyond Gurobi; (6) CPLEX indicator constraints with cuts, which no one ran; (7) the deletion filter with a node callback; (8) CPLEX's moving root loop; (9) a non-finite coefficient; (10) stop inside the tree then re-solve, and a root time limit after an earlier solve (GLPK skeptic). The skill's 'prove the suite on dumb.cpp first' cannot apply to a callback suite, so the plan should say so. Commented-out INSTANTIATE lines with reasons are needed for Cbc, HiGHS and MOSEK, and for GLPK if it is not ruled in.",
+    "evidence": "progress_callback.hpp:406-444, ProgressCallbackSharingTest 'both_callbacks_run_in_one_solve'. candidate_solution_callback.hpp:89, 'a_moved_model_keeps_its_callback'. Gurobi verify: 'MIP start 6', 'indicators with K to 1e9: 16' (Gurobi only). GLPK recommendation: 'stop inside the tree then re-solve, root time limit after a previous solve, empty model'. SKILL.md step 3: 'Prove the suite on dumb.cpp first'; step 5: 'comment out the unsupported ones in place'.",
+    "replacement": "Add these cases to the Tests list. Add one line: 'The suite is proven on a real backend; dumb has no search.' Add the commented INSTANTIATE_TEST lines with reasons."
+   },
+   {
+    "severity": "should be added",
+    "where": "Size: 'docs 120'; there is no docs section",
+    "what": "The docs and tooling that must change are not listed, and some current text becomes false on the day this lands.",
+    "evidence": "branch-and-cut.md:1 (title 'with lazy constraints'), :28, :35, :38, :69 ('from a solver-managed thread', no word on concurrency), :108-110 ('no backend implementing it yet'). concepts.md:190-191 ('*(no backend yet)*'). solvers/index.md:103 ('specified but not yet implemented'), :119, and :125 (the single-slot note is COPT-only; CPLEX and GLPK also clobber native hooks). getting-started/index.md:92 ('User-cut callbacks are specified as a concept but not yet implemented by any backend'). README.md:176, :182, :194. progress.md:60 (D10) and :32-33 if the mutex is shared. deletion-filter.md:181-198. tested_features_table.py: formated_test_names has no entry for the new suites, so raw names render. SKILL.md has nothing on callback suites ('assert the hook ran', 'force a tree', handle-first `<T, M = T>`). CHANGELOG.",
+    "replacement": "Add a Docs section listing these lines, the two formated_test_names entries ('Node relaxation callback', 'User cuts') plus a sharing row, table regeneration, and a SKILL.md paragraph carrying the plan's four test lessons."
+   },
+   {
+    "severity": "minor",
+    "where": "Defects found in shipped code: intro 'The first three give wrong answers', the D5 row and the D1 fix",
+    "what": "Omissions and ranking errors in the defect table. D4 also gives a wrong answer at status::optimal, so 'the first three' undercounts. A test pins D1's wrong behaviour, and the D1 fix must change it. CPLEX's callback_fun sends every non-CANDIDATE context to the progress callback: latent today, it fires as soon as RELAXATION is registered, so it belongs with D5. The Xpress candidate handle's check() throws across C frames (read in the code, not executed). Decision 6's lazy-on-Xpress recipe misses a trap the survey found. Adding a constraint from a progress lambda gives wrong answers on HiGHS and MOSEK, a stronger reason than progress.md:34 gives.",
+    "evidence": "D4: 'second solve still 5, point violating it'. test/test_suites/iis.hpp:104: 'EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));' after a reject-all; Xpress verify 'Test gap'. CPLEX verify: 'callback_fun treats every non-CANDIDATE context as progress ... 2310 std::bad_function_call at contextid 0x40'. Xpress verify: 'xpress_milp.hpp:62-68 check() throws from inside candidate_solution_callback_fun'. Xpress survey trap: 'Setting PRECOMPONENTS=-1 after MIPDUALREDUCTIONS=0 undoes its protection and breaks lazy rows, although read-back looks the same'. HiGHS/MOSEK survey: 'HiGHS answers status=infeasible on a feasible model, MOSEK answers status=optimal at 240 against 306'.",
+    "replacement": "'The first four give wrong answers.' D1 row: 'the fix changes iis.hpp:104 and adds a value check to progress_callback.hpp:445-472.' Add D12: 'cplex_milp.hpp:236-241, latent: any non-CANDIDATE context runs the progress callback.' Decision 6: 'MIPDUALREDUCTIONS=0 written in solve(), after user parameters; a later PRECOMPONENTS=-1 undoes it.'"
+   },
+   {
+    "severity": "minor",
+    "where": "Concept comment, line 80: 'Called during solve() on an optimal node relaxation'",
+    "what": "On COPT this says more than was measured: the COPT skeptic did not verify that MIPRELAX points are LP optima.",
+    "evidence": "COPT verify not_verified: 'whether MIPRELAX points are always LP optimal'.",
+    "replacement": "'Called during solve() on a node relaxation (an LP optimum where measured; assumed on COPT)', or drop 'optimal'."
+   },
+   {
+    "severity": "minor",
+    "where": "Tests: 'a solve, attach, mutate, solve (late attach)'; D4",
+    "what": "D4's mechanism applies to the new setter too: on Gurobi, a node callback set after a finished solve, with no model change, never runs in the next solve(). The answer stays correct, but a test asserting the hook ran will fail, and the late-attach case as written mutates, so it misses this. The D4 fix should cover every callback setter.",
+    "evidence": "Gurobi verify: 'set_candidate_solution_callback neither resets the model nor invalidates results, so a callback set after a finished solve is never called by the next solve()'.",
+    "replacement": "D4 fix: 'every callback setter, set_node_relaxation_callback included.' Add a case: 'solve, attach, solve with no change: a correct optimum, call count unasserted.'"
+   },
+   {
+    "severity": "minor",
+    "where": "GLPK and Cbc: the honest cost",
+    "what": "Under the global contract, GLPK still applies every cut only in the subtree where it was added, and its pool drops cuts silently, so a separator must re-offer cuts elsewhere. The GLPK skeptic asked for this to be documented; the plan leaves it out.",
+    "evidence": "GLPK survey traps: 'Cuts are local and purged ... a cut found once deep in the tree does not help the sibling (S2 1031 vs root 775)'; 'Pool drops silently ... everything past 90 at root or 10 below per call'. GLPK recommendation: 'Document three things: ... cuts are local and may be dropped'.",
+    "replacement": "Add a bullet: 'Cuts apply only in the subtree where they were added, and the pool drops some silently: re-offer them.'"
+   }
+  ],
+  "executed": "Read the plan, RECORD.md, every recommendation, recipe_change, safe_direction and shipped_code_findings in verify_results.json, and the traps and surprises in survey_results.json. Read the shipped code: copt_milp.hpp callbacks, cplex_milp.hpp callbacks and solve(), xpress_milp.hpp callbacks, glpk_milp.hpp solve and progress handle, model_concepts.hpp:803-858, the validated_versions of every backend, test/test_suites/all.hpp model_test, iis.hpp:98-105 and progress_callback.hpp:406-472. Read the docs: branch-and-cut.md, concepts.md:170-200, solvers/index.md, deletion-filter.md:175-198, progress.md:30-34 and :60, README roadmap, tested_features_table.py and SKILL.md.\n\nRan one probe, /tmp/claude-1000/-home-plaiseek-Projects-mippp/b99a8387-c5e9-4bc6-9141-d4502a992e5d/scratchpad/user_cuts/final_satlazy.cpp, using the public API only, built three times with the prescribed g++ line, one compile at a time. Each run was under timeout -k 5 90, with 1 thread and a 5 s limit per solve. Outputs are in final_satlazy_{copt,cplex,gurobi}.txt in the same folder.\n- COPT 8.0.5: A infeasible; B optimal, value 6 (truth 7); knapsack 5x30 seeds 1-3 time_limit with no solution.\n- CPLEX (Community 22.1.2 by the environment; the version was not printed): A infeasible; B optimal, value 6; knapsacks time_limit with no solution.\n- Gurobi (12.0.1 from LD_LIBRARY_PATH): A and B optimal, value 7; knapsacks optimal at 13029, 12486 and 12189 in 0.06 s.\n\nAfter the runs no final_satlazy process remained. The final_conf_cplex, final_conf_xpress and final_conf_copt processes running under final_run.sh are not mine; they started after my session, from another agent of this workflow, and I left them alone.",
+  "not_checked": [
+   "The deletion-filter seam (finding 4) is reasoning only; I ran no filter trial with a user cut.",
+   "Incumbent and cutoff cuts (finding 11): no probe. Whether they survive dual reductions on Gurobi, CPLEX or SCIP is my belief, not a measurement.",
+   "Satisfied lazy constraints: not run on Xpress (reject path) or SCIP (no path), not at more than 1 thread, not on CPLEX 22.1.0, 22.1.1 or 22.2.0, and not on COPT 7.2.5. The CPLEX release loaded was not printed.",
+   "Deadlock risk if one mutex covers CPLEX's GLOBAL_PROGRESS and RELAXATION: not run.",
+   "Whether SCIP's separator or GLPK's ICUTGEN fires on an integer-free *_milp: not checked.",
+   "Max-scaling on Gurobi, CPLEX and Xpress: I found no run in the verify output (grep for 'normaliz'), but did not read every vout_* file.",
+   "Whether the big-M rewrite of a local cut is safe on CPLEX, Xpress or SCIP: only Gurobi's big-M and indicator runs exist.",
+   "SOS seams: no MIP++ backend implements add_sos1_constraint or add_sos2_constraint (concepts.md: 'no backend yet'), so nothing to test. CPLEX indicator constraints with user cuts: not run.",
+   "*_qp: only highs_qp exists and HiGHS takes no cut, so not checked.",
+   "The unified preparation order as one step on all backends, the MSVC, Windows and macOS builds, and Gurobi ConcurrentMIP: not checked, as the plan already says.",
+   "The CPLEX and COPT single-slot clobbering of native hooks is read from code and the surveys, not executed.",
+   "The Xpress static_assert conflict is read from SKILL.md and the code; I did not compile a 45.01.04 floor to see it fire."
+  ]
+ }
+]

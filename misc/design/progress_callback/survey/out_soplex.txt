@@ -1,0 +1,3 @@
+library ~/Softwares/solvers/scipoptsuite-9.2.1/build/lib/libsoplexshared.so.7.1.3.0
+== LS0 LP one piece: status=optimal{sol=true} solve=2.71s value=80937.4 dual=n/a nodes=n/a
+== LS1 LP in 0.5s slices: 20 slices, 9.75s, first statuses: time_limit{sol=false} time_limit{sol=false} time_limit{sol=false} last status=optimal{sol=true} value=80937.43

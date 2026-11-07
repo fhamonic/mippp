@@ -372,6 +372,7 @@ INSTANTIATE_TEST(MOSEK_lp, LpStatusTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, CuttingStockTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, TimeLimitTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, VerbosityTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, ThreadLimitTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpBasisTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpBasisWarmStartTest, mosek_lp_test);
 
@@ -448,3 +449,8 @@ INSTANTIATE_TEST(MOSEK_milp, DualBoundTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, NodeCountTest, mosek_milp_test);
 // INSTANTIATE_TEST(MOSEK_milp, IntegralityToleranceTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, VerbosityTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, ProgressCallbackTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, ProgressCallbackNodeCountTest, mosek_milp_test);
+// no candidate solution callback
+// INSTANTIATE_TEST(MOSEK_milp, ProgressCallbackSharingTest, mosek_milp_test);
+INSTANTIATE_TEST(MOSEK_milp, ThreadLimitTest, mosek_milp_test);

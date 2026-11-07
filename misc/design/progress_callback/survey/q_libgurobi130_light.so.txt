@@ -1,0 +1,14 @@
+== D large min default threads quiet, hook: status=time_limit{sol=true} solve=3.00s value=-41182 dual=-41421 nodes=170442
+   events: MESSAGE=66 MIP=170527 MIPNODE=170448 MIPSOL=12 POLLING=9744 PRESOLVE=103
+   samples: 340987 (113574.3/s over 3.00s), first@0.002s last@3.002s maxgap=0.335s threads=1 overlaps=0
+   primal: first=1e+100 last=-41182 worse-moves=0 sentinel-samples=1 | dual: first=-1e+100 last=-41421 worse-moves=0 | nodes: first=0 last=170442
+   last sample vs final: primal match dual match (final -41182 / -41421)
+== H large, stop asked at the 3rd sample: status=interrupted{sol=true} solve=0.00s value=-34568 dual=-74634 nodes=0
+   events: MESSAGE=33 MIP=2 MIPSOL=1 PRESOLVE=103
+   samples: 3 (978.1/s over 0.00s), first@0.000s last@0.003s maxgap=0.003s threads=1 overlaps=0
+   primal: first=1e+100 last=-34568 worse-moves=0 sentinel-samples=1 | dual: first=-1e+100 last=-74634 worse-moves=0 | nodes: first=0 last=0
+   stop asked after 0.003s, solve returned 0.000s later
+== H2 resolve after the stop, 2s: status=time_limit{sol=true} solve=2.00s value=-41182 dual=-41470 nodes=77170
+== I integer-free model on the MILP type, hook: status=optimal{sol=true} solve=0.01s value=10841.5 dual=10841.5 nodes=0
+   events: MESSAGE=30 PRESOLVE=34 SIMPLEX=529
+   samples: 0

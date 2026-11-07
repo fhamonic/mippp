@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -17,6 +18,20 @@
 #include "mippp/utility/solver_exceptions.hpp"
 
 namespace mippp {
+
+namespace detail {
+// A solver reports a value it does not have yet as a number at or past its own
+// threshold (1e30, 1e40, 1e75, 1e100, DBL_MAX). Passed on as such, a gap
+// computed from it reads as a huge finite number, a different one on every
+// solver.
+template <std::floating_point Scalar>
+[[nodiscard]] constexpr Scalar as_infinity(const Scalar value,
+                                           const Scalar threshold) noexcept {
+    if(value >= threshold) return std::numeric_limits<Scalar>::infinity();
+    if(value <= -threshold) return -std::numeric_limits<Scalar>::infinity();
+    return value;
+}
+}  // namespace detail
 
 // Backends derive from this class (and from remapping_model_base) with
 // protected inheritance: it is an implementation detail, not a common base a

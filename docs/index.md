@@ -68,7 +68,7 @@ The documentation follows the path of a modeling study: build a model, solve it,
 
 **5. Solvers** — [choosing a solver](solvers/index.md) among the 11 backends, and [writing solver-generic code](solvers/generic-code.md) for cross-solver experiments.
 
-Complete runnable programs — N-Queens, Sudoku, TSP with lazy constraints, cutting stock by column generation, an infeasible transportation plan diagnosed through its IIS — are indexed in [Worked examples](examples.md).
+Complete runnable programs — N-Queens, Sudoku, TSP with lazy constraints, cutting stock by column generation, a TSP bound and vehicle routing with time windows through the column manager, an infeasible transportation plan diagnosed through its IIS — are indexed in [Worked examples](examples.md).
 
 ## Supported solvers
 

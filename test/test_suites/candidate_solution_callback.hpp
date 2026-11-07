@@ -84,7 +84,48 @@ TYPED_TEST_P(CandidateSolutionCallbackTest, reports_candidate_value) {
     });
 }
 
+// Registered by the setter, the native user data would point at the moved-from
+// model.
+TYPED_TEST_P(CandidateSolutionCallbackTest, a_moved_model_keeps_its_callback) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto a = model.add_binary_variable();
+        auto b = model.add_binary_variable();
+        model.set_maximization();
+        model.set_objective(3 * a + 2 * b);
+        model.add_constraint(a + b <= 1);
+        int num_candidates = 0;
+        model.set_candidate_solution_callback(
+            [&](auto &) { ++num_candidates; });
+        auto moved = std::move(model);
+        moved.solve();
+        ASSERT_GE(num_candidates, 1);
+        ASSERT_NEAR(moved.get_solution_value(), 3, TEST_EPSILON);
+    });
+}
+TYPED_TEST_P(CandidateSolutionCallbackTest,
+             a_second_callback_replaces_the_first) {
+    this->SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = this->new_model();
+        auto a = model.add_binary_variable();
+        auto b = model.add_binary_variable();
+        model.set_maximization();
+        model.set_objective(3 * a + 2 * b);
+        model.add_constraint(a + b <= 1);
+        int first = 0, second = 0;
+        model.set_candidate_solution_callback([&](auto &) { ++first; });
+        model.set_candidate_solution_callback([&](auto &) { ++second; });
+        model.solve();
+        ASSERT_EQ(first, 0);
+        ASSERT_GE(second, 1);
+    });
+}
+
 REGISTER_TYPED_TEST_SUITE_P(CandidateSolutionCallbackTest,
-                            reads_every_candidate, reports_candidate_value);
+                            reads_every_candidate, reports_candidate_value,
+                            a_moved_model_keeps_its_callback,
+                            a_second_callback_replaces_the_first);
 
 }  // namespace mippp

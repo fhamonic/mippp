@@ -106,6 +106,7 @@ INSTANTIATE_TEST(CPLEX_lp, LpBasisTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, LpBasisWarmStartTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, OptimalityToleranceTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, VerbosityTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, ThreadLimitTest, cplex_lp_test);
 
 struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
@@ -142,6 +143,10 @@ INSTANTIATE_TEST(CPLEX_milp, DualBoundTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, NodeCountTest, cplex_milp_test);
 // INSTANTIATE_TEST(CPLEX_milp, IntegralityToleranceTest, cplex_milp_test);
 INSTANTIATE_TEST(CPLEX_milp, VerbosityTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, ThreadLimitTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, ProgressCallbackTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, ProgressCallbackNodeCountTest, cplex_milp_test);
+INSTANTIATE_TEST(CPLEX_milp, ProgressCallbackSharingTest, cplex_milp_test);
 
 static_assert(has_iis<cplex_lp>);
 static_assert(has_iis<cplex_milp>);

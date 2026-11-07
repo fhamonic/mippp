@@ -1,0 +1,153 @@
+library: /home/plaiseek/Softwares/solvers/cplex-community/cplex/bin/x86-64_linux/libcplex2212.so
+=== today: CPXprimopt
+  feasible : solve ok status=optimal 1ms [method=1 simplex=74 barrier=0 solntype=1]
+    obj=529.3089013110351 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=1 simplex=70 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=1 simplex=64 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [method=1 simplex=1 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=1 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXprimopt with LPMethod 4 (ignored?)
+  feasible : solve ok status=optimal 1ms [method=1 simplex=74 barrier=0 solntype=1]
+    obj=529.3089013110351 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=1 simplex=70 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=1 simplex=64 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [method=1 simplex=1 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=1 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXlpopt LPMethod 0 auto
+  feasible : solve ok status=optimal 1ms [method=2 simplex=83 barrier=0 solntype=1]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=2 simplex=100 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=2 simplex=80 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [method=2 simplex=1 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=1 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXlpopt LPMethod 1 primal
+  feasible : solve ok status=optimal 1ms [method=1 simplex=74 barrier=0 solntype=1]
+    obj=529.3089013110351 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=1 simplex=70 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=1 simplex=64 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [method=1 simplex=1 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=1 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXlpopt LPMethod 2 dual
+  feasible : solve ok status=optimal 1ms [method=2 simplex=83 barrier=0 solntype=1]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=2 simplex=100 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=2 simplex=80 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [method=2 simplex=1 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=2 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXlpopt LPMethod 3 network
+  feasible : solve ok status=optimal 2ms [method=2 simplex=83 barrier=0 solntype=1]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=2 simplex=100 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=2 simplex=80 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [method=2 simplex=1 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=2 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXlpopt LPMethod 4 barrier
+  feasible : solve ok status=optimal 6ms [method=2 simplex=0 barrier=14 solntype=1]
+    obj=529.3089013110339 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=4 simplex=0 barrier=11 solntype=2]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=4 simplex=0 barrier=8 solntype=2]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=optimal [method=2 simplex=0 barrier=14 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=2 simplex=0 barrier=14 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXlpopt LPMethod 4, Crossover -1
+  apply: THROWS(CPLEX Error  1014: Parameter value too small.
+)
+=== CPXlpopt LPMethod 4, SolutionType 2
+  feasible : solve ok status=optimal 5ms [method=4 simplex=0 barrier=13 solntype=2]
+    obj=529.3089014233473 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(CPLEX Error  1262: No basis exists.
+)
+  infeasible: solve ok status=infeasible [method=4 simplex=0 barrier=11 solntype=2]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=4 simplex=0 barrier=8 solntype=2]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=optimal [method=4 simplex=0 barrier=13 solntype=2]
+  warm from optimal basis: solve ok status=optimal [method=4 simplex=0 barrier=13 solntype=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXlpopt LPMethod 5 sifting
+  feasible : solve ok status=optimal 6ms [method=1 simplex=0 barrier=0 solntype=1]
+    obj=529.3089013110354 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=1 simplex=0 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=1 simplex=63 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=optimal [method=1 simplex=0 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=1 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXlpopt LPMethod 6 concurrent
+  feasible : solve ok status=optimal 2ms [method=2 simplex=83 barrier=0 solntype=1]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=2 simplex=100 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=2 simplex=80 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [method=2 simplex=1 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=2 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXdualopt
+  feasible : solve ok status=optimal 1ms [method=2 simplex=83 barrier=0 solntype=1]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [method=2 simplex=100 barrier=0 solntype=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=2 simplex=80 barrier=0 solntype=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [method=2 simplex=1 barrier=0 solntype=1]
+  warm from optimal basis: solve ok status=optimal [method=2 simplex=0 barrier=0 solntype=1]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXbaropt
+  feasible : solve ok status=optimal 5ms [method=4 simplex=0 barrier=13 solntype=2]
+    obj=529.3089014233473 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(CPLEX Error  1262: No basis exists.
+)
+  infeasible: solve ok status=infeasible [method=4 simplex=0 barrier=11 solntype=2]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=unbounded [method=4 simplex=0 barrier=8 solntype=2]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=optimal [method=4 simplex=0 barrier=13 solntype=2]
+  warm from optimal basis: solve ok status=optimal [method=4 simplex=0 barrier=13 solntype=2]
+  results after setting it post-solve: sol=ok
+  lp_status suite: pass pass pass pass pass
+=== CPXbaropt, Crossover -1
+  apply: THROWS(CPLEX Error  1014: Parameter value too small.
+)

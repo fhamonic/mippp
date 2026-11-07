@@ -1,0 +1,92 @@
+=== default (Method -1)
+  feasible : solve ok status=optimal 1ms [simplex=80 barrier=0 winner=1]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=86 barrier=0 winner=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=infeasible_or_unbounded [simplex=0 barrier=0 winner=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [simplex=1 barrier=0 winner=-1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 winner=1]
+  results after setting it post-solve: sol=ok
+=== Method 0 primal
+  feasible : solve ok status=optimal 1ms [simplex=61 barrier=0 winner=-1]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=69 barrier=0 winner=-1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=infeasible_or_unbounded [simplex=0 barrier=0 winner=-1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [simplex=1 barrier=0 winner=-1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 winner=-1]
+  results after setting it post-solve: sol=ok
+=== Method 1 dual
+  feasible : solve ok status=optimal 1ms [simplex=80 barrier=0 winner=-1]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=86 barrier=0 winner=-1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=infeasible_or_unbounded [simplex=0 barrier=0 winner=-1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [simplex=1 barrier=0 winner=-1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 winner=-1]
+  results after setting it post-solve: sol=ok
+=== Method 2 barrier
+  feasible : solve ok status=optimal 4ms [simplex=3 barrier=8 winner=-1]
+    obj=529.3089013110355 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=0 barrier=27 winner=-1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=infeasible_or_unbounded [simplex=0 barrier=0 winner=-1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [simplex=3 barrier=8 winner=-1]
+  warm from optimal basis: solve ok status=optimal [simplex=3 barrier=8 winner=-1]
+  results after setting it post-solve: sol=ok
+=== Method 2 barrier, Crossover 0
+  feasible : solve ok status=optimal 2ms [simplex=0 barrier=8 winner=-1]
+    obj=529.3089011480267 (ok) sol=ok dual=ok rc=ok
+    basis=THROWS(Unable to retrieve attribute 'VBasis')
+  infeasible: solve ok status=infeasible_or_unbounded [simplex=0 barrier=27 winner=-1]
+    refine_lp_status THROWS(Failed to refine LP status.) -> infeasible_or_unbounded
+  unbounded: solve ok status=infeasible_or_unbounded [simplex=0 barrier=0 winner=-1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=optimal [simplex=0 barrier=8 winner=-1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=8 winner=-1]
+  results after setting it post-solve: sol=ok
+=== Method 3 concurrent
+  feasible : solve ok status=optimal 1ms [simplex=80 barrier=0 winner=1]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=86 barrier=0 winner=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=infeasible_or_unbounded [simplex=0 barrier=0 winner=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [simplex=1 barrier=0 winner=-1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 winner=1]
+  results after setting it post-solve: sol=ok
+=== Method 4 det. concurrent
+  feasible : solve ok status=optimal 1ms [simplex=80 barrier=0 winner=1]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=86 barrier=0 winner=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=infeasible_or_unbounded [simplex=0 barrier=0 winner=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [simplex=1 barrier=0 winner=-1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 winner=1]
+  results after setting it post-solve: sol=ok
+=== Method 5 det. concurrent simplex
+  feasible : solve ok status=optimal 1ms [simplex=80 barrier=0 winner=1]
+    obj=529.3089013110352 (ok) sol=ok dual=ok rc=ok
+    basis=ok
+  infeasible: solve ok status=infeasible [simplex=86 barrier=0 winner=1]
+    refine_lp_status ok -> infeasible
+  unbounded: solve ok status=infeasible_or_unbounded [simplex=0 barrier=0 winner=1]
+    refine_lp_status ok -> unbounded
+  iterlim=1: solve ok status=iteration_limit [simplex=1 barrier=0 winner=-1]
+  warm from optimal basis: solve ok status=optimal [simplex=0 barrier=0 winner=1]
+  results after setting it post-solve: sol=ok
+=== Method 6 PDHG
+  apply: THROWS(Unable to set parameter Method to value 6 (maximum is 5))
+=== Method 6 PDHG, Crossover 0
+  apply: THROWS(Unable to set parameter Method to value 6 (maximum is 5))

@@ -3,13 +3,14 @@
 // Showcases reading dual values (get_dual_solution) and adding columns to a
 // live model (add_column). Stock rolls of a fixed length must be cut to meet a
 // demand for shorter pieces while minimizing the number of rolls used. Cutting
-// patterns are generated on demand: the pricing subproblem (an unbounded
-// knapsack over the current duals) is solved with a small inline DP so this
-// example depends only on mippp.
+// patterns are generated on demand: the pricing subproblem, an unbounded
+// knapsack over the current duals, is solved by the branch and bound of the
+// MELON graph library, melon::unbounded_knapsack_bnb.
 //
-// Swap the two aliases to use another LP backend exposing dual solutions.
+// Swap the alias to use another LP backend exposing dual solutions.
 
 #include <cmath>
+#include <cstddef>
 #include <print>
 #include <ranges>
 #include <utility>
@@ -36,7 +37,7 @@ int main() {
 
     model.set_minimization();
 
-    auto demand_constrs = model.add_constraints(orders, [&](int o) {
+    auto demand_constrs = model.add_constraints(orders, [&](std::size_t o) {
         return empty_linear_expression<var_t, double> >= demand[o];
     });
 
@@ -59,7 +60,7 @@ int main() {
 
         melon::unbounded_knapsack_bnb pricer(
             orders,
-            [&, duals = model.get_dual_solution()](int o) {
+            [&, duals = model.get_dual_solution()](std::size_t o) {
                 return duals[demand_constrs(o)];
             },
             length, roll_length);
@@ -76,7 +77,8 @@ int main() {
             {.obj_coef = 1, .lower_bound = 0}));
 
         std::vector<int> pattern(m, 0);
-        for(auto && [o, count] : pricer.solution_items()) pattern[o] = count;
+        for(auto && [o, count] : pricer.solution_items())
+            pattern[o] = static_cast<int>(count);
         patterns.emplace_back(std::move(pattern));
     }
 

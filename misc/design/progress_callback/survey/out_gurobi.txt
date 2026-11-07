@@ -1,0 +1,52 @@
+== A small min 1 thread, no hook (baseline): status=optimal{sol=true} solve=0.88s value=-25138 dual=-25140 nodes=11035
+== B small min 1 thread, hook: status=optimal{sol=true} solve=0.90s value=-25138 dual=-25140 nodes=11035
+   events: MESSAGE=74 MIP=11114 MIPNODE=11052 MIPSOL=8 POLLING=10168 PRESOLVE=103
+   samples: 22174 (24720.3/s over 0.90s), first@0.000s last@0.897s maxgap=0.052s threads=1 overlaps=0
+   primal: first=1e+100 last=-25138 worse-moves=0 sentinel-samples=1 | dual: first=-1e+100 last=-25141 worse-moves=0 | nodes: first=0 last=11034
+   last sample vs final: primal match dual DIFFER (final -25138 / -25140)
+   search path: nodes 11035 vs baseline 11035 (same)
+== C small min 1 thread, no-op candidate callback: status=optimal{sol=true} solve=0.89s value=-25138 dual=-25140 nodes=11035
+   candidate calls=8, nodes 11035 vs baseline 11035 (same)
+== D large min default threads quiet, hook: status=time_limit{sol=true} solve=10.00s value=-41182 dual=-41324 nodes=1025597
+   events: MESSAGE=59 MIP=1025674 MIPNODE=1025600 MIPSOL=10 POLLING=51917 PRESOLVE=103
+   samples: 2051284 (205082.1/s over 10.00s), first@0.000s last@10.001s maxgap=0.269s threads=1 overlaps=0
+   primal: first=1e+100 last=-41182 worse-moves=0 sentinel-samples=1 | dual: first=-1e+100 last=-41324 worse-moves=0 | nodes: first=0 last=1025597
+   last sample vs final: primal match dual match (final -41182 / -41324)
+== E large max+offset default threads quiet, hook: status=time_limit{sol=true} solve=10.00s value=41382 dual=41523 nodes=1044308
+   events: MESSAGE=59 MIP=1044385 MIPNODE=1044311 MIPSOL=10 POLLING=53065 PRESOLVE=103
+   samples: 2088706 (208838.2/s over 10.00s), first@0.000s last@10.001s maxgap=0.271s threads=1 overlaps=0
+   primal: first=-1e+100 last=41382 worse-moves=0 sentinel-samples=1 | dual: first=1e+100 last=41523 worse-moves=0 | nodes: first=0 last=1044308
+   last sample vs final: primal match dual match (final 41382 / 41523)
+== F large min default threads VERBOSE, hook: status=time_limit{sol=true} solve=10.01s value=-41182 dual=-41327 nodes=978016
+   events: MESSAGE=58 MIP=978093 MIPNODE=978019 MIPSOL=10 POLLING=49417 PRESOLVE=103
+   samples: 1956122 (195408.5/s over 10.01s), first@0.000s last@10.007s maxgap=0.270s threads=1 overlaps=0
+   primal: first=1e+100 last=-41182 worse-moves=0 sentinel-samples=1 | dual: first=-1e+100 last=-41327 worse-moves=0 | nodes: first=0 last=978016
+   last sample vs final: primal match dual match (final -41182 / -41327)
+== G no incumbent, 5s, hook: status=time_limit{sol=false} solve=5.02s value=1e+100 dual=26 nodes=740809
+   events: MESSAGE=63 MIP=740885 MIPNODE=740825 POLLING=36888 PRESOLVE=159
+   samples: 1481710 (295241.2/s over 5.02s), first@0.001s last@5.011s maxgap=0.117s threads=1 overlaps=0
+   primal: first=1e+100 last=1e+100 worse-moves=0 sentinel-samples=1481710 | dual: first=0 last=26 worse-moves=0 | nodes: first=0 last=740808
+   last sample vs final: primal match dual match (final 1e+100 / 26)
+== H large, stop asked at the 3rd sample: status=interrupted{sol=true} solve=0.00s value=-34568 dual=-74634 nodes=1
+   events: MESSAGE=31 MIP=2 MIPSOL=1 PRESOLVE=103
+   samples: 3 (968.8/s over 0.00s), first@0.000s last@0.003s maxgap=0.003s threads=1 overlaps=0
+   primal: first=1e+100 last=-34568 worse-moves=0 sentinel-samples=1 | dual: first=-1e+100 last=-74634 worse-moves=0 | nodes: first=0 last=0
+   stop asked after 0.003s, solve returned 0.000s later
+== H2 resolve after the stop, 2s: status=time_limit{sol=true} solve=2.01s value=-41182 dual=-41464 nodes=42033
+== I integer-free model on the MILP type, hook: status=optimal{sol=true} solve=0.01s value=10841.5 dual=10841.5 nodes=0
+   events: MESSAGE=28 PRESOLVE=34 SIMPLEX=529
+   samples: 0
+== H3 non-zero return: solve() threw: Error number 1
+== L LP on gurobi_lp, hook: status=optimal{sol=true} solve=11.44s value=319692 dual=n/a nodes=n/a
+   events: BARRIER=20 MESSAGE=77 POLLING=1173 PRESOLVE=34 SIMPLEX=286
+   samples: 306 (26.8/s over 11.44s), first@1.781s last@11.413s maxgap=1.781s threads=1 overlaps=0
+   primal: first=1960703 last=319691.7 worse-moves=3 sentinel-samples=0 | dual: first=nan last=nan worse-moves=0 | nodes: first=0 last=122
+== S0 one piece 8s: status=time_limit{sol=true} solve=8.01s value=-41182 dual=-41364 nodes=494691
+== S1 slice 1s (cumulated 1.01s): status=time_limit{sol=true} solve=1.01s value=-41169 dual=-41468 nodes=43007
+== S2 slice 1s (cumulated 2.01s): status=time_limit{sol=true} solve=1.00s value=-41169 dual=-41424 nodes=116239
+== S3 slice 1s (cumulated 3.01s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41404 nodes=184472
+== S4 slice 1s (cumulated 4.01s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41388 nodes=257049
+== S5 slice 1s (cumulated 5.01s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41378 nodes=325394
+== S6 slice 1s (cumulated 6.01s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41368 nodes=396331
+== S7 slice 1s (cumulated 7.01s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41360 nodes=468770
+== S8 slice 1s (cumulated 8.01s): status=time_limit{sol=true} solve=1.00s value=-41182 dual=-41354 nodes=537656

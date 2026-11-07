@@ -60,6 +60,7 @@ INSTANTIATE_TEST(Gurobi_lp, IterationLimitTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpBasisTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpBasisWarmStartTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, VerbosityTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, ThreadLimitTest, gurobi_lp_test);
 
 struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {
     static void SetUpTestSuite() { construct_api("GUROBI"); }
@@ -125,6 +126,10 @@ INSTANTIATE_TEST(Gurobi_milp, DualBoundTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, NodeCountTest, gurobi_milp_test);
 // INSTANTIATE_TEST(Gurobi_milp, IntegralityToleranceTest, gurobi_milp_test);
 INSTANTIATE_TEST(Gurobi_milp, VerbosityTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, ThreadLimitTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, ProgressCallbackTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, ProgressCallbackNodeCountTest, gurobi_milp_test);
+INSTANTIATE_TEST(Gurobi_milp, ProgressCallbackSharingTest, gurobi_milp_test);
 
 static_assert(has_iis<gurobi_lp>);
 static_assert(has_iis<gurobi_milp>);

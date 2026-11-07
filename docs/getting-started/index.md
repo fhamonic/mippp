@@ -57,6 +57,8 @@ Most research codes are not "build model, call solve": they are branch-and-cut, 
 
 - **candidate-solution callbacks** with `add_lazy_constraint` for
   branch-and-cut ([guide](../algorithms/branch-and-cut.md)),
+- **progress callbacks** to read the incumbent and the bound during a search,
+  and to end it ([guide](../solving/progress.md)),
 - **dual solutions** and **`add_column`** for column generation
   ([guide](../algorithms/column-generation.md)), plus a `column_manager` utility
   for large-scale pricing,

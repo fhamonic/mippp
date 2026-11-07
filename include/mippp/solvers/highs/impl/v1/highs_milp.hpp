@@ -2,12 +2,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <ranges>
 #include <string>
 #include <utility>
 #include <variant>
 
+#include "mippp/detail/restore_guard.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -103,6 +105,73 @@ public:
         return tol;
     }
     ///////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// Callbacks ////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    class progress_callback_handle {
+    private:
+        friend highs_milp;
+        const highs_api * Highs;
+        const HighsCallbackDataOut * data;
+        bool interrupt_requested = false;
+
+        progress_callback_handle(const highs_api * api,
+                                 const HighsCallbackDataOut * data_)
+            : Highs(api), data(data_) {}
+
+        template <typename Item>
+        Item _read(const char * name) const {
+            return *static_cast<const Item *>(
+                Highs->getCallbackDataOutItem(data, name));
+        }
+
+    public:
+        double get_solution_value() {
+            return _read<double>("mip_primal_bound");
+        }
+        double get_dual_bound() { return _read<double>("mip_dual_bound"); }
+        std::size_t get_node_count() {
+            return static_cast<std::size_t>(_read<int64_t>("mip_node_count"));
+        }
+        void interrupt() { interrupt_requested = true; }
+    };
+
+private:
+    std::function<void(progress_callback_handle &)> progress_callback;
+
+    static void progress_callback_func(int, const char *,
+                                       const HighsCallbackDataOut * data_out,
+                                       HighsCallbackDataIn * data_in,
+                                       void * user_data) {
+        auto * model = static_cast<highs_milp *>(user_data);
+        progress_callback_handle handle(model->Highs, data_out);
+        model->progress_callback(handle);
+        data_in->user_interrupt = handle.interrupt_requested ? 1 : 0;
+    }
+    // MipInterrupt and not MipLogging, which never fires under output_flag
+    // false, the quiet default: printDisplayLine returns before reaching it.
+    // For the duration of a solve only, Highs_setCallback included. The user
+    // data is this: registered by a setter, it dangles once the model moves and
+    // the next solve crashes. And registered once, HiGHS would keep the
+    // interrupt flag of a stopped solve and stop the next one at its first
+    // check.
+    [[nodiscard]] auto _attached_callbacks() {
+        const bool attach = static_cast<bool>(progress_callback);
+        if(attach) {
+            check(Highs->setCallback(model, progress_callback_func, this));
+            check(Highs->startCallback(model, kHighsCallbackMipInterrupt));
+        }
+        return detail::restore_guard([this, attach] {
+            if(attach)
+                check(Highs->stopCallback(model, kHighsCallbackMipInterrupt));
+        });
+    }
+
+public:
+    template <typename F>
+    void set_progress_callback(F && f) {
+        progress_callback = std::forward<F>(f);
+    }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     // clang-format off
@@ -174,6 +243,7 @@ public:
             _mark_results_valid();
             return;
         }
+        const auto detach = _attached_callbacks();
         _run();
         _status = _get_status();
         _mark_results_valid();

@@ -1,0 +1,5 @@
+library <fetched>/highs/highs-1.14.0-h171cf75_0.conda/lib/libhighs.so
+== rearm=false first solve (stop at call 3): status=interrupted{sol=true} solve=0.01s value=-35632 dual=-41669 nodes=0
+== rearm=false second solve, hook calls in it=1: status=interrupted{sol=true} solve=0.00s value=-35632 dual=-inf nodes=0
+== rearm=true first solve (stop at call 3): status=interrupted{sol=true} solve=0.01s value=-35632 dual=-41669 nodes=0
+== rearm=true second solve, hook calls in it=2343: status=time_limit{sol=true} solve=2.00s value=-41080 dual=-41632 nodes=524

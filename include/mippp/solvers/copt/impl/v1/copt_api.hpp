@@ -49,6 +49,7 @@ constexpr const char * COPT_DBLPARAM_DUALTOL = "DualTol";
 constexpr const char * COPT_DBLPARAM_INTTOL = "IntTol";
 constexpr const char * COPT_DBLPARAM_RELGAP = "RelGap";
 constexpr const char * COPT_INTPARAM_LOGGING = "Logging";
+constexpr const char * COPT_INTPARAM_THREADS = "Threads";
 ret_code COPT_SetIntParam(copt_prob * prob, const char * paramName,
                           int intParam);
 ret_code COPT_GetIntParam(copt_prob * prob, const char * paramName,

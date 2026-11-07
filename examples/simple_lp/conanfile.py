@@ -7,7 +7,7 @@ class SimpleLpExample(ConanFile):
     generators = "CMakeToolchain", "CMakeDeps"
 
     def requirements(self):
-        self.requires("mippp/1.0.0")
+        self.requires("mippp/1.1.0")
 
     def build(self):
         cmake = CMake(self)

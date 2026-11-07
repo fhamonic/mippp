@@ -1,0 +1,59 @@
+== A small min 1 thread, no hook (baseline): status=optimal{sol=true} solve=1.09s value=-25138 dual=-25138 nodes=17147
+== B small min 1 thread, hook: status=optimal{sol=true} solve=1.09s value=-25138 dual=-25138 nodes=17147
+   events: BEGIN_MIO=1 END_MIO=1 IM_MIO=589 NEW_INT_MIO=11 other=13
+   note: samples with NUM_INT_SOLUTIONS=0: 1; OBJ_BOUND_DEFINED=0: 4
+   samples: 601 (551.2/s over 1.09s), first@0.006s last@1.090s maxgap=0.006s threads=1 overlaps=0
+   primal: first=100 last=-25138 worse-moves=0 sentinel-samples=0 | dual: first=0 last=-25138 worse-moves=1 | nodes: first=0 last=17147
+   last sample vs final: primal match dual match (final -25138 / -25138)
+   search path: nodes 17147 vs baseline 17147 (same)
+== D large min default threads quiet, hook: status=time_limit{sol=true} solve=10.18s value=-41182 dual=-41347.2 nodes=374829
+   events: BEGIN_MIO=1 END_MIO=1 IM_MIO=1844 NEW_INT_MIO=7 RESTART_MIO=3 other=43
+   note: samples with NUM_INT_SOLUTIONS=0: 1; OBJ_BOUND_DEFINED=0: 4
+   samples: 1852 (181.9/s over 10.18s), first@0.007s last@10.006s maxgap=0.015s threads=1 overlaps=0
+   primal: first=100 last=-41182 worse-moves=0 sentinel-samples=0 | dual: first=0 last=-41347.21 worse-moves=1 | nodes: first=0 last=374829
+   last sample vs final: primal match dual match (final -41182 / -41347.21)
+== E large max+offset default threads quiet, hook: status=time_limit{sol=true} solve=10.19s value=41382 dual=41547.7 nodes=370127
+   events: BEGIN_MIO=1 END_MIO=1 IM_MIO=1827 NEW_INT_MIO=7 RESTART_MIO=3 other=43
+   note: samples with NUM_INT_SOLUTIONS=0: 1; OBJ_BOUND_DEFINED=0: 4
+   samples: 1835 (180.2/s over 10.19s), first@0.006s last@10.005s maxgap=0.018s threads=1 overlaps=0
+   primal: first=100 last=41382 worse-moves=0 sentinel-samples=0 | dual: first=0 last=41547.72 worse-moves=1 | nodes: first=0 last=370127
+   last sample vs final: primal match dual match (final 41382 / 41547.72)
+== F large min default threads VERBOSE, hook: status=time_limit{sol=true} solve=10.19s value=-41182 dual=-41348.6 nodes=362652
+   events: BEGIN_MIO=1 END_MIO=1 IM_MIO=1800 NEW_INT_MIO=7 RESTART_MIO=3 other=43
+   note: samples with NUM_INT_SOLUTIONS=0: 1; OBJ_BOUND_DEFINED=0: 4
+   samples: 1808 (177.5/s over 10.19s), first@0.007s last@10.006s maxgap=0.017s threads=1 overlaps=0
+   primal: first=100 last=-41182 worse-moves=0 sentinel-samples=0 | dual: first=0 last=-41348.61 worse-moves=1 | nodes: first=0 last=362652
+   last sample vs final: primal match dual match (final -41182 / -41348.61)
+== G no incumbent, 5s, hook: status=time_limit{sol=false} solve=5.12s value=0 dual=25.8766 nodes=264921
+   events: BEGIN_MIO=1 END_MIO=1 IM_MIO=1033 RESTART_MIO=5 other=63
+   note: samples with NUM_INT_SOLUTIONS=0: 1034; OBJ_BOUND_DEFINED=0: 1
+   samples: 1034 (202.1/s over 5.12s), first@0.007s last@5.006s maxgap=0.031s threads=1 overlaps=0
+   primal: first=0 last=0 worse-moves=0 sentinel-samples=0 | dual: first=0 last=25.8766 worse-moves=0 | nodes: first=0 last=264921
+   last sample vs final: primal match dual match (final 0 / 25.8766)
+== H large, stop asked at the 3rd sample: status=interrupted{sol=true} solve=0.01s value=-37748 dual=0 nodes=0
+   events: BEGIN_MIO=1 END_MIO=1 IM_MIO=2 NEW_INT_MIO=2 other=6
+   note: samples with NUM_INT_SOLUTIONS=0: 1; OBJ_BOUND_DEFINED=0: 5
+   samples: 5 (654.8/s over 0.01s), first@0.005s last@0.007s maxgap=0.005s threads=1 overlaps=0
+   primal: first=100 last=-37748 worse-moves=0 sentinel-samples=0 | dual: first=0 last=0 worse-moves=0 | nodes: first=0 last=0
+   stop asked after 0.007s, solve returned 0.000s later
+== H2 resolve after the stop, 2s: status=time_limit{sol=true} solve=2.01s value=-41087 dual=-41451.6 nodes=56649
+== I integer-free model on the MILP type, hook: status=optimal{sol=true} solve=0.02s value=10841.5 dual=10841.5 nodes=0
+   events: BEGIN_MIO=1 END_MIO=1 IM_MIO=2 NEW_INT_MIO=3 other=10
+   note: samples with NUM_INT_SOLUTIONS=0: 1; OBJ_BOUND_DEFINED=0: 4
+   samples: 6 (259.1/s over 0.02s), first@0.006s last@0.023s maxgap=0.015s threads=1 overlaps=0
+   primal: first=-0 last=10841.52 worse-moves=0 sentinel-samples=0 | dual: first=0 last=10841.52 worse-moves=1 | nodes: first=0 last=0
+== X1 log stream verbose=false: link=0 lines=0 in 3.02s
+== X1 log stream verbose=true: link=0 lines=469 in 3.02s
+== L LP on mosek_lp: status=optimal{sol=true} solve=27.79s value=319692 dual=n/a nodes=n/a
+   events: INTPNT=23 other=26
+   samples: 23 (0.8/s over 27.79s), first@3.002s last@27.701s maxgap=3.002s threads=1 overlaps=0
+   primal: first=141806 last=319691.7 worse-moves=0 sentinel-samples=0 | dual: first=nan last=nan worse-moves=0 | nodes: first=0 last=0
+== S0 one piece 8s: status=time_limit{sol=true} solve=8.15s value=-41182 dual=-41358.6 nodes=292187
+== S1 slice 1s (cumulated 1.01s): status=time_limit{sol=true} solve=1.01s value=-41087 dual=-41465.4 nodes=23026
+== S2 slice 1s (cumulated 2.01s): status=time_limit{sol=true} solve=1.00s value=-41087 dual=-41468.5 nodes=24465
+== S3 slice 1s (cumulated 3.01s): status=time_limit{sol=true} solve=1.00s value=-41087 dual=-41468.5 nodes=24994
+== S4 slice 1s (cumulated 4.02s): status=time_limit{sol=true} solve=1.00s value=-41087 dual=-41468.5 nodes=24465
+== S5 slice 1s (cumulated 5.02s): status=time_limit{sol=true} solve=1.00s value=-41087 dual=-41468.5 nodes=25513
+== S6 slice 1s (cumulated 6.02s): status=time_limit{sol=true} solve=1.00s value=-41087 dual=-41468.5 nodes=25513
+== S7 slice 1s (cumulated 7.03s): status=time_limit{sol=true} solve=1.00s value=-41087 dual=-41468.5 nodes=25253
+== S8 slice 1s (cumulated 8.03s): status=time_limit{sol=true} solve=1.00s value=-41087 dual=-41468.5 nodes=23677

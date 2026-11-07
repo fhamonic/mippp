@@ -77,6 +77,7 @@ If you already write models in Python or Julia, almost everything transfers: MIP
 | reduced cost | `x.RC` | `reduced_cost(x)` | `x.dj` | `rc[x]` after `get_reduced_costs()` |
 | best bound, nodes | `model.ObjBound`, `model.NodeCount` | `objective_bound(m)`, `node_count(m)` | — | `get_dual_bound()`, `get_node_count()` |
 | time limit | `setParam("TimeLimit", 60)` | `set_time_limit_sec` | `PULP_CBC_CMD(timeLimit=)` | `set_time_limit(60s)` |
+| thread count | `setParam("Threads", 4)` | `set_attribute(m, MOI.NumberOfThreads(), 4)` | `PULP_CBC_CMD(threads=4)` | `set_thread_limit(4)` on 5 backends |
 | solver log | on; `setParam("OutputFlag", 0)` | on; `set_silent(m)` | on; `PULP_CBC_CMD(msg=False)` | off; `set_verbose(true)` |
 | MIP start | `x.Start = v` | `set_start_value` | `x.setInitialValue` | `add_mip_start(entries)` |
 | lazy constraint | `model.cbLazy(...)` | `MOI.submit(..., LazyConstraint)` | — | `handle.add_lazy_constraint(...)` |

@@ -1,0 +1,6 @@
+== 1 baseline: status=optimal{sol=true} solve=24.97s value=-25138 dual=-25138 nodes=28860
+== 2 baseline again: status=optimal{sol=true} solve=25.18s value=-25138 dual=-25138 nodes=28860
+== 3 MIPSOL callback: status=optimal{sol=true} solve=0.70s value=-25138 dual=-25138 nodes=4806
+== 4 MIPSOL callback, LazyConstraints=0: status=optimal{sol=true} solve=25.09s value=-25138 dual=-25138 nodes=28860
+== 5 no callback, LazyConstraints=1: status=optimal{sol=true} solve=0.69s value=-25138 dual=-25138 nodes=4806
+== 6 INCUMBENT|MIPNODE callback: status=optimal{sol=true} solve=25.37s value=-25138 dual=-25138 nodes=28860

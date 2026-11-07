@@ -684,6 +684,23 @@ public:
         return std::chrono::duration<double>(t);
     }
     ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////// Threads /////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // CPLEX rejects a value above its maximum, 2100000000 in 22.1, rather
+    // than capping it.
+    void set_thread_limit(std::size_t n) {
+        int def, min, max;
+        check(CPX->infointparam(env, CPXPARAM_Threads, &def, &min, &max));
+        check(CPX->setintparam(
+            env, CPXPARAM_Threads,
+            static_cast<int>(std::min(n, static_cast<std::size_t>(max)))));
+    }
+    std::size_t get_thread_limit() {
+        int n;
+        check(CPX->getintparam(env, CPXPARAM_Threads, &n));
+        return static_cast<std::size_t>(n);
+    }
+    ///////////////////////////////////////////////////////////////////////////
     //////////////////////////////// Verbosity ////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     void set_verbose(bool verbose) {

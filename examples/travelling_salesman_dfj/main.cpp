@@ -5,7 +5,7 @@
 // subtours are cut off on the fly.
 //
 // NOTE: the candidate-solution callback is currently validated on Gurobi,
-// CPLEX and COPT. Set the two aliases below to one of those backends; the
+// CPLEX and COPT. Set the alias below to one of those backends; the
 // example defaults to Gurobi.
 
 #include <print>
