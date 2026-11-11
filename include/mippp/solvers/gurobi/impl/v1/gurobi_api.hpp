@@ -77,6 +77,14 @@ constexpr const char * GRB_INT_PAR_LAZYCONSTRAINTS = "LazyConstraints";
 constexpr const char * GRB_INT_PAR_PRECRUSH = "PreCrush";
 constexpr const char * GRB_INT_PAR_OUTPUTFLAG = "OutputFlag";
 constexpr const char * GRB_INT_PAR_THREADS = "Threads";
+constexpr const char * GRB_INT_PAR_METHOD = "Method";
+enum Method : int {
+    GRB_METHOD_AUTO = -1,
+    GRB_METHOD_PRIMAL = 0,
+    GRB_METHOD_DUAL = 1,
+    GRB_METHOD_BARRIER = 2
+};
+constexpr const char * GRB_INT_PAR_CROSSOVER = "Crossover";
 int GRBsetintparam(GRBenv * env, const char * paramname, int value);
 int GRBgetintparam(GRBenv * env, const char * paramname, int * valueP);
 int GRBgetintparaminfo(GRBenv * env, const char * paramname, int * valueP,

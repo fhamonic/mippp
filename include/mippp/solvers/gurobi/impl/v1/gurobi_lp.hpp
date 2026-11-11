@@ -9,9 +9,11 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/lp_algorithm_codec.hpp"
 #include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/gurobi/impl/v1/gurobi_base.hpp"
@@ -39,6 +41,56 @@ public:
         constexpr auto max = std::numeric_limits<std::size_t>::max();
         if(n >= static_cast<double>(max)) return max;
         return static_cast<std::size_t>(n);
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// LP algorithm ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    using lp_algorithm_variant =
+        std::variant<lp_algorithm::automatic, lp_algorithm::primal_simplex,
+                     lp_algorithm::dual_simplex, lp_algorithm::interior_point,
+                     lp_algorithm::interior_point_without_crossover,
+                     lp_algorithm::other>;
+
+protected:
+    struct lp_algorithm_knobs {
+        int method, crossover;
+        bool operator==(const lp_algorithm_knobs &) const = default;
+    };
+    // Crossover: -1 is Gurobi's default, which crosses over, and 0 skips it.
+    template <typename A>
+    static constexpr lp_algorithm_knobs _lp_algorithm_knobs(A) noexcept {
+        using namespace lp_algorithm;
+        if constexpr(std::same_as<A, automatic>)
+            return {GRB_METHOD_AUTO, -1};
+        else if constexpr(std::same_as<A, primal_simplex>)
+            return {GRB_METHOD_PRIMAL, -1};
+        else if constexpr(std::same_as<A, dual_simplex>)
+            return {GRB_METHOD_DUAL, -1};
+        else if constexpr(std::same_as<A, interior_point>)
+            return {GRB_METHOD_BARRIER, -1};
+        else if constexpr(std::same_as<A, interior_point_without_crossover>)
+            return {GRB_METHOD_BARRIER, 0};
+        else
+            static_assert(std::same_as<A, void>, "a listed tag has no row");
+    }
+
+public:
+    // Both parameters at every call: a Crossover left at 0 would make the
+    // next interior_point skip its crossover too.
+    template <detail::settable_lp_algorithm<lp_algorithm_variant> A>
+    void set_lp_algorithm(A algorithm) {
+        const lp_algorithm_knobs knobs = _lp_algorithm_knobs(algorithm);
+        check(GRB->setintparam(env, GRB_INT_PAR_METHOD, knobs.method));
+        check(GRB->setintparam(env, GRB_INT_PAR_CROSSOVER, knobs.crossover));
+    }
+    lp_algorithm_variant get_lp_algorithm() {
+        lp_algorithm_knobs knobs;
+        check(GRB->getintparam(env, GRB_INT_PAR_METHOD, &knobs.method));
+        check(GRB->getintparam(env, GRB_INT_PAR_CROSSOVER, &knobs.crossover));
+        return detail::decode_lp_algorithm(
+            lp_algorithm_variant{lp_algorithm::other{}}, knobs,
+            [](auto algorithm) { return _lp_algorithm_knobs(algorithm); });
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
@@ -107,16 +159,26 @@ public:
         _status = _get_status();
         _mark_results_valid();
     }
+    // Re-solved by the dual simplex whatever the model's algorithm: a barrier
+    // without crossover leaves an unbounded LP undecided a second time.
     void refine_lp_status() {
         if(!is<status::infeasible_or_unbounded>(get_status())) return;
-        int dual_reductions;
+        int dual_reductions, method;
         check(GRB->getintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
                                &dual_reductions));
-        check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS, 0));
+        check(GRB->getintparam(env, GRB_INT_PAR_METHOD, &method));
+        // armed before the writes: a failed second write needs the first
+        // one written back too
         detail::restore_guard guard([&] {
-            check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS,
-                                   dual_reductions));
+            const int reductions_status = GRB->setintparam(
+                env, GRB_INT_PAR_DUALREDUCTIONS, dual_reductions);
+            const int method_status =
+                GRB->setintparam(env, GRB_INT_PAR_METHOD, method);
+            check(reductions_status);
+            check(method_status);
         });
+        check(GRB->setintparam(env, GRB_INT_PAR_DUALREDUCTIONS, 0));
+        check(GRB->setintparam(env, GRB_INT_PAR_METHOD, GRB_METHOD_DUAL));
         check(GRB->optimize(model));
         _status = _get_status();
         guard.restore();
@@ -252,9 +314,14 @@ public:
         const std::size_t num_row = num_constraints();
         std::vector<int> col_codes(num_col), row_codes(num_row);
         std::vector<char> senses(num_row);
-        check(GRB->getintattrarray(model, GRB_INT_ATTR_VBASIS, 0,
-                                   static_cast<int>(num_col),
-                                   col_codes.data()));
+        const int vbasis_status =
+            GRB->getintattrarray(model, GRB_INT_ATTR_VBASIS, 0,
+                                 static_cast<int>(num_col), col_codes.data());
+        if(vbasis_status == GRB_ERROR_DATA_NOT_AVAILABLE)
+            throw solver_error(
+                "mippp: get_basis() found no basis, Gurobi holds none from "
+                "its last solve");
+        check(vbasis_status);
         check(GRB->getintattrarray(model, GRB_INT_ATTR_CBASIS, 0,
                                    static_cast<int>(num_row),
                                    row_codes.data()));
