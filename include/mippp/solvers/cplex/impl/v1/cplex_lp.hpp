@@ -10,10 +10,12 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/lp_algorithm_codec.hpp"
 #include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
+#include "mippp/utility/solver_exceptions.hpp"
 #include "mippp/utility/variant.hpp"
 
 #include "mippp/solvers/cplex/impl/v1/cplex_base.hpp"
@@ -62,6 +64,60 @@ public:
         check(CPX->getdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
                                &tol));
         return tol;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// LP algorithm ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    using lp_algorithm_variant =
+        std::variant<lp_algorithm::automatic, lp_algorithm::primal_simplex,
+                     lp_algorithm::dual_simplex, lp_algorithm::interior_point,
+                     lp_algorithm::interior_point_without_crossover,
+                     lp_algorithm::other>;
+
+protected:
+    struct lp_algorithm_knobs {
+        int method, solution_type;
+        bool operator==(const lp_algorithm_knobs &) const = default;
+    };
+    // CPLEX's crossover parameter picks a crossover and cannot turn it off
+    // (22.1 refuses -1): asking for a nonbasic solution is what makes the
+    // barrier skip it.
+    template <typename A>
+    static constexpr lp_algorithm_knobs _lp_algorithm_knobs(A) noexcept {
+        using namespace lp_algorithm;
+        if constexpr(std::same_as<A, automatic>)
+            return {CPX_ALG_AUTOMATIC, CPX_AUTO_SOLN};
+        else if constexpr(std::same_as<A, primal_simplex>)
+            return {CPX_ALG_PRIMAL, CPX_AUTO_SOLN};
+        else if constexpr(std::same_as<A, dual_simplex>)
+            return {CPX_ALG_DUAL, CPX_AUTO_SOLN};
+        else if constexpr(std::same_as<A, interior_point>)
+            return {CPX_ALG_BARRIER, CPX_AUTO_SOLN};
+        else if constexpr(std::same_as<A, interior_point_without_crossover>)
+            return {CPX_ALG_BARRIER, CPX_NONBASIC_SOLN};
+        else
+            static_assert(std::same_as<A, void>, "a listed tag has no row");
+    }
+
+public:
+    // Both parameters at every call: a solution type left at nonbasic would
+    // make the next interior_point skip its crossover too.
+    template <detail::settable_lp_algorithm<lp_algorithm_variant> A>
+    void set_lp_algorithm(A algorithm) {
+        const lp_algorithm_knobs knobs = _lp_algorithm_knobs(algorithm);
+        check(CPX->setintparam(env, CPXPARAM_LPMethod, knobs.method));
+        check(
+            CPX->setintparam(env, CPXPARAM_SolutionType, knobs.solution_type));
+    }
+    lp_algorithm_variant get_lp_algorithm() {
+        lp_algorithm_knobs knobs;
+        check(CPX->getintparam(env, CPXPARAM_LPMethod, &knobs.method));
+        check(
+            CPX->getintparam(env, CPXPARAM_SolutionType, &knobs.solution_type));
+        return detail::decode_lp_algorithm(
+            lp_algorithm_variant{lp_algorithm::other{}}, knobs,
+            [](auto algorithm) { return _lp_algorithm_knobs(algorithm); });
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
@@ -120,12 +176,16 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////////// Solve //////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
+    // CPXlpopt is the routine that reads LPMethod: CPXprimopt and CPXdualopt
+    // run their simplex whatever the model's algorithm is set to.
     void solve() {
         reset_status();  // a solve that throws reports unknown
-        check(CPX->primopt(env, lp));
+        check(CPX->lpopt(env, lp));
         _status = _get_status();
         _mark_results_valid();
     }
+    // By the primal simplex whatever the model's algorithm: a barrier
+    // without crossover may leave the LP undecided again.
     void refine_lp_status() {
         if(!is<status::infeasible_or_unbounded>(get_status())) return;
         int advance, reduce;
@@ -289,7 +349,13 @@ public:
         const std::size_t num_col = _num_var_native_ids();
         const std::size_t num_row = num_constraints();
         std::vector<int> col_status(num_col), row_status(num_row);
-        check(CPX->getbase(env, lp, col_status.data(), row_status.data()));
+        const int base_status =
+            CPX->getbase(env, lp, col_status.data(), row_status.data());
+        if(base_status == CPXERR_NO_BASIS)
+            throw solver_error(
+                "mippp: get_basis() found no basis, CPLEX holds none from "
+                "its last solve");
+        check(base_status);
         const std::vector<char> senses = _row_senses(num_row);
         detail::handle_status_table<basis_variable_status> columns(
             _handle_id_bound(num_col));
