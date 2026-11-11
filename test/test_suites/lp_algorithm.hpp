@@ -66,7 +66,7 @@ void for_each_listed(F f) {
 
 // Without a crossover a solver ends on an interior point: it is optimal
 // within the barrier's tolerance, and on an LP with no optimum the run may
-// end without a verdict, as failed on Xpress or numerical_failure on COPT.
+// end without a verdict, as failed on Xpress.
 template <typename A>
 inline constexpr bool crosses_over =
     !std::same_as<A, lp_algorithm::interior_point_without_crossover>;
@@ -258,7 +258,6 @@ TYPED_TEST_P(LpAlgorithmTest, setting_it_keeps_the_results_readable) {
 TYPED_TEST_P(LpAlgorithmTest, status_cases_under_each_algorithm) {
     this->SkipOnLicenseError([this]() {
         using M = typename TestFixture::model_type;
-        using lp_status_cases::verdict;
         lp_algorithm_cases::for_each_listed<M>([this](auto tag) {
             using A = decltype(tag);
             for(const auto & c : lp_status_cases::solved_cases<M>()) {
@@ -268,13 +267,13 @@ TYPED_TEST_P(LpAlgorithmTest, status_cases_under_each_algorithm) {
                 model.set_lp_algorithm(tag);
                 model.solve();
                 lp_status_cases::refine(model);
-                if(c.expected == verdict::optimal) {
+                if(c.expected == lp_status_cases::verdict::optimal) {
                     ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
                     EXPECT_NEAR(model.get_solution_value(), c.value,
                                 lp_algorithm_cases::tolerance<A>(c.value));
                 } else if(!lp_algorithm_cases::crosses_over<A>) {
                     EXPECT_FALSE(is_a<status::optimal>(model.get_status()));
-                } else if(c.expected == verdict::unbounded) {
+                } else if(c.expected == lp_status_cases::verdict::unbounded) {
                     EXPECT_TRUE(is_a<status::unbounded>(model.get_status()));
                 } else {
                     EXPECT_TRUE(is_a<status::infeasible>(model.get_status()));
