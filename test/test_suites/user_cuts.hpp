@@ -34,18 +34,26 @@ struct cover_knapsack {
     static constexpr std::size_t num_rows = 3;
     static constexpr double offset = 7;
 
+    static constexpr std::size_t whole_weight(const std::size_t r,
+                                              const std::size_t i) {
+        return 10 + (r * 37 + i * 91 + r * i * 13) % 41;
+    }
     static constexpr double weight(const std::size_t r, const std::size_t i) {
-        return static_cast<double>(10 + (r * 37 + i * 91 + r * i * 13) % 41);
+        return static_cast<double>(whole_weight(r, i));
     }
     static constexpr double profit(const std::size_t i) {
         double total = static_cast<double>((i * 7) % 5);
         for(std::size_t r = 0; r < num_rows; ++r) total += weight(r, i);
         return total;
     }
+    // Half the weight of the row, rounded down by an integer division. Not
+    // std::floor: <cmath> is constexpr on libstdc++ only, and MSVC rejects a
+    // constexpr function that calls it, whether or not anything evaluates it
+    // at compile time (C3615).
     static constexpr double capacity(const std::size_t r) {
-        double total = 0;
-        for(std::size_t i = 0; i < num_items; ++i) total += weight(r, i);
-        return std::floor(total / 2);
+        std::size_t total = 0;
+        for(std::size_t i = 0; i < num_items; ++i) total += whole_weight(r, i);
+        return static_cast<double>(total / 2);
     }
     // the best profit over the feasible binary points, offset left out
     static double best_profit() {
