@@ -19,6 +19,7 @@ static_assert(has_lp_basis<soplex_lp>);
 static_assert(has_modifiable_lp_basis<soplex_lp>);
 // the C interface of SoPlex reads a basis but cannot write one
 static_assert(!has_lp_basis_warm_start<soplex_lp>);
+static_assert(!has_lp_algorithm<soplex_lp>);
 TEST_F(soplex_lp_test, a_new_model_minimizes) {
     using namespace operators;
     auto model = new_model();
@@ -204,3 +205,6 @@ INSTANTIATE_TEST(SoPlex, CuttingStockTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, TimeLimitTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, VerbosityTest, soplex_lp_test);
 INSTANTIATE_TEST(SoPlex, LpFuzzyTest, soplex_lp_test);
+// SoPlex's ALGORITHM parameter reads back as written and changed no
+// iteration count, under any representation (measured on 7.1.3)
+// INSTANTIATE_TEST(SoPlex, LpAlgorithmTest, soplex_lp_test);

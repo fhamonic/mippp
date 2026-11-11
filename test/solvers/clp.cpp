@@ -66,6 +66,7 @@ struct clp_lp_test : public model_test<clp_api, clp_lp> {
 };
 static_assert(!has_iis<clp_lp>);
 static_assert(has_lp_basis_warm_start<clp_lp>);
+static_assert(!has_lp_algorithm<clp_lp>);
 
 // clp_lp has no iteration limit: Clp's own count proves the warm start
 TEST_F(clp_lp_test, set_basis_starts_at_the_optimum) {
@@ -204,3 +205,7 @@ INSTANTIATE_TEST(Clp, VerbosityTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, TimeLimitTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, LpBasisTest, clp_lp_test);
 INSTANTIATE_TEST(Clp, LpBasisWarmStartTest, clp_lp_test);
+// Clp_dual misreports LPs with free columns: `infeasible` on a feasible one
+// of two columns, `optimal` at -1.1e11 on an unbounded one (measured on a
+// devel build), and Clp's barrier entry points report unbounded LPs optimal
+// INSTANTIATE_TEST(Clp, LpAlgorithmTest, clp_lp_test);
