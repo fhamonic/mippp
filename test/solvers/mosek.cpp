@@ -254,6 +254,138 @@ TEST_F(mosek_lp_test, set_basis_starts_the_next_solve_at_the_optimum) {
         ASSERT_GT(iteration_count(*api, b, MSK_IINF_INTPNT_ITER), 0);
     });
 }
+// MOSEK has an optimizer for every tag, its free simplex included, and the
+// selector is an LP member.
+static_assert(has_lp_algorithm<mosek_lp>);
+static_assert(has_lp_algorithm<mosek_lp, lp_algorithm::simplex>);
+static_assert(has_lp_algorithm<mosek_lp, lp_algorithm::primal_simplex>);
+static_assert(has_lp_algorithm<mosek_lp, lp_algorithm::dual_simplex>);
+static_assert(has_lp_algorithm<mosek_lp, lp_algorithm::interior_point>);
+static_assert(
+    has_lp_algorithm<mosek_lp, lp_algorithm::interior_point_without_crossover>);
+static_assert(!has_lp_algorithm<mosek_lp, lp_algorithm::other>);
+static_assert(variant_with_alternative<model_lp_algorithm_t<mosek_lp>,
+                                       lp_algorithm::other>);
+static_assert(!has_lp_algorithm<mosek_milp>);
+
+// The shared suite cannot see which algorithm ran: MOSEK's counters can.
+// The optimizer codes are positions in MOSEK's enumeration, so a release
+// that moved one would run another optimizer under the same tag.
+TEST_F(mosek_lp_test, each_lp_algorithm_runs_the_one_it_names) {
+    using namespace mosek::impl::v1;
+    SkipOnLicenseError([this]() {
+        struct run {
+            int optimizer, interior, primal, dual;
+        };
+        const auto solved_under = [this](auto algorithm) {
+            auto model = new_model();
+            lp_basis_cases::build_dense(model);
+            model.set_lp_algorithm(algorithm);
+            model.solve();
+            EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+            return run{optimizer(*api, model),
+                       iteration_count(*api, model, MSK_IINF_INTPNT_ITER),
+                       iteration_count(*api, model, MSK_IINF_SIM_PRIMAL_ITER),
+                       iteration_count(*api, model, MSK_IINF_SIM_DUAL_ITER)};
+        };
+        {
+            const run r = solved_under(lp_algorithm::primal_simplex{});
+            EXPECT_EQ(r.optimizer, MSK_OPTIMIZER_PRIMAL_SIMPLEX);
+            EXPECT_GT(r.primal, 0);
+            EXPECT_EQ(r.dual, 0);
+            EXPECT_EQ(r.interior, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::dual_simplex{});
+            EXPECT_EQ(r.optimizer, MSK_OPTIMIZER_DUAL_SIMPLEX);
+            EXPECT_GT(r.dual, 0);
+            EXPECT_EQ(r.primal, 0);
+            EXPECT_EQ(r.interior, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::simplex{});
+            EXPECT_EQ(r.optimizer, MSK_OPTIMIZER_FREE_SIMPLEX);
+            EXPECT_GT(r.primal + r.dual, 0);
+            EXPECT_EQ(r.interior, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::interior_point{});
+            EXPECT_EQ(r.optimizer, MSK_OPTIMIZER_INTPNT);
+            EXPECT_GT(r.interior, 0);
+        }
+        {
+            const run r =
+                solved_under(lp_algorithm::interior_point_without_crossover{});
+            EXPECT_EQ(r.optimizer, MSK_OPTIMIZER_INTPNT);
+            EXPECT_GT(r.interior, 0);
+            EXPECT_EQ(r.primal + r.dual, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::automatic{});
+            EXPECT_EQ(r.optimizer, MSK_OPTIMIZER_FREE);
+        }
+    });
+}
+
+// The conic optimizer is no tag, and a basis identification on feasible
+// models only is not what interior_point writes. MOSEK's own default, read on
+// a fresh model, is the pair automatic writes.
+TEST_F(mosek_lp_test, a_native_optimizer_reads_as_other) {
+    using namespace mosek::impl::v1;
+    SkipOnLicenseError([this]() {
+        auto model = new_model();
+        const auto task = model.native_model().second;
+        MSKint32t basis_identification = -1;
+        api->_check(api->getintparam(task, MSK_IPAR_INTPNT_BASIS,
+                                     &basis_identification));
+        EXPECT_EQ(basis_identification, MSK_BI_ALWAYS);
+        EXPECT_EQ(optimizer(*api, model), MSK_OPTIMIZER_FREE);
+
+        api->_check(
+            api->putintparam(task, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+        api->_check(
+            api->putintparam(task, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_INTPNT));
+        EXPECT_TRUE(is<lp_algorithm::interior_point>(model.get_lp_algorithm()));
+        api->_check(
+            api->putintparam(task, MSK_IPAR_INTPNT_BASIS, MSK_BI_IF_FEASIBLE));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+    });
+}
+
+// The one-shot simplex of set_basis() keys on MOSEK's free optimizer, which
+// automatic writes: a model set back to automatic still warm-starts, and one
+// set to a simplex warm-starts by itself.
+TEST_F(mosek_lp_test, set_basis_warm_starts_under_automatic_and_a_simplex) {
+    using namespace mosek::impl::v1;
+    SkipOnLicenseError([this]() {
+        auto a = new_model();
+        lp_basis_cases::build_dense(a);
+        a.solve();
+        const auto basis = a.get_basis();
+
+        auto b = new_model();
+        lp_basis_cases::build_dense(b);
+        b.set_lp_algorithm(lp_algorithm::interior_point{});
+        b.set_lp_algorithm(lp_algorithm::automatic{});
+        b.set_basis(basis);
+        b.solve();
+        ASSERT_TRUE(is_a<status::optimal>(b.get_status()));
+        EXPECT_EQ(iteration_count(*api, b, MSK_IINF_INTPNT_ITER), 0);
+        EXPECT_TRUE(is<lp_algorithm::automatic>(b.get_lp_algorithm()));
+
+        auto c = new_model();
+        lp_basis_cases::build_dense(c);
+        c.set_lp_algorithm(lp_algorithm::dual_simplex{});
+        c.set_basis(basis);
+        c.solve();
+        ASSERT_TRUE(is_a<status::optimal>(c.get_status()));
+        EXPECT_EQ(iteration_count(*api, c, MSK_IINF_INTPNT_ITER), 0);
+        EXPECT_EQ(iteration_count(*api, c, MSK_IINF_SIM_DUAL_ITER), 0);
+        EXPECT_TRUE(is<lp_algorithm::dual_simplex>(c.get_lp_algorithm()));
+    });
+}
+
 TEST_F(mosek_lp_test, set_basis_keeps_an_optimizer_chosen_natively) {
     using namespace mosek::impl::v1;
     SkipOnLicenseError([this]() {
@@ -375,6 +507,7 @@ INSTANTIATE_TEST(MOSEK_lp, VerbosityTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, ThreadLimitTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpBasisTest, mosek_lp_test);
 INSTANTIATE_TEST(MOSEK_lp, LpBasisWarmStartTest, mosek_lp_test);
+INSTANTIATE_TEST(MOSEK_lp, LpAlgorithmTest, mosek_lp_test);
 
 struct mosek_milp_test : public model_test<mosek_api, mosek_milp> {
     static void SetUpTestSuite() { construct_api("MOSEK"); }
