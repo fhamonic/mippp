@@ -6,10 +6,12 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <utility>
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/lp_algorithm_codec.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
@@ -22,9 +24,16 @@ namespace glpk::impl::v1 {
 
 class glpk_lp : public glpk_base {
 private:
+    using lp_algorithm_variant =
+        std::variant<lp_algorithm::automatic, lp_algorithm::primal_simplex,
+                     lp_algorithm::dual_simplex>;
+
     glp_smcp model_params;
     std::chrono::duration<double> _time_limit{
         std::numeric_limits<double>::infinity()};
+    // kept beside model_params.meth, which reads GLP_PRIMAL under automatic
+    // and primal_simplex alike
+    lp_algorithm_variant _lp_algorithm = lp_algorithm::automatic{};
 
 public:
     [[nodiscard]] glpk_lp() : glpk_lp(glpk_api::load()) {}
@@ -75,6 +84,17 @@ public:
     }
     bool is_verbose() { return model_params.msg_lev != GLP_MSG_OFF; }
     ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// LP algorithm ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    // automatic is the primal simplex, GLPK's own default.
+    template <detail::settable_lp_algorithm<lp_algorithm_variant> A>
+    void set_lp_algorithm(A algorithm) {
+        _lp_algorithm = algorithm;
+        model_params.meth =
+            std::same_as<A, lp_algorithm::dual_simplex> ? GLP_DUAL : GLP_PRIMAL;
+    }
+    lp_algorithm_variant get_lp_algorithm() const { return _lp_algorithm; }
+    ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     // clang-format off
@@ -82,6 +102,7 @@ private:
     using status_variant = std::variant<
             status::unknown,
             status::optimal,
+            status::infeasible_or_unbounded,
             status::infeasible,
             status::unbounded,
             status::limit_reached,
@@ -95,14 +116,14 @@ protected:
     // Only a return code of 0 makes glp_get_status a verdict: after any other
     // code the basic solution is wherever the search stopped.
     static status_variant _simplex_status(int ret, int generic_status,
-                                          int primal_status,
+                                          int primal_status, int dual_status,
                                           double objective) noexcept {
         using namespace status;
         const bool has_sol = (primal_status == GLP_FEAS);
         switch(ret) {
             case 0:          break;
             case GLP_ENOPFS: return infeasible{};
-            case GLP_ENODFS: return unbounded{};
+            case GLP_ENODFS: return infeasible_or_unbounded{};
             case GLP_EOBJLL:
             case GLP_EOBJUL:
             case GLP_EITLIM: return limit_reached{has_sol};
@@ -122,8 +143,12 @@ protected:
                                     : status_variant(unbounded{});
             case GLP_NOFEAS: return infeasible{};
             case GLP_UNBND:  return unbounded{};
-            // GLP_INFEAS only says that this basic solution violates a bound
-            default:         return unknown{has_sol};
+            // GLP_INFEAS only says that this basic solution violates a
+            // bound. The dual simplex stops on one when the dual has no
+            // feasible point, which leaves the LP without an optimum.
+            default:         return dual_status == GLP_NOFEAS
+                                    ? status_variant(infeasible_or_unbounded{})
+                                    : status_variant(unknown{has_sol});
         }
     }
     // clang-format on
@@ -150,8 +175,23 @@ public:
         }
         _status = _simplex_status(ret, glp->get_status(model),
                                   glp->get_prim_stat(model),
+                                  glp->get_dual_stat(model),
                                   objective_offset + glp->get_obj_val(model));
         _mark_results_valid();
+    }
+    // By the primal simplex, from the basis the dual simplex stopped on: it
+    // reaches a feasible point or proves that there is none.
+    void refine_lp_status() {
+        if(!is<status::infeasible_or_unbounded>(get_status())) return;
+        const int meth = std::exchange(model_params.meth, GLP_PRIMAL);
+        const int ret = glp->simplex(model, &model_params);
+        model_params.meth = meth;
+        _status = _simplex_status(ret, glp->get_status(model),
+                                  glp->get_prim_stat(model),
+                                  glp->get_dual_stat(model),
+                                  objective_offset + glp->get_obj_val(model));
+        if(is<status::infeasible_or_unbounded>(_status))
+            throw std::runtime_error("Failed to refine LP status.");
     }
     double get_solution_value() {
         _require_valid_results();
