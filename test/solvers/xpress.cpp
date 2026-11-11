@@ -43,6 +43,7 @@ INSTANTIATE_TEST(Xpress_lp, LpBasisTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, LpBasisWarmStartTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, VerbosityTest, xpress_lp_test);
 INSTANTIATE_TEST(Xpress_lp, ThreadLimitTest, xpress_lp_test);
+INSTANTIATE_TEST(Xpress_lp, LpAlgorithmTest, xpress_lp_test);
 static_assert(has_lp_basis_warm_start<xpress_lp>);
 
 // xpress_lp has no iteration limit: Xpress's own count proves the warm start
@@ -134,6 +135,116 @@ TEST_F(xpress_lp_test, set_basis_writes_the_codes_over_a_solved_model) {
     EXPECT_EQ(rstat, (std::array<int, 2>{XPRS_BASISSTATUS_NONBASIC_LOWER,
                                          XPRS_BASISSTATUS_NONBASIC_UPPER}));
 }
+// LPFLAGS names the two simplex sides and the barrier, not "either simplex",
+// and the selector is an LP member.
+static_assert(has_lp_algorithm<xpress_lp>);
+static_assert(has_lp_algorithm<xpress_lp, lp_algorithm::primal_simplex>);
+static_assert(has_lp_algorithm<xpress_lp, lp_algorithm::dual_simplex>);
+static_assert(has_lp_algorithm<xpress_lp, lp_algorithm::interior_point>);
+static_assert(has_lp_algorithm<xpress_lp,
+                               lp_algorithm::interior_point_without_crossover>);
+static_assert(!has_lp_algorithm<xpress_lp, lp_algorithm::simplex>);
+static_assert(!has_lp_algorithm<xpress_lp, lp_algorithm::other>);
+static_assert(variant_with_alternative<model_lp_algorithm_t<xpress_lp>,
+                                       lp_algorithm::other>);
+static_assert(!has_lp_algorithm<xpress_milp>);
+
+namespace {
+int xpress_attribute(const xpress_lp & model, int attribute) {
+    int value = -1;
+    model.native_api()._check(model.native_model(),
+                              model.native_api().getintattrib(
+                                  model.native_model(), attribute, &value));
+    return value;
+}
+int xpress_control(const xpress_lp & model, int control) {
+    int value = -1;
+    model.native_api()._check(model.native_model(),
+                              model.native_api().getintcontrol(
+                                  model.native_model(), control, &value));
+    return value;
+}
+// ALGORITHM: the algorithm Xpress last ran, 2 dual, 3 primal, 4 barrier
+constexpr int xprs_algorithm = 1049;
+}  // namespace
+
+// The shared suite cannot see which algorithm ran: Xpress's attributes can.
+TEST_F(xpress_lp_test, each_lp_algorithm_runs_the_one_it_names) {
+    using namespace xpress::impl::v1;
+    SkipOnLicenseError([this]() {
+        struct run {
+            int lp_flags, crossover, algorithm, simplex, barrier;
+        };
+        const auto solved_under = [this](auto algorithm) {
+            auto model = new_model();
+            lp_basis_cases::build_dense(model);
+            model.set_lp_algorithm(algorithm);
+            model.solve();
+            EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+            return run{xpress_control(model, XPRS_LPFLAGS),
+                       xpress_control(model, XPRS_CROSSOVER),
+                       xpress_attribute(model, xprs_algorithm),
+                       xpress_attribute(model, XPRS_SIMPLEXITER),
+                       xpress_attribute(model, XPRS_BARITER)};
+        };
+        {
+            const run r = solved_under(lp_algorithm::primal_simplex{});
+            EXPECT_EQ(r.lp_flags, XPRS_LPFLAGS_PRIMAL);
+            EXPECT_EQ(r.algorithm, 3);
+            EXPECT_GT(r.simplex, 0);
+            EXPECT_EQ(r.barrier, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::dual_simplex{});
+            EXPECT_EQ(r.lp_flags, XPRS_LPFLAGS_DUAL);
+            EXPECT_EQ(r.algorithm, 2);
+            EXPECT_GT(r.simplex, 0);
+            EXPECT_EQ(r.barrier, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::interior_point{});
+            EXPECT_EQ(r.lp_flags, XPRS_LPFLAGS_BARRIER);
+            EXPECT_EQ(r.crossover, -1);
+            EXPECT_EQ(r.algorithm, 4);
+            EXPECT_GT(r.barrier, 0);
+        }
+        {
+            const run r =
+                solved_under(lp_algorithm::interior_point_without_crossover{});
+            EXPECT_EQ(r.lp_flags, XPRS_LPFLAGS_BARRIER);
+            EXPECT_EQ(r.crossover, 0);
+            EXPECT_EQ(r.algorithm, 4);
+            EXPECT_GT(r.barrier, 0);
+            EXPECT_EQ(r.simplex, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::automatic{});
+            EXPECT_EQ(r.lp_flags, 0);
+            EXPECT_EQ(r.crossover, -1);
+        }
+    });
+}
+
+// LPFLAGS is a bit set: two algorithms at once run concurrently, which no
+// tag names, and a crossover order is not what interior_point writes.
+TEST_F(xpress_lp_test, a_native_lp_flags_value_reads_as_other) {
+    using namespace xpress::impl::v1;
+    SkipOnLicenseError([this]() {
+        auto model = new_model();
+        const auto & native = model.native_api();
+        const auto prob = model.native_model();
+        native._check(prob, native.setintcontrol(
+                                prob, XPRS_LPFLAGS,
+                                XPRS_LPFLAGS_DUAL | XPRS_LPFLAGS_BARRIER));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+        native._check(prob, native.setintcontrol(prob, XPRS_LPFLAGS,
+                                                 XPRS_LPFLAGS_BARRIER));
+        EXPECT_TRUE(is<lp_algorithm::interior_point>(model.get_lp_algorithm()));
+        native._check(prob, native.setintcontrol(prob, XPRS_CROSSOVER, 2));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+    });
+}
+
 // Presolve proves the infeasibility without a simplex run, and Xpress would
 // hand back the slack basis, or after an optimal solve that basis, stale.
 TEST_F(xpress_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
