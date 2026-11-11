@@ -451,9 +451,7 @@ private:
         if((!candidate_solution_callback && !node_relaxation_callback) ||
            solve_context.num_columns == 0)
             return;
-        // not get_feasibility_tolerance(), which reads another parameter
-        check(CPX->getdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
-                               &solve_context.feasibility_tolerance));
+        solve_context.feasibility_tolerance = get_feasibility_tolerance();
         solve_context.objective.resize(solve_context.num_columns);
         check(CPX->getobj(env, lp, solve_context.objective.data(), 0,
                           static_cast<int>(solve_context.num_columns) - 1));
@@ -562,14 +560,18 @@ public:
         check(CPX->getdblparam(env, CPXPARAM_MIP_Tolerances_MIPGap, &tol));
         return tol;
     }
+    // EpRHS, as on cplex_lp: what CPLEX lets a row or a bound be violated
+    // by, in a MIP too. Not MIP.Tolerances.Linearization, the one tolerance
+    // of the MIP group that reads like it: that is the epsilon of Concert's
+    // reformulations, and the rows of a MIP stay at EpRHS whatever it is.
     void set_feasibility_tolerance(double tol) {
-        check(
-            CPX->setdblparam(env, CPXPARAM_MIP_Tolerances_Linearization, tol));
+        check(CPX->setdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
+                               tol));
     }
     double get_feasibility_tolerance() {
         double tol;
-        check(
-            CPX->getdblparam(env, CPXPARAM_MIP_Tolerances_Linearization, &tol));
+        check(CPX->getdblparam(env, CPXPARAM_Simplex_Tolerances_Feasibility,
+                               &tol));
         return tol;
     }
     ///////////////////////////////////////////////////////////////////////////

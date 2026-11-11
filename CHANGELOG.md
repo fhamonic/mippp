@@ -286,6 +286,11 @@ All notable changes to MIP++ are recorded in this file. The format follows
   an optimum read `interrupted`, an infeasible model `node_limit`.
 - `xpress_milp::set_optimality_tolerance` set Xpress's integrality tolerance
   (`MIPTOL`) instead of the relative gap (`MIPRELSTOP`).
+- `cplex_milp::set_feasibility_tolerance` set `MIP.Tolerances.Linearization`,
+  the epsilon of CPLEX's reformulations, instead of the feasibility tolerance
+  (`Simplex.Tolerances.Feasibility`) that `cplex_lp` sets: the rows of a MIP
+  kept CPLEX's default tolerance, and `get_feasibility_tolerance()` read 1e-3
+  where CPLEX applied 1e-6.
 - After a limit stopped an Xpress MILP search, `get_solution()` overflowed its
   buffer, and the column getters and setters addressed the presolved columns.
   An LP stopped by a limit on Xpress 45.01 kept its rows and columns presolved

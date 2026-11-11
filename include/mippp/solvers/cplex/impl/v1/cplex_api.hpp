@@ -125,7 +125,6 @@ constexpr int CPXPARAM_MIP_Limits_Nodes = 2017;
 constexpr int CPXPARAM_MIP_Limits_Solutions = 2015;
 constexpr int CPXPARAM_MIP_Limits_TreeMemory = 2027;
 constexpr int CPXPARAM_MIP_Tolerances_MIPGap = 2009;
-constexpr int CPXPARAM_MIP_Tolerances_Linearization = 2068;
 int CPXgetdblparam(CPXCENVptr env, int whichparam, double * value_p);
 int CPXsetdblparam(CPXENVptr env, int whichparam, double newvalue);
 

@@ -263,6 +263,34 @@ TEST_F(cplex_lp_test, crossed_row_sides_are_rejected) {
 ////////////////////////////////// LP status //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
+// The two rows conflict by 0.05. The feasibility tolerance is what CPLEX lets
+// a row be violated by, on a MIP as on an LP: the MIP tolerance group has a
+// Linearization parameter that reads like one and changes nothing here.
+TEST_F(cplex_milp_test, feasibility_tolerance_bounds_row_violations) {
+    using namespace operators;
+    for(const double tolerance : {0.01, 0.09}) {
+        auto model = new_model();
+        auto x =
+            model.add_integer_variable({.lower_bound = 0, .upper_bound = 10});
+        auto y = model.add_variable();
+        auto z = model.add_variable();
+        model.set_maximization();
+        model.set_objective(x);
+        model.add_constraint(y + z >= 2);
+        model.add_constraint(y + z <= 1.95);
+        model.add_constraint(2 * x <= 14.6);
+        model.set_feasibility_tolerance(tolerance);
+        ASSERT_DOUBLE_EQ(model.get_feasibility_tolerance(), tolerance);
+        model.solve();
+        if(tolerance < 0.05) {
+            ASSERT_TRUE(is_a<status::infeasible>(model.get_status()));
+        } else {
+            ASSERT_TRUE(is<status::optimal>(model.get_status()));
+            ASSERT_NEAR(model.get_solution_value(), 7, TEST_EPSILON);
+        }
+    }
+}
+
 // The refinement re-solves without advanced start and presolve reductions,
 // and writes both parameters back. Under the default reductions, presolve
 // reports this unbounded LP as "infeasible or unbounded" (measured on 22.1.2,
