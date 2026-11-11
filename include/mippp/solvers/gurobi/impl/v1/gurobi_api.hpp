@@ -74,6 +74,7 @@ constexpr int GRB_ERROR_IIS_NOT_INFEASIBLE = 10015;
 
 constexpr const char * GRB_INT_PAR_DUALREDUCTIONS = "DualReductions";
 constexpr const char * GRB_INT_PAR_LAZYCONSTRAINTS = "LazyConstraints";
+constexpr const char * GRB_INT_PAR_PRECRUSH = "PreCrush";
 constexpr const char * GRB_INT_PAR_OUTPUTFLAG = "OutputFlag";
 constexpr const char * GRB_INT_PAR_THREADS = "Threads";
 int GRBsetintparam(GRBenv * env, const char * paramname, int value);
@@ -216,6 +217,8 @@ int GRBsetcallbackfunc(GRBmodel * model, callback_func_t * cb, void * usrdata);
 int GRBcbproceed(void * cbdata);
 constexpr int GRB_CB_MIPSOL_SOL = 4001;
 constexpr int GRB_CB_MIPSOL_OBJ = 4002;
+constexpr int GRB_CB_MIPNODE_STATUS = 5001;
+constexpr int GRB_CB_MIPNODE_REL = 5002;
 constexpr int GRB_CB_MIP_OBJBST = 3000;
 constexpr int GRB_CB_MIP_OBJBND = 3001;
 constexpr int GRB_CB_MIP_NODCNT = 3002;

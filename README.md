@@ -67,7 +67,7 @@ A MIP++ model *is* the solver's native model. There is no extraction step, so re
 
 The library exposes the algorithmic hooks that decomposition and cutting-plane methods need:
 
-- [**Branch-and-cut callbacks**](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) with lazy constraints — the TSP example in `examples/travelling_salesman_dfj/` adds subtour elimination cuts through a typed callback handle using the same `xsum` syntax as the main model.
+- [**Branch-and-cut callbacks**](https://fhamonic.github.io/mippp/algorithms/branch-and-cut/) with lazy constraints — the TSP example in `examples/travelling_salesman_dfj/` adds subtour elimination cuts through a typed callback handle using the same `xsum` syntax as the main model. The same handle takes a corrected candidate back with `add_solution`, which keeps the incumbents of a Benders decomposition, and a second callback on node relaxations takes user cuts.
 - [**Column generation**](https://fhamonic.github.io/mippp/algorithms/column-generation/) via `add_column`, dual values (`get_dual_solution`), and reduced costs (`get_reduced_costs`). A full `column_manager` framework tracks columns across pool and master states, propagates pricing events to per-column properties (reduced cost, primal value, age) through compile-time event dispatch, and activates and evicts columns through plain predicates and selectors — all at zero runtime overhead for unused properties.
 - [**Progress callbacks**](https://fhamonic.github.io/mippp/solving/progress/) that read the incumbent and the bound during a search and can end it, on eight MILP backends.
 - **MIP starts**, **indicator constraints**, and [**in-place model updates**](https://fhamonic.github.io/mippp/solving/updates/) (bound changes, coefficient changes, variable removal). When columns are evicted, solvers compact their internal arrays, invalidating external indices. MIP++ keeps user-facing variable handles stable through a bidirectional handle/native-ID map — but the map is only allocated on the first deletion; models that never remove variables pay nothing beyond a branch prediction.
@@ -173,14 +173,13 @@ Solver shared libraries are discovered at runtime; only the solvers you actually
 
 ## Roadmap
 
-The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [LP bases](https://fhamonic.github.io/mippp/solving/basis/) read and written on every LP backend (read-only on SoPlex), [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS), through the solver's own routine on Gurobi, CPLEX, Xpress, COPT and HiGHS (1.14 or later) and a deletion filter on every backend.
+The modeling core is in place: LP/MILP/QP, lazy-constraint callbacks with solution injection, user cuts on Gurobi, CPLEX and COPT, column generation with a pool manager, reduced costs, MIP starts, indicator constraints, in-place model updates, [LP bases](https://fhamonic.github.io/mippp/solving/basis/) read and written on every LP backend (read-only on SoPlex), [infeasibility diagnosis](https://fhamonic.github.io/mippp/solving/infeasibility/) by irreducible infeasible subsystem (IIS), through the solver's own routine on Gurobi, CPLEX, Xpress, COPT and HiGHS (1.14 or later) and a deletion filter on every backend.
 
 Planned, roughly by priority:
 
 | Priority | Feature | Notes |
 | :---: | --- | --- |
-| 🔴 | **User-cut callbacks** | For cutting-plane methods at node relaxations |
-| 🔴 | **Heuristic-solution injection** | Injecting primal solutions from within callbacks |
+| 🔴 | **User cuts on Xpress, SCIP and GLPK** | `add_user_cut` from the node-relaxation callback exists on Gurobi, CPLEX and COPT |
 | 🟠 | **SOS1/SOS2 constraints** | Concepts specified (`has_sos1_constraints`, `has_sos2_constraints`); no backend implements `add_sos1_constraint`/`add_sos2_constraint` yet |
 | 🟠 | **QP objectives beyond HiGHS** | Extend Hessian support to Gurobi, CPLEX, MOSEK, etc. |
 | 🟡 | **QCP/SOCP constraints** | Quadratically constrained programs |
@@ -191,7 +190,7 @@ Planned, roughly by priority:
 > [!NOTE]
 > Since a MIP++ model *is* the solver's native model, re-solves after in-place modifications (adding rows, changing bounds) almost always warm-start from the last basis implicitly. [LP bases](https://fhamonic.github.io/mippp/solving/basis/) can also be read and written explicitly, to transfer a basis between models or store one for later.
 
-The first two items are what build-bound, re-solve-heavy research code wants most. Until they land, a column-generation or cutting-plane study hitting those specific features may still be better served by a direct solver API — and the honest comparison is in the [Is MIP++ for you?](#is-mip-for-you) section above.
+A cutting-plane study that needs cuts valid only below the current node may still be better served by a direct solver API — and the honest comparison is in the [Is MIP++ for you?](#is-mip-for-you) section above.
 
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md), and open an issue to claim an item.
 

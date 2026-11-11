@@ -102,6 +102,24 @@ All notable changes to MIP++ are recorded in this file. The format follows
   during the search, infinite until the solver has one, and `interrupt()` ends
   the solve as `status::interrupted`. All but `copt_milp`'s also have
   `get_node_count()`. See [Watching a solve](docs/solving/progress.md).
+- **Solution injection.** `handle.add_solution(point)`, behind
+  `has_solution_injection<Handle, Model>`, on the candidate-solution handles of
+  `gurobi_milp`, `cplex_milp` and `copt_milp`. It hands the solver a complete
+  point to try as an incumbent: a Benders callback corrects the candidate a
+  lazy constraint just rejected and hands it back, where the solver would
+  otherwise lose its integer part. The point must be feasible for the whole
+  problem, the constraints the callback would add included. See
+  [Repairing a rejected candidate](docs/algorithms/branch-and-cut.md#repairing-a-rejected-candidate).
+- **User cuts.** `set_node_relaxation_callback(f)`, behind
+  `has_node_relaxation_callback`, on `gurobi_milp`, `cplex_milp` and
+  `copt_milp`. Its handle reads the relaxation point of a node, and
+  `handle.add_user_cut(c)`, behind `has_user_cuts<Handle, Model>`, gives the
+  solver a cut that every point `solve()` may return satisfies, which it
+  applies anywhere or nowhere. Each cut is prepared before the solver sees
+  it: repeated terms added up, zeros removed, scaled, an equality replaced by
+  its violated side, and dropped unless the point violates it. The handle
+  also has `add_solution`. See
+  [User cuts](docs/algorithms/branch-and-cut.md#user-cuts).
 
 ### Changed
 
@@ -194,6 +212,22 @@ All notable changes to MIP++ are recorded in this file. The format follows
   features. Those of SoPlex, and `Highs_getIis` and `Highs_setSparseSolution`,
   are optional. The others are required, so a solver library that lacks one no
   longer loads.
+- **Candidate point (breaking).** In a candidate-solution callback,
+  `handle.get_solution()` returns a point that owns its values and can be
+  written, on every backend, and `has_candidate_solution_callback` requires
+  it. Code that named the return type of the Gurobi or CPLEX handle breaks;
+  code that reads it through `auto` does not.
+- **Callbacks never overlap.** On `cplex_milp`, `xpress_milp` and `copt_milp`,
+  one mutex per solve is held around every callback of the model, candidate
+  and progress alike. CPLEX ran the candidate callback on several threads at
+  once.
+- **Deletion filter.** `compute_iis_by_deletion` takes a node-relaxation
+  callback away for its trials and puts it back: a user cut is valid for the
+  model, not for a trial with a row relaxed.
+- **Satisfied lazy constraints.** On `cplex_milp` and `copt_milp`, a lazy
+  constraint that the candidate satisfies within the solver's feasibility
+  tolerance is no longer passed to the solver, which rejected the candidate
+  for it. Offer the constraint again when a candidate violates it.
 - **Column manager (breaking).** The redesign fixes `manage_columns`, which
   evicted before activating and so, at convergence, modified the master after
   its last solve: reading the solution then threw on Gurobi and CPLEX and
@@ -226,6 +260,17 @@ All notable changes to MIP++ are recorded in this file. The format follows
 
 ### Fixed
 
+- On `cplex_milp` and `copt_milp`, a lazy constraint that the candidate
+  satisfied still rejected it: a separator offering such constraints could
+  end `infeasible` on a feasible model, or `optimal` on a worse value.
+- On `copt_milp`, a lazy constraint holding a zero coefficient, as `x - x`
+  folds to, gave a false `infeasible` or a wrong optimum.
+- A candidate-solution callback set after a finished solve was not asked
+  about the solution the solver held: the next `solve()` of `gurobi_milp` and
+  `cplex_milp` returned it even when the callback forbids it.
+- In a candidate-solution callback of `gurobi_milp` and `cplex_milp`, the
+  point `get_solution()` returned read through the handle, so one kept after
+  the callback returned read freed memory.
 - A candidate-solution callback crashed the next `solve()` of a model moved
   after setting it, on Gurobi, CPLEX, Xpress and COPT: the solver held a pointer
   to the moved-from model. Callbacks are now attached for the duration of a solve.

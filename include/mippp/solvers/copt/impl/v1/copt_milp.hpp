@@ -4,11 +4,13 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <ranges>
 #include <utility>
 #include <variant>
 
 #include "mippp/detail/restore_guard.hpp"
+#include "mippp/detail/row_preparation.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
@@ -68,16 +70,31 @@ public:
         const copt_api * COPT;
         copt_prob * prob;
         void * cbdata;
+        const double feasibility_tolerance;
+        std::unique_ptr<double[]> _candidate;
 
         friend copt_milp;
         candidate_solution_callback_handle(const copt_api * api,
-                                           copt_prob * prob_, void * cbdata_)
+                                           copt_prob * prob_, void * cbdata_,
+                                           const double feasibility_tolerance_)
             : model_base<int, double>()
             , COPT(api)
             , prob(prob_)
-            , cbdata(cbdata_) {}
+            , cbdata(cbdata_)
+            , feasibility_tolerance(feasibility_tolerance_) {}
 
         void check(const ret_code error) { COPT->_check(nullptr, error); }
+
+        // the candidate in column order, read once per call
+        const double * _candidate_values() {
+            if(!_candidate) {
+                _candidate =
+                    std::make_unique_for_overwrite<double[]>(num_variables());
+                check(COPT->GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDIDATE,
+                                            _candidate.get()));
+            }
+            return _candidate.get();
+        }
 
     public:
         std::size_t num_variables() {
@@ -92,6 +109,20 @@ public:
             if constexpr(!distinct) _prepare_coalescing(num_variables());
             _reset_cache();
             _register_variables_entries<distinct>(lc.linear_terms());
+            // COPT gives a wrong optimum or a false infeasible on a callback
+            // row holding an exact zero, and answers an empty one with an
+            // error that check() would throw across COPT_Solve's frames.
+            detail::strip_zero_entries(tmp_indices, tmp_scalars);
+            if(tmp_indices.empty()) return;
+            // COPT rejects the candidate whatever the row says: handed one
+            // the candidate satisfies, it loses that candidate, and a
+            // feasible model can end infeasible. Written `!(... > ...)` so
+            // that a row holding a NaN is not passed on.
+            if(!(detail::row_violation(tmp_indices, tmp_scalars, lc.sense(),
+                                       static_cast<double>(lc.rhs()),
+                                       _candidate_values()) >
+                 feasibility_tolerance))
+                return;
             check(COPT->AddCallbackLazyConstr(
                 cbdata, static_cast<int>(tmp_indices.size()),
                 tmp_indices.data(), tmp_scalars.data(),
@@ -115,9 +146,103 @@ public:
         auto get_solution() {
             auto num_vars = num_variables();
             auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
-            check(COPT->GetCallbackInfo(cbdata, COPT_CBINFO_MIPCANDIDATE,
-                                        solution.get()));
+            std::copy_n(_candidate_values(), num_vars, solution.get());
             return variable_mapping(std::move(solution));
+        }
+        // COPT takes the point at once, against the rows it holds, and never
+        // shows it to this callback: a point a lazy constraint not added yet
+        // would cut off becomes the incumbent. Only complete points count, an
+        // undefined entry makes COPT ignore the call. The return code is
+        // dropped: thrown from here, an error would cross COPT_Solve's frames.
+        template <detail::point_of<variable, double> Point>
+        void add_solution(Point && point) {
+            _register_point(point, num_variables(),
+                            [](const int id) { return variable(id); });
+            double value;
+            COPT->AddCallbackSolution(cbdata, tmp_scalars.data(), &value);
+        }
+    };
+
+    class node_relaxation_callback_handle : protected model_base<int, double> {
+    private:
+        const copt_api * COPT;
+        copt_prob * prob;
+        void * cbdata;
+        std::unique_ptr<double[]> _relaxation;
+
+        friend copt_milp;
+        node_relaxation_callback_handle(const copt_api * api, copt_prob * prob_,
+                                        void * cbdata_)
+            : model_base<int, double>()
+            , COPT(api)
+            , prob(prob_)
+            , cbdata(cbdata_) {}
+
+        void check(const ret_code error) { COPT->_check(nullptr, error); }
+
+        // the relaxation point in column order, read once per call
+        const double * _relaxation_values() {
+            if(!_relaxation) {
+                _relaxation =
+                    std::make_unique_for_overwrite<double[]>(num_variables());
+                check(COPT->GetCallbackInfo(cbdata, COPT_CBINFO_RELAXSOLUTION,
+                                            _relaxation.get()));
+            }
+            return _relaxation.get();
+        }
+
+        template <bool distinct, linear_constraint LC>
+        void _add_user_cut(LC && lc) {
+            if constexpr(!distinct) _prepare_coalescing(num_variables());
+            _reset_cache();
+            _register_variables_entries<distinct>(lc.linear_terms());
+            const auto cut = detail::prepare_user_cut(
+                tmp_indices, tmp_scalars, lc.sense(),
+                static_cast<double>(lc.rhs()), _relaxation_values());
+            if(!cut) return;
+            // The return code is dropped, as the cut is when COPT refuses
+            // it: thrown from here, an error would cross COPT_Solve's frames.
+            COPT->AddCallbackUserCut(
+                cbdata, static_cast<int>(tmp_indices.size()),
+                tmp_indices.data(), tmp_scalars.data(),
+                constraint_sense_to_copt_sense(cut->sense), cut->rhs);
+        }
+
+    public:
+        std::size_t num_variables() {
+            int num;
+            check(COPT->GetIntAttr(prob, COPT_INTATTR_COLS, &num));
+            return static_cast<std::size_t>(num);
+        }
+        template <linear_constraint LC>
+        void add_user_cut(LC && lc) {
+            _add_user_cut<false>(std::forward<LC>(lc));
+        }
+        template <linear_constraint LC>
+        void add_user_cut(distinct_variables_t, LC && lc) {
+            _add_user_cut<true>(std::forward<LC>(lc));
+        }
+        double get_solution_value() {
+            double obj;
+            check(COPT->GetCallbackInfo(cbdata, COPT_CBINFO_RELAXSOLOBJ, &obj));
+            return obj;
+        }
+        auto get_solution() {
+            auto num_vars = num_variables();
+            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
+            std::copy_n(_relaxation_values(), num_vars, solution.get());
+            return variable_mapping(std::move(solution));
+        }
+        // COPT takes the point at once, against the rows it holds, and never
+        // shows it to the candidate callback: a point a lazy constraint not
+        // added yet would cut off becomes the incumbent. The return code is
+        // dropped: thrown from here, an error would cross COPT_Solve's frames.
+        template <detail::point_of<variable, double> Point>
+        void add_solution(Point && point) {
+            _register_point(point, num_variables(),
+                            [](const int id) { return variable(id); });
+            double value;
+            COPT->AddCallbackSolution(cbdata, tmp_scalars.data(), &value);
         }
     };
 
@@ -147,6 +272,8 @@ public:
 
 private:
     std::function<void(candidate_solution_callback_handle &)> solution_callback;
+    std::function<void(node_relaxation_callback_handle &)>
+        node_relaxation_callback;
     std::function<void(progress_callback_handle &)> progress_callback;
     // COPT drops the bound of a search stopped without an incumbent: BestBnd
     // and ObjBound then read +1e30 in either sense, which when minimizing
@@ -154,13 +281,32 @@ private:
     // runs.
     double _search_bound = 0.0;
 
+    // COPT's guide promises no serialization of its callbacks: none was seen
+    // to overlap, and the mutex is what makes "never two at once" a promise.
+    // It lives for one solve, as a member it would cost the model its moves,
+    // and a static one would deadlock a solve nested in a callback.
+    struct callback_context {
+        copt_milp * model;
+        // FeasTol, read before COPT_Solve
+        double feasibility_tolerance;
+        std::mutex mutex;
+    };
     static int callback_func(copt_prob * prob, void * cbdata, int cbctx,
                              void * userdata) {
-        auto * model = static_cast<copt_milp *>(userdata);
+        auto & context = *static_cast<callback_context *>(userdata);
+        auto * model = context.model;
+        const std::scoped_lock lock(context.mutex);
         if(cbctx == COPT_CBCONTEXT_MIPSOL) {
-            candidate_solution_callback_handle handle(model->COPT, prob,
-                                                      cbdata);
+            candidate_solution_callback_handle handle(
+                model->COPT, prob, cbdata, context.feasibility_tolerance);
             model->solution_callback(handle);
+            return 0;
+        }
+        // Returns before the path below, which is MIPNODE's and INCUMBENT's:
+        // falling through would run the progress callback on every relaxation.
+        if(cbctx == COPT_CBCONTEXT_MIPRELAX) {
+            node_relaxation_callback_handle handle(model->COPT, prob, cbdata);
+            model->node_relaxation_callback(handle);
             return 0;
         }
         model->check(model->COPT->GetCallbackInfo(cbdata, COPT_CBINFO_BESTBND,
@@ -171,22 +317,24 @@ private:
         }
         return 0;
     }
-    // For the duration of a solve only. The user data is this: registered by a
-    // setter, it dangles once the model moves and the next solve crashes. And
-    // the first solve of compute_iis() would run the candidate callback, whose
-    // lazy constraints can make a feasible model infeasible, and the routine
-    // then flags the whole model.
+    // For the duration of a solve only. The user data lives in solve()'s
+    // frame: registered by a setter, it would dangle once the model moves and
+    // the next solve would crash. And the first solve of compute_iis() would
+    // run the candidate callback, whose lazy constraints can make a feasible
+    // model infeasible, and the routine then flags the whole model.
     // Progress stays off MIPSOL: that context alone acts as LazyConstraints=1,
     // which turns presolve reductions off and changes the search. MIPNODE,
     // which keeps _search_bound, leaves it alone and costs nothing measurable.
-    [[nodiscard]] auto _attached_callbacks() {
+    [[nodiscard]] auto _attached_callbacks(callback_context & context) {
         int sense;
         check(COPT->GetIntAttr(prob, COPT_INTATTR_OBJSENSE, &sense));
         _search_bound = sense == COPT_MINIMIZE ? -COPT_INFINITY : COPT_INFINITY;
-        const int contexts = COPT_CBCONTEXT_MIPNODE |
-                             (solution_callback ? COPT_CBCONTEXT_MIPSOL : 0) |
-                             (progress_callback ? COPT_CBCONTEXT_INCUMBENT : 0);
-        check(COPT->SetCallback(prob, callback_func, contexts, this));
+        const int contexts =
+            COPT_CBCONTEXT_MIPNODE |
+            (solution_callback ? COPT_CBCONTEXT_MIPSOL : 0) |
+            (node_relaxation_callback ? COPT_CBCONTEXT_MIPRELAX : 0) |
+            (progress_callback ? COPT_CBCONTEXT_INCUMBENT : 0);
+        check(COPT->SetCallback(prob, callback_func, contexts, &context));
         return detail::restore_guard(
             [this] { check(COPT->SetCallback(prob, nullptr, 0, nullptr)); });
     }
@@ -195,6 +343,13 @@ public:
     template <typename F>
     void set_candidate_solution_callback(F && f) {
         solution_callback = std::forward<F>(f);
+    }
+    template <typename F>
+    void set_node_relaxation_callback(F && f) {
+        node_relaxation_callback = std::forward<F>(f);
+    }
+    auto release_node_relaxation_callback() {
+        return std::exchange(node_relaxation_callback, nullptr);
     }
     template <typename F>
     void set_progress_callback(F && f) {
@@ -316,7 +471,8 @@ public:
         reset_status();  // a solve that throws reports unknown
         check(COPT->GetIntAttr(prob, COPT_INTATTR_ISMIP, &_is_mip));
         if(_is_mip) {
-            const auto detach = _attached_callbacks();
+            callback_context context{this, get_feasibility_tolerance(), {}};
+            const auto detach = _attached_callbacks(context);
             check(COPT->Solve(prob));
             _status = _get_status_milp();
         } else {

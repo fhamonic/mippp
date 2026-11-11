@@ -152,23 +152,26 @@ private:
         candidate_solution_callback;
     std::function<void(progress_callback_handle &)> progress_callback;
 
-    static void candidate_solution_callback_fun(
-        XPRSprob cbprob, void * cbdata, [[maybe_unused]] int soltype,
-        int * p_reject, [[maybe_unused]] double * p_cutoff) {
-        auto * model = static_cast<xpress_milp *>(cbdata);
-        candidate_solution_callback_handle handle(
-            model->XPRS, cbprob, model->objective_offset, p_reject);
-        model->candidate_solution_callback(handle);
-    }
-    // MUTEXCALLBACKS does not list miplog, which runs on the worker threads:
-    // without this mutex nothing promises that two calls do not overlap.
-    // Lives for one solve, as a member it would cost the model its moves.
-    struct progress_context {
+    // MUTEXCALLBACKS does not list miplog, which runs on the worker threads,
+    // and Xpress promises nothing between its callbacks of different kinds:
+    // without this mutex nothing says that two calls do not overlap. Lives
+    // for one solve, as a member it would cost the model its moves.
+    struct callback_context {
         xpress_milp * model;
         std::mutex mutex;
     };
+    static void candidate_solution_callback_fun(
+        XPRSprob cbprob, void * cbdata, [[maybe_unused]] int soltype,
+        int * p_reject, [[maybe_unused]] double * p_cutoff) {
+        auto & context = *static_cast<callback_context *>(cbdata);
+        const std::scoped_lock lock(context.mutex);
+        candidate_solution_callback_handle handle(
+            context.model->XPRS, cbprob, context.model->objective_offset,
+            p_reject);
+        context.model->candidate_solution_callback(handle);
+    }
     static void report_progress(XPRSprob cbprob, void * cbdata) {
-        auto & context = *static_cast<progress_context *>(cbdata);
+        auto & context = *static_cast<callback_context *>(cbdata);
         const std::scoped_lock lock(context.mutex);
         progress_callback_handle handle(context.model->XPRS, cbprob,
                                         context.model->objective_offset);
@@ -180,16 +183,17 @@ private:
     }
     // For the duration of a solve only. Each addcb adds one more call, so a
     // setter registering would run the callback once per registration. The
-    // user data is this: registered by a setter, it dangles once the model
-    // moves and the next solve crashes. And the MIP solves of compute_iis()
-    // would run the candidate callback, whose rejection makes a feasible
-    // subsystem read infeasible and the answer name the whole model.
-    [[nodiscard]] auto _attached_callbacks(progress_context & context) {
+    // user data lives in solve()'s frame: registered by a setter, it would
+    // dangle once the model moves and the next solve would crash. And the
+    // MIP solves of compute_iis() would run the candidate callback, whose
+    // rejection makes a feasible subsystem read infeasible and the answer
+    // name the whole model.
+    [[nodiscard]] auto _attached_callbacks(callback_context & context) {
         const bool candidate = static_cast<bool>(candidate_solution_callback);
         const bool progress = static_cast<bool>(progress_callback);
         if(candidate)
             check(XPRS->addcbpreintsol(prob, candidate_solution_callback_fun,
-                                       this, 1));
+                                       &context, 1));
         if(progress) {
             check(XPRS->addcbmiplog(prob, progress_miplog_fun, &context, 0));
             check(XPRS->addcbintsol(prob, report_progress, &context, 0));
@@ -197,7 +201,7 @@ private:
         return detail::restore_guard([this, candidate, progress, &context] {
             if(candidate)
                 check(XPRS->removecbpreintsol(
-                    prob, candidate_solution_callback_fun, this));
+                    prob, candidate_solution_callback_fun, &context));
             if(progress) {
                 check(
                     XPRS->removecbmiplog(prob, progress_miplog_fun, &context));
@@ -345,7 +349,7 @@ public:
             _mark_results_valid();
             return;
         }
-        progress_context context{this, {}};
+        callback_context context{this, {}};
         const auto detach = _attached_callbacks(context);
         check(XPRS->mipoptimize(prob, nullptr));
         _status = _get_status();

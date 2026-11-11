@@ -9,6 +9,7 @@
 #include <ranges>
 #include <span>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -26,6 +27,21 @@
 namespace mippp {
 
 namespace detail {
+
+// What release_node_relaxation_callback() hands over, and nothing on a model
+// without such a callback.
+struct no_node_relaxation_callback {};
+template <typename M>
+struct released_node_callback {
+    using type = no_node_relaxation_callback;
+};
+template <has_node_relaxation_callback M>
+struct released_node_callback<M> {
+    using type = std::decay_t<
+        decltype(std::declval<M &>().release_node_relaxation_callback())>;
+};
+template <typename M>
+using released_node_callback_t = typename released_node_callback<M>::type;
 
 // A model whose rows the filter writes through their sense and rhs: it reads
 // and writes the sense, writes the rhs, and has neither row-bound setters nor
@@ -183,6 +199,8 @@ private:
 
     // engaged by the first trial when a deadline is forwarded
     std::optional<seconds> _saved_time_limit;
+    // taken from the model by the first trial
+    [[no_unique_address]] detail::released_node_callback_t<M> _node_callback;
 
     bool _mutated = false;
     bool _solved = false;
@@ -315,6 +333,12 @@ public:
             // set before the write, so that a throwing set_objective is
             // still followed by the restore of the objective
             _mutated = true;
+            // A user cut is valid for the model, not for a trial that
+            // relaxed the row it comes from: left set, the callback keeps
+            // enforcing that row, the trial reads infeasible without it, and
+            // the filter names a feasible subsystem.
+            if constexpr(has_node_relaxation_callback<M>)
+                _node_callback = _model.release_node_relaxation_callback();
             _model.set_objective(empty_linear_expression<variable, scalar>);
         }
         _apply(active);
@@ -369,6 +393,11 @@ public:
                 }
             });
             attempt([&] { _model.set_objective_offset(_offset); });
+            if constexpr(has_node_relaxation_callback<M>)
+                attempt([&] {
+                    _model.set_node_relaxation_callback(
+                        std::move(_node_callback));
+                });
             if constexpr(has_time_limit<M>) {
                 if(_saved_time_limit)
                     attempt([&] { _model.set_time_limit(*_saved_time_limit); });

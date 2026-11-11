@@ -7,8 +7,10 @@
 #include <ranges>
 #include <utility>
 #include <variant>
+#include <vector>
 
 #include "mippp/detail/restore_guard.hpp"
+#include "mippp/detail/row_preparation.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
@@ -159,15 +161,120 @@ public:
                                     &obj));
             return obj;
         }
+        // Captures neither the handle nor the model: a point kept past the
+        // call would read a dead frame through the first, and another
+        // variable's value through the second once a variable is removed.
         auto get_solution() {
             auto solution =
                 std::make_unique_for_overwrite<double[]>(num_variables());
             check(parent.GRB->cbget(cbdata, GRB_CB_MIPSOL, GRB_CB_MIPSOL_SOL,
                                     solution.get()));
-            return variable_mapping(
-                [this, solution = std::move(solution)](const variable & x) {
-                    return *(solution.get() + parent._native_id(x));
-                });
+            return variable_mapping([native_id = parent._frozen_native_id(),
+                                     solution = std::move(solution)](
+                                        const variable & x) -> double & {
+                return *(solution.get() + native_id(x));
+            });
+        }
+        // `value` reads GRB_INFINITY whatever the point: from MIPSOL Gurobi
+        // stores it and tries it later, showing it to this callback again.
+        // The return code is dropped: thrown from here, an error would cross
+        // GRBoptimize's frames.
+        template <detail::point_of<variable, double> Point>
+        void add_solution(Point && point) {
+            _register_point(point, num_variables(), [this](const int id) {
+                return parent._var_handle(id);
+            });
+            double value;
+            parent.GRB->cbsolution(cbdata, tmp_scalars.data(), &value);
+        }
+    };
+
+    class node_relaxation_callback_handle : public callback_handle_base,
+                                            protected model_base<int, double> {
+    private:
+        std::unique_ptr<double[]> _relaxation;
+
+        friend gurobi_milp;
+        node_relaxation_callback_handle(const gurobi_milp & parent_,
+                                        GRBmodel * master_model_,
+                                        void * cbdata_)
+            : callback_handle_base(parent_, master_model_, cbdata_)
+            , model_base<int, double>() {}
+
+        // the relaxation point in column order, read once per call
+        const double * _relaxation_values() {
+            if(!_relaxation) {
+                _relaxation =
+                    std::make_unique_for_overwrite<double[]>(num_variables());
+                check(parent.GRB->cbget(cbdata, GRB_CB_MIPNODE,
+                                        GRB_CB_MIPNODE_REL, _relaxation.get()));
+            }
+            return _relaxation.get();
+        }
+
+        template <bool distinct, linear_constraint LC>
+        void _add_user_cut(LC && lc) {
+            if constexpr(!distinct) _prepare_coalescing(num_variables());
+            _reset_cache();
+            const auto native_id = [this](const variable & v) {
+                return parent._native_id(v);
+            };
+            if constexpr(distinct)
+                _register_raw_entries(lc.linear_terms(), native_id);
+            else
+                _register_coalescing_entries(lc.linear_terms(), native_id);
+            const auto cut = detail::prepare_user_cut(
+                tmp_indices, tmp_scalars, lc.sense(),
+                static_cast<double>(lc.rhs()), _relaxation_values());
+            if(!cut) return;
+            // The return code is dropped, as the cut is when Gurobi refuses
+            // it: thrown from here, an error would cross GRBoptimize's frames.
+            parent.GRB->cbcut(cbdata, static_cast<int>(tmp_indices.size()),
+                              tmp_indices.data(), tmp_scalars.data(),
+                              constraint_sense_to_gurobi_sense(cut->sense),
+                              cut->rhs);
+        }
+
+    public:
+        template <linear_constraint LC>
+        void add_user_cut(LC && lc) {
+            _add_user_cut<false>(std::forward<LC>(lc));
+        }
+        template <linear_constraint LC>
+        void add_user_cut(distinct_variables_t, LC && lc) {
+            _add_user_cut<true>(std::forward<LC>(lc));
+        }
+        // Gurobi's callback reads no value for the relaxation point.
+        double get_solution_value() {
+            const double * point = _relaxation_values();
+            double value = parent._relaxation_objective_offset;
+            for(std::size_t i = 0; i < parent._relaxation_objective.size(); ++i)
+                value += parent._relaxation_objective[i] * point[i];
+            return value;
+        }
+        // Captures neither the handle nor the model: a point kept past the
+        // call would read a dead frame through the first, and another
+        // variable's value through the second once a variable is removed.
+        auto get_solution() {
+            const std::size_t num_vars = num_variables();
+            auto solution = std::make_unique_for_overwrite<double[]>(num_vars);
+            std::copy_n(_relaxation_values(), num_vars, solution.get());
+            return variable_mapping([native_id = parent._frozen_native_id(),
+                                     solution = std::move(solution)](
+                                        const variable & x) -> double & {
+                return *(solution.get() + native_id(x));
+            });
+        }
+        // From MIPNODE Gurobi tries the point at once, and shows it to the
+        // candidate callback before taking it. The return code is dropped:
+        // thrown from here, an error would cross GRBoptimize's frames.
+        template <detail::point_of<variable, double> Point>
+        void add_solution(Point && point) {
+            _register_point(point, num_variables(), [this](const int id) {
+                return parent._var_handle(id);
+            });
+            double value;
+            parent.GRB->cbsolution(cbdata, tmp_scalars.data(), &value);
         }
     };
 
@@ -200,7 +307,14 @@ public:
 private:
     std::function<void(candidate_solution_callback_handle &)>
         candidate_solution_callback;
+    std::function<void(node_relaxation_callback_handle &)>
+        node_relaxation_callback;
     std::function<void(progress_callback_handle &)> progress_callback;
+    // set by the setter, cleared by the solve that honours it
+    bool _candidate_callback_is_new = false;
+    // the objective as the solve started, in column order
+    std::vector<double> _relaxation_objective;
+    double _relaxation_objective_offset = 0.0;
 
     static int main_callback(GRBmodel * master_model, void * cbdata, int where,
                              void * usrdata) {
@@ -209,6 +323,19 @@ private:
             candidate_solution_callback_handle handle(parent, master_model,
                                                       cbdata);
             parent.candidate_solution_callback(handle);
+        } else if((where == GRB_CB_MIPNODE) &&
+                  parent.node_relaxation_callback) {
+            // MIPNODE also fires on nodes whose relaxation is infeasible,
+            // unbounded or cut off, where the point it reads is garbage: a
+            // separator would still find "violated" cuts in it.
+            int status;
+            if(parent.GRB->cbget(cbdata, GRB_CB_MIPNODE, GRB_CB_MIPNODE_STATUS,
+                                 &status) != 0 ||
+               status != GRB_OPTIMAL)
+                return 0;
+            node_relaxation_callback_handle handle(parent, master_model,
+                                                   cbdata);
+            parent.node_relaxation_callback(handle);
         } else if((where == GRB_CB_MIP) && parent.progress_callback) {
             progress_callback_handle handle(parent, master_model, cbdata);
             parent.progress_callback(handle);
@@ -217,11 +344,39 @@ private:
     }
     // For the duration of a solve only. The user data is this: registered by a
     // setter, it dangles once the model moves and the next solve crashes.
+    // PreCrush is written here and not by the setter, which would leave every
+    // later solve paying for it: on models with parallel integer columns it
+    // cost 100 to 300 times the nodes. Without it Gurobi ignores, with no
+    // error, a cut on columns its presolve merged.
     [[nodiscard]] auto _attached_callbacks() {
-        const bool attach = candidate_solution_callback || progress_callback;
+        const bool cuts = static_cast<bool>(node_relaxation_callback);
+        const bool attach =
+            candidate_solution_callback || cuts || progress_callback;
+        int precrush = 0;
+        if(cuts) {
+            update_gurobi_model();
+            _relaxation_objective.resize(_num_var_native_ids);
+            if(_num_var_native_ids > 0)
+                check(
+                    GRB->getdblattrarray(model, GRB_DBL_ATTR_OBJ, 0,
+                                         static_cast<int>(_num_var_native_ids),
+                                         _relaxation_objective.data()));
+            check(GRB->getdblattr(model, GRB_DBL_ATTR_OBJCON,
+                                  &_relaxation_objective_offset));
+            check(GRB->getintparam(env, GRB_INT_PAR_PRECRUSH, &precrush));
+            check(GRB->setintparam(env, GRB_INT_PAR_PRECRUSH, 1));
+        }
         if(attach) check(GRB->setcallbackfunc(model, main_callback, this));
-        return detail::restore_guard([this, attach] {
-            if(attach) check(GRB->setcallbackfunc(model, nullptr, nullptr));
+        return detail::restore_guard([this, attach, cuts, precrush] {
+            int first_error = 0;
+            if(attach)
+                first_error = GRB->setcallbackfunc(model, nullptr, nullptr);
+            if(cuts) {
+                const int error =
+                    GRB->setintparam(env, GRB_INT_PAR_PRECRUSH, precrush);
+                if(first_error == 0) first_error = error;
+            }
+            check(first_error);
         });
     }
 
@@ -230,6 +385,14 @@ public:
     void set_candidate_solution_callback(F && f) {
         check(GRB->setintparam(env, GRB_INT_PAR_LAZYCONSTRAINTS, 1));
         candidate_solution_callback = std::forward<F>(f);
+        _candidate_callback_is_new = true;
+    }
+    template <typename F>
+    void set_node_relaxation_callback(F && f) {
+        node_relaxation_callback = std::forward<F>(f);
+    }
+    auto release_node_relaxation_callback() {
+        return std::exchange(node_relaxation_callback, nullptr);
     }
     // Not through the candidate callback's setter: LazyConstraints turns off
     // presolve reductions, and watching a search must not change it.
@@ -358,6 +521,11 @@ public:
     ///////////////////////////////////////////////////////////////////////////
     void solve() {
         reset_status();  // a solve that throws reports unknown
+        // A callback is no change to Gurobi: after a finished solve it hands
+        // back the solution it holds, which a candidate callback set since
+        // never saw and may forbid. 0 keeps the MIP starts.
+        if(std::exchange(_candidate_callback_is_new, false))
+            check(GRB->reset(model, 0));
         const auto detach = _attached_callbacks();
         check(GRB->optimize(model));
         _status = _get_status();

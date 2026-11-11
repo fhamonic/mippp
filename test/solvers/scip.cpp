@@ -183,6 +183,10 @@ INSTANTIATE_TEST(SCIP, ReadableConstraintBoundsTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, ModifiableConstraintBoundsTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, IisByDeletionTest, scip_milp_iis_test);
 // INSTANTIATE_TEST(SCIP, CandidateSolutionCallbackTest, scip_milp_test);
+// INSTANTIATE_TEST(SCIP, SolutionInjectionTest, scip_milp_test);
+// not wired yet: a separator plugin adding rows to the LP and the cut pool
+// INSTANTIATE_TEST(SCIP, NodeRelaxationCallbackTest, scip_milp_test);
+// INSTANTIATE_TEST(SCIP, UserCutsTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, SudokuTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, TimeLimitTest, scip_milp_test);
 INSTANTIATE_TEST(SCIP, TimeLimitIncumbentTest, scip_milp_test);

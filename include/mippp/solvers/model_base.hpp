@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <concepts>
 #include <cstddef>
 #include <limits>
 #include <optional>
@@ -13,6 +14,7 @@
 
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
+#include "mippp/mapping.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/solver_exceptions.hpp"
@@ -31,6 +33,12 @@ template <std::floating_point Scalar>
     if(value <= -threshold) return -std::numeric_limits<Scalar>::infinity();
     return value;
 }
+// What add_solution reads a point through: a value for any variable, of a type
+// the solver's scalar is built from. Weaker than input_mapping_of, so that a
+// rounding heuristic can hand over integers.
+template <typename Point, typename Variable, typename Scalar>
+concept point_of = input_mapping<Point, Variable> &&
+                   std::convertible_to<mapped_value_t<Point, Variable>, Scalar>;
 }  // namespace detail
 
 // Backends derive from this class (and from remapping_model_base) with
@@ -364,6 +372,19 @@ protected:
         } else {
             _register_coalescing_entries(std::forward<Entries>(entries));
         }
+    }
+
+    // tmp_scalars becomes the point in the solver's column order.
+    // handle_of(native_id) is the variable a column belongs to.
+    template <typename Point, typename HandleOf>
+        requires detail::point_of<Point, variable, Scalar> &&
+                 std::is_invocable_r_v<variable, HandleOf, Index>
+    void _register_point(Point && point, const std::size_t num_columns,
+                         HandleOf && handle_of) {
+        tmp_scalars.resize(num_columns);
+        for(std::size_t i = 0; i < num_columns; ++i)
+            tmp_scalars[i] =
+                static_cast<Scalar>(point[handle_of(static_cast<Index>(i))]);
     }
 
     template <bool raw, std::ranges::range Entries>

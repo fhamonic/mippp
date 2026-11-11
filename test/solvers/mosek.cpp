@@ -449,6 +449,10 @@ INSTANTIATE_TEST(MOSEK_milp, DualBoundTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, NodeCountTest, mosek_milp_test);
 // INSTANTIATE_TEST(MOSEK_milp, IntegralityToleranceTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, VerbosityTest, mosek_milp_test);
+// MOSEK forbids calling the solver from a callback: a row added there is
+// ignored for that solve.
+// INSTANTIATE_TEST(MOSEK_milp, NodeRelaxationCallbackTest, mosek_milp_test);
+// INSTANTIATE_TEST(MOSEK_milp, UserCutsTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ProgressCallbackTest, mosek_milp_test);
 INSTANTIATE_TEST(MOSEK_milp, ProgressCallbackNodeCountTest, mosek_milp_test);
 // no candidate solution callback
