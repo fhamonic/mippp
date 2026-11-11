@@ -58,28 +58,40 @@ jobs:
           zensical build --clean 2>&1 | tee zensical.log
           grep -q "No issues found" zensical.log
 
+  # The GCC 15 jobs run on the ubuntu-26.04 runner itself: Ubuntu 26.04 is
+  # the first LTS with GCC 15, and its image already has CMake, Git and pipx,
+  # whose tools land on the PATH. Named, not ubuntu-latest: when that label
+  # moves on, the compilers and the solver releases move with it, and what
+  # these jobs validate changes without a line of this file changing.
   linux-gcc15-build:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:25.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - name: Update APT
-        run: apt-get update && apt-get upgrade -y
-      - name: Install GCC-15, CMake and Git
-        run: apt-get install -y gcc-15 g++-15 cmake git
-      - name: Install the HiGHS solver
-        run: apt-get install -y highs libhighs1
-      - name: Install Conan 2.0
+        run: sudo apt-get update
+      - name: Install GCC-15
+        run: sudo apt-get install -y gcc-15 g++-15
+      # A HiGHS release, not Ubuntu's libhighs1: 26.04 builds that package
+      # with assertions on, and HiGHS trips one of its own where a release
+      # build goes on, which aborts the test process (an integer column left
+      # at a fractional bound, on integer_in_a_fractional_interval). 1.15.1
+      # as in the MSVC jobs, a fully supported release. HiGHS publishes no
+      # shared library for Linux: its static one is position-independent, so
+      # it links into the libhighs.so MIP++ loads. -z defs turns a dependency
+      # a later release adds into an error of this step, not of a test.
+      - name: Fetch HiGHS
         run: |
-          apt-get install -y pipx
-          pipx install conan
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          curl -fsSL -o highs.tar.gz https://github.com/ERGO-Code/HiGHS/releases/download/v1.15.1/highs-1.15.1-x86_64-linux-gnu-static-mit.tar.gz
+          mkdir highs && tar -xzf highs.tar.gz -C highs lib
+          g++-15 -shared -o highs/libhighs.so -Wl,-z,defs -Wl,--whole-archive highs/lib/libhighs.a highs/lib/libhighs_extras.a -Wl,--no-whole-archive -l:libz.so.1
+      - name: Install Conan 2.0
+        run: pipx install conan
       - name: Detect conan profile
         run: conan profile detect --name=default
       - name: Build and run the HiGHS tests
         env:
           TEST_SOURCE: highs
+          MIPPP_HIGHS_LIBRARY: ${{ github.workspace }}/highs/libhighs.so
           MIPPP_REQUIRED_SOLVERS: "HIGHS"
         run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26
 
@@ -138,22 +150,23 @@ jobs:
   # reports lose their line precision. Conan rather than plain CMake because
   # the tests need GTest and MELON, which the CMake tree does not fetch.
   linux-gcc15-sanitize:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:25.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - name: Update APT
-        run: apt-get update && apt-get upgrade -y
-      - name: Install GCC-15, CMake and Git
-        run: apt-get install -y gcc-15 g++-15 cmake git
-      - name: Install open-source solvers
-        run: apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev highs libhighs1 libglpk-dev
-      - name: Install Conan 2.0
+        run: sudo apt-get update
+      - name: Install GCC-15
+        run: sudo apt-get install -y gcc-15 g++-15
+      - name: Install the Clp, Cbc and GLPK solvers
+        run: sudo apt-get install -y coinor-clp coinor-libclp-dev coinor-cbc coinor-libcbc-dev libglpk-dev
+      # see linux-gcc15-build
+      - name: Fetch HiGHS
         run: |
-          apt-get install -y pipx
-          pipx install conan
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          curl -fsSL -o highs.tar.gz https://github.com/ERGO-Code/HiGHS/releases/download/v1.15.1/highs-1.15.1-x86_64-linux-gnu-static-mit.tar.gz
+          mkdir highs && tar -xzf highs.tar.gz -C highs lib
+          g++-15 -shared -o highs/libhighs.so -Wl,-z,defs -Wl,--whole-archive highs/lib/libhighs.a highs/lib/libhighs_extras.a -Wl,--no-whole-archive -l:libz.so.1
+      - name: Install Conan 2.0
+        run: pipx install conan
       - name: Detect conan profile
         run: conan profile detect --name=default
       # Two jobs, not the runner's four: a sanitized solver file peaks at
@@ -167,20 +180,19 @@ jobs:
       - name: Build and run the whole suite with ASan and UBSan
         env:
           TEST_SANITIZE: address,undefined
+          MIPPP_HIGHS_LIBRARY: ${{ github.workspace }}/highs/libhighs.so
           MIPPP_REQUIRED_SOLVERS: "CLP;CBC;GLPK;HIGHS"
         run: conan build . -of=build -b=missing -pr=.github/conan-profiles/gcc15_c++26 -s build_type=Debug -c tools.build:jobs=2 -c 'tools.build:defines=["MIPPP_PORTABLE_RANGE_SHAPES"]'
 
   linux-cmake-submodule:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:25.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Update APT
-        run: apt-get update && apt-get upgrade -y
-      - name: Install GCC-15 and CMake
-        run: apt-get install -y gcc-15 g++-15 cmake
+        run: sudo apt-get update
+      - name: Install GCC-15
+        run: sudo apt-get install -y gcc-15 g++-15
       - name: Install the HiGHS solver
-        run: apt-get install -y highs libhighs1
+        run: sudo apt-get install -y highs libhighs1
       - uses: actions/checkout@v7
         with:
           path: consumer/external/mippp
@@ -210,20 +222,18 @@ jobs:
           tail -n 2 output.txt | diff -u consumer/external/mippp/.github/simple_lp_expected_output.txt -
 
   linux-cmake-install:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:25.04
+    runs-on: ubuntu-26.04
     env:
       CC: gcc-15
       CXX: g++-15
     steps:
       - uses: actions/checkout@v7
       - name: Update APT
-        run: apt-get update && apt-get upgrade -y
-      - name: Install GCC-15 and CMake
-        run: apt-get install -y gcc-15 g++-15 cmake
+        run: sudo apt-get update
+      - name: Install GCC-15
+        run: sudo apt-get install -y gcc-15 g++-15
       - name: Install the HiGHS solver
-        run: apt-get install -y highs libhighs1
+        run: sudo apt-get install -y highs libhighs1
       - name: Install mippp into a prefix
         run: |
           cmake -S . -B build \
@@ -254,22 +264,17 @@ jobs:
   # never runs package() or package_info(), so the recipe's packaging half is
   # checked only here, by consuming the created package.
   linux-conan-create:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:25.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - name: Update APT
-        run: apt-get update && apt-get upgrade -y
-      - name: Install GCC-15 and CMake
-        run: apt-get install -y gcc-15 g++-15 cmake
+        run: sudo apt-get update
+      - name: Install GCC-15
+        run: sudo apt-get install -y gcc-15 g++-15
       - name: Install the HiGHS solver
-        run: apt-get install -y highs libhighs1
+        run: sudo apt-get install -y highs libhighs1
       - name: Install Conan 2.0
-        run: |
-          apt-get install -y pipx
-          pipx install conan
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        run: pipx install conan
       - name: Detect conan profile
         run: conan profile detect --name=default
       - name: Create the package
