@@ -79,7 +79,24 @@ INSTANTIATE_TEST(COPT_lp, LpBasisTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, LpBasisWarmStartTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, VerbosityTest, copt_lp_test);
 INSTANTIATE_TEST(COPT_lp, ThreadLimitTest, copt_lp_test);
+INSTANTIATE_TEST(COPT_lp, LpAlgorithmTest, copt_lp_test);
 static_assert(has_lp_basis_warm_start<copt_lp>);
+
+// COPT's LpMethod has no primal simplex, so neither side-less "simplex" nor
+// primal_simplex is listed, and the selector is an LP member. Its barrier
+// without crossover is left to the native handle: COPT 8.0 then reports LPs
+// that have no optimum as optimal, with an objective value.
+static_assert(has_lp_algorithm<copt_lp>);
+static_assert(has_lp_algorithm<copt_lp, lp_algorithm::dual_simplex>);
+static_assert(has_lp_algorithm<copt_lp, lp_algorithm::interior_point>);
+static_assert(
+    !has_lp_algorithm<copt_lp, lp_algorithm::interior_point_without_crossover>);
+static_assert(!has_lp_algorithm<copt_lp, lp_algorithm::primal_simplex>);
+static_assert(!has_lp_algorithm<copt_lp, lp_algorithm::simplex>);
+static_assert(!has_lp_algorithm<copt_lp, lp_algorithm::other>);
+static_assert(variant_with_alternative<model_lp_algorithm_t<copt_lp>,
+                                       lp_algorithm::other>);
+static_assert(!has_lp_algorithm<copt_milp>);
 
 namespace {
 int simplex_iterations(const copt_lp & model) {
@@ -94,6 +111,84 @@ int simplex_iterations(const copt_lp & model) {
 }  // namespace
 
 // copt_lp has no iteration limit: COPT's own count proves the warm start
+namespace {
+int copt_int_attribute(const copt_lp & model, const char * name) {
+    int value = -1;
+    model.native_api()._check(model.native_model().first,
+                              model.native_api().GetIntAttr(
+                                  model.native_model().second, name, &value));
+    return value;
+}
+int copt_int_parameter(const copt_lp & model, const char * name) {
+    int value = -99;
+    model.native_api()._check(model.native_model().first,
+                              model.native_api().GetIntParam(
+                                  model.native_model().second, name, &value));
+    return value;
+}
+}  // namespace
+
+// The shared suite cannot see which algorithm ran: COPT's counters can.
+TEST_F(copt_lp_test, each_lp_algorithm_runs_the_one_it_names) {
+    using namespace copt::impl::v1;
+    SkipOnLicenseError([this]() {
+        struct run {
+            int method, crossover, simplex, barrier;
+        };
+        const auto solved_under = [this](auto algorithm) {
+            auto model = new_model();
+            lp_basis_cases::build_dense(model);
+            model.set_lp_algorithm(algorithm);
+            model.solve();
+            EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+            return run{copt_int_parameter(model, COPT_INTPARAM_LPMETHOD),
+                       copt_int_parameter(model, COPT_INTPARAM_CROSSOVER),
+                       copt_int_attribute(model, COPT_INTATTR_SIMPLEXITER),
+                       copt_int_attribute(model, COPT_INTATTR_BARRIERITER)};
+        };
+        {
+            const run r = solved_under(lp_algorithm::dual_simplex{});
+            EXPECT_EQ(r.method, 1);
+            EXPECT_GT(r.simplex, 0);
+            EXPECT_EQ(r.barrier, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::interior_point{});
+            EXPECT_EQ(r.method, 2);
+            EXPECT_EQ(r.crossover, 1);
+            EXPECT_GT(r.barrier, 0);
+        }
+        {
+            const run r = solved_under(lp_algorithm::automatic{});
+            EXPECT_EQ(r.method, -1);
+            EXPECT_EQ(r.crossover, 1);
+        }
+    });
+}
+
+// The concurrent method is no tag, and neither is a barrier whose crossover
+// is off or left to COPT: they read as other, and interior_point puts the
+// crossover back.
+TEST_F(copt_lp_test, a_native_lp_method_reads_as_other) {
+    using namespace copt::impl::v1;
+    SkipOnLicenseError([this]() {
+        auto model = new_model();
+        const auto & native = model.native_api();
+        const auto [env, prob] = model.native_model();
+        native._check(env, native.SetIntParam(prob, COPT_INTPARAM_LPMETHOD, 4));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+        native._check(env, native.SetIntParam(prob, COPT_INTPARAM_LPMETHOD, 2));
+        EXPECT_TRUE(is<lp_algorithm::interior_point>(model.get_lp_algorithm()));
+        for(const int crossover : {-1, 0}) {
+            native._check(env, native.SetIntParam(prob, COPT_INTPARAM_CROSSOVER,
+                                                  crossover));
+            EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+        }
+        model.set_lp_algorithm(lp_algorithm::interior_point{});
+        EXPECT_EQ(copt_int_parameter(model, COPT_INTPARAM_CROSSOVER), 1);
+    });
+}
+
 TEST_F(copt_lp_test, set_basis_starts_at_the_optimum) {
     auto a = new_model();
     lp_basis_cases::build_dense(a);

@@ -107,6 +107,7 @@ INSTANTIATE_TEST(CPLEX_lp, LpBasisWarmStartTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, OptimalityToleranceTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, VerbosityTest, cplex_lp_test);
 INSTANTIATE_TEST(CPLEX_lp, ThreadLimitTest, cplex_lp_test);
+INSTANTIATE_TEST(CPLEX_lp, LpAlgorithmTest, cplex_lp_test);
 
 struct cplex_milp_test : public model_test<cplex_api, cplex_milp> {
     static void SetUpTestSuite() { construct_api("CPLEX"); }
@@ -324,7 +325,7 @@ TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back) {
 }
 
 // A solve that throws reports unknown, not the status of the solve before it:
-// CPXprimopt refuses a problem turned MIP through the native handle.
+// CPXlpopt refuses a problem turned MIP through the native handle.
 TEST_F(cplex_lp_test, a_throwing_solve_reports_unknown) {
     using namespace operators;
     using namespace cplex::impl::v1;
@@ -341,8 +342,9 @@ TEST_F(cplex_lp_test, a_throwing_solve_reports_unknown) {
     EXPECT_TRUE(is<status::unknown>(model.get_status()));
 }
 
-// CPXprimopt refuses a problem turned MIP through the native handle (error
-// 1017, measured on 22.1.2): both parameters are written back on that throw.
+// The refinement's CPXprimopt refuses a problem turned MIP through the native
+// handle (error 1017, measured on 22.1.2): both parameters are written back
+// on that throw.
 TEST_F(cplex_lp_test, refine_lp_status_writes_its_parameters_back_on_a_throw) {
     using namespace operators;
     using namespace cplex::impl::v1;
@@ -542,6 +544,129 @@ TEST_F(cplex_milp_test, node_limit_stops_compute_iis_without_an_answer) {
 ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Basis ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+// LPMethod has no "either simplex", and the selector is an LP member.
+static_assert(has_lp_algorithm<cplex_lp>);
+static_assert(has_lp_algorithm<cplex_lp, lp_algorithm::primal_simplex>);
+static_assert(has_lp_algorithm<cplex_lp, lp_algorithm::dual_simplex>);
+static_assert(has_lp_algorithm<cplex_lp, lp_algorithm::interior_point>);
+static_assert(
+    has_lp_algorithm<cplex_lp, lp_algorithm::interior_point_without_crossover>);
+static_assert(!has_lp_algorithm<cplex_lp, lp_algorithm::simplex>);
+static_assert(!has_lp_algorithm<cplex_lp, lp_algorithm::other>);
+static_assert(variant_with_alternative<model_lp_algorithm_t<cplex_lp>,
+                                       lp_algorithm::other>);
+static_assert(!has_lp_algorithm<cplex_milp>);
+
+namespace {
+struct cplex_lp_run {
+    int lp_method = 0, solution_type = 0;  // the parameters
+    int method = 0;                        // CPXgetmethod: what ended the solve
+    int simplex_iterations = 0, barrier_iterations = 0;
+    int solution_kind = 0;  // CPXsolninfo: basic or nonbasic
+};
+// The counters are no members of cplex_api: asking the library for them
+// here keeps a release without one of them loadable.
+cplex_lp_run run_of(cplex_lp & model) {
+    using namespace cplex::impl::v1;
+    using counter = int(CPXCENVptr, CPXCLPptr);
+    const auto & native = model.native_api();
+    const auto [env, lp] = model.native_model();
+    const detail::dynamic_library library(native.library_path());
+    cplex_lp_run run;
+    native._check(env,
+                  native.getintparam(env, CPXPARAM_LPMethod, &run.lp_method));
+    native._check(env, native.getintparam(env, CPXPARAM_SolutionType,
+                                          &run.solution_type));
+    run.method = library.get_function<counter>("CPXgetmethod")(env, lp);
+    run.simplex_iterations =
+        library.get_function<counter>("CPXgetitcnt")(env, lp);
+    run.barrier_iterations =
+        library.get_function<counter>("CPXgetbaritcnt")(env, lp);
+    int feasible = 0;
+    native._check(env, native.solninfo(env, lp, nullptr, &run.solution_kind,
+                                       &feasible, &feasible));
+    return run;
+}
+}  // namespace
+
+// The shared suite cannot see which algorithm ran: CPLEX's counters can.
+// After a crossover CPLEX names the simplex that finished, so the barrier
+// shows in its iteration count alone.
+TEST_F(cplex_lp_test, each_lp_algorithm_runs_the_one_it_names) {
+    using namespace cplex::impl::v1;
+    SkipOnLicenseError([this]() {
+        const auto solved_under = [this](auto algorithm) {
+            auto model = new_model();
+            lp_basis_cases::build_dense(model);
+            model.set_lp_algorithm(algorithm);
+            model.solve();
+            EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+            return run_of(model);
+        };
+        {
+            const auto run = solved_under(lp_algorithm::primal_simplex{});
+            EXPECT_EQ(run.lp_method, CPX_ALG_PRIMAL);
+            EXPECT_EQ(run.method, CPX_ALG_PRIMAL);
+            EXPECT_GT(run.simplex_iterations, 0);
+            EXPECT_EQ(run.barrier_iterations, 0);
+        }
+        {
+            const auto run = solved_under(lp_algorithm::dual_simplex{});
+            EXPECT_EQ(run.lp_method, CPX_ALG_DUAL);
+            EXPECT_EQ(run.method, CPX_ALG_DUAL);
+            EXPECT_GT(run.simplex_iterations, 0);
+            EXPECT_EQ(run.barrier_iterations, 0);
+        }
+        {
+            const auto run = solved_under(lp_algorithm::interior_point{});
+            EXPECT_EQ(run.lp_method, CPX_ALG_BARRIER);
+            EXPECT_EQ(run.solution_type, CPX_AUTO_SOLN);
+            EXPECT_GT(run.barrier_iterations, 0);
+            EXPECT_EQ(run.solution_kind, CPX_BASIC_SOLN);
+        }
+        {
+            const auto run =
+                solved_under(lp_algorithm::interior_point_without_crossover{});
+            EXPECT_EQ(run.lp_method, CPX_ALG_BARRIER);
+            EXPECT_EQ(run.solution_type, CPX_NONBASIC_SOLN);
+            EXPECT_EQ(run.method, CPX_ALG_BARRIER);
+            EXPECT_GT(run.barrier_iterations, 0);
+            EXPECT_EQ(run.solution_kind, CPX_NONBASIC_SOLN);
+        }
+        {
+            const auto run = solved_under(lp_algorithm::automatic{});
+            EXPECT_EQ(run.lp_method, CPX_ALG_AUTOMATIC);
+            EXPECT_EQ(run.solution_type, CPX_AUTO_SOLN);
+        }
+    });
+}
+
+// solve() runs CPXlpopt, which reads LPMethod: a value written through the
+// native handle is the algorithm that runs, and reads back as its tag, or as
+// other when no tag writes it.
+TEST_F(cplex_lp_test, a_native_lp_method_is_honoured) {
+    using namespace cplex::impl::v1;
+    SkipOnLicenseError([this]() {
+        auto model = new_model();
+        lp_basis_cases::build_dense(model);
+        const auto & native = model.native_api();
+        const auto [env, lp] = model.native_model();
+        native._check(
+            env, native.setintparam(env, CPXPARAM_LPMethod, CPX_ALG_BARRIER));
+        EXPECT_TRUE(is<lp_algorithm::interior_point>(model.get_lp_algorithm()));
+        model.solve();
+        ASSERT_TRUE(is_a<status::optimal>(model.get_status()));
+        EXPECT_GT(run_of(model).barrier_iterations, 0);
+        native._check(env, native.setintparam(env, CPXPARAM_LPMethod, 6));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+        native._check(env,
+                      native.setintparam(env, CPXPARAM_LPMethod, CPX_ALG_DUAL));
+        native._check(env, native.setintparam(env, CPXPARAM_SolutionType,
+                                              CPX_BASIC_SOLN));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+    });
+}
 
 TEST_F(cplex_lp_test, get_basis_throws_after_presolve_proves_infeasibility) {
     auto model = new_model();

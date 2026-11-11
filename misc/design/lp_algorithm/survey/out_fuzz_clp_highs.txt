@@ -1,0 +1,14 @@
+clp 1124 Clp_dual   : Clp status 1 (0 optimal, 1 primal infeasible, 2 dual infeasible), secondary 0, iterations 1, objective 2
+clp 1124 Clp_primal : Clp status 0 (0 optimal, 1 primal infeasible, 2 dual infeasible), secondary 0, iterations 2, objective 2
+highs 1090 primal_simplex   earlier_solve=true with_x7=true: unknown value=- (model status 15, simplex iterations 7)
+highs 1090 dual_simplex     earlier_solve=true with_x7=true: optimal value=-31 (model status 7, simplex iterations 1)
+highs 1090 automatic        earlier_solve=true with_x7=true: optimal value=-31 (model status 7, simplex iterations 1)
+highs 1090 primal_simplex   earlier_solve=true with_x7=false: unknown value=- (model status 15, simplex iterations 7)
+highs 1090 dual_simplex     earlier_solve=true with_x7=false: optimal value=-31 (model status 7, simplex iterations 1)
+highs 1090 automatic        earlier_solve=true with_x7=false: optimal value=-31 (model status 7, simplex iterations 1)
+highs 1090 primal_simplex   earlier_solve=false with_x7=true: optimal value=-31 (model status 7, simplex iterations 0)
+highs 1090 dual_simplex     earlier_solve=false with_x7=true: optimal value=-31 (model status 7, simplex iterations 0)
+highs 1090 automatic        earlier_solve=false with_x7=true: optimal value=-31 (model status 7, simplex iterations 0)
+highs 1090 primal_simplex   earlier_solve=false with_x7=false: optimal value=-31 (model status 7, simplex iterations 0)
+highs 1090 dual_simplex     earlier_solve=false with_x7=false: optimal value=-31 (model status 7, simplex iterations 0)
+highs 1090 automatic        earlier_solve=false with_x7=false: optimal value=-31 (model status 7, simplex iterations 0)

@@ -43,6 +43,25 @@ struct released_node_callback<M> {
 template <typename M>
 using released_node_callback_t = typename released_node_callback<M>::type;
 
+// A model whose trials can leave an interior point for the dual simplex: it
+// lists both. The algorithm a run takes away is kept for restore(), and
+// nothing is kept on any other model.
+template <typename M>
+concept iis_trials_leave_interior_point =
+    has_lp_algorithm<M, lp_algorithm::dual_simplex> &&
+    variant_containing_a<model_lp_algorithm_t<M>, lp_algorithm::interior_point>;
+struct no_replaced_lp_algorithm {};
+template <typename M>
+struct replaced_lp_algorithm {
+    using type = no_replaced_lp_algorithm;
+};
+template <iis_trials_leave_interior_point M>
+struct replaced_lp_algorithm<M> {
+    using type = std::optional<model_lp_algorithm_t<M>>;
+};
+template <typename M>
+using replaced_lp_algorithm_t = typename replaced_lp_algorithm<M>::type;
+
 // A model whose rows the filter writes through their sense and rhs: it reads
 // and writes the sense, writes the rhs, and has neither row-bound setters nor
 // ranged rows. Each of its rows has one side or the two equal sides of an ==
@@ -201,6 +220,8 @@ private:
     std::optional<seconds> _saved_time_limit;
     // taken from the model by the first trial
     [[no_unique_address]] detail::released_node_callback_t<M> _node_callback;
+    // engaged by the first trial when the model is set to an interior point
+    [[no_unique_address]] detail::replaced_lp_algorithm_t<M> _lp_algorithm;
 
     bool _mutated = false;
     bool _solved = false;
@@ -330,9 +351,22 @@ public:
                 if(_budget.deadline != Clock::time_point::max())
                     _saved_time_limit = seconds(_model.get_time_limit());
             }
+            // A trial is a small change from the previous one, which an
+            // interior point solves from scratch, and without a crossover it
+            // can end an infeasible trial with no verdict, which reads as
+            // inconclusive. Any other choice of the caller stays.
+            if constexpr(detail::iis_trials_leave_interior_point<M>) {
+                auto algorithm = _model.get_lp_algorithm();
+                if(is_a<lp_algorithm::interior_point>(algorithm))
+                    _lp_algorithm = std::move(algorithm);
+            }
             // set before the write, so that a throwing set_objective is
             // still followed by the restore of the objective
             _mutated = true;
+            if constexpr(detail::iis_trials_leave_interior_point<M>) {
+                if(_lp_algorithm)
+                    _model.set_lp_algorithm(lp_algorithm::dual_simplex{});
+            }
             // A user cut is valid for the model, not for a trial that
             // relaxed the row it comes from: left set, the callback keeps
             // enforcing that row, the trial reads infeasible without it, and
@@ -401,6 +435,18 @@ public:
             if constexpr(has_time_limit<M>) {
                 if(_saved_time_limit)
                     attempt([&] { _model.set_time_limit(*_saved_time_limit); });
+            }
+            if constexpr(detail::iis_trials_leave_interior_point<M>) {
+                if(_lp_algorithm)
+                    attempt([&] {
+                        std::visit(
+                            [&](auto algorithm) {
+                                if constexpr(has_lp_algorithm<
+                                                 M, decltype(algorithm)>)
+                                    _model.set_lp_algorithm(algorithm);
+                            },
+                            *_lp_algorithm);
+                    });
             }
         }
         _restored = true;

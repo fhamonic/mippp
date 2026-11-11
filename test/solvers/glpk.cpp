@@ -24,9 +24,10 @@ struct glpk_milp_status_probe : glpk::impl::v1::glpk_milp {
 };
 
 auto simplex_status(int ret, int generic_status, int primal_status,
-                    double objective = 1.0) {
-    return glpk_lp_status_probe::_simplex_status(ret, generic_status,
-                                                 primal_status, objective);
+                    double objective = 1.0,
+                    int dual_status = glpk::impl::v1::GLP_INFEAS) {
+    return glpk_lp_status_probe::_simplex_status(
+        ret, generic_status, primal_status, dual_status, objective);
 }
 auto intopt_status(int ret, int mip_status) {
     return glpk_milp_status_probe::_intopt_status(ret, mip_status);
@@ -101,6 +102,24 @@ TEST(GLPK_simplex_status, completed_search_reads_the_basic_solution) {
     EXPECT_TRUE(is<status::unknown>(feasible));
     EXPECT_TRUE(status::solution_available(feasible));
 }
+// The dual simplex stops on a primal infeasible basis when the dual has no
+// feasible point: the LP has no optimum, and which of the two it is stays
+// open. The presolver's own "no dual feasible solution" says the same.
+TEST(GLPK_simplex_status, a_dual_without_a_point_leaves_the_lp_undecided) {
+    using namespace glpk::impl::v1;
+    EXPECT_TRUE(is<status::infeasible_or_unbounded>(
+        simplex_status(0, GLP_INFEAS, GLP_INFEAS, 1.0, GLP_NOFEAS)));
+    EXPECT_TRUE(is<status::infeasible_or_unbounded>(
+        simplex_status(0, GLP_UNDEF, GLP_UNDEF, 1.0, GLP_NOFEAS)));
+    EXPECT_TRUE(is<status::infeasible_or_unbounded>(
+        simplex_status(GLP_ENODFS, GLP_UNDEF, GLP_UNDEF)));
+    // with a feasible point in hand GLPK itself says unbounded
+    EXPECT_TRUE(is<status::unbounded>(
+        simplex_status(0, GLP_UNBND, GLP_FEAS, 1.0, GLP_NOFEAS)));
+    // a stop is no verdict, whatever the dual status reads
+    EXPECT_FALSE(is_a<status::completed>(
+        simplex_status(GLP_EITLIM, GLP_INFEAS, GLP_INFEAS, 1.0, GLP_NOFEAS)));
+}
 TEST(GLPK_simplex_status, infeasible_basic_solution_proves_nothing) {
     using namespace glpk::impl::v1;
     for(int ret : {0, GLP_EITLIM, GLP_ETMLIM, GLP_EOBJLL, GLP_EOBJUL}) {
@@ -172,6 +191,72 @@ struct glpk_lp_test : public model_test<glpk_api, glpk_lp> {
 };
 static_assert(!has_iis<glpk_lp>);
 static_assert(has_lp_basis_warm_start<glpk_lp>);
+// glp_simplex has the two simplex sides; glp_interior is another routine,
+// with a solution store of its own and no basis.
+static_assert(has_lp_algorithm<glpk_lp>);
+static_assert(has_lp_algorithm<glpk_lp, lp_algorithm::primal_simplex>);
+static_assert(has_lp_algorithm<glpk_lp, lp_algorithm::dual_simplex>);
+static_assert(!has_lp_algorithm<glpk_lp, lp_algorithm::simplex>);
+static_assert(!has_lp_algorithm<glpk_lp, lp_algorithm::interior_point>);
+static_assert(
+    !has_lp_algorithm<glpk_lp, lp_algorithm::interior_point_without_crossover>);
+// the model holds the choice itself, so no native setting can read as other
+static_assert(!variant_with_alternative<model_lp_algorithm_t<glpk_lp>,
+                                        lp_algorithm::other>);
+static_assert(has_refinable_lp_status<glpk_lp>);
+
+namespace {
+// max x under x - y >= 1 over x, y >= 0: unbounded along x, from a slack
+// basis that is neither primal nor dual feasible
+void build_unbounded_from_an_infeasible_basis(glpk_lp & model) {
+    using namespace operators;
+    const auto x = model.add_variable();
+    const auto y = model.add_variable();
+    model.set_maximization();
+    model.set_objective(x);
+    model.add_constraint(x - y >= 1);
+}
+}  // namespace
+
+// The shared suite cannot see which algorithm ran. On this LP GLPK's two
+// sides end apart: the primal simplex reaches a feasible point and proves
+// the LP unbounded, the dual one stops where the dual has no point, and
+// refine_lp_status() then decides by the primal simplex without changing
+// the model's algorithm.
+TEST_F(glpk_lp_test, each_lp_algorithm_runs_the_one_it_names) {
+    for(const bool automatic : {true, false}) {
+        auto model = new_model();
+        build_unbounded_from_an_infeasible_basis(model);
+        if(!automatic) model.set_lp_algorithm(lp_algorithm::primal_simplex{});
+        model.solve();
+        EXPECT_TRUE(is<status::unbounded>(model.get_status())) << automatic;
+    }
+    auto model = new_model();
+    build_unbounded_from_an_infeasible_basis(model);
+    model.set_lp_algorithm(lp_algorithm::dual_simplex{});
+    model.solve();
+    ASSERT_TRUE(is<status::infeasible_or_unbounded>(model.get_status()));
+    model.refine_lp_status();
+    EXPECT_TRUE(is<status::unbounded>(model.get_status()));
+    EXPECT_TRUE(is<lp_algorithm::dual_simplex>(model.get_lp_algorithm()));
+}
+
+// On an LP with an optimum both sides agree, by different paths.
+TEST_F(glpk_lp_test, the_two_simplex_sides_take_different_paths) {
+    const auto iterations_under = [this](auto algorithm) {
+        auto model = new_model();
+        lp_algorithm_cases::build_dense_covering(model);
+        model.set_lp_algorithm(algorithm);
+        model.solve();
+        EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+        return api->get_it_cnt(model.native_model());
+    };
+    const int primal = iterations_under(lp_algorithm::primal_simplex{});
+    EXPECT_EQ(iterations_under(lp_algorithm::automatic{}), primal);
+    // from a dual feasible basis the dual simplex needs no first phase
+    EXPECT_LT(iterations_under(lp_algorithm::dual_simplex{}), primal);
+}
+
 // GLPK refuses to start on crossed bounds with GLP_EBOUND, and the crossing
 // alone proves infeasibility
 TEST_F(glpk_lp_test, crossing_variable_bounds_are_infeasible) {
@@ -381,6 +466,7 @@ INSTANTIATE_TEST(GLPK_lp, VerbosityTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, TimeLimitTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, LpBasisTest, glpk_lp_test);
 INSTANTIATE_TEST(GLPK_lp, LpBasisWarmStartTest, glpk_lp_test);
+INSTANTIATE_TEST(GLPK_lp, LpAlgorithmTest, glpk_lp_test);
 
 struct glpk_milp_test : public model_test<glpk_api, glpk_milp> {
     static void SetUpTestSuite() { construct_api("GLPK"); }

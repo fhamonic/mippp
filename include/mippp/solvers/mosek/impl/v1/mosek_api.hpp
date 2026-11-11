@@ -140,9 +140,17 @@ MSKrescodee MSK_getnumintvar(MSKtask_t task, MSKint32t * numintvar);
 MSKrescodee MSK_getnumanz(MSKtask_t task, MSKint32t * numanz);
 
 enum MSKiparame : int {
+    MSK_IPAR_INTPNT_BASIS = 17,
     MSK_IPAR_LOG = 34,
     MSK_IPAR_NUM_THREADS = 100,
     MSK_IPAR_OPTIMIZER = 110
+};
+enum MSKbasindtypee : int {
+    MSK_BI_NEVER = 0,
+    MSK_BI_ALWAYS = 1,
+    MSK_BI_NO_ERROR = 2,
+    MSK_BI_IF_FEASIBLE = 3,
+    MSK_BI_RESERVERED = 4
 };
 enum MSKoptimizertypee : int {
     MSK_OPTIMIZER_CONIC = 0,

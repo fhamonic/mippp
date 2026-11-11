@@ -1,0 +1,10 @@
+automatic                            threads=0: 1.00 cores, 0.409 s wall, optimal=true
+primal_simplex                       threads=0: 1.00 cores, 0.894 s wall, optimal=true
+dual_simplex                         threads=0: 1.00 cores, 0.396 s wall, optimal=true
+interior_point                       threads=0: 8.27 cores, 1.076 s wall, optimal=true
+interior_point_without_crossover     threads=0: 9.82 cores, 1.327 s wall, optimal=true
+automatic                            threads=1: 1.00 cores, 0.380 s wall, optimal=true
+primal_simplex                       threads=1: 1.00 cores, 0.895 s wall, optimal=true
+dual_simplex                         threads=1: 1.00 cores, 0.383 s wall, optimal=true
+interior_point                       threads=1: 1.00 cores, 3.223 s wall, optimal=true
+interior_point_without_crossover     threads=1: 1.00 cores, 3.079 s wall, optimal=true

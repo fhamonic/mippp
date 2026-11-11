@@ -5,10 +5,12 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/lp_algorithm_codec.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -40,6 +42,72 @@ public:
         int n;
         check(Highs->getIntOptionValue(model, "simplex_iteration_limit", &n));
         return static_cast<std::size_t>(n);
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// LP algorithm ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // No interior point without crossover: HiGHS then reports a feasible LP
+    // as unknown where its dual point fails postsolve, and Highs_run fails
+    // on an unbounded one.
+    using lp_algorithm_variant =
+        std::variant<lp_algorithm::automatic, lp_algorithm::simplex,
+                     lp_algorithm::primal_simplex, lp_algorithm::dual_simplex,
+                     lp_algorithm::interior_point, lp_algorithm::other>;
+
+protected:
+    // views over string literals, so that data() is a C string
+    struct lp_algorithm_knobs {
+        std::string_view solver;
+        HighsInt simplex_strategy;
+        std::string_view run_crossover;
+        bool operator==(const lp_algorithm_knobs &) const = default;
+    };
+    // simplex_strategy: 1, the dual simplex, is HiGHS's default, 4 is the
+    // primal, and under 0 HiGHS picks the side. run_crossover defaults to on.
+    template <typename A>
+    static constexpr lp_algorithm_knobs _lp_algorithm_knobs(A) noexcept {
+        using namespace lp_algorithm;
+        if constexpr(std::same_as<A, automatic>)
+            return {"choose", 1, "on"};
+        else if constexpr(std::same_as<A, simplex>)
+            return {"simplex", 0, "on"};
+        else if constexpr(std::same_as<A, primal_simplex>)
+            return {"simplex", 4, "on"};
+        else if constexpr(std::same_as<A, dual_simplex>)
+            return {"simplex", 1, "on"};
+        else if constexpr(std::same_as<A, interior_point>)
+            return {"ipm", 1, "on"};
+        else
+            static_assert(std::same_as<A, void>, "a listed tag has no row");
+    }
+
+public:
+    // The three options at every call: a simplex_strategy left at 4 would
+    // make the next automatic run the primal simplex.
+    template <detail::settable_lp_algorithm<lp_algorithm_variant> A>
+    void set_lp_algorithm(A algorithm) {
+        const lp_algorithm_knobs knobs = _lp_algorithm_knobs(algorithm);
+        check(
+            Highs->setStringOptionValue(model, "solver", knobs.solver.data()));
+        check(Highs->setIntOptionValue(model, "simplex_strategy",
+                                       knobs.simplex_strategy));
+        check(Highs->setStringOptionValue(model, "run_crossover",
+                                          knobs.run_crossover.data()));
+    }
+    lp_algorithm_variant get_lp_algorithm() {
+        char solver[kHighsMaximumStringLength];
+        char run_crossover[kHighsMaximumStringLength];
+        HighsInt simplex_strategy;
+        check(Highs->getStringOptionValue(model, "solver", solver));
+        check(Highs->getIntOptionValue(model, "simplex_strategy",
+                                       &simplex_strategy));
+        check(
+            Highs->getStringOptionValue(model, "run_crossover", run_crossover));
+        return detail::decode_lp_algorithm(
+            lp_algorithm_variant{lp_algorithm::other{}},
+            lp_algorithm_knobs{solver, simplex_strategy, run_crossover},
+            [](auto algorithm) { return _lp_algorithm_knobs(algorithm); });
     }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////

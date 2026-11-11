@@ -1,3 +1,9 @@
+> The plan as written before the implementation, kept so that the options and
+> evidence behind each ruling letter stay readable.
+> [lp_algorithm.md](lp_algorithm.md) records the rulings, the review and what
+> the implementation settled: `clp_lp` has no selector, and `copt_lp` no
+> crossover-less tag.
+
 # LP algorithm selection: assessment and plan
 
 On 2026-11-02 the maintainer asked how best to add a choice of LP algorithm

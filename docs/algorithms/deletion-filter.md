@@ -124,6 +124,7 @@ A run makes at most one solve per candidate plus one, only two when a crossed pa
 | Finite bounds and sides | at their value or relaxed, as each trial needs | the values read when the run started |
 | Objective | zero, offset included | the coefficients and offset copied when the run started, and the Hessian on `highs_qp` |
 | Time limit | forwarded, see [Time limits](#time-limits) | the value read when the run started |
+| [LP algorithm](../solving/status-and-limits.md#lp-algorithm), on a model set to an interior point | the dual simplex | the tag read when the run started |
 | Status | that of each trial | `unknown` after a run that solved, unchanged otherwise |
 | Candidate-solution callback | registered, and run by every trial, see [Callbacks](#callbacks) | registered |
 | MIP starts, basis and incumbent | used by each trial, as by any `solve()`, which can add a MIP start or replace yours | what the trials left. On `cplex_milp`, measured with one [MIP start](../solving/updates.md#giving-the-solver-a-starting-point) of yours, a feasible model's run keeps it beside a trial's incumbent. An infeasible model's run leaves a trial point in its place. Gurobi's `Start` attribute survives the run |
@@ -133,6 +134,8 @@ A run makes at most one solve per candidate plus one, only two when a crossed pa
 Nothing is written before the first trial, so a run stopped before it leaves the model untouched. Every exit writes each item back, and an item whose write fails does not stop the others. On a normal exit, the first such error is then thrown. After an exception from a trial, the write-back runs before that exception reaches you, and an item whose write fails stays as the trial left it: its error is dropped, since only the trial's exception propagates.
 
 The objective is saved as a copy of its terms, with the offset read apart, since on several backends `get_objective()` is a view over the solver's live coefficients, which would read back the zeros of the trials. Code of your own that saves an objective to restore it needs the same care: `materialize(model.get_objective())` copies the terms, and `get_objective_offset()` gives the offset. On `highs_qp`, `get_objective()` reads the linear part only and `set_objective` clears the Hessian: copy the terms of `get_quadratic_objective()` too, and restore both parts through `set_quadratic_objective`.
+
+A trial is a small change from the previous one, which an interior point solves from scratch, and without a crossover it can end an infeasible trial with no verdict, which the filter counts as inconclusive: a model set to `interior_point` or `interior_point_without_crossover` runs its trials under `dual_simplex` instead. Any other choice is yours and stays: a simplex, `automatic`, and a native setting that reads as `other`, such as a first-order method, under which each trial runs that method.
 
 What stays unchanged still applies to every trial. A verbose model prints the log of each trial. The model's other limits, and its time limit when the run has no deadline, bound each trial as they bound any solve: a trial they stop without a point is inconclusive.
 

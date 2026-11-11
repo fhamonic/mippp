@@ -1,0 +1,35 @@
+# first run: seeds 1-1500, clp_lp with a selector and copt_lp listing interior_point_without_crossover
+seed 79 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-29.362068964856636), reference: infeasible
+seed 98 | Gurobi_lp | primal_simplex | tested: unbounded, reference: optimal (value=-34.5)
+seed 103 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-2.3333333315753704), reference: infeasible
+seed 127 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-1.6999999999918183), reference: infeasible
+seed 132 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-60.22580645158728), reference: infeasible
+seed 184 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-22.999999999986557), reference: infeasible
+seed 262 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-10.5), reference: infeasible
+seed 318 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-3.419999999965139), reference: infeasible
+seed 327 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-29.657142857084953), reference: infeasible
+seed 329 | COPT_lp | interior_point_without_crossover | tested: optimal (value=1.5000000000153602), reference: unbounded
+seed 334 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-68.99999995206488), reference: infeasible
+seed 383 | COPT_lp | interior_point_without_crossover | tested: optimal (value=0.3888888888889639), reference: infeasible
+seed 409 | Clp | dual_simplex | tested: optimal (value=-110430258922.15036), reference: unbounded
+seed 428 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-28.6666666665122), reference: unbounded
+seed 482 | COPT_lp | interior_point_without_crossover | tested: optimal (value=14.333333333333366), reference: infeasible
+seed 494 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-9.899999999999984), reference: infeasible
+seed 658 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-60.53787878432111), reference: unbounded
+seed 756 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-46.98611111109047), reference: infeasible
+seed 787 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-12.499999998730551), reference: infeasible
+seed 825 | COPT_lp | interior_point_without_crossover | tested: optimal (value=1.7142857142858268), reference: infeasible
+seed 930 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-12.999999998079035), reference: infeasible
+seed 938 | COPT_lp | interior_point_without_crossover | tested: optimal (value=10.000000001973198), reference: infeasible
+seed 1054 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-21.1999999999999), reference: infeasible
+seed 1090 | HiGHS_lp | primal_simplex | tested: unknown, reference: optimal (value=-31)
+seed 1114 | COPT_lp | interior_point_without_crossover | tested: optimal (value=9.166666667183904), reference: infeasible
+seed 1124 | Clp | dual_simplex | tested: infeasible, reference: optimal (value=8)
+seed 1169 | COPT_lp | interior_point_without_crossover | tested: optimal (value=0.5000000000009956), reference: infeasible
+seed 1278 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-38.99999999986831), reference: infeasible
+seed 1340 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-36.49999999981001), reference: infeasible
+seed 1498 | COPT_lp | interior_point_without_crossover | tested: optimal (value=-66.24999999999375), reference: unbounded
+
+# second run: seeds 1-1500, final tree
+seed 98 | Gurobi_lp | primal_simplex | tested: unbounded, reference: optimal (value=-34.5)
+seed 1090 | HiGHS_lp | primal_simplex | tested: unknown, reference: optimal (value=-31)

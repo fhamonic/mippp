@@ -46,6 +46,7 @@ add_executable(
     basis_snapshot.cpp
     iis_oracle.cpp
     iis_by_deletion.cpp
+    lp_algorithm.cpp
     restore_guard.cpp
     row_preparation.cpp
     mapping.cpp

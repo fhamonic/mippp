@@ -81,12 +81,12 @@ Which tags a backend can return is part of its type (`model_status_t<M>`, a `std
 
 ## `infeasible_or_unbounded` and `refine_lp_status()`
 
-Solvers whose presolve applies dual reductions can terminate knowing the model is infeasible *or* unbounded without knowing which; backends where this happens carry the exact `status::infeasible_or_unbounded` tag in their variant. `glpk_milp` carries it for another reason: GLPK stops as soon as the LP relaxation has no dual feasible solution, before it knows whether any integer point exists, so an unbounded MIP ends `infeasible_or_unbounded` there. The test for this undecided outcome is the exact `is<status::infeasible_or_unbounded>(r)` — `is_a` would also match the decided `infeasible` and `unbounded` tags, which derive from it.
+Solvers whose presolve applies dual reductions can terminate knowing the model is infeasible *or* unbounded without knowing which; backends where this happens carry the exact `status::infeasible_or_unbounded` tag in their variant. `glpk_lp` carries it for its dual simplex, which stops, on a basis that is not primal feasible, once the dual has no feasible point. `glpk_milp` carries it for another reason: GLPK stops as soon as the LP relaxation has no dual feasible solution, before it knows whether any integer point exists, so an unbounded MIP ends `infeasible_or_unbounded` there. The test for this undecided outcome is the exact `is<status::infeasible_or_unbounded>(r)` — `is_a` would also match the decided `infeasible` and `unbounded` tags, which derive from it.
 
 Two concepts describe what a model class can tell you:
 
 - `has_lp_status<Model>` — the status variant can report `infeasible` and `unbounded` as distinct tags. Every model class satisfies it, though `glpk_milp` leaves an unbounded MIP undecided, as above.
-- `has_refinable_lp_status<Model>` — the model provides `refine_lp_status()`: if the current status is exactly `infeasible_or_unbounded`, it re-solves with the offending reductions disabled, so that `get_status()` afterwards reports `infeasible` or `unbounded`; on any other status it is a no-op, as after a change of the model, where `get_status()` reports `unknown`. Currently satisfied by `gurobi_lp` and `cplex_lp`.
+- `has_refinable_lp_status<Model>` — the model provides `refine_lp_status()`: if the current status is exactly `infeasible_or_unbounded`, it re-solves in a way that decides, so that `get_status()` afterwards reports `infeasible` or `unbounded`; on any other status it is a no-op, as after a change of the model, where `get_status()` reports `unknown`. Currently satisfied by `gurobi_lp` and `cplex_lp`, which re-solve with the offending reductions disabled, and by `glpk_lp`, which re-solves by the primal simplex. Whatever [LP algorithm](#lp-algorithm) the model is set to, the re-solve runs a simplex, and the model's algorithm is unchanged afterwards.
 
 Because refining may mean a full re-solve, it never happens behind your back — the cost is only paid where the call is written:
 
@@ -134,7 +134,7 @@ model.set_memory_limit(mebibytes{4096u});
 
 A limit is a property of the model and survives across `solve()` calls, so setting it once before a benchmark loop is enough.
 
-An iteration limit counts simplex iterations; on `highs_qp` it also caps HiGHS's QP solver, which a quadratic objective runs instead. Barrier iterations are not counted: Gurobi's own `BarIterLimit`, for one, is set through `native_api()`. A limit larger than the solver can store (HiGHS and CPLEX keep an `int`) means no limit.
+An iteration limit counts simplex iterations; on `highs_qp` it also caps HiGHS's QP solver, which a quadratic objective runs instead. Barrier iterations are not counted: Gurobi's own `BarIterLimit`, for one, is set through `native_api()`. Under an [interior point](#lp-algorithm) the limit therefore bounds the crossover at most: in our measurements a limit of 1 stopped Gurobi in its crossover, and neither CPLEX nor HiGHS. A limit larger than the solver can store (HiGHS and CPLEX keep an `int`) means no limit.
 
 SoPlex keeps its own default clock, the CPU time of the whole process: time spent by the program's other threads counts, so its limit can run out before the wall-clock duration. Very short limits are unreliable on SoPlex whichever clock it uses: in our measurements a 50 ms limit stopped solves after about 15 ms, while a 1 s limit stopped them at 1.07 s.
 
@@ -171,7 +171,7 @@ Two habits worth adopting in experimental code:
 | :--- | :--- | :--- |
 | `has_thread_limit` | `set_thread_limit(n)`, `get_thread_limit()` | COPT, CPLEX, Gurobi, MOSEK, Xpress |
 
-By default these five solvers size their parallel algorithms to the machine, for each model. In our measurements on 16 hardware threads, a MILP kept 5 to 15 cores busy on each of them, and a dense LP 2 to 4 cores on Gurobi, COPT and MOSEK. `cplex_lp` is the exception: it solves with CPLEX's primal simplex, which runs on one thread whatever the limit. A program that solves several models at once, one per worker thread for instance, should cap each one, or its solves compete for the same cores:
+By default these five solvers size their parallel algorithms to the machine, for each model. In our measurements on 16 hardware threads, a MILP kept 5 to 15 cores busy on each of them, and a dense LP 2 to 4 cores on Gurobi, COPT and MOSEK. `cplex_lp` is the exception: its default, a simplex, ran on one core whatever the limit, while its barrier, under [`interior_point`](#lp-algorithm), kept 8 to 10 cores busy. A program that solves several models at once, one per worker thread for instance, should cap each one, or its solves compete for the same cores:
 
 ```cpp
 if constexpr(has_thread_limit<Model>) model.set_thread_limit(1);
@@ -190,6 +190,94 @@ The other backends do not satisfy the concept:
 - Cbc runs its branch-and-bound serially. Its `threads` parameter, on a Cbc built with thread support, asks for a parallel branch-and-bound rather than capping one. Below Cbc 3.0, which covers every validated release, a parameter set through `native_api()` does not reach MIP solves, see [The backends](../solvers/index.md#the-backends).
 - A Clp, Cbc or SCIP library linked to a multithreaded BLAS, such as OpenBLAS, also runs that library's pool, for the whole process and sized by the library's own setting, such as `OPENBLAS_NUM_THREADS`. In our measurements, the Cbc and SCIP libraries of one machine, both linked to OpenBLAS, started 15 threads when they loaded, and used 1.44 and 1.17 cores while solving serially; with `OPENBLAS_NUM_THREADS=1`, one thread and one core.
 - HiGHS keeps one thread pool per calling thread rather than per model. A solve on a thread without a pool creates one, of the model's `threads` option, or of half the hardware threads when it is 0, the default. While that pool exists, a model left at 0 runs on it, and a model whose nonzero `threads` differs from the pool's size fails: it throws `HiGHS kHighsStatusError`. From HiGHS 1.12, destroying a HiGHS model discards the pool of the thread that destroys it; below 1.12, destroying a model leaves the pool in place. So a model left at 0 and solved first fixes the pool at half the hardware threads, and a model whose `threads` is set to 1 through `native_api()` then fails on that thread for as long as the pool lives.
+
+## LP algorithm
+
+| Concept | Provides | Backends |
+| :--- | :--- | :--- |
+| `has_lp_algorithm<Model, Tag>` | `set_lp_algorithm(Tag{})`, `get_lp_algorithm()` | COPT, CPLEX, GLPK, Gurobi, HiGHS, MOSEK, Xpress *(LP models)* |
+
+An LP model runs the algorithm its solver picks until you name one, with a tag of `namespace lp_algorithm`:
+
+```cpp
+model.set_lp_algorithm(lp_algorithm::dual_simplex{});
+```
+
+```text
+automatic                              what solve() runs without a choice
+simplex                                a simplex, the solver picking the side
+├── primal_simplex
+└── dual_simplex
+interior_point                         followed by a crossover to a basis
+└── interior_point_without_crossover   the solve ends on the interior point
+other                                  read only: a native setting no tag names
+```
+
+A model lists the tags its solver has, and `set_lp_algorithm` takes those alone. Any other tag is a compile error, a refinement of a listed tag included: there is no fallback to a neighbour, which would be another algorithm than the one asked for.
+
+| Model | `automatic` runs | `simplex` | `primal_simplex` | `dual_simplex` | `interior_point` | `interior_point_without_crossover` |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| `copt_lp` | COPT's choice | | | ✓ | ✓ | |
+| `cplex_lp` | CPLEX's choice | | ✓ | ✓ | ✓ | ✓ |
+| `glpk_lp` | the primal simplex | | ✓ | ✓ | | |
+| `gurobi_lp` | Gurobi's choice | | ✓ | ✓ | ✓ | ✓ |
+| `highs_lp` | HiGHS's choice | ✓ | ✓ | ✓ | ✓ | |
+| `mosek_lp` | MOSEK's choice, its interior point | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `xpress_lp` | Xpress's choice | | ✓ | ✓ | ✓ | ✓ |
+
+`clp_lp` and `soplex_lp` have no selector, see [below](#what-the-solvers-do-not-get-right). Neither has a MILP or a QP model: the algorithm of a root relaxation stays a native parameter.
+
+With one argument, `has_lp_algorithm<Model>` tells a model with a selector; with a tag, a model that lists it. Every model with a selector lists `dual_simplex`, so that is the tag generic code can ask for:
+
+```cpp
+if constexpr(has_lp_algorithm<Model, lp_algorithm::dual_simplex>)
+    model.set_lp_algorithm(lp_algorithm::dual_simplex{});
+```
+
+The algorithm is a property of the model, like a limit: it applies to every later `solve()`, and setting it is not a change of the model, so the results of the last solve stay readable. What the tags promise:
+
+- **A tag names the main algorithm.** A solver may run iterations of another: a crossover is made of simplex iterations, and a dual simplex can clean up with primal ones.
+- **`automatic` is the model's default**, which a fresh model reads. On `glpk_lp` it is the primal simplex. On the others the solver chooses: in our measurements a dual simplex for an LP solved from scratch, except on `mosek_lp`, which runs its interior point and then identifies a basis.
+- **`interior_point` ends with a basis**, which `get_basis()` reads. It starts from scratch: a basis written with `set_basis()` is ignored, not refused, and so is the basis the previous solve left.
+- **`interior_point_without_crossover` ends on an interior point.** The solution, the duals and the reduced costs read as after any solve. They are optimal within the barrier's tolerance, and where the optimum is not unique they lie in the middle of the optimal face rather than at a vertex. `get_basis()` throws `mippp::solver_error`. On an LP with no optimum the run can end without a verdict: in our measurements `xpress_lp` reported `failed` on infeasible or unbounded LPs, and `gurobi_lp` left an unbounded one `infeasible_or_unbounded`, which `refine_lp_status()` decides. `highs_lp` and `copt_lp` do not list the tag, see [below](#what-the-solvers-do-not-get-right).
+- **The iteration limit counts simplex iterations**, see [Limits](#limits).
+
+`get_lp_algorithm()` returns a `std::variant` of the tags the model lists, named `model_lp_algorithm_t<Model>`. It reads the solver's own parameters, so it also tells what a call through [`native_api()`](../solvers/index.md#limitation-native-handles) set: a tag when the parameters are the ones `set_lp_algorithm` writes for it, and `lp_algorithm::other` otherwise, as under Gurobi's concurrent method or a crossover strategy of your choosing. `other` cannot be set. As with a status, `is<Tag>` tests one tag and `is_a<Tag>` a family:
+
+```cpp
+const auto algorithm = model.get_lp_algorithm();
+const bool runs_a_simplex = is_a<lp_algorithm::simplex>(algorithm);  // either side
+```
+
+`glpk_lp` holds the choice itself, with the parameters it hands to `glp_simplex`: no native call changes it, and it never reads `other`.
+
+The setter writes these parameters, all of them at every call, so that a tag replaces whatever the previous one wrote. A crossover strategy set natively is written over too:
+
+| Model | Parameters |
+| :--- | :--- |
+| `copt_lp` | `LpMethod`, `Crossover` |
+| `cplex_lp` | `CPXPARAM_LPMethod`, `CPXPARAM_SolutionType` |
+| `gurobi_lp` | `Method`, `Crossover` |
+| `highs_lp` | `solver`, `simplex_strategy`, `run_crossover` |
+| `mosek_lp` | `MSK_IPAR_OPTIMIZER`, `MSK_IPAR_INTPNT_BASIS` |
+| `xpress_lp` | `LPFLAGS`, `CROSSOVER` |
+
+The other algorithms of a solver stay native: the concurrent, network and sifting methods, and the first-order ones (PDLP, PDHG), which have no tag because they do not behave alike. In our measurements Gurobi's PDHG proved neither infeasibility nor unboundedness and ran to its time limit, COPT's PDLP crashed the process on an infeasible LP, and HiGHS's PDLP never crosses over. Set through `native_api()`, they read back as `other`.
+
+The [deletion filter](../algorithms/deletion-filter.md#what-a-run-changes) runs its trials under the dual simplex when the model is set to an interior point.
+
+### What the solvers do not get right
+
+A tag is listed where the solver's algorithm held in our measurements: the fixed LPs of the test suite, and 1500 runs of random models and changes under each tag, each solve compared with a reference model. MIP++ repairs no solver's answer, so what failed is either left out or told here:
+
+- **Left out: Clp.** Its dual simplex reported a feasible LP with free columns `infeasible`, on a model of two columns, and an unbounded one `optimal`, and its barrier reported unbounded LPs `optimal` (measured on a `devel` build). `clp_lp` keeps the primal simplex and has no selector.
+- **Left out: SoPlex.** Its `ALGORITHM` parameter reads back as written and changed no iteration count (measured on 7.1.3).
+- **Left out: `interior_point_without_crossover` on `copt_lp`.** COPT 8.0 then reported LPs without an optimum as `optimal`, with an objective value, in 26 of the 1500 runs.
+- **Left out: `interior_point_without_crossover` on `highs_lp`.** HiGHS 1.15.1 then reported a feasible LP of two variables `unknown`, and failed on an unbounded one.
+- **Listed: `primal_simplex` on `gurobi_lp`.** In one of the 1500 runs, Gurobi 12.0.1 reported a bounded LP without rows `unbounded` when it was solved again after changes. Gurobi 11.0.3 does the same on that model, and 13.0.2 does not.
+- **Listed: `primal_simplex` on `highs_lp`.** In one of the 1500 runs, HiGHS 1.15.1 ended `unknown` on an LP solved again after changes, which it solves from scratch.
+
+The other tags, `automatic` on every model included, agreed with the reference in every run.
 
 ## Solver output
 

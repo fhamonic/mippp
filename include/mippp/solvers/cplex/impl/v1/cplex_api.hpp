@@ -134,6 +134,19 @@ constexpr int CPXPARAM_Preprocessing_Reduce = 1057;
 constexpr int CPXPARAM_Threads = 1067;
 constexpr int CPXPARAM_Conflict_Algorithm = 1073;
 constexpr int CPXPARAM_Conflict_Display = 1074;
+constexpr int CPXPARAM_LPMethod = 1062;
+enum Algorithm : int {
+    CPX_ALG_AUTOMATIC = 0,
+    CPX_ALG_PRIMAL = 1,
+    CPX_ALG_DUAL = 2,
+    CPX_ALG_BARRIER = 4
+};
+constexpr int CPXPARAM_SolutionType = 1147;
+enum SolutionType : int {
+    CPX_AUTO_SOLN = 0,
+    CPX_BASIC_SOLN = 1,
+    CPX_NONBASIC_SOLN = 2
+};
 enum PrereduceType : int {
     CPX_PREREDUCE_NOPRIMALORDUAL = 0,
     CPX_PREREDUCE_PRIMALONLY = 1,
@@ -231,6 +244,7 @@ constexpr int CPX_AT_LOWER = 0;
 constexpr int CPX_BASIC = 1;
 constexpr int CPX_AT_UPPER = 2;
 constexpr int CPX_FREE_SUPER = 3;
+constexpr int CPXERR_NO_BASIS = 1262;
 int CPXgetbase(CPXCENVptr env, CPXCLPptr lp, int * cstat, int * rstat);
 int CPXcopybase(CPXCENVptr env, CPXLPptr lp, int const * cstat,
                 int const * rstat);

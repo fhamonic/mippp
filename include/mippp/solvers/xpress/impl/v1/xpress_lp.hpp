@@ -7,6 +7,7 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/lp_algorithm_codec.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
@@ -24,6 +25,59 @@ public:
     [[nodiscard]] explicit xpress_lp(const xpress_api & api)
         : xpress_base(api) {}
 
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// LP algorithm ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    using lp_algorithm_variant =
+        std::variant<lp_algorithm::automatic, lp_algorithm::primal_simplex,
+                     lp_algorithm::dual_simplex, lp_algorithm::interior_point,
+                     lp_algorithm::interior_point_without_crossover,
+                     lp_algorithm::other>;
+
+protected:
+    struct lp_algorithm_knobs {
+        int lp_flags, crossover;
+        bool operator==(const lp_algorithm_knobs &) const = default;
+    };
+    // LPFLAGS is the control solve()'s XPRSlpoptimize reads when it is given
+    // no flags: 0 leaves the choice to Xpress, and DEFAULTALG is not read on
+    // a cold solve by every release. CROSSOVER: -1 is the default, which
+    // crosses over, and 0 skips it.
+    template <typename A>
+    static constexpr lp_algorithm_knobs _lp_algorithm_knobs(A) noexcept {
+        using namespace lp_algorithm;
+        if constexpr(std::same_as<A, automatic>)
+            return {0, -1};
+        else if constexpr(std::same_as<A, primal_simplex>)
+            return {XPRS_LPFLAGS_PRIMAL, -1};
+        else if constexpr(std::same_as<A, dual_simplex>)
+            return {XPRS_LPFLAGS_DUAL, -1};
+        else if constexpr(std::same_as<A, interior_point>)
+            return {XPRS_LPFLAGS_BARRIER, -1};
+        else if constexpr(std::same_as<A, interior_point_without_crossover>)
+            return {XPRS_LPFLAGS_BARRIER, 0};
+        else
+            static_assert(std::same_as<A, void>, "a listed tag has no row");
+    }
+
+public:
+    // Both controls at every call: a CROSSOVER left at 0 would make the next
+    // interior_point skip its crossover too.
+    template <detail::settable_lp_algorithm<lp_algorithm_variant> A>
+    void set_lp_algorithm(A algorithm) {
+        const lp_algorithm_knobs knobs = _lp_algorithm_knobs(algorithm);
+        check(XPRS->setintcontrol(prob, XPRS_LPFLAGS, knobs.lp_flags));
+        check(XPRS->setintcontrol(prob, XPRS_CROSSOVER, knobs.crossover));
+    }
+    lp_algorithm_variant get_lp_algorithm() {
+        lp_algorithm_knobs knobs;
+        check(XPRS->getintcontrol(prob, XPRS_LPFLAGS, &knobs.lp_flags));
+        check(XPRS->getintcontrol(prob, XPRS_CROSSOVER, &knobs.crossover));
+        return detail::decode_lp_algorithm(
+            lp_algorithm_variant{lp_algorithm::other{}}, knobs,
+            [](auto algorithm) { return _lp_algorithm_knobs(algorithm); });
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -224,7 +278,18 @@ public:
                 "its last solve");
         const std::size_t num_row = num_constraints();
         std::vector<int> col_status(num_col), row_status(num_row);
-        check(XPRS->getbasis(prob, row_status.data(), col_status.data()));
+        if(const int refusal =
+               XPRS->getbasis(prob, row_status.data(), col_status.data())) {
+            // 429, "no basis is available": a barrier without crossover
+            // ends on a valid solution that is no basis
+            int error_code = 0;
+            XPRS->getintattrib(prob, XPRS_ERRORCODE, &error_code);
+            if(error_code == 429)
+                throw solver_error(
+                    "mippp: get_basis() found no basis, Xpress holds none "
+                    "from its last solve");
+            check(refusal);
+        }
         detail::handle_status_table<basis_variable_status> columns(num_col);
         for(std::size_t j = 0; j < num_col; ++j)
             columns.set(j,

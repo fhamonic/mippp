@@ -92,7 +92,7 @@ A basis is never an error. Every solver snaps a side that the bounds do not have
 
 ## When a basis is available
 
-`get_basis()` is defined right after a `solve()` that ran a simplex method, before any other call that changes the model or what the solver holds: it then returns the basis that solve ended with. Where the solver holds none, it throws `mippp::solver_error`, but `soplex_lp` returns a slack basis built from the bounds: after presolve proved the model infeasible or unbounded, after a time limit that stopped the solve before the simplex method started, and after an interior-point run that skipped its crossover, which only native settings can ask for. Before any solve, `glpk_lp` and `soplex_lp`, and `copt_lp` on a model with constraints, return the solver's starting basis, every row basic, and the other backends throw. Which of these each backend reports, and how, is in [Support by model](#support-by-model). A model without variables has one basis, every row basic, which `get_basis()` returns on every backend without a solve.
+`get_basis()` is defined right after a `solve()` that ran a simplex method or an interior point followed by its crossover, before any other call that changes the model or what the solver holds: it then returns the basis that solve ended with. Where the solver holds none, it throws `mippp::solver_error`, but `soplex_lp` returns a slack basis built from the bounds: after presolve proved the model infeasible or unbounded, after a time limit that stopped the solve before the simplex method started, and after an interior-point run that skipped its crossover, which [`interior_point_without_crossover`](status-and-limits.md#lp-algorithm) asks for. Before any solve, `glpk_lp` and `soplex_lp`, and `copt_lp` on a model with constraints, return the solver's starting basis, every row basic, and the other backends throw. Which of these each backend reports, and how, is in [Support by model](#support-by-model). A model without variables has one basis, every row basic, which `get_basis()` returns on every backend without a solve.
 
 At any other time its result is unspecified: between a change of the model and the next `solve()`, between `set_basis()` and the next `solve()`, after a `solve()` that MIP++ answers without running the solver, as on a model whose bounds cross, and after `refine_lp_status()`, `compute_iis()` or `compute_iis_by_deletion`. Some backends then throw, others return the basis their next solve would start from.
 
@@ -121,7 +121,8 @@ Before the first solve and after any change of the model, `get_basis()` throws `
 The backends differ in a few more ways, see [LP bases](../solvers/index.md#limitation-lp-basis):
 
 - `soplex_lp` reads a basis but cannot write one: SoPlex's C interface has no setter.
-- `mosek_lp` solves an LP by the interior point, which cannot start from a basis: `set_basis()` makes the next `solve()` run MOSEK's free simplex, unless you chose an optimizer through `native_api()`, and later solves return to the interior point.
+- `mosek_lp` solves an LP by the interior point, which cannot start from a basis: `set_basis()` makes the next `solve()` run MOSEK's free simplex, unless you chose an algorithm with `set_lp_algorithm` or an optimizer through `native_api()`, and later solves return to the interior point.
+- An interior point chosen with [`set_lp_algorithm`](status-and-limits.md#lp-algorithm) ignores a written basis on every backend, and solves from scratch.
 - `glpk_lp` replaces a basis it cannot factorize by its standard basis, so the next solve starts cold.
 
 ## Next

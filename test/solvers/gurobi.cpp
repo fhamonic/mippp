@@ -61,6 +61,7 @@ INSTANTIATE_TEST(Gurobi_lp, LpBasisTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, LpBasisWarmStartTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, VerbosityTest, gurobi_lp_test);
 INSTANTIATE_TEST(Gurobi_lp, ThreadLimitTest, gurobi_lp_test);
+INSTANTIATE_TEST(Gurobi_lp, LpAlgorithmTest, gurobi_lp_test);
 
 struct gurobi_milp_test : public model_test<gurobi_api, gurobi_milp> {
     static void SetUpTestSuite() { construct_api("GUROBI"); }
@@ -206,9 +207,132 @@ TEST_F(gurobi_lp_test, iteration_limit_stops_compute_iis) {
     EXPECT_EQ(answer.num_variable_members(), 0u);
 }
 
+// A tag Gurobi has no value for, or that it would run as another, must not
+// compile: Method has no "either simplex", and the selector is an LP member.
+static_assert(has_lp_algorithm<gurobi_lp>);
+static_assert(has_lp_algorithm<gurobi_lp, lp_algorithm::primal_simplex>);
+static_assert(has_lp_algorithm<gurobi_lp, lp_algorithm::dual_simplex>);
+static_assert(has_lp_algorithm<gurobi_lp, lp_algorithm::interior_point>);
+static_assert(has_lp_algorithm<gurobi_lp,
+                               lp_algorithm::interior_point_without_crossover>);
+static_assert(!has_lp_algorithm<gurobi_lp, lp_algorithm::simplex>);
+static_assert(!has_lp_algorithm<gurobi_lp, lp_algorithm::other>);
+static_assert(variant_with_alternative<model_lp_algorithm_t<gurobi_lp>,
+                                       lp_algorithm::other>);
+static_assert(!has_lp_algorithm<gurobi_milp>);
+
+namespace {
+struct gurobi_iterations {
+    double simplex;
+    int barrier;
+};
+gurobi_iterations iterations_of(gurobi_lp & model) {
+    const auto [env, native] = model.native_model();
+    const gurobi_api & grb = model.native_api();
+    gurobi_iterations count{};
+    grb._check(env, grb.getdblattr(native, "IterCount", &count.simplex));
+    grb._check(env, grb.getintattr(native, "BarIterCount", &count.barrier));
+    return count;
+}
+std::pair<int, int> method_and_crossover(gurobi_lp & model) {
+    const auto [env, native] = model.native_model();
+    const gurobi_api & grb = model.native_api();
+    std::pair<int, int> knobs;
+    grb._check(env, grb.getintparam(env, "Method", &knobs.first));
+    grb._check(env, grb.getintparam(env, "Crossover", &knobs.second));
+    return knobs;
+}
+}  // namespace
+
+// The shared suite cannot see which algorithm ran: Gurobi's counters can.
+// A crossover shows as simplex iterations after the barrier's.
+TEST_F(gurobi_lp_test, each_lp_algorithm_runs_the_one_it_names) {
+    SkipOnLicenseError([this]() {
+        const auto solved_under = [this](auto algorithm) {
+            auto model = new_model();
+            lp_basis_cases::build_dense(model);
+            model.set_lp_algorithm(algorithm);
+            model.solve();
+            EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+            return std::pair(method_and_crossover(model), iterations_of(model));
+        };
+        {
+            const auto [knobs, count] =
+                solved_under(lp_algorithm::primal_simplex{});
+            EXPECT_EQ(knobs, std::pair(0, -1));
+            EXPECT_GT(count.simplex, 0.);
+            EXPECT_EQ(count.barrier, 0);
+        }
+        {
+            const auto [knobs, count] =
+                solved_under(lp_algorithm::dual_simplex{});
+            EXPECT_EQ(knobs, std::pair(1, -1));
+            EXPECT_GT(count.simplex, 0.);
+            EXPECT_EQ(count.barrier, 0);
+        }
+        {
+            const auto [knobs, count] =
+                solved_under(lp_algorithm::interior_point{});
+            EXPECT_EQ(knobs, std::pair(2, -1));
+            EXPECT_GT(count.barrier, 0);
+        }
+        {
+            const auto [knobs, count] =
+                solved_under(lp_algorithm::interior_point_without_crossover{});
+            EXPECT_EQ(knobs, std::pair(2, 0));
+            EXPECT_GT(count.barrier, 0);
+            EXPECT_EQ(count.simplex, 0.);
+        }
+        {
+            const auto [knobs, count] = solved_under(lp_algorithm::automatic{});
+            EXPECT_EQ(knobs, std::pair(-1, -1));
+        }
+    });
+}
+
+// A setting no tag writes reads as other, and stays: the concurrent method,
+// and a crossover strategy that interior_point would reset.
+TEST_F(gurobi_lp_test, a_native_lp_method_reads_as_other) {
+    SkipOnLicenseError([this]() {
+        auto model = new_model();
+        const auto [env, native] = model.native_model();
+        const gurobi_api & grb = model.native_api();
+        grb._check(env, grb.setintparam(env, "Method", 3));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+        grb._check(env, grb.setintparam(env, "Method", 2));
+        EXPECT_TRUE(is<lp_algorithm::interior_point>(model.get_lp_algorithm()));
+        grb._check(env, grb.setintparam(env, "Crossover", 3));
+        EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+        EXPECT_EQ(method_and_crossover(model), std::pair(2, 3));
+    });
+}
+
+// Under a barrier without crossover the refinement would run that barrier
+// again and stay undecided: it runs the dual simplex, and the model's
+// algorithm reads as before.
+TEST_F(gurobi_lp_test,
+       refine_lp_status_decides_under_a_crossover_less_barrier) {
+    SkipOnLicenseError([this]() {
+        using namespace operators;
+        auto model = new_model();
+        auto x = model.add_variable();
+        model.add_constraint(x >= 1.);
+        model.set_maximization();
+        model.set_objective(1. * x);
+        model.set_lp_algorithm(
+            lp_algorithm::interior_point_without_crossover{});
+        model.solve();
+        ASSERT_TRUE(is<status::infeasible_or_unbounded>(model.get_status()));
+        model.refine_lp_status();
+        EXPECT_TRUE(is<status::unbounded>(model.get_status()));
+        EXPECT_TRUE(is<lp_algorithm::interior_point_without_crossover>(
+            model.get_lp_algorithm()));
+    });
+}
+
 // The re-solve under DualReductions 0 can throw: a callback that returns
-// nonzero aborts GRBoptimize with an error. The parameter must read the
-// user's value again afterwards, not the 0 the call set.
+// nonzero aborts GRBoptimize with an error. The parameters must read the
+// user's values again afterwards, not the ones the call set.
 TEST_F(gurobi_lp_test, refine_lp_status_restores_dual_reductions_on_a_throw) {
     using namespace operators;
     using gurobi::impl::v1::GRBmodel;
@@ -227,10 +351,13 @@ TEST_F(gurobi_lp_test, refine_lp_status_restores_dual_reductions_on_a_throw) {
                grb.setcallbackfunc(
                    native, +[](GRBmodel *, void *, int, void *) { return 1; },
                    nullptr));
+    grb._check(env, grb.setintparam(env, "Method", 0));
     EXPECT_ANY_THROW(model.refine_lp_status());
-    int dual_reductions = 0;
+    int dual_reductions = 0, method = -1;
     grb._check(env, grb.getintparam(env, "DualReductions", &dual_reductions));
+    grb._check(env, grb.getintparam(env, "Method", &method));
     EXPECT_EQ(dual_reductions, 1);
+    EXPECT_EQ(method, 0);
 }
 
 // A solve that throws reports unknown, not the status of the solve before it:

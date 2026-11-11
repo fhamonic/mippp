@@ -50,6 +50,90 @@ INSTANTIATE_TEST(HiGHS_lp, IterationLimitTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpBasisTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, LpBasisWarmStartTest, highs_lp_test);
 INSTANTIATE_TEST(HiGHS_lp, VerbosityTest, highs_lp_test);
+INSTANTIATE_TEST(HiGHS_lp, LpAlgorithmTest, highs_lp_test);
+
+// HiGHS has a simplex of either side, and no interior point without
+// crossover that MIP++ lists: it then reports a feasible LP as unknown where
+// its dual point fails postsolve, and fails outright on an unbounded one.
+// The selector is an LP member: a QP or a MIP has solvers of its own.
+static_assert(has_lp_algorithm<highs_lp>);
+static_assert(has_lp_algorithm<highs_lp, lp_algorithm::simplex>);
+static_assert(has_lp_algorithm<highs_lp, lp_algorithm::primal_simplex>);
+static_assert(has_lp_algorithm<highs_lp, lp_algorithm::dual_simplex>);
+static_assert(has_lp_algorithm<highs_lp, lp_algorithm::interior_point>);
+static_assert(!has_lp_algorithm<
+              highs_lp, lp_algorithm::interior_point_without_crossover>);
+static_assert(!has_lp_algorithm<highs_lp, lp_algorithm::other>);
+static_assert(variant_with_alternative<model_lp_algorithm_t<highs_lp>,
+                                       lp_algorithm::other>);
+static_assert(!has_lp_algorithm<highs_qp>);
+static_assert(!has_lp_algorithm<highs_milp>);
+
+namespace {
+int highs_info(highs_lp & model, const char * name) {
+    highs::impl::v1::HighsInt value = -1;
+    model.native_api()._check(
+        model.native_api().getIntInfoValue(model.native_model(), name, &value));
+    return static_cast<int>(value);
+}
+}  // namespace
+
+// The shared suite cannot see which algorithm ran. HiGHS counts simplex and
+// interior-point iterations apart, and names no simplex side: the two sides
+// show as two different paths to the same optimum.
+TEST_F(highs_lp_test, each_lp_algorithm_runs_the_one_it_names) {
+    struct run {
+        int simplex, interior;
+    };
+    const auto solved_under = [this](auto algorithm) {
+        auto model = new_model();
+        lp_algorithm_cases::build_dense_covering(model);
+        model.set_lp_algorithm(algorithm);
+        model.solve();
+        EXPECT_TRUE(is_a<status::optimal>(model.get_status()));
+        return run{highs_info(model, "simplex_iteration_count"),
+                   highs_info(model, "ipm_iteration_count")};
+    };
+    const run primal = solved_under(lp_algorithm::primal_simplex{});
+    const run dual = solved_under(lp_algorithm::dual_simplex{});
+    const run either = solved_under(lp_algorithm::simplex{});
+    const run interior = solved_under(lp_algorithm::interior_point{});
+    const run automatic = solved_under(lp_algorithm::automatic{});
+    EXPECT_GT(dual.simplex, 0);
+    // from a dual feasible basis the dual simplex needs no first phase
+    EXPECT_GT(primal.simplex, dual.simplex);
+    EXPECT_GT(either.simplex, 0);
+    EXPECT_LE(primal.interior, 0);
+    EXPECT_LE(dual.interior, 0);
+    EXPECT_LE(either.interior, 0);
+    EXPECT_GT(interior.interior, 0);
+    // HiGHS's own choice for an LP is its dual simplex
+    EXPECT_EQ(automatic.simplex, dual.simplex);
+    EXPECT_LE(automatic.interior, 0);
+}
+
+// A solver no tag names reads as other, and so does a simplex side or a
+// crossover switch that is not the one a tag writes.
+TEST_F(highs_lp_test, a_native_solver_option_reads_as_other) {
+    auto model = new_model();
+    const auto & native = model.native_api();
+    const auto set = [&](const char * option, const char * value) {
+        native._check(
+            native.setStringOptionValue(model.native_model(), option, value));
+    };
+    set("solver", "pdlp");
+    EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+    set("solver", "ipm");
+    EXPECT_TRUE(is<lp_algorithm::interior_point>(model.get_lp_algorithm()));
+    set("run_crossover", "off");
+    EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+    set("run_crossover", "on");
+    set("solver", "choose");
+    EXPECT_TRUE(is<lp_algorithm::automatic>(model.get_lp_algorithm()));
+    native._check(
+        native.setIntOptionValue(model.native_model(), "simplex_strategy", 4));
+    EXPECT_TRUE(is<lp_algorithm::other>(model.get_lp_algorithm()));
+}
 
 // A <= row given a finite lower side is ranged: its sides still read back,
 // its sense and rhs no longer exist.

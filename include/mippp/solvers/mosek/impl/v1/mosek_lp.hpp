@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/lp_algorithm_codec.hpp"
 #include "mippp/detail/restore_guard.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
@@ -25,6 +26,62 @@ public:
     [[nodiscard]] mosek_lp() : mosek_lp(mosek_api::load()) {}
     [[nodiscard]] explicit mosek_lp(const mosek_api & api) : mosek_base(api) {}
 
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// LP algorithm ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    using lp_algorithm_variant =
+        std::variant<lp_algorithm::automatic, lp_algorithm::simplex,
+                     lp_algorithm::primal_simplex, lp_algorithm::dual_simplex,
+                     lp_algorithm::interior_point,
+                     lp_algorithm::interior_point_without_crossover,
+                     lp_algorithm::other>;
+
+protected:
+    struct lp_algorithm_knobs {
+        MSKint32t optimizer, basis_identification;
+        bool operator==(const lp_algorithm_knobs &) const = default;
+    };
+    // MSK_BI_ALWAYS is MOSEK's default: its interior point then ends on a
+    // basic solution, and MSK_BI_NEVER leaves the interior one alone.
+    template <typename A>
+    static constexpr lp_algorithm_knobs _lp_algorithm_knobs(A) noexcept {
+        using namespace lp_algorithm;
+        if constexpr(std::same_as<A, automatic>)
+            return {MSK_OPTIMIZER_FREE, MSK_BI_ALWAYS};
+        else if constexpr(std::same_as<A, simplex>)
+            return {MSK_OPTIMIZER_FREE_SIMPLEX, MSK_BI_ALWAYS};
+        else if constexpr(std::same_as<A, primal_simplex>)
+            return {MSK_OPTIMIZER_PRIMAL_SIMPLEX, MSK_BI_ALWAYS};
+        else if constexpr(std::same_as<A, dual_simplex>)
+            return {MSK_OPTIMIZER_DUAL_SIMPLEX, MSK_BI_ALWAYS};
+        else if constexpr(std::same_as<A, interior_point>)
+            return {MSK_OPTIMIZER_INTPNT, MSK_BI_ALWAYS};
+        else if constexpr(std::same_as<A, interior_point_without_crossover>)
+            return {MSK_OPTIMIZER_INTPNT, MSK_BI_NEVER};
+        else
+            static_assert(std::same_as<A, void>, "a listed tag has no row");
+    }
+
+public:
+    // Both parameters at every call: a basis identification left off would
+    // make the next interior_point, and automatic, end without a basis too.
+    template <detail::settable_lp_algorithm<lp_algorithm_variant> A>
+    void set_lp_algorithm(A algorithm) {
+        const lp_algorithm_knobs knobs = _lp_algorithm_knobs(algorithm);
+        check(MSK->putintparam(task, MSK_IPAR_OPTIMIZER, knobs.optimizer));
+        check(MSK->putintparam(task, MSK_IPAR_INTPNT_BASIS,
+                               knobs.basis_identification));
+    }
+    lp_algorithm_variant get_lp_algorithm() {
+        lp_algorithm_knobs knobs;
+        check(MSK->getintparam(task, MSK_IPAR_OPTIMIZER, &knobs.optimizer));
+        check(MSK->getintparam(task, MSK_IPAR_INTPNT_BASIS,
+                               &knobs.basis_identification));
+        return detail::decode_lp_algorithm(
+            lp_algorithm_variant{lp_algorithm::other{}}, knobs,
+            [](auto algorithm) { return _lp_algorithm_knobs(algorithm); });
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
@@ -132,6 +189,25 @@ private:
         check(MSK->getintparam(task, MSK_IPAR_OPTIMIZER, &optimizer));
         return optimizer == MSK_OPTIMIZER_FREE;
     }
+    // An interior point writes the basic solution through its basis
+    // identification alone. Without one, or stopped before it, a solve
+    // leaves the basic solution of an earlier solve in place, which
+    // get_basis() would read as this solve's. A simplex starts from it.
+    void _drop_the_basis_no_simplex_starts_from() {
+        MSKint32t optimizer;
+        check(MSK->getintparam(task, MSK_IPAR_OPTIMIZER, &optimizer));
+        switch(optimizer) {
+            case MSK_OPTIMIZER_FREE_SIMPLEX:
+            case MSK_OPTIMIZER_PRIMAL_SIMPLEX:
+            case MSK_OPTIMIZER_DUAL_SIMPLEX:
+            case MSK_OPTIMIZER_NEW_PRIMAL_SIMPLEX:
+            case MSK_OPTIMIZER_NEW_DUAL_SIMPLEX:
+                return;
+        }
+        MSKbooleant defined = 0;
+        check(MSK->solutiondef(task, MSK_SOL_BAS, &defined));
+        if(defined) check(MSK->deletesolution(task, MSK_SOL_BAS));
+    }
 
 public:
     void solve() {
@@ -149,6 +225,7 @@ public:
             check(MSK->optimizetrm(task, &trm));
             guard.restore();
         } else {
+            _drop_the_basis_no_simplex_starts_from();
             check(MSK->optimizetrm(task, &trm));
         }
         _solution = _pick_continuous_solution();

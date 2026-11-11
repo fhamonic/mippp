@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+#include "mippp/detail/lp_algorithm_codec.hpp"
 #include "mippp/model_concepts.hpp"
 #include "mippp/model_entities.hpp"
 #include "mippp/utility/basis_snapshot.hpp"
@@ -24,6 +25,55 @@ public:
     [[nodiscard]] copt_lp() : copt_lp(copt_api::load()) {}
     [[nodiscard]] explicit copt_lp(const copt_api & api) : copt_base(api) {}
 
+    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////// LP algorithm ///////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+private:
+    // LpMethod has no primal simplex. No interior point without crossover
+    // either: COPT 8.0 then reports LPs that have no optimum as optimal.
+    using lp_algorithm_variant =
+        std::variant<lp_algorithm::automatic, lp_algorithm::dual_simplex,
+                     lp_algorithm::interior_point, lp_algorithm::other>;
+
+protected:
+    struct lp_algorithm_knobs {
+        int method, crossover;
+        bool operator==(const lp_algorithm_knobs &) const = default;
+    };
+    // LpMethod: -1 is COPT's default, 1 the dual simplex, 2 the barrier.
+    // Crossover: 1 is the default, which crosses over.
+    template <typename A>
+    static constexpr lp_algorithm_knobs _lp_algorithm_knobs(A) noexcept {
+        using namespace lp_algorithm;
+        if constexpr(std::same_as<A, automatic>)
+            return {-1, 1};
+        else if constexpr(std::same_as<A, dual_simplex>)
+            return {1, 1};
+        else if constexpr(std::same_as<A, interior_point>)
+            return {2, 1};
+        else
+            static_assert(std::same_as<A, void>, "a listed tag has no row");
+    }
+
+public:
+    // Both parameters at every call: a Crossover set to 0 through the native
+    // handle would make interior_point skip its crossover.
+    template <detail::settable_lp_algorithm<lp_algorithm_variant> A>
+    void set_lp_algorithm(A algorithm) {
+        const lp_algorithm_knobs knobs = _lp_algorithm_knobs(algorithm);
+        check(COPT->SetIntParam(prob, COPT_INTPARAM_LPMETHOD, knobs.method));
+        check(
+            COPT->SetIntParam(prob, COPT_INTPARAM_CROSSOVER, knobs.crossover));
+    }
+    lp_algorithm_variant get_lp_algorithm() {
+        lp_algorithm_knobs knobs;
+        check(COPT->GetIntParam(prob, COPT_INTPARAM_LPMETHOD, &knobs.method));
+        check(
+            COPT->GetIntParam(prob, COPT_INTPARAM_CROSSOVER, &knobs.crossover));
+        return detail::decode_lp_algorithm(
+            lp_algorithm_variant{lp_algorithm::other{}}, knobs,
+            [](auto algorithm) { return _lp_algorithm_knobs(algorithm); });
+    }
     ///////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Solve status ///////////////////////////////
     ///////////////////////////////////////////////////////////////////////////

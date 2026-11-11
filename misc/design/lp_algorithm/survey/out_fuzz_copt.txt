@@ -1,0 +1,9 @@
+clp primal                                    infeasible value=-
+highs automatic                               unbounded value=-
+highs interior_point                          unbounded value=-
+gurobi automatic                              infeasible_or_unbounded value=-
+gurobi without crossover                      infeasible_or_unbounded value=-
+copt automatic                                unbounded value=-
+copt dual                                     unbounded value=-
+copt interior_point                           unbounded value=-
+copt without crossover                        optimal native LpStatus=1 HasLpSol=1 BarrierIter=5 LpObjval=-35.63333333332143

@@ -68,6 +68,8 @@ enum IntegerAttribute : int {
     XPRS_SETS = 1004,
     XPRS_ELEMS = 1006,
     XPRS_SIMPLEXITER = 1009,
+    XPRS_BARITER = 5001,
+    XPRS_ERRORCODE = 1023,
     XPRS_NODES = 1013,
     XPRS_LPSTATUS = 1010,
     XPRS_MIPSTATUS = 1011,
@@ -166,8 +168,15 @@ int XPRSgetdblcontrol(XPRSprob prob, int control, double * p_value);
 enum IntCtrlPar : int {
     XPRS_LPITERLIMIT = 8007,
     XPRS_OUTPUTLOG = 8035,
+    XPRS_CROSSOVER = 8044,
     XPRS_THREADS = 8278,
+    XPRS_LPFLAGS = 8385,
     XPRS_IISOPS = 8472
+};
+enum LpFlags : int {
+    XPRS_LPFLAGS_DUAL = 1,
+    XPRS_LPFLAGS_PRIMAL = 2,
+    XPRS_LPFLAGS_BARRIER = 4
 };
 int XPRSsetintcontrol(XPRSprob prob, int control, int value);
 int XPRSgetintcontrol(XPRSprob prob, int control, int * p_value);
