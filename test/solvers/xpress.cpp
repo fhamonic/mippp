@@ -178,6 +178,12 @@ static_assert(!mippp::has_lazy_constraints<
               mippp::xpress_milp>);
 static_assert(mippp::has_candidate_solution_rejection<
               mippp::candidate_solution_callback_handle_t<mippp::xpress_milp>>);
+// the suite repairs candidates that a lazy constraint cut off
+// INSTANTIATE_TEST(Xpress_milp, SolutionInjectionTest, xpress_milp_test);
+// not wired yet: the cut-round callback with managed cuts, which do nothing
+// before Xpress 45.01.04
+// INSTANTIATE_TEST(Xpress_milp, NodeRelaxationCallbackTest, xpress_milp_test);
+// INSTANTIATE_TEST(Xpress_milp, UserCutsTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, SudokuTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, TimeLimitTest, xpress_milp_test);
 INSTANTIATE_TEST(Xpress_milp, TimeLimitIncumbentTest, xpress_milp_test);

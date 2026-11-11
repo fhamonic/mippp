@@ -47,6 +47,7 @@ add_executable(
     iis_oracle.cpp
     iis_by_deletion.cpp
     restore_guard.cpp
+    row_preparation.cpp
     mapping.cpp
     concat_view.cpp
     cartesian_product_view.cpp
@@ -57,6 +58,7 @@ add_executable(
     variant.cpp
     dynamic_library.cpp
     doc_snippets/basis.cpp
+    doc_snippets/branch_and_cut.cpp
     doc_snippets/column_generation.cpp
     doc_snippets/deletion_filter.cpp
     doc_snippets/infeasibility.cpp
@@ -70,6 +72,13 @@ target_include_directories(mippp_test PUBLIC ${PROJECT_SOURCE_DIR}/test)
 target_compile_definitions(
     mippp_test
     PRIVATE MIPPP_DOC_SNIPPETS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/doc_snippets")
+# doc_snippets/branch_and_cut.cpp tests its sections on Gurobi, the one
+# commercial backend a core source would instantiate: only the jobs that build
+# solvers/gurobi.cpp are known to compile its model, so the others compile the
+# sections alone.
+if("solvers/gurobi.cpp" IN_LIST MIPPP_TEST_SOLVER_SOURCES)
+    target_compile_definitions(mippp_test PRIVATE MIPPP_TEST_WITH_GUROBI)
+endif()
 # the suites and the library assert(); keep them live in every configuration
 if(MSVC)
     target_compile_options(mippp_test PRIVATE /UNDEBUG)

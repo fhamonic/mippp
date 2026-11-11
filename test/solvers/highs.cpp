@@ -97,6 +97,10 @@ INSTANTIATE_TEST(HiGHS_milp, DualBoundTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, NodeCountTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, IntegralityToleranceTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, VerbosityTest, highs_milp_test);
+// HiGHS has no call to add a cut from a callback: a row added there never
+// reaches the relaxation.
+// INSTANTIATE_TEST(HiGHS_milp, NodeRelaxationCallbackTest, highs_milp_test);
+// INSTANTIATE_TEST(HiGHS_milp, UserCutsTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ProgressCallbackTest, highs_milp_test);
 INSTANTIATE_TEST(HiGHS_milp, ProgressCallbackNodeCountTest, highs_milp_test);
 // no candidate solution callback

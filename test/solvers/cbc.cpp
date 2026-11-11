@@ -196,5 +196,9 @@ INSTANTIATE_TEST(Cbc, VerbosityTest, cbc_milp_test);
 // Cbc 2.10's C API reaches no callback from the search: its message callback
 // gets nothing from branch-and-cut, verbose or not.
 // INSTANTIATE_TEST(Cbc, ProgressCallbackTest, cbc_milp_test);
+// Cbc's cut callback misses most nodes below the root, and a restart hands
+// it a smaller model and drops every cut.
+// INSTANTIATE_TEST(Cbc, NodeRelaxationCallbackTest, cbc_milp_test);
+// INSTANTIATE_TEST(Cbc, UserCutsTest, cbc_milp_test);
 // INSTANTIATE_TEST(Cbc, ProgressCallbackNodeCountTest, cbc_milp_test);
 // INSTANTIATE_TEST(Cbc, ProgressCallbackSharingTest, cbc_milp_test);

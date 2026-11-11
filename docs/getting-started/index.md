@@ -56,7 +56,10 @@ double price_of_o = duals[demand(o)];
 Most research codes are not "build model, call solve": they are branch-and-cut, column generation, decomposition, or parameter studies. The MIP++ interface exposes the building blocks these methods need, uniformly across the backends that support them:
 
 - **candidate-solution callbacks** with `add_lazy_constraint` for
-  branch-and-cut ([guide](../algorithms/branch-and-cut.md)),
+  branch-and-cut, and `add_solution` to hand a repaired candidate back in a
+  Benders decomposition ([guide](../algorithms/branch-and-cut.md)),
+- **node-relaxation callbacks** with `add_user_cut`, on Gurobi, CPLEX and
+  COPT ([guide](../algorithms/branch-and-cut.md#user-cuts)),
 - **progress callbacks** to read the incumbent and the bound during a search,
   and to end it ([guide](../solving/progress.md)),
 - **dual solutions** and **`add_column`** for column generation
@@ -89,7 +92,7 @@ The design decisions above define a niche, and the honest answer to "should I us
 - you need **cross-solver experiments** — the same study on Gurobi, CPLEX, and an open solver — without maintaining per-solver code paths;
 - you write **build-bound iterative methods in C++** — column generation, cutting planes — and want the model-handling overhead out of your measurements.
 
-**Know what is not built yet.** User-cut callbacks are specified as a concept but not yet implemented by any backend, and heuristic-solution injection is still on the [roadmap](https://github.com/fhamonic/mippp#roadmap) — and those are features the build-bound, re-solve-heavy researcher needs: cutting-plane research needs user cuts, not just lazy constraints. LP bases are there: `get_basis()` and `set_basis()` on the LP models, read-only on `soplex_lp`, see [Bases and warm starts](../solving/basis.md). Solver-specific parameters (Gurobi's `MIPFocus`, CPLEX emphasis settings) have no uniform interface either, though they are reachable: every model satisfies `has_native_handles`, so `native_model()` and `native_api()` let you call the solver's own C API directly — see [Feature support](../solvers/index.md#feature-support). If your work depends on the unimplemented features above today, a mature layer serves you better until they land.
+**Know what is not built yet.** User cuts exist on Gurobi, CPLEX and COPT only; Xpress, SCIP and GLPK are on the [roadmap](https://github.com/fhamonic/mippp#roadmap), and a cut valid only below the current node has no interface. LP bases are there: `get_basis()` and `set_basis()` on the LP models, read-only on `soplex_lp`, see [Bases and warm starts](../solving/basis.md). Solver-specific parameters (Gurobi's `MIPFocus`, CPLEX emphasis settings) have no uniform interface either, though they are reachable: every model satisfies `has_native_handles`, so `native_model()` and `native_api()` let you call the solver's own C API directly — see [Feature support](../solvers/index.md#feature-support). If your work depends on what is missing above today, a mature layer serves you better until it lands.
 
 **Stay with the incumbents if** you model comfortably in Python or Julia (gurobipy and JuMP are mature, fully featured, and fast enough that build time rarely bottlenecks a one-shot solve), if your work is heavy solver-parameter tuning, or if it is CP/scheduling (OR-Tools CP-SAT). MIP++ requires a C++23 compiler (GCC 14 and 15, Clang 18, AppleClang 21, MinGW, MSVC 2022 and MSVC 2026 are the ones CI tests) and assumes fluency with modern C++ — ranges, concepts, and the template errors that come with them. And it is a young, single-maintainer project: pin a version before building a dissertation's worth of code on it.
 

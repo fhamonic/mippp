@@ -1,0 +1,39 @@
+Gurobi 12.0.1 /home/plaiseek/Softwares/solvers/gurobi1201/linux64/lib/libgurobi120.so
+gurobi satisfied-lazy: calls=6 status=N5mippp6status7optimalE value=7 (truth 7)
+gurobi inject=-1 rc=-999 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+gurobi inject=8 rc=0 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+gurobi inject=5 rc=0 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+CPLEX 22.1.2.0 /home/plaiseek/Softwares/solvers/cplex-community/cplex/bin/x86-64_linux/libcplex2212.so
+cplex satisfied-lazy: calls=433 status=N5mippp6status10infeasibleE value=none (truth 7)
+cplex inject=-1 rc=-999 candidates: 0a 10*r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+cplex inject=8 rc=0 candidates: 0a 10*r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+cplex inject=5 rc=0 candidates: 0a 10*r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+COPT /home/plaiseek/Softwares/solvers/copt80/lib/libcopt.so
+copt satisfied-lazy: calls=82 status=N5mippp6status10infeasibleE value=none (truth 7)
+copt inject=-1 rc=-999 candidates: 0a 1*a 10*r 5a 0*a 0*a 9r 8r 7r 6a 7r 6a 7r  -> value 6 (truth 6)
+copt inject=8 rc=0 candidates: 0a 1*a 10*r 5a 0*a 0*a 9r 8r  -> value 7.75 (truth 6)
+copt inject=5 rc=0 candidates: 0a 1*a 10*r 5a 0*a 0*a 9r 8r 7r 6a 7r 6a 7r  -> value 6 (truth 6)
+--- CPLEX STRAT=-1 (NOCHECK)
+CPLEX 22.1.2.0 /home/plaiseek/Softwares/solvers/cplex-community/cplex/bin/x86-64_linux/libcplex2212.so
+cplex satisfied-lazy: calls=433 status=N5mippp6status10infeasibleE value=none (truth 7)
+cplex inject=-1 rc=-999 candidates: 0a 10*r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+cplex inject=8 rc=0 candidates: 0a 10*r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+cplex inject=5 rc=0 candidates: 0a 10*r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+Gurobi 11.0.3 /home/plaiseek/Softwares/solvers/gurobi1103/linux64/lib/libgurobi110.so
+gurobi satisfied-lazy: calls=6 status=N5mippp6status7optimalE value=7 (truth 7)
+gurobi inject=-1 rc=-999 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+gurobi inject=8 rc=0 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+gurobi inject=5 rc=0 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+Gurobi 13.0.2 /home/plaiseek/Softwares/solvers/gurobi1302/linux64/lib/libgurobi130.so
+gurobi satisfied-lazy: calls=6 status=N5mippp6status7optimalE value=7 (truth 7)
+gurobi inject=-1 rc=-999 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+gurobi inject=8 rc=0 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+gurobi inject=5 rc=0 candidates: 10r 10r 10r 10r 10r 9r 8r 7r 6a  -> value 6 (truth 6)
+--- satlazy_gurobi
+fresh=false calls=6 candidates: (5,2) (5,2) (5,2) (-0,5) (1,5) (2,5) -> value 7
+fresh=true calls=6 candidates: (5,2) (5,2) (5,2) (-0,5) (1,5) (2,5) -> value 7
+--- writable_check
+copt   writable: true
+xpress writable: true
+gurobi writable: false
+cplex  writable: false

@@ -125,7 +125,6 @@ constexpr int CPXPARAM_MIP_Limits_Nodes = 2017;
 constexpr int CPXPARAM_MIP_Limits_Solutions = 2015;
 constexpr int CPXPARAM_MIP_Limits_TreeMemory = 2027;
 constexpr int CPXPARAM_MIP_Tolerances_MIPGap = 2009;
-constexpr int CPXPARAM_MIP_Tolerances_Linearization = 2068;
 int CPXgetdblparam(CPXCENVptr env, int whichparam, double * value_p);
 int CPXsetdblparam(CPXENVptr env, int whichparam, double newvalue);
 
@@ -286,11 +285,25 @@ int CPXcallbackrejectcandidatelocal(CPXCALLBACKCONTEXTptr context, int rcnt,
                                     char const * sense, int const * rmatbeg,
                                     int const * rmatind,
                                     double const * rmatval);
+int CPXcallbackgetrelaxationpoint(CPXCALLBACKCONTEXTptr context, double * x,
+                                  int begin, int end, double * obj_p);
+// What CPLEX may do with a user cut: FORCE (0) keeps it in every relaxation,
+// PURGE lets CPLEX drop it once it stops binding, FILTER (2) lets CPLEX refuse
+// it, which it does with some valid root cuts.
+constexpr int CPX_USECUT_PURGE = 1;
 int CPXcallbackaddusercuts(CPXCALLBACKCONTEXTptr context, int rcnt, int nzcnt,
                            double const * rhs, char const * sense,
                            int const * rmatbeg, int const * rmatind,
                            double const * rmatval, int const * purgeable,
                            int const * local);
+
+// CPXCALLBACKSOLUTIONSTRATEGY: what CPLEX does with a posted point before
+// taking it. NOCHECK (-1) is left out on purpose: it makes the point the
+// incumbent without showing it to the candidate callback.
+constexpr int CPXCALLBACKSOLUTION_CHECKFEAS = 0;
+int CPXcallbackpostheursoln(CPXCALLBACKCONTEXTptr context, int cnt,
+                            int const * ind, double const * val, double obj,
+                            int strat);
 
 void CPXcallbackabort(CPXCALLBACKCONTEXTptr context);
 
@@ -299,8 +312,15 @@ enum CPXCALLBACKINFO {
     CPXCALLBACKINFO_NODECOUNT,
     CPXCALLBACKINFO_ITCOUNT,
     CPXCALLBACKINFO_BEST_SOL,
-    CPXCALLBACKINFO_BEST_BND
+    CPXCALLBACKINFO_BEST_BND,
+    CPXCALLBACKINFO_THREADS,
+    CPXCALLBACKINFO_FEASIBLE,
+    CPXCALLBACKINFO_TIME,
+    CPXCALLBACKINFO_DETTIME,
+    CPXCALLBACKINFO_NODEUID
 };
+int CPXcallbackgetinfoint(CPXCALLBACKCONTEXTptr context, CPXCALLBACKINFO what,
+                          int * data_p);
 int CPXcallbackgetinfodbl(CPXCALLBACKCONTEXTptr context, CPXCALLBACKINFO what,
                           double * data_p);
 int CPXcallbackgetinfolong(CPXCALLBACKCONTEXTptr context, CPXCALLBACKINFO what,
@@ -385,10 +405,13 @@ namespace cplex::impl::v1 {
     F(CPXgetconflictext, getconflictext)                             \
     F(CPXcallbacksetfunc, callbacksetfunc)                           \
     F(CPXcallbackgetcandidatepoint, callbackgetcandidatepoint)       \
+    F(CPXcallbackgetrelaxationpoint, callbackgetrelaxationpoint)     \
     F(CPXcallbackrejectcandidate, callbackrejectcandidate)           \
     F(CPXcallbackrejectcandidatelocal, callbackrejectcandidatelocal) \
     F(CPXcallbackaddusercuts, callbackaddusercuts)                   \
+    F(CPXcallbackpostheursoln, callbackpostheursoln)                 \
     F(CPXcallbackabort, callbackabort)                               \
+    F(CPXcallbackgetinfoint, callbackgetinfoint)                     \
     F(CPXcallbackgetinfodbl, callbackgetinfodbl)                     \
     F(CPXcallbackgetinfolong, callbackgetinfolong)
 

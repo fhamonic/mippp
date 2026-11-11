@@ -29,8 +29,8 @@ Elapsed time is not on the handle. Read `std::chrono::steady_clock` in the callb
 - **It can stay silent.** The solver calls when it gets to it: COPT went 2 s between two calls on that knapsack, and nothing promises a call during presolve or a long root node.
 - **The last call is not the final state.** Once `solve()` returns, read the model.
 - **It may never run on a model without integer variables.** Solving such a model with the callback set is fine, on every backend.
-- **It may run on a worker thread of the solver.** We saw 16 distinct threads on CPLEX and 32 on Xpress. It never runs twice at once, but `thread_local` state in it is not safe.
-- **Keep it short.** CPLEX holds a global lock across the call, and Xpress a mutex of ours, so a slow callback blocks the search there.
+- **It may run on a worker thread of the solver.** We saw 16 distinct threads on CPLEX and 32 on Xpress. It never runs twice at once, nor at the same time as another callback of the same model, but `thread_local` state in it is not safe.
+- **Keep it short.** CPLEX holds a global lock across the call, and CPLEX, Xpress and COPT a mutex of ours, shared with the other callbacks of the model, so a slow callback blocks the search there.
 - **Do not call the model from inside it**, and do not let an exception leave it: that is undefined behavior, since the exception would cross the solver's C frames.
 - **It leaves the search alone.** At one thread, the node count is the same with and without it on every solver that reports one, which a [candidate-solution callback](../algorithms/branch-and-cut.md#watching-a-search-is-another-callback) does not promise.
 

@@ -88,6 +88,13 @@ struct quadratic_expression {
     }
     auto linear_part() const { return archetype::linear_expression<M>(); }
 };
+// The weakest point a handle must accept: values read by value, through a
+// const access. Requiring references would refuse a point computed on the
+// fly, a lambda mapping say.
+template <typename M>
+struct solution_point {
+    model_scalar_t<M> operator[](const model_variable_t<M> &) const;
+};
 struct any_type {};
 constexpr bool operator<(any_type, any_type) { return bool{}; }
 struct any_variable {
@@ -549,6 +556,9 @@ concept has_readable_constraints =
 ///////////////////////////////////////////////////////////////////////////////
 // clang-format off
 // Unconstrained return types: backends can return a dedicated handle or void.
+// A constraint that the candidate satisfies, within the solver's feasibility
+// tolerance, does not reject it, and the solver may not be given it at all:
+// offer it again when a candidate violates it.
 template <typename T, typename M = T>
 concept has_lazy_constraints = requires(T & handle) {
     { handle.add_lazy_constraint(archetype::linear_constraint<M>()) };
@@ -807,6 +817,10 @@ template <typename T>
 using candidate_solution_callback_handle_t =
     typename T::candidate_solution_callback_handle;
 
+// handle.get_solution() returns the candidate as a point that owns its values.
+// It stays readable once the callback has returned and the handle is gone, and
+// it can be written: a candidate is corrected in place before
+// handle.add_solution() hands it back.
 template <typename T>
 concept has_candidate_solution_callback =
     requires(T & model, candidate_solution_callback_handle_t<T> & handle) {
@@ -814,7 +828,7 @@ concept has_candidate_solution_callback =
                 [](candidate_solution_callback_handle_t<T> &) {}) };
         { handle.get_solution_value() } -> std::same_as<model_scalar_t<T>>;
         { handle.get_solution() }
-                -> input_mapping_of<model_variable_t<T>, model_scalar_t<T>>;
+                -> output_mapping_of<model_variable_t<T>, model_scalar_t<T>>;
     };
 
 // on the candidate-solution handle: discards the candidate without cutting
@@ -823,14 +837,66 @@ concept has_candidate_solution_rejection = requires(T & handle) {
     { handle.reject_solution() };
 };
 
+// On a callback handle: hands the solver a point to try as an incumbent. The
+// point gives a value to every variable and must satisfy the whole problem:
+// bounds, integrality, rows, and every constraint the candidate-solution
+// callback would add. The solver may make it the incumbent without showing it
+// to that callback, so a point the callback would reject is undefined
+// behavior: it can come back as the optimum, at status::optimal. The solver
+// uses the point at once, later or never, and where it does show it to the
+// callback, the callback runs once more, on that point. add_solution does not
+// throw: a point the solver refuses is dropped.
+template <typename T, typename M = T>
+concept has_solution_injection = requires(T & handle) {
+    { handle.add_solution(archetype::solution_point<M>()) };
+};
+
 template <typename T>
 using node_relaxation_callback_handle_t =
     typename T::node_relaxation_callback_handle;
 
+// Called during solve() on the relaxation of a node, possibly on a solver's
+// worker thread, never at the same time as another callback of this model.
+// Whether it runs at a given node is the solver's: it may never run, an
+// integer point may never reach it, and on a model without integer variables
+// it may never run. A separator that needs a call to be correct is wrong:
+// feasibility belongs to the candidate-solution callback.
+// handle.get_solution() returns the relaxation point as one that owns its
+// values, readable after the call and writable, and get_solution_value() the
+// objective at that point, offset included. An exception leaving the callback
+// is undefined behavior.
+// release_node_relaxation_callback() hands the callback over and leaves none
+// set, and set_node_relaxation_callback puts it back: an algorithm that
+// solves variants of the model, in which a cut valid for the model need not
+// be, takes the callback away meanwhile.
 template <typename T>
-concept has_node_relaxation_callback = requires(T & model) {
-    { model.set_node_relaxation_callback(
-            [](node_relaxation_callback_handle_t<T> &) {}) };
+concept has_node_relaxation_callback =
+    requires(T & model, node_relaxation_callback_handle_t<T> & handle) {
+        { model.set_node_relaxation_callback(
+                [](node_relaxation_callback_handle_t<T> &) {}) };
+        { model.set_node_relaxation_callback(
+                model.release_node_relaxation_callback()) };
+        { handle.get_solution_value() } -> std::same_as<model_scalar_t<T>>;
+        { handle.get_solution() }
+                -> output_mapping_of<model_variable_t<T>, model_scalar_t<T>>;
+    };
+
+// On a callback handle. The cut must hold at every point solve() may return
+// as feasible: integer, within the model's rows and bounds, and accepted by
+// the candidate-solution callback. A cut that removes such a point is
+// undefined behavior, even one that keeps an optimum: it can give a wrong
+// optimum at status::optimal, or status::infeasible on a feasible model. So
+// is a NaN or an infinite coefficient or right-hand side.
+// The solver may apply the cut anywhere or nowhere, and may drop it later: a
+// later point, at this node or another, can violate it. Offer a cut whenever
+// it is violated, rather than remembering which were added. A cut the point
+// does not violate is not passed on, and add_user_cut does not throw: a cut
+// the solver refuses is dropped.
+template <typename T, typename M = T>
+concept has_user_cuts = requires(T & handle) {
+    { handle.add_user_cut(archetype::linear_constraint<M>()) };
+    { handle.add_user_cut(distinct_variables,
+                          archetype::linear_constraint<M>()) };
 };
 
 template <typename T>

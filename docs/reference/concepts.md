@@ -67,9 +67,9 @@ The concepts declared this way are `has_dual_solution`, `has_reduced_costs`,
 `has_readable_variable_bounds`, `has_modifiable_variable_bounds`,
 `has_readable_constraints` and its three finer-grained forms,
 `has_readable_constraint_bounds`, `has_modifiable_constraint_bounds`,
-`has_enumerable_variables`, `has_enumerable_constraints` and
-`has_lazy_constraints`. The others describe whole models and stay
-single-parameter.
+`has_enumerable_variables`, `has_enumerable_constraints`,
+`has_lazy_constraints`, `has_solution_injection` and `has_user_cuts`. The
+others describe whole models and stay single-parameter.
 
 !!! note "Concept declared ≠ backend provides"
     A few concepts below are specified but satisfied by **no backend yet**;
@@ -185,10 +185,12 @@ Neither the SOS nor the indicator functions require a return type. SOS and indic
 | `has_column_generation` | `add_column(entries, params)` from `(constraint, coefficient)` pairs — see [Column generation](../algorithms/column-generation.md). |
 | `has_remove_variable` | `remove_variable(v)`, `remove_variables(range)`. |
 | `has_mip_start` | `add_mip_start(entries)` from `(variable, value)` pairs. `highs_milp`'s throws `mippp::feature_unavailable_error` on a HiGHS that does not export `Highs_setSparseSolution` (1.7), see [the releases it supports](../solvers/index.md#one-implementation-per-solver-and-the-releases-it-supports). |
-| `has_candidate_solution_callback` | `set_candidate_solution_callback(f)` where `f` takes the backend's `candidate_solution_callback_handle`, whose `get_solution()` returns the candidate indexed by the model's variable handles and `get_solution_value()` its objective value — see [Branch-and-cut](../algorithms/branch-and-cut.md). |
-| `has_lazy_constraints` | On a callback handle: `add_lazy_constraint(constraint)` and the `distinct_variables` form, taking the model as second parameter (see [above](#concepts-on-callback-handles)). Satisfied by the handles of `gurobi_milp`, `cplex_milp` and `copt_milp`. |
-| `has_candidate_solution_rejection` | On a callback handle: `reject_solution()` discards the candidate without adding a constraint. Satisfied by the handle of `xpress_milp`. |
-| `has_node_relaxation_callback` | `set_node_relaxation_callback(f)`, for user cuts on fractional solutions. *(no backend yet)* |
+| `has_candidate_solution_callback` | `set_candidate_solution_callback(f)` where `f` takes the backend's `candidate_solution_callback_handle`, whose `get_solution()` returns the candidate indexed by the model's variable handles and `get_solution_value()` its objective value. The candidate is a copy that owns its values: it stays readable after the callback returns, and can be written — see [Branch-and-cut](../algorithms/branch-and-cut.md). |
+| `has_lazy_constraints` | On a callback handle: `add_lazy_constraint(constraint)` and the `distinct_variables` form, taking the model as second parameter (see [above](#concepts-on-callback-handles)). A constraint the candidate satisfies does not reject it. Satisfied by the handles of `gurobi_milp`, `cplex_milp` and `copt_milp`. |
+| `has_solution_injection` | On a callback handle: `add_solution(point)` hands the solver a point to try as an incumbent, taking the model as second parameter. The point maps every variable to a value and must be feasible for the whole problem, the constraints the callback would add included; the solver uses it at once, later or never. Satisfied by the candidate and node-relaxation handles of `gurobi_milp`, `cplex_milp` and `copt_milp` — see [Repairing a rejected candidate](../algorithms/branch-and-cut.md#repairing-a-rejected-candidate). |
+| `has_candidate_solution_rejection` | On a callback handle: `reject_solution()` refuses the candidate without adding a constraint. Satisfied by the handle of `xpress_milp`, where it also drops the node of a candidate found as the optimum of a relaxation — see [Rejecting without a constraint](../algorithms/branch-and-cut.md#rejecting-without-a-constraint). |
+| `has_node_relaxation_callback` | `set_node_relaxation_callback(f)` where `f` takes the backend's `node_relaxation_callback_handle`, whose `get_solution()` returns the relaxation point of a node, as a copy that can be kept and written, and `get_solution_value()` the objective there. Whether it runs at a given node is the solver's business. `release_node_relaxation_callback()` takes the callback away and returns it. Satisfied by `gurobi_milp`, `cplex_milp` and `copt_milp` — see [User cuts](../algorithms/branch-and-cut.md#user-cuts). |
+| `has_user_cuts` | On a callback handle: `add_user_cut(constraint)` and the `distinct_variables` form, taking the model as second parameter. The cut must hold at every point `solve()` may return; the solver applies it anywhere or nowhere. Satisfied by the node-relaxation handles of `gurobi_milp`, `cplex_milp` and `copt_milp`. |
 | `has_progress_callback` | `set_progress_callback(f)` where `f` takes the backend's `progress_callback_handle`, whose `get_solution_value()` and `get_dual_bound()` read the best incumbent and bound so far, infinite until the solver has one, and whose `interrupt()` ends the solve as `status::interrupted`. `has_node_count` on the handle tells whether it also has `get_node_count()`. Satisfied by `gurobi_milp`, `cplex_milp`, `xpress_milp`, `copt_milp`, `mosek_milp`, `highs_milp`, `scip_milp` and `glpk_milp`, the handle of `copt_milp` having no node count. See [Watching a solve](../solving/progress.md). |
 
 ## Escape hatch

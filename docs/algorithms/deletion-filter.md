@@ -180,9 +180,13 @@ After any run that solved, the solver holds the solution of a trial rather than 
 
 ### Callbacks
 
+A node-relaxation callback does not run in the trials: the filter takes it away before its first trial and puts it back when it returns. A [user cut](branch-and-cut.md#user-cuts) is valid for your model, not for a trial that relaxed the row it comes from, where it would keep that row enforced and let the filter name a subsystem that has a solution.
+
 A trial is a `solve()`, so a candidate-solution callback registered on `gurobi_milp`, `cplex_milp`, `xpress_milp` or `copt_milp` runs in every trial. Its lazy constraints and rejections are background: the filter explains the model as the callback defines it. The native routines explain the model without the callback, which is attached for the duration of a `solve()` only. Of the two paths, only the filter honours lazy constraints.
 
 The filter's answer is proven only when the callback's decision to accept or reject a candidate depends on that point alone, which keeps the trials [monotone](#monotonicity). A callback with memory, one that rejects a point for what it saw in earlier candidates or trials, can break monotonicity, and an `irreducible` answer is then unproven.
+
+On `xpress_milp` no rejection depends on the point alone: refusing a candidate found as the optimum of a node's relaxation drops that node, and every point below with it, see [Rejecting without a constraint](branch-and-cut.md#rejecting-without-a-constraint). A trial can then read infeasible while points the callback accepts remain, so an `irreducible` answer is unproven there whenever the callback rejects.
 
 A callback that only reads its candidates changes no answer: with one that counts them, both paths answer `feasible` on a feasible model. A callback that rejects candidates changes the answers. Measured with one that rejects every candidate, on integers `x` and `y` in [0, 5], with a `time_limit` of 10 s:
 

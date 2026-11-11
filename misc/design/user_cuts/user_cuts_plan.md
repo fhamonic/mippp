@@ -4,7 +4,22 @@ On 2026-11-07 the maintainer asked how user-cut callbacks should be implemented,
 noting that backends seem to give "user cut" different meanings: globally valid, or
 valid only in the current branch of the search tree.
 
-**Status: proposal. Nothing is implemented, and nothing below is ruled yet.** The
+**Status: ruled, partly implemented.** On 2026-11-11 the maintainer accepted the recommended
+option of each of the nine decisions. On the branch `feat/solution-injection`:
+
+- **Done:** the shared preparation (`detail/row_preparation.hpp`); D3, D4, D5, D6, D7 and D8;
+  D1 and D2 in the docs; the node-relaxation callback and `add_user_cut` on Gurobi, CPLEX and
+  COPT, with the suites `NodeRelaxationCallbackTest` and `UserCutsTest`; the deletion filter
+  takes the callback away for its trials.
+- **Not done:** Xpress with its validated floor, SCIP, GLPK, and D9 to D14 apart from the
+  candidate handle's share of D9.
+- **One departure from the letter of D5's fix.** On the lazy path a row is dropped when the
+  candidate is within the solver's feasibility tolerance of it, measured on the row as
+  written, not on the scaled row: scaled, a Benders cut with a large coefficient is dropped
+  at a violation that matters. Gurobi's lazy path is left as it is, since Gurobi accepts a
+  satisfied row by itself.
+
+The text below is the proposal as it was ruled on. The
 evidence is in [survey/](survey/), described in [survey/RECORD.md](survey/RECORD.md),
 and was gathered in four rounds:
 
