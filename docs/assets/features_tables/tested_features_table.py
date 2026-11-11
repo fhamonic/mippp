@@ -87,6 +87,7 @@ formated_test_names = [
     ("NodeCountTest", "Node count"),
     ("IntegralityToleranceTest", "Integrality tolerance"),
     ("ThreadLimitTest", "Thread limit"),
+    ("LpAlgorithmTest", "LP algorithm"),
     ("VerbosityTest", "Verbosity control"),
     ("MipStartTest", "MIP start"),
     ("SudokuTest", "Sudoku example"),

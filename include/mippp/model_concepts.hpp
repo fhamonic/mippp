@@ -957,6 +957,43 @@ concept has_thread_limit = requires(T & model, std::size_t n) {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// LP algorithm /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+// A model lists the tags its solver honours, and set_lp_algorithm() takes
+// those alone: a refinement is never run as its base, so
+// interior_point_without_crossover does not compile where only interior_point
+// is listed. A tag names the main algorithm, and a solver may finish with a
+// few iterations of another. automatic is what solve() runs without a choice.
+// interior_point crosses over to a basis; its refinement leaves none, and
+// get_basis() then throws.
+//
+// get_lp_algorithm() reads the solver's own settings: a tag when they are
+// the ones set_lp_algorithm() writes for it, other otherwise, as after a
+// native write. other cannot be set. is_a<simplex> and is_a<interior_point>
+// test a family, and compile on a variant that lists one of its members.
+namespace lp_algorithm {
+struct automatic {};
+struct simplex {};
+struct primal_simplex : simplex {};
+struct dual_simplex : simplex {};
+struct interior_point {};
+struct interior_point_without_crossover : interior_point {};
+struct other {};
+}  // namespace lp_algorithm
+
+template <typename T>
+using model_lp_algorithm_t =
+    std::decay_t<decltype(std::declval<T &>().get_lp_algorithm())>;
+
+// With one argument: the model has a selector, whatever it lists besides
+// automatic.
+template <typename T, typename A = lp_algorithm::automatic>
+concept has_lp_algorithm =
+    variant_with_alternative<model_lp_algorithm_t<T>, A> &&
+    requires(T & model, A algorithm) { model.set_lp_algorithm(algorithm); };
+
+///////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Verbosity //////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
