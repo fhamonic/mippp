@@ -574,7 +574,7 @@ struct algorithm_stub : iis_stub_model<false, false> {
         base::solve();
     }
 };
-// lists no interior point, as clp_lp and glpk_lp
+// lists no interior point, as glpk_lp
 struct simplex_only_stub : iis_stub_model<false, false> {
     using algorithm =
         std::variant<lp_algorithm::automatic, lp_algorithm::dual_simplex>;
