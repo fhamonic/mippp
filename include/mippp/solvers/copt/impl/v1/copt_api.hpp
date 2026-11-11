@@ -50,6 +50,8 @@ constexpr const char * COPT_DBLPARAM_INTTOL = "IntTol";
 constexpr const char * COPT_DBLPARAM_RELGAP = "RelGap";
 constexpr const char * COPT_INTPARAM_LOGGING = "Logging";
 constexpr const char * COPT_INTPARAM_THREADS = "Threads";
+constexpr const char * COPT_INTPARAM_LPMETHOD = "LpMethod";
+constexpr const char * COPT_INTPARAM_CROSSOVER = "Crossover";
 ret_code COPT_SetIntParam(copt_prob * prob, const char * paramName,
                           int intParam);
 ret_code COPT_GetIntParam(copt_prob * prob, const char * paramName,
@@ -176,6 +178,7 @@ enum MipStatus : int {
 constexpr const char * COPT_INTATTR_LPSTATUS = "LpStatus";
 constexpr const char * COPT_INTATTR_MIPSTATUS = "MipStatus";
 constexpr const char * COPT_INTATTR_SIMPLEXITER = "SimplexIter";
+constexpr const char * COPT_INTATTR_BARRIERITER = "BarrierIter";
 constexpr const char * COPT_INTATTR_HASLPSOL = "HasLpSol";
 constexpr const char * COPT_INTATTR_HASMIPSOL = "HasMipSol";
 constexpr const char * COPT_INTATTR_NODECNT = "NodeCnt";
