@@ -23,6 +23,7 @@
 
 #include "mippp/detail/iis_arithmetic.hpp"
 #include "mippp/detail/invoke_key.hpp"
+#include "mippp/detail/lp_algorithm_codec.hpp"
 #include "mippp/linear_constraint.hpp"
 #include "mippp/linear_expression.hpp"
 #include "mippp/model_concepts.hpp"
@@ -546,6 +547,45 @@ struct iis_stub_probe : iis_stub_model<Timed, Quadratic> {
     }
 };
 
+// The stub with an LP algorithm of its own: each solve records the one it
+// ran under, and a write can be made to fail.
+struct algorithm_stub : iis_stub_model<false, false> {
+    using base = iis_stub_model<false, false>;
+    using algorithm =
+        std::variant<lp_algorithm::automatic, lp_algorithm::primal_simplex,
+                     lp_algorithm::dual_simplex, lp_algorithm::interior_point,
+                     lp_algorithm::interior_point_without_crossover,
+                     lp_algorithm::other>;
+
+    algorithm current = lp_algorithm::automatic{};
+    std::vector<algorithm> trial_algorithms;
+    std::size_t algorithm_writes = 0;
+    std::optional<std::size_t> failing_algorithm_write;
+
+    template <detail::settable_lp_algorithm<algorithm> A>
+    void set_lp_algorithm(A tag) {
+        if(failing_algorithm_write == algorithm_writes++)
+            throw iis_stub_failure("failing algorithm");
+        current = tag;
+    }
+    algorithm get_lp_algorithm() const { return current; }
+    void solve() {
+        trial_algorithms.push_back(current);
+        base::solve();
+    }
+};
+// lists no interior point, as clp_lp and glpk_lp
+struct simplex_only_stub : iis_stub_model<false, false> {
+    using algorithm =
+        std::variant<lp_algorithm::automatic, lp_algorithm::dual_simplex>;
+    algorithm current = lp_algorithm::automatic{};
+    template <detail::settable_lp_algorithm<algorithm> A>
+    void set_lp_algorithm(A tag) {
+        current = tag;
+    }
+    algorithm get_lp_algorithm() const { return current; }
+};
+
 struct stub_without_reset : iis_stub_model<false, false> {
     void reset_status() noexcept = delete;
 };
@@ -708,6 +748,12 @@ static_assert(iis_by_deletion_model<iis_stub_model<true, true>>);
 static_assert(iis_by_deletion_model<iis_stub_probe<false, false>>);
 static_assert(iis_by_deletion_model<iis_stub_probe<true, false>>);
 static_assert(iis_by_deletion_model<iis_stub_probe<true, true>>);
+static_assert(iis_by_deletion_model<algorithm_stub>);
+static_assert(detail::iis_trials_leave_interior_point<algorithm_stub>);
+static_assert(iis_by_deletion_model<simplex_only_stub>);
+static_assert(!detail::iis_trials_leave_interior_point<simplex_only_stub>);
+static_assert(
+    !detail::iis_trials_leave_interior_point<iis_stub_model<false, false>>);
 static_assert(!iis_by_deletion_model<stub_without_reset>);
 static_assert(!iis_by_deletion_model<stub_without_row_setters>);
 static_assert(iis_by_deletion_model<sense_rhs_stub>);
@@ -2205,6 +2251,103 @@ TEST_F(iis_by_deletion, limits_alone_run_over_every_side) {
     const auto iis = compute_iis_by_deletion(model, {});
     EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
     EXPECT_EQ(model.solves, 8u);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// LP algorithm /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+TEST_F(iis_by_deletion, trials_leave_an_interior_point_for_the_dual_simplex) {
+    for(const algorithm_stub::algorithm & chosen :
+        {algorithm_stub::algorithm{lp_algorithm::interior_point{}},
+         algorithm_stub::algorithm{
+             lp_algorithm::interior_point_without_crossover{}}}) {
+        algorithm_stub model;
+        conflict_model(model);
+        model.current = chosen;
+        const auto before = model.data();
+        const auto iis = compute_iis_by_deletion(model);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+        ASSERT_EQ(model.trial_algorithms.size(), 8u);
+        for(const auto & trial : model.trial_algorithms)
+            EXPECT_TRUE(is<lp_algorithm::dual_simplex>(trial));
+        EXPECT_EQ(model.current.index(), chosen.index());
+        EXPECT_EQ(model.algorithm_writes, 2u);
+        expect_restored(model, before);
+    }
+}
+
+// A simplex, the default and a native setting are the caller's: the trials
+// run under them, and the model's algorithm is not written at all. A native
+// setting could not be written back.
+TEST_F(iis_by_deletion, trials_keep_any_other_algorithm) {
+    for(const algorithm_stub::algorithm & chosen :
+        {algorithm_stub::algorithm{lp_algorithm::automatic{}},
+         algorithm_stub::algorithm{lp_algorithm::primal_simplex{}},
+         algorithm_stub::algorithm{lp_algorithm::dual_simplex{}},
+         algorithm_stub::algorithm{lp_algorithm::other{}}}) {
+        algorithm_stub model;
+        conflict_model(model);
+        model.current = chosen;
+        const auto iis = compute_iis_by_deletion(model);
+        EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+        ASSERT_EQ(model.trial_algorithms.size(), 8u);
+        for(const auto & trial : model.trial_algorithms)
+            EXPECT_EQ(trial.index(), chosen.index());
+        EXPECT_EQ(model.current.index(), chosen.index());
+        EXPECT_EQ(model.algorithm_writes, 0u);
+    }
+}
+
+// A feasible model is answered by its first trial, which already runs the
+// dual simplex: the algorithm is back afterwards there too.
+TEST_F(iis_by_deletion, a_feasible_model_gets_its_interior_point_back) {
+    using namespace operators;
+    algorithm_stub model;
+    const auto x = bounded_variable(model, 0.0, 1.0);
+    model.add_constraint(x <= 5);
+    model.current = lp_algorithm::interior_point{};
+    const auto iis = compute_iis_by_deletion(model);
+    EXPECT_TRUE(outcome_is<iis_outcome::feasible>(iis.get_outcome()));
+    ASSERT_EQ(model.trial_algorithms.size(), 1u);
+    EXPECT_TRUE(is<lp_algorithm::dual_simplex>(model.trial_algorithms[0]));
+    EXPECT_TRUE(is<lp_algorithm::interior_point>(model.current));
+}
+
+// The switch throws before any trial: nothing was solved, the error
+// propagates, and the model reads as the caller left it.
+TEST_F(iis_by_deletion, a_throwing_algorithm_switch_leaves_the_model_restored) {
+    algorithm_stub model;
+    conflict_model(model);
+    model.current = lp_algorithm::interior_point_without_crossover{};
+    model.failing_algorithm_write = 0;
+    const auto before = model.data();
+    EXPECT_THROW((void)compute_iis_by_deletion(model), iis_stub_failure);
+    EXPECT_TRUE(model.trial_algorithms.empty());
+    EXPECT_TRUE(
+        is<lp_algorithm::interior_point_without_crossover>(model.current));
+    expect_restored(model, before);
+}
+
+// The trials ran, and writing the algorithm back throws: the error
+// propagates once the bounds, the sides and the objective are back.
+TEST_F(iis_by_deletion, a_throwing_algorithm_restore_leaves_the_rest_restored) {
+    algorithm_stub model;
+    conflict_model(model);
+    model.current = lp_algorithm::interior_point{};
+    model.failing_algorithm_write = 1;
+    const auto before = model.data();
+    EXPECT_THROW((void)compute_iis_by_deletion(model), iis_stub_failure);
+    EXPECT_EQ(model.trial_algorithms.size(), 8u);
+    expect_restored(model, before);
+}
+
+TEST_F(iis_by_deletion, a_model_without_an_interior_point_is_left_alone) {
+    simplex_only_stub model;
+    conflict_model(model);
+    const auto iis = compute_iis_by_deletion(model);
+    EXPECT_TRUE(outcome_is<iis_outcome::irreducible>(iis.get_outcome()));
+    EXPECT_TRUE(is<lp_algorithm::automatic>(model.current));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
