@@ -96,3 +96,83 @@ backend, each on a fresh model with a 10 s time limit where the model has one:
   representation; the parameter reads back as written. SoPlex maps it to its
   entering or leaving type (`soplex.hpp:8404-8418` in 9.2.1); no probe here
   showed an effect.
+
+# Fuzz survey and review probes: record (2026-11-11)
+
+Run on the implementation, on `feat/lp-algorithm`, with the libraries of the
+table above, to answer what the probes of 2026-11-02 could not: they ran one
+cold solve per configuration on seven fixed LPs.
+
+## Fuzz survey
+
+[fuzz_survey.sh](fuzz_survey.sh) runs
+`LpAlgorithmTest.random_operations_under_each_algorithm` of every backend
+under one seed per process, `MIPPP_FUZZ_SEED` 1 to 1500, 40 rounds each. The
+test is the state machine of `test/test_suites/lp_fuzzy_tests.hpp`: random
+variables, rows, objectives, bounds, removals and solves, each solve compared
+with `dumb_lp`, a reference model solved by Clp's primal simplex, on
+optimality, objective value and feasibility of the point. It runs once per
+tag the model lists.
+
+```
+./fuzz_survey.sh <mippp_test> <output directory> 1 1500
+```
+
+[out_fuzz_survey.txt](out_fuzz_survey.txt) lists the failing seeds of two
+runs. The first ran while `clp_lp` had a selector and `copt_lp` listed
+`interior_point_without_crossover`:
+
+| Model | Tag | Failing seeds of 1500 | What the solver said |
+|---|---|---|---|
+| `copt_lp` | `interior_point_without_crossover` | 26 | `optimal`, with a value, on an LP the reference calls infeasible or unbounded |
+| `clp_lp` | `dual_simplex` | 2 | `optimal` at -1.1e11 on an unbounded LP (409); `infeasible` on an LP of optimum 8 (1124) |
+| `gurobi_lp` | `primal_simplex` | 1 | `unbounded` on an LP of optimum -34.5 (98) |
+| `highs_lp` | `primal_simplex` | 1 | `unknown` on an LP of optimum -31 (1090) |
+
+Every other tag of every model passed the 1500 seeds, `automatic` included.
+The second run, on the final tree, fails on seeds 98 and 1090 alone.
+
+## Probes behind the rulings
+
+Built as the probes above, against the final `include/`:
+
+- [probe_fuzz_copt.cpp](probe_fuzz_copt.cpp),
+  [out_fuzz_copt.txt](out_fuzz_copt.txt): the LP of a failing COPT run,
+  built directly. It is feasible and unbounded. COPT's default, its dual
+  simplex and its barrier with crossover say `unbounded`; its barrier
+  without crossover says `LpStatus` 1, `HasLpSol` 1, `LpObjval` -35.63.
+  Clp's primal simplex says `infeasible` on the same LP.
+- [probe_fuzz_gurobi.cpp](probe_fuzz_gurobi.cpp),
+  `out_fuzz_gurobi_<release>.txt`: the operations of seed 98. Ten columns,
+  no row, every column with a cost bounded in the improving direction. After
+  a first solve, the primal simplex of 11.0.3 and 12.0.1 ends `Status` 5 in
+  0 iterations; without the first solve it ends optimal, and so does 13.0.2
+  in both cases, in 5 iterations.
+- [probe_fuzz_clp_highs.cpp](probe_fuzz_clp_highs.cpp),
+  [out_fuzz_clp_highs.txt](out_fuzz_clp_highs.txt): `Clp_dual` called on
+  the native model of seed 1124's LP, fresh, ends on status 1 after one
+  iteration where `Clp_primal` ends on 0 with the objective 2; HiGHS's
+  primal simplex ends on model status 15 after 7 iterations on seed 1090's
+  LP when a first solve came before, and optimal without it.
+- [probe_both_infeasible.cpp](probe_both_infeasible.cpp),
+  [out_both_infeasible.txt](out_both_infeasible.txt): what every model says,
+  under each tag, on an LP that is primal and dual infeasible. `gurobi_lp`
+  ends `unbounded` after `refine_lp_status()` and `mosek_lp` reports
+  `unbounded`, except under its crossover-less interior point.
+- [probe_cplex_threads.cpp](probe_cplex_threads.cpp),
+  [out_cplex_threads.txt](out_cplex_threads.txt): cores `cplex_lp` keeps
+  busy on the 900-column dense LP of `ThreadLimitTest`, under each tag, at
+  the default thread limit and at 1.
+
+## Pitfalls met
+
+- The fuzz seed is not portable: the distributions of the standard library
+  draw other sequences on another implementation.
+- On `lp_basis_cases::build_dense`, whose slack basis is primal feasible,
+  `Clp_dual` took the 20 iterations of `Clp_primal` and `Clp_algorithm` read
+  primal after both: the witness LP of the backend tests is
+  `lp_algorithm_cases::build_dense_covering`, whose slack basis is dual
+  feasible.
+- A tag that only `detail::overloaded` rows encode falls back to its base
+  tag's row; a requires-expression outside a template is a hard error on an
+  ill-formed call, so the negative setter checks go through a concept.

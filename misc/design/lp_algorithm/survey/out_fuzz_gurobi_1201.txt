@@ -1,0 +1,34 @@
+primal_simplex             first_solve=true remove=true: unbounded (Status 5, NumVars 10, IterCount 0)
+    col 0: obj 0 in [-1, 1e+100]
+    col 1: obj 0 in [-5, -3]
+    col 2: obj 0 in [-3, 3]
+    col 3: obj 0 in [-1, 7]
+    col 4: obj -0.5 in [1, 7]
+    col 5: obj -1 in [2, 10]
+    col 6: obj -0.5 in [-5, -1]
+    col 7: obj -2 in [-1, 0]
+    col 8: obj 0.5 in [0, 7]
+    col 9: obj -2.5 in [1, 7]
+    same model under dual_simplex: unbounded
+dual_simplex               first_solve=true remove=true: optimal (Status 2, NumVars 10, IterCount 0)
+automatic                  first_solve=true remove=true: optimal (Status 2, NumVars 10, IterCount 0)
+primal_simplex             first_solve=true remove=false: unbounded (Status 5, NumVars 10, IterCount 0)
+    col 0: obj 0 in [-1, 1e+100]
+    col 1: obj 0 in [-5, -3]
+    col 2: obj 0 in [-3, 3]
+    col 3: obj 0 in [-1, 7]
+    col 4: obj -0.5 in [1, 7]
+    col 5: obj -1 in [2, 10]
+    col 6: obj -0.5 in [-5, -1]
+    col 7: obj -2 in [-1, 0]
+    col 8: obj 0.5 in [0, 7]
+    col 9: obj -2.5 in [1, 7]
+    same model under dual_simplex: unbounded
+dual_simplex               first_solve=true remove=false: optimal (Status 2, NumVars 10, IterCount 0)
+automatic                  first_solve=true remove=false: optimal (Status 2, NumVars 10, IterCount 0)
+primal_simplex             first_solve=false remove=true: optimal (Status 2, NumVars 10, IterCount 0)
+dual_simplex               first_solve=false remove=true: optimal (Status 2, NumVars 10, IterCount 0)
+automatic                  first_solve=false remove=true: optimal (Status 2, NumVars 10, IterCount 0)
+primal_simplex             first_solve=false remove=false: optimal (Status 2, NumVars 10, IterCount 0)
+dual_simplex               first_solve=false remove=false: optimal (Status 2, NumVars 10, IterCount 0)
+automatic                  first_solve=false remove=false: optimal (Status 2, NumVars 10, IterCount 0)

@@ -213,6 +213,12 @@ Neither the SOS nor the indicator functions require a return type. SOS and indic
 | --- | --- |
 | `has_thread_limit` | `set_thread_limit(n)`, `get_thread_limit()`, both `std::size_t`. A cap on the threads of the solver's own algorithms; `0` restores the solver's default, not one thread. Not a limit concept: reaching it stops nothing, so no status goes with it. See [Threads](../solving/status-and-limits.md#threads). |
 
+## LP algorithm
+
+| Concept | Provides |
+| --- | --- |
+| `has_lp_algorithm<M, Tag>` | `set_lp_algorithm(Tag{})`, and `get_lp_algorithm()`, a `std::variant` that lists `Tag` itself and that `model_lp_algorithm_t<M>` names. `Tag` is a tag of `namespace lp_algorithm`, and defaults to `automatic`, which every model with a selector lists: `has_lp_algorithm<M>` tells such a model. A tag the model does not list does not compile, a refinement of a listed tag included. The getter reads the solver's own parameters, and answers `lp_algorithm::other`, which cannot be set, when no tag writes them. Satisfied by seven `*_lp` models; see [LP algorithm](../solving/status-and-limits.md#lp-algorithm). |
+
 ## Verbosity
 
 | Concept | Provides |

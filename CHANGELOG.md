@@ -66,6 +66,17 @@ All notable changes to MIP++ are recorded in this file. The format follows
   whose thread pool belongs to the calling thread rather than to the model,
   and the serial solvers do not satisfy it. See
   [Threads](docs/solving/status-and-limits.md#threads).
+- **LP algorithm.** `set_lp_algorithm(tag)` and `get_lp_algorithm()`, behind
+  `has_lp_algorithm<M, Tag>`, on the LP models of COPT, CPLEX, GLPK, Gurobi,
+  HiGHS, MOSEK and Xpress. The tags of `namespace lp_algorithm` are
+  `automatic`, `simplex`, `primal_simplex`, `dual_simplex`, `interior_point`
+  and `interior_point_without_crossover`: a model lists those its solver has,
+  and any other does not compile. The getter reads the solver's own
+  parameters, and answers `other` for a native setting no tag names. See
+  [LP algorithm](docs/solving/status-and-limits.md#lp-algorithm).
+- **`glpk_lp::refine_lp_status()`** decides an `infeasible_or_unbounded` LP,
+  which GLPK's dual simplex can end on, by the primal simplex: `glpk_lp`
+  satisfies `has_refinable_lp_status`.
 - **SoPlex.** `soplex_lp` reads and modifies variable bounds, and reads its
   objective.
 - **Partial support of solver releases.** A backend may declare
@@ -145,8 +156,9 @@ All notable changes to MIP++ are recorded in this file. The format follows
   - GLPK models report crossed bounds or sides as `infeasible`, where they
     reported `failed`.
 - **Status variants.** `clp_lp` lists `optimal_infeasible_unscaled`,
-  `limit_reached` and `time_limit`; `glpk_lp` lists `limit_reached`,
-  `time_limit`, `failed` and `numerical_failure`; `glpk_milp` lists
+  `limit_reached` and `time_limit`; `glpk_lp` lists
+  `infeasible_or_unbounded`, `limit_reached`, `time_limit`, `failed` and
+  `numerical_failure`; `glpk_milp` lists
   `infeasible_or_unbounded`. A visitor written as one overload per
   alternative needs overloads for them, or for a tag they derive from.
   `highs_lp` no longer lists `solution_limit`, which none of its solves
@@ -154,6 +166,15 @@ All notable changes to MIP++ are recorded in this file. The format follows
   status no longer compile.
 - **A `solve()` that throws** leaves `get_status()` at `unknown`, where it kept
   the previous solve's status.
+- **`cplex_lp` solves with `CPXlpopt`**, where it called `CPXprimopt`. Its
+  default algorithm is CPLEX's own choice, in our measurements the dual
+  simplex for an LP solved from scratch, where it was the primal simplex, and
+  a `CPXPARAM_LPMethod` written through `native_api()` is honoured, where it
+  was ignored. `set_lp_algorithm(lp_algorithm::primal_simplex{})` runs the
+  primal simplex as before.
+- **No basis.** Where Gurobi, CPLEX and Xpress hold no basis, as after a
+  barrier without crossover, `get_basis()` throws `solver_error` with MIP++'s
+  "found no basis" message, in place of the solver's own text.
 - **Results after a change (breaking).** `get_solution_value()`,
   `get_solution()`, `get_dual_solution()`, `get_reduced_costs()`,
   `get_basis()`, `get_dual_bound()` and `get_node_count()` read the last
@@ -223,7 +244,10 @@ All notable changes to MIP++ are recorded in this file. The format follows
   once.
 - **Deletion filter.** `compute_iis_by_deletion` takes a node-relaxation
   callback away for its trials and puts it back: a user cut is valid for the
-  model, not for a trial with a row relaxed.
+  model, not for a trial with a row relaxed. On a model set to an interior
+  point, it runs its trials under the dual simplex and writes the model's
+  algorithm back: an interior point solves each trial from scratch, and
+  without a crossover it can end an infeasible one with no verdict.
 - **Satisfied lazy constraints.** On `cplex_milp` and `copt_milp`, a lazy
   constraint that the candidate satisfies within the solver's feasibility
   tolerance is no longer passed to the solver, which rejected the candidate
@@ -332,6 +356,12 @@ All notable changes to MIP++ are recorded in this file. The format follows
 - On `cplex_lp`, `cplex_milp`, `gurobi_lp`, `gurobi_milp`, `highs_lp`,
   `highs_milp` and `highs_qp`, a solution or reduced-cost snapshot taken
   before `remove_variable` read the values of other variables afterwards.
+- `gurobi_lp::refine_lp_status()` threw "Failed to refine LP status." on an
+  unbounded LP solved by a barrier without crossover, which it ran again. It
+  re-solves by the dual simplex.
+- `mosek_lp::get_basis()` returned the basis of an earlier solve after an
+  interior-point solve that wrote none, as with basis identification turned
+  off. It throws `solver_error`.
 
 ## [1.0.0] - 2026-09-23
 

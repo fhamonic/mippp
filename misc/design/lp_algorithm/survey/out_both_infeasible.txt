@@ -1,0 +1,34 @@
+clp_lp     (no selector)                     infeasible
+glpk_lp    automatic                         infeasible
+glpk_lp    primal_simplex                    infeasible
+glpk_lp    dual_simplex                      infeasible_or_unbounded, refined to infeasible
+soplex_lp  (no selector)                     infeasible
+highs_lp   automatic                         infeasible
+highs_lp   simplex                           infeasible
+highs_lp   primal_simplex                    infeasible
+highs_lp   dual_simplex                      infeasible
+highs_lp   interior_point                    infeasible
+gurobi_lp  automatic                         infeasible_or_unbounded, refined to unbounded
+gurobi_lp  primal_simplex                    infeasible_or_unbounded, refined to unbounded
+gurobi_lp  dual_simplex                      infeasible_or_unbounded, refined to unbounded
+gurobi_lp  interior_point                    infeasible_or_unbounded, refined to unbounded
+gurobi_lp  interior_point_without_crossover  infeasible_or_unbounded, refined to unbounded
+cplex_lp   automatic                         infeasible_or_unbounded, refined to infeasible
+cplex_lp   primal_simplex                    infeasible_or_unbounded, refined to infeasible
+cplex_lp   dual_simplex                      infeasible_or_unbounded, refined to infeasible
+cplex_lp   interior_point                    infeasible_or_unbounded, refined to infeasible
+cplex_lp   interior_point_without_crossover  infeasible_or_unbounded, refined to infeasible
+xpress_lp  automatic                         infeasible
+xpress_lp  primal_simplex                    infeasible
+xpress_lp  dual_simplex                      infeasible
+xpress_lp  interior_point                    infeasible
+xpress_lp  interior_point_without_crossover  infeasible
+copt_lp    automatic                         infeasible
+copt_lp    dual_simplex                      infeasible
+copt_lp    interior_point                    infeasible
+mosek_lp   automatic                         unbounded
+mosek_lp   simplex                           unbounded
+mosek_lp   primal_simplex                    unbounded
+mosek_lp   dual_simplex                      unbounded
+mosek_lp   interior_point                    unbounded
+mosek_lp   interior_point_without_crossover  infeasible

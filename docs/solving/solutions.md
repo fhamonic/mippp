@@ -28,7 +28,7 @@ Reading a solution is only valid when one exists — see [Status, limits and tol
 
 ## When results can be read
 
-The result getters, `get_solution_value()`, `get_solution()`, `get_dual_solution()`, `get_reduced_costs()`, `get_basis()`, `get_dual_bound()` and `get_node_count()`, read the last `solve()` until the model changes. Any change ends that: adding or removing a variable or a constraint, or setting the objective, the sense, a bound, a side, a type, a name, a basis or a MIP start. From then until the next `solve()`, `get_status()` reports `status::unknown` and these getters throw `mippp::solve_required_error`, as they do before the first `solve()`. Setting a limit, a tolerance, the verbosity or a callback is not a change, and the results stay readable.
+The result getters, `get_solution_value()`, `get_solution()`, `get_dual_solution()`, `get_reduced_costs()`, `get_basis()`, `get_dual_bound()` and `get_node_count()`, read the last `solve()` until the model changes. Any change ends that: adding or removing a variable or a constraint, or setting the objective, the sense, a bound, a side, a type, a name, a basis or a MIP start. From then until the next `solve()`, `get_status()` reports `status::unknown` and these getters throw `mippp::solve_required_error`, as they do before the first `solve()`. Setting a limit, a tolerance, the LP algorithm, the verbosity or a callback is not a change, and the results stay readable.
 
 Solvers disagree on what they keep after a change: some discard their solution, others return zeros or the values of the model as it was, and SCIP crashes. So fetch what you need right after `solve()`. What the getters returned keeps the values of that solve:
 
